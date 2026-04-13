@@ -1,0 +1,41 @@
+lib/
+├── app/                                  # Konfigurasi Utama Aplikasi
+│   ├── main_layout.dart                  # Layout utama (Sidebar & BottomNav)
+│   └── router.dart                       # Konfigurasi Navigasi (GoRouter)
+├── core/                                 # Shared/Core Module (Utility Global)
+│   ├── constants/                        # Variabel Konstan
+│   │   ├── assets.dart                   # Path Asset (Gambar/Icon)
+│   │   ├── colors.dart                   # Konfigurasi Warna
+│   │   └── routes.dart                   # Nama-nama Route
+│   ├── error/                            # Penanganan Error/Exception
+│   ├── network/                          # API Client & Connection (Dio/Http)
+│   ├── usecases/                         # Base UseCase
+│   └── utils/                            # Helper & Widget Reusable
+│       ├── theme.dart                    # Konfigurasi Tema Aplikasi
+│       ├── widget.dart                   # Shared Widget
+│       └── widget/                       # Custom UI Components (SearchField, ButtonSheet, dll.)
+├── features/                             # Fitur Berdasarkan Modul (Clean Architecture)
+│   ├── auth/                             # Modul Autentikasi
+│   │   ├── data/                         # Layer Data (Implementasi Luar)
+│   │   │   ├── datasource/               # API Call / Remote Data Source
+│   │   │   ├── models/                   # Model JSON & Mapping
+│   │   │   └── repositories/             # Implementasi Repository (Handle Logic & Error)
+│   │   ├── domain/                       # Layer Bisnis (Aturan Bisnis Utama)
+│   │   │   ├── entities/                 # Objek Data Murni
+│   │   │   ├── repositories/             # Kontrak/Interface Repository
+│   │   │   └── usecases/                 # Fungsi Spesifik (misal: LoginUseCase)
+│   │   └── presentation/                 # Layer UI (UI & State)
+│   │       ├── pages/                    # Halaman Screen
+│   │       └── state/                    # State Management (Bloc/Riverpod)
+│   ├── contact/                          # Modul Kontak
+│   │   ├── data/                         # Argument & Model Data
+│   │   └── presentation/                 # Halaman List, Detail, & Form Kontak
+│   ├── home/                             # Modul Dashboard/Home
+│   │   ├── data/                         # Chart Service & Models
+│   │   ├── domain/                       # Logic Dashboard
+│   │   └── presentation/                 # UI Dashboard
+│   ├── inbox/                            # Modul Pesan/Inbox
+│   ├── saleskit/                         # Modul Penjualan
+│   ├── search/                           # Modul Pencarian
+│   └── site-plan/                        # Modul Site Plan (WebView)
+└── main.dart                             # Entry Point Aplikasi
