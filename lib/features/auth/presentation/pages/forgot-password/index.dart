@@ -15,9 +15,16 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
   
   bool _isObscure = true;
   bool _isObscure2 = true;
+
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
+  final List<TextEditingController> otpControllers = List.generate(4, (_) => TextEditingController());
+
+  final List<FocusNode> otpFocusNodes = List.generate(4, (_) => FocusNode());
+  final _emailFN = FocusNode();
+  final _passwordFN = FocusNode();
+  final _confirmPasswordFN = FocusNode();
 
   @override
   void dispose() {
@@ -61,10 +68,54 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
           children: [
             const Text('Reset Password',textAlign: TextAlign.center,style: TextStyle(fontSize: 18,fontWeight: FontWeight.w700,letterSpacing: 0,color: Color(blue2Color))),
             const SizedBox(height: 32),
+            Text("Verification Code",style: TextStyle(fontSize: 14,fontWeight: FontWeight.w700,color: Color(grey2Color))),
+            const SizedBox(height: 10),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: List.generate(4, (index) {
+                return SizedBox(
+                  width: 60,
+                  child: TextFormField(
+                    controller: otpControllers[index],
+                    focusNode: otpFocusNodes[index],
+                    keyboardType: TextInputType.number,
+                    textAlign: TextAlign.center,
+                    maxLength: 1,
+                    decoration: InputDecoration(
+                      counterText: "",
+                      filled: true,
+                      fillColor: Colors.grey[50],
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(14),borderSide: BorderSide(color: Color(grey4Color),width: 1)),
+                      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14),borderSide: BorderSide(color: Color(grey4Color),width: 1)),
+                      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14),borderSide: BorderSide(color: Color(primaryColor),width: 1.5)),
+                      errorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14),borderSide: BorderSide(color: Color(redPeriodColor),width: 1.5)),
+                      focusedErrorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14),borderSide: BorderSide(color: Color(redPeriodColor),width: 1.5)),
+                      disabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14),borderSide: BorderSide(color: Colors.grey, width: 1)),
+                    ),
+                    onChanged: (value) {
+                      if (value.isNotEmpty) {
+                        if (index < 3) {
+                          FocusScope.of(context).requestFocus(otpFocusNodes[index + 1]);
+                        } else {
+                          FocusScope.of(context).unfocus();
+                        }
+                      } else {
+                        if (index > 0) {
+                          FocusScope.of(context).requestFocus(otpFocusNodes[index - 1]);
+                        }
+                      }
+                    },
+                  ),
+                );
+              }),
+            ),
+            const SizedBox(height: 10),
             Text("New Password",style: TextStyle(fontSize: 14,fontWeight: FontWeight.w700,color: Color(grey2Color))),
             const SizedBox(height: 10),
             TextFormField(
               controller: _passwordController,
+              focusNode: _passwordFN,
+              onTapOutside: (event) => _passwordFN.unfocus(),
               obscureText: true,
               decoration: InputDecoration(
                 hintText: '••••••••',
@@ -92,6 +143,8 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
             const SizedBox(height: 10),
             TextFormField(
               controller: _confirmPasswordController,
+              focusNode: _confirmPasswordFN,
+              onTapOutside: (event) => _confirmPasswordFN.unfocus(),
               obscureText: true,
               decoration: InputDecoration(
                 hintText: '••••••••',
@@ -155,6 +208,8 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
            const SizedBox(height: 10),
            TextFormField(
              controller: _emailController,
+             focusNode: _emailFN,
+             onTapOutside: (event) => _emailFN.unfocus(),
              decoration: InputDecoration(
                hintText: 'youremail@gmail.com',
                hintStyle: TextStyle(fontSize: 14,fontWeight: FontWeight.w400,color: Color(grey3Color)),

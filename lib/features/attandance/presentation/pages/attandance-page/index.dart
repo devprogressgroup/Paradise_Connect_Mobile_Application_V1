@@ -18,12 +18,9 @@ class AttandancePage extends StatefulWidget {
 class _AttandancePageState extends State<AttandancePage> {
   int selectedIndex = 0;
   late PageController _pageController;
-  // OFFICE LOCATION
   final double officeLat =  -6.1416575;
   final double officeLng = 106.8659419;
   final double radiusMeter = 1050;
-
-  // LOCATION STATE
   StreamSubscription<Position>? _positionStream;
 
   String? _address;
@@ -206,7 +203,7 @@ class _AttandancePageState extends State<AttandancePage> {
       body: SafeArea(
         child: Column(
           children: [
-            customHeader(context,'Attandance',colorBg: Color(primaryColor),colorBack: Color(whiteColor),colorTitle: Color(whiteColor)),
+            customHeader(context,'Attandance', colorBg: Color(primaryColor),colorBack: Color(whiteColor),colorTitle: Color(whiteColor), iconRight: Icons.arrow_back, iconRightOnTap: (){ context.go('/');}, colorIconRight: Color(whiteColor)),
             SizedBox(
               height: 260,
               child: Stack(
@@ -311,10 +308,11 @@ class _AttandancePageState extends State<AttandancePage> {
 
   Widget _buildHeaderProfile() {
     return Container(
-      height: 140,
+      height: 160,
       color: Color(primaryColor),
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
@@ -526,110 +524,75 @@ class _AttandancePageState extends State<AttandancePage> {
   }  
 
   Widget _buildCheckOut() {
-    return Expanded(
-      child: _buildCheckForm(title: "Clock Out"),
-    );
+    return _buildCheckForm(title: "Clock Out");
   }
 
   Widget _buildCheckIn() {
-    return Expanded(
-      child: _buildCheckForm(title: "Clock In"),
+    return _buildCheckForm(title: "Clock In");
+  }
+
+    
+  void _showAttendanceDialog() {
+    showDialog(
+      context: context,
+      barrierColor: Colors.black54,
+      builder: (context) {
+        return Dialog(
+          backgroundColor: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: SizedBox(
+            width: MediaQuery.of(context).size.width * 0.6,
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(16),
+                    child: Image.network(
+                      "https://i.pravatar.cc/150?img=1",
+                      width: double.infinity,
+                      height: 180,
+                      fit: BoxFit.cover,
+                    ),
+                  ),
+                  SizedBox(height: 16),
+                  _buildInfoRow(Icons.access_time_filled,"08.00 AM",Color(greenPercentColor),),
+                  SizedBox(height: 8),
+                  _buildInfoRow(Icons.calendar_today,DateHelper.formatDayDate(DateTime.now()),Color(primaryColor),),
+                  SizedBox(height: 8),
+                  _buildInfoRow(Icons.map,"Sunter, Jakarta Utara",Color(primaryColor),),
+                  SizedBox(height: 8),
+                  _buildInfoRow(Icons.notes,"---",Color(primaryColor),),
+                  SizedBox(height: 20),
+      
+                ],
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 
-  
-void _showAttendanceDialog() {
-  showDialog(
-    context: context,
-    barrierColor: Colors.black54, // background overlay
-    builder: (context) {
-      return Dialog(
-        backgroundColor: Colors.white,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20), // 🔥 lebih smooth
-        ),
-        child: SizedBox(
-           width: MediaQuery.of(context).size.width * 0.6,
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-          
-                // 🖼️ IMAGE ROUNDED
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(16),
-                  child: Image.network(
-                    "https://i.pravatar.cc/150?img=1",
-                    width: double.infinity,
-                    height: 180,
-                    fit: BoxFit.cover,
-                  ),
-                ),
-          
-                SizedBox(height: 16),
-          
-                // 🕒 TIME
-                _buildInfoRow(
-                  Icons.access_time_filled,
-                  "08.00 AM",
-                  Color(greenPercentColor),
-                ),
-          
-                SizedBox(height: 8),
-          
-                // 📅 DATE
-                _buildInfoRow(
-                  Icons.calendar_today,
-                  DateHelper.formatDayDate(DateTime.now()),
-                  Color(primaryColor),
-                ),
-          
-                SizedBox(height: 8),
-          
-                // 📍 LOCATION
-                _buildInfoRow(
-                  Icons.map,
-                  "Sunter, Jakarta Utara",
-                  Color(primaryColor),
-                ),
-          
-                SizedBox(height: 8),
-          
-                // 📝 NOTES
-                _buildInfoRow(
-                  Icons.notes,
-                  "---",
-                  Color(primaryColor),
-                ),
-          
-                SizedBox(height: 20),
-     
-              ],
+  Widget _buildInfoRow(IconData icon, String text, Color color) {
+    return Row(
+      children: [
+        Icon(icon, color: color, size: 18),
+        SizedBox(width: 10),
+        Expanded(
+          child: Text(
+            text,
+            style: const TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
             ),
+            overflow: TextOverflow.ellipsis,
           ),
         ),
-      );
-    },
-  );
-}
-
-Widget _buildInfoRow(IconData icon, String text, Color color) {
-  return Row(
-    children: [
-      Icon(icon, color: color, size: 18),
-      SizedBox(width: 10),
-      Expanded(
-        child: Text(
-          text,
-          style: const TextStyle(
-            fontSize: 13,
-            fontWeight: FontWeight.w500,
-          ),
-          overflow: TextOverflow.ellipsis,
-        ),
-      ),
-    ],
-  );
-}
+      ],
+    );
+  }
 }

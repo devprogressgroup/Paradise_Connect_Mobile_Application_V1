@@ -1,3 +1,5 @@
+// light
+
 const int primaryColor = 0xFF2196F3;
 const int secondaryColor = 0xFF3F51B5;
 const int backgroundColor = 0xFFF4F9FD;
@@ -42,3 +44,6 @@ const int redPeriodColor = 0xFFFF3C00;
 const int redColor =0xFFF65160;
 
 const int purpleColor = 0xFF6D5DD3;
+
+
+//dark

@@ -8,6 +8,8 @@ import 'package:progress_group/features/contact/data/models/selectbox_model.dart
 import 'package:progress_group/features/inbox/data/arguments/inbox_detail_args.dart';
 import 'package:progress_group/features/inbox/data/models/dropdown_model.dart';
 
+import '../../../../../core/utils/widget/custom_button.dart';
+
 class InboxPage extends StatefulWidget {
   const InboxPage({super.key});
 
@@ -157,7 +159,27 @@ class _InboxPageState extends State<InboxPage> {
               padding:  EdgeInsets.symmetric(horizontal: 16),
               child: Column(
                 children: [
-                  customSearchField(controller: _searchController,focusNode: _searchFocus),
+                  Row(
+                    children: [
+                      Expanded(child: customSearchField(controller: _searchController,focusNode: _searchFocus)),
+                      SizedBox(width: 10),
+                      GestureDetector(
+                        onTap: () {
+                          _showInboxQRDialog();
+                        },
+                        child: Container(
+                          width: 40,
+                          height: 40,
+                          decoration: BoxDecoration(
+                            color: Color(whiteColor),
+                            border: Border.all(color: Color(primaryColor), width: 1),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Icon(Icons.qr_code, color: Color(primaryColor)),
+                        ),
+                      )
+                    ],
+                  ),
                   SizedBox(
                     height: 50,
                     child: ListView.separated(
@@ -368,6 +390,58 @@ class _InboxPageState extends State<InboxPage> {
           ),
         ),
       ],
+    );
+  }
+  
+  void _showInboxQRDialog() {
+    showDialog(
+      context: context,
+      barrierColor: Colors.black54, 
+      builder: (context) {
+        return Dialog(
+          backgroundColor: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12), 
+          ),
+          child: SizedBox(
+            width: MediaQuery.of(context).size.width * 0.6,
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text("Scan QR Code for", style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+                  SizedBox(height: 16),
+                  Container(
+                    padding: EdgeInsets.all(15),
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Color(grey1Color)),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: Image.network(
+                        "https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=0000011",
+                        width: 180,
+                        height: 180,
+                        fit: BoxFit.cover,
+                      ),
+                    ),
+                  ),
+                  SizedBox(height: 10),
+                  Text("Buka WhatsApp > Perangkat Tertaut > Tautkan Perangkat",textAlign: TextAlign.center, style: TextStyle(fontSize: 12, color: Colors.grey)),
+                  SizedBox(height: 16),
+                  customButton((){ Navigator.pop(context); }, "Tutup", colorBg: Color(primaryColor), colorText: Color(whiteColor)),
+                  SizedBox(height: 10),
+                  customButton((){ Navigator.pop(context); }, "Gunakan Pairing Code", colorBg: Color(primaryColor), colorText: Color(whiteColor)),
+            
+      
+                ],
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 }

@@ -2,64 +2,54 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../constants/assets.dart';
 
-Widget customHeader(BuildContext context, String title, {bool isBack = false, Color? colorBack, Color? colorBg, Color? colorTitle, bool isHome = false}) {
+Widget customHeader(BuildContext context, String title, {bool isBack = false, Color? colorBack, Color? colorBg, Color? colorTitle,IconData? iconLeft, IconData? iconRight,VoidCallback? iconLeftOnTap,VoidCallback? iconRightOnTap, VoidCallback? onBack, Color? colorIconLeft, Color? colorIconRight}) {
   return Container(
     color: colorBg ?? Colors.white,
     child: Padding(
-      padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 10),
-      child: isHome ? headerHome(context) : Row(
+      padding: EdgeInsets.symmetric(horizontal: 13.0, vertical: 6),
+      child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Row(
             children: [
+              if(iconRight != null)
+              Container(
+                width: 40,
+                child: IconButton(
+                  icon:  Icon(iconRight, size: 24, color: colorBack),
+                  onPressed: () {
+                    iconRightOnTap?.call();
+                  },
+                ),
+              ),
               !isBack ? SizedBox(): Row(
                 children: [
                   GestureDetector(
                     onTap: () {
-                      context.pop();
+                      if (onBack != null) {
+                        onBack();
+                      } else {
+                        context.pop();
+                      }
                     },
                     child: Icon(Icons.arrow_back, size: 27, color: colorBack),
                   ),
                   SizedBox(width: 10),
                 ],
               ),
-              GestureDetector(
-                onTap: () => Scaffold.of(context).openDrawer(),
-                child: Text(title, style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: colorTitle))),
+              Text(title, style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: colorTitle)),
             ],
           ),
-        ],
-      ),
-    ),
-  );
-}
-
-
-Widget headerHome (BuildContext context){
-  return Container(
-    height: 35,
-    child: Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        GestureDetector(
-          onTap: () => Scaffold.of(context).openDrawer(),
-          child: Row(
-            children: [
-              Image.asset(icHomeDashboard, width: 20, height: 20),
-              const SizedBox(width: 8),
-              Text('Dashboard', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-            ],
-          ),
-        ),
-        IconButton(
-          icon: const Icon(Icons.notifications_none_rounded, size: 24),
+          if(iconLeft != null)
+          IconButton(
+          icon:  Icon(iconLeft, size: 24, color: colorIconLeft),
           onPressed: () {
-            context.pushNamed('notif');
+            iconLeftOnTap?.call();
           },
         ),
-      ],
+        ],
+      ),
     ),
   );
 }

@@ -14,6 +14,8 @@ class _LoginPageState extends State<LoginPage> {
   bool _isObscure = true;
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _emailFN = FocusNode();
+  final _passwordFN = FocusNode();
 
   @override
   void dispose() {
@@ -55,6 +57,8 @@ class _LoginPageState extends State<LoginPage> {
                     const SizedBox(height: 10),
                     TextFormField(
                       controller: _emailController,
+                      focusNode: _emailFN,
+                      onTapOutside: (event) => _emailFN.unfocus(),
                       decoration: InputDecoration(
                         hintText: 'youremail@gmail.com',
                         hintStyle: TextStyle(fontSize: 14,fontWeight: FontWeight.w400,color: Color(grey3Color)),
@@ -73,6 +77,8 @@ class _LoginPageState extends State<LoginPage> {
                     const SizedBox(height: 10),
                     TextFormField(
                       controller: _passwordController,
+                      focusNode: _passwordFN,
+                      onTapOutside: (event) => _passwordFN.unfocus(),
                       obscureText: true,
                       decoration: InputDecoration(
                         hintText: '••••••••',

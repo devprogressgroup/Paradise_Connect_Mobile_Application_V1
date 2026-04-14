@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:progress_group/core/constants/colors.dart';
 import 'package:progress_group/core/constants/assets.dart';
 import 'package:progress_group/features/home/data/models/chart_model.dart';
@@ -45,7 +46,9 @@ class _HomePageState extends State<HomePage> {
     return SafeArea(
       child: Column(
         children: [
-          customHeader(context, 'Dashboard', isHome: true),
+          customHeader(context, 'Dashboard',iconRight: Icons.menu,iconRightOnTap: () => Scaffold.of(context).openDrawer(), iconLeft: Icons.notifications_none_rounded, iconLeftOnTap: () {
+            context.pushNamed('notif');
+          }),
           SizedBox(height: 16),
           Expanded(
             child: SingleChildScrollView(

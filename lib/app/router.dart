@@ -10,6 +10,7 @@ import '../features/attandance/presentation/pages/attandance-page/index.dart';
 import '../features/attandance/presentation/pages/camera/index.dart';
 import '../features/auth/presentation/pages/forgot-password/index.dart';
 import '../features/auth/presentation/pages/login/index.dart';
+import '../features/auth/presentation/pages/profile/index.dart';
 import '../features/contact/data/arguments/contact_detail_args.dart';
 import '../features/contact/presentation/pages/contact-add/index.dart';
 import '../features/contact/presentation/pages/contact-detail/index.dart';
@@ -149,6 +150,12 @@ class AppRouter {
             path: '/notif',
             name: "notif",
             builder: (context, state) => const NotifPage(),
+          ),
+
+          GoRoute(
+            path: '/profile',
+            name: "profile",
+            builder: (context, state) => const ProfilePage(),
           ),
         ],
       ),

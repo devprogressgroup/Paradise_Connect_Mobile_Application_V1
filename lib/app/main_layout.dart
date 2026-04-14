@@ -26,6 +26,7 @@ class _MainLayoutState extends State<MainLayout> {
     if (location.startsWith('/site-plan')) return 4;
     if (location.startsWith('/sales-kit')) return 5;
     if (location.startsWith('/attandance')) return 6;
+    if (location.startsWith('/profile')) return 7;
     return -1;
   }
   
@@ -44,7 +45,6 @@ class _MainLayoutState extends State<MainLayout> {
   @override
   Widget build(BuildContext context) {
     final currentIndex = _currentIndex;
-    final bool showBottomNav = currentIndex >= 0 && currentIndex < 4;
     final location = GoRouterState.of(context).uri.path;
     final isAttendance = location.startsWith('/attandance');
 
@@ -69,6 +69,11 @@ class _MainLayoutState extends State<MainLayout> {
           return;
         }
 
+        if (location != '/' && location != '/login') {
+          context.go('/');
+          return;
+        }
+
         final now = DateTime.now();
         final isTimeout = _lastPressedAt == null ||
             now.difference(_lastPressedAt!) > const Duration(seconds: 2);
@@ -88,32 +93,33 @@ class _MainLayoutState extends State<MainLayout> {
     child: Scaffold(
       key: _scaffoldKey,
       drawerEnableOpenDragGesture: false,
-      drawer: _buildFloatingDrawer(context),
+      drawer: location == '/' ? _buildFloatingDrawer(context) : null,
       drawerScrimColor: Color(background2Color).withOpacity(0.16),
       body: Builder(
         builder: (context) {
           return Stack(
             children: [
               widget.child,
-              Positioned(
-                left: 20,
-                top: 0,
-                bottom: 0,
-                width: 40,
-                child: GestureDetector(
-                  behavior: HitTestBehavior.translucent,
-                  onHorizontalDragUpdate: (details) {
-                    if (details.delta.dx > 12) {
-                      Scaffold.of(context).openDrawer();
-                    }
-                  },
+              if (location == '/')
+                Positioned(
+                  left: 20,
+                  top: 0,
+                  bottom: 0,
+                  width: 40,
+                  child: GestureDetector(
+                    behavior: HitTestBehavior.translucent,
+                    onHorizontalDragUpdate: (details) {
+                      if (details.delta.dx > 12) {
+                        Scaffold.of(context).openDrawer();
+                      }
+                    },
+                  ),
                 ),
-              ),
             ],
           );
         },
       ),
-      bottomNavigationBar: showBottomNav ? Container(
+      bottomNavigationBar: Container(
         decoration: BoxDecoration(
           color: Color(whiteColor),
           boxShadow: [
@@ -128,13 +134,13 @@ class _MainLayoutState extends State<MainLayout> {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: [
-            _buildNavItem(context, path: '/', icon: icNavHome, label: 'Home', isActive: currentIndex == 0),
+            _buildNavItem(context, path: '/', icon: icNavHome, label: 'Home', isActive: currentIndex != 1 && currentIndex != 2 && currentIndex != 4),
             _buildNavItem(context, path: '/contact', icon: icSidebarContacts, label: 'Contact', isActive: currentIndex == 1),
             _buildNavItem(context, path: '/inbox', icon: icSidebarInbox, label: 'Inbox', isActive: currentIndex == 2),
-            _buildNavItem(context, path: '/site-plan', icon: icSidebarSitePlan, label: 'Site Plan', isActive: currentIndex == 3),
+            _buildNavItem(context, path: '/site-plan', icon: icSidebarSitePlan, label: 'Site Plan', isActive: currentIndex == 4),
           ],
         ),
-      ) : null,
+      ),
     )));
   }
 
@@ -143,49 +149,46 @@ class _MainLayoutState extends State<MainLayout> {
     final screenWidth = MediaQuery.of(context).size.width;
     final drawerWidth = screenWidth * 0.6; 
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 10),
-      child: SizedBox(
-        width: drawerWidth,
-        child: Drawer(
-          backgroundColor: Colors.white,
-          elevation: 7,
-          shape: const RoundedRectangleBorder(
-            borderRadius: BorderRadius.only(
-              topRight: Radius.circular(24),
-              bottomRight: Radius.circular(24),
-              topLeft: Radius.circular(24),
-              bottomLeft: Radius.circular(24),
-            ),
-          ),
+    return SizedBox(
+      width: drawerWidth,
+      child: Drawer(
+        backgroundColor: Colors.white,
+        elevation: 7,
+        child: SafeArea(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.start,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 35, horizontal: 16),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        CircleAvatar(
-                          radius: 27,
-                          backgroundColor: Color(primaryColor),
-                          child: Icon(Icons.person, color: Colors.white, size: 37),
-                        ),
-                        SizedBox(width: 10),
-                        Column(
-                          children: [
-                            Text('Progress Group',style: TextStyle(fontSize: 16, fontWeight: FontWeight.w400, color: Color(grey2Color))),
-                            Text('joe@progressgroup.co.id',style: TextStyle(fontSize: 10, fontWeight: FontWeight.w400, color: Color(grey2Color))),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ],
+              GestureDetector(
+                onTap: () {
+                  context.push('/profile');
+                },
+                child: Padding(
+                  padding: const EdgeInsets.symmetric( horizontal: 16),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          CircleAvatar(
+                            radius: 27,
+                            backgroundColor: Color(primaryColor),
+                            child: Icon(Icons.person, color: Colors.white, size: 37),
+                          ),
+                          SizedBox(width: 10),
+                          Column(
+                            children: [
+                              Text('Progress Group',style: TextStyle(fontSize: 16, fontWeight: FontWeight.w400, color: Color(grey2Color))),
+                              Text('joe@progressgroup.co.id',style: TextStyle(fontSize: 10, fontWeight: FontWeight.w400, color: Color(grey2Color))),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
               ),
+              SizedBox(height: 10),
               _buildDrawerItem(context, icSidebarDashboard, 'Dashboard', path: '/', index: 0),
               _buildDrawerItem(context, icSidebarContacts, 'Contacts', path: '/contact', index: 1),
               _buildDrawerItem(context, icSidebarInbox, 'Inbox', path: '/inbox', index: 2),

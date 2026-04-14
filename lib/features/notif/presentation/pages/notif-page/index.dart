@@ -14,15 +14,17 @@ class _NotifPageState extends State<NotifPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Column(
-        children: [
-         customHeader(context, "Notifikasi", isBack: true, colorBack: Color(primaryColor)),
-         SizedBox(height: 16),
-         Expanded(child: Padding(
-           padding: const EdgeInsets.symmetric(horizontal: 16),
-           child: _buildListNotif(),
-         )),
-        ],
+      body: SafeArea(
+        child: Column(
+          children: [
+           customHeader(context, "Notifikasi", isBack: true, colorBack: Color(primaryColor)),
+           SizedBox(height: 16),
+           Expanded(child: Padding(
+             padding: const EdgeInsets.symmetric(horizontal: 16),
+             child: _buildListNotif(),
+           )),
+          ],
+        ),
       ),
     );
   }

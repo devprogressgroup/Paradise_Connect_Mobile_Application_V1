@@ -1,6 +1,9 @@
+import 'dart:io';
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:progress_group/core/constants/assets.dart';
 import 'package:progress_group/core/utils/widget/custom_button.dart';
 
@@ -8,6 +11,7 @@ import '../../../../../core/constants/colors.dart';
 import '../../../../../core/utils/helpers/date_helper.dart';
 import '../../../../../core/utils/widget/custom_header.dart';
 import '../../../data/arguments/contact_detail_args.dart';
+import '../../../data/arguments/contact_dropdown_args.dart';
 
 class ContactAddPage extends StatefulWidget {
   final ContactDetailArgs args;
@@ -24,7 +28,20 @@ class _ContactAddPageState extends State<ContactAddPage> {
   bool isFollowUp = false;
   DateTime? selectedDate;
 
+  File? selectedImage;
+  final ImagePicker picker = ImagePicker();
 
+
+  Future<void> pickImage() async {
+    final XFile? image = await picker.pickImage(source: ImageSource.gallery);
+
+    if (image != null) {
+      setState(() {
+        selectedImage = File(image.path);
+      });
+    }
+  }
+  
   Future<void> pickDateTime(BuildContext context) async {
     final now = DateTime.now();
 
@@ -84,42 +101,87 @@ class _ContactAddPageState extends State<ContactAddPage> {
         mainAxisAlignment: MainAxisAlignment.center,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            width: double.infinity,
-            height: 180,
-            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: Color(grey11Color)),
-            ),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Container(
-                  width: 58,
-                  height: 44,
-                  decoration: BoxDecoration(
-                    color: Color(whiteColor),
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: Color(primaryColor)),
-                  ),
-                  child: Image.asset(icUpload, height: 24, width: 24)),
-                  Text("Upload Files",style: TextStyle(fontSize: 14,fontWeight: FontWeight.bold, color: Color(blue2Color))),
-              ],
+          GestureDetector(
+            onTap: pickImage,
+            child: Container(
+              width: double.infinity,
+              height: 180,
+              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(8),
+                color: Color(grey10Color),
+                border: Border.all(color: Color(grey11Color)),
+              ),
+              child: selectedImage != null
+                  ? ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: Image.file(
+                        selectedImage!,
+                        width: double.infinity,
+                        fit: BoxFit.cover,
+                      ),
+                    )
+                  : Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Container(
+                          width: 58,
+                          height: 44,
+                          decoration: BoxDecoration(
+                            color: Color(whiteColor),
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(color: Color(primaryColor)),
+                          ),
+                          child: Image.asset(icUpload, height: 24, width: 24),
+                        ),
+                        SizedBox(height: 8),
+                        Text(
+                          "Upload Files",
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                            color: Color(blue2Color),
+                          ),
+                        ),
+                      ],
+                    ),
             ),
           ),
           SizedBox(height: 12),
-          Text("Name",style: TextStyle(fontSize: 12,fontWeight: FontWeight.bold, color: Color(grey2Color))),
+          Text("Attachment Type",style: TextStyle(fontSize: 12,fontWeight: FontWeight.bold, color: Color(grey2Color))),
           SizedBox(height: 6),
-          TextField(
-              maxLines: 1,
-              minLines: 1,
+          GestureDetector(
+            onTap: () => context.pushNamed('detailContactDropdown', extra: ContactDropdownArgs(title: 'Owner')),
+            child: Container(
+               width: double.infinity,
+               height: 40,
+               decoration: BoxDecoration(
+                 border: Border.all(color: Color(grey4Color)),
+                 borderRadius: BorderRadius.circular(8),
+               ),
+               padding: EdgeInsets.symmetric(horizontal: 16),
+               alignment: Alignment.centerLeft,
+               child: Row(
+                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                 children: [
+                   Text("Select type",style: TextStyle(fontSize: 14, color: Color(grey2Color))),
+                   Icon(Icons.keyboard_arrow_down_rounded, color: Color(grey2Color), size: 30),
+                 ],
+               ), 
+             ),
+          ),
+           SizedBox(height: 12,),
+           Text("Description",style: TextStyle(fontSize: 12,fontWeight: FontWeight.bold, color: Color(grey2Color))),
+           SizedBox(height: 6),
+           TextField(
+              maxLines: 4,
+              minLines: 3,
               controller: descTC,
               focusNode: descFN,
               onTapOutside: (event) => descFN.unfocus(),
               textInputAction: TextInputAction.newline,
               decoration: InputDecoration(
-                hintText: "Name",
+                hintText: "Describe the attachment...",
                 hintStyle: TextStyle(color: Color(grey2Color),fontSize: 14),
                 contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(12),borderSide: BorderSide(color: Color(grey11Color))),
@@ -127,8 +189,8 @@ class _ContactAddPageState extends State<ContactAddPage> {
                 focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12),borderSide: BorderSide(color: Color(primaryColor))),
               ),
             ),
-            SizedBox(height: 32,),
-            customButton( (){context.pop();}, "Save")
+            SizedBox(height: 20),
+           customButton( (){context.pop();}, "Save")
 
         ],
       ),

@@ -42,13 +42,11 @@ class _InboxDetailPageState extends State<InboxDetailPage> {
   ];
 
   @override
-  @override
-Widget build(BuildContext context) {
+  Widget build(BuildContext context) {
   return Scaffold(
     body: SafeArea(
-      child: Column( // ❗ FIX: langsung Column
+      child: Column(
         children: [
-          /// HEADER
           Container(
             color: Color(whiteColor),
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
@@ -60,8 +58,6 @@ Widget build(BuildContext context) {
                       color: Color(primaryColor), size: 27),
                 ),
                 const SizedBox(width: 10),
-
-                /// 🔥 FIX overflow header
                 Expanded(
                   child: Row(
                     children: [
@@ -85,8 +81,6 @@ Widget build(BuildContext context) {
                         ),
                       ),
                       const SizedBox(width: 10),
-
-                      /// 🔥 biar gak overflow ke kanan
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -95,9 +89,7 @@ Widget build(BuildContext context) {
                               widget.args.data.title,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w700),
+                              style: const TextStyle(fontSize: 16,fontWeight: FontWeight.w700),
                             ),
                             Text(
                               widget.args.data.subtitle,
@@ -114,10 +106,7 @@ Widget build(BuildContext context) {
               ],
             ),
           ),
-
           const SizedBox(height: 16),
-
-          /// CHAT CONTAINER
           Expanded(
             child: Container(
               padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
@@ -135,10 +124,8 @@ Widget build(BuildContext context) {
               ),
               child: Column(
                 children: [
-                  /// DATE
                   Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(24),
                       border: Border.all(color: Color(grey1Color)),

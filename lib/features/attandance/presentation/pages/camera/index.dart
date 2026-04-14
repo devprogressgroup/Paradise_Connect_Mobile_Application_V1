@@ -19,13 +19,16 @@ class CameraPage extends StatefulWidget {
 }
 
 class _CameraPageState extends State<CameraPage> {
+  TextEditingController notesTC = TextEditingController();
+  TextEditingController pameranTC = TextEditingController();
+  FocusNode notesFN = FocusNode();
+  FocusNode pameranFN = FocusNode();
   CameraController? _controller;
   XFile? _imageFile;
   int _cameraIndex = 0;
-  bool get _isCameraReady =>_controller != null && _controller!.value.isInitialized;
+  bool get _isCameraReady => _controller != null && _controller!.value.isInitialized;
   List<CameraDescription>? _cameras;
   bool _isSwitching = false;
-
 
   @override
   void initState() {
@@ -88,7 +91,6 @@ class _CameraPageState extends State<CameraPage> {
     setState(() => _isSwitching = false);
   }
 
-
   @override
   void dispose() {
     _controller?.dispose();
@@ -101,13 +103,14 @@ class _CameraPageState extends State<CameraPage> {
       body: SafeArea(
         child: Column(
           children: [
-           customHeader(context,widget.args.type ?? "-",colorBg: Color(primaryColor),colorBack: Color(whiteColor),colorTitle: Color(whiteColor),isBack: true),
+            customHeader( context, widget.args.type ?? "-", colorBg: Color(primaryColor), colorBack: Color(whiteColor), colorTitle: Color(whiteColor), isBack: true,iconLeft:_imageFile != null? Icons.history:null,iconLeftOnTap: (){  setState(() { _imageFile = null;  }); }, colorIconLeft: Color(whiteColor) ),
             Expanded(child: _buildBody()),
           ],
         ),
       ),
     );
   }
+
   Widget _buildBody() {
     if (!_isCameraReady || _isSwitching) {
       return Center(child: CircularProgressIndicator());
@@ -139,8 +142,14 @@ class _CameraPageState extends State<CameraPage> {
       right: 0,
       child: Column(
         children: [
-          Text(widget.args.location ?? "",style: const TextStyle(color: Colors.white)),
-          Text(widget.args.time ?? "",style: const TextStyle(color: Colors.white)),
+          Text(
+            widget.args.location ?? "",
+            style: const TextStyle(color: Colors.white),
+          ),
+          Text(
+            widget.args.time ?? "",
+            style: const TextStyle(color: Colors.white),
+          ),
           const SizedBox(height: 20),
           _buildCaptureButton(),
         ],
@@ -152,124 +161,159 @@ class _CameraPageState extends State<CameraPage> {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 60),
       child: Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Container(width: 70),
-        GestureDetector(
-          onTap: _takePicture,
-          child: Container(
-            height: 70,
-            width: 70,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: Color(primaryColor),
-            ),
-            child: Icon(Icons.camera_alt, color: Colors.white, size: 30),
-          ),
-        ),
-        GestureDetector(
-          onTap: _switchCamera,
-          child: Container(
-            height: 70,
-            width: 70,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-            ),
-            child: Icon(Icons.flip_camera_ios, color: Colors.white, size: 30),
-          ),
-        ),
-      ],
-    ));
-  }
-
-  Widget _buildPreview(){
-    return Column(
-      children: [
-        Stack(
-          children: [
-            Container(
-              height: 400,
-              width: double.infinity,
-              child: Image.file(File(_imageFile!.path),fit: BoxFit.cover,)),
-            Positioned(
-              bottom: 0,
-              left: 0,
-              right: 0,
-              child: Container(
-                color: Color(blue2Color).withOpacity(0.5),
-                padding: EdgeInsets.all(16),
-                child: Column(
-                  children: [
-                    Row(
-                      children: [
-                        Icon(Icons.access_time_filled, color: Color(greenPercentColor)),
-                        SizedBox(width: 10),
-                        Text(widget.args.time ?? "",style: const TextStyle(color: Colors.white)),
-                      ],
-                    ),
-                    SizedBox(height: 10),
-                    Row(
-                      children: [
-                        Icon(Icons.calendar_today_sharp, color: Color(primaryColor)),
-                        SizedBox(width: 10),
-                        Text(DateHelper.formatDayDate(DateTime.now()),style: const TextStyle(color: Colors.white)),
-                      ],
-                    ),
-                    SizedBox(height: 10),
-                    Row(
-                      children: [
-                        Icon(Icons.access_time_filled, color: Color(primaryColor)),
-                        SizedBox(width: 10),
-                        Container(
-                          width: 250,
-                          child: Text(
-                            widget.args.location ?? "",
-                            style: const TextStyle(color: Colors.white),
-                            overflow: TextOverflow.ellipsis,
-                            maxLines: 1,
-                          ),
-                        ),
-                      ],
-                    )
-
-                  ],
-                ),
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Container(width: 70),
+          GestureDetector(
+            onTap: _takePicture,
+            child: Container(
+              height: 70,
+              width: 70,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: Color(primaryColor),
               ),
+              child: Icon(Icons.camera_alt, color: Colors.white, size: 30),
             ),
-          ],
-        ),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal:  16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              SizedBox(height: 10),
-              Text("Pameran/ Open Table (optional)", style: TextStyle(fontSize: 14, color: Color(grey2Color)),),
-              SizedBox(height: 5),
-              Container(
-                width: double.infinity,
-                height: 40,
-                decoration: BoxDecoration(
-                  border: Border.all(color: Color(grey4Color))
-                ),
-              ),
-              SizedBox(height: 20),
-              Text("Notes", style: TextStyle(fontSize: 14, color: Color(grey2Color)),),
-              SizedBox(height: 5),
-              Container(
-                width: double.infinity,
-                height: 80,
-                decoration: BoxDecoration(
-                  border: Border.all(color: Color(grey4Color))
-                ),
-              ),
-              SizedBox(height: 40,),
-              customButton((){ context.pop();}, "Submit")
-            ],
           ),
-        ),
-        
-      ],
+          GestureDetector(
+            onTap: _switchCamera,
+            child: Container(
+              height: 70,
+              width: 70,
+              decoration: BoxDecoration(shape: BoxShape.circle),
+              child: Icon(Icons.flip_camera_ios, color: Colors.white, size: 30),
+            ),
+          ),
+        ],
+      ),
     );
   }
+
+  Widget _buildPreview() {
+    return SingleChildScrollView(
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).viewInsets.bottom, // ⬅️ ini kunci!
+      ),
+      child: Column(
+        children: [
+          Stack(
+            children: [
+              Container(
+                height: 350,
+                width: double.infinity,
+                child: Image.file(File(_imageFile!.path), fit: BoxFit.cover),
+              ),
+              Positioned(
+                bottom: 0,
+                left: 0,
+                right: 0,
+                child: Container(
+                  color: Color(blue2Color).withOpacity(0.5),
+                  padding: EdgeInsets.all(16),
+                  child: Column(
+                    children: [
+                      Row(
+                        children: [
+                          Icon(Icons.access_time_filled, color: Color(greenPercentColor), size: 25),
+                          SizedBox(width: 10),
+                          Text(widget.args.time ?? "-", style: TextStyle(color: Colors.white)),
+                        ],
+                      ),
+                      SizedBox(height: 10),
+                      Row(
+                        children: [
+                          Icon(Icons.calendar_today_sharp, color: Color(primaryColor), size: 25),
+                          SizedBox(width: 10),
+                          Text(
+                            DateHelper.formatDayDate(DateTime.now()),
+                            style: TextStyle(color: Colors.white),
+                          ),
+                        ],
+                      ),
+                      SizedBox(height: 10),
+                      Row(
+                        children: [
+                          Icon(Icons.location_on, color: Color(primaryColor), size: 25),
+                          SizedBox(width: 10),
+                          SizedBox(
+                            width: 250,
+                            child: Text(
+                              widget.args.location ?? "-",
+                              style: TextStyle(color: Colors.white),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SizedBox(height: 10),
+                Text("Pameran/ Open Table (optional)",style: TextStyle(fontSize: 14, color: Color(grey2Color))),
+                SizedBox(height: 5),
+                TextField(
+                  maxLines: 1,
+                  minLines: 1,
+                  controller: pameranTC,
+                  focusNode: pameranFN,
+                  onTapOutside: (event) => pameranFN.unfocus(),
+                  textInputAction: TextInputAction.newline,
+                  decoration: InputDecoration(
+                    hintText: "Name",
+                    hintStyle: TextStyle(color: Color(grey2Color),fontSize: 14),
+                    contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12),borderSide: BorderSide(color: Color(grey11Color))),
+                    enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12),borderSide: BorderSide(color: Color(grey11Color))),
+                    focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12),borderSide: BorderSide(color: Color(primaryColor))),
+                  ),
+                ),
+                SizedBox(height: 20),
+                Text("Notes",style: TextStyle(fontSize: 14, color: Color(grey2Color))),
+                SizedBox(height: 5),
+
+                Container(
+                  height: 80,
+                  child: TextFormField(
+                    maxLines: null, 
+                    minLines: 3,    
+                    controller: notesTC,
+                    focusNode: notesFN,
+                    onTapOutside: (event) => notesFN.unfocus(),
+                    decoration: InputDecoration(
+                      hintText: "Enter notes...",
+                      hintStyle: TextStyle(fontSize: 14,color: Color(grey3Color),),
+                      contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8),borderSide: BorderSide(color: Color(grey4Color)),),
+                      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8),borderSide: BorderSide(color: Color(grey4Color)),),
+                      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8),borderSide: BorderSide(color: Color(grey4Color)),),
+                    ),
+                  ),
+                ),
+
+                SizedBox(height: 40),
+
+                customButton(() {
+                  context.pop();
+                }, "Submit"),
+
+                SizedBox(height: 20),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+
 }

@@ -255,12 +255,8 @@ class _ContactDetailPageState extends State<ContactDetailPage> {
       ),
       child: TabBar(
         dividerColor: Colors.transparent,
-
-        /// 🔥 warna text
         labelColor: Color(whiteColor),
         unselectedLabelColor: Color(blue2Color),
-
-        /// 🔥 indicator jadi fill rounded
         indicator: BoxDecoration(
           color: Color(primaryColor),
           borderRadius: BorderRadius.circular(24),
@@ -382,7 +378,7 @@ class _ContactDetailPageState extends State<ContactDetailPage> {
             ),
           child: Row(
             children: [
-              BgIcon(asset: icUpload, onTap: (){}, color: Color(primaryColor)),
+              BgIcon(asset: icUpload, onTap: (){context.pushNamed('addContact', extra: ContactDetailArgs(page: 5));}, color: Color(primaryColor)),
               SizedBox(width: 10),
               Column(
                 children: [
