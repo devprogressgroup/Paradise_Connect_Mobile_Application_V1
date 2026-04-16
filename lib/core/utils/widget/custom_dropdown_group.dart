@@ -200,6 +200,7 @@ class _CustomDropdownGroupInboxState extends State<CustomDropdownGroupInbox> {
 
 class CustomDropdownGroupContact extends StatefulWidget {
   final String hint;
+  final bool? bg;
   final Function()? onTap;
   final Widget child; // 🔥 FIX
 
@@ -207,7 +208,8 @@ class CustomDropdownGroupContact extends StatefulWidget {
     super.key,
     required this.hint,
     this.onTap,
-    required this.child, // 🔥 FIX
+    required this.child,
+    this.bg,
   });
 
   @override
@@ -220,46 +222,51 @@ class _CustomDropdownGroupContactState extends State<CustomDropdownGroupContact>
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        /// HEADER
-        InkWell(
-          onTap: () {
-            setState(() {
-              isOpen = !isOpen;
-            });
-            widget.onTap?.call();
-          },
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  widget.hint,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
+    return Container(
+      
+      margin: EdgeInsets.only(bottom: !isOpen ? 10 : 0),
+      child: Column(
+        children: [
+          InkWell(
+            onTap: () {
+              setState(() {
+                isOpen = !isOpen;
+              });
+              widget.onTap?.call();
+            },
+            child: Container(
+              color: widget.bg != null ? Colors.transparent : Color(grey10Color) ,
+              height: 50,
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    widget.hint,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
-                ),
-                Icon(
-                  isOpen
-                      ? Icons.keyboard_arrow_up
-                      : Icons.keyboard_arrow_down, size: 35,
-                ),
-              ],
+                  Icon(
+                    isOpen
+                        ? Icons.keyboard_arrow_up
+                        : Icons.keyboard_arrow_down, size: 35,
+                  ),
+                ],
+              ),
             ),
           ),
-        ),
-
-
-        /// 🔥 CONTENT DINAMIS
-        if (isOpen)
-          Container(
-            width: double.infinity,
-            child: widget.child,
-          ),
-      ],
+      
+      
+          /// 🔥 CONTENT DINAMIS
+          if (isOpen)
+            Container(
+              width: double.infinity,
+              child: widget.child,
+            ),
+        ],
+      ),
     );
   }
 }

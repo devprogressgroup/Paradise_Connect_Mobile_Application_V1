@@ -5,9 +5,11 @@ import 'package:go_router/go_router.dart';
 
 Widget customHeader(BuildContext context, String title, {bool isBack = false, Color? colorBack, Color? colorBg, Color? colorTitle,IconData? iconLeft, IconData? iconRight,VoidCallback? iconLeftOnTap,VoidCallback? iconRightOnTap, VoidCallback? onBack, Color? colorIconLeft, Color? colorIconRight}) {
   return Container(
-    color: colorBg ?? Colors.white,
+    decoration: BoxDecoration(
+      color: colorBg ?? Colors.white,
+    ),
     child: Padding(
-      padding: EdgeInsets.symmetric(horizontal: 13.0, vertical: 6),
+      padding: EdgeInsets.symmetric(horizontal:iconRight != null?13: 20, vertical: 10),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [

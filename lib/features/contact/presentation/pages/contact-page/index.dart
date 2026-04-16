@@ -8,6 +8,9 @@ import 'package:progress_group/features/contact/data/arguments/contact_detail_ar
 import 'package:progress_group/features/contact/data/models/person_model.dart';
 import 'package:progress_group/features/contact/data/models/selectbox_model.dart';
 
+import '../../../../../core/utils/widget/custom_buttomsheet.dart';
+import '../contact-detail/index.dart';
+
 
 class ContactPage extends StatefulWidget {
   const ContactPage({super.key});
@@ -122,7 +125,11 @@ Widget _buildListContacts(BuildContext context,PersonModel person){
               ),
             ],
           ),
-          Icon(Icons.more_vert,size: 27,color: Color(blackColor))
+          GestureDetector(
+            onTap: () {
+              showCustomBottomSheet(context: context,child: buildContenBSdit(context));
+            },
+            child: Icon(Icons.more_vert,size: 27,color: Color(blackColor)))
         ],
       ),
     ),

@@ -144,7 +144,7 @@ class _ContactDetailPageState extends State<ContactDetailPage> {
                               children: [
                                 BgIcon(asset: icContactDetailPhone),
                                 BgIcon(asset: icContactDetailWA),
-                                BgIcon(asset: null, onTap: (){showCustomBottomSheet(context: context,child: _buildContenBSdit());}),
+                                BgIcon(asset: null, onTap: (){showCustomBottomSheet(context: context,child: buildContenBSdit(context));}),
                               ],
                             )
                           ],
@@ -181,20 +181,7 @@ class _ContactDetailPageState extends State<ContactDetailPage> {
     );
   }
 
-  Widget _buildContenBSdit(){
-    return Container(
-      width: double.infinity,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildIconLink(icEdit, "Edit Contact", (){context.pushNamed('formContact', extra: ContactDetailArgs(page: 1));}),
-          _buildIconLink(icDelete, "Delete Contact", (){}),
-          _buildIconLink(icShare, "Share Contact", (){}),
 
-        ],
-      ),
-    );
-  }
 
   Widget _buildContentBSAdd(){
     return Container(
@@ -210,40 +197,17 @@ class _ContactDetailPageState extends State<ContactDetailPage> {
             ],
           ),
           SizedBox(height: 5),
-          _buildIconLink(icContactDetailPhone, "Phone", (){context.pushNamed('addContact', extra: ContactDetailArgs(page: 0));}),
-          _buildIconLink(icContactDetailWA, "WhatsApp", (){context.pushNamed('addContact', extra: ContactDetailArgs(page: 1));}),
-          _buildIconLink(icContactDetailMeeting, "Meeting", (){context.pushNamed('addContact', extra: ContactDetailArgs(page: 2));}),
-          _buildIconLink(icContactDetailReminder, "Task", (){context.pushNamed('addContact', extra: ContactDetailArgs(page: 3));}),
-          _buildIconLink(icContactDetailVisit, "Visit", (){context.pushNamed('addContact', extra: ContactDetailArgs(page: 4));}),
-          _buildIconLink(icSidebarSalesKit,color: Color(primaryColor), "Attachment",(){context.pushNamed('addContact', extra: ContactDetailArgs(page: 5));})
+          buildIconLink(icContactDetailPhone, "Phone", (){context.pushNamed('addContact', extra: ContactDetailArgs(page: 0));}),
+          buildIconLink(icContactDetailWA, "WhatsApp", (){context.pushNamed('addContact', extra: ContactDetailArgs(page: 1));}),
+          buildIconLink(icContactDetailMeeting, "Meeting", (){context.pushNamed('addContact', extra: ContactDetailArgs(page: 2));}),
+          buildIconLink(icContactDetailReminder, "Task", (){context.pushNamed('addContact', extra: ContactDetailArgs(page: 3));}),
+          buildIconLink(icContactDetailVisit, "Visit", (){context.pushNamed('addContact', extra: ContactDetailArgs(page: 4));}),
+          buildIconLink(icSidebarSalesKit,color: Color(primaryColor), "Attachment",(){context.pushNamed('addContact', extra: ContactDetailArgs(page: 5));})
         ],
       ),
     );
   }
-
-  Widget _buildIconLink(String asset, String label, VoidCallback onTap, {Color? color}) {
-    return InkWell(
-      onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 10),
-        child: Row(
-          children: [
-            BgIcon(asset: asset, onTap: null, color: color),
-            SizedBox(width: 10),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 16,
-                color: Color(blue2Color),
-                fontWeight: FontWeight.w400,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
+  
   Widget _buildTabBar() {
     return Container(
       height: 40,
@@ -257,18 +221,9 @@ class _ContactDetailPageState extends State<ContactDetailPage> {
         dividerColor: Colors.transparent,
         labelColor: Color(whiteColor),
         unselectedLabelColor: Color(blue2Color),
-        indicator: BoxDecoration(
-          color: Color(primaryColor),
-          borderRadius: BorderRadius.circular(24),
-        ),
-
+        indicator: BoxDecoration(color: Color(primaryColor),borderRadius: BorderRadius.circular(24)),
         indicatorSize: TabBarIndicatorSize.tab,
-
-        labelStyle: TextStyle(
-          fontWeight: FontWeight.w700,
-          fontSize: 14,
-        ),
-
+        labelStyle: TextStyle(fontWeight: FontWeight.w700,fontSize: 14,),
         tabs: tabs.map((e) => Tab(text: e)).toList(),
       ),
     );
@@ -305,7 +260,6 @@ class _ContactDetailPageState extends State<ContactDetailPage> {
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      /// STRIP COLOR
                       Container(
                         height: 50,
                         width: 5,
@@ -431,4 +385,44 @@ class _ContactDetailPageState extends State<ContactDetailPage> {
   }
 }
 
+
+  Widget buildContenBSdit(BuildContext context){
+    return Container(
+      width: double.infinity,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          buildIconLink(icEdit, "Edit Contact", (){context.pushNamed('formContact', extra: ContactDetailArgs(page: 1));}),
+          buildIconLink(icDelete, "Delete Contact", (){}),
+          buildIconLink(icShare, "Share Contact", (){}),
+
+        ],
+      ),
+    );
+  }
+
+  
+
+  Widget buildIconLink(String asset, String label, VoidCallback onTap, {Color? color}) {
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 10),
+        child: Row(
+          children: [
+            BgIcon(asset: asset, onTap: null, color: color),
+            SizedBox(width: 10),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 16,
+                color: Color(blue2Color),
+                fontWeight: FontWeight.w400,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 

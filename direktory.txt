@@ -39,3 +39,27 @@ lib/
 │   ├── search/                           # Modul Pencarian
 │   └── site-plan/                        # Modul Site Plan (WebView)
 └── main.dart                             # Entry Point Aplikasi
+
+================================================================================
+STRUKTUR INTEGRASI API (Clean Architecture)
+================================================================================
+lib/
+├── core/
+│   └── network/
+│       └── dio_client.dart               # HTTP Client (Dio) & Base URL
+├── features/
+│   └── [feature_name]/
+│       ├── data/
+│       │   ├── datasources/              # Remote API Calls (Request Mentah)
+│       │   ├── models/                   # JSON Serialization (fromJson/toJson)
+│       │   └── repositories/             # Repo Implementation (Model -> Entity)
+│       ├── domain/
+│       │   ├── entities/                 # Business Objects (Data Murni)
+│       │   ├── repositories/             # Repo Interfaces (Kontrak)
+│       │   └── usecases/                 # Business Logic (Fungsi Spesifik)
+│       └── presentation/
+│           └── state/                    # BLoC / Cubit (State Management)
+
+Alur Data:
+UI -> BLoC -> Use Case -> Repo Implementation -> DataSource -> API (Dio)
+================================================================================

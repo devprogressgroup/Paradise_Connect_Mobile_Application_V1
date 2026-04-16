@@ -4,7 +4,6 @@ import 'package:progress_group/core/utils/widget/custom_header.dart';
 
 import '../../../../core/constants/assets.dart';
 import '../../../../core/constants/colors.dart';
-import '../../../../core/utils/widget/custom_dropdown_group.dart';
 import '../../../../core/utils/widget/custom_search_field.dart';
 import '../../data/arguments/saleskit_detail_args.dart';
 
@@ -19,6 +18,8 @@ class SalesKitPage extends StatefulWidget {
 class _SalesKitPageState extends State<SalesKitPage> {
   final TextEditingController searchTC = TextEditingController();
   final FocusNode searchFN = FocusNode();
+  bool isOpenRedential = true;
+  bool isOpenCommercial = true;
 
   @override
   Widget build(BuildContext context) {
@@ -94,27 +95,33 @@ class _SalesKitPageState extends State<SalesKitPage> {
     return Column(
       children: [
         customHeader(context, widget.args.title ?? "SalesKit", isBack: true),
-        SizedBox(height: 16),
-        CustomDropdownGroupContact(
-          hint: "Residential",
-          child: Column(
+          SizedBox(height: 1),
+        _dropdown("Residential", () {
+          setState(() {
+            isOpenRedential = !isOpenRedential;
+          });
+        }, isOpenRedential, Column(
             children: [
-              SizedBox(height: 15),
+              SizedBox(height: 5),
              _buildResidential( image: logoExVista, onTap: () {
                context.pushNamed("salesKit", extra: SalesKitDetailArgs(page: 2, title: "Vista" ));
              },),
-             SizedBox(height: 15),
+             SizedBox(height: 5),
              _buildResidential( image: logoExAdventures, onTap: () {
                context.pushNamed("salesKit", extra: SalesKitDetailArgs(page: 2, title: "Adventures" ));
              },),
+            SizedBox(height: 25),
+
             ],
           ),
         ),
-        CustomDropdownGroupContact(
-          hint: "Commercial",
-          child: Column(
+        _dropdown("Commercial", () {
+          setState(() {
+            isOpenCommercial = !isOpenCommercial;
+          });
+        }, isOpenCommercial, Column(
             children: [
-              SizedBox(height: 15),
+              SizedBox(height: 5),
              _buildResidential( image: logoExSoho, onTap: () {
                context.pushNamed("salesKit", extra: SalesKitDetailArgs(page: 2, title: "Soho" ));
              },),
@@ -125,27 +132,75 @@ class _SalesKitPageState extends State<SalesKitPage> {
     );
   }
 
-Widget _buildResidential({required String image, required VoidCallback onTap}){
-  return Column(
-    children: [
-      GestureDetector(
-        onTap: onTap,
-        child: Container(
-          height: 137,
-          width: double.infinity,
-          decoration: BoxDecoration(
-            color: Color(whiteColor),
-            borderRadius: BorderRadius.circular(22),
+  Widget _dropdown(String hint,VoidCallback onTap, bool isOpen, Widget child){
+     return Container(
+      decoration: BoxDecoration(
+        boxShadow: [
+          BoxShadow(
+            color: Color(blackColor).withOpacity(0.06),
+            blurRadius: 58,
+            offset: Offset(0,6),
           ),
-          child: Center(
-            child: Image.asset(image, height: 100),
+        ],
+      ),
+      child: Column(
+        children: [
+          InkWell(
+            onTap: onTap,
+            child: Container(
+              color: Color(whiteColor),
+              height: 50,
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    hint,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  Icon(
+                    isOpen
+                        ? Icons.keyboard_arrow_up
+                        : Icons.keyboard_arrow_down, size: 35,
+                  ),
+                ],
+              ),
+            ),
           ),
+      
+      
+          /// 🔥 CONTENT DINAMIS
+          if (isOpen)
+            Container(
+              width: double.infinity,
+              child: child,
+            ),
+        ],
+      ),
+    );
+  }
+
+
+  Widget _buildResidential({required String image, required VoidCallback onTap}){
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        margin: EdgeInsets.symmetric(horizontal: 16),
+        height: 137,
+        width: double.infinity,
+        decoration: BoxDecoration(
+          color: Color(whiteColor),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Center(
+          child: Image.asset(image, height: 100),
         ),
       ),
-      SizedBox(height: 15),
-    ],
-  );
-}
+    );
+  }
 
   Widget _builSalsesKitScreen(){
     return Column(

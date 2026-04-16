@@ -19,15 +19,10 @@ class InboxPage extends StatefulWidget {
 }
 
 class _InboxPageState extends State<InboxPage> {
-  bool isFilter = false;
   bool isFilterPhone = false;
 
   final TextEditingController searchTC = TextEditingController();
-  final TextEditingController filterUserTC = TextEditingController();
-  final TextEditingController filterStatusTC = TextEditingController();
   final FocusNode searchFN = FocusNode();
-  final FocusNode filterUserFN = FocusNode();
-  final FocusNode filterStatusFN = FocusNode();
 
   final List<SelectBoxModel> selectBoxes = [
     SelectBoxModel(items: ['Owner', 'B', 'C'], hint: "Owner"),
@@ -70,28 +65,10 @@ class _InboxPageState extends State<InboxPage> {
               child: Column(
                 children: [
                   Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Expanded(child: customSearchField(controller: searchTC,focusNode: searchFN)),
-                      SizedBox(width: 5),
-                      GestureDetector(
-                        onTap: () {
-                          setState(() {
-                            isFilter = !isFilter;
-                          });
-                        },
-                        child: Container(
-                          width: 40,
-                          height: 40,
-                          padding: EdgeInsets.all(5),
-                          decoration: BoxDecoration(
-                            color: Color(whiteColor),
-                            border: Border.all(color: Color(primaryColor), width: 1),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Image.asset(icFilter,width: 5,height: 5,)
-                        ),
-                      ),
-                      SizedBox(width: 5),
+                      SizedBox(width: 10),
                       GestureDetector(
                         onTap: () {
                          setState(() {
@@ -104,13 +81,12 @@ class _InboxPageState extends State<InboxPage> {
                           padding: EdgeInsets.all(5),
                           decoration: BoxDecoration(
                             color: Color(whiteColor),
-                            border: Border.all(color: Color(orangeColor), width: 1),
+                            border: Border.all(color: Color(greenPercentColor), width: 1),
                             borderRadius: BorderRadius.circular(12),
                           ),
-                          child: Image.asset(icContactDetailWA,width: 5,height: 5, color: Color(orangeColor),)
+                          child: Image.asset(icContactDetailWA,width: 5,height: 5, color: Color(greenPercentColor),)
                         ),
                       ),
-                     SizedBox(width: 10,)
                     ],
                   ),
                   if(isFilterPhone)
@@ -124,33 +100,16 @@ class _InboxPageState extends State<InboxPage> {
                       ),
                       child: Column(
                         children: [
+                          
                           _buildListPhone(phone: "62856111777", name: "Aulia Mila", image: icContactDetailWA, colorImg: Color(greenPercentColor), onTap: () {_showInboxQRDialog();}),
-                          Divider(),
+                          SizedBox(height: 5,),
                           _buildListPhone(phone: "62856111777", name: "Aulia Mila", image: icQR, colorImg: Color(primaryColor), onTap: () {_showInboxQRDialog();}),
-                          Divider(),
                         
                         ],
                       ),
                     ),
                   ),
-                  if(isFilter)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 10),
-                    child: Container(
-                      padding: EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        color: Color(whiteColor),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Column(
-                        children: [
-                          _buildTextField(controller: filterUserTC, focusNode: filterUserFN, hintText: "Filter Status"),
-                          SizedBox(height: 5),
-                          _buildTextField(controller: filterStatusTC, focusNode: filterStatusFN, hintText: "Filter Status"),
-                        ],
-                      ),
-                    ),
-                  ),
+                  SizedBox(height: 10),
                   SizedBox(
                     height: 50,
                     child: ListView.separated(
@@ -167,7 +126,7 @@ class _InboxPageState extends State<InboxPage> {
                       },
                     ),
                   ),
-                  SizedBox(height: 20),
+                  SizedBox(height: 10),
                   Expanded(
                     child: DefaultTabController(
                       length: 2,
@@ -201,33 +160,6 @@ class _InboxPageState extends State<InboxPage> {
         ],
       ),
     );
-  }
-
-  Widget _buildTextField({required TextEditingController controller, required FocusNode focusNode, required String hintText}){
-    return Container(
-     height: 40,
-     child: TextFormField(
-       controller: controller,
-       focusNode: focusNode,
-       onTap: () => focusNode.unfocus(),
-       decoration: InputDecoration(
-         contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-         hintText: hintText,
-         border: OutlineInputBorder(
-           borderRadius: BorderRadius.circular(8),
-           borderSide: BorderSide(color: Color(grey11Color), width: 1),
-         ),
-         enabledBorder: OutlineInputBorder(
-           borderRadius: BorderRadius.circular(8),
-           borderSide: BorderSide(color: Color(grey11Color), width: 1),
-         ),
-         focusedBorder: OutlineInputBorder(
-           borderRadius: BorderRadius.circular(8),
-           borderSide: BorderSide(color: Color(primaryColor), width: 1),
-         ),
-       ),
-     ),
-   );
   }
 
   Widget _buildListPhone({required String phone, required String name, required String image, required Color colorImg, required VoidCallback onTap}){
@@ -294,8 +226,8 @@ class _InboxPageState extends State<InboxPage> {
         ),
         indicatorSize: TabBarIndicatorSize.tab,
         tabs: [
-          Tab(text: "Groups"),
           Tab(text: "Personal"),
+          Tab(text: "Groups"),
         ],
       ),
     );
@@ -304,8 +236,9 @@ class _InboxPageState extends State<InboxPage> {
   Widget _buildTabBarView() {
     return TabBarView(
       children: [
-        _buildList(itemsGroup, Icons.group),
         _buildList(itemsPersonal, Icons.person),
+        _buildList(itemsGroup, Icons.group),
+
       ],
     );
   }

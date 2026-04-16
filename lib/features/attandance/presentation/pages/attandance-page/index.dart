@@ -16,20 +16,26 @@ class AttandancePage extends StatefulWidget {
 }
 
 class _AttandancePageState extends State<AttandancePage> {
-  int selectedIndex = 0;
   late PageController _pageController;
   final double officeLat =  -6.1416575;
   final double officeLng = 106.8659419;
   final double radiusMeter = 1050;
-  StreamSubscription<Position>? _positionStream;
 
+  StreamSubscription<Position>? _positionStream;
+  
+  int selectedIndex = 0;
+  
   String? _address;
+  bool _isProcessing = false;
+  DateTime? _lastGeocodeTime;
 
   @override
   void initState() {
     super.initState();
     _pageController = PageController();
-    _initLocation();
+    Future.microtask(() {
+      _initLocation();
+    });
   }
 
   @override
@@ -96,7 +102,6 @@ class _AttandancePageState extends State<AttandancePage> {
 
   Future<void> _initLocation() async {
     final hasPermission = await _handleLocationPermission();
-
     if (!hasPermission) return;
 
     _positionStream = Geolocator.getPositionStream(
@@ -105,17 +110,37 @@ class _AttandancePageState extends State<AttandancePage> {
         distanceFilter: 5,
       ),
     ).listen((Position position) async {
-      Geolocator.distanceBetween(
-        officeLat,
-        officeLng,
-        position.latitude,
-        position.longitude,
-      );
 
-      setState(() {
-      });
+      if (_isProcessing) return;
+      _isProcessing = true;
 
-      await _getAddressFromLatLng(position);
+      try {
+        Geolocator.distanceBetween(
+          officeLat,
+          officeLng,
+          position.latitude,
+          position.longitude,
+        );
+
+        if (!mounted) return;
+
+        setState(() {
+          // update state seperlunya
+        });
+
+        // ⛔ batasi geocoding
+        if (_lastGeocodeTime == null ||
+            DateTime.now().difference(_lastGeocodeTime!) > const Duration(seconds: 10)) {
+
+          _lastGeocodeTime = DateTime.now();
+          await _getAddressFromLatLng(position);
+        }
+
+      } catch (e) {
+        print('ERROR LOCATION: $e');
+      } finally {
+        _isProcessing = false;
+      }
     });
   }
 

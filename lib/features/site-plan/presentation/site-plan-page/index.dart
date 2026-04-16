@@ -41,10 +41,8 @@ class _SitePlanPageState extends State<SitePlanPage> {
   }
 
   void _openProjectList() async {
-    // Tambahkan AWAIT di sini agar result tidak bernilai Future
     final result = await context.pushNamed('projectList', extra: _sites);
 
-    // Pastikan result tidak null dan tipenya benar
     if (result != null && result is ProjectSite) {
       setState(() {
         _selectedSite = result;
@@ -62,11 +60,10 @@ class _SitePlanPageState extends State<SitePlanPage> {
         child: Column(
           children: [
             customHeader(context, 'Site Plan'),
-            SizedBox(height: 16),
             GestureDetector(
               onTap: _openProjectList,
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 5),
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 5),
                 decoration: BoxDecoration(
                   color: Colors.white,
                 ),

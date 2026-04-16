@@ -119,7 +119,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
                   hint: "Contact Information",
                   child: Column(
                     children: [
-                      _buildFieldDown(label: "Owner", value:null, onTap: () {context.pushNamed('detailContactDropdown', extra: ContactDropdownArgs(title: 'Owner'));}),
+                      _buildFieldDown(label: "Owner", value:"Ahmad", onTap: () {context.pushNamed('detailContactDropdown', extra: ContactDropdownArgs(title: 'Owner'));}),
                       _buildFieldDown(label: "Salutation", value: "Bapak", onTap: () {context.pushNamed('detailContactDropdown', extra: ContactDropdownArgs(title: 'Salutation'));}),
                       _buildField(label: "Email", controller: emailTC, focusNode: emailFN),
                       _buildField(label: "Phone", controller: phoneTC, focusNode: phoneFN),
@@ -154,7 +154,8 @@ class _ContactFormPageState extends State<ContactFormPage> {
   return GestureDetector(
     onTap: onTap,
     child: Container(
-      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 10),
+      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+      height: 50,
       decoration: BoxDecoration(
         color: Color(whiteColor),
         border: Border(
@@ -199,7 +200,8 @@ class _ContactFormPageState extends State<ContactFormPage> {
 
   Widget _buildField({  required String label,  required TextEditingController controller,  required FocusNode focusNode,}) {
     return Container(
-      padding: EdgeInsets.symmetric(vertical:  5, horizontal: 10),
+      padding: EdgeInsets.symmetric(vertical:  5, horizontal: 16),
+      height: 50,
       decoration: BoxDecoration(
         color: Color(whiteColor),
         border: Border(
