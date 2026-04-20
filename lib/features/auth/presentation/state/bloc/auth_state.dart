@@ -1,32 +1,16 @@
-// abstract class AuthState {}
-
-// class AuthInitial extends AuthState {}
-
-// class AuthLoading extends AuthState {}
-
-// class AuthSuccess extends AuthState {
-//   final String token;
-
-//   AuthSuccess(this.token);
-// }
-
-// class AuthFailure extends AuthState {
-//   final String message;
-
-//   AuthFailure(this.message);
-// }
-
-
 abstract class AuthState {}
 
 class AuthInitial extends AuthState {}
+
+
 
 class AuthLoading extends AuthState {}
 
 class AuthSuccess extends AuthState {
   final String message;
+  final dynamic data;
 
-  AuthSuccess(this.message);
+  AuthSuccess(this.message, {this.data});
 }
 
 class AuthFailure extends AuthState {
@@ -34,6 +18,9 @@ class AuthFailure extends AuthState {
 
   AuthFailure(this.error);
 }
+
+
+
 
 class RememberMeLoaded extends AuthState {
   final String username;

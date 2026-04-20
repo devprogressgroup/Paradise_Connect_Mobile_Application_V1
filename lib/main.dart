@@ -9,7 +9,14 @@ import 'package:progress_group/features/auth/data/repositories/auth_repository_i
 import 'package:progress_group/features/auth/domain/usecase/forgot_password_usecase.dart';
 import 'package:progress_group/features/auth/domain/usecase/get_remember_me_usecase.dart';
 import 'package:progress_group/features/auth/domain/usecase/login_usecase.dart';
+import 'package:progress_group/features/auth/domain/usecase/get_profile_usecase.dart';
+import 'package:progress_group/features/auth/domain/usecase/reset_password_usecase.dart';
 import 'package:progress_group/features/auth/presentation/state/bloc/auth_bloc.dart';
+import 'package:progress_group/features/auth/presentation/state/profile/profile_bloc.dart';
+import 'package:progress_group/features/inbox/data/datasources/inbox_remote_datasource.dart';
+import 'package:progress_group/features/inbox/data/repositories/inbox_contact_repo_impl.dart';
+import 'package:progress_group/features/inbox/domain/usecases/inbox_contact_usecase.dart';
+import 'package:progress_group/features/inbox/presentation/state/inbox_block.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'app/router.dart';
@@ -38,12 +45,20 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final localDataSource = AuthLocalDataSourceImpl(prefs);
-    final remoteDataSource = AuthRemoteDataSourceImpl(dio);
+    final dioClient = DioClient(localDataSource);
+    final remoteDataSource = AuthRemoteDataSourceImpl(dioClient.dio);
     final repository = AuthRepositoryImpl(remoteDataSource, localDataSource);
-    
+
     final loginUseCase = LoginUseCase(repository);
     final forgotPasswordUseCase = ForgotPasswordUseCase(repository);
     final getRememberMeUseCase = GetRememberMeUseCase(repository);
+    final resetPasswordUsecase = ResetPasswordUsecase(repository);
+    final getProfileUseCase = GetProfileUseCase(repository);
+
+
+    final inboxRemoteDataSource = InboxContactRemoteDataSourceImpl(dioClient.dio);
+    final inboxRepository = InboxContactRepositoryImpl(inboxRemoteDataSource);
+    final getInboxContactsUsecase = GetInboxContactsUsecase(inboxRepository);
 
     return MultiBlocProvider(
       providers: [
@@ -52,7 +67,14 @@ class MyApp extends StatelessWidget {
             loginUseCase: loginUseCase,
             forgotPasswordUseCase: forgotPasswordUseCase,
             getRememberMeUseCase: getRememberMeUseCase,
+            resetPasswordUsecase: resetPasswordUsecase
           ),
+        ),
+        BlocProvider(
+          create: (_) => InboxContactBloc(getInboxContactsUsecase),
+        ),
+        BlocProvider(
+          create: (_) => ProfileBloc(getProfileUseCase: getProfileUseCase),
         ),
       ],
       child: MaterialApp.router(

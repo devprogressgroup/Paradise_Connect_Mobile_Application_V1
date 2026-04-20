@@ -2,13 +2,20 @@ import 'package:flutter/material.dart';
 import 'package:progress_group/core/constants/assets.dart';
 import 'package:progress_group/core/constants/colors.dart';
 
-Widget customSearchField({required TextEditingController controller,required FocusNode focusNode,String hintText = 'Search',String? iconPath}) {
+Widget customSearchField({
+  required TextEditingController controller,
+  required FocusNode focusNode,
+  String hintText = 'Search',
+  String? iconPath,
+  ValueChanged<String>? onChanged,
+}) {
   return Container(
     height: 40,
     child: TextFormField(
       controller: controller,
       focusNode: focusNode,
       onTapOutside: (event) => focusNode.unfocus(),
+      onChanged: onChanged,
       decoration: InputDecoration(
         hintText: hintText,
         hintStyle: TextStyle(fontSize: 14,fontWeight: FontWeight.w400,color: Color(grey3Color)),

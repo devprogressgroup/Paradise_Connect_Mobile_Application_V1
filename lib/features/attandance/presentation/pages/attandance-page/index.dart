@@ -228,7 +228,7 @@ class _AttandancePageState extends State<AttandancePage> {
       body: SafeArea(
         child: Column(
           children: [
-            customHeader(context,'Attandance', colorBg: Color(primaryColor),colorBack: Color(whiteColor),colorTitle: Color(whiteColor), iconRight: Icons.arrow_back, iconRightOnTap: (){ context.go('/');}, colorIconRight: Color(whiteColor)),
+            customHeader(context,'Attendance', colorBg: Color(primaryColor),colorBack: Color(whiteColor),colorTitle: Color(whiteColor), iconRight: Icons.arrow_back, iconRightOnTap: (){ context.go('/');}, colorIconRight: Color(whiteColor)),
             SizedBox(
               height: 260,
               child: Stack(

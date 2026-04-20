@@ -1,4 +1,6 @@
 
+import 'package:progress_group/features/auth/domain/entities/reset_password.dart';
+
 abstract class AuthEvent {}
 
 class LoginEvent extends AuthEvent {
@@ -18,3 +20,8 @@ class ForgotPasswordEvent extends AuthEvent {
 class CheckRememberMeEvent extends AuthEvent {}
 
 class ClearRememberMeEvent extends AuthEvent {}
+
+class ResetPasswordEvent extends AuthEvent {
+  final ResetPasswordEntity entity;
+  ResetPasswordEvent(this.entity);
+}

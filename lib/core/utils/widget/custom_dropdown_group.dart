@@ -46,7 +46,7 @@ class _CustomDropdownGroupInboxState extends State<CustomDropdownGroupInbox> {
                   size: 24,
                 ),
                 Text(
-                  selectedItem?.title ?? widget.hint,
+                  selectedItem?.name ?? widget.hint,
                   style: TextStyle(
                     color: Color(blue3Color),
                     fontSize: 16,
@@ -91,7 +91,7 @@ class _CustomDropdownGroupInboxState extends State<CustomDropdownGroupInbox> {
                         ClipRRect(
                           borderRadius: BorderRadius.circular(8),
                           child: Image.network(
-                            item.image,
+                            item.photo,
                             width: 46,
                             height: 40,
                             fit: BoxFit.cover,
@@ -120,7 +120,7 @@ class _CustomDropdownGroupInboxState extends State<CustomDropdownGroupInbox> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    item.title,
+                                    item.name,
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
                                     style: const TextStyle(

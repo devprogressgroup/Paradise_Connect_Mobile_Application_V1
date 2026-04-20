@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
@@ -27,6 +28,8 @@ class _LoginPageState extends State<LoginPage> {
   final _emailFN = FocusNode();
   final _passwordFN = FocusNode();
 
+  StreamSubscription<AuthState>? _authSubscription;
+
 
   @override
   void initState() {
@@ -43,42 +46,37 @@ class _LoginPageState extends State<LoginPage> {
       showSnackbar(context, "Email & Password wajib diisi", isError: true);
       return;
     }
-    context.read<AuthBloc>().add(LoginEvent(email, password, rememberMe: _rememberMe));
-  }
 
+    _authSubscription?.cancel();
 
-  void _handleAuthState(AuthState state) {
-    if (state is AuthLoading) {
-      showLoadingDialog(_loadingDialogShown, context);
-      return;
-    }
-    hideLoadingDialog(_loadingDialogShown, context);
-    
-    if (state is RememberMeLoaded) {
-      _emailController.text = state.username;
-      _passwordController.text = state.password;
+    final bloc = context.read<AuthBloc>();
+    _authSubscription = bloc.stream.listen((state) {
+      if (state is AuthLoading) {
+        showLoadingDialog(_loadingDialogShown, context);
+        return;
+      }
 
-      setState(() {
-        _rememberMe = true;
-      });
-      return;
-    }
+      _authSubscription?.cancel();
+      hideLoadingDialog(_loadingDialogShown, context);
 
-    if (state is AuthSuccess) {
-      showSnackbar(context, state.message);
-      Future.microtask(() => context.go('/'));
-      return;
-    }
-    if (state is AuthFailure) {
-      showSnackbar(context, state.error, isError: true);
-      print('AUTH FAILURE: ${state.error}');
-    }
+      if (state is AuthSuccess) {
+        showSnackbar(context, state.message);
+        Future.microtask(() => context.go('/'));
+      }
+      if (state is AuthFailure) {
+        showSnackbar(context, state.error, isError: true);
+        print('AUTH FAILURE: ${state.error}');
+      }
+    });
+
+    bloc.add(LoginEvent(email, password, rememberMe: _rememberMe));
   }
 
 
 
   @override
   void dispose() {
+    _authSubscription?.cancel();
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
@@ -89,7 +87,16 @@ class _LoginPageState extends State<LoginPage> {
     final size = MediaQuery.of(context).size;
 
     return BlocListener<AuthBloc, AuthState>(
-      listener: (context, state) => _handleAuthState(state),
+      listenWhen: (prev, curr) => curr is RememberMeLoaded,
+      listener: (context, state) {
+        if (state is RememberMeLoaded) {
+          _emailController.text = state.username;
+          _passwordController.text = state.password;
+          setState(() {
+            _rememberMe = true;
+          });
+        }
+      },
       child: Scaffold(
         body: Container(
           height: size.height,
@@ -327,7 +334,7 @@ class _LoginPageState extends State<LoginPage> {
                           ),
                           TextButton(
                             onPressed: () {
-                              context.pushNamed("forgot-password");
+                              context.pushNamed("forgot-password", extra: 1);
                             },
                             child: Text(
                               'Forgot password?',

@@ -47,7 +47,9 @@ class AppRouter {
       GoRoute(
         path: '/forgot-password',
         name: 'forgot-password',
-        builder: (context, state) => const ForgotPasswordPage(),
+          builder: (context, state) {
+          final args = state.extra as int;
+          return ForgotPasswordPage(step: args);}
       ),
       ShellRoute(
         builder: (context, state, child) {

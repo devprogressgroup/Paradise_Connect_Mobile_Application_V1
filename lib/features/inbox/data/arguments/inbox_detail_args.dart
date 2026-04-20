@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:progress_group/features/inbox/data/models/dropdown_model.dart';
+import '../../domain/entities/inbox_contact_entity.dart';
 
 class InboxDetailArgs {
-  final DropdownItemModel data;
+  final InboxContact data;
   final IconData icon;
 
   InboxDetailArgs({

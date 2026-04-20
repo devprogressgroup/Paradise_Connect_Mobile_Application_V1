@@ -1,7 +1,13 @@
 import 'package:flutter/material.dart';
 
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:progress_group/core/utils/widget/custom_button.dart';
+import 'package:progress_group/features/auth/data/datasources/auth_local_datasource.dart';
+import 'package:progress_group/features/auth/presentation/state/profile/profile_bloc.dart';
+import 'package:progress_group/features/auth/presentation/state/profile/profile_event.dart';
+import 'package:progress_group/features/auth/presentation/state/profile/profile_state.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../../../core/constants/colors.dart';
 import '../../../../../core/utils/widget/custom_header.dart';
@@ -26,6 +32,12 @@ class _ProfilePageState extends State<ProfilePage> {
 
   bool _isObscure = true;
   bool _isObscureConfirm = true;
+
+  @override
+  void initState() {
+    super.initState();
+    context.read<ProfileBloc>().add(GetProfileEvent());
+  }
 
 
   @override
@@ -53,110 +65,161 @@ class _ProfilePageState extends State<ProfilePage> {
 
 
   Widget _buildBody() {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Color(whiteColor),
-          borderRadius: BorderRadius.circular(24),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            /// PROFILE HEADER
-            Row(
-              children: [
-                ClipOval(
-                  child: Image.network(
-                    "https://i.pravatar.cc/150?img=1",
-                    width: 60,
-                    height: 60,
-                    fit: BoxFit.cover,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: const [
-                    Text("Evan Dwi Saputro",style:TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                    Text("Sales Executive",style: TextStyle(fontSize: 13, color: Colors.grey)),
-                    Text("Team A",style: TextStyle(fontSize: 13, color: Colors.grey)),
-                  ],
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            Divider(color: Colors.grey.shade300),
-            const SizedBox(height: 16),
-            _label("Username"),
-            const SizedBox(height: 6),
-            _readonlyField("Evan Dwi Saputro"),
-            const SizedBox(height: 12),
-            _label("Email"),
-            const SizedBox(height: 6),
-            _inputField(
-              controller: emailTC,
-              focusNode: emailFN,
-              hint: 'youremail@gmail.com',
-              keyboardType: TextInputType.emailAddress,
-            ),
-            const SizedBox(height: 12),
-            _label("Phone Number"),
-            const SizedBox(height: 6),
-            _inputField(
-              controller: phoneTC,
-              focusNode: phoneFN,
-              hint: '08123456789',
-              keyboardType: TextInputType.phone,
-            ),
-            const SizedBox(height: 12),
-            _label("Password"),
-            const SizedBox(height: 6),
-            _inputField(
-              controller: passwordTC,
-              focusNode: passwordFN,
-              hint: '••••••••',
-              obscure: _isObscure,
-              suffix: IconButton( icon: Icon(_isObscure ? Icons.visibility_off_outlined : Icons.visibility_outlined),
-                onPressed: () {
-                  setState(() {
-                    _isObscure = !_isObscure;
-                  });
-                },
-              ),
-            ),
-            const SizedBox(height: 12),
-            _label("Confirm Password"),
-            const SizedBox(height: 6),
-            _inputField(
-              controller: confirmPasswordTC,
-              focusNode: confirmPasswordFN,
-              hint: '••••••••',
-              obscure: _isObscureConfirm,
-              suffix: IconButton( icon: Icon(_isObscureConfirm ? Icons.visibility_off_outlined : Icons.visibility_outlined),
-                onPressed: () {
-                  setState(() {
-                    _isObscureConfirm = !_isObscureConfirm;
-                  });
-                },
-              ),
-            ),
-            const SizedBox(height: 20),
-            Row(
-              children: [
-                Expanded(child: customButton(() {}, "Submit")),
-                const SizedBox(width: 30),
-                Expanded(child: customButton(() {}, "Logout", colorBg: Color(whiteColor), colorText: Color(primaryColor))),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  } 
+    return BlocBuilder<ProfileBloc, ProfileState>(
+      builder: (context, state) {
+        if (state is ProfileLoading) {
+          return const Center(child: CircularProgressIndicator());
+        }
 
+        if (state is ProfileFailure) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(state.message),
+                const SizedBox(height: 10),
+                customButton(() {
+                  context.read<ProfileBloc>().add(GetProfileEvent());
+                }, "Retry"),
+              ],
+            ),
+          );
+        }
+
+        if (state is ProfileLoaded) {
+          final user = state.profile;
+          emailTC.text = user.email;
+          phoneTC.text = user.phoneNumber;
+
+          return SingleChildScrollView(
+            padding: const EdgeInsets.all(16),
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Color(whiteColor),
+                borderRadius: BorderRadius.circular(24),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  /// PROFILE HEADER
+                  Row(
+                    children: [
+                      ClipOval(
+                        child: user.photo != null
+                            ? Image.network(
+                                user.photo!,
+                                width: 60,
+                                height: 60,
+                                fit: BoxFit.cover,
+                              )
+                            : Container(
+                                width: 60,
+                                height: 60,
+                                color: Color(primaryColor).withOpacity(0.1),
+                                child: Icon(Icons.person, color: Color(primaryColor), size: 30),
+                              ),
+                      ),
+                      const SizedBox(width: 12),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(user.fullName, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                          Text(user.permissionScope, style: const TextStyle(fontSize: 13, color: Colors.grey)),
+                          const Text("Team A", style: TextStyle(fontSize: 13, color: Colors.grey)),
+                        ],
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  Divider(color: Colors.grey.shade300),
+                  const SizedBox(height: 16),
+                  _label("Username"),
+                  const SizedBox(height: 6),
+                  _readonlyField(user.username),
+                  const SizedBox(height: 12),
+                  _label("Email"),
+                  const SizedBox(height: 6),
+                  _inputField(
+                    controller: emailTC,
+                    focusNode: emailFN,
+                    hint: 'youremail@gmail.com',
+                    keyboardType: TextInputType.emailAddress,
+                  ),
+                  const SizedBox(height: 12),
+                  _label("Phone Number"),
+                  const SizedBox(height: 6),
+                  _inputField(
+                    controller: phoneTC,
+                    focusNode: phoneFN,
+                    hint: '08123456789',
+                    keyboardType: TextInputType.phone,
+                  ),
+                  const SizedBox(height: 12),
+                  _label("Password"),
+                  const SizedBox(height: 6),
+                  _inputField(
+                    controller: passwordTC,
+                    focusNode: passwordFN,
+                    hint: '••••••••',
+                    obscure: _isObscure,
+                    suffix: IconButton(
+                      icon: Icon(_isObscure ? Icons.visibility_off_outlined : Icons.visibility_outlined),
+                      onPressed: () {
+                        setState(() {
+                          _isObscure = !_isObscure;
+                        });
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  _label("Confirm Password"),
+                  const SizedBox(height: 6),
+                  _inputField(
+                    controller: confirmPasswordTC,
+                    focusNode: confirmPasswordFN,
+                    hint: '••••••••',
+                    obscure: _isObscureConfirm,
+                    suffix: IconButton(
+                      icon: Icon(_isObscureConfirm ? Icons.visibility_off_outlined : Icons.visibility_outlined),
+                      onPressed: () {
+                        setState(() {
+                          _isObscureConfirm = !_isObscureConfirm;
+                        });
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  Row(
+                    children: [
+                      Expanded(child: customButton(() {}, "Submit")),
+                      const SizedBox(width: 20),
+                      Expanded(
+                        child: customButton(
+                          () async {
+                            final prefs = await SharedPreferences.getInstance();
+                            final localDataSource = AuthLocalDataSourceImpl(prefs);
+                            await localDataSource.clearToken();
+                            if (mounted) context.go('/login');
+                          },
+                          "Logout",
+                          colorBg: Color(whiteColor),
+                          colorText: Color(primaryColor),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
+
+        return const SizedBox();
+      },
+    );
+  }
   Widget _inputField({   required TextEditingController controller,   required FocusNode focusNode,   required String hint,   TextInputType? keyboardType,   bool obscure = false,   Widget? suffix, }) {
     return SizedBox(
       height: 48,

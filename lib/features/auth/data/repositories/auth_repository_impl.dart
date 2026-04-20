@@ -2,10 +2,13 @@ import 'package:progress_group/features/auth/data/datasources/auth_local_datasou
 
 import '../../../../core/network/base_response.dart';
 import '../../../../core/utils/helpers/error_parser.dart';
+import '../../domain/entities/reset_password.dart';
 import '../../domain/entities/user_entity.dart';
 import '../datasources/auth_remote_datasource.dart';
 import '../models/forgot_password_data_model.dart';
 import '../models/login_data_model.dart';
+import '../../domain/entities/user_profile.dart';
+import '../models/user_profile_model.dart';
 import 'auth_repository.dart';
 
 
@@ -38,7 +41,8 @@ class AuthRepositoryImpl implements AuthRepository {
       accessToken: data.accessToken,
     );
 
-    await localDataSource.saveToken(data.accessToken);
+    await localDataSource.saveToken(data.accessToken, persistent: rememberMe);
+    await localDataSource.saveAutoLogin(rememberMe);
 
     if (rememberMe) {
       await localDataSource.saveRememberMe(username, password);
@@ -69,6 +73,27 @@ class AuthRepositoryImpl implements AuthRepository {
    return (response.data!, response.message);
   }
 
+    
+  @override
+  Future<String> resetPassword(ResetPasswordEntity entity) async {
+    final result = await remoteDataSource.resetPassword(entity);
+
+    final response = BaseResponse<dynamic>.fromJson(
+      result,
+      (data) => data,
+    );
+
+    if (!response.status) {
+      throw Exception(
+        response.errors != null
+            ? parseError(response.errors)
+            : response.message,
+      );
+    }
+
+    return response.message;
+  }
+
   @override
   Future<(String, String)?> getRememberMe() {
     return localDataSource.getRememberMe();
@@ -82,5 +107,21 @@ class AuthRepositoryImpl implements AuthRepository {
   @override
   Future<void> logout() async {
     await localDataSource.clearToken();
+  }
+
+  @override
+  Future<UserProfileEntity> getProfile() async {
+    final result = await remoteDataSource.getMe();
+
+    final response = BaseResponse<UserProfileModel>.fromJson(
+      result,
+      (data) => UserProfileModel.fromJson(data),
+    );
+
+    if (!response.status) {
+      throw Exception(response.message);
+    }
+
+    return response.data!;
   }
 }

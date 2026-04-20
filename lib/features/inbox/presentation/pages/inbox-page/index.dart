@@ -1,4 +1,6 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:progress_group/core/constants/colors.dart';
 import 'package:progress_group/core/utils/widget/custom_header.dart';
@@ -6,7 +8,11 @@ import 'package:progress_group/core/utils/widget/custom_search_field.dart';
 import 'package:progress_group/core/utils/widget/custom_selectbox.dart';
 import 'package:progress_group/features/contact/data/models/selectbox_model.dart';
 import 'package:progress_group/features/inbox/data/arguments/inbox_detail_args.dart';
-import 'package:progress_group/features/inbox/data/models/dropdown_model.dart';
+import 'package:progress_group/features/inbox/domain/entities/inbox_contact_entity.dart';
+import 'package:progress_group/features/inbox/presentation/state/inbox_block.dart';
+import 'package:progress_group/features/inbox/presentation/state/inbox_event.dart';
+import 'package:progress_group/features/inbox/presentation/state/inbox_statte.dart';
+
 
 import '../../../../../core/constants/assets.dart';
 import '../../../../../core/utils/widget/custom_button.dart';
@@ -23,6 +29,30 @@ class _InboxPageState extends State<InboxPage> {
 
   final TextEditingController searchTC = TextEditingController();
   final FocusNode searchFN = FocusNode();
+  Timer? _debounce;
+
+  @override
+  void dispose() {
+    _debounce?.cancel();
+    searchTC.dispose();
+    searchFN.dispose();
+    super.dispose();
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchInbox();
+  }
+
+  void _fetchInbox({String? search}) {
+    context.read<InboxContactBloc>().add(GetInboxContactsEvent(
+      search: search ?? searchTC.text,
+      cPage: 1,
+      gPage: 1,
+    ));
+  }
+
 
   final List<SelectBoxModel> selectBoxes = [
     SelectBoxModel(items: ['Owner', 'B', 'C'], hint: "Owner"),
@@ -31,26 +61,8 @@ class _InboxPageState extends State<InboxPage> {
     SelectBoxModel(items: ['A', 'B', 'C'], hint: "Priority"),
     SelectBoxModel(items: ['Open', 'Close'], hint: "State")];
 
-  final List<DropdownItemModel> itemsGroup = [
-    DropdownItemModel(id: 1,title: "John Doe",subtitle: "Hallo",image: "https://i.pravatar.cc/150?img=1",count: "12",time: "12:00",),
-    DropdownItemModel(id: 2,title: "Jane Smith",subtitle: "Hai",image: "https://i.pravatar.cc/150?img=1",count: "1",time: "12:00",),
-  ];
-
-  final List<DropdownItemModel> itemsPersonal = [
-    DropdownItemModel(id: 1,title: "John Doe",subtitle: "Hallo",image: "https://i.pravatar.cc/150?img=1",count: "12",time: "12:00",),
-    DropdownItemModel(id: 2,title: "Jane Smith",subtitle: "Hai",image: "https://i.pravatar.cc/150?img=1",count: "1",time: "12:00",),
-    DropdownItemModel(id: 3,title: "John Doe",subtitle: "Hallo",image: "https://i.pravatar.cc/150?img=1",count: "12",time: "12:00",),
-    DropdownItemModel(id: 4,title: "Jane Smith",subtitle: "Hai",image: "https://i.pravatar.cc/150?img=1",count: "1",time: "12:00",),
-    DropdownItemModel(id: 5,title: "John Doe",subtitle: "Hallo",image: "https://i.pravatar.cc/150?img=1",count: "12",time: "12:00",),
-    DropdownItemModel(id: 6,title: "Jane Smith",subtitle: "Hai",image: "https://i.pravatar.cc/150?img=1",count: "1",time: "12:00",),
-    DropdownItemModel(id: 7,title: "John Doe",subtitle: "Hallo",image: "https://i.pravatar.cc/150?img=1",count: "12",time: "12:00",),
-    DropdownItemModel(id: 8,title: "Jane Smith",subtitle: "Hai",image: "https://i.pravatar.cc/150?img=1",count: "1",time: "12:00",),
-    DropdownItemModel(id: 1,title: "John Doe",subtitle: "Hallo",image: "https://i.pravatar.cc/150?img=1",count: "12",time: "12:00",),
-    DropdownItemModel(id: 2,title: "Jane Smith",subtitle: "Hai",image: "https://i.pravatar.cc/150?img=1",count: "1",time: "12:00",),
-    DropdownItemModel(id: 3,title: "John Doe",subtitle: "Hallo",image: "https://i.pravatar.cc/150?img=1",count: "12",time: "12:00",),
-    DropdownItemModel(id: 4,title: "Jane Smith",subtitle: "Hai",image: "https://i.pravatar.cc/150?img=1",count: "1",time: "12:00",),
-  ];
     
+
   @override
   Widget build(BuildContext context) {
     return SafeArea(
@@ -67,7 +79,18 @@ class _InboxPageState extends State<InboxPage> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Expanded(child: customSearchField(controller: searchTC,focusNode: searchFN)),
+                      Expanded(
+                        child: customSearchField(
+                          controller: searchTC,
+                          focusNode: searchFN,
+                          onChanged: (value) {
+                            if (_debounce?.isActive ?? false) _debounce?.cancel();
+                            _debounce = Timer(const Duration(milliseconds: 500), () {
+                              _fetchInbox(search: value);
+                            });
+                          },
+                        ),
+                      ),
                       SizedBox(width: 10),
                       GestureDetector(
                         onTap: () {
@@ -234,16 +257,38 @@ class _InboxPageState extends State<InboxPage> {
   }
 
   Widget _buildTabBarView() {
-    return TabBarView(
-      children: [
-        _buildList(itemsPersonal, Icons.person),
-        _buildList(itemsGroup, Icons.group),
+    return BlocBuilder<InboxContactBloc, InboxContactState>(
+      builder: (context, state) {
+        if (state is InboxContactLoading) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        if (state is InboxContactError) {
+          return Center(child: Text(state.message));
+        }
+        if (state is InboxContactLoaded) {
+          return TabBarView(
+            children: [
+              _buildList(state.contacts, Icons.person),
+              _buildList(state.groups, Icons.group),
+            ],
+          );
+        }
 
-      ],
+        return const SizedBox();
+      },
     );
   }
 
-  Widget _buildList(List<DropdownItemModel> items, IconData icon) {
+  Widget _buildList(List<InboxContact> items, IconData icon) {
+    if (items.isEmpty) {
+      return Center(
+        child: Text(
+          "Tidak ada data",
+          style: TextStyle(color: Colors.grey, fontSize: 14),
+        ),
+      );
+    }
+
     return ListView(
       padding: EdgeInsets.all(16),
       children: [
@@ -257,7 +302,7 @@ class _InboxPageState extends State<InboxPage> {
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
             itemCount: items.length,
-            separatorBuilder: (_, __) => Container(height: 1),
+            separatorBuilder: (_, __) => Container(height: 1, color: Colors.grey.shade100),
             itemBuilder: (context, index) {
               final item = items[index];
 
@@ -275,85 +320,59 @@ class _InboxPageState extends State<InboxPage> {
                   padding: const EdgeInsets.all(10),
                   child: Row(
                     children: [
-                     
                       ClipRRect(
                         borderRadius: BorderRadius.circular(8),
-                        child: Image.network(
-                          item.image,
-                          width: 46,
-                          height: 40,
-                          fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => Container(
-                            width: 46,
-                            height: 40,
-                            decoration: BoxDecoration(
-                              color: Color(grey1Color),
-                              shape: BoxShape.circle,
-                            ),
-                            child: Icon(icon,
-                                size: 24, color: Color(blue3Color)),
-                          ),
-                        ),
+                        child: item.photo != null && item.photo!.isNotEmpty
+                            ? Image.network(
+                                item.photo!,
+                                width: 46,
+                                height: 40,
+                                fit: BoxFit.cover,
+                                errorBuilder: (_, __, ___) => _avatarPlaceholder(icon, item.initials),
+                              )
+                            : _avatarPlaceholder(icon, item.initials),
                       ),
-
-                      SizedBox(width: 10),
-
-                     
+                      const SizedBox(width: 10),
                       Expanded(
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                           
                             Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(
-                                  item.title,
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.w700,
-                                    fontSize: 16,
+                                Container(
+                                  width: 150,
+                                  child: Text(
+                                    item.name,
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: 16,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
                                   ),
                                 ),
                                 Text(
-                                  item.subtitle,
-                                  style: TextStyle(
+                                  item.ownerName ?? item.jid,
+                                  style: const TextStyle(
                                     fontSize: 14,
                                     color: Colors.grey,
                                   ),
                                 ),
                               ],
                             ),
-
-                           
                             Column(
+                              crossAxisAlignment: CrossAxisAlignment.end,
                               children: [
-                                Text(
-                                  item.time,
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: Colors.grey,
+                                if (item.lastConversationDate != null)
+                                  Text(
+                                    item.lastConversationDate!,
+                                    style: const TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.grey,
+                                    ),
                                   ),
-                                ),
-
-                                SizedBox(height: 4),
-
-                               
-                                if (item.count != "0")
-                                  Container(
-                                    padding: EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                    decoration: BoxDecoration(
-                                      color: Color(redColor),
-                                      borderRadius: BorderRadius.circular(24),
-                                    ),
-                                    child: Text(
-                                      item.count,
-                                      style: TextStyle(
-                                        color: Color(whiteColor),
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    ),
-                                  )
+                                const SizedBox(height: 4),
                               ],
                             )
                           ],
@@ -367,6 +386,22 @@ class _InboxPageState extends State<InboxPage> {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _avatarPlaceholder(IconData icon, String initials) {
+    return Container(
+      width: 46,
+      height: 40,
+      decoration: BoxDecoration(
+        color: Color(grey1Color),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Center(
+        child: initials.isNotEmpty
+            ? Text(initials, style: TextStyle(color: Color(blue3Color), fontWeight: FontWeight.bold))
+            : Icon(icon, size: 24, color: Color(blue3Color)),
+      ),
     );
   }
   

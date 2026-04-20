@@ -261,20 +261,38 @@ class _CameraPageState extends State<CameraPage> {
                 SizedBox(height: 10),
                 Text("Pameran/ Open Table (optional)",style: TextStyle(fontSize: 14, color: Color(grey2Color))),
                 SizedBox(height: 5),
-                TextField(
-                  maxLines: 1,
-                  minLines: 1,
-                  controller: pameranTC,
-                  focusNode: pameranFN,
-                  onTapOutside: (event) => pameranFN.unfocus(),
-                  textInputAction: TextInputAction.newline,
-                  decoration: InputDecoration(
-                    hintText: "Name",
-                    hintStyle: TextStyle(color: Color(grey2Color),fontSize: 14),
-                    contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12),borderSide: BorderSide(color: Color(grey11Color))),
-                    enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12),borderSide: BorderSide(color: Color(grey11Color))),
-                    focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12),borderSide: BorderSide(color: Color(primaryColor))),
+                Container(
+                  width: double.infinity,
+                  height: 50,
+                  alignment: Alignment.centerRight,
+                  decoration: BoxDecoration(
+                    border: Border.all(color: Color(grey4Color),width: 1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          maxLines: 1,
+                          minLines: 1,
+                          controller: pameranTC,
+                          focusNode: pameranFN,
+                          onTapOutside: (event) => pameranFN.unfocus(),
+                          textInputAction: TextInputAction.newline,
+                          decoration: InputDecoration(
+                            hintText: "Select Pameran",
+                            hintStyle: TextStyle(color: Color(grey2Color),fontSize: 14),
+                            contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                            border: InputBorder.none,
+                            // border: OutlineInputBorder(borderRadius: BorderRadius.circular(12),borderSide: BorderSide(color: Color(grey11Color))),
+                            // enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12),borderSide: BorderSide(color: Color(grey11Color))),
+                            // focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12),borderSide: BorderSide(color: Color(primaryColor))),
+                          ),
+                        ),
+                      ),
+                      Icon(Icons.keyboard_arrow_up),
+                      SizedBox(width: 5)
+                    ],
                   ),
                 ),
                 SizedBox(height: 20),

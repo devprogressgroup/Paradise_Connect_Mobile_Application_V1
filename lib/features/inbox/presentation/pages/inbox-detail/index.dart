@@ -63,22 +63,15 @@ class _InboxDetailPageState extends State<InboxDetailPage> {
                     children: [
                       ClipRRect(
                         borderRadius: BorderRadius.circular(8),
-                        child: Image.network(
-                          widget.args.data.image,
-                          width: 44,
-                          height: 44,
-                          fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => Container(
-                            width: 44,
-                            height: 44,
-                            decoration: BoxDecoration(
-                              color: Color(grey1Color),
-                              shape: BoxShape.circle,
-                            ),
-                            child: Icon(widget.args.icon,
-                                color: Color(blue3Color)),
-                          ),
-                        ),
+                        child: widget.args.data.photo != null && widget.args.data.photo!.isNotEmpty
+                            ? Image.network(
+                                widget.args.data.photo!,
+                                width: 44,
+                                height: 44,
+                                fit: BoxFit.cover,
+                                errorBuilder: (_, __, ___) => _detailAvatarPlaceholder(),
+                              )
+                            : _detailAvatarPlaceholder(),
                       ),
                       const SizedBox(width: 10),
                       Expanded(
@@ -86,13 +79,13 @@ class _InboxDetailPageState extends State<InboxDetailPage> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              widget.args.data.title,
+                              widget.args.data.name,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: const TextStyle(fontSize: 16,fontWeight: FontWeight.w700),
                             ),
                             Text(
-                              widget.args.data.subtitle,
+                              widget.args.data.ownerName ?? widget.args.data.jid,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: const TextStyle(fontSize: 14),
@@ -204,4 +197,19 @@ class _InboxDetailPageState extends State<InboxDetailPage> {
     ),
   );
 }
+  Widget _detailAvatarPlaceholder() {
+    return Container(
+      width: 44,
+      height: 44,
+      decoration: BoxDecoration(
+        color: Color(grey1Color),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Center(
+        child: widget.args.data.initials.isNotEmpty
+            ? Text(widget.args.data.initials, style: TextStyle(color: Color(blue3Color), fontWeight: FontWeight.bold))
+            : Icon(widget.args.icon, color: Color(blue3Color)),
+      ),
+    );
+  }
 }

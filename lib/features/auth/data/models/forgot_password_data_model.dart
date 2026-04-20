@@ -13,4 +13,9 @@ class ForgotPasswordDataModel {
       maskedPhone: json['masked_phone'],
     );
   }
+
+
+  Map<String, dynamic> toJson() {
+    return {'user_id': userId, 'masked_phone': maskedPhone};
+  }
 }
