@@ -1,9 +1,13 @@
+import 'package:intl/intl.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:progress_group/core/constants/colors.dart';
 import 'package:progress_group/core/constants/assets.dart';
-import 'package:progress_group/features/home/data/models/chart_model.dart';
 import 'package:progress_group/features/home/data/datasource/chart_service.dart';
+import 'package:progress_group/features/home/presentation/state/report-whatsapp/report_bloc.dart';
+import 'package:progress_group/features/home/presentation/state/report-whatsapp/report_event.dart';
+import 'package:progress_group/features/home/presentation/state/report-whatsapp/report_state.dart';
 
 import '../../../../core/utils/widget/custom_header.dart';
 
@@ -16,28 +20,94 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   final ChartService _chartService = ChartService();
-  bool _isLoading = true;
-  String _selectedPeriod = 'Annual';
-  final List<String> _periods = ['Annual', 'Monthly', 'Weekly'];
 
-  List<ChartModel> _chartData = [];
+  // DateTime _chartStartDate = DateTime(2026, 1, 1);
+  // DateTime _chartEndDate = DateTime(2026, 1, 7);
+  DateTime _chartEndDate = DateTime.now();
+  DateTime _chartStartDate = DateTime.now().subtract(const Duration(days: 6));
+  int day = 0;
 
+  
   @override
   void initState() {
     super.initState();
+    day = _chartEndDate.difference(_chartStartDate).inDays + 1;
     _loadData();
   }
 
-  Future<void> _loadData() async {
-    setState(() => _isLoading = true);
-    try {
-      final data = await _chartService.fetchChartData();
+
+  Future<void> _selectDateRange() async {
+    final DateTimeRange? picked = await showDateRangePicker(
+      context: context,
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2030),
+      initialDateRange: DateTimeRange(start: _chartStartDate, end: _chartEndDate),
+    );
+
+    if (picked != null) {
+      // Menghitung jumlah hari yang dipilih
+      final calculatedDays = picked.end.difference(picked.start).inDays + 1;
+      
+      if (calculatedDays < 2) {
+        if (mounted) {
+          showDialog(
+            context: context,
+            builder: (context) => AlertDialog(
+              title: const Text("Peringatan"),
+              content: const Text("Minimal pilih 2 hari untuk melihat laporan."),
+              actions: [
+                TextButton(onPressed: () => Navigator.pop(context), child: const Text("OK")),
+              ],
+            ),
+          );
+        }
+        return;
+      }
+
+      if (calculatedDays > 7) {
+        if (mounted) {
+          showDialog(
+            context: context,
+            builder: (context) => AlertDialog(
+              title: const Text("Peringatan"),
+              content: const Text("Maksimal pilih 7 hari untuk melihat laporan."),
+              actions: [
+                TextButton(onPressed: () => Navigator.pop(context), child: const Text("OK")),
+              ],
+            ),
+          );
+        }
+        return;
+      }
+
+      // 2. Simpan nilai calculatedDays ke variabel day di dalam setState
       setState(() {
-        _chartData = data;
-        _isLoading = false;
+        _chartStartDate = picked.start;
+        _chartEndDate = picked.end;
+        day = calculatedDays; // <--- Masukkan ke sini
+      });
+      
+      _loadData();
+    }
+  }
+
+  Future<void> _loadData() async {
+    
+    if (mounted) {
+      context.read<ReportBloc>().add(
+        GetVolumeReportEvent(
+          startDate: DateFormat('yyyy-MM-dd').format(_chartStartDate),
+          endDate: DateFormat('yyyy-MM-dd').format(_chartEndDate),
+          groupBy: "Annual",
+        ),
+      );
+    }
+
+    try {
+      await _chartService.fetchChartData();
+      setState(() {
       });
     } catch (e) {
-      setState(() => _isLoading = false);
     }
   }
 
@@ -59,18 +129,24 @@ class _HomePageState extends State<HomePage> {
                 children: [
                   Text("Welcome back, User", style: TextStyle(fontSize: 16, color: Color(grey2Color))),
                   SizedBox(height: 6),
-                  Container(
-                    padding: EdgeInsets.symmetric(horizontal: 6, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: Color(grey1Color),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Row(
-                      children: [
-                        Image.asset(icCalendar, width: 22, height: 22),
-                        SizedBox(width: 10),
-                        Text("Nov 16, 2020 - Dec 16, 20206",style: TextStyle(fontSize: 12,fontWeight: FontWeight.bold, color: Color(grey2Color))),
-                      ],
+                   GestureDetector(
+                    onTap: _selectDateRange,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: Color(grey1Color),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Row(
+                        children: [
+                          Image.asset(icCalendar, width: 22, height: 22),
+                          const SizedBox(width: 10),
+                          Text(
+                            "${DateFormat('MMM dd, yyyy').format(_chartStartDate)} - ${DateFormat('MMM dd, yyyy').format(_chartEndDate)}",
+                            style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(grey2Color)),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                   SizedBox(height: 6),
@@ -82,7 +158,7 @@ class _HomePageState extends State<HomePage> {
                   SizedBox(height: 6),
                   Text("WhatsApp", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                   SizedBox(height: 5),
-                  _buildChart(),
+                  _buildchart(),
                 ],
               ),
             ),
@@ -168,188 +244,229 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  Widget _buildChart() {
+  Widget _buildchart() {
     const double maxHeight = 110.0;
-
+    String _formatYAxisLabel(double value) {
+        if (value == 0) return "0";
+        if (value >= 1000000) {
+          double m = value / 1000000;
+          return m == m.toInt() ? "${m.toInt()}M" : "${m.toStringAsFixed(1)}M";
+        }
+        if (value >= 1000) {
+          double k = value / 1000;
+          return k == k.toInt() ? "${k.toInt()}K" : "${k.toStringAsFixed(1)}K";
+        }
+        return value.toInt().toString();
+      }
     return Container(
       padding: const EdgeInsets.all(8),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(10),
-        boxShadow: [BoxShadow(color: Colors.grey.withOpacity(0.2),spreadRadius: 2,blurRadius: 5,offset: const Offset(0, 3))],
+        boxShadow: [
+          BoxShadow(
+              color: Colors.grey.withOpacity(0.2),
+              spreadRadius: 2,
+              blurRadius: 5,
+              offset: const Offset(0, 3)),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              const Text(
+                "Statistics",
+                style: TextStyle(fontSize: 10, fontWeight: FontWeight.w400, color: Colors.grey),
+              ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   const Text(
-                    "Statistics",
-                    style: TextStyle(fontSize: 10, fontWeight: FontWeight.w400, color: Color(grey3Color))),
-                  const Text(
                     "Chat Volume",
-                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
-                ],
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                decoration: BoxDecoration(color: Color(backgroundColor), borderRadius: BorderRadius.circular(20)),
-                child: DropdownButtonHideUnderline(
-                  child: DropdownButton<String>(
-                    value: _selectedPeriod,
-                    icon: const Icon(Icons.keyboard_arrow_down_rounded, size: 20, color: Color(grey9Color)),
-                    style: TextStyle(color: Color(grey9Color), fontSize: 12, fontWeight: FontWeight.bold),
-                    onChanged: (String? newValue) {
-                      if (newValue != null) {
-                        setState(() {
-                          _selectedPeriod = newValue;
-                        });
-                      }
-                    },
-                    items: _periods.map<DropdownMenuItem<String>>((
-                      String value,
-                    ) {
-                      return DropdownMenuItem<String>(
-                        value: value,
-                        child: Text(value),
-                      );
-                    }).toList(),
+                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
                   ),
-                ),
+                  Text(
+                    "${day} Days",
+                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                  ),
+                ],
               ),
             ],
           ),
-
           const SizedBox(height: 20),
-
-          LayoutBuilder(
-            builder: (context, constraints) {
-              if (_isLoading) {
+          BlocBuilder<ReportBloc, ReportState>(
+            builder: (context, state) {
+            
+              if (state is ReportInitial || state is ReportLoading) {
                 return const SizedBox(
-                  height: 250,
+                  height: 150,
                   child: Center(child: CircularProgressIndicator()),
                 );
               }
-
-              if (_chartData.isEmpty) {
-                return const SizedBox(
-                  height: 250,
-                  child: Center(child: Text("No data available")),
+              if (state is ReportError) {
+                return SizedBox(
+                  height: 150,
+                  child: Center(
+                      child: Text(state.message, style: const TextStyle(color: Colors.red))),
                 );
               }
+              if (state is ReportLoaded) {
+                final reportData = state.report;
+                List<String> labels = [];
+                List<double> values = [];
 
-              final List<double> values = _chartData.map((m) => m.value).toList();
-              final List<String> labels = _chartData.map((m) => m.label).toList();
+                if (reportData.categories.isEmpty || reportData.series.isEmpty) {
+                  // Jika data kosong, buat label dummy berdasarkan range tanggal yang dipilih
+                  for (int i = 0; i < day; i++) {
+                    DateTime date = _chartStartDate.add(Duration(days: i));
+                    labels.add(DateFormat('dd/MM').format(date));
+                    values.add(0.0);
+                  }
+                } else {
+                  labels = reportData.categories.take(7).toList();
+                  values = List.filled(labels.length, 0.0);
+                  for (var series in reportData.series) {
+                    for (int i = 0; i < series.data.length && i < values.length; i++) {
+                      values[i] += series.data[i].toDouble();
+                    }
+                  }
+                }
+                final double maxDataValue = values.reduce((curr, next) => curr > next ? curr : next);
+                final double chartMaxValue = maxDataValue <= 0 ? 10.0 : maxDataValue * 1.2;
+                return LayoutBuilder(
+                  builder: (context, constraints) {
+                    const double leftLabelWidth = 35.0;
+                    final double availableWidthForBars = constraints.maxWidth - leftLabelWidth;
+                    final double slotWidth = availableWidthForBars / values.length;
+                    final double barWidth = slotWidth * 0.4;
 
-              const double leftLabelWidth = 35.0;
-              final double availableWidthForBars = constraints.maxWidth - leftLabelWidth;
-              final double slotWidth = availableWidthForBars / values.length;
-              final double barWidth = slotWidth * 0.4;
-
-              return Column(
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.only(top: 15.0),
-                    child: Stack(
-                      clipBehavior: Clip.none,
+                    return Column(
                       children: [
-                        ...List.generate(4, (index) {
-                          double val = 3.0 - index;
-                          double topPos = (index / 3.0) * maxHeight;
-                          bool isLast = index == 3;
+                        Padding(
+                          padding: const EdgeInsets.only(top: 15.0),
+                          child: Stack(
+                            clipBehavior: Clip.none,
+                            children: [
+                            
+                              ...List.generate(4, (index) {
+                              
+                                double val = chartMaxValue - (index * (chartMaxValue / 3.0));
+                                double topPos = (index / 3.0) * maxHeight;
+                                bool isLast = index == 3;
 
-                          return Positioned(
-                            top: topPos,
-                            left: 0,
-                            right: 0,
-                            child: Row(
-                              crossAxisAlignment: CrossAxisAlignment.center,
-                              children: [
-                                SizedBox(
-                                  width: 30,
-                                  child: Transform.translate(
-                                    offset: const Offset(0, -6),
-                                    child: Text(
-                                      val == 4.0 ? "" : "${val.toInt()}M",
-                                      style: TextStyle(fontSize: 10, color: Colors.grey[600])
-                                    ),
+                                return Positioned(
+                                  top: topPos - 6, // Center label Vertically on the line
+                                  left: 0,
+                                  right: 0,
+                                  child: Row(
+                                    crossAxisAlignment: CrossAxisAlignment.center,
+                                    children: [
+                                      SizedBox(
+                                        width: 30,
+                                        child: Text(
+                                          _formatYAxisLabel(val),
+                                          textAlign: TextAlign.left,
+                                          style: TextStyle(fontSize: 10, color: Colors.grey[600]),
+                                        ),
+                                      ),
+                                      Expanded(
+                                        child: isLast
+                                            ? const SizedBox.shrink()
+                                            : CustomPaint(
+                                                size: const Size(double.infinity, 1),
+                                                painter: DashedLinePainter(color: Colors.grey.withOpacity(0.3)),
+                                              ),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              }),
+                              Padding(
+                                padding: const EdgeInsets.only(left: leftLabelWidth),
+                                child: SizedBox(
+                                  height: maxHeight,
+                                  child: Stack(
+                                    clipBehavior: Clip.none,
+                                    children: [
+                                      Positioned(
+                                        bottom: 0,
+                                        left: 0,
+                                        right: 0,
+                                        child: Row(
+                                          crossAxisAlignment: CrossAxisAlignment.end,
+                                          mainAxisAlignment: MainAxisAlignment.spaceAround,
+                                          children: values.map((val) {
+                                            double h = (val / chartMaxValue) * maxHeight;
+                                            return _buildManualBar(h, barWidth, maxHeight);
+                                          }).toList(),
+                                        ),
+                                      ),
+
+                                    
+                                      Positioned.fill(
+                                        top: 10,
+                                        child: CustomPaint(
+                                          painter: TrendLinePainter(
+                                            values: values,
+                                            maxHeight: maxHeight,
+                                            chartMaxValue: chartMaxValue,
+                                            barWidth: barWidth,
+                                            slotWidth: slotWidth,
+                                          ),
+                                        ),
+                                      ),
+                                      
+                                      // BASELINE (GARIS DASAR) - Ditempelkan ke bawah bar
+                                      Positioned(
+                                        bottom: 0,
+                                        left: 0,
+                                        right: 0,
+                                        child: Container(
+                                          height: 1,
+                                          color: Colors.grey.withOpacity(0.5),
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ),
-                                Expanded(
-                                  child: isLast ? Container(height: 1, color: Colors.grey.withOpacity(0.5))
-                                      : CustomPaint(
-                                          size: const Size(double.infinity, 1),
-                                          painter: DashedLinePainter(color: Colors.grey.withOpacity(0.3)),
-                                        ),
-                                ),
-                              ],
-                            ),
-                          );
-                        }),
-
+                              ),
+                            ],
+                          ),
+                        ),
                         Padding(
                           padding: const EdgeInsets.only(left: leftLabelWidth),
-                          child: SizedBox(
-                            height: maxHeight,
-                            child: Stack(
-                              clipBehavior: Clip.none,
-                              children: [
-                                Row(
-                                  crossAxisAlignment: CrossAxisAlignment.end,
-                                  mainAxisAlignment: MainAxisAlignment.spaceAround,
-                                  children: values.map((val) {
-                                    double h = (val / 3.0) * maxHeight;
-                                    return _buildManualBar(h, barWidth, maxHeight);
-                                  }).toList(),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceAround,
+                            children: labels.map((label) {
+                              return Container(
+                                width: slotWidth,
+                                alignment: Alignment.center,
+                                padding: const EdgeInsets.only(top: 8),
+                                child: Text(
+                                  label,
+                                  style: TextStyle(fontSize: 10, color: Colors.grey[600], fontWeight: FontWeight.w500),
+                                  overflow: TextOverflow.ellipsis,
                                 ),
-
-                                Positioned.fill(
-                                  child: CustomPaint(
-                                    painter: TrendLinePainter(
-                                      values: values,
-                                      maxHeight: maxHeight,
-                                      barWidth: barWidth,
-                                      slotWidth: slotWidth,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
+                              );
+                            }).toList(),
                           ),
                         ),
                       ],
-                    ),
-                  ),
-
-                  Padding(
-                    padding: const EdgeInsets.only(left: leftLabelWidth),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceAround,
-                      children: labels.map((year) {
-                        return Container(
-                          width: slotWidth,
-                          alignment: Alignment.center,
-                          padding: const EdgeInsets.only(top: 8),
-                          child: Text(
-                            year,
-                            style: TextStyle(fontSize: 10, color: Colors.grey[600], fontWeight: FontWeight.w500),
-                          ),
-                        );
-                      }).toList(),
-                    ),
-                  ),
-                ],
-              );
+                    );
+                  },
+                );
+              }
+              return const SizedBox();
             },
           ),
         ],
       ),
     );
   }
+
 
   Widget _buildManualBar(double height, double width, double chartMaxHeight) {
     double segmentHeight = chartMaxHeight / 5;
@@ -358,7 +475,10 @@ class _HomePageState extends State<HomePage> {
       width: width,
       height: height,
       clipBehavior: Clip.antiAlias,
-      decoration: BoxDecoration(color: Color(chartBarBgColor), borderRadius: const BorderRadius.vertical(top: Radius.circular(6))),
+      decoration: const BoxDecoration(
+        color: Color(chartBar1Color),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(6)),
+      ),
       child: OverflowBox(
         minHeight: chartMaxHeight,
         maxHeight: chartMaxHeight,
@@ -366,27 +486,31 @@ class _HomePageState extends State<HomePage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.end,
           children: [
-            Container(height: segmentHeight, width: width, color: Color(chartBar1Color)),
-            Container(height: segmentHeight, width: width, color: Color(chartBar2Color)),
-            Container(height: segmentHeight, width: width, color: Color(chartBar3Color)),
-            Container(height: segmentHeight, width: width, color: Color(chartBar4Color)),
-            Container(height: segmentHeight, width: width, color: Color(chartBar5Color)),
+            Container(height: segmentHeight, width: width, color: Color(chartBar5Color).withValues(alpha: 0.3)),
+            Container(height: segmentHeight, width: width, color: Color(chartBar2Color).withValues(alpha: 0.4)),
+            Container(height: segmentHeight, width: width, color: Color(chartBar3Color).withValues(alpha: 0.5)),
+            Container(height: segmentHeight, width: width, color: Color(chartBar4Color).withValues(alpha: 0.6)),
+            Container(height: segmentHeight, width: width, color: Color(chartBar5Color).withValues(alpha: 0.7)),
           ],
         ),
       ),
     );
   }
+
 }
+
 
 class TrendLinePainter extends CustomPainter {
   final List<double> values;
   final double maxHeight;
+  final double chartMaxValue;
   final double barWidth;
   final double slotWidth;
 
   TrendLinePainter({
     required this.values,
     required this.maxHeight,
+    required this.chartMaxValue,
     required this.barWidth,
     required this.slotWidth,
   });
@@ -416,14 +540,16 @@ class TrendLinePainter extends CustomPainter {
 
     for (int i = 0; i < values.length; i++) {
       double x = (i * slotWidth) + (slotWidth / 2);
-      double y = maxHeight - (values[i] / 3.0 * maxHeight);
+      
+    
+      double y = maxHeight - (values[i] / chartMaxValue * maxHeight);
 
       if (i == 0) {
         path.moveTo(x, y);
         shadowPath.moveTo(x, y + 2);
       } else {
         double prevX = ((i - 1) * slotWidth) + (slotWidth / 2);
-        double prevY = maxHeight - (values[i - 1] / 3.0 * maxHeight);
+        double prevY = maxHeight - (values[i - 1] / chartMaxValue * maxHeight);
 
         double controlX1 = prevX + (x - prevX) / 2;
         double controlY1 = prevY;
@@ -432,12 +558,7 @@ class TrendLinePainter extends CustomPainter {
 
         path.cubicTo(controlX1, controlY1, controlX2, controlY2, x, y);
         shadowPath.cubicTo(
-          controlX1,
-          controlY1 + 2,
-          controlX2,
-          controlY2 + 2,
-          x,
-          y + 2,
+          controlX1, controlY1 + 2, controlX2, controlY2 + 2, x, y + 2,
         );
       }
     }
@@ -456,8 +577,8 @@ class TrendLinePainter extends CustomPainter {
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
           colors: [
-            Color(chartAreaColor).withOpacity(0.5),
-            Color(chartAreaColor).withOpacity(0.0),
+            Color(chartLineColor).withOpacity(0.5),
+            Color(chartLineColor).withOpacity(0.0),
           ],
         ).createShader(Rect.fromLTWH(0, 0, size.width, maxHeight))
         ..style = PaintingStyle.fill;
@@ -470,7 +591,7 @@ class TrendLinePainter extends CustomPainter {
 
     for (int i = 0; i < values.length; i++) {
       double x = (i * slotWidth) + (slotWidth / 2);
-      double y = maxHeight - (values[i] / 3.0 * maxHeight);
+      double y = maxHeight - (values[i] / chartMaxValue * maxHeight);
 
       canvas.drawCircle(Offset(x, y), 5, dotPaint);
       canvas.drawCircle(Offset(x, y), 2.5, Paint()..color = Colors.white);
@@ -478,7 +599,9 @@ class TrendLinePainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
+  bool shouldRepaint(covariant TrendLinePainter oldDelegate) {
+    return oldDelegate.values != values || oldDelegate.chartMaxValue != chartMaxValue;
+  }
 }
 
 class DashedLinePainter extends CustomPainter {
@@ -504,3 +627,27 @@ class DashedLinePainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

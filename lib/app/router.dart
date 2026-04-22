@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:progress_group/features/contact/data/arguments/contact_dropdown_args.dart';
 import 'package:progress_group/features/contact/presentation/pages/contact-dropdown/index.dart';
+import 'package:progress_group/features/inbox/presentation/pages/qr/index.dart';
 
 import '../features/attandance/data/arguments/attandance_args.dart';
 import '../features/attandance/presentation/pages/attandance-page/index.dart';
@@ -30,11 +31,11 @@ import '../features/splash/presentation/pages/index.dart';
 import 'main_layout.dart';
 
 class AppRouter {
-  static final _rootNavigatorKey = GlobalKey<NavigatorState>();
+  static final rootNavigatorKey = GlobalKey<NavigatorState>();
 
   static final router = GoRouter(
     initialLocation: '/splash',
-    navigatorKey: _rootNavigatorKey,
+    navigatorKey: rootNavigatorKey,
     routes: [
       GoRoute(
         path: '/splash',
@@ -108,6 +109,14 @@ class AppRouter {
                 builder: (context, state) {
                   final args = state.extra as InboxDetailArgs;
                   return InboxDetailPage(args: args);
+                },
+              ),
+              GoRoute(
+                name: 'qrScanner',
+                path: 'qrScanner',
+                builder: (context, state) {
+                  final args = state.extra as String;
+                  return QrScannerPage(sessionId: args);
                 },
               ),
             ],

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
@@ -12,6 +13,8 @@ import 'package:progress_group/features/inbox/domain/entities/inbox_contact_enti
 import 'package:progress_group/features/inbox/presentation/state/inbox/inbox_block.dart';
 import 'package:progress_group/features/inbox/presentation/state/inbox/inbox_event.dart';
 import 'package:progress_group/features/inbox/presentation/state/inbox/inbox_statte.dart';
+import 'package:progress_group/features/inbox/presentation/state/whatsapp_device/whatsapp_device_bloc.dart';
+import 'package:progress_group/features/inbox/presentation/state/whatsapp_qr/whatsapp_qr_bloc.dart';
 
 
 import '../../../../../core/constants/assets.dart';
@@ -71,6 +74,9 @@ class _InboxPageState extends State<InboxPage> {
         children: [
           customHeader(context, 'Whatsapp'),
           SizedBox(height: 16),
+          // customButton( () {
+          //   context.pushNamed('qrScanner', extra: '2d992f7e-19e6-4e98-bdc8-9ee2edb353c2');
+          // }, 'Tambah Device'),
           Expanded(
             child: Padding(
               padding:  EdgeInsets.symmetric(horizontal: 16),
@@ -94,8 +100,11 @@ class _InboxPageState extends State<InboxPage> {
                       SizedBox(width: 10),
                       GestureDetector(
                         onTap: () {
-                         setState(() {
+                          setState(() {
                             isFilterPhone = !isFilterPhone;
+                            if (isFilterPhone) {
+                              context.read<WhatsappDeviceBloc>().add(GetWhatsappDevicesEvent());
+                            }
                           });
                         },
                         child: Container(
@@ -121,14 +130,54 @@ class _InboxPageState extends State<InboxPage> {
                         color: Color(whiteColor),
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      child: Column(
-                        children: [
-                          
-                          _buildListPhone(phone: "62856111777", name: "Aulia Mila", image: icContactDetailWA, colorImg: Color(greenPercentColor), onTap: () {_showInboxQRDialog();}),
-                          SizedBox(height: 5,),
-                          _buildListPhone(phone: "62856111777", name: "Aulia Mila", image: icQR, colorImg: Color(primaryColor), onTap: () {_showInboxQRDialog();}),
-                        
-                        ],
+                      child: BlocBuilder<WhatsappDeviceBloc, WhatsappDeviceState>(
+                        builder: (context, state) {
+                          if (state is WhatsappDeviceLoading) {
+                            return const Center(child: Padding(
+                              padding: EdgeInsets.all(8.0),
+                              child: CircularProgressIndicator(),
+                            ));
+                          }
+                          if (state is WhatsappDeviceError) {
+                            return Center(child: Text(state.message));
+                          }
+                          if (state is WhatsappDeviceLoaded) {
+                            if (state.devices.isEmpty) {
+                              return const Center(child: Text("Tidak ada device"));
+                            }
+                            return SizedBox(
+                              height: 120,
+                              child: SingleChildScrollView(
+                                child: Column(
+                                  children: state.devices.map((device) {
+                                    return Column(
+                                      children: [
+                                        _buildListPhone(
+                                          phone: device.whatsappNumber,
+                                          name: device.fullName ?? "-",
+                                          image: device.status == "CONNECTED" ? icContactDetailWA : icQR,
+                                          colorImg: device.status == "CONNECTED"
+                                              ? Color(greenPercentColor)
+                                              : Color(primaryColor),
+                                          onTap: () {
+                                            if (device.status != "CONNECTED") {
+                                              context.read<WhatsappQrBloc>().add(
+                                                    StartQrSessionEvent(device.sessionCode),
+                                                  );
+                                              _showInboxQRDialog(device.sessionCode);
+                                            }
+                                          },
+                                        ),
+                                        const SizedBox(height: 5),
+                                      ],
+                                    );
+                                  }).toList(),
+                                ),
+                              ),
+                            );
+                          }
+                          return const SizedBox();
+                        },
                       ),
                     ),
                   ),
@@ -405,7 +454,7 @@ class _InboxPageState extends State<InboxPage> {
     );
   }
   
-  void _showInboxQRDialog() {
+  void _showInboxQRDialog(String sessionId) {
     showDialog(
       context: context,
       barrierColor: Colors.black54, 
@@ -416,44 +465,81 @@ class _InboxPageState extends State<InboxPage> {
             borderRadius: BorderRadius.circular(12), 
           ),
           child: SizedBox(
-            width: MediaQuery.of(context).size.width * 0.6,
+            width: MediaQuery.of(context).size.width * 0.7,
             child: Padding(
               padding: const EdgeInsets.all(16),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text("Scan QR Code for", style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
-                  SizedBox(height: 16),
-                  Container(
-                    padding: EdgeInsets.all(15),
-                    decoration: BoxDecoration(
-                      border: Border.all(color: Color(grey1Color)),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(12),
-                      child: Image.network(
-                        "https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=0000011",
-                        width: 180,
-                        height: 180,
-                        fit: BoxFit.cover,
+              child: BlocConsumer<WhatsappQrBloc, WhatsappQrState>(
+                listener: (context, state) {
+                  if (state is WhatsappQrStreaming && state.status == 'CONNECTED') {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('WhatsApp Terhubung!'), backgroundColor: Colors.green),
+                    );
+                    Navigator.pop(context); // Tutup dialog jika terhubung
+                  }
+                },
+                builder: (context, state) {
+                  return Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text("Scan QR Code for", style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+                      SizedBox(height: 16),
+                      Container(
+                        padding: EdgeInsets.all(15),
+                        decoration: BoxDecoration(
+                          border: Border.all(color: Color(grey1Color)),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(12),
+                          child: _buildQrContent(state),
+                        ),
                       ),
-                    ),
-                  ),
-                  SizedBox(height: 10),
-                  Text("Buka WhatsApp > Perangkat Tertaut > Tautkan Perangkat",textAlign: TextAlign.center, style: TextStyle(fontSize: 12, color: Colors.grey)),
-                  SizedBox(height: 16),
-                  customButton((){ Navigator.pop(context); }, "Tutup", colorBg: Color(primaryColor), colorText: Color(whiteColor)),
-                  SizedBox(height: 10),
-                  customButton((){ Navigator.pop(context); }, "Gunakan Pairing Code", colorBg: Color(primaryColor), colorText: Color(whiteColor)),
-            
-      
-                ],
+                      SizedBox(height: 10),
+                      Text("Buka WhatsApp > Perangkat Tertaut > Tautkan Perangkat",textAlign: TextAlign.center, style: TextStyle(fontSize: 12, color: Colors.grey)),
+                      SizedBox(height: 16),
+                      if (state is WhatsappQrError)
+                         Padding(
+                           padding: const EdgeInsets.only(bottom: 8.0),
+                           child: Text(state.message, style: TextStyle(color: Colors.red, fontSize: 10), textAlign: TextAlign.center),
+                         ),
+                      customButton((){ Navigator.pop(context); }, "Tutup", colorBg: Color(primaryColor), colorText: Color(whiteColor)),
+                      SizedBox(height: 10),
+                      customButton((){ 
+                        context.read<WhatsappQrBloc>().add(StartQrSessionEvent(sessionId));
+                      }, "Refresh QR", colorBg: Color(primaryColor), colorText: Color(whiteColor)),
+                    ],
+                  );
+                },
               ),
             ),
           ),
         );
       },
+    );
+  }
+
+  Widget _buildQrContent(WhatsappQrState state) {
+    if (state is WhatsappQrLoading) {
+      return SizedBox(
+        width: 180,
+        height: 180,
+        child: Center(child: CircularProgressIndicator()),
+      );
+    }
+    if (state is WhatsappQrStreaming) {
+      if (state.qrBase64 != null) {
+        return Image.memory(
+          base64Decode(state.qrBase64!),
+          width: 180,
+          height: 180,
+          fit: BoxFit.cover,
+        );
+      }
+    }
+    return SizedBox(
+      width: 180,
+      height: 180,
+      child: Center(child: Text("Menunggu QR...", style: TextStyle(fontSize: 12, color: Colors.grey))),
     );
   }
 }

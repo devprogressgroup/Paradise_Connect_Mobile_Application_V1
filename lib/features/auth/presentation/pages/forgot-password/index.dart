@@ -3,13 +3,13 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:progress_group/core/utils/widget/custom_loading.dart';
 import 'package:progress_group/features/auth/domain/entities/reset_password.dart';
-import 'package:progress_group/features/auth/presentation/state/bloc/auth_event.dart';
-import 'package:progress_group/features/auth/presentation/state/bloc/auth_state.dart';
+import 'package:progress_group/features/auth/presentation/state/auth/auth_event.dart';
+import 'package:progress_group/features/auth/presentation/state/auth/auth_state.dart';
 
 import '../../../../../core/constants/colors.dart';
 import '../../../../../core/utils/widget/custom_snackbar.dart';
 import '../../../data/models/forgot_password_data_model.dart';
-import '../../state/bloc/auth_bloc.dart';
+import '../../state/auth/auth_bloc.dart';
 
 class ForgotPasswordPage extends StatefulWidget {
   final int step;
@@ -51,11 +51,14 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
   void _init() {
     setState(() {
       _step = widget.step;
+      
     });
   }
 
+  
+
   void _forgotPassword() {
-    final phone = _whatsaappController.text.trim();
+    final phone = "62"+_whatsaappController.text.trim();
 
     if (phone.isEmpty) {
       showSnackbar(context, "Nomor WhatsApp wajib diisi", isError: true);
@@ -228,7 +231,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
                 controller: _passwordController,
                 focusNode: _passwordFN,
                 onTapOutside: (event) => _passwordFN.unfocus(),
-                obscureText: true,
+                obscureText: _isObscure,
                 validator: (value) {
                   if (value == null || value.isEmpty) {
                     return "Password tidak boleh kosong";
@@ -266,7 +269,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
                 controller: _confirmPasswordController,
                 focusNode: _confirmPasswordFN,
                 onTapOutside: (event) => _confirmPasswordFN.unfocus(),
-                obscureText: true,
+                obscureText: _isObscure2,
                 validator: (value) {
                   if (value == null || value.isEmpty) {
                     return "Konfirmasi password tidak boleh kosong";
@@ -331,38 +334,42 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
          mainAxisSize: MainAxisSize.min,
          crossAxisAlignment: CrossAxisAlignment.stretch,
          children: [
-           // Header 
            const Text('Forgot Password',textAlign: TextAlign.center,style: TextStyle(fontSize: 18,fontWeight: FontWeight.w700,letterSpacing: 0,color: Color(blue2Color))),
            Text("Enter your WhatsApp number and we will send you a code to reset your password",textAlign: TextAlign.center, style: TextStyle(fontSize: 14,fontWeight: FontWeight.w700,color: Color(grey2Color))),
            const SizedBox(height: 32),
            Text("WhatsApp Number",style: TextStyle(fontSize: 14,fontWeight: FontWeight.w700,color: Color(grey2Color))),
            const SizedBox(height: 10),
            TextFormField(
-             controller: _whatsaappController,
-             focusNode: _whatsappFN,
-             onTapOutside: (event) => _whatsappFN.unfocus(),
-             keyboardType: TextInputType.numberWithOptions(),
-             decoration: InputDecoration(
-               hintText: '62 812-3456-7890',
-               hintStyle: TextStyle(fontSize: 14,fontWeight: FontWeight.w400,color: Color(grey3Color)),
-               filled: true,
-               fillColor: Colors.grey[50],
-               border: OutlineInputBorder(borderRadius: BorderRadius.circular(14),borderSide: BorderSide(color: Color(grey4Color),width: 1)),
-               enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14),borderSide: BorderSide(color: Color(grey4Color),width: 1)),
-               focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14),borderSide: BorderSide(color: Color(primaryColor),width: 1.5)),
-               errorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14),borderSide: BorderSide(color: Color(redPeriodColor),width: 1.5)),
-               focusedErrorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14),borderSide: BorderSide(color: Color(redPeriodColor),width: 1.5)),
-               disabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14),borderSide: BorderSide(color: Colors.grey, width: 1)),
-             ),
-           ),
+              controller: _whatsaappController,
+              focusNode: _whatsappFN,
+              keyboardType: TextInputType.phone,
+              onTapOutside: (event) => _whatsappFN.unfocus(),
+              decoration: InputDecoration(
+                prefixText: '62 ',
+                hintText: '812-3456-7890',
+                hintStyle: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w400,
+                  color: Color(grey3Color),
+                ),
+                prefixStyle: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w400,
+                  color: Color(blackColor),
+                ),
+                filled: true,
+                fillColor: Colors.grey[50],
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  borderSide: BorderSide(color: Color(grey4Color), width: 1),
+                ),
+              ),
+            ),
            const SizedBox(height: 20),
            const SizedBox(height: 32),
            ElevatedButton(
              onPressed: () {
                _forgotPassword();
-              // setState(() {
-              //   _step = 2;
-              // });
              },
              style: ElevatedButton.styleFrom(
                backgroundColor: Color(primaryColor),

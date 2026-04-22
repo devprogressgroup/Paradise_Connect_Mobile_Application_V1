@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:progress_group/core/constants/colors.dart';
 import 'package:progress_group/features/inbox/data/arguments/inbox_detail_args.dart';
@@ -255,9 +254,7 @@ class _InboxDetailPageState extends State<InboxDetailPage> {
     );
   }
 
-  // ==========================================
-  // WIDGET FUNGSI CHAT KE KIRI (DARI CUSTOMER)
-  // ==========================================
+
   Widget _buildLeftMessage(ChatMessage msg, String senderName) {
     final contactPhoto = widget.args.data.photo;
     final showContactPhoto = contactPhoto != null && contactPhoto.isNotEmpty;
@@ -272,7 +269,7 @@ class _InboxDetailPageState extends State<InboxDetailPage> {
           showContactPhoto
               ? CircleAvatar(
                   radius: 22,
-                  foregroundImage: NetworkImage(contactPhoto!),
+                  foregroundImage: NetworkImage(contactPhoto),
                   backgroundColor: Color(grey1Color),
                   child: widget.args.data.initials.isNotEmpty
                       ? Text(widget.args.data.initials,

@@ -6,9 +6,9 @@ import 'package:progress_group/core/constants/colors.dart';
 
 import '../../../../../core/utils/widget/custom_loading.dart';
 import '../../../../../core/utils/widget/custom_snackbar.dart';
-import '../../state/bloc/auth_bloc.dart';
-import '../../state/bloc/auth_event.dart';
-import '../../state/bloc/auth_state.dart';
+import '../../state/auth/auth_bloc.dart';
+import '../../state/auth/auth_event.dart';
+import '../../state/auth/auth_state.dart';
 
 
 
@@ -348,26 +348,53 @@ class _LoginPageState extends State<LoginPage> {
                         ],
                       ),
                       const SizedBox(height: 32),
-                      ElevatedButton(
-                        onPressed: () {
-                          _login();
-                          // context.go('/');
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Color(primaryColor),
-                          foregroundColor: Colors.white,
-                          minimumSize: const Size(double.infinity, 56),
-                          elevation: 0,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                        ),
-                        child: const Text(
-                          'Sign In',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
+                      SizedBox(
+                        width: double.infinity,
+                        height: 56, // ✅ samakan
+                        child: Row(
+                          children: [
+                            Expanded( // 🔥 WAJIB biar gak overflow
+                              child: ElevatedButton(
+                                onPressed: () {
+                                  _login();
+                                },
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Color(primaryColor),
+                                  foregroundColor: Colors.white,
+                                  elevation: 0,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(16),
+                                  ),
+                                ),
+                                child: const Text(
+                                  'Sign In',
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                            ),
+
+                            const SizedBox(width: 12),
+
+                            Container(
+                              height: 56,
+                              width: 56,
+                              decoration: BoxDecoration(
+                                color: Color(primaryColor),
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                              child: IconButton(
+                                onPressed: () {},
+                                icon: const Icon(
+                                  Icons.fingerprint,
+                                  color: Colors.white,
+                                  size: 28,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ],
