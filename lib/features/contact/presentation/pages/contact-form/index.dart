@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:progress_group/features/contact/domain/entities/create_contact_params.dart';
 import 'package:progress_group/features/contact/domain/entities/prospect_status.dart';
@@ -514,9 +515,9 @@ class _ContactFormPageState extends State<ContactFormPage> {
                           selectedSalutation = "Mr."; // Mock selection
                         });
                       }),
-                      _buildField(label: "Email", controller: emailTC, focusNode: emailFN),
-                      _buildField(label: "Phone", controller: phoneTC, focusNode: phoneFN),
-                      _buildField(label: "Whatsapp", controller: waTC, focusNode: waFN),
+                      _buildField(label: "Email", controller: emailTC, focusNode: emailFN, fieldType: 'text'),
+                      _buildField(label: "Phone", controller: phoneTC, focusNode: phoneFN, fieldType: 'int'),
+                      _buildField(label: "Whatsapp", controller: waTC, focusNode: waFN, fieldType: 'int'),
                       _buildFieldDown(label: "Status Prospect", value: selectedStatusName, onTap: () async {
                          final result = await context.pushNamed('selectStatus', extra: selectedStatusId);
                          if (result != null) {
@@ -534,7 +535,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
                       }),
                       _buildField(label: "First Project Product", controller: FPProductTC, focusNode: FPProducttFN),
                       _buildField(label: "First Project Category", controller: FPCategoryTC, focusNode: FPCategorytFN),
-                      _buildField(label: "Block No", controller: blockNoTC, focusNode: blockNoFN),
+                      _buildField(label: "Block No", controller: blockNoTC, focusNode: blockNoFN, fieldType: 'int'),
                       _buildField(label: "General Notes", controller: generalNotesTC, focusNode: generalNotesFN),
                     ],
                   ),
@@ -614,7 +615,12 @@ class _ContactFormPageState extends State<ContactFormPage> {
   );
 }
 
-  Widget _buildField({  required String label,  required TextEditingController controller,  required FocusNode focusNode,}) {
+  Widget _buildField({
+    required String label,
+    required TextEditingController controller,
+    required FocusNode focusNode,
+    String fieldType = 'text',
+  }) {
     return Container(
       padding: EdgeInsets.symmetric(vertical:  5, horizontal: 16),
       height: 50,
@@ -633,22 +639,80 @@ class _ContactFormPageState extends State<ContactFormPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                TextFormField(
-                  controller: controller,
-                  focusNode: focusNode,
-                  onTapOutside: (_) => focusNode.unfocus(),
-                  style:  TextStyle(fontSize: 12, color: Color(blackColor),fontWeight: FontWeight.w700),
-                  decoration:  InputDecoration(
-                    isDense: true,
-                    label: Text(label, style: TextStyle(fontSize: 12),),
-                    border: InputBorder.none,
-                    enabledBorder: InputBorder.none,
-                    focusedBorder: InputBorder.none,
-                    errorBorder: InputBorder.none,
-                    disabledBorder: InputBorder.none,
-                    contentPadding: EdgeInsets.zero,
-                  ),
-                ),
+                Builder(builder: (context) {
+                  // Date field: open date picker and fill controller
+                  if (fieldType == 'date') {
+                    return GestureDetector(
+                      onTap: () async {
+                        focusNode.unfocus();
+                        final DateTime? picked = await showDatePicker(
+                          context: context,
+                          initialDate: DateTime.tryParse(controller.text) ?? DateTime.now(),
+                          firstDate: DateTime(1900),
+                          lastDate: DateTime(2100),
+                        );
+                        if (picked != null) {
+                          controller.text = picked.toIso8601String().split('T').first;
+                        }
+                      },
+                      child: AbsorbPointer(
+                        child: TextFormField(
+                          controller: controller,
+                          focusNode: focusNode,
+                          style: TextStyle(fontSize: 12, color: Color(blackColor), fontWeight: FontWeight.w700),
+                          decoration: InputDecoration(
+                            isDense: true,
+                            label: Text(label, style: TextStyle(fontSize: 12),),
+                            border: InputBorder.none,
+                            enabledBorder: InputBorder.none,
+                            focusedBorder: InputBorder.none,
+                            errorBorder: InputBorder.none,
+                            disabledBorder: InputBorder.none,
+                            contentPadding: EdgeInsets.zero,
+                          ),
+                        ),
+                      ),
+                    );
+                  }
+
+                  // Integer field: restrict to digits
+                  if (fieldType == 'int') {
+                    return TextFormField(
+                      controller: controller,
+                      focusNode: focusNode,
+                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                      keyboardType: TextInputType.number,
+                      style: TextStyle(fontSize: 12, color: Color(blackColor), fontWeight: FontWeight.w700),
+                      decoration: InputDecoration(
+                        isDense: true,
+                        label: Text(label, style: TextStyle(fontSize: 12),),
+                        border: InputBorder.none,
+                        enabledBorder: InputBorder.none,
+                        focusedBorder: InputBorder.none,
+                        errorBorder: InputBorder.none,
+                        disabledBorder: InputBorder.none,
+                        contentPadding: EdgeInsets.zero,
+                      ),
+                    );
+                  }
+
+                  // Default: text input
+                  return TextFormField(
+                    controller: controller,
+                    focusNode: focusNode,
+                    style: TextStyle(fontSize: 12, color: Color(blackColor), fontWeight: FontWeight.w700),
+                    decoration: InputDecoration(
+                      isDense: true,
+                      label: Text(label, style: TextStyle(fontSize: 12),),
+                      border: InputBorder.none,
+                      enabledBorder: InputBorder.none,
+                      focusedBorder: InputBorder.none,
+                      errorBorder: InputBorder.none,
+                      disabledBorder: InputBorder.none,
+                      contentPadding: EdgeInsets.zero,
+                    ),
+                  );
+                }),
               ],
             ),
           ),
