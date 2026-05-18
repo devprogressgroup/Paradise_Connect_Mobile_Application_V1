@@ -29,7 +29,7 @@ abstract class ContactRemoteDataSource {
 
   Future<List<ContactPropertyGroupModel>> getContactProperties();
 
-  Future<void> createContact(CreateContactParams params);
+  Future<ContactModel> createContact(CreateContactParams params);
 
   Future<void> updateContact(int id, CreateContactParams params);
 
@@ -180,16 +180,18 @@ class ContactRemoteDataSourceImpl implements ContactRemoteDataSource {
   }
 
   @override
-  Future<void> createContact(CreateContactParams params) async {
+  Future<ContactModel> createContact(CreateContactParams params) async {
     try {
       final response = await dio.post(
         '/contacts/create',
         data: params.toJson(),
       );
 
-      if (response.data['status'] != true) {
-        throw Exception(response.data['message'] ?? 'Failed to create contact');
+      if (response.data['status'] == true) {
+        return ContactModel.fromJson(response.data['data']);
       }
+
+      throw Exception(response.data['message'] ?? 'Failed to create contact');
     } on DioException catch (e) {
       print("error create contact: ${e.response?.data}");
       print("params create contact: ${params.toJson()}");

@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:progress_group/core/constants/colors.dart';
 import 'package:progress_group/core/utils/widget/custom_bg_icon.dart';
-import 'package:progress_group/features/contact/domain/entities/contact/contact.dart';
+import 'package:progress_group/features/contact/domain/entities/contact/contact_entity.dart';
 
 
 
 class ContactOptionsSheet extends StatelessWidget {
-  final Contact contact;
+  final ContactEntity contact;
   final int initialTab;
 
   const ContactOptionsSheet({

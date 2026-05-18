@@ -1,5 +1,5 @@
 import 'package:equatable/equatable.dart';
-import 'package:progress_group/features/contact/domain/entities/contact/contact.dart';
+import 'package:progress_group/features/contact/domain/entities/contact/contact_entity.dart';
 
 enum ContactStatus {
   initial,
@@ -16,7 +16,7 @@ enum ContactStatus {
 
 class ContactState extends Equatable {
   final ContactStatus status;
-  final List<Contact> contacts;
+  final List<ContactEntity> contacts;
   final String? errorMessage;
   final int currentPage;
   final bool hasReachedMax;
@@ -25,7 +25,7 @@ class ContactState extends Equatable {
   final String? endDate;
   final List<int>? ownerIds;
   final List<int>? statusProspectIds;
-  final Contact? contactDetail;
+  final ContactEntity? contactDetail;
 
   const ContactState({
     this.status = ContactStatus.initial,
@@ -43,7 +43,7 @@ class ContactState extends Equatable {
 
   ContactState copyWith({
     ContactStatus? status,
-    List<Contact>? contacts,
+    List<ContactEntity>? contacts,
     String? errorMessage,
     int? currentPage,
     bool? hasReachedMax,
@@ -56,7 +56,7 @@ class ContactState extends Equatable {
     bool clearDates = false,
     bool clearOwner = false,
     bool clearStatus = false,
-    Contact? contactDetail,
+    ContactEntity? contactDetail,
   }) {
     return ContactState(
       status: status ?? this.status,

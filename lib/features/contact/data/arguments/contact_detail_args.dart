@@ -1,10 +1,10 @@
 import 'package:progress_group/features/contact/domain/entities/activity/activity_entity.dart';
 import 'package:progress_group/features/contact/domain/entities/attachment/attachment_entity.dart';
-import 'package:progress_group/features/contact/domain/entities/contact/contact.dart';
+import 'package:progress_group/features/contact/domain/entities/contact/contact_entity.dart';
 
 class ContactDetailArgs {
   final ContactAttachment? dataAttachment;
-  final Contact? dataContact;
+  final ContactEntity? dataContact;
   final ActivityEntity? dataActivity;
   final int page;
   final String? namePage;
@@ -21,7 +21,7 @@ class ContactDetailArgs {
 
   ContactDetailArgs copyWith({
     ContactAttachment? dataAttachment,
-    Contact? dataContact,
+    ContactEntity? dataContact,
     ActivityEntity? dataActivity,
     int? page,
     String? namePage,
@@ -36,4 +36,4 @@ class ContactDetailArgs {
       initialTab: initialTab ?? this.initialTab,
     );
   }
-}
+}

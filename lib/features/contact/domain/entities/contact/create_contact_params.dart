@@ -189,5 +189,6 @@ class CreateContactParams extends Equatable {
     nameSP,
     firstReserveDate,
     lastReserveDate,
+    lostReasonId,
   ];
 }

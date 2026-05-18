@@ -1,10 +1,10 @@
 import 'package:equatable/equatable.dart';
-import 'contact.dart';
+import 'contact_entity.dart';
 
 class ContactResponse extends Equatable {
   final int currentPage;
   final String? currentPageUrl;
-  final List<Contact> data;
+  final List<ContactEntity> data;
   final String? firstPageUrl;
   final int? from;
   final String? nextPageUrl;

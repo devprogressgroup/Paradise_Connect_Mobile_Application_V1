@@ -1,6 +1,6 @@
 import 'package:equatable/equatable.dart';
 
-class Contact extends Equatable {
+class ContactEntity extends Equatable {
   final int? contactId;
   final String? hubspotContactId;
   final bool? isSyncHubspot;
@@ -64,7 +64,7 @@ class Contact extends Equatable {
   final int? lostReasonId;
   final String? lostReasonNote;
 
-  const Contact({
+  const ContactEntity({
     this.contactId,
     this.hubspotContactId,
     this.isSyncHubspot,
@@ -129,7 +129,7 @@ class Contact extends Equatable {
     this.lostReasonNote
   });
 
-  Contact copyWith({
+  ContactEntity copyWith({
     int? contactId,
     String? hubspotContactId,
     bool? isSyncHubspot,
@@ -192,7 +192,7 @@ class Contact extends Equatable {
     int? lostReasonId,
     String? lostReasonNote,
   }) {
-    return Contact(
+    return ContactEntity(
       contactId: contactId ?? this.contactId,
       hubspotContactId: hubspotContactId ?? this.hubspotContactId,
       isSyncHubspot: isSyncHubspot ?? this.isSyncHubspot,

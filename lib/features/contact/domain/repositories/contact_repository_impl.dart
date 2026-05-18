@@ -7,7 +7,7 @@ import 'package:progress_group/features/contact/domain/entities/attachment/attac
 import 'package:progress_group/features/contact/domain/entities/info_source/info_source.dart';
 import 'package:progress_group/features/contact/domain/entities/lost_reason/lost_reason_entity.dart';
 import '../entities/activity/activity_entity.dart';
-import '../entities/contact/contact.dart';
+import '../entities/contact/contact_entity.dart';
 import '../entities/contact/contact_response.dart';
 import '../entities/activity/create_activity_params.dart';
 import '../entities/prospect/prospect_status.dart';
@@ -41,7 +41,7 @@ class ContactRepositoryImpl implements ContactRepository {
   }
 
   @override
-  Future<Either<String, Contact>> getContactDetail(int id) async {
+  Future<Either<String, ContactEntity>> getContactDetail(int id) async {
     try {
       final result = await remoteDataSource.getContactDetail(id);
       return Right(result);
@@ -91,10 +91,10 @@ class ContactRepositoryImpl implements ContactRepository {
   }
 
   @override
-  Future<Either<String, void>> createContact(CreateContactParams params) async {
+  Future<Either<String, ContactEntity>> createContact(CreateContactParams params) async {
     try {
-      await remoteDataSource.createContact(params);
-      return const Right(null);
+      final result = await remoteDataSource.createContact(params);
+      return Right(result);
     } catch (e) {
       return Left(e.toString());
     }

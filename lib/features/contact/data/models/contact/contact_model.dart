@@ -1,6 +1,6 @@
-import '../../../domain/entities/contact/contact.dart';
+import '../../../domain/entities/contact/contact_entity.dart';
 
-class ContactModel extends Contact {
+class ContactModel extends ContactEntity {
   const ContactModel({
     required super.contactId,
     super.hubspotContactId,

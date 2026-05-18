@@ -3,6 +3,7 @@ class HierarchyNodeEntity {
   final int salesPersonId;
   final int? salesPersonParentId;
   final int? salesTeamId;
+  final String? salesTeamName;
   final int? companyId;
   final String fullName;
   final String? positionName;
@@ -14,6 +15,7 @@ class HierarchyNodeEntity {
     required this.salesPersonId,
     this.salesPersonParentId,
     this.salesTeamId,
+    this.salesTeamName,
     this.companyId,
     required this.fullName,
     this.positionName,
@@ -34,6 +36,8 @@ class UserProfileEntity {
   final String? positionName;
   final int? nikNumber;
   final int? salesPersonId;
+  final int? salesTeamId;
+  final String? salesTeamName;
   final List<HierarchyNodeEntity> salesRoles;
   final List<HierarchyNodeEntity> subordinates;
 
@@ -49,6 +53,8 @@ class UserProfileEntity {
     this.positionName,
     this.nikNumber,
     this.salesPersonId,
+    this.salesTeamId,
+    this.salesTeamName,
     this.salesRoles = const [],
     this.subordinates = const [],
   });

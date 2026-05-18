@@ -8,7 +8,7 @@ import 'package:progress_group/features/contact/data/arguments/contact_detail_ar
 import 'package:progress_group/features/contact/data/models/activity/activity_dashboard.dart';
 import 'package:progress_group/features/contact/domain/entities/activity/activity_entity.dart';
 import 'package:progress_group/features/contact/domain/entities/activity/activity_prospect_status.dart';
-import 'package:progress_group/features/contact/domain/entities/contact/contact.dart';
+import 'package:progress_group/features/contact/domain/entities/contact/contact_entity.dart';
 import 'package:progress_group/features/contact/presentation/pages/contact-form/index.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
@@ -53,6 +53,7 @@ class _ContactDetailPageState extends State<ContactDetailPage>with TickerProvide
   final tabs = ["Activity", "About", "Attachment"];
   late TabController _tabController;
   int currentTab = 0;
+  bool _hideHeader = false;
   int _cPage = 1;
   int _gPage = 1;
   final ScrollController _activityScrollController = ScrollController();
@@ -71,6 +72,7 @@ class _ContactDetailPageState extends State<ContactDetailPage>with TickerProvide
         setState(() {
           currentTab = _tabController.index;
           searchTC.clear();
+          _hideHeader = false;
         });
       }
     });
@@ -216,10 +218,12 @@ class _ContactDetailPageState extends State<ContactDetailPage>with TickerProvide
           length: tabs.length,
           child: Column(
             children: [
-              SizedBox(
-                height: 210,
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 250),
+                height: _hideHeader ? 65 : 210,
                 child: Stack(
                   children: [
+                    if (!_hideHeader)
                     Positioned(
                       top: 0,
                       bottom: 50,
@@ -285,12 +289,7 @@ class _ContactDetailPageState extends State<ContactDetailPage>with TickerProvide
                                 BgIcon(
                                   asset: icContactDetailWA,
                                   onTap: () async {
-                                    var phone =
-                                        widget
-                                            .args
-                                            .dataContact
-                                            ?.whatsappNumber ??
-                                        widget.args.dataContact?.primaryPhone;
+                                    var phone =widget.args.dataContact?.whatsappNumber ??widget.args.dataContact?.primaryPhone;
                                     if (phone != null && phone.isNotEmpty) {
                                       phone = phone.replaceAll(
                                         RegExp(r'[^0-9]'),
@@ -329,7 +328,7 @@ class _ContactDetailPageState extends State<ContactDetailPage>with TickerProvide
                     ),
 
                     Positioned(
-                      bottom: 50,
+                      bottom: _hideHeader ? 25 : 50,
                       left: 16,
                       right: 16,
                       child: Transform.translate(
@@ -346,10 +345,21 @@ class _ContactDetailPageState extends State<ContactDetailPage>with TickerProvide
                   index: currentTab,
                   children: [
                     _buildActivityContent(),
-                    ContactFormPage(
-                      args: ContactDetailArgs(
-                        dataContact: widget.args.dataContact,
-                        page: 2,
+                    NotificationListener<ScrollNotification>(
+                      onNotification: (notification) {
+                        if (currentTab == 1) {
+                          final shouldHide = notification.metrics.pixels > 50;
+                          if (_hideHeader != shouldHide) {
+                            setState(() => _hideHeader = shouldHide);
+                          }
+                        }
+                        return false;
+                      },
+                      child: ContactFormPage(
+                        args: ContactDetailArgs(
+                          dataContact: widget.args.dataContact,
+                          page: 2,
+                        ),
                       ),
                     ),
                     _buildAttachmentContent(),
@@ -526,6 +536,7 @@ class _ContactDetailPageState extends State<ContactDetailPage>with TickerProvide
           setState(() {
             currentTab = index;
             _tabController.animateTo(index);
+            _hideHeader = false;
           });
         },
         child: AnimatedContainer(
@@ -534,21 +545,10 @@ class _ContactDetailPageState extends State<ContactDetailPage>with TickerProvide
           height: height,
           alignment: Alignment.center,
           decoration: BoxDecoration(
-            color: isActive
-                ? Color(primaryColor)
-                : (index == 1 ? Color(grey8Color) : Color(grey10Color)),
+            color: isActive? Color(primaryColor): (index == 1 ? Color(grey8Color) : Color(grey10Color)),
             borderRadius: BorderRadius.circular(height / 2),
-            boxShadow: isActive
-                ? [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.1),
-                      blurRadius: 10,
-                      offset: const Offset(0, 2),
-                    ),
-                  ]
-                : [],
+            boxShadow: isActive? [BoxShadow(color: Colors.black.withOpacity(0.1),blurRadius: 10,offset: const Offset(0, 2),),]: [],
           ),
-
           child: Text(
             tabs[index],
             style: TextStyle(
@@ -976,7 +976,7 @@ class _ContactDetailPageState extends State<ContactDetailPage>with TickerProvide
                                 _navigateToAddContact(
                                   ContactDetailArgs(
                                     page: 6,
-                                    dataContact: Contact(
+                                    dataContact: ContactEntity(
                                       contactId:
                                           widget.args.dataContact!.contactId,
                                       fullName:
@@ -1140,7 +1140,7 @@ class _ContactDetailPageState extends State<ContactDetailPage>with TickerProvide
     );
   }
 
-  Widget _buildContactOptions(BuildContext context, Contact contact) {
+  Widget _buildContactOptions(BuildContext context, ContactEntity contact) {
     return Container(
       width: double.infinity,
       child: Column(

@@ -10,7 +10,7 @@ import 'package:progress_group/features/contact/presentation/state/activity/acti
 import 'package:progress_group/features/contact/presentation/state/activity/activity_event.dart';
 import 'package:progress_group/features/contact/presentation/state/activity/activity_state.dart';
 import 'package:progress_group/features/inbox/domain/entities/inbox_contact_entity.dart';
-import 'package:progress_group/features/contact/domain/entities/contact/contact.dart';
+import 'package:progress_group/features/contact/domain/entities/contact/contact_entity.dart';
 import 'package:progress_group/features/contact/data/arguments/contact_detail_args.dart';
 import 'package:progress_group/features/contact/domain/entities/activity/whatsapp_activity_entity.dart';
 import 'package:progress_group/features/contact/presentation/state/whatsapp_activity/whatsapp_unread_summary_bloc.dart';
@@ -185,7 +185,7 @@ class _NotifPageState extends State<NotifPage> {
                                             page: page,
                                             namePage: namePage,
                                             dataActivity: activity,
-                                            dataContact: Contact(
+                                            dataContact: ContactEntity(
                                               contactId: activity.contactId,
                                               fullName: activity.contactName,
                                             ),

@@ -12,7 +12,7 @@ import 'package:progress_group/core/utils/widget/custom_search_field.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:progress_group/features/contact/data/arguments/contact_detail_args.dart';
 import 'package:progress_group/features/contact/data/models/dropdown/date_filter.dart';
-import 'package:progress_group/features/contact/domain/entities/contact/contact.dart';
+import 'package:progress_group/features/contact/domain/entities/contact/contact_entity.dart';
 import 'package:progress_group/features/auth/domain/entities/user_profile.dart';
 import 'package:progress_group/features/auth/presentation/state/profile/profile_bloc.dart';
 import 'package:progress_group/features/auth/presentation/state/profile/profile_state.dart';
@@ -41,7 +41,7 @@ class _ContactPageState extends State<ContactPage> {
   Timer? _debounce;
   String? selectedDateLabel;
 
-  List<Contact> contactEntity = [];
+  List<ContactEntity> contactEntity = [];
 
   @override
   void initState() {
@@ -352,7 +352,7 @@ class _ContactPageState extends State<ContactPage> {
   }
 }
 
-Widget _buildListContacts(BuildContext context, Contact contact) {
+Widget _buildListContacts(BuildContext context, ContactEntity contact) {
   return GestureDetector(
     onTap: () {
       context.pushNamed(
@@ -410,7 +410,7 @@ Widget _buildListContacts(BuildContext context, Contact contact) {
   );
 }
 
-Widget _buildContactOptions(BuildContext context, Contact contact) {
+Widget _buildContactOptions(BuildContext context, ContactEntity contact) {
   return Container(
     width: double.infinity,
     child: Column(
