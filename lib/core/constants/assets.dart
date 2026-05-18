@@ -38,6 +38,6 @@ const String icEBrouchure = 'assets/img/ic-ebrochre.png';
 const String icFilter = 'assets/img/ic-filter.png';
 const String icPerson = 'assets/img/ic-person.png';
 const String icQR = 'assets/img/ic-qr.png';
-const String icCamera = 'assets/img/ic-camera.png';
+const String icNavActivity = 'assets/img/ic-nav-activiy.png';
 
 const String bannerSaleskitProyek = 'assets/img/banner-saleskit-proyek.png';

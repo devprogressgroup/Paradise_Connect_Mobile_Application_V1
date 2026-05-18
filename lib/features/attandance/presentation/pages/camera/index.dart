@@ -403,7 +403,7 @@ class _CameraPageState extends State<CameraPage> {
                                   children: [
                                     Icon(Icons.calendar_today_sharp, color: Color(primaryColor), size: 25),
                                     SizedBox(width: 10),
-                                    Text(DateHelper.formatDayDate(DateTime.now()), style: TextStyle(color: Colors.white)),
+                                    Text(DateHelper.formatDate(DateTime.now()), style: TextStyle(color: Colors.white)),
                                   ],
                                 ),
                                 SizedBox(height: 10),

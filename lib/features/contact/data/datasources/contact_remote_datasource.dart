@@ -1,4 +1,6 @@
 
+import 'dart:convert';
+
 import 'package:dio/dio.dart';
 import 'package:progress_group/core/utils/helpers/error_message.dart';
 import 'package:progress_group/features/contact/data/models/activity/activitty_prospect_status._model.dart';
@@ -213,7 +215,9 @@ class ContactRemoteDataSourceImpl implements ContactRemoteDataSource {
       }
     } on DioException catch (e) {
       print("error update contact: ${e.response?.data}");
-      print("params update contact: ${params.toJson()}");
+      print(
+    "params update contact id $id:\n${const JsonEncoder.withIndent('  ').convert(params.toJson())}",
+  );
 
       throw Exception(getErrorMessage(e, 'Failed to update contact'));
     }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:progress_group/core/constants/assets.dart';
 import 'package:progress_group/core/constants/colors.dart';
+import 'package:progress_group/core/utils/helpers/date_helper.dart';
 import 'package:progress_group/core/utils/share_helper.dart';
 import 'package:progress_group/core/utils/widget/custom_search_field.dart';
 import 'package:progress_group/features/contact/data/arguments/contact_detail_args.dart';
@@ -21,6 +22,7 @@ import 'package:progress_group/features/contact/presentation/state/attachment/up
 import 'package:progress_group/features/contact/presentation/state/attachment/upload_attachment_state.dart';
 import 'package:progress_group/features/contact/presentation/state/contact/contact_bloc.dart';
 import 'package:progress_group/features/contact/presentation/state/contact/contact_event.dart';
+import 'package:progress_group/features/contact/presentation/state/contact/contact_state.dart';
 import 'package:progress_group/features/contact/presentation/state/whatsapp_activity/whatsapp_unread_summary_bloc.dart';
 import 'package:progress_group/features/contact/presentation/state/whatsapp_activity/whatsapp_unread_summary_state.dart';
 import 'package:progress_group/features/inbox/data/arguments/inbox_detail_args.dart';
@@ -97,14 +99,15 @@ class _ContactDetailPageState extends State<ContactDetailPage>with TickerProvide
       'addContact',
       extra: args.copyWith(initialTab: currentTab),
     );
-    print("Navigation result received: $result");
+    await _getActivity();
+    await _getContactDetail();
     if (result != null && result is int) {
       setState(() {
         currentTab = result;
         _tabController.animateTo(result);
       });
     }
-    searchTC.clear(); 
+    searchTC.clear();
   }
 
   void _init() async {
@@ -248,24 +251,31 @@ class _ContactDetailPageState extends State<ContactDetailPage>with TickerProvide
                                   ),
                                 ),
                                 const SizedBox(width: 10),
-                                Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      "Contacts",
-                                      style: TextStyle(
-                                        fontSize: 11,
-                                        color: Color(blue2Color),
-                                      ),
-                                    ),
-                                    Text(
-                                      widget.args.dataContact?.fullName ?? '-',
-                                      style: const TextStyle(
-                                        fontSize: 20,
-                                        fontWeight: FontWeight.w700,
-                                      ),
-                                    ),
-                                  ],
+                                BlocBuilder<ContactBloc, ContactState>(
+                                  builder: (context, contactState) {
+                                    final name = contactState.contactDetail?.fullName
+                                        ?? widget.args.dataContact?.fullName
+                                        ?? '-';
+                                    return Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          "Contacts",
+                                          style: TextStyle(
+                                            fontSize: 11,
+                                            color: Color(blue2Color),
+                                          ),
+                                        ),
+                                        Text(
+                                          name,
+                                          style: const TextStyle(
+                                            fontSize: 20,
+                                            fontWeight: FontWeight.w700,
+                                          ),
+                                        ),
+                                      ],
+                                    );
+                                  },
                                 ),
                               ],
                             ),
@@ -1421,8 +1431,7 @@ class _ActivityItemState extends State<ActivityItem> {
         }
 
         // Find the parent state to get dataContact
-        final parentState = context
-            .findAncestorStateOfType<_ContactDetailPageState>();
+        final parentState = context.findAncestorStateOfType<_ContactDetailPageState>();
         if (parentState != null) {
           parentState._navigateToAddContact(
             ContactDetailArgs(
@@ -1444,6 +1453,8 @@ class _ActivityItemState extends State<ActivityItem> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             /// ================= HEADER =================
+           if(item.activityType == 'Created contact') _noteCreate(context, item),
+           if(item.activityType != 'Created contact')
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -1583,4 +1594,50 @@ class _ActivityItemState extends State<ActivityItem> {
       ),
     );
   }
+  
+Widget _noteCreate(BuildContext context,ActivityEntity item){
+  return Row(
+    children: [
+      Expanded(
+        child: Container(
+          padding: EdgeInsets.only(left: 12),
+          decoration: BoxDecoration(
+            border: Border(
+              left: BorderSide(color: Color(purpleColor), width: 5),
+            ),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                "${item.activityType} on ${DateHelper.formatDateTimeShort(DateTime.parse(item.activityDate))}",
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 12,
+                ),
+              ),
+              Text(
+                DateFormat(
+                  'HH:mm',
+                ).format(DateTime.parse(item.activityDate)),
+                style: TextStyle(fontSize: 11),
+              ),
+              if (item.notes != null)
+                SizedBox(
+                  width: double.infinity,
+                  child: Text(
+                    item.notes!,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(fontSize: 11),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
+    ],
+  );
 }
+}
+

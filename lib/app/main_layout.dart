@@ -141,97 +141,64 @@ class _MainLayoutState extends State<MainLayout> {
       ),
       bottomNavigationBar: location.endsWith('/camera')
           ? null
-          : Stack(
-        clipBehavior: Clip.none,
-        children: [
-          Container(
-            decoration: BoxDecoration(
-              color: Color(whiteColor),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.04),
-                  blurRadius: 10,
-                  offset: const Offset(0, -4),
-                ),
-              ],
+          : Container(
+        decoration: BoxDecoration(
+          color: Color(whiteColor),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.04),
+              blurRadius: 10,
+              offset: const Offset(0, -4),
             ),
-            padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                _buildNavItem(
-                  context,
-                  path: '/',
-                  icon: icNavHome,
-                  label: 'Home',
-                  isActive: currentIndex == 0,
-                ),
-
-                _buildNavItem(
-                  context,
-                  path: '/contact',
-                  icon: icSidebarContacts,
-                  label: 'Contact',
-                  isActive: currentIndex == 1,
-                ),
-
-                const SizedBox(width: 60), // 🔥 space untuk tombol tengah
-                
-                BlocBuilder<WhatsappActivityBloc, WhatsappActivityState>(
-                  builder: (context, state) {
-                    final totalUnread = state.data.fold<int>(0, (sum, item) => sum + item.unreadCount);
-                    return _buildNavItem(
-                      context,
-                      path: '/inbox',
-                      icon: icSidebarInbox,
-                      label: 'Inbox',
-                      isActive: currentIndex == 2,
-                      badgeCount: totalUnread,
-                    );
-                  },
-                ),
-
-                _buildNavItem(
-                  context,
-                  path: '/site-plan',
-                  icon: icSidebarSitePlan,
-                  label: 'Site Plan',
-                  isActive: currentIndex == 4,
-                ),
-              ],
+          ],
+        ),
+        padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 6),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
+          children: [
+            _buildNavItem(
+              context,
+              path: '/',
+              icon: icNavHome,
+              label: 'Home',
+              isActive: currentIndex == 0,
             ),
-          ),
-
-          /// 🔥 FLOATING CENTER BUTTON (ATTENDANCE)
-          Positioned(
-            top: -30,
-            left: 0,
-            right: 0,
-            child: Center(
-              child: GestureDetector(
-                onTap: () {
-                  context.go('/attandance');
-                },
-                child: Container(
-                  height: 70,
-                  width: 70,
-                  padding: EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    color: Color(primaryColor),
-                    shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.2),
-                        blurRadius: 10,
-                      )
-                    ],
-                  ),
-                  child: Image.asset(icCamera, height: 15,width: 15,color: Colors.white,),
-                ),
-              ),
+            _buildNavItem(
+              context,
+              path: '/contact',
+              icon: icSidebarContacts,
+              label: 'Contact',
+              isActive: currentIndex == 1,
             ),
-          ),
-        ],
+            _buildNavItem(
+              context,
+              path: '/attandance',
+              icon: icNavActivity,
+              label: 'Attendance',
+              isActive: currentIndex == 6,
+            ),
+            BlocBuilder<WhatsappActivityBloc, WhatsappActivityState>(
+              builder: (context, state) {
+                final totalUnread = state.data.fold<int>(0, (sum, item) => sum + item.unreadCount);
+                return _buildNavItem(
+                  context,
+                  path: '/inbox',
+                  icon: icSidebarInbox,
+                  label: 'Inbox',
+                  isActive: currentIndex == 2,
+                  badgeCount: totalUnread,
+                );
+              },
+            ),
+            _buildNavItem(
+              context,
+              path: '/site-plan',
+              icon: icSidebarSitePlan,
+              label: 'Site Plan',
+              isActive: currentIndex == 4,
+            ),
+          ],
+        ),
       ),
     )));
   }
@@ -411,13 +378,13 @@ class _MainLayoutState extends State<MainLayout> {
       child: Stack(
         clipBehavior: Clip.none,
         children: [
-          AnimatedContainer(
-            duration: const Duration(milliseconds: 300),
-            curve: Curves.linearToEaseOut,
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 10),
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              padding: const EdgeInsets.symmetric(vertical: 5,horizontal: 6),
               decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(20),
+                color: isActive ? Color(primaryColor).withOpacity(0.08) : Colors.transparent,
+                borderRadius: BorderRadius.circular(50),
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
@@ -428,6 +395,24 @@ class _MainLayoutState extends State<MainLayout> {
                     height: 24,
                     color: isActive ? Color(primaryColor) : Color(grey2Color),
                   ),
+                  const SizedBox(width: 5),
+                  AnimatedSize(
+                    duration: const Duration(milliseconds: 200),
+                    curve: Curves.easeOut,
+                    child: isActive
+                        ? Padding(
+                            padding: const EdgeInsets.only(top: 4),
+                            child: Text(
+                              label,
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                                color: Color(primaryColor),
+                              ),
+                            ),
+                          )
+                        : const SizedBox.shrink(),
+                  ),
                 ],
               ),
             ),
@@ -435,7 +420,7 @@ class _MainLayoutState extends State<MainLayout> {
           if (badgeCount > 0)
             Positioned(
               right: 8,
-              top: 5,
+              top: 0,
               child: Container(
                 padding: const EdgeInsets.all(4),
                 decoration: const BoxDecoration(

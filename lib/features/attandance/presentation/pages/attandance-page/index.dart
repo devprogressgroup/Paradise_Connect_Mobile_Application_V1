@@ -1328,7 +1328,7 @@ class _AttandancePageState extends State<AttandancePage> {
                           children: [
                             Icon(Icons.calendar_today_sharp, color: Color(primaryColor), size: 10),
                             SizedBox(width: 10),
-                            Text(DateHelper.formatDayDate(DateTime.now()), style: TextStyle(color: Colors.white, fontSize: 10)),
+                            Text(DateHelper.formatDate(DateTime.now()), style: TextStyle(color: Colors.white, fontSize: 10)),
                           ],
                         ),
                         Row(
@@ -1352,7 +1352,7 @@ class _AttandancePageState extends State<AttandancePage> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Text(DateHelper.formatTime(DateTime.now()), style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
-              Text(DateHelper.formatDayDate(DateTime.now()), style: TextStyle(fontSize: 11, color: Color(grey6Color))),
+              Text(DateHelper.formatDate(DateTime.now()), style: TextStyle(fontSize: 11, color: Color(grey6Color))),
               SizedBox(height: 8),
               Material(
                 color: Colors.transparent,
@@ -1489,7 +1489,7 @@ Widget _buildClockOut(AttendanceEntity? today) {
                   const SizedBox(height: 8),
                   _buildInfoRow(
                     Icons.calendar_today,
-                    DateHelper.formatDayDate(DateTime.parse(item.date)),
+                    DateHelper.formatDate(DateTime.parse(item.date)),
                     Color(primaryColor),
                   ),
                   const SizedBox(height: 8),

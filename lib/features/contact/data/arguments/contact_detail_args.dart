@@ -9,6 +9,8 @@ class ContactDetailArgs {
   final int page;
   final String? namePage;
   final int initialTab;
+  final String? sourceRoute;
+  final String? focusField;
 
   ContactDetailArgs({
     this.dataAttachment,
@@ -17,6 +19,8 @@ class ContactDetailArgs {
     this.page = 0, // 0: create 1: edit
     this.namePage,
     this.initialTab = 0,
+    this.sourceRoute,
+    this.focusField,
   });
 
   ContactDetailArgs copyWith({
@@ -26,6 +30,8 @@ class ContactDetailArgs {
     int? page,
     String? namePage,
     int? initialTab,
+    String? sourceRoute,
+    String? focusField,
   }) {
     return ContactDetailArgs(
       dataAttachment: dataAttachment ?? this.dataAttachment,
@@ -34,6 +40,8 @@ class ContactDetailArgs {
       page: page ?? this.page,
       namePage: namePage ?? this.namePage,
       initialTab: initialTab ?? this.initialTab,
+      sourceRoute: sourceRoute ?? this.sourceRoute,
+      focusField: focusField ?? this.focusField,
     );
   }
 }

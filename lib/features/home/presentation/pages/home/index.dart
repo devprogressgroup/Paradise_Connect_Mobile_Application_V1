@@ -188,7 +188,7 @@ class _HomePageState extends State<HomePage> {
                             Image.asset(icCalendar, width: 22, height: 22),
                             const SizedBox(width: 10),
                             Text(
-                              "${DateFormat('MMM dd, yyyy').format(_chartStartDate)} - ${DateFormat('MMM dd, yyyy').format(_chartEndDate)}",
+                              "${DateHelper.formatDate(_chartStartDate)}  - ${DateHelper.formatDate(_chartEndDate)}",
                               style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(grey2Color)),
                             ),
                           ],

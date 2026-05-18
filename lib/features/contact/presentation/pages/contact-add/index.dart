@@ -51,11 +51,13 @@ class ContactAddPage extends StatefulWidget {
 
 class _ContactAddPageState extends State<ContactAddPage> {
   TextEditingController descTC = TextEditingController();
+  TextEditingController descFormActivityTC = TextEditingController();
   TextEditingController lostReasonNoteTC = TextEditingController();
   TextEditingController lBlockNoTC = TextEditingController();
   TextEditingController volumeTC = TextEditingController();
   TextEditingController nameSPTC = TextEditingController();
   FocusNode descFN = FocusNode();
+  FocusNode descFormActivityFN = FocusNode();
   FocusNode lostReasonNoteFN = FocusNode();
   FocusNode lBlockNoFN = FocusNode();
   FocusNode volumeFN = FocusNode();
@@ -333,20 +335,14 @@ class _ContactAddPageState extends State<ContactAddPage> {
 
     if (date == null) return;
 
-    final time = await showTimePicker(
-      context: context,
-      initialTime: TimeOfDay.fromDateTime(selectedDate ?? now),
-    );
-
-    if (time == null) return;
-
     setState(() {
       selectedDate = DateTime(
         date.year,
         date.month,
         date.day,
-        time.hour,
-        time.minute,
+        now.hour,
+        now.minute,
+        now.second,
       );
     });
   }
@@ -364,16 +360,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
     String mappedType = activityType;
     String finalNotes = notesTC.text.trim();
 
-    if (![
-      'Call',
-      'WhatsApp',
-      'Visit',
-      'Meeting',
-      'Note',
-      'Email',
-      'Task',
-      'Other',
-    ].contains(activityType)) {
+    if (!['Call','WhatsApp','Visit','Meeting','Note','Email','Task','Other',].contains(activityType)) {
       mappedType = 'Other';
       finalNotes = '[$activityType] $finalNotes'.trim();
     }
@@ -432,80 +419,20 @@ class _ContactAddPageState extends State<ContactAddPage> {
   void _submitUpdateStatus(BuildContext context) {
     final contact = widget.args.dataContact;
 
-    final firstApptDate =
-        (selectedStatusId == 60 || selectedStatusId == 53) &&
-            (contact?.firstApptDate == null && selectedDate != null)
-        ? DateFormat('yyyy-MM-dd').format(selectedDate!)
-        : null;
-    final lastApptDate =
-        (selectedStatusId == 60 || selectedStatusId == 53) &&
-            selectedDate != null
-        ? DateFormat('yyyy-MM-dd').format(selectedDate!)
-        : null;
+    final firstApptDate =(selectedStatusId == 60 || selectedStatusId == 53) &&(contact?.firstApptDate == null && selectedDate != null)? DateFormat('yyyy-MM-dd').format(selectedDate!): null;
+    final lastApptDate =(selectedStatusId == 60 || selectedStatusId == 53) &&selectedDate != null? DateFormat('yyyy-MM-dd').format(selectedDate!): null;
 
-    final firstReserveDate =
-        (selectedStatusId == 54 ||
-                selectedStatusId == 70 ||
-                selectedStatusId == 71 ||
-                selectedStatusId == 72) &&
-            (contact?.firstReserveDate == null && selectedDate != null)
-        ? DateFormat('yyyy-MM-dd').format(selectedDate!)
-        : null;
-    final lastReserveDate =
-        (selectedStatusId == 54 ||
-                selectedStatusId == 70 ||
-                selectedStatusId == 71 ||
-                selectedStatusId == 72) &&
-            (selectedDate != null)
-        ? DateFormat('yyyy-MM-dd').format(selectedDate!)
-        : null;
+    final firstReserveDate =(selectedStatusId == 54 ||selectedStatusId == 70 ||selectedStatusId == 71 ||selectedStatusId == 72) &&(contact?.firstReserveDate == null && selectedDate != null)? DateFormat('yyyy-MM-dd').format(selectedDate!): null;
+    final lastReserveDate =(selectedStatusId == 54 ||selectedStatusId == 70 ||selectedStatusId == 71 ||selectedStatusId == 72) &&(selectedDate != null)? DateFormat('yyyy-MM-dd').format(selectedDate!): null;
 
-    final firstVisitDate =
-        (selectedStatusId == 63 ||
-                selectedStatusId == 64 ||
-                selectedStatusId == 65 ||
-                selectedStatusId == 66) &&
-            (contact?.firstVisitDate == null && selectedDate != null)
-        ? DateFormat('yyyy-MM-dd').format(selectedDate!)
-        : null;
-    final lastVisitDate =
-        (selectedStatusId == 63 ||
-                selectedStatusId == 64 ||
-                selectedStatusId == 65 ||
-                selectedStatusId == 66) &&
-            (selectedDate != null)
-        ? DateFormat('yyyy-MM-dd').format(selectedDate!)
-        : null;
+    final firstVisitDate =(selectedStatusId == 63 ||selectedStatusId == 64 ||selectedStatusId == 65 ||selectedStatusId == 66) &&(contact?.firstVisitDate == null && selectedDate != null)? DateFormat('yyyy-MM-dd').format(selectedDate!): null;
+    final lastVisitDate =(selectedStatusId == 63 ||selectedStatusId == 64 ||selectedStatusId == 65 ||selectedStatusId == 66) &&(selectedDate != null)? DateFormat('yyyy-MM-dd').format(selectedDate!): null;
 
-    final firstSPDate =
-        (selectedStatusId == 74) &&
-            (contact?.firstSpDate == null && selectedDate != null)
-        ? DateFormat('yyyy-MM-dd').format(selectedDate!)
-        : null;
-    final lastSPDate = (selectedStatusId == 74) && (selectedDate != null)
-        ? DateFormat('yyyy-MM-dd').format(selectedDate!)
-        : null;
+    final firstSPDate =(selectedStatusId == 74) &&(contact?.firstSpDate == null && selectedDate != null)? DateFormat('yyyy-MM-dd').format(selectedDate!): null;
+    final lastSPDate = (selectedStatusId == 74) && (selectedDate != null) ? DateFormat('yyyy-MM-dd').format(selectedDate!) : null;
 
-    final firstLostDate = contact?.firstLostDate != null && selectedDate != null
-        ? DateFormat('yyyy-MM-dd').format(selectedDate!)
-        : null;
-    final lostDate =
-        (selectedStatusId == 55 ||
-                selectedStatusId == 56 ||
-                selectedStatusId == 57 ||
-                selectedStatusId == 58 ||
-                selectedStatusId == 61 ||
-                selectedStatusId == 62 ||
-                selectedStatusId == 67 ||
-                selectedStatusId == 68 ||
-                selectedStatusId == 69 ||
-                selectedStatusId == 73 ||
-                selectedStatusId == 77 ||
-                selectedStatusId == 78 ||
-                selectedStatusId == 75) &&
-            (selectedDate != null)
-        ? DateFormat('yyyy-MM-dd').format(selectedDate!)
-        : null;
+    final firstLostDate = contact?.firstLostDate != null && selectedDate != null? DateFormat('yyyy-MM-dd').format(selectedDate!): null;
+    final lostDate =(selectedStatusId == 55 ||selectedStatusId == 56 ||selectedStatusId == 57 ||selectedStatusId == 58 ||selectedStatusId == 61 ||selectedStatusId == 62 ||selectedStatusId == 67 ||selectedStatusId == 68 ||selectedStatusId == 69 ||selectedStatusId == 73 ||selectedStatusId == 77 ||selectedStatusId == 78 ||selectedStatusId == 75) &&(selectedDate != null)? DateFormat('yyyy-MM-dd').format(selectedDate!): null;
 
     if (contact == null) return;
 
@@ -593,6 +520,8 @@ class _ContactAddPageState extends State<ContactAddPage> {
     nameSPTC.dispose();
     spNameFN.dispose();
     lostReasonNoteFN.dispose();
+    descFormActivityTC.dispose();
+    descFormActivityFN.dispose();
     super.dispose();
   }
 
@@ -603,18 +532,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
         BlocListener<ActivityBloc, ActivityState>(
           listener: (ctx, state) {
             if (state.status == ActivityStatus.createSuccess) {
-              // if (contactId != null) {
-              //   context.read<ContactBloc>().add(FetchContactDetailEvent(contactId));
-              //   context.read<ContactBloc>().add(const FetchContactsEvent(isRefresh: true));
-              //   context.read<ActivityBloc>().add(FetchActivitiesEvent(contactId: contactId, isRefresh: true));
-              // }
-              context.replaceNamed(
-                'detailContact',
-                extra: ContactDetailArgs(
-                  dataContact: widget.args.dataContact,
-                  page: 2,
-                ),
-              );
+              context.pop();
             } else if (state.status == ActivityStatus.error) {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
@@ -643,19 +561,8 @@ class _ContactAddPageState extends State<ContactAddPage> {
         ),
         BlocListener<ContactBloc, ContactState>(
           listener: (ctx, state) {
-            if (state.status == ContactStatus.createSuccess) {
-              // if (contactId != null) {
-              //   context.read<ContactBloc>().add(FetchContactDetailEvent(contactId));
-              //   context.read<ContactBloc>().add(const FetchContactsEvent(isRefresh: true));
-              // }
-
-              context.replaceNamed(
-                'detailContact',
-                extra: ContactDetailArgs(
-                  dataContact: widget.args.dataContact,
-                  page: 2,
-                ),
-              );
+            if (state.status == ContactStatus.updateSuccess) {
+              context.pop();
             } else if (state.status == ContactStatus.detailLoaded &&
                 state.contactDetail != null) {
               final data = state.contactDetail!;
@@ -710,18 +617,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
         BlocListener<ActivityVisitBloc, VisitState>(
           listener: (ctx, state) {
             if (state is VisitSuccess) {
-              // if (contactId != null) {
-              //   context.read<ContactBloc>().add(FetchContactDetailEvent(contactId));
-              //   context.read<ContactBloc>().add(const FetchContactsEvent(isRefresh: true));
-              //   context.read<ActivityBloc>().add(FetchActivitiesEvent(contactId: contactId, isRefresh: true));
-              // }
-              context.replaceNamed(
-                'detailContact',
-                extra: ContactDetailArgs(
-                  dataContact: widget.args.dataContact,
-                  page: 2,
-                ),
-              );
+              context.pop();
             } else if (state is VisitError) {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
@@ -857,14 +753,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
         SizedBox(height: 12),
         _fieldNote(),
         SizedBox(height: 12),
-        Container(
-          child:
-              selectedStatusId == 77 ||
-                  selectedStatusId == 78 ||
-                  selectedStatusId == 75
-              ? _buildLostForm()
-              : Container(),
-        ),
+        Container(child:selectedStatusId == 77 ||selectedStatusId == 78 ||selectedStatusId == 75? _buildLostForm(): Container(),),
         _buildButtonSave(),
       ],
     );
@@ -1020,48 +909,14 @@ class _ContactAddPageState extends State<ContactAddPage> {
           children: [
             Container(
               child:
-                  (selectedStatusId == 48 ||
-                      selectedStatusId == 49 ||
-                      selectedStatusId == 50 ||
-                      selectedStatusId == 51 ||
-                      selectedStatusId == 52 ||
-                      selectedStatusId == 55 ||
-                      selectedStatusId == 56 ||
-                      selectedStatusId == 57 ||
-                      selectedStatusId == 58)
-                  ? _buildFormDB()
-                  : (selectedStatusId == 54 ||
-                        selectedStatusId == 76 ||
-                        selectedStatusId == 53 ||
-                        selectedStatusId == 60 ||
-                        selectedStatusId == 61 ||
-                        selectedStatusId == 62)
-                  ? _buildFormAppt()
-                  : (selectedStatusId == 70 ||
-                        selectedStatusId == 71 ||
-                        selectedStatusId == 72 ||
-                        selectedStatusId == 73 ||
-                        selectedStatusId == 43)
-                  ? _buildFormReserved()
-                  : (selectedStatusId == 74 || selectedStatusId == 75)
-                  ? _buildFormSP()
-                  : (selectedStatusId == 63 ||
-                        selectedStatusId == 64 ||
-                        selectedStatusId == 65 ||
-                        selectedStatusId == 66 ||
-                        selectedStatusId == 67 ||
-                        selectedStatusId == 68 ||
-                        selectedStatusId == 69)
-                  ? _buildFormVisit2()
-                  :
-                    // selectedStatusId == null? CircularProgressIndicator():
-                    selectedStatusId == null
-                  ? Center(child: CircularProgressIndicator())
-                  : Container(
-                      child: Text(
-                        "not found ${selectedStatusId} ${selectedStatusName} form",
-                      ),
-                    ),
+                  (selectedStatusId == 48 ||selectedStatusId == 49 ||selectedStatusId == 50 ||selectedStatusId == 51 ||selectedStatusId == 52 ||selectedStatusId == 55 ||selectedStatusId == 56 ||selectedStatusId == 57 ||selectedStatusId == 58)? _buildFormDB():
+                  (selectedStatusId == 54 ||selectedStatusId == 76 ||selectedStatusId == 53 ||selectedStatusId == 60 ||selectedStatusId == 61 ||selectedStatusId == 62)? _buildFormAppt() :
+                  (selectedStatusId == 70 ||selectedStatusId == 71 ||selectedStatusId == 72 ||selectedStatusId == 73 ||selectedStatusId == 43)? _buildFormReserved() :
+                  (selectedStatusId == 74 || selectedStatusId == 75)? _buildFormSP() :
+                  (selectedStatusId == 63 ||selectedStatusId == 64 ||selectedStatusId == 65 ||selectedStatusId == 66 ||selectedStatusId == 67 ||selectedStatusId == 68 ||selectedStatusId == 69)? _buildFormVisit2() :
+                  selectedStatusId == null ?
+                  Center(child: CircularProgressIndicator()) :
+                  Container(child: Text("not found ${selectedStatusId} ${selectedStatusName} form",),),
             ),
           ],
         ),
@@ -1123,15 +978,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
     );
   }
 
-  // Widget _buildButtonSave(){
-  //   return BlocConsumer<ContactBloc, ContactState>(
-  //     listener: (context, state) {},
-  //     builder: (context, state) {
-  //       return customButton(() => _submitUpdateStatus(context),'Save');
-  //     },
-  //   );
-  // }
-  // Perubahan pada _buildButtonSave
+
 
   Widget _buildButtonSave() {
     return BlocBuilder<ContactBloc, ContactState>(
@@ -1277,9 +1124,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  selectedDate != null
-                      ? DateHelper.formatFull(selectedDate!)
-                      : DateHelper.nowFull(),
+                  selectedDate != null? DateHelper.formatDate(selectedDate!): DateHelper.nowFull(),
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.bold,
@@ -2073,9 +1918,9 @@ class _ContactAddPageState extends State<ContactAddPage> {
           TextField(
             maxLines: 4,
             minLines: 3,
-            controller: descTC,
-            focusNode: descFN,
-            onTapOutside: (event) => descFN.unfocus(),
+            controller: descFormActivityTC,
+            focusNode: descFormActivityFN,
+            onTapOutside: (event) => descFormActivityFN.unfocus(),
             textInputAction: TextInputAction.newline,
             decoration: InputDecoration(
               hintText:
@@ -2187,7 +2032,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
                       children: [
                         Text(
                           selectedDate != null
-                              ? DateHelper.formatFull(selectedDate!)
+                              ? DateHelper.formatDate(selectedDate!)
                               : DateHelper.nowFull(),
                           style: TextStyle(
                             fontSize: 12,
@@ -2210,18 +2055,9 @@ class _ContactAddPageState extends State<ContactAddPage> {
                 builder: (context, state) {
                   final isLoading = state.status == ActivityStatus.creating;
 
-                  return customButton(
-                    isLoading
-                        ? null
-                        : () {
-                            _submitActivity(
-                              activityType: widget.args.namePage ?? '',
-                              activityDate: DateTime.now(),
-                              notesTC: descTC,
-                              isFollowUp: isFollowUp,
-                              followUpDate: selectedDate,
-                            );
-                          },
+                  return customButton(isLoading ? null : () {
+                      _submitActivity(activityType: widget.args.namePage ?? '',activityDate: DateTime.now(),notesTC: descFormActivityTC,isFollowUp: isFollowUp,followUpDate: selectedDate,);
+                    },
                     isLoading ? 'Menyimpan...' : 'Save',
                   );
                 },

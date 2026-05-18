@@ -1,13 +1,10 @@
 import 'package:intl/intl.dart';
 
 class DateHelper {
-  /// 🔥 FULL (April 13, 2026 08:30 AM)
-  static String formatFull(DateTime date) {
-    return DateFormat('MMMM d, yyyy hh:mm a', 'en_US').format(date);
-  }
+
 
   static String nowFull() {
-    return formatFull(DateTime.now());
+    return formatDate(DateTime.now());
   }
 
   /// 🔥 JAM SAJA (08:30 AM)
@@ -19,22 +16,23 @@ class DateHelper {
     return formatTime(DateTime.now());
   }
 
-  /// 🔥 TANGGAL SAJA (April 13, 2026)
+  /// 🔥 TANGGAL SAJA ( 13 April 2026)
   static String formatDate(DateTime date) {
-    return DateFormat('MMMM d, yyyy', 'en_US').format(date);
+    return DateFormat('dd MMMM yyyy', 'en_US').format(date);
   }
 
   static String nowDate() {
     return formatDate(DateTime.now());
   }
 
-  /// 🔥 HARI + TANGGAL (Monday, April 13, 2026)
-  static String formatDayDate(DateTime date) {
-    return DateFormat('EEEE, MMMM d, yyyy', 'en_US').format(date);
-  }
 
   static String nowDayDate() {
-    return formatDayDate(DateTime.now());
+    return formatDate(DateTime.now());
+  }
+
+/// 🔥 16 May 2026 20:00
+  static String formatDateTimeShort(DateTime date) {
+    return DateFormat('dd MMM yyyy HH:mm', 'en_US').format(date);
   }
 
   /// 🔥 HARI SAJA (Monday)

@@ -8,6 +8,7 @@ enum ContactStatus {
   error,
   creating,
   createSuccess,
+  updateSuccess,
   loadingDetail,
   detailLoaded,
   deleting,

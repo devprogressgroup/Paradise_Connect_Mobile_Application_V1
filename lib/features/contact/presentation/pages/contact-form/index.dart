@@ -126,6 +126,8 @@ class _ContactFormPageState extends State<ContactFormPage> {
 
 
   bool _showValidation = false;
+  bool _isSaving = false;
+  String? _highlightedField;
 
   List<OwnerDropdownItem> itemsProject = [
     OwnerDropdownItem(name: "Paradise Serpong City 1"),
@@ -240,6 +242,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
   final ScrollController _scrollController = ScrollController();
   bool _hideWhatsappField = false;
   double _lastOffset = 0;
+  final Map<String, GlobalKey> _fieldKeys = {};
 
   @override
   void initState() {
@@ -276,6 +279,17 @@ class _ContactFormPageState extends State<ContactFormPage> {
         await _fillForm(currentDetail);
       } else if (widget.args.dataContact != null) {
         await _fillForm(widget.args.dataContact!);
+      }
+      if (widget.args.focusField != null) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) {
+            _scrollToField(widget.args.focusField!);
+            setState(() => _highlightedField = widget.args.focusField);
+            Future.delayed(const Duration(seconds: 3), () {
+              if (mounted) setState(() => _highlightedField = null);
+            });
+          }
+        });
       }
     } else if (widget.args.page == 2 && widget.args.dataContact != null) {
       // About tab (View mode):
@@ -382,17 +396,17 @@ class _ContactFormPageState extends State<ContactFormPage> {
     selectedSource2Id = int.tryParse(contact.sumberInformasi2 ?? '');
     volumePlanTC.text = contact.volumePlan?.toString() ?? '';
     vCountTC.text = contact.visitCount?.toString() ?? '';
-    firstVisitorDateTC.text = _formatFromContact(contact.firstVisitDate);
-    lastVisitorDateTC.text = _formatFromContact(contact.lastVisitDate);
-    firstApptDateTC.text = _formatFromContact(contact.firstApptDate);
-    lastApptDateTC.text = _formatFromContact(contact.lastApptDate);
+    firstVisitorDateTC.text = contact.firstVisitDate != null ? DateHelper.formatDate(DateTime.parse(contact.firstVisitDate!)) : '';
+    lastVisitorDateTC.text = contact.lastVisitDate != null ? DateHelper.formatDate(DateTime.parse(contact.lastVisitDate!)) : '';
+    firstApptDateTC.text = contact.firstApptDate != null ? DateHelper.formatDate(DateTime.parse(contact.firstApptDate!)) : '';
+    lastApptDateTC.text = contact.lastApptDate != null ? DateHelper.formatDate(DateTime.parse(contact.lastApptDate!)) : '';
     dealValueTC.text = contact.dealValue ?? '';
-    reserveDateTC.text = _formatFromContact(contact.apptDate);
+    reserveDateTC.text = contact.apptDate != null ? DateHelper.formatDate(DateTime.parse(contact.apptDate!)) : '';
     lossReasonNoteTC.text = contact.lostReasonNote ?? '';
-    fspTC.text = _formatFromContact(contact.firstSpDate);
-    lspTC.text = _formatFromContact(contact.lastSpDate);
-    createAdTC.text = _formatFromContact(contact.createdAt);
-    lastLostDateTC.text = _formatFromContact(contact.lastLostDate);
+    fspTC.text = contact.firstSpDate != null ? DateHelper.formatDate(DateTime.parse(contact.firstSpDate!)) : '';
+    lspTC.text = contact.lastSpDate != null ? DateHelper.formatDate(DateTime.parse(contact.lastSpDate!)) : '';
+    createAdTC.text = contact.createdAt != null ? DateHelper.formatDate(DateTime.parse(contact.createdAt!)) : '';
+    lastLostDateTC.text = contact.lastLostDate != null ? DateHelper.formatDate(DateTime.parse(contact.lastLostDate!)) : '';
 
     print("data contact: $contact");
     setState(() {
@@ -780,6 +794,13 @@ class _ContactFormPageState extends State<ContactFormPage> {
     super.dispose();
   }
 
+  bool _validateEmail() {
+    final email = emailTC.text.trim();
+    if (email.isEmpty) return true;
+    final emailRegex = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$');
+    return emailRegex.hasMatch(email);
+  }
+
   Future<void> _handleSave() async {
     final today = DateHelper.formatNumericCompact(DateTime.now());
     final isCreate = widget.args.page == 0;
@@ -788,12 +809,10 @@ class _ContactFormPageState extends State<ContactFormPage> {
     setState(() => _showValidation = true);
 
     // Validasi Input
-    if (fullNameTC.text.isEmpty || waTC.text.isEmpty || selectedSalutation == null || selectedOwnerId == null || selectFirstProject == null||selectedSource1Id==null ||selectedSource2Id == null || generalNotesTC.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Harap lengkapi semua field yang wajib diisi')),
-      );
+    if (fullNameTC.text.isEmpty || waTC.text.isEmpty || selectedSalutation == null || selectedOwnerId == null || selectFirstProject == null || selectedSource1Id == null || selectedSource2Id == null || generalNotesTC.text.isEmpty) {
       return;
     }
+    if (!_validateEmail()) return;
 
     // Auto-fill tanggal untuk data baru
     if (isCreate || widget.args.dataContact == null) {
@@ -846,14 +865,14 @@ class _ContactFormPageState extends State<ContactFormPage> {
       firstApptDate: isUpdate ? null : (firstApptDateTC.text.isNotEmpty ? firstApptDateTC.text : null),
       firstSPDate: isUpdate ? null : (fspTC.text.isNotEmpty ? fspTC.text : null),
       lostDate: isUpdate ? null : (lastLostDateTC.text.isNotEmpty ? lastLostDateTC.text : null),
+      lastLostDate:isUpdate ? null : (lastLostDateTC.text.isNotEmpty ? lastLostDateTC.text : null) ,
       lostReasonId: selectedLostReasonId,
 
     );
+    setState(() => _isSaving = true);
     if (isUpdate) {
-      print("data update contact:${widget.args.dataContact?.contactId} $params");
       context.read<ContactBloc>().add(UpdateContactEvent(widget.args.dataContact!.contactId!, params));
     } else {
-      print("data create contact: $params");
       context.read<ContactBloc>().add(CreateContactEvent(params));
     }
   }
@@ -870,52 +889,38 @@ class _ContactFormPageState extends State<ContactFormPage> {
     return DateTime.now();
   }
 
-  String _formatFromContact(dynamic v) {
-    if (v == null) return '';
-    if (v is DateTime) return DateHelper.formatNumericCompact(v);
-    if (v is String) {
-      try {
-        final dt = DateTime.parse(v);
-        return DateHelper.formatNumericCompact(dt);
-      } catch (_) {}
-      try {
-        final dt = DateFormat('dd/MM/yyyy').parse(v);
-        return DateHelper.formatNumericCompact(dt);
-      } catch (_) {}
-      return v;
-    }
-    try {
-      return DateHelper.formatNumericCompact(DateTime.parse(v.toString()));
-    } catch (_) {
-      return v.toString();
-    }
-  }
-
+  
   @override
   Widget build(BuildContext context) {
     return BlocListener<ContactBloc, ContactState>(
       listener: (context, state) {
-        if (state.status == ContactStatus.createSuccess) {
-          if (widget.args.page == 1) {
-            this.context.pop(1);
-          } else {
-            this.context.read<ContactBloc>().add(const FetchContactsEvent(isRefresh: true));
-            ScaffoldMessenger.of(this.context).showSnackBar(
-              const SnackBar(content: Text('Contact created successfully')),
-            );
-            final contact = state.contactDetail!;
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              if (!mounted) return;
+        if (state.status == ContactStatus.createSuccess && widget.args.page == 0) {
+          setState(() => _isSaving = false);
+          this.context.read<ContactBloc>().add(const FetchContactsEvent(isRefresh: true));
+          final newContact = state.contactDetail;
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (!mounted) return;
+            if (newContact != null) {
               this.context.pushReplacementNamed(
-                'formContact',
-                extra: ContactDetailArgs(dataContact: contact, page: 1),
+                'detailContact',
+                extra: ContactDetailArgs(dataContact: newContact, initialTab: 0),
               );
-            });
-          }
+            } else {
+              this.context.pop();
+            }
+          });
+        } else if (state.status == ContactStatus.updateSuccess && widget.args.page == 1) {
+          setState(() => _isSaving = false);
+          this.context.read<ContactBloc>().add(const FetchContactsEvent(isRefresh: true));
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (!mounted) return;
+            this.context.pop();
+          });
         } else if (state.status == ContactStatus.detailLoaded &&
             state.contactDetail != null) {
           _fillForm(state.contactDetail!);
-        } else if (state.status == ContactStatus.error) {
+        } else if (state.status == ContactStatus.error && widget.args.page != 2) {
+          setState(() => _isSaving = false);
           if (_isDialogShowing) {
             _isDialogShowing = false;
             Navigator.of(this.context).pop();
@@ -1008,14 +1013,13 @@ class _ContactFormPageState extends State<ContactFormPage> {
   Widget _editContact(ProfileState profileState) {
     return Column(
       children: [
-
+        if (widget.args.page != 2) _headerContact(title: "Edit Contact"),
         Expanded(
           child: SingleChildScrollView(
             controller: _scrollController,
             padding: const EdgeInsets.only(bottom: 20),
             child: Column(
               children: [
-                  if (widget.args.page != 2) _headerContact(title: "Edit Contact"),
                 Column(
                   children: [
                     CustomDropdownGroupContact(
@@ -1026,6 +1030,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
                             label: "Salutation",
                             value: selectedSalutation ?? "Select Salutation",
                             isError: _showValidation && (selectedSalutation?.isEmpty ?? true),
+                            errorText: (_showValidation && (selectedSalutation?.isEmpty ?? true)) ? 'Wajib diisi' : null,
                             onTap: () async {
                               final items = [
                                 OwnerDropdownItem(id: 1, name: 'Bapak'),
@@ -1052,12 +1057,14 @@ class _ContactFormPageState extends State<ContactFormPage> {
                             controller: fullNameTC,
                             focusNode: fullNameFN,
                             isError: _showValidation && fullNameTC.text.isEmpty,
+                            errorText: (_showValidation && fullNameTC.text.isEmpty) ? 'Wajib diisi' : null,
                           ),
                           _buildField(
                             label: "Hp/Whatsapp",
                             controller: waTC,
                             focusNode: waFN,
                             isError: _showValidation && waTC.text.isEmpty,
+                            errorText: (_showValidation && waTC.text.isEmpty) ? 'Wajib diisi' : null,
                             fieldType: 'int',
                           ),
                            _buildField(
@@ -1065,12 +1072,14 @@ class _ContactFormPageState extends State<ContactFormPage> {
                             controller: emailTC,
                             focusNode: emailFN,
                             fieldType: 'text',
-                            isError: _showValidation && emailTC.text.isEmpty,
+                            isError: _showValidation && emailTC.text.isNotEmpty && !_validateEmail(),
+                            errorText: (_showValidation && emailTC.text.isNotEmpty && !_validateEmail()) ? 'Format email tidak valid' : null,
                           ),
                           _buildFieldDown(
                             label: "Owner",
                             value: selectedOwnerName,
                             isError: _showValidation && selectedOwnerId == null,
+                            errorText: (_showValidation && selectedOwnerId == null) ? 'Wajib diisi' : null,
                             onTap: () async {
                               if (profileState is ProfileLoaded) {
                                 final user = profileState.profile;
@@ -1344,6 +1353,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
                             label: "Create Date",
                             controller: createAdTC,
                             focusNode: createAdFN,
+                            readOnly: true,
                           ),
                            _buildField(
                             label: "Appt Date",
@@ -1395,44 +1405,29 @@ class _ContactFormPageState extends State<ContactFormPage> {
                          
                           
                          
-                          // _buildField(
-                          //   label: "Visitor Count",
-                          //   controller: vCountTC,
-                          //   focusNode: vCountFN,
-                          //   fieldType: 'int',
-                          //   isError: _showValidation && vCountTC.text.isEmpty,
-                          // ),
-                          // _buildField(
-                          //   label: "First Appt Date",
-                          //   controller: firstApptDateTC,
-                          //   focusNode: firstApptDateFN,
-                          //   fieldType: 'date',
-                          //   isError: _showValidation && firstApptDateTC.text.isEmpty,
-                          // ),
-                          // _buildField(
-                          //   label: "First Visitor Date",
-                          //   controller: firstVisitorDateTC,
-                          //   focusNode: firstVisitorDateFN,
-                          //   fieldType: 'date',
-                          // ),
-                          // _buildField(
-                          //   label: "First SP Date",
-                          //   controller: fspTC,
-                          //   focusNode: fspFN,
-                          //   fieldType: 'date',
-                          // ),
-                          // _buildField(
-                          //   label: "Deal Value",
-                          //   controller: dealValueTC,
-                          //   focusNode: dealValueFN,
-                          //   fieldType: 'int',
-                          // ),
-                          // _buildField(
-                          //   label: "Volume Plan",
-                          //   controller: volumePlanTC,
-                          //   focusNode: volumePlanFN,
-                          //   fieldType: 'int',
-                          // ),
+                          if (widget.args.page == 1) ...[
+                            _buildField(
+                              label: "First Appt Date",
+                              controller: firstApptDateTC,
+                              focusNode: firstApptDateFN,
+                              fieldType: 'date',
+                              readOnly: true,
+                            ),
+                            _buildField(
+                              label: "First Visitor Date",
+                              controller: firstVisitorDateTC,
+                              focusNode: firstVisitorDateFN,
+                              fieldType: 'date',
+                              readOnly: true,
+                            ),
+                            _buildField(
+                              label: "First SP Date",
+                              controller: fspTC,
+                              focusNode: fspFN,
+                              fieldType: 'date',
+                              readOnly: true,
+                            ),
+                          ],
                 
                           ],
                       ),
@@ -1449,6 +1444,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
                               orElse: () => {'name': null},
                             )['name'] as String?,
                             onTap: null,
+                            readOnly: true,
                           ),
                           _buildFieldDown(
                             label: "General Manager",
@@ -1457,6 +1453,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
                               orElse: () => {'name': null},
                             )['name'] as String?,
                             onTap: null,
+                            readOnly: true,
                           ),
                           _buildFieldDown(
                             label: "Sales Manager",
@@ -1468,6 +1465,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
                               orElse: () => {'name': null},
                             )['name'] as String?,
                             onTap: null,
+                            readOnly: true,
                           ),
                           _buildFieldDown(
                             label: "Sales Supervisor",
@@ -1476,6 +1474,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
                               orElse: () => {'name': null},
                             )['name'] as String?,
                             onTap: null,
+                            readOnly: true,
                           ),
                           _buildFieldDown(
                             label: "Sales Executive",
@@ -1484,6 +1483,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
                               orElse: () => {'name': null},
                             )['name'] as String?,
                             onTap: null,
+                            readOnly: true,
                           ),
                         ],
                       ),
@@ -1566,6 +1566,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
                        label: "Salutation",
                        value: selectedSalutation ?? "Select Salutation",
                        isError: _showValidation && (selectedSalutation?.isEmpty ?? true),
+                       errorText: (_showValidation && (selectedSalutation?.isEmpty ?? true)) ? 'Wajib diisi' : null,
                        onTap: () async {
                          final items = [OwnerDropdownItem(id: 1, name: 'Bapak'),OwnerDropdownItem(id: 2, name: 'Ibu'),];
                          final result = await context.pushNamed('detailContactDropdown',extra: ContactDropdownArgs(title: 'Pilih Salutation',items: items,selectedId: selectedSalutation == 'Ibu'? 2: selectedSalutation == 'Bapak'? 1: null));
@@ -1577,12 +1578,13 @@ class _ContactFormPageState extends State<ContactFormPage> {
                          }
                        },
                      ),
-                     _buildField(label: "Full Name",controller: fullNameTC,focusNode: fullNameFN,isError: _showValidation && fullNameTC.text.isEmpty,),
-                     _buildField(label: "Hp/Whatsapp",controller: waTC,focusNode: waFN,isError: _showValidation && waTC.text.isEmpty,fieldType: 'int',),
+                     _buildField(label: "Full Name",controller: fullNameTC,focusNode: fullNameFN,isError: _showValidation && fullNameTC.text.isEmpty,errorText: (_showValidation && fullNameTC.text.isEmpty) ? 'Wajib diisi' : null,),
+                     _buildField(label: "Hp/Whatsapp",controller: waTC,focusNode: waFN,isError: _showValidation && waTC.text.isEmpty,errorText: (_showValidation && waTC.text.isEmpty) ? 'Wajib diisi' : null,fieldType: 'int',),
                      _buildFieldDown(
                         label: "Owner",
                         value: selectedOwnerName,
                         isError: _showValidation && selectedOwnerId == null,
+                        errorText: (_showValidation && selectedOwnerId == null) ? 'Wajib diisi' : null,
                         onTap: () async {
                           if (profileState is ProfileLoaded) {
                             final user = profileState.profile;
@@ -1622,6 +1624,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
                        label: "Project",
                        value: selectFirstProject,
                        isError: _showValidation && selectFirstProject == null,
+                       errorText: (_showValidation && selectFirstProject == null) ? 'Wajib diisi' : null,
                        onTap: () async {
                          final result = await context.pushNamed('detailContactDropdown',extra: ContactDropdownArgs(title: 'Project',items: itemsProject,selectedId: selectedStatusId,),
                          );
@@ -1639,6 +1642,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
                         label: "Sales Channel",
                         value: selectedSource1Name,
                         isError: _showValidation && selectedSource1Id == null,
+                        errorText: (_showValidation && selectedSource1Id == null) ? 'Wajib diisi' : null,
                         onTap: () async {
                           final sourceState = context.read<InfoSourceBloc>().state;
                           final sources = sourceState.sourcesMap[1];
@@ -1668,6 +1672,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
                         label: "Sales Channel Detail",
                         value: selectedSource2Name,
                         isError: _showValidation && selectedSource2Id == null,
+                        errorText: (_showValidation && selectedSource2Id == null) ? 'Wajib diisi' : null,
                         onTap: () async {
                           final sourceState = context.read<InfoSourceBloc>().state;
                           final sources = sourceState.sourcesMap[2];
@@ -1698,6 +1703,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
                        controller: generalNotesTC,
                        focusNode: generalNotesFN,
                        isError: _showValidation && generalNotesTC.text.isEmpty,
+                       errorText: (_showValidation && generalNotesTC.text.isEmpty) ? 'Wajib diisi' : null,
                      ),
                    ],
                  ),
@@ -1780,10 +1786,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
             ],
           ),
           GestureDetector(
-            onTap: () {
-              print("SaveCreate");
-              _handleSave();
-            } ,
+            onTap: _isSaving ? null : _handleSave,
             child: Container(
               height: 36,
               width: 100,
@@ -1792,8 +1795,17 @@ class _ContactFormPageState extends State<ContactFormPage> {
                 borderRadius: BorderRadius.circular(14),
                 color: Color(blue3Color),
               ),
-              child: Text("Save",
-                  style: TextStyle(color: Color(whiteColor), fontWeight: FontWeight.w700)),
+              child: _isSaving
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                  : Text("Save",
+                      style: TextStyle(color: Color(whiteColor), fontWeight: FontWeight.w700)),
             ),
           ),
         ],
@@ -1804,66 +1816,115 @@ class _ContactFormPageState extends State<ContactFormPage> {
     required String label,
     String? value,
     bool isError = false,
+    String? errorText,
     VoidCallback? onTap,
+    bool? readOnly,
   }) {
     final isEmpty = value == null || value.isEmpty;
-    final bool isReadOnly = widget.args.page == 2;
+    final bool isReadOnly = readOnly == true || widget.args.page == 2;
+    final bool isDisplayGrey = widget.args.page == 2;
+    final bool canNavigate = widget.args.page == 2 && label != "Create Date";
+    final bool isHighlighted = !isError && _highlightedField == label;
+    final fieldKey = _fieldKeys.putIfAbsent(label, () => GlobalKey());
 
     return GestureDetector(
     onTap: (label == 'Status Prospect' && widget.args.dataContact != null)
     ? () => _goEditStatus()
-    : (isReadOnly ? () => _goToEdit(isUpdate: false) : onTap),
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-        constraints: const BoxConstraints(minHeight: 50),
-
-        decoration: BoxDecoration(
-          color: Color(whiteColor),
-          border: Border(bottom: BorderSide(width: 1, color: isError ? Color(redColor) : Color(grey9Color))),
-        ),
-        child: Row(
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (!isEmpty)
-                    Text(label,
-                        style: TextStyle(
-                            color: isError ? Color(redColor) : Color(grey2Color),
-                            fontSize: 10,
-                            fontWeight: FontWeight.w700)),
-                  Text(isEmpty ? label : value,
-                      style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700,
-                          color: isError ? Color(redColor) : isEmpty ? Color(grey2Color) : Color(blackColor))),
-                ],
+    : canNavigate ? () => _goToEdit(isUpdate: false, focusField: label) : (widget.args.page == 2 ? null : (readOnly == true ? null : onTap)),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 300),
+            key: fieldKey,
+            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+            constraints: const BoxConstraints(minHeight: 50),
+            decoration: BoxDecoration(
+              color: isHighlighted ? Color(primaryColor).withOpacity(0.06) : Color(whiteColor),
+              border: Border(bottom: BorderSide(width: isHighlighted ? 2 : 1, color: isError ? Color(redColor) : isHighlighted ? Color(primaryColor) : Color(grey9Color))),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (!isEmpty)
+                        Text(label,
+                            style: TextStyle(
+                                color: isError ? Color(redColor) : isHighlighted ? Color(primaryColor) : Color(grey2Color),
+                                fontSize: 10,
+                                fontWeight: FontWeight.w700)),
+                      Text(isEmpty ? label : value,
+                          style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                              color: isError ? Color(redColor) : isHighlighted ? Color(primaryColor) : (isDisplayGrey || isEmpty) ? Color(grey2Color) : Color(blackColor))),
+                    ],
+                  ),
+                ),
+                if (!isReadOnly) const Icon(Icons.arrow_drop_down, size: 28),
+              ],
+            ),
+          ),
+          if (errorText != null)
+            Container(
+              decoration: BoxDecoration(
+                color: Color(whiteColor),
+              ),
+              width: double.infinity,
+              child: Padding(
+                padding: const EdgeInsets.only(top: 2, left: 16, bottom: 4),
+                child: Text(errorText, style: TextStyle(fontSize: 11, color: Color(redColor))),
               ),
             ),
-            if (!isReadOnly) const Icon(Icons.arrow_drop_down, size: 28),
-          ],
-        ),
+        ],
       ),
     );
   }
 
-  void _goToEdit({bool isUpdate = false}) async {
+  void _scrollToField(String fieldLabel) {
+    final key = _fieldKeys[fieldLabel];
+    if (key?.currentContext != null) {
+      Scrollable.ensureVisible(
+        key!.currentContext!,
+        duration: const Duration(milliseconds: 400),
+        curve: Curves.easeInOut,
+        alignment: 0.3,
+      );
+      // Only request focus for plain text/int fields.
+      // Date fields use AbsorbPointer + date picker — focusing them programmatically
+      // shows a stray text keyboard instead of the date picker.
+      // Dropdown fields have no keyboard at all.
+      final fn = <String, FocusNode>{
+        'Full Name': fullNameFN,
+        'Hp/Whatsapp': waFN,
+        'Email': emailFN,
+        'Note': generalNotesFN,
+        'Blok No': lBlockNoFN,
+        'Loss Reason Note': lossReasonNoteFN,
+      }[fieldLabel];
+      fn?.requestFocus();
+    }
+  }
+
+  void _goToEdit({bool isUpdate = false, String? focusField}) async {
     if (!isUpdate) {
-      _goEditForm();
+      _goEditForm(focusField: focusField);
     } else {
       _goEditStatus();
     }
   }
 
-  void _goEditForm() async {
+  void _goEditForm({String? focusField}) async {
     await context.pushNamed(
       'formContact',
       extra: ContactDetailArgs(
         page: 1,
         dataContact: widget.args.dataContact,
         initialTab: 1,
+        focusField: focusField,
       ),
     );
     if (mounted && widget.args.dataContact != null) {
@@ -1882,6 +1943,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
       extra: ContactDetailArgs(
         dataContact: contact.copyWith(statusProspectId: selectedStatusId),
         page: 6,
+        sourceRoute: 'editContact',
       ),
     );
   }
@@ -1892,64 +1954,109 @@ class _ContactFormPageState extends State<ContactFormPage> {
     required FocusNode focusNode,
     String fieldType = 'text',
     bool isError = false,
+    String? errorText,
+    bool? readOnly,
   }) {
-    final bool isReadOnly = widget.args.page == 2;
+    final bool isReadOnly = readOnly == true || widget.args.page == 2;
+    final bool isDisplayGrey = widget.args.page == 2;
+    final bool canNavigate = widget.args.page == 2 && label != "Create Date";
+    final bool isHighlighted = !isError && _highlightedField == label;
+    final fieldKey = _fieldKeys.putIfAbsent(label, () => GlobalKey());
 
     return GestureDetector(
-      onTap: isReadOnly ? _goToEdit : null,
-      child: Container(
-        padding: EdgeInsets.symmetric(vertical: 5, horizontal: 16),
-        constraints: const BoxConstraints(minHeight: 50),
+      onTap: canNavigate ? () => _goToEdit(focusField: label) : null,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 300),
+            key: fieldKey,
+            padding: EdgeInsets.symmetric(vertical: 5, horizontal: 16),
+            constraints: const BoxConstraints(minHeight: 50),
+            decoration: BoxDecoration(
+              color: isHighlighted ? Color(primaryColor).withValues(alpha: 0.06) : Color(whiteColor),
+              border: Border(bottom: BorderSide(width: isHighlighted ? 2 : 1, color: isError ? Color(redColor) : isHighlighted ? Color(primaryColor) : Color(grey9Color))),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+          
+                    children: [
+                      Builder(
+                        builder: (context) {
+                          // Date field: open date picker and fill controller
+                          if (fieldType == 'date') {
+                            return GestureDetector(
+                              onTap: isReadOnly
+                                  ? null
+                                  : () async {
+                                      focusNode.unfocus();
+                                      final DateTime? picked = await showDatePicker(
+                                        context: context,
+                                        initialDate: _parseDateOrToday(controller.text),
+                                        firstDate: DateTime(1900),
+                                        lastDate: DateTime(2100),
+                                      );
+                                      if (picked != null) {
+                                        controller.text = DateHelper.formatNumericCompact(picked);
+                                      }
+                                    },
+                              child: AbsorbPointer(
+                                child: TextFormField(
+                                  controller: controller,
+                                  focusNode: focusNode,
+                                  readOnly: isReadOnly,
+                                  maxLines: null,
+                                  style: TextStyle(
+                                      fontSize: 12, fontWeight: FontWeight.w700,
+                                      color: isError ? Color(redColor) : isHighlighted ? Color(primaryColor) : isDisplayGrey ? Color(grey2Color) : Color(blackColor)),
+                                  decoration: InputDecoration(
+                                    isDense: true,
+                                    label: Text(label,
+                                        style: TextStyle(
+                                            fontSize: 12, fontWeight: FontWeight.w700,
+                                            color: isError ? Color(redColor) : isHighlighted ? Color(primaryColor) : Color(grey2Color))),
+                                    floatingLabelStyle: TextStyle(
+                                        fontSize: 12, fontWeight: FontWeight.w700,
+                                        color: isError ? Color(redColor) : isHighlighted ? Color(primaryColor) : Color(grey2Color)),
+                                    border: InputBorder.none,
+                                    enabledBorder: InputBorder.none,
+                                    focusedBorder: InputBorder.none,
+                                    errorBorder: InputBorder.none,
+                                    disabledBorder: InputBorder.none,
+                                    contentPadding: EdgeInsets.zero,
+                                  ),
+                                ),
+                              ),
+                            );
+                          }
 
-        decoration: BoxDecoration(
-          color: Color(whiteColor),
-          border: Border(bottom: BorderSide(width: 1, color: isError ? Color(redColor) : Color(grey9Color))),
-        ),
-        child: Row(
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-
-                children: [
-                  Builder(
-                    builder: (context) {
-                      // Date field: open date picker and fill controller
-                      if (fieldType == 'date') {
-                        return GestureDetector(
-                          onTap: isReadOnly
-                              ? null
-                              : () async {
-                                  focusNode.unfocus();
-                                  final DateTime? picked = await showDatePicker(
-                                    context: context,
-                                    initialDate: _parseDateOrToday(controller.text),
-                                    firstDate: DateTime(1900),
-                                    lastDate: DateTime(2100),
-                                  );
-                                  if (picked != null) {
-                                    controller.text = DateHelper.formatNumericCompact(picked);
-                                  }
-                                },
-                          child: AbsorbPointer(
-                            child: TextFormField(
+                          // Integer field: restrict to digits
+                          if (fieldType == 'int') {
+                            return TextFormField(
                               controller: controller,
                               focusNode: focusNode,
                               readOnly: isReadOnly,
+                              enabled: !isReadOnly,
                               maxLines: null,
-                              style: TextStyle(
-                                  fontSize: 12, fontWeight: FontWeight.w700,
-                                  color: isError ? Color(redColor) : Color(blackColor)),
+
+                              inputFormatters: [
+                                FilteringTextInputFormatter.digitsOnly,
+                              ],
+                              keyboardType: TextInputType.number,
+                              style: TextStyle(fontSize: 12, color: isHighlighted ? Color(primaryColor) : isDisplayGrey ? Color(grey2Color) : Color(blackColor), fontWeight: FontWeight.w700),
                               decoration: InputDecoration(
                                 isDense: true,
                                 label: Text(label,
                                     style: TextStyle(
                                         fontSize: 12, fontWeight: FontWeight.w700,
-                                        color: isError ? Color(redColor) : Color(grey2Color))),
+                                        color: isError ? Color(redColor) : isHighlighted ? Color(primaryColor) : Color(grey2Color))),
                                 floatingLabelStyle: TextStyle(
                                     fontSize: 12, fontWeight: FontWeight.w700,
-                                    color: isError ? Color(redColor) : Color(grey2Color)),
+                                    color: isError ? Color(redColor) : isHighlighted ? Color(primaryColor) : Color(grey2Color)),
                                 border: InputBorder.none,
                                 enabledBorder: InputBorder.none,
                                 focusedBorder: InputBorder.none,
@@ -1957,76 +2064,53 @@ class _ContactFormPageState extends State<ContactFormPage> {
                                 disabledBorder: InputBorder.none,
                                 contentPadding: EdgeInsets.zero,
                               ),
-                            ),
-                          ),
-                        );
-                      }
+                            );
+                          }
 
-                      // Integer field: restrict to digits
-                      if (fieldType == 'int') {
-                        return TextFormField(
-                          controller: controller,
-                          focusNode: focusNode,
-                          readOnly: isReadOnly,
-                          enabled: !isReadOnly,
-                          maxLines: null,
-
-                          inputFormatters: [
-                            FilteringTextInputFormatter.digitsOnly,
-                          ],
-                          keyboardType: TextInputType.number,
-                          style: TextStyle(fontSize: 12, color: Color(blackColor), fontWeight: FontWeight.w700),
-                          decoration: InputDecoration(
-                            isDense: true,
-                            label: Text(label,
-                                style: TextStyle(
-                                    fontSize: 12, fontWeight: FontWeight.w700,
-                                    color: isError ? Color(redColor) : Color(grey2Color))),
-                            floatingLabelStyle: TextStyle(
-                                fontSize: 12, fontWeight: FontWeight.w700,
-                                color: isError ? Color(redColor) : Color(grey2Color)),
-                            border: InputBorder.none,
-                            enabledBorder: InputBorder.none,
-                            focusedBorder: InputBorder.none,
-                            errorBorder: InputBorder.none,
-                            disabledBorder: InputBorder.none,
-                            contentPadding: EdgeInsets.zero,
-                          ),
-                        );
-                      }
-
-                      // Default: text input
-                      return TextFormField(
-                        controller: controller,
-                        focusNode: focusNode,
-                        readOnly: isReadOnly,
-                        enabled: !isReadOnly,
-                        maxLines: null,
-                        style: TextStyle(fontSize: 12, color: Color(blackColor), fontWeight: FontWeight.w700),
-                        decoration: InputDecoration(
-                          isDense: true,
-                          label: Text(label,
-                              style: TextStyle(
+                          // Default: text input
+                          return TextFormField(
+                            controller: controller,
+                            focusNode: focusNode,
+                            readOnly: isReadOnly,
+                            enabled: !isReadOnly,
+                            maxLines: null,
+                            style: TextStyle(fontSize: 12, color: isHighlighted ? Color(primaryColor) : Color(blackColor), fontWeight: FontWeight.w700),
+                            decoration: InputDecoration(
+                              isDense: true,
+                              label: Text(label,
+                                  style: TextStyle(
+                                      fontSize: 12, fontWeight: FontWeight.w700,
+                                      color: isError ? Color(redColor) : isHighlighted ? Color(primaryColor) : Color(grey2Color))),
+                              floatingLabelStyle: TextStyle(
                                   fontSize: 12, fontWeight: FontWeight.w700,
-                                  color: isError ? Color(redColor) : Color(grey2Color))),
-                          floatingLabelStyle: TextStyle(
-                              fontSize: 12, fontWeight: FontWeight.w700,
-                              color: isError ? Color(redColor) : Color(grey2Color)),
-                          border: InputBorder.none,
-                          enabledBorder: InputBorder.none,
-                          focusedBorder: InputBorder.none,
-                          errorBorder: InputBorder.none,
-                          disabledBorder: InputBorder.none,
-                          contentPadding: EdgeInsets.zero,
-                        ),
-                      );
-                    },
+                                  color: isError ? Color(redColor) : isHighlighted ? Color(primaryColor) : Color(grey2Color)),
+                              border: InputBorder.none,
+                              enabledBorder: InputBorder.none,
+                              focusedBorder: InputBorder.none,
+                              errorBorder: InputBorder.none,
+                              disabledBorder: InputBorder.none,
+                              contentPadding: EdgeInsets.zero,
+                            ),
+                          );
+                        },
+                      ),
+                      
+                    ],
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
-          ],
-        ),
+          ),
+          if (errorText != null)
+          Container(
+            width: double.infinity,
+            color: Color(whiteColor),
+            child: Padding(
+            padding: const EdgeInsets.only(top: 2, left: 16),
+            child: Text(errorText, style: TextStyle(fontSize: 11, color: Color(redColor))),
+            ),
+          ),
+        ],
       ),
     );
   }
