@@ -71,9 +71,9 @@ class _TaskPageState extends State<TaskPage> {
                 /// 🔥 GLOBAL LOADING OVERLAY
                 AnimatedOpacity(
                   duration: Duration(milliseconds: 200),
-                  opacity: isLoading ? 1 : 0,
+                  opacity: isLoading && state.activities.isNotEmpty ? 1 : 0,
                   child: IgnorePointer(
-                    ignoring: !isLoading,
+                    ignoring: !(isLoading && state.activities.isNotEmpty),
                     child: Container(
                       color: Colors.black.withOpacity(0.3),
                       child: const Center(child: CircularProgressIndicator()),
@@ -90,6 +90,7 @@ class _TaskPageState extends State<TaskPage> {
 
   Widget _buildComingTask(ActivityState state) {
     final activities = state.activities;
+    final isLoading = state.status == ActivityStatus.loading;
 
     return Column(
       children: [
@@ -148,7 +149,9 @@ class _TaskPageState extends State<TaskPage> {
               ],
             ),
 
-            child: activities.isEmpty
+            child: isLoading && activities.isEmpty
+                ? buildTaskShimmer()
+                : activities.isEmpty
                 ? Center(child: Text("No upcoming tasks for today"))
                 : RefreshIndicator(
                     onRefresh: _loadData,

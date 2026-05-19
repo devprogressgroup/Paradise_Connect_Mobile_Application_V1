@@ -244,9 +244,10 @@ class _HomePageState extends State<HomePage> {
 
           SizedBox(height: 8),
 
-          _buildAttendanceAlerts(),
 
           Container(
+            height: 250,
+            padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(10),
@@ -259,16 +260,13 @@ class _HomePageState extends State<HomePage> {
                 ),
               ],
             ),
-
-            child: activities.isEmpty
-                ? SizedBox(
-                    height: 240,
-                    width: double.infinity,
-                    child: Center(child: Text("No upcoming tasks for today")),
-                  )
-                : SizedBox(
-                    height: 240,
-                    child: RefreshIndicator(
+            child: Column(
+              children: [
+                _buildAttendanceAlerts(),
+                Expanded(
+                  child: activities.isEmpty
+                  ? Center(child: Text("No upcoming tasks for today"))
+                  : RefreshIndicator(
                       onRefresh: _loadData,
                       child: ListView.builder(
                         physics: const AlwaysScrollableScrollPhysics(),
@@ -308,18 +306,15 @@ class _HomePageState extends State<HomePage> {
                                       },
                                       child: Container(
                                         margin: const EdgeInsets.only(bottom: 10),
-                                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                                         decoration: BoxDecoration(
                                           color: Colors.white,
-                                          borderRadius: BorderRadius.circular(10),
-                                          boxShadow: [
-                                            BoxShadow(
-                                              color: Colors.grey.withOpacity(0.1),
-                                              spreadRadius: 1,
-                                              blurRadius: 3,
-                                              offset: const Offset(0, 1),
-                                            ),
-                                          ],
+                                         border: Border(
+                                          bottom: BorderSide(
+                                            color: Color(grey10Color),
+                                            width: 1,
+                                          ),
+                                        )
                                         ),
                                         child: Row(
                                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -373,6 +368,8 @@ class _HomePageState extends State<HomePage> {
                       ),
                     ),
                   ),
+              ],
+            ),
           ),
         ],
       );
@@ -391,7 +388,7 @@ class _HomePageState extends State<HomePage> {
           today = state.data.firstWhere((e) => e.date == todayStr);
         } catch (_) {}
 
-        final notClockedIn = today == null || today.clockIn == null;
+        var notClockedIn = today == null || today.clockIn == null;
 
         bool notCheckedIn = false;
         if (today != null && today.clockIn != null && today.checkInActivity == null) {
@@ -420,24 +417,32 @@ class _HomePageState extends State<HomePage> {
     return GestureDetector(
       onTap: () => context.go('/attandance'),
       child: Container(
-        margin: const EdgeInsets.only(bottom: 6),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-        decoration: BoxDecoration(
-          color: Colors.orange.shade50,
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: Colors.orange.shade200),
-        ),
+        margin: const EdgeInsets.only(bottom: 5),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+       decoration: BoxDecoration(color: Colors.white,border: Border(bottom: BorderSide(color: Color(grey10Color),width: 1,),)),
         child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Icon(icon, color: Colors.orange, size: 18),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Text(
-                message,
-                style: TextStyle(fontSize: 12, color: Colors.orange.shade800, fontWeight: FontWeight.w500),
-              ),
+            Row(
+              children: [
+                 Icon(isCompleted ? Icons.check_circle : Icons.check_circle_outline_rounded,color: isCompleted ? Colors.green : Color(primaryColor),size: 40,),
+                const SizedBox(width: 10),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      message,
+                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(blackColor)),
+                    ),
+                    Text(
+                      'Tap untuk absensi',
+                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(grey2Color)),
+                    ),
+                  ],
+                ),
+              ],
             ),
-            const Icon(Icons.arrow_forward_ios, color: Colors.orange, size: 12),
+            const Icon(Icons.arrow_forward_ios, color: Colors.grey, size: 16),
           ],
         ),
       ),
