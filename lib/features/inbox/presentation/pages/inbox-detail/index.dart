@@ -1,5 +1,6 @@
 import 'package:chewie/chewie.dart';
 import 'package:flutter/material.dart';
+import 'package:progress_group/core/utils/widget/shimmer_loading.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 import 'package:progress_group/core/constants/colors.dart';
@@ -85,7 +86,7 @@ class _InboxDetailPageState extends State<InboxDetailPage> {
                 decoration: BoxDecoration(color: Color(whiteColor), borderRadius: BorderRadius.circular(24)),
                 child: BlocBuilder<MessageBloc, MessageState>(
                   builder: (context, state) {
-                    if (state is MessageLoading) return const Center(child: CircularProgressIndicator());
+                    if (state is MessageLoading) return buildMessageShimmer();
 
                     if (state is MessageError) {
                       _isFetchingMore = false;
@@ -116,10 +117,7 @@ class _InboxDetailPageState extends State<InboxDetailPage> {
 
                           /// 🔥 LOADING PESAN LAMA (DI ATAS)
                           if (state.isFetchingMore && index == messages.length) {
-                            return const Padding(
-                              padding: EdgeInsets.symmetric(vertical: 16),
-                              child: Center(child: CircularProgressIndicator()),
-                            );
+                            return const ShimmerMessageItem();
                           }
 
                           final msg = messages[index];

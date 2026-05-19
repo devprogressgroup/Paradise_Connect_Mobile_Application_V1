@@ -186,10 +186,16 @@ class _CameraPageState extends State<CameraPage> {
                 colorBack: Color(whiteColor),
                 colorTitle: Color(whiteColor),
                 isBack: true,
-                iconLeft: _imageFiles.isNotEmpty ? Icons.history : null,
+                iconLeft: _isMultiplePhotosSupported
+                    ? (_isAddingMore ? Icons.close : null)
+                    : (_imageFiles.isNotEmpty ? Icons.history : null),
                 iconLeftOnTap: () {
                   setState(() {
-                    _imageFiles.clear();
+                    if (_isAddingMore) {
+                      _isAddingMore = false;
+                    } else {
+                      _imageFiles.clear();
+                    }
                   });
                 },
                 colorIconLeft: Color(whiteColor),
@@ -227,23 +233,6 @@ class _CameraPageState extends State<CameraPage> {
             ),
           ),
         ),
-        if (_imageFiles.isNotEmpty)
-          Positioned(
-            top: 20,
-            left: 20,
-            child: GestureDetector(
-              onTap: () {
-                setState(() {
-                  _isAddingMore = false;
-                });
-              },
-              child: Container(
-                padding: EdgeInsets.all(8),
-                decoration: BoxDecoration(color: Colors.black.withOpacity(0.5), shape: BoxShape.circle),
-                child: Icon(Icons.close, color: Colors.white, size: 25),
-              ),
-            ),
-          ),
         _buildBottomOverlay(),
       ],
     );
@@ -306,74 +295,83 @@ class _CameraPageState extends State<CameraPage> {
                 color: Color(whiteColor),
                 child: Column(
                   children: [
-                    Stack(
-                      children: [
-                        if (!_isMultiplePhotosSupported)
+                    if (!_isMultiplePhotosSupported)
+                      Stack(
+                        children: [
                           Container(
                             height: 330,
                             width: double.infinity,
                             child: Image.file(File(_imageFiles.first.path), fit: BoxFit.cover),
-                          )
-                        else
+                          ),
+                          Positioned(
+                            bottom: 0,
+                            left: 0,
+                            right: 0,
+                            child: Container(
+                              color: Color(blue2Color).withOpacity(0.5),
+                              padding: EdgeInsets.all(16),
+                              child: Column(
+                                children: [
+                                  Row(children: [Icon(Icons.access_time_filled, color: Color(greenPercentColor), size: 25), SizedBox(width: 10), Text(widget.args.time ?? "-", style: TextStyle(color: Colors.white))]),
+                                  SizedBox(height: 10),
+                                  Row(children: [Icon(Icons.calendar_today_sharp, color: Color(primaryColor), size: 25), SizedBox(width: 10), Text(DateHelper.formatDate(DateTime.now()), style: TextStyle(color: Colors.white))]),
+                                  SizedBox(height: 10),
+                                  Row(children: [Icon(Icons.location_on, color: Color(primaryColor), size: 25), SizedBox(width: 10), SizedBox(width: 250, child: Text(widget.args.location ?? "-", style: TextStyle(color: Colors.white), overflow: TextOverflow.ellipsis))]),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
+                      )
+                    else
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  "Check In Photos",
+                                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(grey2Color)),
+                                ),
+                                IconButton(
+                                  onPressed: _takeMorePhotos,
+                                  icon: Icon(Icons.camera_alt, color: Color(primaryColor)),
+                                  iconSize: 20,
+                                  padding: EdgeInsets.zero,
+                                  constraints: const BoxConstraints(),
+                                  tooltip: 'Add Photo',
+                                ),
+                              ],
+                            ),
+                          ),
+                          SizedBox(height: 6),
                           Container(
-                            height: 330,
-                            width: double.infinity,
+                            height: 100,
                             child: ListView.builder(
                               scrollDirection: Axis.horizontal,
-                              itemCount: _imageFiles.length + 1,
+                              padding: const EdgeInsets.symmetric(horizontal: 16),
+                              itemCount: _imageFiles.length,
                               itemBuilder: (context, index) {
-                                if (index == _imageFiles.length) {
-                                  return GestureDetector(
-                                    onTap: () {
-                                      setState(() {
-                                        // Trick to show camera again
-                                        // We might need a separate state if we want to add more
-                                        // But for now, let's just use a special flag or null check
-                                      });
-                                      _takeMorePhotos();
-                                    },
-                                    child: Container(
-                                      width: 200,
-                                      margin: EdgeInsets.all(10),
-                                      decoration: BoxDecoration(
-                                        color: Colors.grey[200],
-                                        borderRadius: BorderRadius.circular(12),
-                                        border: Border.all(color: Color(primaryColor), width: 2, style: BorderStyle.none),
-                                      ),
-                                      child: Column(
-                                        mainAxisAlignment: MainAxisAlignment.center,
-                                        children: [
-                                          Icon(Icons.add_a_photo, color: Color(primaryColor), size: 40),
-                                          SizedBox(height: 10),
-                                          Text("Add Photo", style: TextStyle(color: Color(primaryColor), fontWeight: FontWeight.bold)),
-                                        ],
-                                      ),
-                                    ),
-                                  );
-                                }
                                 return Stack(
                                   children: [
-                                    Container(
-                                      width: 250,
-                                      margin: EdgeInsets.all(5),
+                                    Padding(
+                                      padding: const EdgeInsets.only(right: 8.0),
                                       child: ClipRRect(
-                                        borderRadius: BorderRadius.circular(12),
-                                        child: Image.file(File(_imageFiles[index].path), fit: BoxFit.cover),
+                                        borderRadius: BorderRadius.circular(8),
+                                        child: Image.file(File(_imageFiles[index].path), width: 100, height: 100, fit: BoxFit.cover),
                                       ),
                                     ),
                                     Positioned(
-                                      top: 10,
-                                      right: 10,
+                                      top: 0,
+                                      right: 8,
                                       child: GestureDetector(
-                                        onTap: () {
-                                          setState(() {
-                                            _imageFiles.removeAt(index);
-                                          });
-                                        },
+                                        onTap: () => setState(() => _imageFiles.removeAt(index)),
                                         child: Container(
-                                          padding: EdgeInsets.all(4),
-                                          decoration: BoxDecoration(color: Colors.red, shape: BoxShape.circle),
-                                          child: Icon(Icons.close, color: Colors.white, size: 20),
+                                          decoration: const BoxDecoration(color: Colors.black54, shape: BoxShape.circle),
+                                          child: const Icon(Icons.close, color: Colors.white, size: 20),
                                         ),
                                       ),
                                     ),
@@ -382,47 +380,14 @@ class _CameraPageState extends State<CameraPage> {
                               },
                             ),
                           ),
-                        Positioned(
-                          bottom: 0,
-                          left: 0,
-                          right: 0,
-                          child: Container(
-                            color: Color(blue2Color).withOpacity(0.5),
-                            padding: EdgeInsets.all(16),
-                            child: Column(
-                              children: [
-                                Row(
-                                  children: [
-                                    Icon(Icons.access_time_filled, color: Color(greenPercentColor), size: 25),
-                                    SizedBox(width: 10),
-                                    Text(widget.args.time ?? "-", style: TextStyle(color: Colors.white)),
-                                  ],
-                                ),
-                                SizedBox(height: 10),
-                                Row(
-                                  children: [
-                                    Icon(Icons.calendar_today_sharp, color: Color(primaryColor), size: 25),
-                                    SizedBox(width: 10),
-                                    Text(DateHelper.formatDate(DateTime.now()), style: TextStyle(color: Colors.white)),
-                                  ],
-                                ),
-                                SizedBox(height: 10),
-                                Row(
-                                  children: [
-                                    Icon(Icons.location_on, color: Color(primaryColor), size: 25),
-                                    SizedBox(width: 10),
-                                    SizedBox(
-                                      width: 250,
-                                      child: Text(widget.args.location ?? "-", style: TextStyle(color: Colors.white), overflow: TextOverflow.ellipsis),
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
+                          SizedBox(height: 20),
+                         _buildfield(label: "Location", value: widget.args.location ?? "-"),
+                         SizedBox(height: 8),
+                         _buildfield(label: "Time", value: widget.args.time ?? "-"),
+                         SizedBox(height: 8),
+                         _buildfield(label: "Date", value:DateHelper.formatDate(DateTime.now())),
+                        ],
+                      ),
 
                     if (widget.args.isReturnImage != true)
                       Padding(
@@ -431,9 +396,6 @@ class _CameraPageState extends State<CameraPage> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             SizedBox(height: 10),
-                               
-                               SizedBox(height: 15),
-
                              Text("Pameran/ Open Table (optional)", style: TextStyle(fontSize: 14, color: Color(grey2Color))),
                              SizedBox(height: 5),
 
@@ -493,7 +455,7 @@ class _CameraPageState extends State<CameraPage> {
                                ),
                              ),
 
-                            SizedBox(height: 20),
+                            SizedBox(height: 8),
                             Text("Notes", style: TextStyle(fontSize: 14, color: Color(grey2Color))),
                             SizedBox(height: 5),
 
@@ -545,4 +507,33 @@ class _CameraPageState extends State<CameraPage> {
       },
     );
   }
+
+  Widget _buildfield({required String label, String? value}) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(label, style: TextStyle(fontSize: 14, color: Color(grey2Color))),
+          SizedBox(height: 5),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Color(grey8Color)),
+            ),
+            child: Text(value ?? "-", style: TextStyle(fontSize: 13, color: Color(grey2Color)), overflow: TextOverflow.ellipsis),
+          ),
+        ],
+      ),
+    );
+  }
 }
+
+// widget.args.location ?? "-"
+   // Row(children: [Icon(Icons.access_time_filled, color: Color(greenPercentColor), size: 18), SizedBox(width: 10), Text(widget.args.time ?? "-", style: TextStyle(fontSize: 13, color: Color(grey2Color)))]),
+                // SizedBox(height: 8),
+                // Row(children: [Icon(Icons.calendar_today_sharp, color: Color(primaryColor), size: 18), SizedBox(width: 10), Text(DateHelper.formatDate(DateTime.now()), style: TextStyle(fontSize: 13, color: Color(grey2Color)))]),
+                // SizedBox(height: 8),

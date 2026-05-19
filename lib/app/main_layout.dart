@@ -382,37 +382,37 @@ class _MainLayoutState extends State<MainLayout> {
             padding: const EdgeInsets.symmetric(horizontal: 10),
             child: Container(
               padding: const EdgeInsets.symmetric(vertical: 5,horizontal: 6),
-              decoration: BoxDecoration(
-                color: isActive ? Color(primaryColor).withOpacity(0.08) : Colors.transparent,
-                borderRadius: BorderRadius.circular(50),
-              ),
+              // decoration: BoxDecoration(
+              //   color: isActive ? Color(primaryColor).withOpacity(0.08) : Colors.transparent,
+              //   borderRadius: BorderRadius.circular(50),
+              // ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Image.asset(
                     icon,
-                    width: 24,
-                    height: 24,
+                    width: 30,
+                    height: 30,
                     color: isActive ? Color(primaryColor) : Color(grey2Color),
                   ),
                   const SizedBox(width: 5),
-                  AnimatedSize(
-                    duration: const Duration(milliseconds: 200),
-                    curve: Curves.easeOut,
-                    child: isActive
-                        ? Padding(
-                            padding: const EdgeInsets.only(top: 4),
-                            child: Text(
-                              label,
-                              style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w600,
-                                color: Color(primaryColor),
-                              ),
-                            ),
-                          )
-                        : const SizedBox.shrink(),
-                  ),
+                  // AnimatedSize(
+                  //   duration: const Duration(milliseconds: 200),
+                  //   curve: Curves.easeOut,
+                  //   child: isActive
+                  //       ? Padding(
+                  //           padding: const EdgeInsets.only(top: 4),
+                  //           child: Text(
+                  //             label,
+                  //             style: TextStyle(
+                  //               fontSize: 11,
+                  //               fontWeight: FontWeight.w600,
+                  //               color: Color(primaryColor),
+                  //             ),
+                  //           ),
+                  //         )
+                  //       : const SizedBox.shrink(),
+                  // ),
                 ],
               ),
             ),

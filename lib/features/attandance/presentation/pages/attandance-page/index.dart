@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:progress_group/core/utils/widget/shimmer_loading.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
@@ -746,7 +747,7 @@ class _AttandancePageState extends State<AttandancePage> {
               builder: (context, state) {
     
                 if (state is AttendanceLoading) {
-                  return Center(child: CircularProgressIndicator());
+                  return buildAttendanceShimmer();
                 }
     
                 if (state is AttendanceLoaded) {
@@ -799,7 +800,7 @@ class _AttandancePageState extends State<AttandancePage> {
               builder: (context, state) {
     
                 if (state is AttendanceLoading) {
-                  return Center(child: CircularProgressIndicator());
+                  return buildAttendanceShimmer();
                 }
     
                 if (state is AttendanceLoaded) {

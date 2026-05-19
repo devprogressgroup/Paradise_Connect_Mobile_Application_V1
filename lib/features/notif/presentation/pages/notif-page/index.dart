@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:progress_group/core/utils/widget/shimmer_loading.dart';
 import 'package:go_router/go_router.dart';
 import 'package:progress_group/features/inbox/data/arguments/inbox_detail_args.dart';
 import 'package:progress_group/core/constants/assets.dart';
@@ -121,7 +122,9 @@ class _NotifPageState extends State<NotifPage> {
                     Expanded(
                       child: Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 16),
-                        child: activities.isEmpty
+                        child: isLoading && activities.isEmpty
+                            ? buildNotifShimmer()
+                            : activities.isEmpty
                             ? RefreshIndicator(
                                 onRefresh: _onRefresh,
                                 child: ListView(
@@ -263,17 +266,13 @@ class _NotifPageState extends State<NotifPage> {
                   ],
                 ),
 
-                AnimatedOpacity(
-                  duration: const Duration(milliseconds: 200),
-                  opacity: isLoading ? 1 : 0,
-                  child: IgnorePointer(
-                    ignoring: !isLoading,
-                    child: Container(
-                      color: Colors.black.withOpacity(0.3),
-                      child: const Center(child: CircularProgressIndicator()),
-                    ),
+                if (isLoading && activities.isNotEmpty)
+                  Positioned(
+                    bottom: 0,
+                    left: 0,
+                    right: 0,
+                    child: buildNotifShimmer(),
                   ),
-                ),
               ],
             );
           },

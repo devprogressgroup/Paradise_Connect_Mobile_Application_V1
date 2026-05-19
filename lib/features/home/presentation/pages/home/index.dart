@@ -1,10 +1,15 @@
 import 'package:intl/intl.dart';
 import 'package:flutter/material.dart';
+import 'package:progress_group/core/utils/widget/shimmer_loading.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:progress_group/core/constants/colors.dart';
 import 'package:progress_group/core/constants/assets.dart';
 import 'package:progress_group/core/utils/helpers/date_helper.dart';
+import 'package:progress_group/features/attandance/domain/entities/attandance_entity.dart';
+import 'package:progress_group/features/attandance/presentation/state/attandance/attendance_bloc.dart';
+import 'package:progress_group/features/attandance/presentation/state/attandance/attendance_event.dart';
+import 'package:progress_group/features/attandance/presentation/state/attandance/attendance_state.dart';
 import 'package:progress_group/features/home/presentation/state/report-whatsapp/report_bloc.dart';
 import 'package:progress_group/features/home/presentation/state/report-whatsapp/report_event.dart';
 import 'package:progress_group/features/home/presentation/state/report-whatsapp/report_state.dart';
@@ -119,6 +124,7 @@ class _HomePageState extends State<HomePage> {
     
     context.read<NotifActivityBloc>().add(const FetchActivitiesEvent(isRefresh: true));
     context.read<WhatsappActivityBloc>().add(const FetchWhatsappUnreadSummaryEvent(0));
+    context.read<AttendanceBloc>().add(FetchAttendanceDataEvent());
 
     try {
       if (mounted) setState(() {});
@@ -218,7 +224,7 @@ class _HomePageState extends State<HomePage> {
       final activities = state.activities;
 
       if (state.status == ActivityStatus.loading && activities.isEmpty) {
-        return const Center(child: CircularProgressIndicator());
+        return buildHomeTaskShimmer();
       }
 
       return Column(
@@ -237,6 +243,8 @@ class _HomePageState extends State<HomePage> {
           ),
 
           SizedBox(height: 8),
+
+          _buildAttendanceAlerts(),
 
           Container(
             decoration: BoxDecoration(
@@ -372,6 +380,70 @@ class _HomePageState extends State<HomePage> {
   );
 }
 
+  Widget _buildAttendanceAlerts() {
+    return BlocBuilder<AttendanceBloc, AttendanceState>(
+      builder: (context, state) {
+        if (state is! AttendanceLoaded) return const SizedBox.shrink();
+
+        final todayStr = DateFormat('yyyy-MM-dd').format(DateTime.now());
+        AttendanceEntity? today;
+        try {
+          today = state.data.firstWhere((e) => e.date == todayStr);
+        } catch (_) {}
+
+        final notClockedIn = today == null || today.clockIn == null;
+
+        bool notCheckedIn = false;
+        if (today != null && today.clockIn != null && today.checkInActivity == null) {
+          final clockInTime = DateTime.tryParse(today.clockIn!);
+          if (clockInTime != null) {
+            notCheckedIn = DateTime.now().difference(clockInTime).inMinutes >= 10;
+          }
+        }
+
+        if (!notClockedIn && !notCheckedIn) return const SizedBox.shrink();
+
+        return Column(
+          children: [
+            if (notClockedIn)
+              _buildAttendanceAlertItem('Kamu belum Clock In hari ini', Icons.fingerprint),
+            if (notCheckedIn)
+              _buildAttendanceAlertItem('Kamu belum Check In hari ini', Icons.location_on_outlined),
+            const SizedBox(height: 8),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildAttendanceAlertItem(String message, IconData icon) {
+    return GestureDetector(
+      onTap: () => context.go('/attandance'),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 6),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: BoxDecoration(
+          color: Colors.orange.shade50,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: Colors.orange.shade200),
+        ),
+        child: Row(
+          children: [
+            Icon(icon, color: Colors.orange, size: 18),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                message,
+                style: TextStyle(fontSize: 12, color: Colors.orange.shade800, fontWeight: FontWeight.w500),
+              ),
+            ),
+            const Icon(Icons.arrow_forward_ios, color: Colors.orange, size: 12),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildWhatsAppChart() {
     const double maxHeight = 110.0;
     String _formatYAxisLabel(double value) {
@@ -429,10 +501,7 @@ class _HomePageState extends State<HomePage> {
             builder: (context, state) {
             
               if (state is ReportInitial || state is ReportLoading) {
-                return const SizedBox(
-                  height: 150,
-                  child: Center(child: CircularProgressIndicator()),
-                );
+                return buildHomeChartShimmer();
               }
               if (state is ReportError) {
                 return SizedBox(

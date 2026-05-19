@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:progress_group/app/router.dart';
+import 'package:progress_group/core/constants/assets.dart';
 import 'package:progress_group/core/constants/colors.dart';
 import 'package:progress_group/features/auth/presentation/state/profile/profile_bloc.dart';
 import 'package:progress_group/features/auth/presentation/state/profile/profile_event.dart';
@@ -18,32 +20,38 @@ class _SplashPageState extends State<SplashPage> {
   @override
   void initState() {
     super.initState();
-    _checkAutoLogin();
+    _checkToken();
   }
 
-  void _checkAutoLogin() async {
+  void _checkToken() async {
     await Future.delayed(const Duration(seconds: 1));
     final prefs = await SharedPreferences.getInstance();
-    final isAutoLogin = prefs.getBool('is_auto_login') ?? false;
     final token = prefs.getString('auth_token');
 
-    if (mounted) {
-      if (isAutoLogin && token != null && token.isNotEmpty) {
-        context.read<ProfileBloc>().add(GetProfileEvent());
-      } else {
-        context.go('/login');
-      }
+    if (!mounted) return;
+
+    if (token != null && token.isNotEmpty) {
+      // Token ada — validasi ke server lewat GetProfile
+      context.read<ProfileBloc>().add(GetProfileEvent());
+    } else {
+      context.go('/login');
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return BlocListener<ProfileBloc, ProfileState>(
-      listener: (context, state) {
+      listener: (context, state) async {
         if (state is ProfileLoaded) {
+          // Token valid — set auth flag lalu masuk home
+          AppRouter.authNotifier.value = true;
           context.go('/');
         } else if (state is ProfileFailure) {
-          context.go('/login');
+          // Token expired/invalid — hapus token lalu ke login
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.remove('auth_token');
+          await prefs.setBool('is_auto_login', false);
+          if (mounted) context.go('/login');
         }
       },
       child: Scaffold(
@@ -52,6 +60,8 @@ class _SplashPageState extends State<SplashPage> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
+              Image.asset(logoParadiseSerpong, width: 160),
+              const SizedBox(height: 32),
               const CircularProgressIndicator(
                 valueColor: AlwaysStoppedAnimation<Color>(Color(primaryColor)),
               ),

@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:progress_group/core/utils/widget/shimmer_loading.dart';
+import 'package:shimmer/shimmer.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:progress_group/core/constants/colors.dart';
@@ -180,10 +182,7 @@ class _InboxPageState extends State<InboxPage> {
                       child: BlocBuilder<WhatsappDeviceBloc, WhatsappDeviceState>(
                         builder: (context, state) {
                           if (state is WhatsappDeviceLoading) {
-                            return const Center(child: Padding(
-                              padding: EdgeInsets.all(8.0),
-                              child: CircularProgressIndicator(),
-                            ));
+                            return const ShimmerInboxItem();
                           }
                           if (state is WhatsappDeviceError) {
                             return Center(child: Text(state.message));
@@ -513,7 +512,7 @@ class _InboxPageState extends State<InboxPage> {
     return BlocBuilder<InboxContactBloc, InboxContactState>(
       builder: (context, state) {
         if (state is InboxContactLoading) {
-          return const Center(child: CircularProgressIndicator());
+          return buildInboxShimmer();
         }
         if (state is InboxContactError) {
           _isFetchingMore = false;
@@ -694,10 +693,7 @@ class _InboxPageState extends State<InboxPage> {
           ),
         ),
         if (isFetchingMore)
-          const Padding(
-            padding: EdgeInsets.symmetric(vertical: 16),
-            child: Center(child: CircularProgressIndicator()),
-          ),
+          const ShimmerInboxItem(),
       ],
     ));
   }
@@ -790,10 +786,17 @@ class _InboxPageState extends State<InboxPage> {
 
   Widget _buildQrContent(WhatsappQrState state) {
     if (state is WhatsappQrLoading) {
-      return SizedBox(
-        width: 180,
-        height: 180,
-        child: Center(child: CircularProgressIndicator()),
+      return Shimmer.fromColors(
+        baseColor: const Color(0xFFE0E0E0),
+        highlightColor: const Color(0xFFF5F5F5),
+        child: Container(
+          width: 180,
+          height: 180,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
       );
     }
     if (state is WhatsappQrStreaming) {

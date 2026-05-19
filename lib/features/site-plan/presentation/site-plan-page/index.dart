@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:progress_group/core/utils/widget/shimmer_loading.dart';
 import 'package:progress_group/core/constants/colors.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import '../../../../core/utils/widget/custom_header.dart';
@@ -113,7 +114,7 @@ class _SitePlanPageState extends State<SitePlanPage> {
   Widget _buildLoadingOverlay() {
     return Container(
       color: Colors.white,
-      child: const Center(child: CircularProgressIndicator()),
+      child: buildSiteplanShimmer(),
     );
   }
 }

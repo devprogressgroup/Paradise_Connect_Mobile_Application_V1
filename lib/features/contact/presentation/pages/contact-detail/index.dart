@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:progress_group/core/constants/assets.dart';
+import 'package:progress_group/core/utils/widget/shimmer_loading.dart';
 import 'package:progress_group/core/constants/colors.dart';
 import 'package:progress_group/core/utils/helpers/date_helper.dart';
 import 'package:progress_group/core/utils/share_helper.dart';
@@ -221,129 +222,142 @@ class _ContactDetailPageState extends State<ContactDetailPage>with TickerProvide
           length: tabs.length,
           child: Column(
             children: [
-              AnimatedContainer(
-                duration: const Duration(milliseconds: 250),
-                height: _hideHeader ? 65 : 210,
-                child: Stack(
+              Container(
+                color: Color(whiteColor),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    if (!_hideHeader)
-                    Positioned(
-                      top: 0,
-                      bottom: 50,
-                      left: 0,
-                      right: 0,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 10,
-                        ),
-                        color: Color(whiteColor),
-                        child: Column(
-                          children: [
-                            Row(
+                    // Back button + title + icons — semua collapse bersama
+                    ClipRect(
+                      child: AnimatedAlign(
+                        alignment: Alignment.topCenter,
+                        heightFactor: _hideHeader ? 0.0 : 1.0,
+                        duration: const Duration(milliseconds: 350),
+                        curve: Curves.easeInOutCubic,
+                        child: AnimatedOpacity(
+                          opacity: _hideHeader ? 0.0 : 1.0,
+                          duration: const Duration(milliseconds: 220),
+                          curve: Curves.easeInOut,
+                          child: IgnorePointer(
+                            ignoring: _hideHeader,
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
                               children: [
-                                GestureDetector(
-                                  onTap: () => context.pop(),
-                                  child: Icon(
-                                    Icons.arrow_back,
-                                    color: Color(primaryColor),
-                                    size: 27,
+                                Padding(
+                                  padding: const EdgeInsets.fromLTRB(16, 10, 16, 4),
+                                  child: Row(
+                                    children: [
+                                      GestureDetector(
+                                        onTap: () => context.pop(),
+                                        child: Icon(
+                                          Icons.arrow_back,
+                                          color: Color(primaryColor),
+                                          size: 27,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 10),
+                                      BlocBuilder<ContactBloc, ContactState>(
+                                        builder: (context, contactState) {
+                                          final name = contactState.contactDetail?.fullName
+                                              ?? widget.args.dataContact?.fullName
+                                              ?? '-';
+                                          return Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                "Contacts",
+                                                style: TextStyle(
+                                                  fontSize: 11,
+                                                  color: Color(blue2Color),
+                                                ),
+                                              ),
+                                              Text(
+                                                name,
+                                                style: const TextStyle(
+                                                  fontSize: 20,
+                                                  fontWeight: FontWeight.w700,
+                                                ),
+                                              ),
+                                            ],
+                                          );
+                                        },
+                                      ),
+                                    ],
                                   ),
                                 ),
-                                const SizedBox(width: 10),
-                                BlocBuilder<ContactBloc, ContactState>(
-                                  builder: (context, contactState) {
-                                    final name = contactState.contactDetail?.fullName
-                                        ?? widget.args.dataContact?.fullName
-                                        ?? '-';
-                                    return Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          "Contacts",
-                                          style: TextStyle(
-                                            fontSize: 11,
-                                            color: Color(blue2Color),
-                                          ),
-                                        ),
-                                        Text(
-                                          name,
-                                          style: const TextStyle(
-                                            fontSize: 20,
-                                            fontWeight: FontWeight.w700,
-                                          ),
-                                        ),
-                                      ],
-                                    );
-                                  },
-                                ),
-                              ],
-                            ),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                BgIcon(
-                                  asset: icContactDetailPhone,
-                                  onTap: () async {
-                                    final phone =
-                                        widget.args.dataContact?.primaryPhone;
-                                    if (phone != null && phone.isNotEmpty) {
-                                      final Uri launchUri = Uri(
-                                        scheme: 'tel',
-                                        path: phone,
-                                      );
-                                      await launchUrl(launchUri);
-                                    }
-                                  },
-                                ),
-                                BgIcon(
-                                  asset: icContactDetailWA,
-                                  onTap: () async {
-                                    var phone =widget.args.dataContact?.whatsappNumber ??widget.args.dataContact?.primaryPhone;
-                                    if (phone != null && phone.isNotEmpty) {
-                                      phone = phone.replaceAll(
-                                        RegExp(r'[^0-9]'),
-                                        '',
-                                      );
-                                      if (phone.startsWith('0')) {
-                                        phone = '62${phone.substring(1)}';
-                                      }
-                                      final Uri whatsappUri = Uri.parse(
-                                        "https://wa.me/$phone",
-                                      );
-                                      await launchUrl(
-                                        whatsappUri,
-                                        mode: LaunchMode.externalApplication,
-                                      );
-                                    }
-                                  },
-                                ),
-                                BgIcon(
-                                  asset: null,
-                                  onTap: () {
-                                    showCustomBottomSheet(
-                                      context: context,
-                                      child: _buildContactOptions(
-                                        context,
-                                        widget.args.dataContact!,
+                                Padding(
+                                  padding: const EdgeInsets.only(bottom: 8),
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      BgIcon(
+                                        asset: icContactDetailPhone,
+                                        onTap: () async {
+                                          final phone = widget.args.dataContact?.primaryPhone;
+                                          if (phone != null && phone.isNotEmpty) {
+                                            await launchUrl(Uri(scheme: 'tel', path: phone));
+                                          }
+                                        },
                                       ),
-                                    );
-                                  },
+                                      BgIcon(
+                                        asset: icContactDetailWA,
+                                        onTap: () async {
+                                          var phone = widget.args.dataContact?.whatsappNumber
+                                              ?? widget.args.dataContact?.primaryPhone;
+                                          if (phone != null && phone.isNotEmpty) {
+                                            phone = phone.replaceAll(RegExp(r'[^0-9]'), '');
+                                            if (phone.startsWith('0')) {
+                                              phone = '62${phone.substring(1)}';
+                                            }
+                                            await launchUrl(
+                                              Uri.parse("https://wa.me/$phone"),
+                                              mode: LaunchMode.externalApplication,
+                                            );
+                                          }
+                                        },
+                                      ),
+                                      BgIcon(
+                                        asset: null,
+                                        onTap: () {
+                                          showCustomBottomSheet(
+                                            context: context,
+                                            child: _buildContactOptions(
+                                              context,
+                                              widget.args.dataContact!,
+                                            ),
+                                          );
+                                        },
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               ],
                             ),
-                          ],
+                          ),
                         ),
                       ),
                     ),
 
-                    Positioned(
-                      bottom: _hideHeader ? 25 : 50,
-                      left: 16,
-                      right: 16,
-                      child: Transform.translate(
-                        offset: const Offset(0, 25),
-                        child: _buildTabBar(),
+                    // Tab bar — strip full-width, pill padded
+                    SizedBox(
+                      height: 60,
+                      child: Stack(
+                        children: [
+                          Positioned(
+                            top: 24,
+                            left: 0,
+                            right: 0,
+                            bottom: 0,
+                            child: Container(color: Color(grey11Color)),
+                          ),
+                          Positioned(
+                            top: 4,
+                            left: 16,
+                            right: 16,
+                            height: 40,
+                            child: _buildTabBar(),
+                          ),
+                        ],
                       ),
                     ),
                   ],
@@ -355,20 +369,23 @@ class _ContactDetailPageState extends State<ContactDetailPage>with TickerProvide
                   index: currentTab,
                   children: [
                     _buildActivityContent(),
-                    NotificationListener<ScrollNotification>(
-                      onNotification: (notification) {
-                        if (currentTab == 1) {
-                          final shouldHide = notification.metrics.pixels > 50;
-                          if (_hideHeader != shouldHide) {
-                            setState(() => _hideHeader = shouldHide);
+                    RefreshIndicator(
+                      onRefresh: _getContactDetail,
+                      child: NotificationListener<ScrollNotification>(
+                        onNotification: (notification) {
+                          if (currentTab == 1) {
+                            final shouldHide = notification.metrics.pixels > 50;
+                            if (_hideHeader != shouldHide) {
+                              setState(() => _hideHeader = shouldHide);
+                            }
                           }
-                        }
-                        return false;
-                      },
-                      child: ContactFormPage(
-                        args: ContactDetailArgs(
-                          dataContact: widget.args.dataContact,
-                          page: 2,
+                          return false;
+                        },
+                        child: ContactFormPage(
+                          args: ContactDetailArgs(
+                            dataContact: widget.args.dataContact,
+                            page: 2,
+                          ),
                         ),
                       ),
                     ),
@@ -493,38 +510,35 @@ class _ContactDetailPageState extends State<ContactDetailPage>with TickerProvide
   Widget _buildTabBar() {
     const double height = 40;
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Container(
-        height: height,
-        decoration: BoxDecoration(
-          color: Color(grey10Color),
-          borderRadius: BorderRadius.circular(height / 2),
-        ),
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            final tabWidth = constraints.maxWidth / 2.6;
-            final page = currentTab.toDouble();
+    return Container(
+      height: height,
+      decoration: BoxDecoration(
+        color: Color(grey10Color),
+        borderRadius: BorderRadius.circular(height / 2),
+      ),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final tabWidth = constraints.maxWidth / 2.8;
+          final page = currentTab.toDouble();
 
-            List<int> order = [0, 1, 2];
-            order.sort((a, b) {
-              return (b - page).abs().compareTo((a - page).abs());
-            });
+          List<int> order = [0, 1, 2];
+          order.sort((a, b) {
+            return (b - page).abs().compareTo((a - page).abs());
+          });
 
-            return Stack(
-              children: order.map((index) {
-                return _buildStackTab(
-                  index: index,
-                  left: index * (tabWidth - 25),
-                  tabWidth: tabWidth,
-                  height: height,
-                  tabs: tabs,
-                  page: page,
-                );
-              }).toList(),
-            );
-          },
-        ),
+          return Stack(
+            children: order.map((index) {
+              return _buildStackTab(
+                index: index,
+                left: index * (tabWidth - 25),
+                tabWidth: tabWidth,
+                height: height,
+                tabs: tabs,
+                page: page,
+              );
+            }).toList(),
+          );
+        },
       ),
     );
   }
@@ -594,9 +608,7 @@ class _ContactDetailPageState extends State<ContactDetailPage>with TickerProvide
                         // =========================
                         if (activityState.status == ActivityStatus.loading &&
                             activityState.activities.isEmpty) {
-                          return const Center(
-                            child: CircularProgressIndicator(),
-                          );
+                          return buildActivityShimmer();
                         }
 
                         // =========================
@@ -700,8 +712,11 @@ class _ContactDetailPageState extends State<ContactDetailPage>with TickerProvide
                         // =========================
                         // UI
                         // =========================
-                        return ListView(
+                        return RefreshIndicator(
+                          onRefresh: _getActivity,
+                          child: ListView(
                           controller: _activityScrollController,
+                          physics: const AlwaysScrollableScrollPhysics(),
                           padding: const EdgeInsets.symmetric(
                             horizontal: 16,
                             vertical: 16,
@@ -752,6 +767,7 @@ class _ContactDetailPageState extends State<ContactDetailPage>with TickerProvide
                               );
                             }).toList(),
                           ],
+                        ),
                         );
                       },
                     );
@@ -961,7 +977,7 @@ class _ContactDetailPageState extends State<ContactDetailPage>with TickerProvide
                 child: BlocBuilder<AttachmentCubit, AttachmentState>(
                   builder: (context, state) {
                     if (state is AttachmentLoading) {
-                      return Center(child: CircularProgressIndicator());
+                      return buildAttachmentShimmer();
                     }
 
                     if (state is AttachmentLoaded) {
@@ -1533,13 +1549,7 @@ class _ActivityItemState extends State<ActivityItem> {
                                 fit: BoxFit.fill,
                                 loadingBuilder: (context, child, progress) {
                                   if (progress == null) return child;
-                                  return Container(
-                                    color: Colors.grey.shade200,
-                                    alignment: Alignment.center,
-                                    child: const CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                    ),
-                                  );
+                                  return const ShimmerAttachmentItem();
                                 },
                                 errorBuilder: (context, error, stackTrace) {
                                   return Container(

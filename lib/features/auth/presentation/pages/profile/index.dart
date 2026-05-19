@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
-
+import 'package:progress_group/core/utils/widget/shimmer_loading.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:progress_group/core/utils/widget/custom_button.dart';
-import 'package:progress_group/features/auth/data/datasources/auth_local_datasource.dart';
+import 'package:progress_group/features/auth/presentation/state/auth/auth_bloc.dart';
+import 'package:progress_group/features/auth/presentation/state/auth/auth_event.dart';
 import 'package:progress_group/features/auth/presentation/state/profile/profile_bloc.dart';
 import 'package:progress_group/features/auth/presentation/state/profile/profile_event.dart';
 import 'package:progress_group/features/auth/presentation/state/profile/profile_state.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:progress_group/core/network/api_constants.dart';
 
 import '../../../../../core/constants/colors.dart';
@@ -69,7 +69,7 @@ class _ProfilePageState extends State<ProfilePage> {
     return BlocBuilder<ProfileBloc, ProfileState>(
       builder: (context, state) {
         if (state is ProfileLoading) {
-          return const Center(child: CircularProgressIndicator());
+          return buildProfileShimmer();
         }
 
         if (state is ProfileFailure) {
@@ -228,11 +228,8 @@ class _ProfilePageState extends State<ProfilePage> {
                         const SizedBox(width: 20),
                         Expanded(
                           child: customButton(
-                            () async {
-                              final prefs = await SharedPreferences.getInstance();
-                              final localDataSource = AuthLocalDataSourceImpl(prefs);
-                              await localDataSource.clearToken();
-                              if (mounted) context.go('/login');
+                            () {
+                              context.read<AuthBloc>().add(LogoutEvent());
                             },
                             "Logout",
                             colorBg: Color(whiteColor),

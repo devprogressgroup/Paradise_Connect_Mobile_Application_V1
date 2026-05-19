@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:file_picker/file_picker.dart';
+import 'package:progress_group/core/utils/widget/shimmer_loading.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -189,14 +190,18 @@ class _ContactAddPageState extends State<ContactAddPage> {
         selectedStatusId != null && allowedIds.contains(selectedStatusId);
 
     if (!isValid && statuses.isNotEmpty) {
-      final firstValid = statuses
+      final validStatuses = statuses
           .where((e) => allowedIds.contains(e.statusProspectId))
           .toList();
 
-      if (firstValid.isNotEmpty) {
+      if (validStatuses.isNotEmpty) {
+        final defaultStatus = validStatuses.firstWhere(
+          (e) => e.statusProspectId == 63,
+          orElse: () => validStatuses.first,
+        );
         setState(() {
-          selectedStatusId = firstValid.first.statusProspectId;
-          selectedStatusName = firstValid.first.statusProspectName;
+          selectedStatusId = defaultStatus.statusProspectId;
+          selectedStatusName = defaultStatus.statusProspectName;
         });
       }
     }
@@ -228,7 +233,11 @@ class _ContactAddPageState extends State<ContactAddPage> {
       setState(() {
         selectedProject = data.lastProject ?? data.firstProject;
         selectedProduct = data.lastProduct;
-        selectedStatusId = data.statusProspectId;
+        const _visitAllowedIds = [63, 64, 65];
+        final rawStatusId = data.statusProspectId;
+        selectedStatusId = (widget.args.page == 4 && !_visitAllowedIds.contains(rawStatusId))
+            ? 63
+            : rawStatusId;
         selectedBlockNo = data.lastBlokNo;
         selectedProjectCategory = data.lastProjectCategory;
         lBlockNoTC.text = data.lastBlokNo ?? '';
@@ -244,7 +253,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
         final statusState = context.read<ProspectStatusBloc>().state;
         if (statusState.status == ProspectStatusEnum.loaded) {
           for (final s in statusState.statuses) {
-            if (s.statusProspectId == data.statusProspectId) {
+            if (s.statusProspectId == selectedStatusId) {
               selectedStatusName = s.statusProspectName;
               break;
             }
@@ -568,11 +577,15 @@ class _ContactAddPageState extends State<ContactAddPage> {
               final data = state.contactDetail!;
               setState(() {
                 selectedProject = data.projectName ?? data.firstProject;
-                selectedStatusId = data.statusProspectId;
+                const _visitAllowedIds = [63, 64, 65];
+                final rawId = data.statusProspectId;
+                selectedStatusId = (widget.args.page == 4 && !_visitAllowedIds.contains(rawId))
+                    ? 63
+                    : rawId;
                 final statusState = context.read<ProspectStatusBloc>().state;
                 if (statusState.status == ProspectStatusEnum.loaded) {
                   for (final s in statusState.statuses) {
-                    if (s.statusProspectId == data.statusProspectId) {
+                    if (s.statusProspectId == selectedStatusId) {
                       selectedStatusName = s.statusProspectName;
                       break;
                     }
@@ -915,7 +928,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
                   (selectedStatusId == 74 || selectedStatusId == 75)? _buildFormSP() :
                   (selectedStatusId == 63 ||selectedStatusId == 64 ||selectedStatusId == 65 ||selectedStatusId == 66 ||selectedStatusId == 67 ||selectedStatusId == 68 ||selectedStatusId == 69)? _buildFormVisit2() :
                   selectedStatusId == null ?
-                  Center(child: CircularProgressIndicator()) :
+                  buildFormShimmer() :
                   Container(child: Text("not found ${selectedStatusId} ${selectedStatusName} form",),),
             ),
           ],
@@ -1431,7 +1444,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
             final result = await context.pushNamed(
               'detailContactDropdown',
               extra: ContactDropdownArgs(
-                title: 'Appointment Volume',
+                title: 'Jumlah Datang',
                 items: selectedStatusId == 65
                     ? itemsJmlDatang
                     : (itemsJmlDatang.isNotEmpty ? [itemsJmlDatang.first] : []),
@@ -1924,19 +1937,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
             textInputAction: TextInputAction.newline,
             decoration: InputDecoration(
               hintText:
-                  "Describe the ${widget.args.page == 0
-                      ? "call"
-                      : widget.args.page == 1
-                      ? "whatsapp"
-                      : widget.args.page == 2
-                      ? "meeting"
-                      : widget.args.page == 3
-                      ? "task"
-                      : widget.args.page == 4
-                      ? "visit"
-                      : widget.args.page == 5
-                      ? "attachment"
-                      : "update status prospect"}...",
+                  "Describe the ${widget.args.page == 0? "call": widget.args.page == 1? "whatsapp": widget.args.page == 2? "meeting": widget.args.page == 3? "task": widget.args.page == 4? "visit": widget.args.page == 5? "attachment": "update status prospect"}...",
               hintStyle: TextStyle(color: Color(grey2Color), fontSize: 14),
               contentPadding: EdgeInsets.symmetric(
                 horizontal: 16,

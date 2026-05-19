@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:progress_group/core/utils/widget/shimmer_loading.dart';
 import 'package:go_router/go_router.dart';
 import 'package:progress_group/core/constants/assets.dart';
 import 'package:progress_group/core/utils/share_helper.dart';
@@ -296,7 +297,7 @@ class _ContactPageState extends State<ContactPage> {
                         builder: (context, state) {
                           contactEntity = state.contacts;
                           if (state.status == ContactStatus.loading && contactEntity.isEmpty) {
-                            return const Center(child: CircularProgressIndicator());
+                            return buildContactListShimmer();
                           }
                           if (state.status == ContactStatus.error && contactEntity.isEmpty) {
                             return Center(
@@ -315,12 +316,7 @@ class _ContactPageState extends State<ContactPage> {
                               separatorBuilder: (_, __) => const SizedBox(height: 10),
                               itemBuilder: (context, index) {
                                 if (index >= state.contacts.length) {
-                                  return const Center(
-                                    child: Padding(
-                                      padding: EdgeInsets.symmetric(vertical: 16),
-                                      child: CircularProgressIndicator(),
-                                    ),
-                                  );
+                                  return const ShimmerContactItem();
                                 }
                                 final contact = state.contacts[index];
                                 return _buildListContacts(context, contact);

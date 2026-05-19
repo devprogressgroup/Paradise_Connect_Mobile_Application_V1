@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:flutter/services.dart';
 import 'package:progress_group/core/utils/helpers/date_helper.dart';
+import 'package:progress_group/core/utils/widget/shimmer_loading.dart';
 import 'package:intl/intl.dart';
 import 'package:progress_group/features/contact/domain/entities/contact/contact_entity.dart';
 import 'package:progress_group/features/contact/domain/entities/contact/create_contact_params.dart';
@@ -59,6 +60,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
   TextEditingController lastApptDateTC = TextEditingController();
   TextEditingController dealValueTC = TextEditingController();
   TextEditingController reserveDateTC = TextEditingController();
+  TextEditingController firstReserveDateTC = TextEditingController();
   TextEditingController lossReasonNoteTC = TextEditingController();
   TextEditingController fspTC = TextEditingController();
   TextEditingController lspTC = TextEditingController();
@@ -118,6 +120,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
   FocusNode lastApptDateFN = FocusNode();
   FocusNode dealValueFN = FocusNode();
   FocusNode reserveDateFN = FocusNode();
+  FocusNode firstReserveDateFN = FocusNode();
   FocusNode lossReasonNoteFN = FocusNode();
   FocusNode fspFN = FocusNode();
   FocusNode lspFN = FocusNode();
@@ -328,7 +331,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
     }
 
     if (widget.args.page == 0 && widget.args.dataContact == null) {
-      final today = DateHelper.formatNumericCompact(DateTime.now());
+      final today = DateHelper.formatDate(DateTime.now());
 
       setState(() {
         if (firstApptDateTC.text.isEmpty) firstApptDateTC.text = today;
@@ -401,7 +404,8 @@ class _ContactFormPageState extends State<ContactFormPage> {
     firstApptDateTC.text = contact.firstApptDate != null ? DateHelper.formatDate(DateTime.parse(contact.firstApptDate!)) : '';
     lastApptDateTC.text = contact.lastApptDate != null ? DateHelper.formatDate(DateTime.parse(contact.lastApptDate!)) : '';
     dealValueTC.text = contact.dealValue ?? '';
-    reserveDateTC.text = contact.apptDate != null ? DateHelper.formatDate(DateTime.parse(contact.apptDate!)) : '';
+    reserveDateTC.text = contact.lastReserveDate != null ? DateHelper.formatDate(DateTime.parse(contact.lastReserveDate!)) : '';
+    firstReserveDateTC.text = contact.firstReserveDate != null ? DateHelper.formatDate(DateTime.parse(contact.firstReserveDate!)) : '';
     lossReasonNoteTC.text = contact.lostReasonNote ?? '';
     fspTC.text = contact.firstSpDate != null ? DateHelper.formatDate(DateTime.parse(contact.firstSpDate!)) : '';
     lspTC.text = contact.lastSpDate != null ? DateHelper.formatDate(DateTime.parse(contact.lastSpDate!)) : '';
@@ -771,6 +775,8 @@ class _ContactFormPageState extends State<ContactFormPage> {
     lastApptDateFN.dispose();
     dealValueFN.dispose();
     reserveDateFN.dispose();
+    firstReserveDateFN.dispose();
+    firstReserveDateTC.dispose();
     lossReasonNoteFN.dispose();
     fspFN.dispose();
     lspFN.dispose();
@@ -802,7 +808,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
   }
 
   Future<void> _handleSave() async {
-    final today = DateHelper.formatNumericCompact(DateTime.now());
+    final today = DateHelper.formatDate(DateTime.now());
     final isCreate = widget.args.page == 0;
     final isUpdate = widget.args.page == 1;
 
@@ -851,21 +857,23 @@ class _ContactFormPageState extends State<ContactFormPage> {
       ktpAddress: ktpAddressTC.text.isNotEmpty ? ktpAddressTC.text : null,
       volumePlan: volumePlanTC.text.isNotEmpty ? volumePlanTC.text : null,
       visitCount: vCountTC.text.isNotEmpty ? int.tryParse(vCountTC.text) : null,
-      lastVisitDate: lastVisitorDateTC.text.isNotEmpty ? lastVisitorDateTC.text : null,
-      lastApptDate: lastApptDateTC.text.isNotEmpty ? lastApptDateTC.text : null,
+      lastVisitDate: _toBackendDate(lastVisitorDateTC.text),
+      lastApptDate: _toBackendDate(lastApptDateTC.text),
       dealValue: dealValueTC.text.isNotEmpty ? dealValueTC.text : null,
-      reserveDate: reserveDateTC.text.isNotEmpty ? reserveDateTC.text : null,
+      reserveDate: _toBackendDate(reserveDateTC.text),
+      lastReserveDate: _toBackendDate(reserveDateTC.text),
+      firstReserveDate: firstReserveDateTC.text.isEmpty ? _toBackendDate(reserveDateTC.text) : null,
       lostReasonNote: lossReasonNoteTC.text.isNotEmpty ? lossReasonNoteTC.text : null,
-      lastSPDate: isUpdate ? null : (lspTC.text.isNotEmpty ? lspTC.text : null),
+      lastSPDate: _toBackendDate(lspTC.text),
       firstBlokNo: isUpdate ? null : (fBlockNoTC.text.isNotEmpty ? fBlockNoTC.text : null),
       firstProduct: isUpdate ? null : selectFirstProjectProduct,
       firstProjectCategory: isUpdate ? null : selectFirstProjectCategory,
       firstProject: isUpdate ? null : selectFirstProject,
-      firstVisitDate: isUpdate ? null : (firstVisitorDateTC.text.isNotEmpty ? firstVisitorDateTC.text : null),
-      firstApptDate: isUpdate ? null : (firstApptDateTC.text.isNotEmpty ? firstApptDateTC.text : null),
-      firstSPDate: isUpdate ? null : (fspTC.text.isNotEmpty ? fspTC.text : null),
-      lostDate: isUpdate ? null : (lastLostDateTC.text.isNotEmpty ? lastLostDateTC.text : null),
-      lastLostDate:isUpdate ? null : (lastLostDateTC.text.isNotEmpty ? lastLostDateTC.text : null) ,
+      firstVisitDate: isUpdate ? null : _toBackendDate(firstVisitorDateTC.text),
+      firstApptDate: isUpdate ? null : _toBackendDate(firstApptDateTC.text),
+      firstSPDate: fspTC.text.isEmpty ? _toBackendDate(lspTC.text) : (isUpdate ? null : _toBackendDate(fspTC.text)),
+      lostDate: _toBackendDate(lastLostDateTC.text),
+      lastLostDate: _toBackendDate(lastLostDateTC.text),
       lostReasonId: selectedLostReasonId,
 
     );
@@ -884,9 +892,18 @@ class _ContactFormPageState extends State<ContactFormPage> {
       return DateTime.parse(value);
     } catch (_) {}
     try {
+      return DateFormat('dd MMMM yyyy', 'en_US').parse(value);
+    } catch (_) {}
+    try {
       return DateFormat('dd/MM/yyyy').parse(value);
     } catch (_) {}
     return DateTime.now();
+  }
+
+  String? _toBackendDate(String value) {
+    if (value.isEmpty) return null;
+    final dt = _parseDateOrToday(value);
+    return '${DateHelper.formatNumericCompact(dt)} 00:00:00';
   }
 
   
@@ -962,8 +979,8 @@ class _ContactFormPageState extends State<ContactFormPage> {
         child: BlocBuilder<ProfileBloc, ProfileState>(
           builder: (context, profileState) {
             if (profileState is ProfileLoading) {
-              return const Scaffold(
-                body: Center(child: CircularProgressIndicator()),
+              return Scaffold(
+                body: buildFormShimmer(),
               );
             }
             if (profileState is ProfileLoaded &&
@@ -985,8 +1002,8 @@ class _ContactFormPageState extends State<ContactFormPage> {
 
                 if ((widget.args.page == 1 || widget.args.page == 2) &&
                     (showDetailLoading || statusLoading || propertiesLoading)) {
-                  return const Scaffold(
-                    body: Center(child: CircularProgressIndicator()),
+                  return Scaffold(
+                    body: buildFormShimmer(),
                   );
                 }
 
@@ -999,7 +1016,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
 
                 return Scaffold(
                   body: (showDetailLoading || statusLoading || propertiesLoading)
-                      ? Center(child: CircularProgressIndicator())
+                      ? buildFormShimmer()
                       : SafeArea(child: widget.args.page == 0?_createContact(profileState): _editContact(profileState)),
                 );
               },
@@ -1373,6 +1390,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
                             focusNode: reserveDateFN,
                             fieldType: 'date',
                           ),
+                         
                            _buildField(
                             label: "SP Date",
                             controller: lspTC,
@@ -1421,12 +1439,20 @@ class _ContactFormPageState extends State<ContactFormPage> {
                               readOnly: true,
                             ),
                             _buildField(
+                              label: "First Reserve Date",
+                              controller: firstReserveDateTC,
+                              focusNode: firstReserveDateFN,
+                              fieldType: 'date',
+                              readOnly: true,
+                            ),
+                            _buildField(
                               label: "First SP Date",
                               controller: fspTC,
                               focusNode: fspFN,
                               fieldType: 'date',
                               readOnly: true,
                             ),
+                         
                           ],
                 
                           ],
@@ -1720,6 +1746,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
                          orElse: () => {'name': null},
                        )['name'] as String?,
                        onTap: null,
+                       readOnly: true,
                      ),
                      _buildFieldDown(
                        label: "General Manager",
@@ -1728,6 +1755,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
                          orElse: () => {'name': null},
                        )['name'] as String?,
                        onTap: null,
+                       readOnly: true,
                      ),
                      _buildFieldDown(
                        label: "Sales Manager",
@@ -1739,6 +1767,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
                          orElse: () => {'name': null},
                        )['name'] as String?,
                        onTap: null,
+                       readOnly: true,
                      ),
                      _buildFieldDown(
                        label: "Sales Supervisor",
@@ -1747,6 +1776,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
                          orElse: () => {'name': null},
                        )['name'] as String?,
                        onTap: null,
+                       readOnly: true,
                      ),
                      _buildFieldDown(
                        label: "Sales Executive",
@@ -1755,6 +1785,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
                          orElse: () => {'name': null},
                        )['name'] as String?,
                        onTap: null,
+                       readOnly: true,
                      ),
                    ],
                  ),
@@ -1850,17 +1881,8 @@ class _ContactFormPageState extends State<ContactFormPage> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      if (!isEmpty)
-                        Text(label,
-                            style: TextStyle(
-                                color: isError ? Color(redColor) : isHighlighted ? Color(primaryColor) : Color(grey2Color),
-                                fontSize: 10,
-                                fontWeight: FontWeight.w700)),
-                      Text(isEmpty ? label : value,
-                          style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w700,
-                              color: isError ? Color(redColor) : isHighlighted ? Color(primaryColor) : (isDisplayGrey || isEmpty) ? Color(grey2Color) : Color(blackColor))),
+                      if (!isEmpty) Text(label,style: TextStyle(color: isError ? Color(redColor) : isHighlighted ? Color(primaryColor) : Color(grey2Color),fontSize: 10,fontWeight: FontWeight.w700)),
+                      Text(isEmpty ? label : value,style: TextStyle(fontSize: 12,fontWeight: FontWeight.w700,color: isError ? Color(redColor) : isHighlighted ? Color(primaryColor) : isEmpty ? Color(grey2Color) : isDisplayGrey ? Color(blackColor) : (readOnly == true ? Color(grey2Color) : Color(blackColor)))),
                     ],
                   ),
                 ),
@@ -1870,9 +1892,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
           ),
           if (errorText != null)
             Container(
-              decoration: BoxDecoration(
-                color: Color(whiteColor),
-              ),
+              decoration: BoxDecoration(color: Color(whiteColor)),
               width: double.infinity,
               child: Padding(
                 padding: const EdgeInsets.only(top: 2, left: 16, bottom: 4),
@@ -1948,15 +1968,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
     );
   }
 
-  Widget _buildField({
-    required String label,
-    required TextEditingController controller,
-    required FocusNode focusNode,
-    String fieldType = 'text',
-    bool isError = false,
-    String? errorText,
-    bool? readOnly,
-  }) {
+  Widget _buildField({required String label,required TextEditingController controller,required FocusNode focusNode,String fieldType = 'text',bool isError = false,String? errorText,bool? readOnly, }) {
     final bool isReadOnly = readOnly == true || widget.args.page == 2;
     final bool isDisplayGrey = widget.args.page == 2;
     final bool canNavigate = widget.args.page == 2 && label != "Create Date";
@@ -2001,7 +2013,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
                                         lastDate: DateTime(2100),
                                       );
                                       if (picked != null) {
-                                        controller.text = DateHelper.formatNumericCompact(picked);
+                                        controller.text = DateHelper.formatDate(picked);
                                       }
                                     },
                               child: AbsorbPointer(
@@ -2010,18 +2022,11 @@ class _ContactFormPageState extends State<ContactFormPage> {
                                   focusNode: focusNode,
                                   readOnly: isReadOnly,
                                   maxLines: null,
-                                  style: TextStyle(
-                                      fontSize: 12, fontWeight: FontWeight.w700,
-                                      color: isError ? Color(redColor) : isHighlighted ? Color(primaryColor) : isDisplayGrey ? Color(grey2Color) : Color(blackColor)),
+                                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700,color: isError ? Color(redColor) : isHighlighted ? Color(primaryColor) : isDisplayGrey ? Color(blackColor) : (readOnly == true ? Color(grey2Color) : Color(blackColor))),
                                   decoration: InputDecoration(
                                     isDense: true,
-                                    label: Text(label,
-                                        style: TextStyle(
-                                            fontSize: 12, fontWeight: FontWeight.w700,
-                                            color: isError ? Color(redColor) : isHighlighted ? Color(primaryColor) : Color(grey2Color))),
-                                    floatingLabelStyle: TextStyle(
-                                        fontSize: 12, fontWeight: FontWeight.w700,
-                                        color: isError ? Color(redColor) : isHighlighted ? Color(primaryColor) : Color(grey2Color)),
+                                    label: Text(label, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700,color: isError ? Color(redColor) : isHighlighted ? Color(primaryColor) : Color(grey2Color))),
+                                    floatingLabelStyle: TextStyle(fontSize: 12, fontWeight: FontWeight.w700,color: isError ? Color(redColor) : isHighlighted ? Color(primaryColor) : Color(grey2Color)),
                                     border: InputBorder.none,
                                     enabledBorder: InputBorder.none,
                                     focusedBorder: InputBorder.none,
@@ -2074,7 +2079,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
                             readOnly: isReadOnly,
                             enabled: !isReadOnly,
                             maxLines: null,
-                            style: TextStyle(fontSize: 12, color: isHighlighted ? Color(primaryColor) : Color(blackColor), fontWeight: FontWeight.w700),
+                            style: TextStyle(fontSize: 12, color: isHighlighted ? Color(primaryColor) : (readOnly == true ? Color(grey2Color) : Color(blackColor)), fontWeight: FontWeight.w700),
                             decoration: InputDecoration(
                               isDense: true,
                               label: Text(label,
