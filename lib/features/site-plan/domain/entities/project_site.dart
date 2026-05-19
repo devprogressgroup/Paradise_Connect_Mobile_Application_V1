@@ -1,11 +1,13 @@
 class ProjectSite {
-  final String groupName; // Contoh: "Paradise Serpong City"
-  final String unitName;  // Contoh: "Vista"
+  final String groupName;
+  final String unitName;
   final String url;
+  final Map<String, String> headers;
 
   ProjectSite({
     required this.groupName,
     required this.unitName,
     required this.url,
+    this.headers = const {},
   });
 }
