@@ -20,6 +20,7 @@ class ActivityEntity extends Equatable {
   final bool? isGroup;
   final String? initials;
   final String? sessionCode;
+  final int? statusFollow;
 
   const ActivityEntity({
     required this.activityId,
@@ -41,6 +42,7 @@ class ActivityEntity extends Equatable {
     this.isGroup,
     this.initials,
     this.sessionCode,
+    this.statusFollow,
   });
 
   @override
@@ -64,5 +66,6 @@ class ActivityEntity extends Equatable {
         isGroup,
         initials,
         sessionCode,
+        statusFollow,
       ];
 }

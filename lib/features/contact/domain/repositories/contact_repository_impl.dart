@@ -158,6 +158,16 @@ class ContactRepositoryImpl implements ContactRepository {
   }
 
   @override
+  Future<Either<String, void>> postStatusFollow(List<int> activityIds) async {
+    try {
+      await remoteDataSource.postStatusFollow(activityIds);
+      return const Right(null);
+    } catch (e) {
+      return Left(e.toString());
+    }
+  }
+
+  @override
   Future<Either<String, List<ActivityProspectStatusEntity>>> getActivityProspectStatus(int contactId) async {
     try {
       final result = await remoteDataSource.getActivityProspectStatus(contactId);

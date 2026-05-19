@@ -2,6 +2,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:progress_group/features/contact/domain/usecases/activity/create_activity_visit_usecase.dart';
 import 'package:progress_group/features/contact/domain/usecases/activity/get_activity_prospect_status_usecase.dart';
+import 'package:progress_group/features/contact/domain/usecases/activity/post_status_follow_usecase.dart';
 import '../../../domain/usecases/activity/create_activity_usecase.dart';
 import '../../../domain/usecases/activity/get_activities_usecase.dart';
 import 'activity_event.dart';
@@ -10,13 +11,16 @@ import 'activity_state.dart';
 class ActivityBloc extends Bloc<ActivityEvent, ActivityState> {
   final GetActivitiesUseCase getActivitiesUseCase;
   final CreateActivityUseCase createActivityUseCase;
+  final PostStatusFollowUseCase postStatusFollowUseCase;
 
   ActivityBloc({
     required this.getActivitiesUseCase,
     required this.createActivityUseCase,
+    required this.postStatusFollowUseCase,
   }) : super(const ActivityState()) {
     on<FetchActivitiesEvent>(_onFetchActivities);
     on<CreateActivityEvent>(_onCreateActivity);
+    on<PostStatusFollowEvent>(_onPostStatusFollow);
     on<ResetActivityEvent>((event, emit) => emit(const ActivityState()));
     on<MarkActivitiesAsSeenEvent>(_onMarkAsSeen);
     on<LoadSeenActivitiesEvent>(_onLoadSeen);
@@ -92,6 +96,20 @@ class ActivityBloc extends Bloc<ActivityEvent, ActivityState> {
     );
   }
 
+  Future<void> _onPostStatusFollow(
+    PostStatusFollowEvent event,
+    Emitter<ActivityState> emit,
+  ) async {
+    emit(state.copyWith(status: ActivityStatus.followUpLoading));
+
+    final result = await postStatusFollowUseCase(event.activityIds);
+
+    result.fold(
+      (failure) => emit(state.copyWith(status: ActivityStatus.error, errorMessage: failure)),
+      (_) => emit(state.copyWith(status: ActivityStatus.followUpSuccess)),
+    );
+  }
+
   Future<void> _onMarkAsSeen(MarkActivitiesAsSeenEvent event, Emitter<ActivityState> emit) async {
     final newSeen = Set<int>.from(state.seenActivityIds)..addAll(event.activityIds);
     emit(state.copyWith(seenActivityIds: newSeen));
@@ -120,6 +138,7 @@ class NotifActivityBloc extends ActivityBloc {
   NotifActivityBloc({
     required super.getActivitiesUseCase,
     required super.createActivityUseCase,
+    required super.postStatusFollowUseCase,
   });
 }
 

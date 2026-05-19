@@ -22,6 +22,7 @@ class ActivityApiModel extends ActivityEntity {
     super.isGroup,
     super.initials,
     super.sessionCode,
+    super.statusFollow,
   });
 
   factory ActivityApiModel.fromJson(Map<String, dynamic> json) {
@@ -45,6 +46,7 @@ class ActivityApiModel extends ActivityEntity {
       isGroup: json['isGroup'],
       initials: json['initials'],
       sessionCode: json['sessionCode'],
+      statusFollow: json['status_follow'],
     );
   }
 }

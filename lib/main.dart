@@ -67,6 +67,7 @@ import 'features/contact/domain/usecases/contact/create_contact_usecase.dart';
 import 'features/contact/presentation/state/contact/contact_bloc.dart';
 import 'features/contact/domain/usecases/activity/get_activities_usecase.dart';
 import 'features/contact/domain/usecases/activity/create_activity_usecase.dart';
+import 'features/contact/domain/usecases/activity/post_status_follow_usecase.dart';
 import 'features/contact/presentation/state/activity/activity_bloc.dart';
 import 'features/contact/domain/usecases/prospect/get_prospect_statuses_usecase.dart';
 import 'features/contact/domain/usecases/contact/get_contact_properties_usecase.dart';
@@ -158,6 +159,7 @@ class _MyAppState extends State<MyApp> {
     final getProspectStatusesUseCase = GetProspectStatusesUseCase(contactRepository);
     final getActivitiesUseCase = GetActivitiesUseCase(contactRepository);
     final createActivityUseCase = CreateActivityUseCase(contactRepository);
+    final postStatusFollowUseCase = PostStatusFollowUseCase(contactRepository);
     final createContactUseCase = CreateContactUseCase(contactRepository);
     final updateContactUseCase = UpdateContactUseCase(contactRepository);
     final deleteContactUseCase = DeleteContactUseCase(contactRepository);
@@ -200,8 +202,8 @@ class _MyAppState extends State<MyApp> {
             BlocProvider(create: (_) => ContactBloc(getContactsUseCase: getContactsUseCase, createContactUseCase: createContactUseCase, updateContactUseCase: updateContactUseCase, deleteContactUseCase: deleteContactUseCase, getContactDetailUseCase: getContactDetailUseCase)),
             BlocProvider(create: (_) => ProspectStatusBloc(getProspectStatusesUseCase: getProspectStatusesUseCase)),
             BlocProvider(create: (_) => ContactPropertiesBloc(getContactPropertiesUseCase: getContactPropertiesUseCase)),
-            BlocProvider(create: (_) => ActivityBloc(getActivitiesUseCase: getActivitiesUseCase, createActivityUseCase: createActivityUseCase)),
-            BlocProvider(create: (_) => NotifActivityBloc(getActivitiesUseCase: getActivitiesUseCase, createActivityUseCase: createActivityUseCase)),
+            BlocProvider(create: (_) => ActivityBloc(getActivitiesUseCase: getActivitiesUseCase, createActivityUseCase: createActivityUseCase, postStatusFollowUseCase: postStatusFollowUseCase)),
+            BlocProvider(create: (_) => NotifActivityBloc(getActivitiesUseCase: getActivitiesUseCase, createActivityUseCase: createActivityUseCase, postStatusFollowUseCase: postStatusFollowUseCase)),
             BlocProvider(create: (_) => ActivityVisitBloc(createActivityVisitUseCase)),
             BlocProvider(create: (_) => AttachmentTypeBloc(getAttachmentTypesUseCase)),
             BlocProvider(create: (_) => UploadAttachmentBloc(uploadAttachmentUseCase, updateAttachmentUseCase)),

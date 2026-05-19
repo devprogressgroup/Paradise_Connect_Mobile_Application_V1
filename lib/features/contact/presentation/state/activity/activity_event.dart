@@ -45,6 +45,15 @@ class CreateVisitEvent {
   CreateVisitEvent(this.params);
 }
 
+class PostStatusFollowEvent extends ActivityEvent {
+  final List<int> activityIds;
+
+  const PostStatusFollowEvent(this.activityIds);
+
+  @override
+  List<Object?> get props => [activityIds];
+}
+
 class ResetActivityEvent extends ActivityEvent {}
 
 class MarkActivitiesAsSeenEvent extends ActivityEvent {

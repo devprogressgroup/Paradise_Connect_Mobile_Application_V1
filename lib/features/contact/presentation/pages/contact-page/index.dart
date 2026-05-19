@@ -115,213 +115,223 @@ class _ContactPageState extends State<ContactPage> {
                         });
                       },
                     ),
-                    SizedBox(
-                      height: 50,
-                      child: ListView.separated(
-                        scrollDirection: Axis.horizontal,
-                        itemCount: 3,
-                        separatorBuilder: (_, __) => const SizedBox(width: 10),
-                        itemBuilder: (context, index) {
-                          if (index == 0) {
-                            return BlocBuilder<ContactBloc, ContactState>(
-                              builder: (context, contactState) {
-                                return BlocBuilder<ProfileBloc, ProfileState>(
-                                  builder: (context, profileState) {
-                                    String label = 'Owner';
-                                    bool isSelected = contactState.ownerIds != null && contactState.ownerIds!.isNotEmpty;
-
-                                    if (isSelected && profileState is ProfileLoaded) {
-                                      if (contactState.ownerIds!.length == 1) {
-                                        final id = contactState.ownerIds!.first;
-                                        if (profileState.profile.salesPersonId == id) {
-                                          label = profileState.profile.fullName;
-                                        } else {
-                                          HierarchyNodeEntity? found;
-                                          void search(List<HierarchyNodeEntity> nodes) {
-                                            for (var n in nodes) {
-                                              if (n.salesPersonId == id) found = n;
-                                              if (found == null && n.subordinates.isNotEmpty)
-                                                search(n.subordinates);
-                                            }
-                                          }
-
-                                          search(profileState.profile.subordinates);
-                                          if (found != null) label = found!.fullName;
-                                        }
-                                      } else {
-                                        label = "${contactState.ownerIds!.length} Owners";
-                                      }
-                                    }
-
-                                    return CustomFilterButton(
-                                      label: label,
-                                      isSelected: isSelected,
-                                      onTap: () async {
-                                        if (profileState is ProfileLoaded) {
-                                          final user = profileState.profile;
-                                          final List<OwnerDropdownItem> ownerItems = [];
-
-                                          ownerItems.add(OwnerDropdownItem(
-                                            id: user.salesPersonId,
-                                            name: user.fullName,
-                                            subtitle: user.positionName,
-                                          ));
-
-                                          void addSubs(List<HierarchyNodeEntity> subs) {
-                                            for (var s in subs) {
-                                              ownerItems.add(OwnerDropdownItem(
-                                                id: s.salesPersonId,
-                                                name: s.fullName,
-                                                subtitle: s.positionName,
-                                              ));
-                                              if (s.subordinates.isNotEmpty)
-                                                addSubs(s.subordinates);
-                                            }
-                                          }
-
-                                          addSubs(user.subordinates);
-
-                                          final result = await context.pushNamed('detailContactDropdown',extra: ContactDropdownArgs(title: 'Pilih Owner',items: ownerItems,selectedIds: contactState.ownerIds,isMultiSelect: true,),);
-
-                                          if (result != null) {
-                                            final selected = result as List<OwnerDropdownItem>;
-                                            context.read<ContactBloc>().add(
-                                              FetchContactsEvent(
-                                                ownerIds: selected.map((e) => e.id!).toList(),
-                                                isRefresh: true,
-                                                clearOwner: selected.isEmpty,
-                                              ),
-                                            );
-                                          }
-                                        }
-                                      },
-                                    );
-                                  },
-                                );
-                              },
-                            );
-                          }
-                          if (index == 2) {
-                            return BlocBuilder<ContactBloc, ContactState>(
-                              builder: (context, contactState) {
-                                String label = 'Status';
-                                bool isSelected = contactState.statusProspectIds != null && contactState.statusProspectIds!.isNotEmpty;
-
-                                if (isSelected) {
-                                  final statusState = context.read<ProspectStatusBloc>().state;
-                                  if (statusState.status == ProspectStatusEnum.loaded) {
-                                    if (contactState.statusProspectIds!.length == 1) {
-                                      final status = statusState.statuses.cast<ProspectStatusEntity?>().firstWhere((e) => e?.statusProspectId ==contactState.statusProspectIds!.first,orElse: () => null,);
-                                      if (status != null) label = status.statusProspectName;
-                                    } else {
-                                      label = "${contactState.statusProspectIds!.length} Statuses";
-                                    }
-                                  }
-                                }
-
-                                return CustomFilterButton(
-                                  label: label,
-                                  isSelected: isSelected,
-                                  onTap: () async {
-                                    final statusState = context.read<ProspectStatusBloc>().state;
-                                    if (statusState.status == ProspectStatusEnum.loaded) {
-                                      final List<OwnerDropdownItem> statusItems = statusState.statuses.map((e) => OwnerDropdownItem(id: e.statusProspectId,name: e.statusProspectName,)).toList();
-
-                                      final result = await context.pushNamed('detailContactDropdown',extra: ContactDropdownArgs(title: 'Pilih Status',items: statusItems,selectedIds: contactState.statusProspectIds,isMultiSelect: true,),);
-
-                                      if (result != null) {
-                                        final selected = result as List<OwnerDropdownItem>;
-                                        context.read<ContactBloc>().add(
-                                          FetchContactsEvent(
-                                            statusProspectIds: selected.map((e) => e.id!).toList(),
-                                            isRefresh: true,
-                                            clearStatus: selected.isEmpty,
-                                          ),
-                                        );
-                                      }
-                                    }
-                                  },
-                                );
-                              },
-                            );
-                          }
-
-                          if (index == 1) {
-                            return BlocBuilder<ContactBloc, ContactState>(
-                              builder: (context, contactState) {
-                                bool isSelected = contactState.startDate != null && contactState.endDate != null;
-
-                                String label = contactState.startDate != null ? (selectedDateLabel ?? 'Create Date') : 'Create Date';
-
-                                return CustomFilterButton(
-                                  label: label,
-                                  isSelected: isSelected,
-                                  onTap: () async {
-                                    final result = await context.pushNamed<DateFilterResult>(
-                                      'dateFilter',
-                                      extra: {
-                                        'label': selectedDateLabel,
-                                        'startDate': contactState.startDate,
-                                        'endDate': contactState.endDate,
-                                      },
-                                    );
-
-                                    if (result != null) {
-                                      if (result.isClear) {
-                                        context.read<ContactBloc>().add(const FetchContactsEvent(startDate: null,endDate: null,isRefresh: true,clearDates: true,),);
-
-                                        setState(() => selectedDateLabel = null);
-                                      } else {
-                                        context.read<ContactBloc>().add(
-                                          FetchContactsEvent(
-                                            startDate: result.startDate,
-                                            endDate: result.endDate,
-                                            isRefresh: true,
-                                          ),
-                                        );
-
-                                        setState(() => selectedDateLabel = result.label);
-                                      }
-                                    }
-                                  },
-                                );
-                              },
-                            );
-                          }
-                          return null;
-                        },
-                      ),
-                    ),
                     Expanded(
                       child: BlocBuilder<ContactBloc, ContactState>(
                         builder: (context, state) {
                           contactEntity = state.contacts;
                           if (state.status == ContactStatus.loading && contactEntity.isEmpty) {
-                            return buildContactListShimmer();
+                            return buildContactPageShimmer();
                           }
-                          if (state.status == ContactStatus.error && contactEntity.isEmpty) {
-                            return Center(
-                              child: Text(state.errorMessage ?? 'Error loading contacts'),
-                            );
-                          }
-                          if (state.contacts.isEmpty) {
-                            return const Center(child: Text('No contacts found'));
-                          }
-                          return RefreshIndicator(
-                            onRefresh: _onRefresh,
-                            child: ListView.separated(
-                              controller: _scrollController,
-                              physics: const AlwaysScrollableScrollPhysics(),
-                              itemCount: state.hasReachedMax ? contactEntity.length : contactEntity.length + 1,
-                              separatorBuilder: (_, __) => const SizedBox(height: 10),
-                              itemBuilder: (context, index) {
-                                if (index >= state.contacts.length) {
-                                  return const ShimmerContactItem();
-                                }
-                                final contact = state.contacts[index];
-                                return _buildListContacts(context, contact);
-                              },
-                            ),
+                          return Column(
+                            children: [
+                              SizedBox(
+                                height: 50,
+                                child: ListView.separated(
+                                  scrollDirection: Axis.horizontal,
+                                  itemCount: 3,
+                                  separatorBuilder: (_, __) => const SizedBox(width: 10),
+                                  itemBuilder: (context, index) {
+                                    if (index == 0) {
+                                      return BlocBuilder<ContactBloc, ContactState>(
+                                        builder: (context, contactState) {
+                                          return BlocBuilder<ProfileBloc, ProfileState>(
+                                            builder: (context, profileState) {
+                                              String label = 'Owner';
+                                              bool isSelected = contactState.ownerIds != null && contactState.ownerIds!.isNotEmpty;
+
+                                              if (isSelected && profileState is ProfileLoaded) {
+                                                if (contactState.ownerIds!.length == 1) {
+                                                  final id = contactState.ownerIds!.first;
+                                                  if (profileState.profile.salesPersonId == id) {
+                                                    label = profileState.profile.fullName;
+                                                  } else {
+                                                    HierarchyNodeEntity? found;
+                                                    void search(List<HierarchyNodeEntity> nodes) {
+                                                      for (var n in nodes) {
+                                                        if (n.salesPersonId == id) found = n;
+                                                        if (found == null && n.subordinates.isNotEmpty)
+                                                          search(n.subordinates);
+                                                      }
+                                                    }
+
+                                                    search(profileState.profile.subordinates);
+                                                    if (found != null) label = found!.fullName;
+                                                  }
+                                                } else {
+                                                  label = "${contactState.ownerIds!.length} Owners";
+                                                }
+                                              }
+
+                                              return CustomFilterButton(
+                                                label: label,
+                                                isSelected: isSelected,
+                                                onTap: () async {
+                                                  if (profileState is ProfileLoaded) {
+                                                    final user = profileState.profile;
+                                                    final List<OwnerDropdownItem> ownerItems = [];
+
+                                                    ownerItems.add(OwnerDropdownItem(
+                                                      id: user.salesPersonId,
+                                                      name: user.fullName,
+                                                      subtitle: user.positionName,
+                                                    ));
+
+                                                    void addSubs(List<HierarchyNodeEntity> subs) {
+                                                      for (var s in subs) {
+                                                        ownerItems.add(OwnerDropdownItem(
+                                                          id: s.salesPersonId,
+                                                          name: s.fullName,
+                                                          subtitle: s.positionName,
+                                                        ));
+                                                        if (s.subordinates.isNotEmpty)
+                                                          addSubs(s.subordinates);
+                                                      }
+                                                    }
+
+                                                    addSubs(user.subordinates);
+
+                                                    final result = await context.pushNamed('detailContactDropdown',extra: ContactDropdownArgs(title: 'Pilih Owner',items: ownerItems,selectedIds: contactState.ownerIds,isMultiSelect: true,),);
+
+                                                    if (result != null) {
+                                                      final selected = result as List<OwnerDropdownItem>;
+                                                      context.read<ContactBloc>().add(
+                                                        FetchContactsEvent(
+                                                          ownerIds: selected.map((e) => e.id!).toList(),
+                                                          isRefresh: true,
+                                                          clearOwner: selected.isEmpty,
+                                                        ),
+                                                      );
+                                                    }
+                                                  }
+                                                },
+                                              );
+                                            },
+                                          );
+                                        },
+                                      );
+                                    }
+                                    if (index == 2) {
+                                      return BlocBuilder<ContactBloc, ContactState>(
+                                        builder: (context, contactState) {
+                                          String label = 'Status';
+                                          bool isSelected = contactState.statusProspectIds != null && contactState.statusProspectIds!.isNotEmpty;
+
+                                          if (isSelected) {
+                                            final statusState = context.read<ProspectStatusBloc>().state;
+                                            if (statusState.status == ProspectStatusEnum.loaded) {
+                                              if (contactState.statusProspectIds!.length == 1) {
+                                                final status = statusState.statuses.cast<ProspectStatusEntity?>().firstWhere((e) => e?.statusProspectId ==contactState.statusProspectIds!.first,orElse: () => null,);
+                                                if (status != null) label = status.statusProspectName;
+                                              } else {
+                                                label = "${contactState.statusProspectIds!.length} Statuses";
+                                              }
+                                            }
+                                          }
+
+                                          return CustomFilterButton(
+                                            label: label,
+                                            isSelected: isSelected,
+                                            onTap: () async {
+                                              final statusState = context.read<ProspectStatusBloc>().state;
+                                              if (statusState.status == ProspectStatusEnum.loaded) {
+                                                final List<OwnerDropdownItem> statusItems = statusState.statuses.map((e) => OwnerDropdownItem(id: e.statusProspectId,name: e.statusProspectName,)).toList();
+
+                                                final result = await context.pushNamed('detailContactDropdown',extra: ContactDropdownArgs(title: 'Pilih Status',items: statusItems,selectedIds: contactState.statusProspectIds,isMultiSelect: true,),);
+
+                                                if (result != null) {
+                                                  final selected = result as List<OwnerDropdownItem>;
+                                                  context.read<ContactBloc>().add(
+                                                    FetchContactsEvent(
+                                                      statusProspectIds: selected.map((e) => e.id!).toList(),
+                                                      isRefresh: true,
+                                                      clearStatus: selected.isEmpty,
+                                                    ),
+                                                  );
+                                                }
+                                              }
+                                            },
+                                          );
+                                        },
+                                      );
+                                    }
+
+                                    if (index == 1) {
+                                      return BlocBuilder<ContactBloc, ContactState>(
+                                        builder: (context, contactState) {
+                                          bool isSelected = contactState.startDate != null && contactState.endDate != null;
+
+                                          String label = contactState.startDate != null ? (selectedDateLabel ?? 'Create Date') : 'Create Date';
+
+                                          return CustomFilterButton(
+                                            label: label,
+                                            isSelected: isSelected,
+                                            onTap: () async {
+                                              final result = await context.pushNamed<DateFilterResult>(
+                                                'dateFilter',
+                                                extra: {
+                                                  'label': selectedDateLabel,
+                                                  'startDate': contactState.startDate,
+                                                  'endDate': contactState.endDate,
+                                                },
+                                              );
+
+                                              if (result != null) {
+                                                if (result.isClear) {
+                                                  context.read<ContactBloc>().add(const FetchContactsEvent(startDate: null,endDate: null,isRefresh: true,clearDates: true,),);
+
+                                                  setState(() => selectedDateLabel = null);
+                                                } else {
+                                                  context.read<ContactBloc>().add(
+                                                    FetchContactsEvent(
+                                                      startDate: result.startDate,
+                                                      endDate: result.endDate,
+                                                      isRefresh: true,
+                                                    ),
+                                                  );
+
+                                                  setState(() => selectedDateLabel = result.label);
+                                                }
+                                              }
+                                            },
+                                          );
+                                        },
+                                      );
+                                    }
+                                    return null;
+                                  },
+                                ),
+                              ),
+                              Expanded(
+                                child: Builder(
+                                  builder: (context) {
+                                    if (state.status == ContactStatus.error && contactEntity.isEmpty) {
+                                      return Center(
+                                        child: Text(state.errorMessage ?? 'Error loading contacts'),
+                                      );
+                                    }
+                                    if (state.contacts.isEmpty) {
+                                      return const Center(child: Text('No contacts found'));
+                                    }
+                                    return RefreshIndicator(
+                                      onRefresh: _onRefresh,
+                                      child: ListView.separated(
+                                        controller: _scrollController,
+                                        physics: const AlwaysScrollableScrollPhysics(),
+                                        itemCount: state.hasReachedMax ? contactEntity.length : contactEntity.length + 1,
+                                        separatorBuilder: (_, __) => const SizedBox(height: 10),
+                                        itemBuilder: (context, index) {
+                                          if (index >= state.contacts.length) {
+                                            return const ShimmerContactItem();
+                                          }
+                                          final contact = state.contacts[index];
+                                          return _buildListContacts(context, contact);
+                                        },
+                                      ),
+                                    );
+                                  },
+                                ),
+                              ),
+                            ],
                           );
                         },
                       ),
@@ -363,7 +373,7 @@ Widget _buildListContacts(BuildContext context, ContactEntity contact) {
         borderRadius: const BorderRadius.all(Radius.circular(5)),
         boxShadow: [
           BoxShadow(
-            color: Color(shadowColor).withOpacity(0.08),
+            color: Color(shadowColor).withValues(alpha: 0.08),
             blurRadius: 10,
             offset: const Offset(0, -2),
           ),
@@ -377,7 +387,7 @@ Widget _buildListContacts(BuildContext context, ContactEntity contact) {
             child: Row(
               children: [
                 CircleAvatar(
-                  backgroundColor: Color(primaryColor).withOpacity(0.1),
+                  backgroundColor: Color(primaryColor).withValues(alpha: 0.1),
                   child: Text(getInitials(contact.fullName ?? 'No Name'),style: TextStyle(color: Color(primaryColor), fontWeight: FontWeight.bold, fontSize: 16)),
                 ),
                 const SizedBox(width: 10),

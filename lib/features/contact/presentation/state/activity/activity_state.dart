@@ -2,7 +2,7 @@ import 'package:equatable/equatable.dart';
 import 'package:progress_group/features/contact/domain/entities/activity/activity_entity.dart';
 import 'package:progress_group/features/contact/domain/entities/activity/activity_prospect_status.dart';
 
-enum ActivityStatus { initial, loading, loaded, error, creating, createSuccess }
+enum ActivityStatus { initial, loading, loaded, error, creating, createSuccess, followUpLoading, followUpSuccess }
 
 class ActivityState extends Equatable {
   final ActivityStatus status;

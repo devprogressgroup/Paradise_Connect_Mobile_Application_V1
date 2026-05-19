@@ -6,10 +6,8 @@ import 'package:go_router/go_router.dart';
 import 'package:progress_group/core/constants/colors.dart';
 import 'package:progress_group/core/constants/assets.dart';
 import 'package:progress_group/core/utils/helpers/date_helper.dart';
-import 'package:progress_group/features/attandance/domain/entities/attandance_entity.dart';
 import 'package:progress_group/features/attandance/presentation/state/attandance/attendance_bloc.dart';
 import 'package:progress_group/features/attandance/presentation/state/attandance/attendance_event.dart';
-import 'package:progress_group/features/attandance/presentation/state/attandance/attendance_state.dart';
 import 'package:progress_group/features/home/presentation/state/report-whatsapp/report_bloc.dart';
 import 'package:progress_group/features/home/presentation/state/report-whatsapp/report_event.dart';
 import 'package:progress_group/features/home/presentation/state/report-whatsapp/report_state.dart';
@@ -25,6 +23,7 @@ import 'package:progress_group/features/contact/presentation/state/whatsapp_acti
 import 'package:progress_group/features/contact/presentation/state/whatsapp_activity/whatsapp_unread_summary_event.dart';
 import 'package:progress_group/features/contact/presentation/state/whatsapp_activity/whatsapp_unread_summary_state.dart';
 import '../../../../../core/utils/widget/custom_header.dart';
+import '../../../../../core/utils/widget/attendance_alerts_widget.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -262,7 +261,7 @@ class _HomePageState extends State<HomePage> {
             ),
             child: Column(
               children: [
-                _buildAttendanceAlerts(),
+                const AttendanceAlertsWidget(),
                 Expanded(
                   child: activities.isEmpty
                   ? Center(child: Text("No upcoming tasks for today"))
@@ -273,6 +272,7 @@ class _HomePageState extends State<HomePage> {
                         itemCount: activities.length,
                         itemBuilder: (context, index) {
                           final activity = activities[index];
+                                    final isCompleted = activity.statusFollow == 1;
                                     final type = activity.activityType.toLowerCase();
                                     final isWhatsApp = type.contains('whatsapp');
                                     final isCall = type.contains('call');
@@ -291,18 +291,20 @@ class _HomePageState extends State<HomePage> {
                                         else if (isTask) { page = 3; namePage = "Task"; }
                                         else if (isVisit) { page = 4; namePage = "Visit"; }
 
-                                        context.pushNamed(
+                                        await context.pushNamed(
                                           'addContact',
                                           extra: ContactDetailArgs(
                                             page: page,
                                             namePage: namePage,
                                             dataActivity: activity,
+                                            buttonLabel: 'Followed Up',
                                             dataContact: ContactEntity(
                                               contactId: activity.contactId,
                                               fullName: activity.contactName,
                                             ),
                                           ),
                                         );
+                                        if (context.mounted) _loadData();
                                       },
                                       child: Container(
                                         margin: const EdgeInsets.only(bottom: 10),
@@ -376,78 +378,6 @@ class _HomePageState extends State<HomePage> {
     },
   );
 }
-
-  Widget _buildAttendanceAlerts() {
-    return BlocBuilder<AttendanceBloc, AttendanceState>(
-      builder: (context, state) {
-        if (state is! AttendanceLoaded) return const SizedBox.shrink();
-
-        final todayStr = DateFormat('yyyy-MM-dd').format(DateTime.now());
-        AttendanceEntity? today;
-        try {
-          today = state.data.firstWhere((e) => e.date == todayStr);
-        } catch (_) {}
-
-        var notClockedIn = today == null || today.clockIn == null;
-
-        bool notCheckedIn = false;
-        if (today != null && today.clockIn != null && today.checkInActivity == null) {
-          final clockInTime = DateTime.tryParse(today.clockIn!);
-          if (clockInTime != null) {
-            notCheckedIn = DateTime.now().difference(clockInTime).inMinutes >= 10;
-          }
-        }
-
-        if (!notClockedIn && !notCheckedIn) return const SizedBox.shrink();
-
-        return Column(
-          children: [
-            if (notClockedIn)
-              _buildAttendanceAlertItem('Kamu belum Clock In hari ini', Icons.fingerprint),
-            if (notCheckedIn)
-              _buildAttendanceAlertItem('Kamu belum Check In hari ini', Icons.location_on_outlined),
-            const SizedBox(height: 8),
-          ],
-        );
-      },
-    );
-  }
-
-  Widget _buildAttendanceAlertItem(String message, IconData icon) {
-    return GestureDetector(
-      onTap: () => context.go('/attandance'),
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 5),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-       decoration: BoxDecoration(color: Colors.white,border: Border(bottom: BorderSide(color: Color(grey10Color),width: 1,),)),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Row(
-              children: [
-                 Icon(isCompleted ? Icons.check_circle : Icons.check_circle_outline_rounded,color: isCompleted ? Colors.green : Color(primaryColor),size: 40,),
-                const SizedBox(width: 10),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      message,
-                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(blackColor)),
-                    ),
-                    Text(
-                      'Tap untuk absensi',
-                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(grey2Color)),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-            const Icon(Icons.arrow_forward_ios, color: Colors.grey, size: 16),
-          ],
-        ),
-      ),
-    );
-  }
 
   Widget _buildWhatsAppChart() {
     const double maxHeight = 110.0;

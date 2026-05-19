@@ -29,6 +29,7 @@ abstract class ContactRepository {
   Future<Either<String, List<ActivityEntity>>> getActivities({int? contactId, int? dealId, String? activityType, String? followUpStartDate, String? followUpEndDate, int page = 1,});
   Future<Either<String, void>> createActivityVisit(CreateVisitParams params);
   Future<Either<String, void>> createActivity(CreateActivityParams params);
+  Future<Either<String, void>> postStatusFollow(List<int> activityIds);
   Future<Either<String, List<ActivityProspectStatusEntity>>> getActivityProspectStatus(int contactId);
   Future<Either<String, List<WhatsappUnreadSummaryEntity>>> getWhatsappUnreadSummary(int contactId);
   Future<Either<String, void>> uploadAttachment(UploadAttachmentParams params);

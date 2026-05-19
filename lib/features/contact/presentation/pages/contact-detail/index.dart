@@ -518,7 +518,7 @@ class _ContactDetailPageState extends State<ContactDetailPage>with TickerProvide
       ),
       child: LayoutBuilder(
         builder: (context, constraints) {
-          final tabWidth = constraints.maxWidth / 2.8;
+          final tabWidth = constraints.maxWidth / 3;
           final page = currentTab.toDouble();
 
           List<int> order = [0, 1, 2];
@@ -530,7 +530,7 @@ class _ContactDetailPageState extends State<ContactDetailPage>with TickerProvide
             children: order.map((index) {
               return _buildStackTab(
                 index: index,
-                left: index * (tabWidth - 25),
+                left: index * tabWidth,
                 tabWidth: tabWidth,
                 height: height,
                 tabs: tabs,
@@ -569,7 +569,7 @@ class _ContactDetailPageState extends State<ContactDetailPage>with TickerProvide
           height: height,
           alignment: Alignment.center,
           decoration: BoxDecoration(
-            color: isActive? Color(primaryColor): (index == 1 ? Color(grey8Color) : Color(grey10Color)),
+            color: isActive ? Color(primaryColor) : Color(grey10Color),
             borderRadius: BorderRadius.circular(height / 2),
             boxShadow: isActive? [BoxShadow(color: Colors.black.withOpacity(0.1),blurRadius: 10,offset: const Offset(0, 2),),]: [],
           ),

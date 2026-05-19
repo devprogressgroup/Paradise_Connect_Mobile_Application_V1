@@ -13,6 +13,7 @@ import 'package:progress_group/features/contact/presentation/state/activity/acti
 import 'package:progress_group/features/inbox/domain/entities/inbox_contact_entity.dart';
 import 'package:progress_group/features/contact/domain/entities/contact/contact_entity.dart';
 import 'package:progress_group/features/contact/data/arguments/contact_detail_args.dart';
+import 'package:progress_group/core/utils/widget/attendance_alerts_widget.dart';
 import 'package:progress_group/features/contact/domain/entities/activity/whatsapp_activity_entity.dart';
 import 'package:progress_group/features/contact/presentation/state/whatsapp_activity/whatsapp_unread_summary_bloc.dart';
 import 'package:progress_group/features/contact/presentation/state/whatsapp_activity/whatsapp_unread_summary_event.dart';
@@ -27,7 +28,6 @@ class NotifPage extends StatefulWidget {
 }
 
 class _NotifPageState extends State<NotifPage> {
-  final Set<int> _completedActivityIds = {};
   String _selectedActivityType = 'All';
 
   final List<String> _activityTypes = ['All', 'WhatsApp', 'Call', 'Visit', 'Meeting', 'Task'];
@@ -77,191 +77,181 @@ class _NotifPageState extends State<NotifPage> {
                     customHeader(context, "Notifikasi", isBack: true, colorBack: Color(primaryColor)),
                     const SizedBox(height: 16),
 
-                    /// FILTER
-                    SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      child: Row(
-                        children: _activityTypes.map((type) {
-                          final isSelected = _selectedActivityType == type;
-
-                          return Padding(
-                            padding: const EdgeInsets.only(right: 8),
-                            child: GestureDetector(
-                              onTap: () {
-                                if (_selectedActivityType != type) {
-                                  setState(() => _selectedActivityType = type);
-                                  _loadData();
-                                }
-                              },
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                                decoration: BoxDecoration(
-                                  color: isSelected ? Color(primaryColor) : Colors.white,
-                                  borderRadius: BorderRadius.circular(20),
-                                  border: Border.all(color: Color(primaryColor)),
-                                ),
-                                child: Text(
-                                  type,
-                                  style: TextStyle(
-                                    color: isSelected ? Colors.white : Color(primaryColor),
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 12,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          );
-                        }).toList(),
-                      ),
-                    ),
-
-                    const SizedBox(height: 12),
-
-                    /// LIST
                     Expanded(
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        child: isLoading && activities.isEmpty
-                            ? buildNotifShimmer()
-                            : activities.isEmpty
-                            ? RefreshIndicator(
-                                onRefresh: _onRefresh,
-                                child: ListView(
-                                  physics: const AlwaysScrollableScrollPhysics(),
-                                  children: const [
-                                    Padding(
-                                      padding: EdgeInsets.all(16),
-                                      child: Center(child: Text("Tidak ada notifikasi aktivitas")),
-                                    ),
-                                  ],
-                                ),
-                              )
-                            : RefreshIndicator(
-                                onRefresh: _onRefresh,
-                                child: ListView(
-                                  physics: const AlwaysScrollableScrollPhysics(),
+                      child: isLoading && activities.isEmpty
+                          ? buildActivityPageShimmer()
+                          : Column(
+                              children: [
+                                /// FILTER
+                                SingleChildScrollView(
+                                  scrollDirection: Axis.horizontal,
                                   padding: const EdgeInsets.symmetric(horizontal: 16),
-                                  children: [
-                                    const SizedBox(height: 10),
-                                    
-                                    /// WHATSAPP UNREAD SUMMARY
-                                    if (_selectedActivityType == 'All' || _selectedActivityType == 'WhatsApp')
-                                      BlocBuilder<WhatsappActivityBloc, WhatsappActivityState>(
-                                        builder: (context, whatsappState) {
-                                          if (whatsappState.status == WhatsappUnreadSummaryStatus.loaded && whatsappState.data.isNotEmpty) {
-                                            return Column(
-                                              children: whatsappState.data.map((item) => _whatsappUnreadItem(item)).toList(),
-                                            );
-                                          }
-                                          return const SizedBox();
-                                        },
-                                      ),
-
-                                    /// ACTIVITY ITEMS
-                                    ...List.generate(activities.length, (index) {
-                                      final activity = activities[index];
-
-                                    final isCompleted = _completedActivityIds.contains(activity.activityId);
-                                    final type = activity.activityType.toLowerCase();
-
-                                    final isWhatsApp = type.contains('whatsapp');
-                                    final isCall = type.contains('call');
-                                    final isMeeting = type.contains('meeting');
-                                    final isVisit = type.contains('visit');
-                                    final isTask = type.contains('task');
-
-                                    return GestureDetector(
-                                      onTap: () async {
-                                        int page = 6;
-                                        String namePage = "Update Status Prospect";
-
-                                        if (isCall) { page = 0; namePage = "Call"; }
-                                        else if (isWhatsApp) { page = 1; namePage = "WhatsApp"; }
-                                        else if (isMeeting) { page = 2; namePage = "Meeting"; }
-                                        else if (isTask) { page = 3; namePage = "Task"; }
-                                        else if (isVisit) { page = 4; namePage = "Visit"; }
-
-                                        await context.pushNamed(
-                                          'addContact',
-                                          extra: ContactDetailArgs(
-                                            page: page,
-                                            namePage: namePage,
-                                            dataActivity: activity,
-                                            dataContact: ContactEntity(
-                                              contactId: activity.contactId,
-                                              fullName: activity.contactName,
+                                  child: Row(
+                                    children: _activityTypes.map((type) {
+                                      final isSelected = _selectedActivityType == type;
+                                      return Padding(
+                                        padding: const EdgeInsets.only(right: 8),
+                                        child: GestureDetector(
+                                          onTap: () {
+                                            if (_selectedActivityType != type) {
+                                              setState(() => _selectedActivityType = type);
+                                              _loadData();
+                                            }
+                                          },
+                                          child: Container(
+                                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                            decoration: BoxDecoration(
+                                              color: isSelected ? Color(primaryColor) : Colors.white,
+                                              borderRadius: BorderRadius.circular(20),
+                                              border: Border.all(color: Color(primaryColor)),
+                                            ),
+                                            child: Text(
+                                              type,
+                                              style: TextStyle(
+                                                color: isSelected ? Colors.white : Color(primaryColor),
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 12,
+                                              ),
                                             ),
                                           ),
-                                        );
-                                      },
-                                      child: Container(
-                                        margin: const EdgeInsets.only(bottom: 10),
-                                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                                        decoration: BoxDecoration(
-                                          color: Colors.white,
-                                          borderRadius: BorderRadius.circular(10),
-                                          boxShadow: [
-                                            BoxShadow(
-                                              color: Colors.grey.withOpacity(0.1),
-                                              spreadRadius: 1,
-                                              blurRadius: 3,
-                                              offset: const Offset(0, 1),
-                                            ),
-                                          ],
                                         ),
-                                        child: Row(
-                                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                          children: [
-                                            Row(
-                                              children: [
-                                                Icon(
-                                                  isCompleted ? Icons.check_circle : Icons.check_circle_outline_rounded,
-                                                  color: isCompleted ? Colors.green : Color(primaryColor),
-                                                  size: 40,
-                                                ),
-                                                const SizedBox(width: 10),
-                                                Column(
-                                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                                  children: [
-                                                    Text(
-                                                      activity.activityType,
-                                                      style: TextStyle(
-                                                        fontSize: 14,
-                                                        fontWeight: FontWeight.bold,
-                                                        color: Color(blackColor),
-                                                        decoration: isCompleted ? TextDecoration.lineThrough : null,
-                                                      ),
-                                                    ),
-                                                    Text(
-                                                      activity.contactName??'',
-                                                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(grey2Color)),
-                                                    ),
-                                                    Text(
-                                                      activity.nextFollowUpDate != null
-                                                          ? DateHelper.formatToIndonesian(DateTime.parse(activity.nextFollowUpDate!))
-                                                          : "No follow-up date",
-                                                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(grey2Color)),
-                                                    ),
-                                                  ],
+                                      );
+                                    }).toList(),
+                                  ),
+                                ),
+
+                                const SizedBox(height: 12),
+
+                                /// LIST
+                                Expanded(
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(horizontal: 0),
+                                    child: activities.isEmpty
+                                        ? RefreshIndicator(
+                                            onRefresh: _onRefresh,
+                                            child: ListView(
+                                              physics: const AlwaysScrollableScrollPhysics(),
+                                              children: const [
+                                                Padding(
+                                                  padding: EdgeInsets.all(16),
+                                                  child: Center(child: Text("Tidak ada notifikasi aktivitas")),
                                                 ),
                                               ],
                                             ),
-                                            isWhatsApp
-                                                ? Image.asset(icContactDetailWA, width: 30)
-                                                : isMeeting
-                                                    ? Image.asset(icContactDetailMeeting, width: 30)
-                                                    : isVisit
-                                                        ? Image.asset(icContactDetailVisit, width: 30)
-                                                        : Icon(isCall ? Icons.phone_outlined : Icons.event_note_outlined, color: Color(primaryColor), size: 30),
-                                          ],
-                                        ),
-                                      ));
-                                    
-          })],
+                                          )
+                                        : RefreshIndicator(
+                                            onRefresh: _onRefresh,
+                                            child: ListView(
+                                              physics: const AlwaysScrollableScrollPhysics(),
+                                              padding: const EdgeInsets.symmetric(horizontal: 16),
+                                              children: [
+                                                const SizedBox(height: 10),
+                                                const AttendanceAlertsWidget(),
+
+                                                /// WHATSAPP UNREAD SUMMARY
+                                                if (_selectedActivityType == 'All' || _selectedActivityType == 'WhatsApp')
+                                                  BlocBuilder<WhatsappActivityBloc, WhatsappActivityState>(
+                                                    builder: (context, whatsappState) {
+                                                      if (whatsappState.status == WhatsappUnreadSummaryStatus.loaded && whatsappState.data.isNotEmpty) {
+                                                        return Column(children: whatsappState.data.map((item) => _whatsappUnreadItem(item)).toList());
+                                                      }
+                                                      return const SizedBox();
+                                                    },
+                                                  ),
+
+                                                /// ACTIVITY ITEMS
+                                                ...activities.map((activity) {
+                                                  final isCompleted = activity.statusFollow == 1;
+                                                  final type = activity.activityType.toLowerCase();
+                                                  final isWhatsApp = type.contains('whatsapp');
+                                                  final isCall = type.contains('call');
+                                                  final isMeeting = type.contains('meeting');
+                                                  final isVisit = type.contains('visit');
+                                                  final isTask = type.contains('task');
+
+                                                  return GestureDetector(
+                                                    onTap: () async {
+                                                      int page = 6;
+                                                      String namePage = "Update Status Prospect";
+                                                      if (isCall) { page = 0; namePage = "Call"; }
+                                                      else if (isWhatsApp) { page = 1; namePage = "WhatsApp"; }
+                                                      else if (isMeeting) { page = 2; namePage = "Meeting"; }
+                                                      else if (isTask) { page = 3; namePage = "Task"; }
+                                                      else if (isVisit) { page = 4; namePage = "Visit"; }
+
+                                                      await context.pushNamed(
+                                                        'addContact',
+                                                        extra: ContactDetailArgs(
+                                                          page: page,
+                                                          namePage: namePage,
+                                                          dataActivity: activity,
+                                                          buttonLabel: 'Followed Up',
+                                                          dataContact: ContactEntity(
+                                                            contactId: activity.contactId,
+                                                            fullName: activity.contactName,
+                                                          ),
+                                                        ),
+                                                      );
+                                                      if (context.mounted) _loadData();
+                                                    },
+                                                    child: Container(
+                                                      margin: const EdgeInsets.only(bottom: 10),
+                                                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                                      decoration: BoxDecoration(
+                                                        color: Colors.white,
+                                                        borderRadius: BorderRadius.circular(10),
+                                                        boxShadow: [
+                                                          BoxShadow(
+                                                            color: Colors.grey.withValues(alpha: 0.1),
+                                                            spreadRadius: 1,
+                                                            blurRadius: 3,
+                                                            offset: const Offset(0, 1),
+                                                          ),
+                                                        ],
+                                                      ),
+                                                      child: Row(
+                                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                                        children: [
+                                                          Row(
+                                                            children: [
+                                                              Icon(
+                                                                isCompleted ? Icons.check_circle : Icons.check_circle_outline_rounded,
+                                                                color: isCompleted ? Colors.green : Color(primaryColor),
+                                                                size: 40,
+                                                              ),
+                                                              const SizedBox(width: 10),
+                                                              Column(
+                                                                crossAxisAlignment: CrossAxisAlignment.start,
+                                                                children: [
+                                                                  Text(activity.activityType, style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(blackColor), decoration: isCompleted ? TextDecoration.lineThrough : null)),
+                                                                  Text(activity.contactName ?? '', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(grey2Color))),
+                                                                  Text(
+                                                                    activity.nextFollowUpDate != null ? DateHelper.formatToIndonesian(DateTime.parse(activity.nextFollowUpDate!)) : "No follow-up date",
+                                                                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(grey2Color)),
+                                                                  ),
+                                                                ],
+                                                              ),
+                                                            ],
+                                                          ),
+                                                          isWhatsApp
+                                                              ? Image.asset(icContactDetailWA, width: 30)
+                                                              : isMeeting
+                                                                  ? Image.asset(icContactDetailMeeting, width: 30)
+                                                                  : isVisit
+                                                                      ? Image.asset(icContactDetailVisit, width: 30)
+                                                                      : Icon(isCall ? Icons.phone_outlined : Icons.event_note_outlined, color: Color(primaryColor), size: 30),
+                                                        ],
+                                                      ),
+                                                    ),
+                                                  );
+                                                }),
+                                              ],
+                                            ),
+                                          ),
+                                  ),
                                 ),
-                              ),
-                      ),
+                              ],
+                            ),
                     ),
                   ],
                 ),
@@ -271,7 +261,7 @@ class _NotifPageState extends State<NotifPage> {
                     bottom: 0,
                     left: 0,
                     right: 0,
-                    child: buildNotifShimmer(),
+                    child: buildActivityPageShimmer(),
                   ),
               ],
             );

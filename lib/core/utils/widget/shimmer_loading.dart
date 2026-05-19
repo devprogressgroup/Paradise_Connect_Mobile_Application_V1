@@ -41,7 +41,7 @@ class ShimmerContactItem extends StatelessWidget {
         height: 70,
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(5),
+          borderRadius: BorderRadius.circular(12),
         ),
         padding: const EdgeInsets.all(10),
         child: Row(
@@ -82,6 +82,68 @@ Widget buildContactListShimmer() {
     itemCount: 8,
     separatorBuilder: (_, __) => const SizedBox(height: 10),
     itemBuilder: (_, __) => const ShimmerContactItem(),
+  );
+}
+
+Widget buildContactPageShimmer() {
+  return _shimmerWrap(
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Filter buttons row (3 pills)
+        SizedBox(
+          height: 50,
+          child: Row(
+            children: [
+              _ShimmerBox(width: 90, height: 36, borderRadius: 12),
+              const SizedBox(width: 10),
+              _ShimmerBox(width: 110, height: 36, borderRadius: 12),
+              const SizedBox(width: 10),
+              _ShimmerBox(width: 90, height: 36, borderRadius: 12),
+            ],
+          ),
+        ),
+        const SizedBox(height: 4),
+        // Contact list
+        ...List.generate(8, (_) => Padding(
+          padding: const EdgeInsets.only(bottom: 10),
+          child: Container(
+            height: 70,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            padding: const EdgeInsets.all(10),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(
+                  child: Row(
+                    children: [
+                      const _ShimmerBox(width: 40, height: 40, borderRadius: 20),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            _ShimmerBox(width: double.infinity, height: 14),
+                            const SizedBox(height: 6),
+                            _ShimmerBox(width: 140, height: 12),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                const _ShimmerBox(width: 27, height: 27, borderRadius: 4),
+              ],
+            ),
+          ),
+        )),
+      ],
+    ),
   );
 }
 
@@ -632,6 +694,65 @@ Widget buildMessageShimmer() {
     reverse: true,
     itemCount: 10,
     itemBuilder: (_, i) => ShimmerMessageItem(isMe: i % 3 == 0),
+  );
+}
+
+// ─── Activity Page (filter chips + card list) ─────────────────────────────────
+Widget buildActivityPageShimmer() {
+  return _shimmerWrap(
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Filter chips row
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Row(
+            children: List.generate(6, (i) => Container(
+              margin: const EdgeInsets.only(right: 8),
+              width: 60 + (i % 3) * 16.0,
+              height: 34,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+              ),
+            )),
+          ),
+        ),
+        const SizedBox(height: 12),
+        // Card items
+        ...List.generate(6, (_) => Container(
+          margin: const EdgeInsets.only(bottom: 10, left: 16, right: 16),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  const _ShimmerBox(width: 40, height: 40, borderRadius: 20),
+                  const SizedBox(width: 10),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _ShimmerBox(width: 140, height: 13),
+                      const SizedBox(height: 6),
+                      _ShimmerBox(width: 100, height: 11),
+                      const SizedBox(height: 4),
+                      _ShimmerBox(width: 120, height: 10),
+                    ],
+                  ),
+                ],
+              ),
+              const _ShimmerBox(width: 30, height: 30, borderRadius: 4),
+            ],
+          ),
+        )),
+      ],
+    ),
   );
 }
 

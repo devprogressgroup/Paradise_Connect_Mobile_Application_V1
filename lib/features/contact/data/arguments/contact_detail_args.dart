@@ -11,6 +11,7 @@ class ContactDetailArgs {
   final int initialTab;
   final String? sourceRoute;
   final String? focusField;
+  final String? buttonLabel;
 
   ContactDetailArgs({
     this.dataAttachment,
@@ -21,6 +22,7 @@ class ContactDetailArgs {
     this.initialTab = 0,
     this.sourceRoute,
     this.focusField,
+    this.buttonLabel,
   });
 
   ContactDetailArgs copyWith({
@@ -32,6 +34,7 @@ class ContactDetailArgs {
     int? initialTab,
     String? sourceRoute,
     String? focusField,
+    String? buttonLabel,
   }) {
     return ContactDetailArgs(
       dataAttachment: dataAttachment ?? this.dataAttachment,
@@ -42,6 +45,7 @@ class ContactDetailArgs {
       initialTab: initialTab ?? this.initialTab,
       sourceRoute: sourceRoute ?? this.sourceRoute,
       focusField: focusField ?? this.focusField,
+      buttonLabel: buttonLabel ?? this.buttonLabel,
     );
   }
 }

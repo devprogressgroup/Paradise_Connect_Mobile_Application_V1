@@ -43,6 +43,8 @@ abstract class ContactRemoteDataSource {
 
   Future<void> createActivity(CreateActivityParams params);
 
+  Future<void> postStatusFollow(List<int> activityIds);
+
   Future<List<ActivityProspectStatusModel>> getActivityProspectStatus(int contactId);
   
   Future<List<WhatsappUnreadSummaryModel>> getWhatsappUnreadSummary(int contactId);
@@ -303,6 +305,22 @@ class ContactRemoteDataSourceImpl implements ContactRemoteDataSource {
       }
     } on DioException catch (e) {
       throw Exception(getErrorMessage(e, 'Failed to create activity'));
+    }
+  }
+
+  @override
+  Future<void> postStatusFollow(List<int> activityIds) async {
+    try {
+      final response = await dio.post(
+        '/activities/statusfollow',
+        data: {'activity_ids': activityIds, 'status_follow': 1},
+      );
+
+      if (response.data['status'] != true) {
+        throw Exception(response.data['message'] ?? 'Failed to update status follow');
+      }
+    } on DioException catch (e) {
+      throw Exception(getErrorMessage(e, 'Failed to update status follow'));
     }
   }
 

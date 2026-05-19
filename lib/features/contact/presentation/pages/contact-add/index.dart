@@ -121,6 +121,9 @@ class _ContactAddPageState extends State<ContactAddPage> {
   void initState() {
     super.initState();
     selectedDate = DateTime.now();
+    if (widget.args.dataActivity?.notes != null) {
+      descFormActivityTC.text = widget.args.dataActivity!.notes!;
+    }
     _init();
   }
 
@@ -540,7 +543,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
       listeners: [
         BlocListener<ActivityBloc, ActivityState>(
           listener: (ctx, state) {
-            if (state.status == ActivityStatus.createSuccess) {
+            if (state.status == ActivityStatus.createSuccess || state.status == ActivityStatus.followUpSuccess) {
               context.pop();
             } else if (state.status == ActivityStatus.error) {
               ScaffoldMessenger.of(context).showSnackBar(
@@ -1014,7 +1017,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
                   : () => widget.args.page == 4
                         ? _submitVisit(context)
                         : _submitUpdateStatus(context),
-              'Save',
+              widget.args.buttonLabel ?? 'Save',
             );
           },
         );
@@ -2054,12 +2057,21 @@ class _ContactAddPageState extends State<ContactAddPage> {
               SizedBox(height: 32),
               BlocBuilder<ActivityBloc, ActivityState>(
                 builder: (context, state) {
-                  final isLoading = state.status == ActivityStatus.creating;
+                  final isFollowUpFlow = widget.args.buttonLabel == 'Followed Up';
+                  final isLoading = isFollowUpFlow
+                      ? state.status == ActivityStatus.followUpLoading
+                      : state.status == ActivityStatus.creating;
 
                   return customButton(isLoading ? null : () {
-                      _submitActivity(activityType: widget.args.namePage ?? '',activityDate: DateTime.now(),notesTC: descFormActivityTC,isFollowUp: isFollowUp,followUpDate: selectedDate,);
+                      if (isFollowUpFlow && widget.args.dataActivity != null) {
+                        context.read<ActivityBloc>().add(
+                          PostStatusFollowEvent([widget.args.dataActivity!.activityId]),
+                        );
+                      } else {
+                        _submitActivity(activityType: widget.args.namePage ?? '',activityDate: DateTime.now(),notesTC: descFormActivityTC,isFollowUp: isFollowUp,followUpDate: selectedDate,);
+                      }
                     },
-                    isLoading ? 'Menyimpan...' : 'Save',
+                    isLoading ? 'Menyimpan...' : (widget.args.buttonLabel ?? 'Save'),
                   );
                 },
               ),
