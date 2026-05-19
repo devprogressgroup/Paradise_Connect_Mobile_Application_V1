@@ -490,37 +490,46 @@ class _AttandancePageState extends State<AttandancePage> {
             children: [
               customHeader(context,'Attendance',colorBg: Color(primaryColor),colorBack: Color(whiteColor),colorTitle: Color(whiteColor),iconRight: Icons.arrow_back,iconRightOnTap: () => context.go('/'),colorIconRight: Color(whiteColor),),
               Expanded(
-                child: RefreshIndicator(
-                  onRefresh: _getLog,
-                  child: CustomScrollView(
-                  controller: _scrollController,
-                  physics: const BouncingScrollPhysics(
-                    parent: AlwaysScrollableScrollPhysics(),
-                  ),
-                  slivers: [
-      
-                    /// PROFILE SECTION
-                    SliverToBoxAdapter(
-                      child: SizedBox(
-                        height: 240,
-                        child: Stack(
-                          clipBehavior: Clip.none,
-                          children: [
-                            _buildHeaderProfile(),
-                            _buildFloatingCard(),
-                          ],
+                child: Stack(
+                  children: [
+                    Positioned(
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      child: _buildHeaderProfile(),
+                    ),
+                    RefreshIndicator(
+                      onRefresh: _getLog,
+                      child: CustomScrollView(
+                        controller: _scrollController,
+                        physics: const BouncingScrollPhysics(
+                          parent: AlwaysScrollableScrollPhysics(),
                         ),
+                        slivers: [
+
+                          /// PROFILE SECTION
+                          SliverToBoxAdapter(
+                            child: SizedBox(
+                              height: 240,
+                              child: Stack(
+                                clipBehavior: Clip.none,
+                                children: [
+                                  _buildFloatingCard(),
+                                ],
+                              ),
+                            ),
+                          ),
+
+                          /// BUTTON
+                          SliverToBoxAdapter(child: const SizedBox(height: 35)),
+                          SliverToBoxAdapter(child: _buildButtonLog()),
+                          /// CONTENT
+                          if (selectedMenu == 'activity') SliverToBoxAdapter(child: _buildActivityLog()),
+                          if (selectedMenu == 'attendance') SliverToBoxAdapter(child: _buildAttendanceLog()),
+                        ],
                       ),
                     ),
-      
-                    /// BUTTON
-                    SliverToBoxAdapter(child: const SizedBox(height: 35),),
-                    SliverToBoxAdapter(child: _buildButtonLog(),),
-                    /// CONTENT
-                    if (selectedMenu == 'activity')SliverToBoxAdapter(child: _buildActivityLog(),),
-                    if (selectedMenu == 'attendance')SliverToBoxAdapter(child: _buildAttendanceLog(),),
                   ],
-                ),
                 ),
               ),
             ],
