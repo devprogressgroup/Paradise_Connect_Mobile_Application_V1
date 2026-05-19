@@ -459,6 +459,7 @@ class _AttandancePageState extends State<AttandancePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Color(whiteColor),
       body: BlocListener<AttendanceBloc, AttendanceState>(
         listener: (context, state) {
           if (state is AttendanceLoaded && !_hasSetInitialTab) {
@@ -489,9 +490,13 @@ class _AttandancePageState extends State<AttandancePage> {
             children: [
               customHeader(context,'Attendance',colorBg: Color(primaryColor),colorBack: Color(whiteColor),colorTitle: Color(whiteColor),iconRight: Icons.arrow_back,iconRightOnTap: () => context.go('/'),colorIconRight: Color(whiteColor),),
               Expanded(
-                child: CustomScrollView(
+                child: RefreshIndicator(
+                  onRefresh: _getLog,
+                  child: CustomScrollView(
                   controller: _scrollController,
-                  physics: const BouncingScrollPhysics(),
+                  physics: const BouncingScrollPhysics(
+                    parent: AlwaysScrollableScrollPhysics(),
+                  ),
                   slivers: [
       
                     /// PROFILE SECTION
@@ -512,9 +517,10 @@ class _AttandancePageState extends State<AttandancePage> {
                     SliverToBoxAdapter(child: const SizedBox(height: 35),),
                     SliverToBoxAdapter(child: _buildButtonLog(),),
                     /// CONTENT
-                    if (selectedMenu == 'activity')SliverFillRemaining(hasScrollBody: true,child: _buildActivityLog(),),
-                    if (selectedMenu == 'attendance')SliverFillRemaining(hasScrollBody: true,child: _buildAttendanceLog(),),
+                    if (selectedMenu == 'activity')SliverToBoxAdapter(child: _buildActivityLog(),),
+                    if (selectedMenu == 'attendance')SliverToBoxAdapter(child: _buildAttendanceLog(),),
                   ],
+                ),
                 ),
               ),
             ],
@@ -748,33 +754,30 @@ class _AttandancePageState extends State<AttandancePage> {
           ),
           SizedBox(height: 5),
     
-          Expanded(
-            child: BlocBuilder<AttendanceBloc, AttendanceState>(
-              builder: (context, state) {
+          BlocBuilder<AttendanceBloc, AttendanceState>(
+            builder: (context, state) {
     
-                if (state is AttendanceLoading) {
-                  return buildAttendanceShimmer();
-                }
+              if (state is AttendanceLoading) {
+                return buildAttendanceShimmer();
+              }
     
-                if (state is AttendanceLoaded) {
-                  final data = state.data;
+              if (state is AttendanceLoaded) {
+                final data = state.data;
+                return ListView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  padding: EdgeInsets.zero,
+                  itemCount: data.length,
+                  itemBuilder: (_, i) => _buildCardAttendance(data[i]),
+                );
+              }
     
-                  return RefreshIndicator(
-                    onRefresh: _getLog,
-                    child: ListView.builder(
-                      itemCount: data.length,
-                      itemBuilder: (_, i) => _buildCardAttendance(data[i]),
-                    ),
-                  );
-                }
+              if (state is AttendanceError) {
+                return Center(child: Text(state.message));
+              }
     
-                if (state is AttendanceError) {
-                  return Center(child: Text(state.message));
-                }
-    
-                return SizedBox();
-              },
-            ),
+              return SizedBox();
+            },
           ),
         ],
       ),
@@ -801,32 +804,30 @@ class _AttandancePageState extends State<AttandancePage> {
             ],
           ),
           SizedBox(height: 5),
-          Expanded(
-            child: BlocBuilder<AttendanceBloc, AttendanceState>(
-              builder: (context, state) {
+          BlocBuilder<AttendanceBloc, AttendanceState>(
+            builder: (context, state) {
     
-                if (state is AttendanceLoading) {
-                  return buildAttendanceShimmer();
-                }
+              if (state is AttendanceLoading) {
+                return buildAttendanceShimmer();
+              }
     
-                if (state is AttendanceLoaded) {
-                    final data = state.data.where((e) =>e.checkInActivity != null &&e.checkInActivity!.toString().trim().isNotEmpty).toList();
-                  return RefreshIndicator(
-                    onRefresh: _getLog,
-                    child: ListView.builder(
-                      itemCount: data.length,
-                      itemBuilder: (_, i) => _buildCardAktivity(data[i]),
-                    ),
-                  );
-                }
+              if (state is AttendanceLoaded) {
+                final data = state.data.where((e) => e.checkInActivity != null && e.checkInActivity!.toString().trim().isNotEmpty).toList();
+                return ListView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  padding: EdgeInsets.zero,
+                  itemCount: data.length,
+                  itemBuilder: (_, i) => _buildCardAktivity(data[i]),
+                );
+              }
     
-                if (state is AttendanceError) {
-                  return Center(child: Text(state.message));
-                }
+              if (state is AttendanceError) {
+                return Center(child: Text(state.message));
+              }
     
-                return SizedBox();
-              },
-            ),
+              return SizedBox();
+            },
           ),
         ],
       ),
