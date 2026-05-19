@@ -50,7 +50,14 @@ class _TaskPageState extends State<TaskPage> {
         child: BlocBuilder<ActivityBloc, ActivityState>(
           builder: (context, state) {
             final isLoading = state.status == ActivityStatus.loading;
-            final activities = state.activities;
+            // Incomplete first, then newest (createdAt desc)
+            final activities = List.of(state.activities)
+              ..sort((a, b) {
+                final aComplete = (a.statusFollow == 1) ? 1 : 0;
+                final bComplete = (b.statusFollow == 1) ? 1 : 0;
+                if (aComplete != bComplete) return aComplete.compareTo(bComplete);
+                return b.createdAt.compareTo(a.createdAt);
+              });
 
             return Stack(
               children: [

@@ -200,7 +200,11 @@ class AppRouter {
           ),
           GoRoute(
             path: '/attandance',
-            builder: (context, state) => const AttandancePage(),
+            builder: (context, state) {
+              final tabParam = state.uri.queryParameters['initialTab'];
+              final initialTab = tabParam != null ? int.tryParse(tabParam) : null;
+              return AttandancePage(initialTab: initialTab);
+            },
             routes: [
               GoRoute(
                 path: 'camera', // ✅ TANPA "/"

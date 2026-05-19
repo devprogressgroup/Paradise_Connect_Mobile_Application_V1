@@ -26,7 +26,8 @@ import '../../../../../core/utils/widget/custom_header.dart';
 import '../../../data/arguments/attandance_args.dart';
 
 class AttandancePage extends StatefulWidget {
-  const AttandancePage({super.key});
+  final int? initialTab;
+  const AttandancePage({super.key, this.initialTab});
 
   @override
   State<AttandancePage> createState() => _AttandancePageState();
@@ -52,13 +53,19 @@ class _AttandancePageState extends State<AttandancePage> {
   @override
   void initState() {
     super.initState();
-    _pageController = PageController();
+
+    if (widget.initialTab != null) {
+      selectedIndex = widget.initialTab!;
+      _hasSetInitialTab = true;
+    }
+
+    _pageController = PageController(initialPage: selectedIndex);
     _scrollController = ScrollController();
 
     Future.microtask(() {
       _initLocation();
     });
-    
+
     _getLog();
   }
 
@@ -344,8 +351,7 @@ class _AttandancePageState extends State<AttandancePage> {
 
           if (nearestDistance == null || d < nearestDistance) {
             nearestDistance = d;
-            activeRadius =
-                office.radius?.toDouble() ?? radiusMeter;
+            activeRadius = office.radius?.toDouble() ?? radiusMeter;
             nearestOfficeName = office.name;
           }
         }

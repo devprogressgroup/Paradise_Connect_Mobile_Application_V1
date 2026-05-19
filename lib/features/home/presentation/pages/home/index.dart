@@ -218,166 +218,204 @@ class _HomePageState extends State<HomePage> {
 
   
   Widget _buildComingTask() {
-  return BlocBuilder<ActivityBloc, ActivityState>(
-    builder: (context, state) {
-      final activities = state.activities;
+    return BlocBuilder<ActivityBloc, ActivityState>(
+      builder: (context, state) {
+        final rawActivities = state.activities;
 
-      if (state.status == ActivityStatus.loading && activities.isEmpty) {
-        return buildHomeTaskShimmer();
-      }
+        if (state.status == ActivityStatus.loading && rawActivities.isEmpty) {
+          return buildHomeTaskShimmer();
+        }
 
-      return Column(
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text("Upcoming Task", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-              GestureDetector(
-                onTap: () {
-                  context.pushNamed("taskHome");
-                },
-                child: Text("See All", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(primaryColor))),
-              ),
-            ],
-          ),
+        // Incomplete first, then newest (createdAt desc)
+        final activities = List.of(rawActivities)
+          ..sort((a, b) {
+            final aComplete = (a.statusFollow == 1) ? 1 : 0;
+            final bComplete = (b.statusFollow == 1) ? 1 : 0;
+            if (aComplete != bComplete) return aComplete.compareTo(bComplete);
+            return b.createdAt.compareTo(a.createdAt);
+          });
 
-          SizedBox(height: 8),
-
-
-          Container(
-            height: 250,
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(10),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.grey.withOpacity(0.2),
-                  spreadRadius: 2,
-                  blurRadius: 5,
-                  offset: const Offset(0, 3),
+        return Column(
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  "Upcoming Task",
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                ),
+                GestureDetector(
+                  onTap: () => context.pushNamed("taskHome"),
+                  child: Text(
+                    "See All",
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      color: Color(primaryColor),
+                    ),
+                  ),
                 ),
               ],
             ),
-            child: Column(
-              children: [
-                const AttendanceAlertsWidget(),
-                Expanded(
-                  child: activities.isEmpty
-                  ? Center(child: Text("No upcoming tasks for today"))
-                  : RefreshIndicator(
-                      onRefresh: _loadData,
-                      child: ListView.builder(
-                        physics: const AlwaysScrollableScrollPhysics(),
-                        itemCount: activities.length,
-                        itemBuilder: (context, index) {
-                          final activity = activities[index];
-                                    final isCompleted = activity.statusFollow == 1;
-                                    final type = activity.activityType.toLowerCase();
-                                    final isWhatsApp = type.contains('whatsapp');
-                                    final isCall = type.contains('call');
-                                    final isMeeting = type.contains('meeting');
-                                    final isVisit = type.contains('visit');
-                                    final isTask = type.contains('task');
-
-                                    return GestureDetector(
-                                      onTap: () async {
-                                        int page = 6;
-                                        String namePage = "Update Status Prospect";
-
-                                        if (isCall) { page = 0; namePage = "Call"; }
-                                        else if (isWhatsApp) { page = 1; namePage = "WhatsApp"; }
-                                        else if (isMeeting) { page = 2; namePage = "Meeting"; }
-                                        else if (isTask) { page = 3; namePage = "Task"; }
-                                        else if (isVisit) { page = 4; namePage = "Visit"; }
-
-                                        await context.pushNamed(
-                                          'addContact',
-                                          extra: ContactDetailArgs(
-                                            page: page,
-                                            namePage: namePage,
-                                            dataActivity: activity,
-                                            buttonLabel: 'Followed Up',
-                                            dataContact: ContactEntity(
-                                              contactId: activity.contactId,
-                                              fullName: activity.contactName,
-                                            ),
-                                          ),
-                                        );
-                                        if (context.mounted) _loadData();
-                                      },
-                                      child: Container(
-                                        margin: const EdgeInsets.only(bottom: 10),
-                                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                                        decoration: BoxDecoration(
-                                          color: Colors.white,
-                                         border: Border(
-                                          bottom: BorderSide(
-                                            color: Color(grey10Color),
-                                            width: 1,
-                                          ),
-                                        )
-                                        ),
-                                        child: Row(
-                                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                          children: [
-                                            Row(
-                                              children: [
-                                                Icon(
-                                                  isCompleted ? Icons.check_circle : Icons.check_circle_outline_rounded,
-                                                  color: isCompleted ? Colors.green : Color(primaryColor),
-                                                  size: 40,
-                                                ),
-                                                const SizedBox(width: 10),
-                                                Column(
-                                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                                  children: [
-                                                    Text(
-                                                      activity.activityType,
-                                                      style: TextStyle(
-                                                        fontSize: 14,
-                                                        fontWeight: FontWeight.bold,
-                                                        color: Color(blackColor),
-                                                        decoration: isCompleted ? TextDecoration.lineThrough : null,
-                                                      ),
-                                                    ),
-                                                    Text(
-                                                      activity.contactName ?? '',
-                                                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(grey2Color)),
-                                                    ),
-                                                    Text(
-                                                      activity.nextFollowUpDate != null
-                                                          ? DateHelper.formatToIndonesian(DateTime.parse(activity.nextFollowUpDate!))
-                                                          : "No follow-up date",
-                                                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(grey2Color)),
-                                                    ),
-                                                  ],
-                                                ),
-                                              ],
-                                            ),
-                                            isWhatsApp
-                                                ? Image.asset(icContactDetailWA, width: 30)
-                                                : isMeeting
-                                                    ? Image.asset(icContactDetailMeeting, width: 30)
-                                                    : isVisit
-                                                        ? Image.asset(icContactDetailVisit, width: 30)
-                                                        : Icon(isCall ? Icons.phone_outlined : Icons.event_note_outlined, color: Color(primaryColor), size: 30),
-                                          ],
-                                        ),
-                                      ),
-                                    );
-                        },
-                      ),
-                    ),
+            const SizedBox(height: 8),
+            Container(
+              height: 250,
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(10),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.grey.withOpacity(0.2),
+                    spreadRadius: 2,
+                    blurRadius: 5,
+                    offset: const Offset(0, 3),
                   ),
-              ],
+                ],
+              ),
+              child: RefreshIndicator(
+                onRefresh: _loadData,
+                child: ListView.builder(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  // index 0 = AttendanceAlertsWidget, rest = activities
+                  itemCount: activities.isEmpty ? 2 : activities.length + 1,
+                  itemBuilder: (context, index) {
+                    if (index == 0) return const AttendanceAlertsWidget();
+
+                    if (activities.isEmpty) {
+                      return const Center(
+                        child: Text("No upcoming tasks for today"),
+                      );
+                    }
+
+                    final activity = activities[index - 1];
+                    final isCompleted = activity.statusFollow == 1;
+                    final type = activity.activityType.toLowerCase();
+                    final isWhatsApp = type.contains('whatsapp');
+                    final isCall = type.contains('call');
+                    final isMeeting = type.contains('meeting');
+                    final isVisit = type.contains('visit');
+                    final isTask = type.contains('task');
+
+                    return GestureDetector(
+                      onTap: () async {
+                        int page = 6;
+                        String namePage = "Update Status Prospect";
+                        if (isCall)         { page = 0; namePage = "Call"; }
+                        else if (isWhatsApp) { page = 1; namePage = "WhatsApp"; }
+                        else if (isMeeting)  { page = 2; namePage = "Meeting"; }
+                        else if (isTask)     { page = 3; namePage = "Task"; }
+                        else if (isVisit)    { page = 4; namePage = "Visit"; }
+
+                        await context.pushNamed(
+                          'addContact',
+                          extra: ContactDetailArgs(
+                            page: page,
+                            namePage: namePage,
+                            dataActivity: activity,
+                            buttonLabel: 'Followed Up',
+                            dataContact: ContactEntity(
+                              contactId: activity.contactId,
+                              fullName: activity.contactName,
+                            ),
+                          ),
+                        );
+                        if (context.mounted) _loadData();
+                      },
+                      child: Container(
+                        margin: const EdgeInsets.only(bottom: 10),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 8,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          border: Border(
+                            bottom: BorderSide(
+                              color: Color(grey10Color),
+                              width: 1,
+                            ),
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Row(
+                              children: [
+                                Icon(
+                                  isCompleted
+                                      ? Icons.check_circle
+                                      : Icons.check_circle_outline_rounded,
+                                  color: isCompleted
+                                      ? Colors.green
+                                      : Color(primaryColor),
+                                  size: 40,
+                                ),
+                                const SizedBox(width: 10),
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      activity.activityType,
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.bold,
+                                        color: Color(blackColor),
+                                        decoration: isCompleted
+                                            ? TextDecoration.lineThrough
+                                            : null,
+                                      ),
+                                    ),
+                                    Text(
+                                      activity.contactName ?? '',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.bold,
+                                        color: Color(grey2Color),
+                                      ),
+                                    ),
+                                    Text(
+                                      activity.nextFollowUpDate != null
+                                          ? DateHelper.formatToIndonesian(
+                                              DateTime.parse(activity.nextFollowUpDate!),
+                                            )
+                                          : "No follow-up date",
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.bold,
+                                        color: Color(grey2Color),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                            isWhatsApp
+                                ? Image.asset(icContactDetailWA, width: 30)
+                                : isMeeting
+                                    ? Image.asset(icContactDetailMeeting, width: 30)
+                                    : isVisit
+                                        ? Image.asset(icContactDetailVisit, width: 30)
+                                        : Icon(
+                                            isCall
+                                                ? Icons.phone_outlined
+                                                : Icons.event_note_outlined,
+                                            color: Color(primaryColor),
+                                            size: 30,
+                                          ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
             ),
-          ),
-        ],
-      );
-    },
-  );
-}
+          ],
+        );
+      },
+    );
+  }
 
   Widget _buildWhatsAppChart() {
     const double maxHeight = 110.0;

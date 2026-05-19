@@ -1,9 +1,13 @@
 
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:progress_group/core/network/dio_client.dart';
+import 'package:progress_group/core/services/push_notification_service.dart';
+import 'package:progress_group/firebase_options.dart';
 import 'package:progress_group/features/attandance/data/datasource/attendance_remote_datasource.dart';
 import 'package:progress_group/features/attandance/domain/repositories/attandance_repository.dart';
 import 'package:progress_group/features/attandance/domain/usecase/get_attendance.dart';
@@ -78,10 +82,23 @@ import 'features/contact/presentation/state/attachment_type/attachment_type_bloc
 import 'features/contact/domain/usecases/attachment/upload_attachment_usecase.dart';
 import 'features/contact/presentation/state/attachment/upload_attachment_bloc.dart';
 
+@pragma('vm:entry-point')
+Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  // FCM otomatis menampilkan notifikasi saat app di background/terminated
+}
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await initializeDateFormatting('id_ID', null);
   final prefs = await SharedPreferences.getInstance();
+
+  try {
+    await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+    FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+    await PushNotificationService.initialize();
+  } catch (e) {
+    debugPrint('Firebase init error: $e');
+  }
 
   // Inisialisasi router pertama kali
   AppRouter.init();
@@ -109,6 +126,14 @@ class _MyAppState extends State<MyApp> {
   // Key ini digunakan untuk memaksa rebuild seluruh MultiBlocProvider
   Key _blocKey = UniqueKey();
 
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      PushNotificationService.processPendingMessage();
+    });
+  }
+
   void _resetApp() {
     setState(() {
       // 1. Reset status auth notifier agar GoRouter mengarahkan ke /login
@@ -125,6 +150,7 @@ class _MyAppState extends State<MyApp> {
     // Infrastructure
     final localDataSource = AuthLocalDataSourceImpl(widget.prefs);
     final dioClient = DioClient(localDataSource);
+    PushNotificationService.setDio(dioClient.dio);
     
     // Auth
     final remoteDataSource = AuthRemoteDataSourceImpl(dioClient.dio);
@@ -219,6 +245,8 @@ class _MyAppState extends State<MyApp> {
               if (state is AuthSuccess) {
                 context.read<ProfileBloc>().add(GetProfileEvent());
                 AppRouter.authNotifier.value = true;
+                // Kirim FCM token setelah login berhasil (dioClient sudah punya auth token)
+                PushNotificationService.setDio(dioClient.dio);
               } else if (state is AuthLoggedOut) {
                 // Restart aplikasi total seolah-olah baru dibuka pertama kali
                 _resetApp();

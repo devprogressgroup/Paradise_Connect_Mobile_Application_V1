@@ -41,19 +41,16 @@ class AttendanceAlertsWidget extends StatelessWidget {
 
         return Column(
           children: [
-            _buildItem(
-              context,
-              isClockedIn ? 'Clock In hari ini' : 'Kamu belum Clock In hari ini',
-              Icons.fingerprint,
-              isCompleted: isClockedIn,
-            ),
-            if (showCheckIn)
-              _buildItem(
-                context,
-                isCheckedIn ? 'Check In hari ini' : 'Kamu belum Check In hari ini',
-                Icons.location_on_outlined,
-                isCompleted: isCheckedIn,
-              ),
+            // Incomplete items first
+            if (!isClockedIn)
+              _buildItem(context, 'Kamu belum Clock In hari ini', Icons.fingerprint, isCompleted: false),
+            if (showCheckIn && !isCheckedIn)
+              _buildItem(context, 'Kamu belum Check In hari ini', Icons.location_on_outlined, isCompleted: false),
+            // Completed items (green) at the bottom
+            if (isClockedIn)
+              _buildItem(context, 'Clock In hari ini', Icons.fingerprint, isCompleted: true),
+            if (showCheckIn && isCheckedIn)
+              _buildItem(context, 'Check In hari ini', Icons.location_on_outlined, isCompleted: true),
             const SizedBox(height: 8),
           ],
         );
