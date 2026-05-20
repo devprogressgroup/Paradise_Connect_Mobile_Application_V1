@@ -11,6 +11,8 @@ class DioClient {
   final AuthLocalDataSource _authLocalDataSource;
   late final Dio _dio;
 
+  static bool _isHandling401 = false;
+
   DioClient(this._authLocalDataSource) {
     _dio = Dio(
       BaseOptions(
@@ -52,27 +54,26 @@ class DioClient {
         //   return handler.next(e);
         // },
         onError: (DioException e, handler) async {
-          // Log errors or handle common status codes here
           print("DIO ERROR: ${e.message}");
 
-          if (e.response?.statusCode == 401) {
+          if (e.response?.statusCode == 401 && !_isHandling401) {
+            _isHandling401 = true;
             await _authLocalDataSource.clearToken();
-            
-           final context = AppRouter.rootNavigatorKey.currentContext;
-            if (context != null) {
+
+            final context = AppRouter.rootNavigatorKey.currentContext;
+            if (context != null && context.mounted) {
               showDialog(
                 context: context,
                 barrierDismissible: false,
-                builder: (context) => AlertDialog(
+                builder: (dialogContext) => AlertDialog(
                   title: const Text("Sesi Berakhir"),
                   content: const Text("Sesi Anda telah habis. Silakan login kembali."),
                   actions: [
                     TextButton(
-                      onPressed: ()async {
-                       await _authLocalDataSource.clearToken();
-                      context.read<AuthBloc>().add(LogoutEvent());
-                      
-                       AppRouter.router.go('/login');
+                      onPressed: () {
+                        Navigator.of(dialogContext).pop();
+                        _isHandling401 = false;
+                        context.read<AuthBloc>().add(LogoutEvent());
                       },
                       child: const Text("OK"),
                     ),
@@ -80,6 +81,7 @@ class DioClient {
                 ),
               );
             } else {
+              _isHandling401 = false;
               AppRouter.router.go('/login');
             }
           }

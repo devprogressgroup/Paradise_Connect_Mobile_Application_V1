@@ -1,10 +1,24 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:progress_group/core/network/api_constants.dart';
 import 'package:progress_group/core/utils/widget/custom_header.dart';
+import 'package:progress_group/features/saleskit/domain/entities/cluster_entity.dart';
+import 'package:progress_group/features/saleskit/domain/entities/commercial_entity.dart';
+import 'package:progress_group/features/saleskit/domain/entities/township_entity.dart';
+import 'package:progress_group/features/saleskit/presentation/state/saleskit_detail/saleskit_detail_bloc.dart';
+import 'package:progress_group/features/saleskit/presentation/state/saleskit_detail/saleskit_detail_event.dart';
+import 'package:progress_group/features/saleskit/presentation/state/saleskit_detail/saleskit_detail_state.dart';
+import 'package:progress_group/features/saleskit/presentation/state/township/township_bloc.dart';
+import 'package:progress_group/features/saleskit/presentation/state/township/township_event.dart';
+import 'package:progress_group/features/saleskit/presentation/state/township/township_state.dart';
+
+import '../../../../core/utils/widget/webview_page.dart';
 
 import '../../../../core/constants/assets.dart';
 import '../../../../core/constants/colors.dart';
 import '../../../../core/utils/widget/custom_search_field.dart';
+import '../../../../core/utils/widget/shimmer_loading.dart';
 import '../../data/arguments/saleskit_detail_args.dart';
 
 class SalesKitPage extends StatefulWidget {
@@ -21,51 +35,97 @@ class _SalesKitPageState extends State<SalesKitPage> {
   bool isOpenRedential = true;
   bool isOpenCommercial = true;
 
+  @override
+  void initState() {
+    super.initState();
+    if (widget.args.page == 1 && widget.args.townshipId != null) {
+      context.read<SalesKitDetailBloc>().add(
+        LoadSalesKitDetailEvent(widget.args.townshipId!),
+      );
+    }
+  }
+
   Future<void> _onRefresh() async {
-    await Future.delayed(const Duration(seconds: 1));
-    // Refresh logic
+    if (widget.args.page == 1 && widget.args.townshipId != null) {
+      context.read<SalesKitDetailBloc>().add(
+        LoadSalesKitDetailEvent(widget.args.townshipId!),
+      );
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: SafeArea(
-        child: widget.args.page == 1 ? _buildDetail(): widget.args.page == 2 ? _buildShare(): _builSalsesKitScreen()
+        child: widget.args.page == 1
+            ? _buildDetail()
+            : widget.args.page == 2
+            ? _buildShare()
+            : _builSalsesKitScreen(),
       ),
     );
   }
 
-  Widget _buildShare(){
+  void _openUrl(String? url, String title) {
+    if (url == null || url.isEmpty) return;
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => WebViewPage(url: url, title: title),
+      ),
+    );
+  }
+
+  Widget _buildShare() {
+    final args = widget.args;
     return Column(
       children: [
-        customHeader(context, widget.args.title!, isBack: true),
+        customHeader(context, args.title!, isBack: true),
         SizedBox(height: 16),
         Expanded(
           child: RefreshIndicator(
-            onRefresh: _onRefresh,
+            onRefresh: () async {},
             child: SingleChildScrollView(
               physics: const AlwaysScrollableScrollPhysics(),
               padding: const EdgeInsets.symmetric(horizontal: 16.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                 SizedBox(height: 15),
-                 _buildButtonBorder(title: "Price List",colorBg: whiteColor,colorTitle: primaryColor,  logo: icPriceList, onTap: () {
-                   
-                 }),
-                 SizedBox(height: 15),
-                 _buildButtonBorder(title: "EBrouchure",colorBg: whiteColor,colorTitle: primaryColor,  logo: icEBrouchure, onTap: () {
-                   
-                 }),
-                 SizedBox(height: 15),
-                 _buildButtonBorder(title: "Product Knowledge",colorBg: whiteColor,colorTitle: primaryColor,  logo: icProductKnowlage, onTap: () {
-                   
-                 }),
-            
-                 SizedBox(height: 30),
-                 _buildButtonBorder(title: "Share",colorBg: blue3Color,colorTitle: whiteColor,  logo: icShare, onTap: () {
-                   
-                 }),
+                  SizedBox(height: 15),
+                  _buildButtonBorder(
+                    title: "Price List",
+                    colorBg: whiteColor,
+                    colorTitle: primaryColor,
+                    logo: icPriceList,
+                    isDisabled: args.priceList == null,
+                    onTap: () => _openUrl(args.priceList, "Price List"),
+                  ),
+                  SizedBox(height: 15),
+                  _buildButtonBorder(
+                    title: "EBrouchure",
+                    colorBg: whiteColor,
+                    colorTitle: primaryColor,
+                    logo: icEBrouchure,
+                    isDisabled: args.brochure == null,
+                    onTap: () => _openUrl(args.brochure, "EBrouchure"),
+                  ),
+                  SizedBox(height: 15),
+                  _buildButtonBorder(
+                    title: "Product Knowledge",
+                    colorBg: whiteColor,
+                    colorTitle: primaryColor,
+                    logo: icProductKnowlage,
+                    isDisabled: args.productKnowledge == null,
+                    onTap: () => _openUrl(args.productKnowledge, "Product Knowledge"),
+                  ),
+                  SizedBox(height: 30),
+                  _buildButtonBorder(
+                    title: "Share",
+                    colorBg: blue3Color,
+                    colorTitle: whiteColor,
+                    logo: icShare,
+                    onTap: () {},
+                  ),
                 ],
               ),
             ),
@@ -75,24 +135,40 @@ class _SalesKitPageState extends State<SalesKitPage> {
     );
   }
 
-  Widget _buildButtonBorder({required String title, required int colorBg,required int colorTitle, required VoidCallback onTap, required String logo}){
+  Widget _buildButtonBorder({
+    required String title,
+    required int colorBg,
+    required int colorTitle,
+    required VoidCallback onTap,
+    required String logo,
+    bool isDisabled = false,
+  }) {
+    final effectiveColorTitle = isDisabled ? grey4Color : colorTitle;
+    final effectiveColorBg = isDisabled ? grey8Color : colorBg;
     return GestureDetector(
-      onTap: onTap,
+      onTap: isDisabled ? null : onTap,
       child: Container(
         height: 52,
         width: double.infinity,
         decoration: BoxDecoration(
-          color: Color(colorBg),
+          color: Color(effectiveColorBg),
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Color(primaryColor)),
+          border: Border.all(color: isDisabled ? Color(grey4Color) : Color(primaryColor)),
         ),
         child: Center(
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Image.asset(logo, height: 20, color: Color(colorTitle)),
+              Image.asset(logo, height: 20, color: Color(effectiveColorTitle)),
               SizedBox(width: 10),
-              Text(title, style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Color(colorTitle))),
+              Text(
+                title,
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.bold,
+                  color: Color(effectiveColorTitle),
+                ),
+              ),
             ],
           ),
         ),
@@ -100,65 +176,139 @@ class _SalesKitPageState extends State<SalesKitPage> {
     );
   }
 
-  Widget _buildDetail(){
-    return Column(
-      children: [
-        customHeader(context, widget.args.title ?? "SalesKit", isBack: true),
-        SizedBox(height: 1),
-        Expanded(
-          child: RefreshIndicator(
-            onRefresh: _onRefresh,
-            child: ListView(
-              physics: const AlwaysScrollableScrollPhysics(),
-              children: [
-                _dropdown("Residential", () {
-                  setState(() {
-                    isOpenRedential = !isOpenRedential;
-                  });
-                }, isOpenRedential, Column(
-                    children: [
-                      SizedBox(height: 5),
-                     _buildResidential( image: logoExVista, onTap: () {
-                       context.pushNamed("salesKit", extra: SalesKitDetailArgs(page: 2, title: "Vista" ));
-                     },),
-                     SizedBox(height: 5),
-                     _buildResidential( image: logoExAdventures, onTap: () {
-                       context.pushNamed("salesKit", extra: SalesKitDetailArgs(page: 2, title: "Adventures" ));
-                     },),
-                    SizedBox(height: 25),
-            
-                    ],
-                  ),
-                ),
-                _dropdown("Commercial", () {
-                  setState(() {
-                    isOpenCommercial = !isOpenCommercial;
-                  });
-                }, isOpenCommercial, Column(
-                    children: [
-                      SizedBox(height: 5),
-                     _buildResidential( image: logoExSoho, onTap: () {
-                       context.pushNamed("salesKit", extra: SalesKitDetailArgs(page: 2, title: "Soho" ));
-                     },),
-                    ],
-                  ),
-                ),
-              ],
+  Widget _buildDetail() {
+    return BlocBuilder<SalesKitDetailBloc, SalesKitDetailState>(
+      builder: (context, state) {
+        return Column(
+          children: [
+            customHeader(
+              context,
+              widget.args.title ?? "SalesKit",
+              isBack: true,
             ),
+            SizedBox(height: 1),
+            Expanded(
+              child: RefreshIndicator(
+                onRefresh: _onRefresh,
+                child: _buildDetailContent(state),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildDetailContent(SalesKitDetailState state) {
+    if (state is SalesKitDetailLoading) {
+      return buildSaleskitDetailShimmer();
+    }
+
+    if (state is SalesKitDetailError) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(state.message, textAlign: TextAlign.center),
+            SizedBox(height: 12),
+            ElevatedButton(
+              onPressed: _onRefresh,
+              child: const Text("Coba Lagi"),
+            ),
+          ],
+        ),
+      );
+    }
+
+    final clusters = state is SalesKitDetailLoaded
+        ? state.clusters
+        : <ClusterEntity>[];
+    final commercials = state is SalesKitDetailLoaded
+        ? state.commercials
+        : <CommercialEntity>[];
+
+    return ListView(
+      physics: const AlwaysScrollableScrollPhysics(),
+      children: [
+        _dropdown(
+          "Residential",
+          () => setState(() => isOpenRedential = !isOpenRedential),
+          isOpenRedential,
+          Column(
+            children: [
+              SizedBox(height: 5),
+              ...clusters.map(
+                (cluster) => Column(
+                  children: [
+                    _buildResidentialNetwork(
+                      imageUrl: ApiConstants.clusterImageUrl(
+                        widget.args.townshipSlug ?? '',
+                        cluster.logo,
+                      ),
+                      name: cluster.name,
+                      onTap: () => context.pushNamed(
+                        "salesKit",
+                        extra: SalesKitDetailArgs(
+                          page: 2,
+                          title: cluster.name,
+                          brochure: cluster.brochure,
+                          productKnowledge: cluster.productKnowledge,
+                          priceList: cluster.priceList,
+                        ),
+                      ),
+                    ),
+                    SizedBox(height: 5),
+                  ],
+                ),
+              ),
+              SizedBox(height: 25),
+            ],
           ),
-        ),     
+        ),
+        _dropdown(
+          "Commercial",
+          () => setState(() => isOpenCommercial = !isOpenCommercial),
+          isOpenCommercial,
+          Column(
+            children: [
+              SizedBox(height: 5),
+              ...commercials.map(
+                (commercial) => Column(
+                  children: [
+                    _buildResidentialNetwork(
+                      imageUrl: ApiConstants.commercialImageUrl(widget.args.townshipSlug ?? '',commercial.logo),
+                      name: commercial.name,
+                      onTap: () => context.pushNamed(
+                        "salesKit",
+                        extra: SalesKitDetailArgs(
+                          page: 2,
+                          title: commercial.name,
+                          brochure: commercial.brochure,
+                          productKnowledge: commercial.productKnowledge,
+                          priceList: commercial.priceList,
+                        ),
+                      ),
+                    ),
+                    SizedBox(height: 5),
+                  ],
+                ),
+              ),
+              SizedBox(height: 10),
+            ],
+          ),
+        ),
       ],
     );
   }
 
-  Widget _dropdown(String hint,VoidCallback onTap, bool isOpen, Widget child){
-     return Container(
+  Widget _dropdown(String hint, VoidCallback onTap, bool isOpen, Widget child) {
+    return Container(
       decoration: BoxDecoration(
         boxShadow: [
           BoxShadow(
             color: Color(blackColor).withOpacity(0.06),
             blurRadius: 58,
-            offset: Offset(0,6),
+            offset: Offset(0, 6),
           ),
         ],
       ),
@@ -183,27 +333,24 @@ class _SalesKitPageState extends State<SalesKitPage> {
                   Icon(
                     isOpen
                         ? Icons.keyboard_arrow_up
-                        : Icons.keyboard_arrow_down, size: 35,
+                        : Icons.keyboard_arrow_down,
+                    size: 35,
                   ),
                 ],
               ),
             ),
           ),
-      
-      
-          /// 🔥 CONTENT DINAMIS
-          if (isOpen)
-            Container(
-              width: double.infinity,
-              child: child,
-            ),
+          if (isOpen) Container(width: double.infinity, child: child),
         ],
       ),
     );
   }
 
-
-  Widget _buildResidential({required String image, required VoidCallback onTap}){
+  Widget _buildResidentialNetwork({
+    required String imageUrl,
+    required String name,
+    required VoidCallback onTap,
+  }) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -214,64 +361,135 @@ class _SalesKitPageState extends State<SalesKitPage> {
           color: Color(whiteColor),
           borderRadius: BorderRadius.circular(8),
         ),
-        child: Center(
-          child: Image.asset(image, height: 100),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Image.network(
+              imageUrl,
+              height: 100,
+              width: 140,
+              fit: BoxFit.contain,
+              errorBuilder: (context, error, stackTrace) =>
+                  const Icon(Icons.broken_image, size: 40, color: Colors.grey),
+            ),
+            Text(
+              name,
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: Color(blue2Color),
+              ),
+            ),
+          ],
         ),
       ),
     );
   }
 
-  Widget _builSalsesKitScreen(){
-    return Column(
-      children: [
-        customHeader(context, "SalesKit", isBack: false),
-        SizedBox(height: 16),
-        Expanded(
-          child: RefreshIndicator(
-            onRefresh: _onRefresh,
-            child: ListView(
-              physics: const AlwaysScrollableScrollPhysics(),
-              padding: const EdgeInsets.symmetric(horizontal: 16.0),
-              children: [
-                customSearchField(controller: searchTC, focusNode: searchFN),
-                SizedBox(height: 15),
-                Text("Projects",style: TextStyle(fontSize: 20,fontWeight: FontWeight.bold,color: Color(blue2Color))),
-                SizedBox(height: 15),
-                buildProjectBanner(
-                  backgroundImage: bannerSaleskitProyek,
-                  logoImage: logoParadiseResort,
-                  title: "Paradise Resort City",
-                  subtitle: "500 hectare Eco Urban City in South Serpong",
-                  ontap: (){
-                    context.pushNamed("salesKit", extra: SalesKitDetailArgs(page: 1, title: "Paradise Resort City" ));
-                  }
-                ),
-                buildProjectBanner(
-                  backgroundImage: bannerSaleskitProyek,
-                  logoImage: logoParadiseSerpong,
-                  title: "Paradise Serpong City",
-                  subtitle: "500 hectare Eco Urban City in South Serpong",
-                  ontap: (){context.pushNamed("salesKit", extra: SalesKitDetailArgs(page: 1, title: "Paradise Serpong City" ));}
-                ),
-                buildProjectBanner(
-                  backgroundImage: bannerSaleskitProyek,
-                  logoImage: logoParadiseSerpong2,
-                  title: "Paradise Serpong City 2",
-                  subtitle: "500 hectare Eco Urban City in South Serpong",
-                  ontap: (){
-                    context.pushNamed("salesKit", extra: SalesKitDetailArgs(page: 1, title: "Paradise Serpong City 2" ));
-                  }
-                ),
-              ],
+  Widget _builSalsesKitScreen() {
+    return BlocBuilder<TownshipBloc, TownshipState>(
+      builder: (context, state) {
+        return Column(
+          children: [
+            customHeader(context, "SalesKit", isBack: false),
+            SizedBox(height: 16),
+            Expanded(
+              child: RefreshIndicator(
+                onRefresh: () async {
+                  context.read<TownshipBloc>().add(GetTownshipsEvent());
+                },
+                child: _buildTownshipContent(state),
+              ),
             ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildTownshipContent(TownshipState state) {
+    if (state is TownshipLoading) {
+      return SingleChildScrollView(
+        physics: const NeverScrollableScrollPhysics(),
+        padding: const EdgeInsets.symmetric(horizontal: 16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [buildSaleskitShimmer()],
+        ),
+      );
+    }
+
+    if (state is TownshipError) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(state.message, textAlign: TextAlign.center),
+            SizedBox(height: 12),
+            ElevatedButton(
+              onPressed: () =>
+                  context.read<TownshipBloc>().add(GetTownshipsEvent()),
+              child: const Text("Coba Lagi"),
+            ),
+          ],
+        ),
+      );
+    }
+
+    final townships = state is TownshipLoaded
+        ? state.townships
+        : <TownshipEntity>[];
+
+    return ListView(
+      physics: const AlwaysScrollableScrollPhysics(),
+      padding: const EdgeInsets.symmetric(horizontal: 16.0),
+      children: [
+        customSearchField(controller: searchTC, focusNode: searchFN),
+        SizedBox(height: 15),
+        Text(
+          "Projects",
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+            color: Color(blue2Color),
+          ),
+        ),
+        SizedBox(height: 15),
+        ...townships.map(
+          (township) => buildProjectBanner(
+            backgroundImageUrl: ApiConstants.townshipImageUrl(
+              township.slug,
+              township.groupBanner,
+            ),
+            logoImageUrl: ApiConstants.townshipImageUrl(
+              township.slug,
+              township.logo,
+            ),
+            ontap: () {
+              context.pushNamed(
+                "salesKit",
+                extra: SalesKitDetailArgs(
+                  page: 1,
+                  title: township.name,
+                  townshipId: township.id,
+                  townshipSlug: township.slug,
+                ),
+              );
+            },
           ),
         ),
       ],
     );
   }
 
-
-  Widget buildProjectBanner({required String  backgroundImage,required String logoImage,required String title,required String subtitle,double height = 141.0, required VoidCallback ontap}) {
+  Widget buildProjectBanner({
+    required String backgroundImageUrl,
+    required String logoImageUrl,
+    String title ='',
+    String subtitle = '',
+    double height = 141.0,
+    required VoidCallback ontap,
+  }) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
       child: GestureDetector(
@@ -285,9 +503,11 @@ class _SalesKitPageState extends State<SalesKitPage> {
                 width: double.infinity,
                 decoration: BoxDecoration(
                   image: DecorationImage(
-                    image: AssetImage(backgroundImage),
+                    image: NetworkImage(backgroundImageUrl),
                     fit: BoxFit.cover,
+                    onError: (_, __) {},
                   ),
+                  color: Color(blue2Color),
                 ),
               ),
               Container(
@@ -301,39 +521,18 @@ class _SalesKitPageState extends State<SalesKitPage> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Image.asset(
-                      logoImage,
-                      height: 40,
-                      errorBuilder: (context, error, stackTrace) => const Icon(Icons.broken_image, color: Colors.white),
+                    Image.network(
+                      logoImageUrl,
+                      height: 140,
+                      width: 140,
+                      fit: BoxFit.contain,
+                      errorBuilder: (context, error, stackTrace) =>
+                          const Icon(Icons.broken_image, color: Colors.white),
                     ),
-                    const SizedBox(height: 8),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      child: Text(
-                        title,
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: Color(whiteColor),
-                        ),
-                      ),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      child: Text(
-                        subtitle,
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w200,
-                          color: Color(whiteColor),
-                        ),
-                      ),
-                    ),
+                    
                   ],
                 ),
-              )
+              ),
             ],
           ),
         ),

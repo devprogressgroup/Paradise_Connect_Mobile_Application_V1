@@ -1,3 +1,8 @@
 {
-    "CodeGPT.apiKey": "DeepSeek"
+    "CodeGPT.apiKey": "DeepSeek",
+    "[dart]": {
+        "editor.formatOnSave": false,
+        "editor.formatOnType": false,
+        "editor.formatOnPaste": false
+    }
 }

@@ -60,6 +60,18 @@ import 'package:progress_group/features/inbox/presentation/state/message/message
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'app/router.dart';
+import 'features/saleskit/data/datasources/saleskit_remote_datasource.dart';
+import 'features/site-plan/data/datasources/siteplan_remote_datasource.dart';
+import 'features/site-plan/domain/repositories/site_plan_repository_impl.dart';
+import 'features/site-plan/presentation/state/siteplan_bloc.dart';
+import 'features/site-plan/presentation/state/siteplan_event.dart';
+import 'features/saleskit/domain/repositories/saleskit_repository.dart';
+import 'features/saleskit/domain/usecase/get_clusters_usecase.dart';
+import 'features/saleskit/domain/usecase/get_commercials_usecase.dart';
+import 'features/saleskit/domain/usecase/get_townships_usecase.dart';
+import 'features/saleskit/presentation/state/saleskit_detail/saleskit_detail_bloc.dart';
+import 'features/saleskit/presentation/state/township/township_bloc.dart';
+import 'features/saleskit/presentation/state/township/township_event.dart';
 import 'core/utils/theme.dart';
 import 'features/home/data/datasources/report_remote_datasource.dart';
 import 'features/home/domain/repositories/report_whatsapp_repository.dart';
@@ -201,6 +213,17 @@ class _MyAppState extends State<MyApp> {
     final getInfoSourcesUseCase = GetInfoSourcesUseCase(contactRepository);
     final getLostReasonsUseCase = GetLostReasonsUseCase(contactRepository);
     
+    // SitePlan
+    final siteplanRemoteDataSource = SiteplanRemoteDataSourceImpl(dioClient.dio);
+    final siteplanRepository = SitePlanRepositoryImpl(siteplanRemoteDataSource);
+
+    // SalesKit / Townships
+    final salesKitRemoteDataSource = SalesKitRemoteDataSourceImpl(dioClient.dio);
+    final salesKitRepository = SalesKitRepositoryImpl(salesKitRemoteDataSource);
+    final getTownshipsUseCase = GetTownshipsUseCase(salesKitRepository);
+    final getClustersUseCase = GetClustersUseCase(salesKitRepository);
+    final getCommercialsUseCase = GetCommercialsUseCase(salesKitRepository);
+
     // Attendance
     final attendanceRemoteDataSource = AttendanceRemoteDataSourceImpl(dioClient.dio);
     final attendanceRepository = AttendanceRepositoryImpl(attendanceRemoteDataSource);
@@ -239,6 +262,9 @@ class _MyAppState extends State<MyApp> {
             BlocProvider(create: (_) => WhatsappActivityBloc(getWhatsappActivityUseCase)),
             BlocProvider(create: (_) => InfoSourceBloc(getInfoSourcesUseCase: getInfoSourcesUseCase)),
             BlocProvider(create: (_) => LostReasonBloc(getLostReasonsUseCase: getLostReasonsUseCase)),
+            BlocProvider(create: (_) => SiteplanBloc(siteplanRepository)..add(LoadSiteplanEvent())),
+            BlocProvider(create: (_) => TownshipBloc(getTownshipsUseCase)..add(GetTownshipsEvent())),
+            BlocProvider(create: (_) => SalesKitDetailBloc(getClustersUseCase: getClustersUseCase, getCommercialsUseCase: getCommercialsUseCase)),
           ],
           child: BlocListener<AuthBloc, AuthState>(
             listener: (context, state) {
