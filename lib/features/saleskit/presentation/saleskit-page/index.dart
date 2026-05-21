@@ -53,6 +53,8 @@ class _SalesKitPageState extends State<SalesKitPage> {
     }
   }
 
+  
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -276,7 +278,7 @@ class _SalesKitPageState extends State<SalesKitPage> {
                 (commercial) => Column(
                   children: [
                     _buildResidentialNetwork(
-                      imageUrl: ApiConstants.commercialImageUrl(widget.args.townshipSlug ?? '',commercial.logo),
+                      imageUrl: ApiConstants.commercialImageUrl(commercial.logo),
                       name: commercial.name,
                       onTap: () => context.pushNamed(
                         "salesKit",
@@ -351,6 +353,8 @@ class _SalesKitPageState extends State<SalesKitPage> {
     required String name,
     required VoidCallback onTap,
   }) {
+
+
     return GestureDetector(
       onTap: onTap,
       child: Container(
