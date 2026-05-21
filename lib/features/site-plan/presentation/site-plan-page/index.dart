@@ -1,15 +1,18 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:progress_group/core/utils/widget/shimmer_loading.dart';
 import 'package:progress_group/core/constants/colors.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import '../../../../core/utils/widget/custom_header.dart';
 import '../../domain/entities/project_site.dart';
-import '../../domain/repositories/site_plan_repository_impl.dart';
+import '../state/siteplan_bloc.dart';
+import '../state/siteplan_event.dart';
+import '../state/siteplan_state.dart';
 
-/// Local HTTP proxy that forwards all WebView sub-requests to the target server
-/// with the required auth headers (X-App-Token, etc.).
+/// Local HTTP proxy yang meneruskan semua sub-request WebView ke target server
+/// beserta custom headers (X-App-Token, dsb).
 class _LocalProxy {
   HttpServer? _server;
   HttpClient? _client;
@@ -74,20 +77,30 @@ class SitePlanPage extends StatefulWidget {
 
 class _SitePlanPageState extends State<SitePlanPage> {
   late final WebViewController _controller;
-  final _repository = SitePlanRepositoryImpl();
   _LocalProxy? _proxy;
-  late List<ProjectSite> _sites;
-  late ProjectSite _selectedSite;
-  bool _isLoading = true;
+  List<ProjectSite> _sites = [];
+  ProjectSite? _selectedSite;
+  bool _isWebviewLoading = false;
   double _loadingProgress = 0;
 
   @override
   void initState() {
     super.initState();
-    _sites = _repository.getAvailableSites();
-    _selectedSite = _sites.first;
     _initWebViewController();
-    _loadSite(_selectedSite);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final state = context.read<SiteplanBloc>().state;
+      if (state is SiteplanLoaded && state.sites.isNotEmpty) {
+        _initFromSites(state.sites);
+      }
+    });
+  }
+
+  void _initFromSites(List<ProjectSite> sites) {
+    setState(() {
+      _sites = sites;
+      _selectedSite = sites.first;
+    });
+    _loadSite(sites.first);
   }
 
   void _initWebViewController() {
@@ -95,13 +108,13 @@ class _SitePlanPageState extends State<SitePlanPage> {
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
       ..setNavigationDelegate(NavigationDelegate(
         onProgress: (p) => setState(() => _loadingProgress = p / 100),
-        onPageStarted: (_) => setState(() => _isLoading = true),
-        onPageFinished: (_) => setState(() => _isLoading = false),
+        onPageStarted: (_) => setState(() => _isWebviewLoading = true),
+        onPageFinished: (_) => setState(() => _isWebviewLoading = false),
       ));
   }
 
   Future<void> _loadSite(ProjectSite site) async {
-    setState(() => _isLoading = true);
+    setState(() => _isWebviewLoading = true);
 
     _proxy?.stop();
     _proxy = null;
@@ -141,54 +154,117 @@ class _SitePlanPageState extends State<SitePlanPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
-      body: SafeArea(
-        child: Column(
-          children: [
-            customHeader(context, 'Site Plan'),
-            GestureDetector(
-              onTap: _openProjectList,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 5),
-                decoration: BoxDecoration(
-                  color: Color(whiteColor),
-                ),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(_selectedSite.groupName,
-                              style: const TextStyle(fontSize: 10, color: Colors.grey)),
-                          Text(_selectedSite.unitName,
-                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                        ],
+    return BlocConsumer<SiteplanBloc, SiteplanState>(
+      listener: (context, state) {
+        if (state is SiteplanLoaded &&
+            state.sites.isNotEmpty &&
+            _selectedSite == null) {
+          _initFromSites(state.sites);
+        }
+      },
+      builder: (context, state) {
+        return Scaffold(
+          backgroundColor: Colors.white,
+          body: SafeArea(
+            child: Column(
+              children: [
+                customHeader(context, 'Site Plan'),
+                if (state is SiteplanLoading || state is SiteplanInitial) ...[
+                  Expanded(
+                    child: Container(
+                      color: Colors.white,
+                      child: Center(child: CircularProgressIndicator()),
+                    ),
+                  ),
+                ] else if (state is SiteplanError) ...[
+                  Expanded(
+                    child: Center(
+                      child: Padding(
+                        padding: const EdgeInsets.all(24),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              state.message,
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(color: Colors.red),
+                            ),
+                            const SizedBox(height: 16),
+                            ElevatedButton(
+                              onPressed: () => context
+                                  .read<SiteplanBloc>()
+                                  .add(LoadSiteplanEvent()),
+                              child: const Text('Coba Lagi'),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
-                    const Icon(Icons.keyboard_arrow_down, color: Color(blackColor), size: 40),
-                  ],
-                ),
-              ),
+                  ),
+                ] else if (_selectedSite != null) ...[
+                  _buildSiteSelector(),
+                  if (_isWebviewLoading)
+                    LinearProgressIndicator(
+                      value: _loadingProgress,
+                      minHeight: 2,
+                      backgroundColor: Colors.transparent,
+                      valueColor:
+                          const AlwaysStoppedAnimation<Color>(Colors.blue),
+                    ),
+                  Expanded(
+                    child: Stack(
+                      children: [
+                        WebViewWidget(controller: _controller),
+                        if (_isWebviewLoading && _loadingProgress < 0.9)
+                          _buildLoadingOverlay(),
+                      ],
+                    ),
+                  ),
+                ] else ...[
+                  Expanded(
+                    child: Container(
+                      color: Colors.white,
+                      child: Center(child: CircularProgressIndicator()),
+                    ),
+                  ),
+                ],
+              ],
             ),
+          ),
+        );
+      },
+    );
+  }
 
-            if (_isLoading)
-              LinearProgressIndicator(
-                value: _loadingProgress,
-                minHeight: 2,
-                backgroundColor: Colors.transparent,
-                valueColor: const AlwaysStoppedAnimation<Color>(Colors.blue),
-              ),
-
+  Widget _buildSiteSelector() {
+    return GestureDetector(
+      onTap: _openProjectList,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 5),
+        decoration: BoxDecoration(
+          color: Color(whiteColor),
+        ),
+        child: Row(
+          children: [
             Expanded(
-              child: Stack(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  WebViewWidget(controller: _controller),
-                  if (_isLoading && _loadingProgress < 0.9) _buildLoadingOverlay(),
+                  Text(
+                    _selectedSite!.groupName,
+                    style:
+                        const TextStyle(fontSize: 10, color: Colors.grey),
+                  ),
+                  Text(
+                    _selectedSite!.unitName,
+                    style: const TextStyle(
+                        fontWeight: FontWeight.bold, fontSize: 16),
+                  ),
                 ],
               ),
             ),
+            const Icon(Icons.keyboard_arrow_down,
+                color: Color(blackColor), size: 40),
           ],
         ),
       ),
@@ -198,7 +274,7 @@ class _SitePlanPageState extends State<SitePlanPage> {
   Widget _buildLoadingOverlay() {
     return Container(
       color: Colors.white,
-      child: buildSiteplanShimmer(),
+      child: Center(child: CircularProgressIndicator()),
     );
   }
 }

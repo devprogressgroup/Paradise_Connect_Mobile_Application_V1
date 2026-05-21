@@ -595,16 +595,13 @@ Widget buildSiteplanShimmer() {
       children: [
         Container(
           margin: const EdgeInsets.all(16),
-          height: 200,
+          height: 500,
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(12),
           ),
         ),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: _ShimmerBox(width: double.infinity, height: 40, borderRadius: 8),
-        ),
+       
       ],
     ),
   );
