@@ -56,7 +56,9 @@ class _ContactDetailPageState extends State<ContactDetailPage>with TickerProvide
   final tabs = ["Activity", "About", "Attachment"];
   late TabController _tabController;
   int currentTab = 0;
-  bool _hideHeader = false;
+  late AnimationController _headerAnimController;
+  late Animation<double> _headerAnim;
+  bool _isHeaderHidden = false;
   int _cPage = 1;
   int _gPage = 1;
   final ScrollController _activityScrollController = ScrollController();
@@ -70,17 +72,35 @@ class _ContactDetailPageState extends State<ContactDetailPage>with TickerProvide
       vsync: this,
       initialIndex: currentTab,
     );
+    _headerAnimController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 300),
+    );
+    _headerAnim = CurvedAnimation(
+      parent: _headerAnimController,
+      curve: Curves.easeInOut,
+      reverseCurve: Curves.easeInOut,
+    );
     _tabController.addListener(() {
       if (_tabController.index != currentTab) {
         setState(() {
           currentTab = _tabController.index;
           searchTC.clear();
-          _hideHeader = false;
         });
       }
     });
     _activityScrollController.addListener(_onActivityScroll);
     _init();
+  }
+
+  void _updateHeaderForScroll(double pixels) {
+    if (pixels > 60 && !_isHeaderHidden) {
+      _isHeaderHidden = true;
+      _headerAnimController.forward();
+    } else if (pixels < 20 && _isHeaderHidden) {
+      _isHeaderHidden = false;
+      _headerAnimController.reverse();
+    }
   }
 
   void _onActivityScroll() {
@@ -189,7 +209,7 @@ class _ContactDetailPageState extends State<ContactDetailPage>with TickerProvide
     context.read<AttachmentCubit>().reset();
     context.read<ContactBloc>().add(ClearContactDetailEvent());
     _tabController.dispose();
-
+    _headerAnimController.dispose();
     _activityScrollController.dispose();
     searchTC.dispose();
     searchFN.dispose();
@@ -228,18 +248,26 @@ class _ContactDetailPageState extends State<ContactDetailPage>with TickerProvide
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     // Back button + title + icons — semua collapse bersama
-                    ClipRect(
-                      child: AnimatedAlign(
-                        alignment: Alignment.topCenter,
-                        heightFactor: _hideHeader ? 0.0 : 1.0,
-                        duration: const Duration(milliseconds: 350),
-                        curve: Curves.easeInOutCubic,
-                        child: AnimatedOpacity(
-                          opacity: _hideHeader ? 0.0 : 1.0,
-                          duration: const Duration(milliseconds: 220),
-                          curve: Curves.easeInOut,
-                          child: IgnorePointer(
-                            ignoring: _hideHeader,
+                    AnimatedBuilder(
+                      animation: _headerAnim,
+                      builder: (context, child) {
+                        final v = _headerAnim.value;
+                        return ClipRect(
+                          child: Align(
+                            alignment: Alignment.topCenter,
+                            heightFactor: 1.0 - v,
+                            child: Opacity(
+                              opacity: (1.0 - v).clamp(0.0, 1.0),
+                              child: IgnorePointer(
+                                ignoring: v > 0.5,
+                                child: child,
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                      child: IgnorePointer(
+                        ignoring: false,
                             child: Column(
                               mainAxisSize: MainAxisSize.min,
                               children: [
@@ -334,8 +362,6 @@ class _ContactDetailPageState extends State<ContactDetailPage>with TickerProvide
                               ],
                             ),
                           ),
-                        ),
-                      ),
                     ),
 
                     // Tab bar — strip full-width, pill padded
@@ -368,17 +394,18 @@ class _ContactDetailPageState extends State<ContactDetailPage>with TickerProvide
                 child: IndexedStack(
                   index: currentTab,
                   children: [
-                    _buildActivityContent(),
+                    NotificationListener<ScrollNotification>(
+                      onNotification: (notification) {
+                        if (currentTab == 0) _updateHeaderForScroll(notification.metrics.pixels);
+                        return false;
+                      },
+                      child: _buildActivityContent(),
+                    ),
                     RefreshIndicator(
                       onRefresh: _getContactDetail,
                       child: NotificationListener<ScrollNotification>(
                         onNotification: (notification) {
-                          if (currentTab == 1) {
-                            final shouldHide = notification.metrics.pixels > 50;
-                            if (_hideHeader != shouldHide) {
-                              setState(() => _hideHeader = shouldHide);
-                            }
-                          }
+                          if (currentTab == 1) _updateHeaderForScroll(notification.metrics.pixels);
                           return false;
                         },
                         child: ContactFormPage(
@@ -389,7 +416,13 @@ class _ContactDetailPageState extends State<ContactDetailPage>with TickerProvide
                         ),
                       ),
                     ),
-                    _buildAttachmentContent(),
+                    NotificationListener<ScrollNotification>(
+                      onNotification: (notification) {
+                        if (currentTab == 2) _updateHeaderForScroll(notification.metrics.pixels);
+                        return false;
+                      },
+                      child: _buildAttachmentContent(),
+                    ),
                   ],
                 ),
               ),
@@ -445,30 +478,30 @@ class _ContactDetailPageState extends State<ContactDetailPage>with TickerProvide
               );
             },
           ),
-          ContactOptionsSheet.buildIconLink(
-            context,
-            icContactDetailMeeting,
-            "Meeting",
-            () {
-              _navigateToAddContact(
-                ContactDetailArgs(
-                  dataContact: widget.args.dataContact,
-                  page: 2,
-                  namePage: "Meeting",
-                ),
-              );
-            },
-          ),
+          // ContactOptionsSheet.buildIconLink(
+          //   context,
+          //   icContactDetailMeeting,
+          //   "Meeting",
+          //   () {
+          //     _navigateToAddContact(
+          //       ContactDetailArgs(
+          //         dataContact: widget.args.dataContact,
+          //         page: 2,
+          //         namePage: "Meeting",
+          //       ),
+          //     );
+          //   },
+          // ),
           ContactOptionsSheet.buildIconLink(
             context,
             icContactDetailReminder,
-            "Task",
+            "Reminder",
             () {
               _navigateToAddContact(
                 ContactDetailArgs(
                   dataContact: widget.args.dataContact,
                   page: 3,
-                  namePage: "Task",
+                  namePage: "Reminder",
                 ),
               );
             },
@@ -560,7 +593,6 @@ class _ContactDetailPageState extends State<ContactDetailPage>with TickerProvide
           setState(() {
             currentTab = index;
             _tabController.animateTo(index);
-            _hideHeader = false;
           });
         },
         child: AnimatedContainer(
@@ -1050,8 +1082,7 @@ class _ContactDetailPageState extends State<ContactDetailPage>with TickerProvide
                                                 height: 44,
                                                 decoration: BoxDecoration(
                                                   color: Color(whiteColor),
-                                                  borderRadius:
-                                                      BorderRadius.circular(14),
+                                                  borderRadius:BorderRadius.circular(14),
                                                   border: Border.all(
                                                     color: Color(primaryColor),
                                                   ),
@@ -1067,10 +1098,8 @@ class _ContactDetailPageState extends State<ContactDetailPage>with TickerProvide
                                   ),
                                   SizedBox(width: 10),
                                   Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.spaceBetween,
+                                    crossAxisAlignment:CrossAxisAlignment.start,
+                                    mainAxisAlignment:MainAxisAlignment.spaceBetween,
                                     children: [
                                       Text(
                                         item.attachmentTypeName,
@@ -1083,9 +1112,14 @@ class _ContactDetailPageState extends State<ContactDetailPage>with TickerProvide
                                         item.createDatetime.toString(),
                                         style: TextStyle(fontSize: 10),
                                       ),
-                                      Text(
-                                        item.attachmentNote,
-                                        style: TextStyle(fontSize: 10),
+                                      Container(
+                                        width: 200,
+                                        child: Text(
+                                          item.attachmentNote,
+                                          maxLines: 1,
+                                          overflow:TextOverflow.ellipsis,
+                                          style: TextStyle(fontSize: 10),
+                                        ),
                                       ),
                                     ],
                                   ),
@@ -1435,12 +1469,12 @@ class _ActivityItemState extends State<ActivityItem> {
         } else if (type.contains('whatsapp')) {
           page = 1;
           namePage = "WhatsApp";
-        } else if (type.contains('meeting')) {
-          page = 2;
-          namePage = "Meeting";
-        } else if (type.contains('task')) {
+        // } else if (type.contains('meeting')) {
+        //   page = 2;
+        //   namePage = "Meeting";
+        } else if (type.contains('Reminder')) {
           page = 3;
-          namePage = "Task";
+          namePage = "Reminder";
         } else if (type.contains('visit')) {
           page = 4;
           namePage = "Visit";

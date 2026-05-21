@@ -45,6 +45,8 @@ class CreateContactParams extends Equatable {
   final String? lastLostDate;
   final String? lostDate;
   final String? nameSP;
+  final String? firstAkadDate;
+  final String? lastAkadDate;
 
   const CreateContactParams({
     this.fullName,
@@ -91,7 +93,8 @@ class CreateContactParams extends Equatable {
     this.lastLostDate,
     this.lostDate,
     this.nameSP,
-    
+    this.firstAkadDate,
+    this.lastAkadDate,
   });
 
   Map<String, dynamic> toJson() {
@@ -140,7 +143,8 @@ class CreateContactParams extends Equatable {
       if (lastLostDate != null) 'last_lost_date': lastLostDate,
       if (lostDate != null) 'lost_date': lostDate,
       if (nameSP != null) 'name_sp': nameSP,
-
+      if (firstAkadDate != null) 'first_akad_date': firstAkadDate,
+      if (lastAkadDate != null) 'last_akad_date': lastAkadDate,
     };
   }
 
@@ -190,5 +194,7 @@ class CreateContactParams extends Equatable {
     firstReserveDate,
     lastReserveDate,
     lostReasonId,
+    firstAkadDate,
+    lastAkadDate,
   ];
 }

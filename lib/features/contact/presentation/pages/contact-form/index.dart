@@ -31,6 +31,12 @@ import '../../state/prospect_status/prospect_status_state.dart';
 import '../../state/contact_properties/contact_properties_bloc.dart';
 import '../../state/contact_properties/contact_properties_event.dart';
 import '../../state/contact_properties/contact_properties_state.dart';
+import 'package:progress_group/features/saleskit/presentation/state/township/township_bloc.dart';
+import 'package:progress_group/features/saleskit/presentation/state/township/township_event.dart';
+import 'package:progress_group/features/saleskit/presentation/state/township/township_state.dart';
+import 'package:progress_group/features/saleskit/presentation/state/saleskit_detail/saleskit_detail_bloc.dart';
+import 'package:progress_group/features/saleskit/presentation/state/saleskit_detail/saleskit_detail_event.dart';
+import 'package:progress_group/features/saleskit/presentation/state/saleskit_detail/saleskit_detail_state.dart';
 
 class ContactFormPage extends StatefulWidget {
   final ContactDetailArgs args;
@@ -64,6 +70,8 @@ class _ContactFormPageState extends State<ContactFormPage> {
   TextEditingController lossReasonNoteTC = TextEditingController();
   TextEditingController fspTC = TextEditingController();
   TextEditingController lspTC = TextEditingController();
+  TextEditingController fakadTC = TextEditingController();
+  TextEditingController lakadTC = TextEditingController();
   TextEditingController createAdTC = TextEditingController();
   TextEditingController lastLostDateTC = TextEditingController();
   TextEditingController lostDateTC = TextEditingController();
@@ -84,6 +92,8 @@ class _ContactFormPageState extends State<ContactFormPage> {
   String? selectedSalesManagerName;
   String? selectFirstProject;
   String? selectLastProject;
+  int? selectFirstTownshipId;
+  int? selectLastTownshipId;
   String? selectFirstProjectProduct;
   String? selectLastProjectProduct;
   String? selectFirstProjectCategory;
@@ -124,6 +134,8 @@ class _ContactFormPageState extends State<ContactFormPage> {
   FocusNode lossReasonNoteFN = FocusNode();
   FocusNode fspFN = FocusNode();
   FocusNode lspFN = FocusNode();
+  FocusNode fakadFN = FocusNode();
+  FocusNode lakadFN = FocusNode();
   FocusNode createAdFN = FocusNode();
   FocusNode lastLostDateFN = FocusNode();
 
@@ -267,6 +279,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
 
 
 
+
   void _init() async {
     final contactId = widget.args.dataContact?.contactId;
     final contactState = context.read<ContactBloc>().state;
@@ -338,6 +351,8 @@ class _ContactFormPageState extends State<ContactFormPage> {
         if (firstVisitorDateTC.text.isEmpty) firstVisitorDateTC.text = today;
         if (fspTC.text.isEmpty) fspTC.text = today;
         if (lspTC.text.isEmpty) lspTC.text = today;
+        if (fakadTC.text.isEmpty) fakadTC.text = today;
+        if (lakadTC.text.isEmpty) lakadTC.text = today;
         if (createAdTC.text.isEmpty) createAdTC.text = today;
         if (lastLostDateTC.text.isEmpty) lastLostDateTC.text = today;
 
@@ -383,13 +398,13 @@ class _ContactFormPageState extends State<ContactFormPage> {
     emailTC.text = contact.primaryEmail ?? '';
     waTC.text = contact.whatsappNumber ?? '';
     fBlockNoTC.text = contact.firstBlokNo ?? '';
-    selectFirstProject = contact.firstProject ?? '';
-    selectLastProject = contact.lastProject ?? '';
-    selectFirstProjectProduct = contact.firstProduct ?? '';
-    selectFirstProjectCategory = contact.firstProjectCategory ?? '';
+    selectFirstProject = contact.firstProject?.isNotEmpty == true ? contact.firstProject : null;
+    selectLastProject = contact.lastProject?.isNotEmpty == true ? contact.lastProject : null;
+    selectFirstProjectProduct = contact.firstProduct?.isNotEmpty == true ? contact.firstProduct : null;
+    selectFirstProjectCategory = contact.firstProjectCategory?.isNotEmpty == true ? contact.firstProjectCategory : null;
     generalNotesTC.text = contact.generalNotes ?? '';
-    selectLastProjectProduct = contact.lastProduct ?? '';
-    selectLastProjectCategory = contact.lastProjectCategory ?? '';
+    selectLastProjectProduct = contact.lastProduct?.isNotEmpty == true ? contact.lastProduct : null;
+    selectLastProjectCategory = contact.lastProjectCategory?.isNotEmpty == true ? contact.lastProjectCategory : null;
     lBlockNoTC.text = contact.lastBlokNo ?? '';
     noKTPTC.text = contact.noKtp ?? '';
     ktpAddressTC.text = contact.ktpAddress ?? '';
@@ -409,6 +424,8 @@ class _ContactFormPageState extends State<ContactFormPage> {
     lossReasonNoteTC.text = contact.lostReasonNote ?? '';
     fspTC.text = contact.firstSpDate != null ? DateHelper.formatDate(DateTime.parse(contact.firstSpDate!)) : '';
     lspTC.text = contact.lastSpDate != null ? DateHelper.formatDate(DateTime.parse(contact.lastSpDate!)) : '';
+    fakadTC.text = contact.firstAkadDate != null ? DateHelper.formatDate(DateTime.parse(contact.firstAkadDate!)) : '';
+    lakadTC.text = contact.lastAkadDate != null ? DateHelper.formatDate(DateTime.parse(contact.lastAkadDate!)) : '';
     createAdTC.text = contact.createdAt != null ? DateHelper.formatDate(DateTime.parse(contact.createdAt!)) : '';
     lastLostDateTC.text = contact.lastLostDate != null ? DateHelper.formatDate(DateTime.parse(contact.lastLostDate!)) : '';
 
@@ -437,6 +454,17 @@ class _ContactFormPageState extends State<ContactFormPage> {
       }
       if ((contact.lastProject ?? '').isNotEmpty) {
         selectLastProject = contact.lastProject;
+      }
+
+      final townshipState = context.read<TownshipBloc>().state;
+      if (townshipState is TownshipLoaded && selectLastProject != null) {
+        for (final t in townshipState.townships) {
+          if (t.name.trim().toLowerCase() == selectLastProject!.trim().toLowerCase()) {
+            selectLastTownshipId = t.id;
+            context.read<SalesKitDetailBloc>().add(LoadSalesKitDetailEvent(t.id));
+            break;
+          }
+        }
       }
 
       if ((contact.blokNo ?? '').isNotEmpty) {
@@ -763,6 +791,8 @@ class _ContactFormPageState extends State<ContactFormPage> {
     generalNotesFN.dispose();
     fspTC.dispose();
     lspTC.dispose();
+    fakadTC.dispose();
+    lakadTC.dispose();
 
     lBlockNoFN.dispose();
     noKTPFN.dispose();
@@ -780,6 +810,8 @@ class _ContactFormPageState extends State<ContactFormPage> {
     lossReasonNoteFN.dispose();
     fspFN.dispose();
     lspFN.dispose();
+    fakadFN.dispose();
+    lakadFN.dispose();
     lastLostDateTC.dispose();
 
 
@@ -825,6 +857,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
       if (firstApptDateTC.text.isEmpty) firstApptDateTC.text = today;
       if (firstVisitorDateTC.text.isEmpty) firstVisitorDateTC.text = today;
       if (fspTC.text.isEmpty) fspTC.text = today;
+      if (fakadTC.text.isEmpty) fakadTC.text = today;
     }
 
     // Mapping Dynamic Properties
@@ -872,6 +905,8 @@ class _ContactFormPageState extends State<ContactFormPage> {
       firstVisitDate: isUpdate ? null : _toBackendDate(firstVisitorDateTC.text),
       firstApptDate: isUpdate ? null : _toBackendDate(firstApptDateTC.text),
       firstSPDate: fspTC.text.isEmpty ? _toBackendDate(lspTC.text) : (isUpdate ? null : _toBackendDate(fspTC.text)),
+      lastAkadDate: _toBackendDate(lakadTC.text),
+      firstAkadDate: fakadTC.text.isEmpty ? _toBackendDate(lakadTC.text) : (isUpdate ? null : _toBackendDate(fakadTC.text)),
       lostDate: _toBackendDate(lastLostDateTC.text),
       lastLostDate: _toBackendDate(lastLostDateTC.text),
       lostReasonId: selectedLostReasonId,
@@ -1205,22 +1240,36 @@ class _ContactFormPageState extends State<ContactFormPage> {
                             label: "Project",
                             value: selectLastProject,
                             onTap: () async {
-                              final result = await context.pushNamed(
-                                'detailContactDropdown',
-                                extra: ContactDropdownArgs(
-                                  title: 'Project',
-                                  items: itemsLastProject,
-                                  selectedId: selectedStatusId,
-                                ),
-                              );
-                              if (result != null) {
-                                final selected = result as OwnerDropdownItem;
-                
-                                setState(() {
-                                  selectLastProject = selected.name;
-                                  selectLastProjectCategory = null;
-                                  selectLastProjectProduct = null;
-                                });
+                              final townshipState = context.read<TownshipBloc>().state;
+                              if (townshipState is TownshipLoaded) {
+                                final items = townshipState.townships
+                                    .map((t) => OwnerDropdownItem(id: t.id, name: t.name))
+                                    .toList();
+                                final result = await context.pushNamed(
+                                  'detailContactDropdown',
+                                  extra: ContactDropdownArgs(
+                                    title: 'Project',
+                                    items: items,
+                                    selectedId: selectLastTownshipId,
+                                  ),
+                                );
+                                if (result != null) {
+                                  final selected = result as OwnerDropdownItem;
+                                  setState(() {
+                                    selectLastProject = selected.name;
+                                    selectLastTownshipId = selected.id;
+                                    selectLastProjectCategory = null;
+                                    selectLastProjectProduct = null;
+                                  });
+                                  context.read<SalesKitDetailBloc>().add(
+                                    LoadSalesKitDetailEvent(selected.id!),
+                                  );
+                                }
+                              } else {
+                                context.read<TownshipBloc>().add(GetTownshipsEvent());
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text('Memuat data project...')),
+                                );
                               }
                             },
                           ),
@@ -1231,36 +1280,73 @@ class _ContactFormPageState extends State<ContactFormPage> {
                               final result = await context.pushNamed(
                                 'detailContactDropdown',
                                 extra: ContactDropdownArgs(
-                                  title: 'Project',
-                                  items: itemsLastProject,
-                                  selectedId: selectedStatusId,
+                                  title: 'Project Category',
+                                  items: itemsLastProjectCategory,
+                                  selectedId: null,
                                 ),
                               );
                               if (result != null) {
                                 final selected = result as OwnerDropdownItem;
-                
                                 setState(() {
                                   selectLastProjectCategory = selected.name;
+                                  selectLastProjectProduct = null;
                                 });
                               }
                             },
                           ),
-                
+
                           _buildFieldDown(
                             label: "Product",
                             value: selectLastProjectProduct,
                             onTap: () async {
+                              if (selectLastTownshipId == null) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text('Pilih Project terlebih dahulu')),
+                                );
+                                return;
+                              }
+
+                              final skState = context.read<SalesKitDetailBloc>().state;
+
+                              if (skState is SalesKitDetailLoading) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text('Memuat data product...')),
+                                );
+                                return;
+                              }
+
+                              if (skState is! SalesKitDetailLoaded) {
+                                context.read<SalesKitDetailBloc>().add(
+                                  LoadSalesKitDetailEvent(selectLastTownshipId!),
+                                );
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text('Memuat data product...')),
+                                );
+                                return;
+                              }
+
+                              final isCommercial = selectLastProjectCategory?.toLowerCase() == 'commercial';
+                              final productItems = isCommercial
+                                  ? skState.commercials.map((c) => OwnerDropdownItem(id: c.id, name: c.name)).toList()
+                                  : skState.clusters.map((c) => OwnerDropdownItem(id: c.id, name: c.name)).toList();
+
+                              if (productItems.isEmpty) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text('Tidak ada produk tersedia untuk project ini')),
+                                );
+                                return;
+                              }
+
                               final result = await context.pushNamed(
                                 'detailContactDropdown',
                                 extra: ContactDropdownArgs(
-                                  title: 'Project',
-                                  items: itemsLastProject,
-                                  selectedId: selectedStatusId,
+                                  title: 'Product',
+                                  items: productItems,
+                                  selectedId: null,
                                 ),
                               );
                               if (result != null) {
                                 final selected = result as OwnerDropdownItem;
-                
                                 setState(() {
                                   selectLastProjectProduct = selected.name;
                                 });
@@ -1397,6 +1483,12 @@ class _ContactFormPageState extends State<ContactFormPage> {
                             focusNode: lspFN,
                             fieldType: 'date',
                           ),
+                           _buildField(
+                            label: "Akad Date",
+                            controller: lakadTC,
+                            focusNode: lakadFN,
+                            fieldType: 'date',
+                          ),
                           _buildField(
                             label: "Lost Date",
                             controller: lastLostDateTC,
@@ -1452,7 +1544,14 @@ class _ContactFormPageState extends State<ContactFormPage> {
                               fieldType: 'date',
                               readOnly: true,
                             ),
-                         
+                            _buildField(
+                              label: "First Akad Date",
+                              controller: fakadTC,
+                              focusNode: fakadFN,
+                              fieldType: 'date',
+                              readOnly: true,
+                            ),
+
                           ],
                 
                           ],
@@ -1652,15 +1751,33 @@ class _ContactFormPageState extends State<ContactFormPage> {
                        isError: _showValidation && selectFirstProject == null,
                        errorText: (_showValidation && selectFirstProject == null) ? 'Wajib diisi' : null,
                        onTap: () async {
-                         final result = await context.pushNamed('detailContactDropdown',extra: ContactDropdownArgs(title: 'Project',items: itemsProject,selectedId: selectedStatusId,),
-                         );
-                         if (result != null) {
-                           final selected = result as OwnerDropdownItem;
-                           setState(() {
-                             selectFirstProject = selected.name;
-                             selectFirstProjectCategory = null;
-                             selectFirstProjectProduct = null;
-                           });
+                         final townshipState = context.read<TownshipBloc>().state;
+                         if (townshipState is TownshipLoaded) {
+                           final items = townshipState.townships
+                               .map((t) => OwnerDropdownItem(id: t.id, name: t.name))
+                               .toList();
+                           final result = await context.pushNamed(
+                             'detailContactDropdown',
+                             extra: ContactDropdownArgs(
+                               title: 'Project',
+                               items: items,
+                               selectedId: selectFirstTownshipId,
+                             ),
+                           );
+                           if (result != null) {
+                             final selected = result as OwnerDropdownItem;
+                             setState(() {
+                               selectFirstProject = selected.name;
+                               selectFirstTownshipId = selected.id;
+                               selectFirstProjectCategory = null;
+                               selectFirstProjectProduct = null;
+                             });
+                           }
+                         } else {
+                           context.read<TownshipBloc>().add(GetTownshipsEvent());
+                           ScaffoldMessenger.of(context).showSnackBar(
+                             const SnackBar(content: Text('Memuat data project...')),
+                           );
                          }
                        },
                      ),

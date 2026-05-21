@@ -13,15 +13,10 @@ class ApiConstants {
   static const String paradiseUrl = 'https://paradise.co.id';
 
 
-  static String townshipImageUrl(String slug, String fileName) =>
-      '$paradiseUrl/bin/db/images/township/$slug/$fileName';
+  static String townshipImageUrl(String slug, String fileName) => '$paradiseUrl/bin/db/images/township/$slug/$fileName';
 
-  static String clusterImageUrl(String townshipSlug, String fileName) =>
-      '$paradiseUrl/bin/db/images/cluster/$townshipSlug/$fileName';
+  static String clusterImageUrl(String townshipSlug, String fileName) => '$paradiseUrl/bin/db/images/cluster/$townshipSlug/$fileName';
 
-  static String commercialImageUrl(String filePath) =>
-      filePath.startsWith('bin/db/')
-          ? '$paradiseUrl/$filePath'
-          : '$paradiseUrl/bin/db/images/commercial/$filePath';
+  static String commercialImageUrl(String filePath) => filePath.startsWith('bin/db/') ? '$paradiseUrl/$filePath' : '$paradiseUrl/bin/db/images/commercial/$filePath';
 }
 

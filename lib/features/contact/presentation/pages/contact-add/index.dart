@@ -41,6 +41,12 @@ import '../../../../../core/constants/colors.dart';
 import '../../../../../core/utils/helpers/date_helper.dart';
 import '../../../../../core/utils/widget/custom_header.dart';
 import '../../../data/arguments/contact_detail_args.dart';
+import 'package:progress_group/features/saleskit/presentation/state/township/township_bloc.dart';
+import 'package:progress_group/features/saleskit/presentation/state/township/township_event.dart';
+import 'package:progress_group/features/saleskit/presentation/state/township/township_state.dart';
+import 'package:progress_group/features/saleskit/presentation/state/saleskit_detail/saleskit_detail_bloc.dart';
+import 'package:progress_group/features/saleskit/presentation/state/saleskit_detail/saleskit_detail_event.dart';
+import 'package:progress_group/features/saleskit/presentation/state/saleskit_detail/saleskit_detail_state.dart';
 
 class ContactAddPage extends StatefulWidget {
   final ContactDetailArgs args;
@@ -82,6 +88,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
 
   String? selectedProject;
   String? selectedProduct;
+  int? selectedTownshipId;
   String jmlDatang = "1";
   String? selectedBlockNo;
   String? selectedProjectCategory;
@@ -99,22 +106,9 @@ class _ContactAddPageState extends State<ContactAddPage> {
     OwnerDropdownItem(name: ">5"),
   ];
 
-  List<OwnerDropdownItem> itemsProject = [
-    OwnerDropdownItem(id: 1, name: "Paradise Serpong City 1"),
-    OwnerDropdownItem(id: 2, name: "Paradise Serpong City 2"),
-    OwnerDropdownItem(id: 3, name: "Paradise Resort City"),
-  ];
-
-  List<OwnerDropdownItem> itemsProjectCategory = [
+  final List<OwnerDropdownItem> itemsProjectCategory = [
     OwnerDropdownItem(id: 1, name: "Residential"),
     OwnerDropdownItem(id: 2, name: "Commercial"),
-  ];
-
-  List<OwnerDropdownItem> itemsProduct = [
-    OwnerDropdownItem(id: 1, name: "Evanto"),
-    OwnerDropdownItem(id: 2, name: "Aris"),
-    OwnerDropdownItem(id: 3, name: "Vireo"),
-    OwnerDropdownItem(id: 4, name: "The Althea"),
   ];
 
   @override
@@ -235,7 +229,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
 
       setState(() {
         selectedProject = data.lastProject ?? data.firstProject;
-        selectedProduct = data.lastProduct;
+        selectedProduct = (data.lastProduct?.isNotEmpty == true) ? data.lastProduct : null;
         const _visitAllowedIds = [63, 64, 65];
         final rawStatusId = data.statusProspectId;
         selectedStatusId = (widget.args.page == 4 && !_visitAllowedIds.contains(rawStatusId))
@@ -280,6 +274,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
         }
       });
 
+      if (selectedProject != null) _loadTownshipClusters(selectedProject!);
       context.read<ContactBloc>().add(FetchContactDetailEvent(data.contactId!));
     }
 
@@ -347,14 +342,25 @@ class _ContactAddPageState extends State<ContactAddPage> {
 
     if (date == null) return;
 
+    final initialTime = selectedDate != null
+        ? TimeOfDay(hour: selectedDate!.hour, minute: selectedDate!.minute)
+        : TimeOfDay(hour: now.hour, minute: now.minute);
+
+    final time = await showTimePicker(
+      context: context,
+      initialTime: initialTime,
+    );
+
+    if (time == null) return;
+
     setState(() {
       selectedDate = DateTime(
         date.year,
         date.month,
         date.day,
-        now.hour,
-        now.minute,
-        now.second,
+        time.hour,
+        time.minute,
+        0,
       );
     });
   }
@@ -372,7 +378,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
     String mappedType = activityType;
     String finalNotes = notesTC.text.trim();
 
-    if (!['Call','WhatsApp','Visit','Meeting','Note','Email','Task','Other',].contains(activityType)) {
+    if (!['Call','WhatsApp','Visit','Meeting','Note','Email','Reminder','Other',].contains(activityType)) {
       mappedType = 'Other';
       finalNotes = '[$activityType] $finalNotes'.trim();
     }
@@ -609,7 +615,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
 
                 selectedBlockNo = data.lastBlokNo;
                 selectedProject = data.lastProject ?? data.firstProject;
-                selectedProduct = data.lastProduct;
+                selectedProduct = (data.lastProduct?.isNotEmpty == true) ? data.lastProduct : null;
                 selectedProjectCategory = data.lastProjectCategory;
                 lBlockNoTC.text = data.lastBlokNo ?? '';
                 jmlDatang = data.visitCount?.toString() ?? "1";
@@ -620,6 +626,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
                   selectedDate = autoDate;
                 }
               });
+              if (selectedProject != null) _loadTownshipClusters(selectedProject!);
             } else if (state.status == ContactStatus.error) {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
@@ -683,15 +690,10 @@ class _ContactAddPageState extends State<ContactAddPage> {
           child: Builder(
             builder: (context) {
               final activityState = context.watch<ActivityBloc>().state;
-              final attachmentState = context
-                  .watch<UploadAttachmentBloc>()
-                  .state;
+              final attachmentState = context.watch<UploadAttachmentBloc>().state;
               final visitState = context.watch<ActivityVisitBloc>().state;
 
-              final isLoading =
-                  activityState.status == ActivityStatus.creating ||
-                  attachmentState is UploadAttachmentLoading ||
-                  visitState is VisitLoading;
+              final isLoading =activityState.status == ActivityStatus.creating ||attachmentState is UploadAttachmentLoading ||visitState is VisitLoading;
 
               return Stack(
                 children: [
@@ -699,19 +701,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
                     children: [
                       customHeader(
                         context,
-                        widget.args.page == 0
-                            ? "Call"
-                            : widget.args.page == 1
-                            ? "WhatsApp"
-                            : widget.args.page == 2
-                            ? "Meeting"
-                            : widget.args.page == 3
-                            ? "Task"
-                            : widget.args.page == 4
-                            ? "Visit"
-                            : widget.args.page == 5
-                            ? "Attachment"
-                            : selectedStatusName,
+                        widget.args.page == 0? "Call": widget.args.page == 1? "WhatsApp": widget.args.page == 2? "Meeting": widget.args.page == 3? "Reminder": widget.args.page == 4? "Visit": widget.args.page == 5? "Attachment": selectedStatusName,
                         isBack: true,
                         colorBack: Color(primaryColor),
                       ),
@@ -1140,7 +1130,9 @@ class _ContactAddPageState extends State<ContactAddPage> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  selectedDate != null? DateHelper.formatDate(selectedDate!): DateHelper.nowFull(),
+                  selectedDate != null
+                      ? DateHelper.formatDateTimeShort(selectedDate!)
+                      : DateHelper.formatDateTimeShort(DateTime.now()),
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.bold,
@@ -1357,6 +1349,19 @@ class _ContactAddPageState extends State<ContactAddPage> {
     );
   }
 
+  void _loadTownshipClusters(String projectName) {
+    final townshipState = context.read<TownshipBloc>().state;
+    if (townshipState is TownshipLoaded) {
+      for (final t in townshipState.townships) {
+        if (t.name.trim().toLowerCase() == projectName.trim().toLowerCase()) {
+          selectedTownshipId = t.id;
+          context.read<SalesKitDetailBloc>().add(LoadSalesKitDetailEvent(t.id));
+          break;
+        }
+      }
+    }
+  }
+
   Widget _fieldProject() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1372,23 +1377,35 @@ class _ContactAddPageState extends State<ContactAddPage> {
         SizedBox(height: 6),
         GestureDetector(
           onTap: () async {
-            final selectedItem = itemsProject.firstWhere(
-              (e) => e.name == selectedProject,
-              orElse: () => OwnerDropdownItem(id: 0, name: ''),
-            );
-            final result = await context.pushNamed(
-              'detailContactDropdown',
-              extra: ContactDropdownArgs(
-                title: 'Project',
-                items: itemsProject,
-                selectedId: selectedItem.id,
-              ),
-            );
-            if (result != null) {
-              final selected = result as OwnerDropdownItem;
-              setState(() {
-                selectedProject = selected.name;
-              });
+            final townshipState = context.read<TownshipBloc>().state;
+            if (townshipState is TownshipLoaded) {
+              final items = townshipState.townships
+                  .map((t) => OwnerDropdownItem(id: t.id, name: t.name))
+                  .toList();
+              final result = await context.pushNamed(
+                'detailContactDropdown',
+                extra: ContactDropdownArgs(
+                  title: 'Project',
+                  items: items,
+                  selectedId: selectedTownshipId,
+                ),
+              );
+              if (result != null) {
+                final selected = result as OwnerDropdownItem;
+                setState(() {
+                  selectedProject = selected.name;
+                  selectedTownshipId = selected.id;
+                  selectedProduct = null;
+                });
+                context.read<SalesKitDetailBloc>().add(
+                  LoadSalesKitDetailEvent(selected.id!),
+                );
+              }
+            } else {
+              context.read<TownshipBloc>().add(GetTownshipsEvent());
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Memuat data project...')),
+              );
             }
           },
           child: Container(
@@ -1568,21 +1585,46 @@ class _ContactAddPageState extends State<ContactAddPage> {
         SizedBox(height: 6),
         GestureDetector(
           onTap: () async {
-            final selectedItem = itemsProduct.firstWhere(
-              (e) => e.name == selectedProduct,
-              orElse: () => OwnerDropdownItem(id: 0, name: ''),
-            );
+            if (selectedTownshipId == null) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Pilih Project terlebih dahulu')),
+              );
+              return;
+            }
+            final skState = context.read<SalesKitDetailBloc>().state;
+            if (skState is SalesKitDetailLoading) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Memuat data product...')),
+              );
+              return;
+            }
+            if (skState is! SalesKitDetailLoaded) {
+              context.read<SalesKitDetailBloc>().add(LoadSalesKitDetailEvent(selectedTownshipId!));
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Memuat data product...')),
+              );
+              return;
+            }
+            final isCommercial = selectedProjectCategory?.toLowerCase() == 'commercial';
+            final productItems = isCommercial
+                ? skState.commercials.map((c) => OwnerDropdownItem(id: c.id, name: c.name)).toList()
+                : skState.clusters.map((c) => OwnerDropdownItem(id: c.id, name: c.name)).toList();
+            if (productItems.isEmpty) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Tidak ada produk tersedia')),
+              );
+              return;
+            }
             final result = await context.pushNamed(
               'detailContactDropdown',
               extra: ContactDropdownArgs(
                 title: 'Product',
-                items: itemsProduct,
-                selectedId: selectedItem.id,
+                items: productItems,
+                selectedId: null,
               ),
             );
             if (result != null) {
               final selected = result as OwnerDropdownItem;
-
               setState(() {
                 selectedProduct = selected.name;
               });
@@ -1911,19 +1953,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            widget.args.page == 0
-                ? "Call"
-                : widget.args.page == 1
-                ? "WhatsApp"
-                : widget.args.page == 2
-                ? "Meeting"
-                : widget.args.page == 3
-                ? "Task"
-                : widget.args.page == 4
-                ? "Visit"
-                : widget.args.page == 5
-                ? "Attachment"
-                : "Update Status Prospect",
+            widget.args.page == 0? "Call": widget.args.page == 1? "WhatsApp": widget.args.page == 2? "Meeting": widget.args.page == 3? "Reminder": widget.args.page == 4? "Visit": widget.args.page == 5? "Attachment": "Update Status Prospect",
             style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.bold,
@@ -1939,8 +1969,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
             onTapOutside: (event) => descFormActivityFN.unfocus(),
             textInputAction: TextInputAction.newline,
             decoration: InputDecoration(
-              hintText:
-                  "Describe the ${widget.args.page == 0? "call": widget.args.page == 1? "whatsapp": widget.args.page == 2? "meeting": widget.args.page == 3? "task": widget.args.page == 4? "visit": widget.args.page == 5? "attachment": "update status prospect"}...",
+              hintText: "Describe the ${widget.args.page == 0? "call": widget.args.page == 1? "whatsapp": widget.args.page == 2? "meeting": widget.args.page == 3? "reminder": widget.args.page == 4? "visit": widget.args.page == 5? "attachment": "update status prospect"}...",
               hintStyle: TextStyle(color: Color(grey2Color), fontSize: 14),
               contentPadding: EdgeInsets.symmetric(
                 horizontal: 16,
@@ -1971,7 +2000,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  DateHelper.nowFull(),
+                  DateHelper.formatDateTimeShort(DateTime.now()),
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.bold,
@@ -1990,7 +2019,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
                   Text(
-                    "Follow Up Task",
+                    "Follow Up Reminder",
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.bold,
@@ -2036,8 +2065,8 @@ class _ContactAddPageState extends State<ContactAddPage> {
                       children: [
                         Text(
                           selectedDate != null
-                              ? DateHelper.formatDate(selectedDate!)
-                              : DateHelper.nowFull(),
+                              ? DateHelper.formatDateTimeShort(selectedDate!)
+                              : DateHelper.formatDateTimeShort(DateTime.now()),
                           style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.bold,
@@ -2057,10 +2086,8 @@ class _ContactAddPageState extends State<ContactAddPage> {
               SizedBox(height: 32),
               BlocBuilder<ActivityBloc, ActivityState>(
                 builder: (context, state) {
-                  final isFollowUpFlow = widget.args.buttonLabel == 'Followed Up';
-                  final isLoading = isFollowUpFlow
-                      ? state.status == ActivityStatus.followUpLoading
-                      : state.status == ActivityStatus.creating;
+                  final isFollowUpFlow = widget.args.buttonLabel == 'Complete';
+                  final isLoading = isFollowUpFlow? state.status == ActivityStatus.followUpLoading: state.status == ActivityStatus.creating;
 
                   return customButton(isLoading ? null : () {
                       if (isFollowUpFlow && widget.args.dataActivity != null) {

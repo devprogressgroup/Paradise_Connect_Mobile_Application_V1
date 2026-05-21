@@ -37,27 +37,42 @@ class DioClient {
           print(">>> [${options.method}] ${options.uri}");
           return handler.next(options);
         },
-        // onError: (DioException e, handler) async {
-        //   print("DIO ERROR: ${e.message}");
-
-        //   if (e.response?.statusCode == 401) {
-        //     final context = AppRouter.rootNavigatorKey.currentContext;
-        //     if (context != null) {
-        //       // Dispatch LogoutEvent — akan clear token + reset semua BLoC
-        //       context.read<AuthBloc>().add(LogoutEvent());
-        //     } else {
-        //       // Fallback jika context tidak tersedia
-        //       await _authLocalDataSource.clearToken();
-        //       AppRouter.router.go('/login');
-        //     }
-        //   }
-        //   return handler.next(e);
-        // },
         onError: (DioException e, handler) async {
           print("DIO ERROR: ${e.message}");
 
           if (e.response?.statusCode == 401 && !_isHandling401) {
             _isHandling401 = true;
+
+            final currentToken = await _authLocalDataSource.getToken();
+            if (currentToken != null && currentToken.isNotEmpty) {
+              try {
+                final refreshDio = Dio(BaseOptions(
+                  baseUrl: ApiConstants.baseUrl,
+                  headers: {
+                    "Accept": "application/json",
+                    "Authorization": "Bearer $currentToken",
+                  },
+                ));
+
+                final refreshResponse = await refreshDio.post('/refresh');
+                final body = refreshResponse.data as Map<String, dynamic>;
+
+                if (body['status'] == true) {
+                  final newToken = body['data']['access_token'] as String;
+                  final persistent = await _authLocalDataSource.isAutoLogin();
+                  await _authLocalDataSource.saveToken(newToken, persistent: persistent);
+                  _isHandling401 = false;
+
+                  // Retry original request with new token
+                  e.requestOptions.headers["Authorization"] = "Bearer $newToken";
+                  final retryResponse = await _dio.fetch(e.requestOptions);
+                  return handler.resolve(retryResponse);
+                }
+              } catch (_) {
+                // Refresh failed — fall through to logout
+              }
+            }
+
             await _authLocalDataSource.clearToken();
 
             final context = AppRouter.rootNavigatorKey.currentContext;
