@@ -13,6 +13,7 @@ import 'package:progress_group/features/attandance/domain/repositories/attandanc
 import 'package:progress_group/features/attandance/domain/usecase/get_attendance.dart';
 import 'package:progress_group/features/attandance/domain/usecase/get_locations.dart';
 import 'package:progress_group/features/attandance/domain/usecase/get_office_locations.dart';
+import 'package:progress_group/features/attandance/domain/usecase/get_today_attendance.dart';
 import 'package:progress_group/features/attandance/domain/usecase/submit_attendance.dart';
 import 'package:progress_group/features/attandance/domain/usecase/submit_attendance_activity.dart';
 import 'package:progress_group/features/attandance/presentation/state/attandance/attendance_bloc.dart';
@@ -147,6 +148,7 @@ class _MyAppState extends State<MyApp> {
   }
 
   void _resetApp() {
+    DioClient.resetSession();
     setState(() {
       // 1. Reset status auth notifier agar GoRouter mengarahkan ke /login
       AppRouter.authNotifier.value = false;
@@ -228,6 +230,7 @@ class _MyAppState extends State<MyApp> {
     final attendanceRemoteDataSource = AttendanceRemoteDataSourceImpl(dioClient.dio);
     final attendanceRepository = AttendanceRepositoryImpl(attendanceRemoteDataSource);
     final getAttendanceUseCase = GetAttendanceUseCase(attendanceRepository);
+    final getTodayAttendanceUseCase = GetTodayAttendanceUseCase(attendanceRepository);
     final getLocationsUseCase = GetLocationsUseCase(attendanceRepository);
     final getOfficeLocationsUseCase = GetOfficeLocationsUseCase(attendanceRepository);
     final submitAttendanceUseCase = SubmitAttendanceUseCase(attendanceRepository);
@@ -258,7 +261,7 @@ class _MyAppState extends State<MyApp> {
             BlocProvider(create: (_) => UploadAttachmentBloc(uploadAttachmentUseCase, updateAttachmentUseCase)),
             BlocProvider(create: (_) => AttachmentCubit(getAttachmentsUseCase, deleteAttachmentUseCase)),
             BlocProvider(create: (_) => ActivityProspectStatusBloc(getActivityProspectStatusUseCase)),
-            BlocProvider(create: (_) => AttendanceBloc(getAttendanceUseCase: getAttendanceUseCase, getLocationsUseCase: getLocationsUseCase, getOfficeLocationsUseCase: getOfficeLocationsUseCase, submitAttendanceUseCase: submitAttendanceUseCase, submitAttendanceActivityUseCase: submitAttendanceActivityUseCase)),
+            BlocProvider(create: (_) => AttendanceBloc(getAttendanceUseCase: getAttendanceUseCase, getTodayAttendanceUseCase: getTodayAttendanceUseCase, getLocationsUseCase: getLocationsUseCase, getOfficeLocationsUseCase: getOfficeLocationsUseCase, submitAttendanceUseCase: submitAttendanceUseCase, submitAttendanceActivityUseCase: submitAttendanceActivityUseCase)),
             BlocProvider(create: (_) => WhatsappActivityBloc(getWhatsappActivityUseCase)),
             BlocProvider(create: (_) => InfoSourceBloc(getInfoSourcesUseCase: getInfoSourcesUseCase)),
             BlocProvider(create: (_) => LostReasonBloc(getLostReasonsUseCase: getLostReasonsUseCase)),

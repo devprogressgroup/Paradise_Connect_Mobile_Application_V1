@@ -106,7 +106,15 @@ class ActivityBloc extends Bloc<ActivityEvent, ActivityState> {
 
     result.fold(
       (failure) => emit(state.copyWith(status: ActivityStatus.error, errorMessage: failure)),
-      (_) => emit(state.copyWith(status: ActivityStatus.followUpSuccess)),
+      (_) {
+        final updatedActivities = state.activities
+            .where((a) => !event.activityIds.contains(a.activityId))
+            .toList();
+        emit(state.copyWith(
+          status: ActivityStatus.followUpSuccess,
+          activities: updatedActivities,
+        ));
+      },
     );
   }
 

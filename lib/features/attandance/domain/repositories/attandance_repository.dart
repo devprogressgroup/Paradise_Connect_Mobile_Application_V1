@@ -6,6 +6,7 @@ import 'package:progress_group/features/attandance/domain/entities/location_enti
 
 abstract class AttendanceRepository {
   Future<List<AttendanceEntity>> getAttendance({List<int>? salesPersonIds});
+  Future<AttendanceEntity?> getTodayAttendance();
   Future<List<AttendanceLocation>> getLocations();
   Future<List<AttendanceLocation>> getOfficeLocations();
   Future<void> submitAttendance({required String datetime,required int flag,required String location,String? note,String? filePath,required int nikNumber,});
@@ -29,6 +30,66 @@ class AttendanceRepositoryImpl implements AttendanceRepository {
     final result = await remote.getOfficeLocations();
     final list = result['data']['data'] as List;
     return list.map((e) => AttendanceLocationModel.fromJson(e)).toList();
+  }
+
+  @override
+  Future<AttendanceEntity?> getTodayAttendance() async {
+    final result = await remote.getTodayAttendance();
+    if (result['status'] != true) return null;
+
+    final data = result['data'];
+    if (data == null) return null;
+
+    final date = data['date'] as String;
+    final logs = data['logs'] as List? ?? [];
+
+    String? clockIn, clockOut, checkInActivity;
+    String? location0, location1, location6;
+    String? note0, note1, note6;
+    List<String>? fileAttchment0, fileAttchment1, fileAttchment6;
+
+    for (var log in logs) {
+      final flag = log['flag'] as int;
+      final datetime = log['datetime'] as String?;
+      final locationName = log['location_name'] as String?;
+      final note = log['note'] as String?;
+      final files = (log['file_attachment'] as List?)?.map((e) => e.toString()).toList();
+
+      if (flag == 0) {
+        clockIn = datetime;
+        location0 = locationName;
+        note0 = note;
+        fileAttchment0 = files;
+      } else if (flag == 1) {
+        clockOut = datetime;
+        location1 = locationName;
+        note1 = note;
+        fileAttchment1 = files;
+      } else if (flag == 6) {
+        checkInActivity = datetime;
+        location6 = locationName;
+        note6 = note;
+        fileAttchment6 = files;
+      }
+    }
+
+    return AttendanceEntity(
+      date: date,
+      fullName: null,
+      location: location0 ?? location1 ?? '',
+      clockIn: clockIn,
+      clockOut: clockOut,
+      checkInActivity: checkInActivity,
+      location0: location0,
+      location1: location1,
+      location6: location6,
+      note0: note0,
+      note1: note1,
+      note6: note6,
+      fileAttchment0: fileAttchment0,
+      fileAttchment1: fileAttchment1,
+      fileAttchment6: fileAttchment6,
+    );
   }
 
   @override

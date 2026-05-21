@@ -13,6 +13,10 @@ class DioClient {
 
   static bool _isHandling401 = false;
 
+  static void resetSession() {
+    _isHandling401 = false;
+  }
+
   DioClient(this._authLocalDataSource) {
     _dio = Dio(
       BaseOptions(
@@ -87,7 +91,6 @@ class DioClient {
                     TextButton(
                       onPressed: () {
                         Navigator.of(dialogContext).pop();
-                        _isHandling401 = false;
                         context.read<AuthBloc>().add(LogoutEvent());
                       },
                       child: const Text("OK"),

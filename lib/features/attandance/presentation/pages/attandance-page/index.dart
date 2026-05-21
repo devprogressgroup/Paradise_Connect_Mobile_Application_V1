@@ -397,9 +397,7 @@ class _AttandancePageState extends State<AttandancePage> {
 
   Future<void> _getLog() async {
     final contactState = context.read<ContactBloc>().state;
-    final salesPersonIds = (contactState.ownerIds != null && contactState.ownerIds!.isNotEmpty) 
-        ? contactState.ownerIds! 
-        : null;
+    final salesPersonIds = (contactState.ownerIds != null && contactState.ownerIds!.isNotEmpty) ? contactState.ownerIds! : null;
 
     context.read<AttendanceBloc>().add(FetchAttendanceDataEvent(salesPersonIds: salesPersonIds));
   }
@@ -464,11 +462,7 @@ class _AttandancePageState extends State<AttandancePage> {
         listener: (context, state) {
           if (state is AttendanceLoaded && !_hasSetInitialTab) {
             final now = DateTime.now();
-            final todayStr = DateFormat('yyyy-MM-dd').format(now);
-            AttendanceEntity? today;
-            try {
-              today = state.data.firstWhere((e) => e.date == todayStr);
-            } catch (_) {}
+            final today = state.todayData;
 
             int targetIndex = 0;
             if (now.hour >= 17) {
@@ -506,8 +500,6 @@ class _AttandancePageState extends State<AttandancePage> {
                           parent: AlwaysScrollableScrollPhysics(),
                         ),
                         slivers: [
-
-                          /// PROFILE SECTION
                           SliverToBoxAdapter(
                             child: SizedBox(
                               height: 240,
@@ -568,7 +560,7 @@ class _AttandancePageState extends State<AttandancePage> {
                   ),
                   alignment: Alignment.center,
                   child: Text(
-                    'My Activity',
+                    'Activity',
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
@@ -821,13 +813,51 @@ class _AttandancePageState extends State<AttandancePage> {
               }
     
               if (state is AttendanceLoaded) {
-                final data = state.data.where((e) => e.checkInActivity != null && e.checkInActivity!.toString().trim().isNotEmpty).toList();
+                final data = state.data
+                    .where((e) => e.checkInActivity != null && e.checkInActivity!.toString().trim().isNotEmpty)
+                    .toList()
+                  ..sort((a, b) => b.date.compareTo(a.date));
+
+                // Group by date
+                final Map<String, List<AttendanceEntity>> grouped = {};
+                for (final item in data) {
+                  grouped.putIfAbsent(item.date, () => []).add(item);
+                }
+                final dates = grouped.keys.toList();
+
                 return ListView.builder(
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
                   padding: EdgeInsets.zero,
-                  itemCount: data.length,
-                  itemBuilder: (_, i) => _buildCardAktivity(data[i]),
+                  itemCount: dates.length,
+                  itemBuilder: (_, i) {
+                    final date = dates[i];
+                    final items = grouped[date]!;
+                    final parsedDate = DateTime.tryParse(date);
+                    final dateLabel = parsedDate != null
+                        ? DateHelper.formatToIndonesian(parsedDate)
+                        : date;
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.only(top: 12, bottom:10),
+                          child: Row(
+                            children: [
+                              Text(
+                                dateLabel,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 14,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        ...items.map((item) => _buildCardAktivity(item)),
+                      ],
+                    );
+                  },
                 );
               }
     
@@ -1008,7 +1038,7 @@ class _AttandancePageState extends State<AttandancePage> {
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
-                      Text(item.checkInActivity != null && item.checkInActivity!.isNotEmpty? DateFormat('dd/MM/yyyy').format(DateTime.parse(item.checkInActivity!)): '-',style: const TextStyle(fontSize: 11)),
+                      // Text(item.checkInActivity != null && item.checkInActivity!.isNotEmpty? DateFormat('dd/MM/yyyy').format(DateTime.parse(item.checkInActivity!)): '-',style: const TextStyle(fontSize: 11)),
                       Text(item.checkInActivity != null && item.checkInActivity!.isNotEmpty? DateFormat('hh:mm').format(DateTime.parse(item.checkInActivity!)): '-',style: const TextStyle(fontSize: 11)),
                     ],
                   ),
@@ -1067,17 +1097,8 @@ class _AttandancePageState extends State<AttandancePage> {
                           child: Center(
                             child: GestureDetector(
                               onTap: () {
-                                final newOffset =
-                                    (scrollController.offset - 250).clamp(
-                                  0.0,
-                                  scrollController.position.maxScrollExtent,
-                                );
-
-                                scrollController.animateTo(
-                                  newOffset,
-                                  duration: const Duration(milliseconds: 250),
-                                  curve: Curves.easeInOut,
-                                );
+                                final newOffset =(scrollController.offset - 250).clamp(0.0,scrollController.position.maxScrollExtent,);
+                                scrollController.animateTo(newOffset,duration: const Duration(milliseconds: 250),curve: Curves.easeInOut,);
                               },
                               child: Container(
                                 padding: const EdgeInsets.all(8),
@@ -1103,17 +1124,8 @@ class _AttandancePageState extends State<AttandancePage> {
                           child: Center(
                             child: GestureDetector(
                               onTap: () {
-                                final newOffset =
-                                    (scrollController.offset + 250).clamp(
-                                  0.0,
-                                  scrollController.position.maxScrollExtent,
-                                );
-
-                                scrollController.animateTo(
-                                  newOffset,
-                                  duration: const Duration(milliseconds: 250),
-                                  curve: Curves.easeInOut,
-                                );
+                                final newOffset = (scrollController.offset + 250).clamp(0.0,scrollController.position.maxScrollExtent,);
+                                scrollController.animateTo(newOffset,duration: const Duration(milliseconds: 250),curve: Curves.easeInOut,);
                               },
                               child: Container(
                                 padding: const EdgeInsets.all(8),
@@ -1173,16 +1185,7 @@ class _AttandancePageState extends State<AttandancePage> {
         ),
         child: BlocBuilder<AttendanceBloc, AttendanceState>(
           builder: (context, state) {
-            AttendanceEntity? today;
-            if (state is AttendanceLoaded && state.data.isNotEmpty) {
-              final now = DateTime.now();
-              final todayStr = DateFormat('yyyy-MM-dd').format(now);
-              try {
-                today = state.data.firstWhere((e) => e.date == todayStr);
-              } catch (_) {
-                // Not found
-              }
-            }
+            final AttendanceEntity? today = state is AttendanceLoaded ? state.todayData : null;
             return Column(
               children: [
                 _buildTabBar(),
@@ -1299,11 +1302,15 @@ class _AttandancePageState extends State<AttandancePage> {
 
 
   Widget _buildCheckInActivity(AttendanceEntity? today) {
-    return _buildCheckForm(
-      title: "Check In",
-      flagParam: 6,
-      image: (today?.fileAttchment6 != null && today!.fileAttchment6!.isNotEmpty)? today.fileAttchment6!.first: null,
-      attendance: today,
+    return Column(
+      children: [
+        _buildCheckForm(
+          title: "Check In",
+          flagParam: 6,
+          image: (today?.fileAttchment6 != null && today!.fileAttchment6!.isNotEmpty)? today.fileAttchment6!.first: null,
+          attendance: today,
+        ),
+      ],
     );
   }
 
@@ -1326,19 +1333,21 @@ class _AttandancePageState extends State<AttandancePage> {
                   bottom: 0,
                   child: Container(
                     height: 20,
-                    padding: EdgeInsets.symmetric(horizontal: 5, vertical: 5),
+                    padding: EdgeInsets.symmetric(horizontal: 5),
                     decoration: BoxDecoration(
                       shape: BoxShape.rectangle,
                       color: Color(blue2Color).withOpacity(0.5),
                       borderRadius: BorderRadius.only(bottomLeft: Radius.circular(8), bottomRight: Radius.circular(8)),
                     ),
                     child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Row(
                           children: [
                             Icon(Icons.access_time_filled, color:flagParam == 0? Color(greenPercentColor): Color(redPeriodColor), size: 10),
                             SizedBox(width: 10),
-                            Text("${flagParam == 0? attendance?.clockIn :attendance?.clockOut}" , style: TextStyle(color: Colors.white, fontSize: 10)),
+                            Text(() { final raw = flagParam == 0 ? attendance?.clockIn : attendance?.clockOut; final dt = raw != null ? DateTime.tryParse(raw) : null; return dt != null ? DateHelper.formatTime(dt) : (raw ?? '-'); }(), style: TextStyle(color: Colors.white, fontSize: 10)),
                           ],
                         ),
                         Row(
@@ -1404,16 +1413,13 @@ class _AttandancePageState extends State<AttandancePage> {
   );
 }  
 
-Widget _buildClockOut(AttendanceEntity? today) {
+  Widget _buildClockOut(AttendanceEntity? today) {
     return Column(
       children: [
-
         _buildCheckForm(
           title: "Clock Out",
           flagParam: 1,
-          image: (today?.fileAttchment1 != null && today!.fileAttchment1!.isNotEmpty)
-              ? today.fileAttchment1!.last
-              : null,
+          image: (today?.fileAttchment1 != null && today!.fileAttchment1!.isNotEmpty)? today.fileAttchment1!.last: null,
           attendance: today,  
         ),
       ],
@@ -1428,9 +1434,7 @@ Widget _buildClockOut(AttendanceEntity? today) {
         _buildCheckForm(
           title: "Clock In",
           flagParam: 0,
-          image: (today?.fileAttchment0 != null && today!.fileAttchment0!.isNotEmpty)
-              ? today.fileAttchment0!.first
-              : null,
+          image: (today?.fileAttchment0 != null && today!.fileAttchment0!.isNotEmpty)? today.fileAttchment0!.first: null,
           attendance: today,
         ),
       ],
@@ -1452,10 +1456,7 @@ Widget _buildClockOut(AttendanceEntity? today) {
     }
 
     final String displayTime = formatTime(timeValue);
-    final String? displayImage =
-        (images != null && images.isNotEmpty) 
-            ? (flag == 0 ? images.first : images.last) 
-            : null;
+    final String? displayImage =  (images != null && images.isNotEmpty)       ? (flag == 0 ? images.first : images.last)       : null;
 
     showDialog(
       context: context,

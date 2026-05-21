@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 
 abstract class AttendanceRemoteDataSource {
   Future<Map<String, dynamic>> getAttendance({List<int>? salesPersonIds});
+  Future<Map<String, dynamic>> getTodayAttendance();
   Future<Map<String, dynamic>> postAttendance({required String attendanceDatetime,required int flag,required String locationName,String? note,String? filePath,required int nikNumber});
   Future<Map<String, dynamic>> postAttendanceActivity({required String attendanceDatetime,  required int flag,  required String locationName,  String? note,  required List<String> filePaths, required int nikNumber});
   Future<Map<String, dynamic>> getLocations();
@@ -22,6 +23,12 @@ class AttendanceRemoteDataSourceImpl implements AttendanceRemoteDataSource {
   @override
   Future<Map<String, dynamic>> getOfficeLocations() async {
     final response = await dio.get('/attendance/locations/office');
+    return response.data;
+  }
+
+  @override
+  Future<Map<String, dynamic>> getTodayAttendance() async {
+    final response = await dio.get('/attendance/today');
     return response.data;
   }
 

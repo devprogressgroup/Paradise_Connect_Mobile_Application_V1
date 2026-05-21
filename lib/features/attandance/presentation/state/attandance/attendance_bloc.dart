@@ -4,6 +4,7 @@ import 'package:progress_group/features/attandance/domain/entities/location_enti
 import 'package:progress_group/features/attandance/domain/usecase/get_attendance.dart';
 import 'package:progress_group/features/attandance/domain/usecase/get_locations.dart';
 import 'package:progress_group/features/attandance/domain/usecase/get_office_locations.dart';
+import 'package:progress_group/features/attandance/domain/usecase/get_today_attendance.dart';
 import 'package:progress_group/features/attandance/domain/usecase/submit_attendance.dart';
 import 'package:progress_group/features/attandance/domain/usecase/submit_attendance_activity.dart';
 import 'package:progress_group/features/attandance/domain/entities/attandance_entity.dart';
@@ -12,6 +13,7 @@ import 'package:progress_group/features/attandance/presentation/state/attandance
 
 class AttendanceBloc extends Bloc<AttendanceEvent, AttendanceState> {
   final GetAttendanceUseCase getAttendanceUseCase;
+  final GetTodayAttendanceUseCase getTodayAttendanceUseCase;
   final GetLocationsUseCase getLocationsUseCase;
   final GetOfficeLocationsUseCase getOfficeLocationsUseCase;
   final SubmitAttendanceUseCase submitAttendanceUseCase;
@@ -19,6 +21,7 @@ class AttendanceBloc extends Bloc<AttendanceEvent, AttendanceState> {
 
   AttendanceBloc({
     required this.getAttendanceUseCase,
+    required this.getTodayAttendanceUseCase,
     required this.getLocationsUseCase,
     required this.getOfficeLocationsUseCase,
     required this.submitAttendanceUseCase,
@@ -59,15 +62,18 @@ class AttendanceBloc extends Bloc<AttendanceEvent, AttendanceState> {
         final results = await Future.wait([
           getAttendanceUseCase(salesPersonIds: event.salesPersonIds),
           getOfficeLocationsUseCase(),
+          getTodayAttendanceUseCase().catchError((_) => null),
         ]);
 
         final logs = results[0] as List<AttendanceEntity>;
         final offices = results[1] as List<AttendanceLocation>;
+        final todayData = results[2] as AttendanceEntity?;
 
         emit(AttendanceLoaded(
-          data: logs, 
-          officeLocations: offices, 
-          locations: pameranLocations
+          data: logs,
+          officeLocations: offices,
+          locations: pameranLocations,
+          todayData: todayData,
         ));
       } catch (e) {
         emit(AttendanceError(e.toString()));

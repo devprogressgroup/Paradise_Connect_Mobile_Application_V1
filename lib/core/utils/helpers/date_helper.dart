@@ -9,7 +9,7 @@ class DateHelper {
 
   /// 🔥 JAM SAJA (08:30 AM)
   static String formatTime(DateTime date) {
-    return DateFormat('hh:mm a', 'en_US').format(date);
+   return DateFormat('HH:mm', 'en_US').format(date);
   }
 
   static String nowTime() {

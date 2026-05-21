@@ -226,14 +226,10 @@ class _HomePageState extends State<HomePage> {
           return buildHomeTaskShimmer();
         }
 
-        // Incomplete first, then newest (createdAt desc)
-        final activities = List.of(rawActivities)
-          ..sort((a, b) {
-            final aComplete = (a.statusFollow == 1) ? 1 : 0;
-            final bComplete = (b.statusFollow == 1) ? 1 : 0;
-            if (aComplete != bComplete) return aComplete.compareTo(bComplete);
-            return b.createdAt.compareTo(a.createdAt);
-          });
+        final activities = rawActivities
+            .where((a) => a.statusFollow != 1)
+            .toList()
+          ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
 
         return Column(
           children: [

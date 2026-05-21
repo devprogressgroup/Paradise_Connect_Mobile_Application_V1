@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
-import 'package:intl/intl.dart';
 import 'package:progress_group/core/constants/assets.dart';
 import 'package:progress_group/core/constants/colors.dart';
-import 'package:progress_group/features/attandance/domain/entities/attandance_entity.dart';
 import 'package:progress_group/features/attandance/presentation/state/attandance/attendance_bloc.dart';
 import 'package:progress_group/features/attandance/presentation/state/attandance/attendance_state.dart';
 
@@ -17,12 +15,7 @@ class AttendanceAlertsWidget extends StatelessWidget {
       builder: (context, state) {
         if (state is! AttendanceLoaded) return const SizedBox.shrink();
 
-        final todayStr = DateFormat('yyyy-MM-dd').format(DateTime.now());
-        AttendanceEntity? today;
-        try {
-          today = state.data.firstWhere((e) => e.date == todayStr);
-        } catch (_) {}
-
+        final today = state.todayData;
         final isClockedIn = today?.clockIn != null;
 
         bool showCheckIn = false;
@@ -39,18 +32,15 @@ class AttendanceAlertsWidget extends StatelessWidget {
           }
         }
 
+        final hasAlert = !isClockedIn || (showCheckIn && !isCheckedIn);
+        if (!hasAlert) return const SizedBox.shrink();
+
         return Column(
           children: [
-            // Incomplete items first
             if (!isClockedIn)
-              _buildItem(context, 'Kamu belum Clock In hari ini', Icons.fingerprint, isCompleted: false),
+              _buildItem(context, 'Kamu belum Clock In hari ini', Icons.fingerprint),
             if (showCheckIn && !isCheckedIn)
-              _buildItem(context, 'Kamu belum Check In hari ini', Icons.location_on_outlined, isCompleted: false),
-            // Completed items (green) at the bottom
-            if (isClockedIn)
-              _buildItem(context, 'Clock In hari ini', Icons.fingerprint, isCompleted: true),
-            if (showCheckIn && isCheckedIn)
-              _buildItem(context, 'Check In hari ini', Icons.location_on_outlined, isCompleted: true),
+              _buildItem(context, 'Kamu belum Check In hari ini', Icons.location_on_outlined),
             const SizedBox(height: 8),
           ],
         );
@@ -58,7 +48,7 @@ class AttendanceAlertsWidget extends StatelessWidget {
     );
   }
 
-  Widget _buildItem(BuildContext context, String message, IconData icon, {bool isCompleted = false}) {
+  Widget _buildItem(BuildContext context, String message, IconData icon) {
     return GestureDetector(
       onTap: () => context.go('/attandance'),
       child: Container(
@@ -66,7 +56,7 @@ class AttendanceAlertsWidget extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: BoxDecoration(
           color: Colors.white,
-          border: Border(bottom: BorderSide(color: Color(grey10Color), width: 1)          ),
+          border: Border(bottom: BorderSide(color: Color(grey10Color), width: 1)),
           borderRadius: BorderRadius.circular(10),
         ),
         child: Row(
@@ -75,8 +65,8 @@ class AttendanceAlertsWidget extends StatelessWidget {
             Row(
               children: [
                 Icon(
-                  isCompleted ? Icons.check_circle : Icons.check_circle_outline_rounded,
-                  color: isCompleted ? Colors.green : Color(primaryColor),
+                  Icons.check_circle_outline_rounded,
+                  color: Color(primaryColor),
                   size: 40,
                 ),
                 const SizedBox(width: 10),
@@ -89,7 +79,6 @@ class AttendanceAlertsWidget extends StatelessWidget {
                         fontSize: 14,
                         fontWeight: FontWeight.bold,
                         color: Color(blackColor),
-                        decoration: isCompleted ? TextDecoration.lineThrough : null,
                       ),
                     ),
                     Text(
