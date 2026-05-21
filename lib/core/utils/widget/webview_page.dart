@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_pdfview/flutter_pdfview.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:progress_group/core/constants/colors.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'custom_header.dart';
 
@@ -26,6 +27,13 @@ class WebViewPage extends StatefulWidget {
 }
 
 class _WebViewPageState extends State<WebViewPage> {
+  String? _localFilePath;
+
+  void _shareFile() {
+    if (_localFilePath == null) return;
+    Share.shareXFiles([XFile(_localFilePath!)], subject: widget.title);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -37,15 +45,20 @@ class _WebViewPageState extends State<WebViewPage> {
               context,
               widget.title,
               isBack: true,
-              colorBg: Color(primaryColor),
-              colorTitle: Color(whiteColor),
-              colorIconLeft: Color(whiteColor),
-              colorBack: Color(whiteColor),
+              colorTitle: Color(blackColor),
+              colorIconLeft: Color(primaryColor),
+              colorBack: Color(primaryColor),
+              iconLeft: widget.isPdf && _localFilePath != null ? Icons.share : null,
+              iconLeftOnTap: _shareFile,
             ),
           ),
           Expanded(
             child: widget.isPdf
-                ? PdfViewerWidget(url: widget.url)
+                ? PdfViewerWidget(
+                    url: widget.url,
+                    title: widget.title,
+                    onFileReady: (path) => setState(() => _localFilePath = path),
+                  )
                 : WebViewerWidget(url: widget.url),
           ),
         ],
@@ -56,10 +69,14 @@ class _WebViewPageState extends State<WebViewPage> {
 
 class PdfViewerWidget extends StatefulWidget {
   final String url;
+  final String title;
+  final void Function(String filePath)? onFileReady;
 
   const PdfViewerWidget({
     super.key,
     required this.url,
+    required this.title,
+    this.onFileReady,
   });
 
   @override
@@ -81,17 +98,17 @@ class _PdfViewerWidgetState extends State<PdfViewerWidget> {
     try {
       final dir = await getTemporaryDirectory();
 
-      final uri = Uri.parse(widget.url);
-      final fileName = uri.pathSegments.last.split('?').first;
-      final filePath = '${dir.path}/$fileName';
+      final safeName = widget.url.split('/').last.split('?').first;
+      final ext = safeName.contains('.') ? '.${safeName.split('.').last}' : '.pdf';
+      final titleName = widget.title.replaceAll(RegExp(r'[^\w\s\-]'), '').trim();
+      final filePath = '${dir.path}/$titleName$ext';
 
       final response = await Dio().download(
         widget.url,
         filePath,
         options: Options(
-          responseType: ResponseType.bytes,
           followRedirects: true,
-          receiveTimeout: const Duration(seconds: 30),
+          receiveTimeout: const Duration(seconds: 60),
         ),
         onReceiveProgress: (received, total) {
           if (mounted && total > 0) {
@@ -107,6 +124,7 @@ class _PdfViewerWidgetState extends State<PdfViewerWidget> {
           setState(() {
             localPath = filePath;
           });
+          widget.onFileReady?.call(filePath);
         }
       } else {
         throw Exception('Download gagal ${response.statusCode}');

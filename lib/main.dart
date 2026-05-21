@@ -215,7 +215,7 @@ class _MyAppState extends State<MyApp> {
     
     // SitePlan
     final siteplanRemoteDataSource = SiteplanRemoteDataSourceImpl(dioClient.dio);
-    final siteplanRepository = SitePlanRepositoryImpl(siteplanRemoteDataSource);
+    // final siteplanRepository = SitePlanRepositoryImpl(siteplanRemoteDataSource);
 
     // SalesKit / Townships
     final salesKitRemoteDataSource = SalesKitRemoteDataSourceImpl(dioClient.dio);
@@ -262,7 +262,7 @@ class _MyAppState extends State<MyApp> {
             BlocProvider(create: (_) => WhatsappActivityBloc(getWhatsappActivityUseCase)),
             BlocProvider(create: (_) => InfoSourceBloc(getInfoSourcesUseCase: getInfoSourcesUseCase)),
             BlocProvider(create: (_) => LostReasonBloc(getLostReasonsUseCase: getLostReasonsUseCase)),
-            BlocProvider(create: (_) => SiteplanBloc(siteplanRepository)..add(LoadSiteplanEvent())),
+            // BlocProvider(create: (_) => SiteplanBloc(siteplanRepository)..add(LoadSiteplanEvent())),
             BlocProvider(create: (_) => TownshipBloc(getTownshipsUseCase)..add(GetTownshipsEvent())),
             BlocProvider(create: (_) => SalesKitDetailBloc(getClustersUseCase: getClustersUseCase, getCommercialsUseCase: getCommercialsUseCase)),
           ],

@@ -68,6 +68,31 @@ class _SalesKitPageState extends State<SalesKitPage> {
     );
   }
 
+  bool _hasContent(String? brochure, String? priceList, String? productKnowledge) {
+    bool hasValue(String? v) => v != null && v.isNotEmpty;
+    return hasValue(brochure) || hasValue(priceList) || hasValue(productKnowledge);
+  }
+
+  void _navigateToDetail(SalesKitDetailArgs args) {
+    if (!_hasContent(args.brochure, args.priceList, args.productKnowledge)) {
+      showDialog(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          title: const Text('Informasi'),
+          content: const Text('Dokumen belum tersedia untuk produk ini.'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('OK'),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
+    context.pushNamed('salesKit', extra: args);
+  }
+
   void _openUrl(String? url, String title) {
     if (url == null || url.isEmpty) return;
     Navigator.push(
@@ -93,33 +118,36 @@ class _SalesKitPageState extends State<SalesKitPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  SizedBox(height: 15),
-                  _buildButtonBorder(
-                    title: "Price List",
-                    colorBg: whiteColor,
-                    colorTitle: primaryColor,
-                    logo: icPriceList,
-                    isDisabled: args.priceList == null,
-                    onTap: () => _openUrl(args.priceList, "Price List"),
-                  ),
-                  SizedBox(height: 15),
-                  _buildButtonBorder(
-                    title: "EBrouchure",
-                    colorBg: whiteColor,
-                    colorTitle: primaryColor,
-                    logo: icEBrouchure,
-                    isDisabled: args.brochure == null,
-                    onTap: () => _openUrl(args.brochure, "EBrouchure"),
-                  ),
-                  SizedBox(height: 15),
-                  _buildButtonBorder(
-                    title: "Product Knowledge",
-                    colorBg: whiteColor,
-                    colorTitle: primaryColor,
-                    logo: icProductKnowlage,
-                    isDisabled: args.productKnowledge == null,
-                    onTap: () => _openUrl(args.productKnowledge, "Product Knowledge"),
-                  ),
+                  if (args.priceList != null && args.priceList!.isNotEmpty) ...[
+                    SizedBox(height: 15),
+                    _buildButtonBorder(
+                      title: "Price List",
+                      colorBg: whiteColor,
+                      colorTitle: primaryColor,
+                      logo: icPriceList,
+                      onTap: () => _openUrl(args.priceList, "Price List ${args.title ?? ''}".trim()),
+                    ),
+                  ],
+                  if (args.brochure != null && args.brochure!.isNotEmpty) ...[
+                    SizedBox(height: 15),
+                    _buildButtonBorder(
+                      title: "EBrouchure",
+                      colorBg: whiteColor,
+                      colorTitle: primaryColor,
+                      logo: icEBrouchure,
+                      onTap: () => _openUrl(args.brochure, "E Brochure ${args.title ?? ''}".trim()),
+                    ),
+                  ],
+                  if (args.productKnowledge != null && args.productKnowledge!.isNotEmpty) ...[
+                    SizedBox(height: 15),
+                    _buildButtonBorder(
+                      title: "Product Knowledge",
+                      colorBg: whiteColor,
+                      colorTitle: primaryColor,
+                      logo: icProductKnowlage,
+                      onTap: () => _openUrl(args.productKnowledge, "Product Knowledge ${args.title ?? ''}".trim()),
+                    ),
+                  ],
                   SizedBox(height: 30),
                   _buildButtonBorder(
                     title: "Share",
@@ -248,16 +276,13 @@ class _SalesKitPageState extends State<SalesKitPage> {
                         cluster.logo,
                       ),
                       name: cluster.name,
-                      onTap: () => context.pushNamed(
-                        "salesKit",
-                        extra: SalesKitDetailArgs(
-                          page: 2,
-                          title: cluster.name,
-                          brochure: cluster.brochure,
-                          productKnowledge: cluster.productKnowledge,
-                          priceList: cluster.priceList,
-                        ),
-                      ),
+                      onTap: () => _navigateToDetail(SalesKitDetailArgs(
+                        page: 2,
+                        title: cluster.name,
+                        brochure: cluster.brochure,
+                        productKnowledge: cluster.productKnowledge,
+                        priceList: cluster.priceList,
+                      )),
                     ),
                     SizedBox(height: 5),
                   ],
@@ -280,16 +305,13 @@ class _SalesKitPageState extends State<SalesKitPage> {
                     _buildResidentialNetwork(
                       imageUrl: ApiConstants.commercialImageUrl(commercial.logo),
                       name: commercial.name,
-                      onTap: () => context.pushNamed(
-                        "salesKit",
-                        extra: SalesKitDetailArgs(
-                          page: 2,
-                          title: commercial.name,
-                          brochure: commercial.brochure,
-                          productKnowledge: commercial.productKnowledge,
-                          priceList: commercial.priceList,
-                        ),
-                      ),
+                      onTap: () => _navigateToDetail(SalesKitDetailArgs(
+                        page: 2,
+                        title: commercial.name,
+                        brochure: commercial.brochure,
+                        productKnowledge: commercial.productKnowledge,
+                        priceList: commercial.priceList,
+                      )),
                     ),
                     SizedBox(height: 5),
                   ],
