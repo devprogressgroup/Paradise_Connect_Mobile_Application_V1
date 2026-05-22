@@ -32,9 +32,6 @@ class SalesKitPage extends StatefulWidget {
 class _SalesKitPageState extends State<SalesKitPage> {
   final TextEditingController searchTC = TextEditingController();
   final FocusNode searchFN = FocusNode();
-  bool isOpenRedential = true;
-  bool isOpenCommercial = true;
-
   @override
   void initState() {
     super.initState();
@@ -148,14 +145,7 @@ class _SalesKitPageState extends State<SalesKitPage> {
                       onTap: () => _openUrl(args.productKnowledge, "Product Knowledge ${args.title ?? ''}".trim()),
                     ),
                   ],
-                  SizedBox(height: 30),
-                  _buildButtonBorder(
-                    title: "Share",
-                    colorBg: blue3Color,
-                    colorTitle: whiteColor,
-                    logo: icShare,
-                    onTap: () {},
-                  ),
+                  
                 ],
               ),
             ),
@@ -207,7 +197,31 @@ class _SalesKitPageState extends State<SalesKitPage> {
   }
 
   Widget _buildDetail() {
-    return BlocBuilder<SalesKitDetailBloc, SalesKitDetailState>(
+    return BlocConsumer<SalesKitDetailBloc, SalesKitDetailState>(
+      listener: (context, state) {
+        if (state is SalesKitDetailLoaded) {
+          final clusters = state.clusters.where((c) => c.showOnMobile == 1);
+          final commercials = state.commercials.where((c) => c.showOnMobile == 1);
+          if (clusters.isEmpty && commercials.isEmpty) {
+            showDialog(
+              context: context,
+              builder: (dialogContext) => AlertDialog(
+                title: const Text('Informasi'),
+                content: const Text('Data tidak tersedia untuk produk ini.'),
+                actions: [
+                  TextButton(
+                    onPressed: () {
+                      Navigator.pop(dialogContext);
+                      Navigator.pop(context);
+                    },
+                    child: const Text('OK'),
+                  ),
+                ],
+              ),
+            );
+          }
+        }
+      },
       builder: (context, state) {
         return Column(
           children: [
@@ -257,116 +271,50 @@ class _SalesKitPageState extends State<SalesKitPage> {
         ? state.commercials
         : <CommercialEntity>[];
 
-    return ListView(
-      physics: const AlwaysScrollableScrollPhysics(),
-      children: [
-        _dropdown(
-          "Residential",
-          () => setState(() => isOpenRedential = !isOpenRedential),
-          isOpenRedential,
-          Column(
-            children: [
-              SizedBox(height: 5),
-              ...clusters.map(
-                (cluster) => Column(
-                  children: [
-                    _buildResidentialNetwork(
-                      imageUrl: ApiConstants.clusterImageUrl(
-                        widget.args.townshipSlug ?? '',
-                        cluster.logo,
-                      ),
-                      name: cluster.name,
-                      onTap: () => _navigateToDetail(SalesKitDetailArgs(
-                        page: 2,
-                        title: cluster.name,
-                        brochure: cluster.brochure,
-                        productKnowledge: cluster.productKnowledge,
-                        priceList: cluster.priceList,
-                      )),
-                    ),
-                    SizedBox(height: 5),
-                  ],
-                ),
-              ),
-              SizedBox(height: 25),
-            ],
-          ),
+    final items = [
+      ...clusters.where((c) => c.showOnMobile == 1).map((c) => (
+        imageUrl: ApiConstants.clusterImageUrl(widget.args.townshipSlug ?? '', c.logoMobile),
+        name: c.name,
+        args: SalesKitDetailArgs(
+          page: 2,
+          title: c.name,
+          brochure: c.brochure,
+          productKnowledge: c.productKnowledge,
+          priceList: c.priceList,
         ),
-        _dropdown(
-          "Commercial",
-          () => setState(() => isOpenCommercial = !isOpenCommercial),
-          isOpenCommercial,
-          Column(
-            children: [
-              SizedBox(height: 5),
-              ...commercials.map(
-                (commercial) => Column(
-                  children: [
-                    _buildResidentialNetwork(
-                      imageUrl: ApiConstants.commercialImageUrl(commercial.logo),
-                      name: commercial.name,
-                      onTap: () => _navigateToDetail(SalesKitDetailArgs(
-                        page: 2,
-                        title: commercial.name,
-                        brochure: commercial.brochure,
-                        productKnowledge: commercial.productKnowledge,
-                        priceList: commercial.priceList,
-                      )),
-                    ),
-                    SizedBox(height: 5),
-                  ],
-                ),
-              ),
-              SizedBox(height: 10),
-            ],
-          ),
+      )),
+      ...commercials.where((c) => c.showOnMobile == 1).map((c) => (
+        imageUrl: ApiConstants.commercialImageUrl(c.logoMobile),
+        name: c.name,
+        args: SalesKitDetailArgs(
+          page: 2,
+          title: c.name,
+          brochure: c.brochure,
+          productKnowledge: c.productKnowledge,
+          priceList: c.priceList,
         ),
-      ],
-    );
-  }
+      )),
+    ];
 
-  Widget _dropdown(String hint, VoidCallback onTap, bool isOpen, Widget child) {
-    return Container(
-      decoration: BoxDecoration(
-        boxShadow: [
-          BoxShadow(
-            color: Color(blackColor).withOpacity(0.06),
-            blurRadius: 58,
-            offset: Offset(0, 6),
-          ),
-        ],
+
+    return GridView.builder(
+      physics: const AlwaysScrollableScrollPhysics(),
+      padding: const EdgeInsets.all(26),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        crossAxisSpacing: 20,
+        mainAxisSpacing: 20,
+        childAspectRatio: 1.1,
       ),
-      child: Column(
-        children: [
-          InkWell(
-            onTap: onTap,
-            child: Container(
-              color: Color(whiteColor),
-              height: 50,
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    hint,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  Icon(
-                    isOpen
-                        ? Icons.keyboard_arrow_up
-                        : Icons.keyboard_arrow_down,
-                    size: 35,
-                  ),
-                ],
-              ),
-            ),
-          ),
-          if (isOpen) Container(width: double.infinity, child: child),
-        ],
-      ),
+      itemCount: items.length,
+      itemBuilder: (context, index) {
+        final item = items[index];
+        return _buildResidentialNetwork(
+          imageUrl: item.imageUrl,
+          name: item.name,
+          onTap: () => _navigateToDetail(item.args),
+        );
+      },
     );
   }
 
@@ -375,38 +323,59 @@ class _SalesKitPageState extends State<SalesKitPage> {
     required String name,
     required VoidCallback onTap,
   }) {
-
-
     return GestureDetector(
       onTap: onTap,
-      child: Container(
-        margin: EdgeInsets.symmetric(horizontal: 16),
-        height: 137,
-        width: double.infinity,
-        decoration: BoxDecoration(
-          color: Color(whiteColor),
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Image.network(
-              imageUrl,
-              height: 100,
-              width: 140,
-              fit: BoxFit.contain,
-              errorBuilder: (context, error, stackTrace) =>
-                  const Icon(Icons.broken_image, size: 40, color: Colors.grey),
-            ),
-            Text(
-              name,
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: Color(blue2Color),
+      child: SizedBox.expand(
+        child: Container(
+          decoration: BoxDecoration(
+            color: Color(whiteColor),
+            boxShadow: [
+              BoxShadow(
+                color: Color(grey6Color).withValues(alpha: 0.3),
+                spreadRadius: 0,
+                blurRadius: 5,
+                offset: const Offset(0, 2),
               ),
-            ),
-          ],
+            ],
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Column(
+            children: [
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(8, 8, 8, 4),
+                  child: LayoutBuilder(
+                    builder: (_, constraints) => Image.network(
+                      imageUrl,
+                      width: constraints.maxWidth,
+                      height: constraints.maxHeight,
+                      fit: BoxFit.contain,
+                      alignment: Alignment.center,
+                      errorBuilder: (_, __, ___) => const Icon(
+                        Icons.broken_image,
+                        size: 40,
+                        color: Colors.grey,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
+                child: Text(
+                  name,
+                  textAlign: TextAlign.center,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: Color(blue2Color),
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_contacts/flutter_contacts.dart';
 import 'dart:convert';
 import 'package:flutter/services.dart';
 import 'package:progress_group/core/utils/helpers/date_helper.dart';
@@ -34,9 +35,8 @@ import '../../state/contact_properties/contact_properties_state.dart';
 import 'package:progress_group/features/saleskit/presentation/state/township/township_bloc.dart';
 import 'package:progress_group/features/saleskit/presentation/state/township/township_event.dart';
 import 'package:progress_group/features/saleskit/presentation/state/township/township_state.dart';
-import 'package:progress_group/features/saleskit/presentation/state/saleskit_detail/saleskit_detail_bloc.dart';
-import 'package:progress_group/features/saleskit/presentation/state/saleskit_detail/saleskit_detail_event.dart';
-import 'package:progress_group/features/saleskit/presentation/state/saleskit_detail/saleskit_detail_state.dart';
+import 'package:progress_group/features/contact/presentation/state/property_unit/property_unit_cubit.dart';
+import 'package:progress_group/features/contact/presentation/state/property_unit/property_unit_state.dart';
 
 class ContactFormPage extends StatefulWidget {
   final ContactDetailArgs args;
@@ -98,6 +98,13 @@ class _ContactFormPageState extends State<ContactFormPage> {
   String? selectLastProjectProduct;
   String? selectFirstProjectCategory;
   String? selectLastProjectCategory;
+  int? selectLastClusterId;
+  int? selectLastCommercialId;
+  int? selectLastProductId;
+  int? _existingFirstProjectId;
+  int? _existingFirstClusterId;
+  int? _existingFirstCommercialId;
+  int? _existingFirstProductId;
   String? selectedSourceName;
   int? selectedSourceId;
   String? selectedSource1Name;
@@ -400,11 +407,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
     fBlockNoTC.text = contact.firstBlokNo ?? '';
     selectFirstProject = contact.firstProject?.isNotEmpty == true ? contact.firstProject : null;
     selectLastProject = contact.lastProject?.isNotEmpty == true ? contact.lastProject : null;
-    selectFirstProjectProduct = contact.firstProduct?.isNotEmpty == true ? contact.firstProduct : null;
-    selectFirstProjectCategory = contact.firstProjectCategory?.isNotEmpty == true ? contact.firstProjectCategory : null;
     generalNotesTC.text = contact.generalNotes ?? '';
-    selectLastProjectProduct = contact.lastProduct?.isNotEmpty == true ? contact.lastProduct : null;
-    selectLastProjectCategory = contact.lastProjectCategory?.isNotEmpty == true ? contact.lastProjectCategory : null;
     lBlockNoTC.text = contact.lastBlokNo ?? '';
     noKTPTC.text = contact.noKtp ?? '';
     ktpAddressTC.text = contact.ktpAddress ?? '';
@@ -445,26 +448,49 @@ class _ContactFormPageState extends State<ContactFormPage> {
         }
       }
 
-      // Update dropdowns if specific project/product info is available
-      if ((contact.projectName ?? '').isNotEmpty) {
-        selectFirstProject = contact.projectName;
-      }
-      if ((contact.firstProject ?? '').isNotEmpty) {
-        selectFirstProject = contact.firstProject;
-      }
-      if ((contact.lastProject ?? '').isNotEmpty) {
-        selectLastProject = contact.lastProject;
-      }
+      // Project / category / product dropdowns
+      if ((contact.projectName ?? '').isNotEmpty) selectFirstProject = contact.projectName;
+      if ((contact.firstProject ?? '').isNotEmpty) selectFirstProject = contact.firstProject;
+      if ((contact.lastProject ?? '').isNotEmpty) selectLastProject = contact.lastProject;
+
+      selectFirstProjectCategory = contact.firstProjectCategory?.isNotEmpty == true ? contact.firstProjectCategory : null;
+      selectLastProjectCategory = contact.lastProjectCategory?.isNotEmpty == true ? contact.lastProjectCategory : null;
+      selectFirstProjectProduct = contact.firstProduct?.isNotEmpty == true ? contact.firstProduct : null;
+      selectLastProjectProduct = contact.lastProduct?.isNotEmpty == true ? contact.lastProduct : null;
+
+      _existingFirstProjectId = contact.firstProjectId;
+      _existingFirstClusterId = contact.firstClusterId;
+      _existingFirstCommercialId = contact.firstCommercialId;
+      _existingFirstProductId = contact.firstProductId;
+      selectLastClusterId = contact.lastClusterId;
+      selectLastCommercialId = contact.lastCommercialId;
+      selectLastProductId = contact.lastProductId;
+
+      // Use stored IDs directly when available, fall back to name lookup
+      if (contact.firstProjectId != null) selectFirstTownshipId = contact.firstProjectId;
+      if (contact.lastProjectId != null) selectLastTownshipId = contact.lastProjectId;
 
       final townshipState = context.read<TownshipBloc>().state;
-      if (townshipState is TownshipLoaded && selectLastProject != null) {
+      if (townshipState is TownshipLoaded) {
         for (final t in townshipState.townships) {
-          if (t.name.trim().toLowerCase() == selectLastProject!.trim().toLowerCase()) {
+          if (selectFirstTownshipId == null &&
+              selectFirstProject != null &&
+              t.name.trim().toLowerCase() == selectFirstProject!.trim().toLowerCase()) {
+            selectFirstTownshipId = t.id;
+          }
+          if (selectLastTownshipId == null &&
+              selectLastProject != null &&
+              t.name.trim().toLowerCase() == selectLastProject!.trim().toLowerCase()) {
             selectLastTownshipId = t.id;
-            context.read<SalesKitDetailBloc>().add(LoadSalesKitDetailEvent(t.id));
-            break;
           }
         }
+      }
+
+      if (selectLastTownshipId != null) {
+        context.read<PropertyUnitCubit>().load(
+          selectLastTownshipId!,
+          isCommercial: selectLastProjectCategory?.toLowerCase() == 'commercial',
+        );
       }
 
       if ((contact.blokNo ?? '').isNotEmpty) {
@@ -839,6 +865,40 @@ class _ContactFormPageState extends State<ContactFormPage> {
     return emailRegex.hasMatch(email);
   }
 
+  Future<void> _importFromContacts() async {
+    final granted = await FlutterContacts.requestPermission(readonly: true);
+    if (!granted) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Izin akses kontak diperlukan')),
+        );
+      }
+      return;
+    }
+    try {
+      final contact = await FlutterContacts.openExternalPick();
+      if (contact == null || !mounted) return;
+
+      final full = await FlutterContacts.getContact(contact.id, withProperties: true);
+      if (full == null || !mounted) return;
+
+      final name = full.displayName;
+      final rawPhone = full.phones.isNotEmpty ? full.phones.first.number : '';
+      final phone = rawPhone.replaceAll(RegExp(r'[\s\-\(\)]'), '');
+
+      setState(() {
+        if (name.isNotEmpty) fullNameTC.text = name;
+        if (phone.isNotEmpty) waTC.text = phone;
+      });
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Gagal mengakses buku kontak')),
+        );
+      }
+    }
+  }
+
   Future<void> _handleSave() async {
     final today = DateHelper.formatDate(DateTime.now());
     final isCreate = widget.args.page == 0;
@@ -910,7 +970,14 @@ class _ContactFormPageState extends State<ContactFormPage> {
       lostDate: _toBackendDate(lastLostDateTC.text),
       lastLostDate: _toBackendDate(lastLostDateTC.text),
       lostReasonId: selectedLostReasonId,
-
+      firstProjectId: _existingFirstProjectId == null ? selectFirstTownshipId : null,
+      lastProjectId: selectLastTownshipId,
+      firstClusterId: isUpdate ? (_existingFirstClusterId == null ? selectLastClusterId : null) : null,
+      lastClusterId: isUpdate ? selectLastClusterId : null,
+      firstCommercialId: isUpdate ? (_existingFirstCommercialId == null ? selectLastCommercialId : null) : null,
+      lastCommercialId: isUpdate ? selectLastCommercialId : null,
+      firstProductId: isUpdate ? (_existingFirstProductId == null ? selectLastProductId : null) : null,
+      lastProductId: isUpdate ? selectLastProductId : null,
     );
     setState(() => _isSaving = true);
     if (isUpdate) {
@@ -1261,8 +1328,9 @@ class _ContactFormPageState extends State<ContactFormPage> {
                                     selectLastProjectCategory = null;
                                     selectLastProjectProduct = null;
                                   });
-                                  context.read<SalesKitDetailBloc>().add(
-                                    LoadSalesKitDetailEvent(selected.id!),
+                                  context.read<PropertyUnitCubit>().load(
+                                    selected.id!,
+                                    isCommercial: selectLastProjectCategory?.toLowerCase() == 'commercial',
                                   );
                                 }
                               } else {
@@ -1282,7 +1350,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
                                 extra: ContactDropdownArgs(
                                   title: 'Project Category',
                                   items: itemsLastProjectCategory,
-                                  selectedId: null,
+                                  selectedName: selectLastProjectCategory,
                                 ),
                               );
                               if (result != null) {
@@ -1291,6 +1359,12 @@ class _ContactFormPageState extends State<ContactFormPage> {
                                   selectLastProjectCategory = selected.name;
                                   selectLastProjectProduct = null;
                                 });
+                                if (selectLastTownshipId != null) {
+                                  context.read<PropertyUnitCubit>().load(
+                                    selectLastTownshipId!,
+                                    isCommercial: selected.name.toLowerCase() == 'commercial',
+                                  );
+                                }
                               }
                             },
                           ),
@@ -1306,18 +1380,19 @@ class _ContactFormPageState extends State<ContactFormPage> {
                                 return;
                               }
 
-                              final skState = context.read<SalesKitDetailBloc>().state;
+                              final puState = context.read<PropertyUnitCubit>().state;
 
-                              if (skState is SalesKitDetailLoading) {
+                              if (puState is PropertyUnitLoading) {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   const SnackBar(content: Text('Memuat data product...')),
                                 );
                                 return;
                               }
 
-                              if (skState is! SalesKitDetailLoaded) {
-                                context.read<SalesKitDetailBloc>().add(
-                                  LoadSalesKitDetailEvent(selectLastTownshipId!),
+                              if (puState is! PropertyUnitLoaded) {
+                                context.read<PropertyUnitCubit>().load(
+                                  selectLastTownshipId!,
+                                  isCommercial: selectLastProjectCategory?.toLowerCase() == 'commercial',
                                 );
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   const SnackBar(content: Text('Memuat data product...')),
@@ -1325,12 +1400,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
                                 return;
                               }
 
-                              final isCommercial = selectLastProjectCategory?.toLowerCase() == 'commercial';
-                              final productItems = isCommercial
-                                  ? skState.commercials.map((c) => OwnerDropdownItem(id: c.id, name: c.name)).toList()
-                                  : skState.clusters.map((c) => OwnerDropdownItem(id: c.id, name: c.name)).toList();
-
-                              if (productItems.isEmpty) {
+                              if (puState.items.isEmpty) {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   const SnackBar(content: Text('Tidak ada produk tersedia untuk project ini')),
                                 );
@@ -1341,14 +1411,19 @@ class _ContactFormPageState extends State<ContactFormPage> {
                                 'detailContactDropdown',
                                 extra: ContactDropdownArgs(
                                   title: 'Product',
-                                  items: productItems,
-                                  selectedId: null,
+                                  items: puState.items,
+                                  selectedId: selectLastProductId,
                                 ),
                               );
                               if (result != null) {
                                 final selected = result as OwnerDropdownItem;
+                                final parentId = int.tryParse(selected.typeData ?? '');
+                                final isCommercial = selectLastProjectCategory?.toLowerCase() == 'commercial';
                                 setState(() {
                                   selectLastProjectProduct = selected.name;
+                                  selectLastProductId = selected.id;
+                                  selectLastClusterId = isCommercial ? null : parentId;
+                                  selectLastCommercialId = isCommercial ? parentId : null;
                                 });
                               }
                             },
@@ -1933,28 +2008,48 @@ class _ContactFormPageState extends State<ContactFormPage> {
                   style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700)),
             ],
           ),
-          GestureDetector(
-            onTap: _isSaving ? null : _handleSave,
-            child: Container(
-              height: 36,
-              width: 100,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(14),
-                color: Color(blue3Color),
+          Row(
+            children: [
+              if (widget.args.page == 0) ...[
+                GestureDetector(
+                  onTap: _importFromContacts,
+                  child: Container(
+                    height: 36,
+                    width: 36,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: Color(primaryColor)),
+                    ),
+                    child: Icon(Icons.contact_phone_rounded, size: 20, color: Color(primaryColor)),
+                  ),
+                ),
+                const SizedBox(width: 8),
+              ],
+              GestureDetector(
+                onTap: _isSaving ? null : _handleSave,
+                child: Container(
+                  height: 36,
+                  width: 100,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(14),
+                    color: Color(blue3Color),
+                  ),
+                  child: _isSaving
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : Text("Save",
+                          style: TextStyle(color: Color(whiteColor), fontWeight: FontWeight.w700)),
+                ),
               ),
-              child: _isSaving
-                  ? const SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: Colors.white,
-                      ),
-                    )
-                  : Text("Save",
-                      style: TextStyle(color: Color(whiteColor), fontWeight: FontWeight.w700)),
-            ),
+            ],
           ),
         ],
       ),

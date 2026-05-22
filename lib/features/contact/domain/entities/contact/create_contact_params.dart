@@ -47,6 +47,14 @@ class CreateContactParams extends Equatable {
   final String? nameSP;
   final String? firstAkadDate;
   final String? lastAkadDate;
+  final int? firstProjectId;
+  final int? lastProjectId;
+  final int? firstClusterId;
+  final int? lastClusterId;
+  final int? firstCommercialId;
+  final int? lastCommercialId;
+  final int? firstProductId;
+  final int? lastProductId;
 
   const CreateContactParams({
     this.fullName,
@@ -95,6 +103,14 @@ class CreateContactParams extends Equatable {
     this.nameSP,
     this.firstAkadDate,
     this.lastAkadDate,
+    this.firstProjectId,
+    this.lastProjectId,
+    this.firstClusterId,
+    this.lastClusterId,
+    this.firstCommercialId,
+    this.lastCommercialId,
+    this.firstProductId,
+    this.lastProductId,
   });
 
   Map<String, dynamic> toJson() {
@@ -145,6 +161,14 @@ class CreateContactParams extends Equatable {
       if (nameSP != null) 'name_sp': nameSP,
       if (firstAkadDate != null) 'first_akad_date': firstAkadDate,
       if (lastAkadDate != null) 'last_akad_date': lastAkadDate,
+      if (firstProjectId != null) 'first_project_id': firstProjectId,
+      if (lastProjectId != null) 'last_project_id': lastProjectId,
+      if (firstClusterId != null) 'first_cluster_id': firstClusterId,
+      if (lastClusterId != null) 'last_cluster_id': lastClusterId,
+      if (firstCommercialId != null) 'first_commercial_id': firstCommercialId,
+      if (lastCommercialId != null) 'last_commercial_id': lastCommercialId,
+      if (firstProductId != null) 'first_product_id': firstProductId,
+      if (lastProductId != null) 'last_product_id': lastProductId,
     };
   }
 
@@ -196,5 +220,13 @@ class CreateContactParams extends Equatable {
     lostReasonId,
     firstAkadDate,
     lastAkadDate,
+    firstProjectId,
+    lastProjectId,
+    firstClusterId,
+    lastClusterId,
+    firstCommercialId,
+    lastCommercialId,
+    firstProductId,
+    lastProductId,
   ];
 }

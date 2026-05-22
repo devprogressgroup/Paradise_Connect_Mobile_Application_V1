@@ -14,6 +14,7 @@ import 'package:progress_group/features/contact/data/models/contact/contact_resp
 import 'package:progress_group/features/contact/data/models/dropdown/prospect_status_model.dart';
 import 'package:progress_group/features/contact/data/models/info_source/info_source_model.dart';
 import 'package:progress_group/features/contact/data/models/lost_reason/lost_reason_model.dart';
+import 'package:progress_group/features/contact/data/models/property/property_unit_model.dart';
 import 'package:progress_group/features/contact/domain/entities/activity/create_activity_params.dart';
 import 'package:progress_group/features/contact/domain/entities/activity/create_activity_visit_params.dart';
 import 'package:progress_group/features/contact/domain/entities/attachment/upload_attachment_params.dart';
@@ -58,6 +59,9 @@ abstract class ContactRemoteDataSource {
   Future<void> deleteAttachment({required int contactId, required int attachmentId});
 
   Future<void> updateAttachment({required int contactId, required int attachmentId, required UploadAttachmentParams params});
+
+  Future<List<PropertyUnitClusterModel>> getPropertyUnits({required int townshipId});
+  Future<List<PropertyUnitClusterModel>> getPropertyCommercialUnits({required int townshipId});
 }
 
 class ContactRemoteDataSourceImpl implements ContactRemoteDataSource {
@@ -462,6 +466,44 @@ class ContactRemoteDataSourceImpl implements ContactRemoteDataSource {
       }
     } on DioException catch (e) {
       throw Exception(getErrorMessage(e, 'Failed to update attachment'));
+    }
+  }
+
+  @override
+  Future<List<PropertyUnitClusterModel>> getPropertyUnits({required int townshipId}) async {
+    try {
+      final response = await dio.get(
+        '/property/units/cluster/$townshipId',
+        queryParameters: {'page': 1, 'per_page': 100},
+      );
+
+      if (response.data['status'] == true) {
+        final List<dynamic> data = response.data['data']['data'];
+        return data.map((json) => PropertyUnitClusterModel.fromJson(json as Map<String, dynamic>)).toList();
+      }
+
+      throw Exception(response.data['message'] ?? 'Gagal memuat data produk');
+    } on DioException catch (e) {
+      throw Exception(getErrorMessage(e, 'Gagal memuat data produk'));
+    }
+  }
+
+  @override
+  Future<List<PropertyUnitClusterModel>> getPropertyCommercialUnits({required int townshipId}) async {
+    try {
+      final response = await dio.get(
+        '/property/units/commercial/$townshipId',
+        queryParameters: {'page': 1, 'per_page': 100},
+      );
+
+      if (response.data['status'] == true) {
+        final List<dynamic> data = response.data['data']['data'];
+        return data.map((json) => PropertyUnitClusterModel.fromCommercialJson(json as Map<String, dynamic>)).toList();
+      }
+
+      throw Exception(response.data['message'] ?? 'Gagal memuat data produk');
+    } on DioException catch (e) {
+      throw Exception(getErrorMessage(e, 'Gagal memuat data produk'));
     }
   }
 }

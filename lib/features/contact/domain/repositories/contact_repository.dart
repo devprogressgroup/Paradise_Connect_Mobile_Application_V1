@@ -6,6 +6,7 @@ import 'package:progress_group/features/contact/domain/entities/attachment/attac
 import 'package:progress_group/features/contact/domain/entities/attachment/upload_attachment_params.dart';
 import 'package:progress_group/features/contact/domain/entities/info_source/info_source.dart';
 import 'package:progress_group/features/contact/domain/entities/lost_reason/lost_reason_entity.dart';
+import 'package:progress_group/features/contact/domain/entities/property/property_unit_entity.dart';
 import '../entities/activity/activity_entity.dart';
 import '../entities/contact/contact_entity.dart';
 import '../entities/contact/contact_response.dart';
@@ -36,4 +37,6 @@ abstract class ContactRepository {
   Future<Either<String, List<ContactAttachment>>> getAttachments({  required int contactId,  int? dealId,});
   Future<Either<String, void>> deleteAttachment({required int contactId,required int attachmentId,});
   Future<Either<String, void>> updateAttachment({  required int contactId,  required int attachmentId,  required UploadAttachmentParams params,});
+  Future<Either<String, List<PropertyUnitCluster>>> getPropertyUnits({required int townshipId});
+  Future<Either<String, List<PropertyUnitCluster>>> getPropertyCommercialUnits({required int townshipId});
 }

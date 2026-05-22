@@ -206,7 +206,10 @@ class _DropdownListContactState extends State<DropdownListContact> {
                       ),
                       itemBuilder: (context, index) {
                         final item = _filteredItems[index];
-                        final isSelected = _tempSelectedIds.contains(item.id);
+                        final isSelected = _tempSelectedIds.contains(item.id) ||
+                            (item.id == null &&
+                                widget.args.selectedName != null &&
+                                item.name == widget.args.selectedName);
 
                         return Material(
                           color: Colors.transparent,

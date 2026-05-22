@@ -154,21 +154,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
       }
 
       // LOST
-      if ([
-        55,
-        56,
-        57,
-        58,
-        61,
-        62,
-        67,
-        68,
-        69,
-        73,
-        75,
-        77,
-        78,
-      ].contains(statusId)) {
+      if ([  55,  56,  57,  58,  61,  62,  67,  68,  69,  73,  75,  77,  78,].contains(statusId)) {
         if (data.lostDate != null && data.lostDate.isNotEmpty) {
           return DateTime.parse(data.lostDate);
         }
@@ -718,6 +704,8 @@ class _ContactAddPageState extends State<ContactAddPage> {
                                   _buildVisit()
                                 else if (widget.args.page == 6)
                                   _buildUpdateStatusProspect()
+                                else if (widget.args.page == 3)
+                                  _buildReminderForm()
                                 else
                                   _buildForm(),
                               ],
@@ -2083,6 +2071,141 @@ class _ContactAddPageState extends State<ContactAddPage> {
                   ),
                 ),
               ],
+              SizedBox(height: 32),
+              BlocBuilder<ActivityBloc, ActivityState>(
+                builder: (context, state) {
+                  final isFollowUpFlow = widget.args.buttonLabel == 'Complete';
+                  final isLoading = isFollowUpFlow? state.status == ActivityStatus.followUpLoading: state.status == ActivityStatus.creating;
+
+                  return customButton(isLoading ? null : () {
+                      if (isFollowUpFlow && widget.args.dataActivity != null) {
+                        context.read<ActivityBloc>().add(
+                          PostStatusFollowEvent([widget.args.dataActivity!.activityId]),
+                        );
+                      } else {
+                        _submitActivity(activityType: widget.args.namePage ?? '',activityDate: DateTime.now(),notesTC: descFormActivityTC,isFollowUp: isFollowUp,followUpDate: selectedDate,);
+                      }
+                    },
+                    isLoading ? 'Menyimpan...' : (widget.args.buttonLabel ?? 'Save'),
+                  );
+                },
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildReminderForm() {
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+      decoration: BoxDecoration(
+        color: Color(whiteColor),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            "Reminder",
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+              color: Color(grey2Color),
+            ),
+          ),
+          SizedBox(height: 6),
+          GestureDetector(
+            onTap: () => pickDateTime(context),
+            child: Container(
+              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Color(grey7Color)),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    selectedDate != null
+                        ? DateHelper.formatDateTimeShort(selectedDate!)
+                        : DateHelper.formatDateTimeShort(DateTime.now()),
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      color: Color(blackColor),
+                    ),
+                  ),
+                  Icon(
+                    Icons.calendar_today,
+                    color: Color(primaryColor),
+                    size: 16,
+                  ),
+                ],
+              ),
+            ),
+          ),
+          SizedBox(height: 6),
+          TextField(
+            maxLines: 4,
+            minLines: 3,
+            controller: descFormActivityTC,
+            focusNode: descFormActivityFN,
+            onTapOutside: (event) => descFormActivityFN.unfocus(),
+            textInputAction: TextInputAction.newline,
+            decoration: InputDecoration(
+              hintText: "Describe the ${widget.args.page == 0? "call": widget.args.page == 1? "whatsapp": widget.args.page == 2? "meeting": widget.args.page == 3? "reminder": widget.args.page == 4? "visit": widget.args.page == 5? "attachment": "update status prospect"}...",
+              hintStyle: TextStyle(color: Color(grey2Color), fontSize: 14),
+              contentPadding: EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 12,
+              ),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(color: Color(grey7Color)),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(color: Color(grey7Color)),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(color: Color(primaryColor)),
+              ),
+            ),
+          ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  Text(
+                    "Follow Up Reminder",
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      color: Color(grey2Color),
+                    ),
+                  ),
+                  SizedBox(width: 12),
+                  Transform.scale(
+                    scale: 0.8,
+                    child: CupertinoSwitch(
+                      value: isFollowUp,
+                      activeTrackColor: Color(primaryColor),
+                      onChanged: (value) {
+                        setState(() {
+                          isFollowUp = value;
+                        });
+                      },
+                    ),
+                  ),
+                ],
+              ),
+             
               SizedBox(height: 32),
               BlocBuilder<ActivityBloc, ActivityState>(
                 builder: (context, state) {

@@ -96,6 +96,9 @@ import 'features/contact/domain/usecases/attachment/get_attachment_types_usecase
 import 'features/contact/presentation/state/attachment_type/attachment_type_bloc.dart';
 import 'features/contact/domain/usecases/attachment/upload_attachment_usecase.dart';
 import 'features/contact/presentation/state/attachment/upload_attachment_bloc.dart';
+import 'features/contact/domain/usecases/property/get_property_units_usecase.dart';
+import 'features/contact/domain/usecases/property/get_property_commercial_units_usecase.dart';
+import 'features/contact/presentation/state/property_unit/property_unit_cubit.dart';
 
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
@@ -216,6 +219,8 @@ class _MyAppState extends State<MyApp> {
     final getWhatsappActivityUseCase =  GetWhatsappUnreadSummaryUseCase(contactRepository);
     final getInfoSourcesUseCase = GetInfoSourcesUseCase(contactRepository);
     final getLostReasonsUseCase = GetLostReasonsUseCase(contactRepository);
+    final getPropertyUnitsUseCase = GetPropertyUnitsUseCase(contactRepository);
+    final getPropertyCommercialUnitsUseCase = GetPropertyCommercialUnitsUseCase(contactRepository);
     
     // SitePlan
     final siteplanRemoteDataSource = SiteplanRemoteDataSourceImpl(dioClient.dio);
@@ -269,6 +274,7 @@ class _MyAppState extends State<MyApp> {
             BlocProvider(create: (_) => WhatsappActivityBloc(getWhatsappActivityUseCase)),
             BlocProvider(create: (_) => InfoSourceBloc(getInfoSourcesUseCase: getInfoSourcesUseCase)),
             BlocProvider(create: (_) => LostReasonBloc(getLostReasonsUseCase: getLostReasonsUseCase)),
+            BlocProvider(create: (_) => PropertyUnitCubit(getPropertyUnitsUseCase, getPropertyCommercialUnitsUseCase)),
             BlocProvider(create: (_) => SiteplanBloc(siteplanRepository)..add(LoadSiteplanEvent())),
             BlocProvider(create: (_) => TownshipBloc(getTownshipsUseCase)..add(GetTownshipsEvent())),
             BlocProvider(create: (_) => SalesKitDetailBloc(getClustersUseCase: getClustersUseCase, getCommercialsUseCase: getCommercialsUseCase)),

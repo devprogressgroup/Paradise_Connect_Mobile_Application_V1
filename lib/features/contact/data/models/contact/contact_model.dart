@@ -64,7 +64,15 @@ class ContactModel extends ContactEntity {
     super.deletedAt,
     super.lostDate,
     super.lostReasonId,
-    super.lostReasonNote
+    super.lostReasonNote,
+    super.firstProjectId,
+    super.lastProjectId,
+    super.firstClusterId,
+    super.lastClusterId,
+    super.firstCommercialId,
+    super.lastCommercialId,
+    super.firstProductId,
+    super.lastProductId,
   });
 
   factory ContactModel.fromJson(Map<String, dynamic> json) {
@@ -132,8 +140,15 @@ class ContactModel extends ContactEntity {
 
       lostDate: json['lost_date'],
       lostReasonId: json['lost_reason_id'],
-      lostReasonNote : json['lost_reason_note'],
-
+      lostReasonNote: json['lost_reason_note'],
+      firstProjectId: json['first_project_id'],
+      lastProjectId: json['last_project_id'],
+      firstClusterId: json['first_cluster_id'],
+      lastClusterId: json['last_cluster_id'],
+      firstCommercialId: json['first_commercial_id'],
+      lastCommercialId: json['last_commercial_id'],
+      firstProductId: json['first_product_id'],
+      lastProductId: json['last_product_id'],
       createdAt: json['created_at'],
       updatedAt: json['updated_at'],
       deletedAt: json['deleted_at'],

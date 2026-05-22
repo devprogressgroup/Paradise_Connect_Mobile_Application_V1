@@ -874,35 +874,22 @@ Widget buildTaskShimmer() {
 }
 
 // ─── Saleskit Detail (Residential / Commercial dropdown + cards) ──────────────
-Widget _buildShimmerDropdownHeader() {
+Widget _buildShimmerGridCard() {
   return Container(
-    color: Colors.white,
-    height: 50,
-    padding: const EdgeInsets.symmetric(horizontal: 20),
-    child: Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        _ShimmerBox(width: 120, height: 14),
-        _ShimmerBox(width: 28, height: 28, borderRadius: 6),
-      ],
-    ),
-  );
-}
-
-Widget _buildShimmerResidentialCard() {
-  return Container(
-    margin: const EdgeInsets.symmetric(horizontal: 16),
-    height: 137,
-    decoration: BoxDecoration(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(8),
-    ),
+    
     child: Column(
-      mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        _ShimmerBox(width: 90, height: 70, borderRadius: 8),
-        const SizedBox(height: 8),
-        _ShimmerBox(width: 140, height: 13),
+        Expanded(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(8, 8, 8, 4),
+            child: _ShimmerBox(width: double.infinity, height: double.infinity, borderRadius: 6),
+          ),
+        ),
+        SizedBox(height: 10),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
+          child: _ShimmerBox(width: double.infinity, height: 12 ,borderRadius: 4,),
+        ),
       ],
     ),
   );
@@ -910,25 +897,17 @@ Widget _buildShimmerResidentialCard() {
 
 Widget buildSaleskitDetailShimmer() {
   return _shimmerWrap(
-    child: ListView(
+    child: GridView.builder(
       physics: const NeverScrollableScrollPhysics(),
-      shrinkWrap: true,
-      children: [
-        _buildShimmerDropdownHeader(),
-        const SizedBox(height: 5),
-        ...List.generate(3, (_) => Padding(
-          padding: const EdgeInsets.only(bottom: 5),
-          child: _buildShimmerResidentialCard(),
-        )),
-        const SizedBox(height: 25),
-        _buildShimmerDropdownHeader(),
-        const SizedBox(height: 5),
-        ...List.generate(2, (_) => Padding(
-          padding: const EdgeInsets.only(bottom: 5),
-          child: _buildShimmerResidentialCard(),
-        )),
-        const SizedBox(height: 10),
-      ],
+      padding: const EdgeInsets.all(8),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        crossAxisSpacing: 6,
+        mainAxisSpacing: 6,
+        childAspectRatio: 1.1,
+      ),
+      itemCount: 6,
+      itemBuilder: (_, __) => _buildShimmerGridCard(),
     ),
   );
 }

@@ -8,7 +8,8 @@ class DateFilterPage extends StatefulWidget {
   final String? selectedLabel;
   final String? startDate;
   final String? endDate;
-  const DateFilterPage({super.key, this.selectedLabel, this.startDate, this.endDate});
+  final bool isSingleSelect;
+  const DateFilterPage({super.key, this.selectedLabel, this.startDate, this.endDate, this.isSingleSelect = false});
 
   @override
   State<DateFilterPage> createState() => _DateFilterPageState();
@@ -156,18 +157,20 @@ class _DateFilterPageState extends State<DateFilterPage> {
                       style: TextStyle(fontSize: 13, color: Color(grey5Color))),
                   Row(
                     children: [
-                      TextButton(
-                        onPressed: _selectAll,
-                        style: TextButton.styleFrom(
-                          minimumSize: Size.zero,
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      if (!widget.isSingleSelect) ...[
+                        TextButton(
+                          onPressed: _selectAll,
+                          style: TextButton.styleFrom(
+                            minimumSize: Size.zero,
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          ),
+                          child: Text('Select All',
+                              style: TextStyle(
+                                  fontSize: 13, color: Color(primaryColor), fontWeight: FontWeight.w600)),
                         ),
-                        child: Text('Select All',
-                            style: TextStyle(
-                                fontSize: 13, color: Color(primaryColor), fontWeight: FontWeight.w600)),
-                      ),
-                      Text('|', style: TextStyle(color: Color(grey5Color))),
+                        Text('|', style: TextStyle(color: Color(grey5Color))),
+                      ],
                       TextButton(
                         onPressed: _clearAll,
                         style: TextButton.styleFrom(
@@ -175,7 +178,7 @@ class _DateFilterPageState extends State<DateFilterPage> {
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                           tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                         ),
-                        child: Text('Clear All',
+                        child: Text(widget.isSingleSelect ? 'Clear' : 'Clear All',
                             style: TextStyle(
                                 fontSize: 13, color: Color(grey5Color), fontWeight: FontWeight.w600)),
                       ),

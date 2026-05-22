@@ -110,58 +110,87 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
     super.dispose();
   }
 
+  void _hideLoading() {
+    if (_loadingDialogShown) {
+      hideLoadingDialog(_loadingDialogShown, context);
+      _loadingDialogShown = false;
+    }
+  }
+
   @override
     Widget build(BuildContext context) {
       final size = MediaQuery.of(context).size;
 
-      return BlocConsumer<AuthBloc, AuthState>(
-        listener: (context, state) {
-          if (state is AuthLoading) {
-            showLoadingDialog(_loadingDialogShown, context);
-            _loadingDialogShown = true;
-          }
-
-          if (state is AuthSuccess) {
-            if (_loadingDialogShown) {
-              Navigator.of(context, rootNavigator: true).pop();
-              _loadingDialogShown = false;
-            }
-
-            if (_step == 1) {
-              setState(() {
-                forgotPasswordData = state.data;
-                _step = 2;
-              });
-              print("forgotPassword: ${forgotPasswordData?.userId}");
-            }
-            else {
-              showSnackbar(context, state.message);
-              context.go('/');
-            }
-          }
-
-          if (state is AuthFailure) {
-            if (_loadingDialogShown) {
-              Navigator.of(context, rootNavigator: true).pop();
-              _loadingDialogShown = false;
-            }
-
-            showSnackbar(context, state.error, isError: true);
+      return PopScope(
+        canPop: _step == 1,
+        onPopInvokedWithResult: (didPop, result) {
+          if (!didPop && _step == 2) {
+            setState(() => _step = 1);
           }
         },
-        builder: (context, state) {
-          return Scaffold(
-            body: Container(
-              height: size.height,
-              width: size.width,
-              padding: const EdgeInsets.symmetric(horizontal: 24.0),
-              color: Color(backgroundColor),
-              child: Center(
-                child: _step == 1? _buildForgotPass(): _buildResetPass(),
+        child: BlocConsumer<AuthBloc, AuthState>(
+          listener: (context, state) {
+            if (state is AuthLoading) {
+              if (!_loadingDialogShown) {
+                showLoadingDialog(_loadingDialogShown, context);
+                _loadingDialogShown = true;
+              }
+            }
+
+            if (state is AuthSuccess) {
+              _hideLoading();
+
+              if (_step == 1) {
+                setState(() {
+                  forgotPasswordData = state.data;
+                  _step = 2;
+                });
+              }
+              else {
+                showSnackbar(context, state.message);
+                context.go('/');
+              }
+            }
+
+            if (state is AuthFailure) {
+              _hideLoading();
+              showSnackbar(context, state.error, isError: true);
+            }
+          },
+          builder: (context, state) {
+            return Scaffold(
+              body: Container(
+                height: size.height,
+                width: size.width,
+                color: Color(backgroundColor),
+                child: SafeArea(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.only(left: 8.0, top: 4.0),
+                        child: IconButton(
+                          onPressed: _step == 1
+                              ? () => context.go('/')
+                              : () => setState(() => _step = 1),
+                          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Color(primaryColor)),
+                        ),
+                      ),
+                      Expanded(
+                        child: Center(
+                          child: SingleChildScrollView(
+                            padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
+                            child: _step == 1 ? _buildForgotPass() : _buildResetPass(),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ),
-            ),
-          );
-        },
+            );
+          },
+        ),
       );
     }
 

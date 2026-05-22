@@ -143,11 +143,12 @@ class AppRouter {
                 name: 'dateFilter',
                 path: 'date-filter',
                 builder: (context, state) {
-                  final extra = state.extra as Map<String, String?>?;
+                  final extra = state.extra as Map<String, dynamic>?;
                   return DateFilterPage(
-                    selectedLabel: extra?['label'],
-                    startDate: extra?['startDate'],
-                    endDate: extra?['endDate'],
+                    selectedLabel: extra?['label'] as String?,
+                    startDate: extra?['startDate'] as String?,
+                    endDate: extra?['endDate'] as String?,
+                    isSingleSelect: extra?['isSingleSelect'] as bool? ?? false,
                   );
                 },
               ),

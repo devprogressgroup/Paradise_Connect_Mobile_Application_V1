@@ -63,6 +63,14 @@ class ContactEntity extends Equatable {
   final String? lostDate;
   final int? lostReasonId;
   final String? lostReasonNote;
+  final int? firstProjectId;
+  final int? lastProjectId;
+  final int? firstClusterId;
+  final int? lastClusterId;
+  final int? firstCommercialId;
+  final int? lastCommercialId;
+  final int? firstProductId;
+  final int? lastProductId;
 
   const ContactEntity({
     this.contactId,
@@ -126,7 +134,15 @@ class ContactEntity extends Equatable {
     this.deletedAt,
     this.lostDate,
     this.lostReasonId,
-    this.lostReasonNote
+    this.lostReasonNote,
+    this.firstProjectId,
+    this.lastProjectId,
+    this.firstClusterId,
+    this.lastClusterId,
+    this.firstCommercialId,
+    this.lastCommercialId,
+    this.firstProductId,
+    this.lastProductId,
   });
 
   ContactEntity copyWith({
@@ -191,6 +207,14 @@ class ContactEntity extends Equatable {
     String? lostDate,
     int? lostReasonId,
     String? lostReasonNote,
+    int? firstProjectId,
+    int? lastProjectId,
+    int? firstClusterId,
+    int? lastClusterId,
+    int? firstCommercialId,
+    int? lastCommercialId,
+    int? firstProductId,
+    int? lastProductId,
   }) {
     return ContactEntity(
       contactId: contactId ?? this.contactId,
@@ -255,6 +279,14 @@ class ContactEntity extends Equatable {
       lostDate: lostDate ?? this.lostDate,
       lostReasonId: lostReasonId ?? this.lostReasonId,
       lostReasonNote: lostReasonNote ?? this.lostReasonNote,
+      firstProjectId: firstProjectId ?? this.firstProjectId,
+      lastProjectId: lastProjectId ?? this.lastProjectId,
+      firstClusterId: firstClusterId ?? this.firstClusterId,
+      lastClusterId: lastClusterId ?? this.lastClusterId,
+      firstCommercialId: firstCommercialId ?? this.firstCommercialId,
+      lastCommercialId: lastCommercialId ?? this.lastCommercialId,
+      firstProductId: firstProductId ?? this.firstProductId,
+      lastProductId: lastProductId ?? this.lastProductId,
     );
   }
 
@@ -322,7 +354,15 @@ class ContactEntity extends Equatable {
     deletedAt,
     lostDate,
     lostReasonId,
-    lostReasonNote
+    lostReasonNote,
+    firstProjectId,
+    lastProjectId,
+    firstClusterId,
+    lastClusterId,
+    firstCommercialId,
+    lastCommercialId,
+    firstProductId,
+    lastProductId,
   ];
 }
 

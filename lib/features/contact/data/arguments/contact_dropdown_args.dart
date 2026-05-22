@@ -11,6 +11,7 @@ class ContactDropdownArgs {
   final String title;
   final List<OwnerDropdownItem> items;
   final int? selectedId;
+  final String? selectedName;
   final List<int>? selectedIds;
   final bool isMultiSelect;
   final bool allowClear;
@@ -19,6 +20,7 @@ class ContactDropdownArgs {
     required this.title,
     required this.items,
     this.selectedId,
+    this.selectedName,
     this.selectedIds,
     this.isMultiSelect = false,
     this.allowClear = false,

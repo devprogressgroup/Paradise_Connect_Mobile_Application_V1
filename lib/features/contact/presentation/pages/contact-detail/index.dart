@@ -444,7 +444,7 @@ class _ContactDetailPageState extends State<ContactDetailPage>with TickerProvide
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Text(
-                "Add...",
+                "Log Activity",
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
               ),
             ],

@@ -20,6 +20,7 @@ import 'package:progress_group/features/contact/presentation/state/contact/conta
 import 'package:progress_group/features/contact/presentation/state/contact/contact_event.dart';
 import 'package:progress_group/features/contact/presentation/state/contact/contact_state.dart';
 import 'package:progress_group/features/contact/presentation/state/prospect_status/prospect_status_bloc.dart';
+import 'package:progress_group/features/contact/presentation/state/prospect_status/prospect_status_event.dart';
 import 'package:progress_group/features/contact/presentation/state/prospect_status/prospect_status_state.dart';
 import 'package:progress_group/features/inbox/data/arguments/inbox_detail_args.dart';
 import 'package:progress_group/features/inbox/domain/entities/inbox_contact_entity.dart';
@@ -70,6 +71,10 @@ class _InboxPageState extends State<InboxPage> {
     _personalScrollController = ScrollController()..addListener(_onScroll);
     _groupScrollController = ScrollController()..addListener(_onScroll);
     _fetchInbox();
+    final statusState = context.read<ProspectStatusBloc>().state;
+    if (statusState.status == ProspectStatusEnum.initial) {
+      context.read<ProspectStatusBloc>().add(const FetchProspectStatusesEvent());
+    }
   }
 
   void _onScroll() {
@@ -330,6 +335,7 @@ class _InboxPageState extends State<InboxPage> {
                                         'label': selectedDateLabel,
                                         'startDate': contactState.startDate,
                                         'endDate': contactState.endDate,
+                                        'isSingleSelect': true,
                                       },
                                     );
                     
