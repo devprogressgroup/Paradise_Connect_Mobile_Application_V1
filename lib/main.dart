@@ -14,9 +14,11 @@ import 'package:progress_group/features/attandance/domain/usecase/get_attendance
 import 'package:progress_group/features/attandance/domain/usecase/get_locations.dart';
 import 'package:progress_group/features/attandance/domain/usecase/get_office_locations.dart';
 import 'package:progress_group/features/attandance/domain/usecase/get_today_attendance.dart';
+import 'package:progress_group/features/attandance/domain/usecase/get_attendance_activity.dart';
 import 'package:progress_group/features/attandance/domain/usecase/submit_attendance.dart';
 import 'package:progress_group/features/attandance/domain/usecase/submit_attendance_activity.dart';
 import 'package:progress_group/features/attandance/presentation/state/attandance/attendance_bloc.dart';
+import 'package:progress_group/features/attandance/presentation/state/attendance_activity/attendance_activity_bloc.dart';
 import 'package:progress_group/features/auth/data/datasources/auth_local_datasource.dart';
 import 'package:progress_group/features/auth/data/datasources/auth_remote_datasource.dart';
 import 'package:progress_group/features/auth/data/repositories/auth_repository_impl.dart';
@@ -235,6 +237,7 @@ class _MyAppState extends State<MyApp> {
     final getOfficeLocationsUseCase = GetOfficeLocationsUseCase(attendanceRepository);
     final submitAttendanceUseCase = SubmitAttendanceUseCase(attendanceRepository);
     final submitAttendanceActivityUseCase = SubmitAttendanceActivityUseCase(attendanceRepository);
+    final getAttendanceActivityUseCase = GetAttendanceActivityUseCase(attendanceRepository);
 
     return MaterialApp.router(
       debugShowCheckedModeBanner: false,
@@ -262,6 +265,7 @@ class _MyAppState extends State<MyApp> {
             BlocProvider(create: (_) => AttachmentCubit(getAttachmentsUseCase, deleteAttachmentUseCase)),
             BlocProvider(create: (_) => ActivityProspectStatusBloc(getActivityProspectStatusUseCase)),
             BlocProvider(create: (_) => AttendanceBloc(getAttendanceUseCase: getAttendanceUseCase, getTodayAttendanceUseCase: getTodayAttendanceUseCase, getLocationsUseCase: getLocationsUseCase, getOfficeLocationsUseCase: getOfficeLocationsUseCase, submitAttendanceUseCase: submitAttendanceUseCase, submitAttendanceActivityUseCase: submitAttendanceActivityUseCase)),
+            BlocProvider(create: (_) => AttendanceActivityBloc(getAttendanceActivityUseCase: getAttendanceActivityUseCase)),
             BlocProvider(create: (_) => WhatsappActivityBloc(getWhatsappActivityUseCase)),
             BlocProvider(create: (_) => InfoSourceBloc(getInfoSourcesUseCase: getInfoSourcesUseCase)),
             BlocProvider(create: (_) => LostReasonBloc(getLostReasonsUseCase: getLostReasonsUseCase)),

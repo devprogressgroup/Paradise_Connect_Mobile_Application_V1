@@ -31,7 +31,7 @@ class AttendanceBloc extends Bloc<AttendanceEvent, AttendanceState> {
       final currentState = state;
       List<AttendanceLocation>? locations;
       List<AttendanceLocation>? officeLocations;
-      
+
       if (currentState is AttendanceLoaded) {
         locations = currentState.locations;
         officeLocations = currentState.officeLocations;
@@ -39,11 +39,13 @@ class AttendanceBloc extends Bloc<AttendanceEvent, AttendanceState> {
 
       emit(AttendanceLoading());
       try {
-        final data = await getAttendanceUseCase(salesPersonIds: event.salesPersonIds);
+        final result = await getAttendanceUseCase(salesPersonIds: event.salesPersonIds);
         emit(AttendanceLoaded(
-          data: data, 
-          locations: locations, 
-          officeLocations: officeLocations
+          data: result.data,
+          locations: locations,
+          officeLocations: officeLocations,
+          attendancePage: 1,
+          attendanceLastPage: result.lastPage,
         ));
       } catch (e) {
         emit(AttendanceError(e.toString()));
@@ -52,6 +54,47 @@ class AttendanceBloc extends Bloc<AttendanceEvent, AttendanceState> {
 
     on<FetchAttendanceDataEvent>((event, emit) async {
       final currentState = state;
+
+      if (event.isLoadMore && currentState is AttendanceLoaded) {
+        emit(AttendanceLoaded(
+          data: currentState.data,
+          locations: currentState.locations,
+          officeLocations: currentState.officeLocations,
+          todayData: currentState.todayData,
+          attendancePage: currentState.attendancePage,
+          attendanceLastPage: currentState.attendanceLastPage,
+          attendanceLoadingMore: true,
+        ));
+        try {
+          final result = await getAttendanceUseCase(
+            salesPersonIds: event.salesPersonIds,
+            startDate: event.startDate,
+            endDate: event.endDate,
+            page: event.page,
+          );
+          emit(AttendanceLoaded(
+            data: [...currentState.data, ...result.data],
+            locations: currentState.locations,
+            officeLocations: currentState.officeLocations,
+            todayData: currentState.todayData,
+            attendancePage: event.page,
+            attendanceLastPage: result.lastPage,
+            attendanceLoadingMore: false,
+          ));
+        } catch (e) {
+          emit(AttendanceLoaded(
+            data: currentState.data,
+            locations: currentState.locations,
+            officeLocations: currentState.officeLocations,
+            todayData: currentState.todayData,
+            attendancePage: currentState.attendancePage,
+            attendanceLastPage: currentState.attendanceLastPage,
+            attendanceLoadingMore: false,
+          ));
+        }
+        return;
+      }
+
       List<AttendanceLocation>? pameranLocations;
       if (currentState is AttendanceLoaded) {
         pameranLocations = currentState.locations;
@@ -59,21 +102,29 @@ class AttendanceBloc extends Bloc<AttendanceEvent, AttendanceState> {
 
       emit(AttendanceLoading());
       try {
+        final attendanceFuture = getAttendanceUseCase(
+          salesPersonIds: event.salesPersonIds,
+          startDate: event.startDate,
+          endDate: event.endDate,
+          page: 1,
+        );
         final results = await Future.wait([
-          getAttendanceUseCase(salesPersonIds: event.salesPersonIds),
+          attendanceFuture,
           getOfficeLocationsUseCase(),
           getTodayAttendanceUseCase().catchError((_) => null),
         ]);
 
-        final logs = results[0] as List<AttendanceEntity>;
+        final attendanceResult = results[0] as ({List<AttendanceEntity> data, int lastPage});
         final offices = results[1] as List<AttendanceLocation>;
         final todayData = results[2] as AttendanceEntity?;
 
         emit(AttendanceLoaded(
-          data: logs,
+          data: attendanceResult.data,
           officeLocations: offices,
           locations: pameranLocations,
           todayData: todayData,
+          attendancePage: 1,
+          attendanceLastPage: attendanceResult.lastPage,
         ));
       } catch (e) {
         emit(AttendanceError(e.toString()));

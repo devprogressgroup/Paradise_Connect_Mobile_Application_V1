@@ -5,12 +5,14 @@ class CustomFilterButton extends StatelessWidget {
   final String label;
   final VoidCallback onTap;
   final bool isSelected;
+  final VoidCallback? onClear;
 
   const CustomFilterButton({
     super.key,
     required this.label,
     required this.onTap,
     this.isSelected = false,
+    this.onClear,
   });
 
   @override
@@ -48,11 +50,17 @@ class CustomFilterButton extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 4),
-              Icon(
-                Icons.keyboard_arrow_down_rounded,
-                size: 16,
-                color: isSelected ? Colors.white : Color(blackColor),
-              ),
+              if (isSelected && onClear != null)
+                GestureDetector(
+                  onTap: onClear,
+                  child: const Icon(Icons.close_rounded, size: 14, color: Colors.white),
+                )
+              else
+                Icon(
+                  Icons.keyboard_arrow_down_rounded,
+                  size: 16,
+                  color: isSelected ? Colors.white : Color(blackColor),
+                ),
             ],
           ),
         ),

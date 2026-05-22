@@ -1,12 +1,13 @@
 import 'package:dio/dio.dart';
 
 abstract class AttendanceRemoteDataSource {
-  Future<Map<String, dynamic>> getAttendance({List<int>? salesPersonIds});
+  Future<Map<String, dynamic>> getAttendance({List<int>? salesPersonIds, String? startDate, String? endDate, int page = 1, int perPage = 10});
   Future<Map<String, dynamic>> getTodayAttendance();
   Future<Map<String, dynamic>> postAttendance({required String attendanceDatetime,required int flag,required String locationName,String? note,String? filePath,required int nikNumber});
   Future<Map<String, dynamic>> postAttendanceActivity({required String attendanceDatetime,  required int flag,  required String locationName,  String? note,  required List<String> filePaths, required int nikNumber});
   Future<Map<String, dynamic>> getLocations();
   Future<Map<String, dynamic>> getOfficeLocations();
+  Future<Map<String, dynamic>> getAttendanceActivity({List<int>? salesPersonIds, String? startDate, String? endDate, String? location, int page, int perPage});
 }
 
 class AttendanceRemoteDataSourceImpl implements AttendanceRemoteDataSource {
@@ -33,13 +34,16 @@ class AttendanceRemoteDataSourceImpl implements AttendanceRemoteDataSource {
   }
 
   @override
-  Future<Map<String, dynamic>> getAttendance({List<int>? salesPersonIds}) async {
+  Future<Map<String, dynamic>> getAttendance({List<int>? salesPersonIds, String? startDate, String? endDate, int page = 1, int perPage = 10}) async {
     final response = await dio.get(
       '/attendance',
       queryParameters: {
-        "per_page": 10,
+        'page': page,
+        'per_page': perPage,
         if (salesPersonIds != null && salesPersonIds.isNotEmpty)
           "sales_person_id": salesPersonIds.join(','),
+        if (startDate != null) 'start_date': startDate,
+        if (endDate != null) 'end_date': endDate,
       },
     );
 
@@ -59,6 +63,23 @@ class AttendanceRemoteDataSourceImpl implements AttendanceRemoteDataSource {
     });
 
     final response = await dio.post('/attendance', data: formData);
+    return response.data;
+  }
+
+  @override
+  Future<Map<String, dynamic>> getAttendanceActivity({List<int>? salesPersonIds, String? startDate, String? endDate, String? location, int page = 1, int perPage = 20}) async {
+    final response = await dio.get(
+      '/attendance/activity',
+      queryParameters: {
+        'page': page,
+        'per_page': perPage,
+        if (salesPersonIds != null && salesPersonIds.isNotEmpty)
+          'sales_person_id': salesPersonIds.join(','),
+        if (startDate != null) 'start_date': startDate,
+        if (endDate != null) 'end_date': endDate,
+        if (location != null && location.isNotEmpty) 'location': location,
+      },
+    );
     return response.data;
   }
 

@@ -14,13 +14,14 @@ import 'package:progress_group/features/attandance/domain/entities/attandance_en
 import 'package:progress_group/features/attandance/presentation/state/attandance/attendance_bloc.dart';
 import 'package:progress_group/features/attandance/presentation/state/attandance/attendance_event.dart';
 import 'package:progress_group/features/attandance/presentation/state/attandance/attendance_state.dart';
+import 'package:progress_group/features/attandance/presentation/state/attendance_activity/attendance_activity_bloc.dart';
+import 'package:progress_group/features/attandance/presentation/state/attendance_activity/attendance_activity_event.dart';
+import 'package:progress_group/features/attandance/presentation/state/attendance_activity/attendance_activity_state.dart';
 import 'package:progress_group/features/auth/domain/entities/user_profile.dart';
 import 'package:progress_group/features/auth/presentation/state/profile/profile_bloc.dart';
 import 'package:progress_group/features/auth/presentation/state/profile/profile_state.dart';
 import 'package:progress_group/features/contact/data/arguments/contact_dropdown_args.dart';
-import 'package:progress_group/features/contact/presentation/state/contact/contact_bloc.dart';
-import 'package:progress_group/features/contact/presentation/state/contact/contact_event.dart';
-import 'package:progress_group/features/contact/presentation/state/contact/contact_state.dart';
+import 'package:progress_group/features/contact/data/models/dropdown/date_filter.dart';
 import '../../../../../core/utils/helpers/date_helper.dart';
 import '../../../../../core/utils/widget/custom_header.dart';
 import '../../../data/arguments/attandance_args.dart';
@@ -48,6 +49,18 @@ class _AttandancePageState extends State<AttandancePage> {
   bool _isProcessing = false;
   DateTime? _lastGeocodeTime;
   bool _hasSetInitialTab = false;
+  bool _isButtonPinned = false;
+  // Attendance Log filter
+  List<int>? _attendanceOwnerIds;
+  String? _attendanceStartDate;
+  String? _attendanceEndDate;
+  String? _attendanceDateLabel;
+
+  // Activity Log filter
+  List<int>? _activityOwnerIds;
+  String? _activityStartDate;
+  String? _activityEndDate;
+  String? _activityDateLabel;
 
 
   @override
@@ -61,20 +74,65 @@ class _AttandancePageState extends State<AttandancePage> {
 
     _pageController = PageController(initialPage: selectedIndex);
     _scrollController = ScrollController();
+    _scrollController.addListener(_onScroll);
 
     Future.microtask(() {
       _initLocation();
-    });
 
-    _getLog();
+      final profileState = context.read<ProfileBloc>().state;
+      if (profileState is ProfileLoaded) {
+        final id = profileState.profile.salesPersonId;
+        if (id != null) _attendanceOwnerIds = [id];
+      }
+      _getLog();
+    });
   }
 
   @override
   void dispose() {
     _positionStream?.cancel();
     _pageController.dispose();
+    _scrollController.removeListener(_onScroll);
     _scrollController.dispose();
     super.dispose();
+  }
+
+  void _onScroll() {
+    if (!_scrollController.hasClients) return;
+
+    final isPinned = _scrollController.position.pixels > 275;
+    if (isPinned != _isButtonPinned) {
+      setState(() => _isButtonPinned = isPinned);
+    }
+
+    final atBottom = _scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 300;
+    if (!atBottom) return;
+
+    if (selectedMenu == 'activity') {
+      final activityState = context.read<AttendanceActivityBloc>().state;
+      if (activityState is! AttendanceActivityLoaded) return;
+      if (activityState.activityLoadingMore) return;
+      if (activityState.activityPage >= activityState.activityLastPage) return;
+      context.read<AttendanceActivityBloc>().add(GetAttendanceActivityEvent(
+        salesPersonIds: _activityOwnerIds,
+        startDate: _activityStartDate,
+        endDate: _activityEndDate,
+        page: activityState.activityPage + 1,
+        isLoadMore: true,
+      ));
+    } else if (selectedMenu == 'attendance') {
+      final attendanceState = context.read<AttendanceBloc>().state;
+      if (attendanceState is! AttendanceLoaded) return;
+      if (attendanceState.attendanceLoadingMore) return;
+      if (attendanceState.attendancePage >= attendanceState.attendanceLastPage) return;
+      context.read<AttendanceBloc>().add(FetchAttendanceDataEvent(
+        salesPersonIds: _attendanceOwnerIds,
+        startDate: _attendanceStartDate,
+        endDate: _attendanceEndDate,
+        page: attendanceState.attendancePage + 1,
+        isLoadMore: true,
+      ));
+    }
   }
 
   void _onTabChanged(int index) {
@@ -209,100 +267,6 @@ class _AttandancePageState extends State<AttandancePage> {
     }
   }
 
-  // Future<void> _handleMoveCamera(String title, int flagParam) async {
-  //   // Show loading dialog
-  //   if (!mounted) return;
-   
-
-  //   Position? position;
-  //   try {
-  //     position = await _getCurrentLocationOnce();
-  //   } finally {
-  //     if (mounted && Navigator.canPop(context)) {
-  //       Navigator.pop(context); // Close loading dialog
-  //     }
-  //   }
-
-  //   if (position == null) {
-  //     if (mounted) {
-  //       ScaffoldMessenger.of(context).showSnackBar(
-  //         const SnackBar(
-  //           content: Text("Lokasi belum terdeteksi"),
-  //           backgroundColor: Colors.orange,
-  //         ),
-  //       );
-  //     }
-  //     return;
-  //   }
-
-  //   final state = context.read<AttendanceBloc>().state;
-    
-  //   // If not loaded yet, wait or show error
-  //   if (state is! AttendanceLoaded) {
-  //      ScaffoldMessenger.of(context).showSnackBar(
-  //       const SnackBar(
-  //         content: Text("Data kantor belum siap, silakan tunggu..."),
-  //         backgroundColor: Colors.orange,
-  //       ),
-  //     );
-  //     return;
-  //   }
-
-  //   double? nearestDistance;
-  //   double? activeRadius;
-  //   String? nearestOfficeName;
-
-  //   if (state.officeLocations != null && state.officeLocations!.isNotEmpty) {
-  //     for (var office in state.officeLocations!) {
-  //       if (office.latitude != null && office.longitude != null) {
-  //         final d = Geolocator.distanceBetween(
-  //           office.latitude!,
-  //           office.longitude!,
-  //           position.latitude,
-  //           position.longitude,
-  //         );
-
-  //         if (nearestDistance == null || d < nearestDistance) {
-  //           nearestDistance = d;
-  //           activeRadius = office.radius?.toDouble() ?? radiusMeter;
-  //           nearestOfficeName = office.name;
-  //         }
-  //       }
-  //     }
-  //   }
-
-  //   // Default values if no office found in state
-  //   final effectiveDistance = nearestDistance ?? Geolocator.distanceBetween(officeLat, officeLng, position.latitude, position.longitude);
-  //   final effectiveRadius = activeRadius ?? radiusMeter;
-    
-  //   final isInRadius = effectiveDistance <= effectiveRadius;
-
-  //   // Untuk Clock In/Out (0/1), wajib masuk radius. 
-  //   // Untuk Activity (6), biasanya di pameran/luar, jadi kita beri toleransi atau bedakan logikanya.
-  //   if (!isInRadius && flagParam != 6) {
-  //     ScaffoldMessenger.of(context).showSnackBar(
-  //       const SnackBar(
-  //         content: Text("Diluar Lokasi"),
-  //         backgroundColor: Colors.red,
-  //       ),
-  //     );
-  //     return;
-  //   }
-
-  //   final result = await context.pushNamed(
-  //     'camera',
-  //     extra: AttandanceArgs(
-  //       flag: flagParam,
-  //       type: title,
-  //       location: nearestOfficeName ?? _address,
-  //       time: DateHelper.formatTime(DateTime.now()),
-  //     ),
-  //   );
-
-  //   if (result == true) {
-  //     _getLog();
-  //   }
-  // }
 
   Future<void> _handleMoveCamera(String title, int flagParam) async {
     if (!mounted) return;
@@ -396,10 +360,16 @@ class _AttandancePageState extends State<AttandancePage> {
   }
 
   Future<void> _getLog() async {
-    final contactState = context.read<ContactBloc>().state;
-    final salesPersonIds = (contactState.ownerIds != null && contactState.ownerIds!.isNotEmpty) ? contactState.ownerIds! : null;
-
-    context.read<AttendanceBloc>().add(FetchAttendanceDataEvent(salesPersonIds: salesPersonIds));
+    context.read<AttendanceBloc>().add(FetchAttendanceDataEvent(
+      salesPersonIds: _attendanceOwnerIds,
+      startDate: _attendanceStartDate,
+      endDate: _attendanceEndDate,
+    ));
+    context.read<AttendanceActivityBloc>().add(GetAttendanceActivityEvent(
+      salesPersonIds: _activityOwnerIds,
+      startDate: _activityStartDate,
+      endDate: _activityEndDate,
+    ));
   }
 
   void _showImagePreview(String url) {
@@ -515,9 +485,17 @@ class _AttandancePageState extends State<AttandancePage> {
                           /// BUTTON
                           SliverToBoxAdapter(child: const SizedBox(height: 35)),
                           SliverToBoxAdapter(child: _buildButtonLog()),
+                          // SliverPersistentHeader(
+                          //   key: const ValueKey('button_log'),
+                          //   pinned: true,
+                          //   delegate: _ButtonLogDelegate(_buildButtonLog(), isPinned: _isButtonPinned),
+                          // ),
                           /// CONTENT
-                          if (selectedMenu == 'activity') SliverToBoxAdapter(child: _buildActivityLog()),
-                          if (selectedMenu == 'attendance') SliverToBoxAdapter(child: _buildAttendanceLog()),
+                          SliverToBoxAdapter(
+                            child: selectedMenu == 'activity'
+                                ? _buildActivityLog()
+                                : _buildAttendanceLog(),
+                          ),
                         ],
                       ),
                     ),
@@ -534,7 +512,7 @@ class _AttandancePageState extends State<AttandancePage> {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: SizedBox(
-        width: 300,
+        width: double.infinity,
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisAlignment: MainAxisAlignment.start,
@@ -555,7 +533,9 @@ class _AttandancePageState extends State<AttandancePage> {
                         : Colors.white,
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
-                      color: Colors.blue,
+                      color: selectedMenu != 'activity'
+                        ? Colors.blue
+                        : Colors.white,
                     ),
                   ),
                   alignment: Alignment.center,
@@ -616,122 +596,192 @@ class _AttandancePageState extends State<AttandancePage> {
     );
   }
 
-  Widget _filterOwner(){
-    return BlocBuilder<ContactBloc, ContactState>(
-       builder: (context, contactState) {
-         return BlocBuilder<ProfileBloc, ProfileState>(
-           builder: (context, profileState) {
-             String label = 'Owner';
-             bool isSelected =
-                 contactState.ownerIds != null &&
-                 contactState.ownerIds!.isNotEmpty;
-    
-             if (isSelected &&
-                 profileState is ProfileLoaded) {
-               if (contactState.ownerIds!.length == 1) {
-                 final id =
-                     contactState.ownerIds!.first;
-                 if (profileState.profile.salesPersonId ==
-                     id) {
-                   label =
-                       profileState.profile.fullName;
-                 } else {
-                   HierarchyNodeEntity? found;
-                   void search(
-                     List<HierarchyNodeEntity> nodes,
-                   ) {
-                     for (var n in nodes) {
-                       if (n.salesPersonId == id) found = n;
-                       if (found == null &&
-                           n.subordinates.isNotEmpty)
-                         search(n.subordinates);
-                     }
-                   }
-    
-                   search(
-                     profileState.profile.subordinates,
-                   );
-                   if (found != null) {
-                     label = found!.fullName;
-                   }
-                 }
-               } else {
-                 label =
-                     "${contactState.ownerIds!.length} Owners";
-               }
-             }
-    
-             return CustomFilterButton(
-               label: label,
-               isSelected: isSelected,
-               onTap: () async {
-                 if (profileState is ProfileLoaded) {
-                   final user = profileState.profile;
-                   final List<OwnerDropdownItem>
-                   ownerItems = [];
-    
-                   ownerItems.add(
-                     OwnerDropdownItem(
-                       id: user.salesPersonId,
-                       name: user.fullName,
-                       subtitle: user.positionName,
-                     ),
-                   );
-    
-                   void addSubs(
-                     List<HierarchyNodeEntity> subs,
-                   ) {
-                     for (var s in subs) {
-                       ownerItems.add(
-                         OwnerDropdownItem(
-                           id: s.salesPersonId,
-                           name: s.fullName,
-                           subtitle: s.positionName,
-                         ),
-                       );
-                       if (s.subordinates.isNotEmpty)
-                         addSubs(s.subordinates);
-                     }
-                   }
-    
-                   addSubs(user.subordinates);
-    
-                   final result = await context.pushNamed(
-                     'detailContactDropdown',
-                     extra: ContactDropdownArgs(
-                       title: 'Pilih Owner',
-                       items: ownerItems,
-                       selectedIds: contactState.ownerIds,
-                       isMultiSelect: true,
-                     ),
-                   );
-    
-                   if (result != null) {
-                     final selected =
-                         result as List<OwnerDropdownItem>;
-                     final selectedIds = selected.map((e) => e.id!).toList();
+  Widget _filterOwner({bool isMultiSelect = true, String section = 'activity'}) {
+    final isAttendance = section == 'attendance';
 
-                     context.read<ContactBloc>().add(
-                       FetchContactsEvent(
-                         ownerIds: selectedIds,
-                         isRefresh: true,
-                         clearOwner: selected.isEmpty,
-                       ),
-                     );
+    return BlocBuilder<ProfileBloc, ProfileState>(
+      builder: (context, profileState) {
+        final currentIds = isAttendance ? _attendanceOwnerIds : _activityOwnerIds;
+        String label = 'Owner';
+        final isSelected = currentIds != null && currentIds.isNotEmpty;
 
-                     context.read<AttendanceBloc>().add(
-                       FetchAttendanceDataEvent(
-                         salesPersonIds: selectedIds.isNotEmpty ? selectedIds : null,
-                       ),
-                     );
-                   }
-                 }
-               },
-             );
-           },
-         );
-       },
-     );
+        if (isSelected && profileState is ProfileLoaded) {
+          final user = profileState.profile;
+
+          String? findName(int? id) {
+            if (id == null) return null;
+            if (user.salesPersonId == id) return user.fullName;
+            HierarchyNodeEntity? found;
+            void search(List<HierarchyNodeEntity> nodes) {
+              for (var n in nodes) {
+                if (n.salesPersonId == id) found = n;
+                if (found == null && n.subordinates.isNotEmpty) search(n.subordinates);
+              }
+            }
+            search(user.subordinates);
+            return found?.fullName;
+          }
+
+          if (currentIds.length == 1) {
+            label = findName(currentIds.first) ?? 'Filtered';
+          } else {
+            label = '${currentIds.length} Owners';
+          }
+        }
+
+        return CustomFilterButton(
+          label: label,
+          isSelected: isSelected,
+          onTap: () async {
+            if (profileState is ProfileLoaded) {
+              final user = profileState.profile;
+              final List<OwnerDropdownItem> ownerItems = [];
+
+              ownerItems.add(OwnerDropdownItem(
+                id: user.salesPersonId,
+                name: user.fullName,
+                subtitle: user.positionName,
+              ));
+
+              void addSubs(List<HierarchyNodeEntity> subs) {
+                for (var s in subs) {
+                  ownerItems.add(OwnerDropdownItem(
+                    id: s.salesPersonId,
+                    name: s.fullName,
+                    subtitle: s.positionName,
+                  ));
+                  if (s.subordinates.isNotEmpty) addSubs(s.subordinates);
+                }
+              }
+              addSubs(user.subordinates);
+
+              final currentIds = isAttendance ? _attendanceOwnerIds : _activityOwnerIds;
+              final result = await context.pushNamed(
+                'detailContactDropdown',
+                extra: ContactDropdownArgs(
+                  title: 'Pilih Owner',
+                  items: ownerItems,
+                  selectedIds: isMultiSelect ? currentIds : null,
+                  selectedId: !isMultiSelect ? currentIds?.firstOrNull : null,
+                  isMultiSelect: isMultiSelect,
+                  allowClear: !isMultiSelect,
+                ),
+              );
+
+              if (result != null) {
+                final List<OwnerDropdownItem> selected;
+                if (result is List<OwnerDropdownItem>) {
+                  selected = result;
+                } else {
+                  selected = [result as OwnerDropdownItem];
+                }
+                final newIds = selected.map((e) => e.id!).toList();
+                final ids = newIds.isNotEmpty ? newIds : null;
+
+                setState(() {
+                  if (isAttendance) {
+                    _attendanceOwnerIds = ids;
+                  } else {
+                    _activityOwnerIds = ids;
+                  }
+                });
+
+                if (isAttendance) {
+                  context.read<AttendanceBloc>().add(FetchAttendanceDataEvent(
+                    salesPersonIds: _attendanceOwnerIds,
+                    startDate: _attendanceStartDate,
+                    endDate: _attendanceEndDate,
+                  ));
+                } else {
+                  context.read<AttendanceActivityBloc>().add(GetAttendanceActivityEvent(
+                    salesPersonIds: _activityOwnerIds,
+                    startDate: _activityStartDate,
+                    endDate: _activityEndDate,
+                  ));
+                }
+              }
+            }
+          },
+        );
+      },
+    );
+  }
+
+  Widget _filterDate({String section = 'activity'}) {
+    final isAttendance = section == 'attendance';
+    final startDate = isAttendance ? _attendanceStartDate : _activityStartDate;
+    final endDate = isAttendance ? _attendanceEndDate : _activityEndDate;
+    final dateLabel = isAttendance ? _attendanceDateLabel : _activityDateLabel;
+
+    final isSelected = startDate != null && endDate != null;
+    String label = 'Date';
+    if (isSelected) {
+      if (dateLabel != null) {
+        label = dateLabel;
+      } else {
+        final start = DateTime.tryParse(startDate);
+        final end = DateTime.tryParse(endDate);
+        if (start != null && end != null) {
+          label = '${DateFormat('d MMM').format(start)} - ${DateFormat('d MMM').format(end)}';
+        }
+      }
+    }
+
+    return CustomFilterButton(
+      label: label,
+      isSelected: isSelected,
+      onTap: () async {
+        final result = await context.pushNamed<DateFilterResult>(
+          'dateFilter',
+          extra: {
+            'label': dateLabel,
+            'startDate': startDate,
+            'endDate': endDate,
+          },
+        );
+
+        if (result != null) {
+          if (result.isClear) {
+            setState(() {
+              if (isAttendance) {
+                _attendanceStartDate = null;
+                _attendanceEndDate = null;
+                _attendanceDateLabel = null;
+              } else {
+                _activityStartDate = null;
+                _activityEndDate = null;
+                _activityDateLabel = null;
+              }
+            });
+          } else {
+            setState(() {
+              if (isAttendance) {
+                _attendanceStartDate = result.startDate;
+                _attendanceEndDate = result.endDate;
+                _attendanceDateLabel = result.label;
+              } else {
+                _activityStartDate = result.startDate;
+                _activityEndDate = result.endDate;
+                _activityDateLabel = result.label;
+              }
+            });
+          }
+          if (isAttendance) {
+            context.read<AttendanceBloc>().add(FetchAttendanceDataEvent(
+              salesPersonIds: _attendanceOwnerIds,
+              startDate: _attendanceStartDate,
+              endDate: _attendanceEndDate,
+            ));
+          } else {
+            context.read<AttendanceActivityBloc>().add(GetAttendanceActivityEvent(
+              salesPersonIds: _activityOwnerIds,
+              startDate: _activityStartDate,
+              endDate: _activityEndDate,
+            ));
+          }
+        }
+      },
+    );
   }
 
   Widget _buildAttendanceLog() {
@@ -750,7 +800,11 @@ class _AttandancePageState extends State<AttandancePage> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text("Attendance Log", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-              _filterOwner()
+              Row(
+                children: [
+                  _filterOwner(isMultiSelect: false, section: 'attendance'),
+                ],
+              ),
             ],
           ),
           SizedBox(height: 5),
@@ -764,12 +818,21 @@ class _AttandancePageState extends State<AttandancePage> {
     
               if (state is AttendanceLoaded) {
                 final data = state.data;
-                return ListView.builder(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  padding: EdgeInsets.zero,
-                  itemCount: data.length,
-                  itemBuilder: (_, i) => _buildCardAttendance(data[i]),
+                return Column(
+                  children: [
+                    ListView.builder(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      padding: EdgeInsets.zero,
+                      itemCount: data.length,
+                      itemBuilder: (_, i) => _buildCardAttendance(data[i]),
+                    ),
+                    if (state.attendanceLoadingMore)
+                      const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 16),
+                        child: Center(child: CircularProgressIndicator()),
+                      ),
+                  ],
                 );
               }
     
@@ -800,28 +863,56 @@ class _AttandancePageState extends State<AttandancePage> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text("My Activity", style: TextStyle(fontSize:17, fontWeight: FontWeight.bold)),
-             _filterOwner()
+              Text("Activity", style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
+              Row(
+                children: [
+                  _filterOwner(isMultiSelect: true, section: 'activity'),
+                ],
+              ),
             ],
           ),
           SizedBox(height: 5),
-          BlocBuilder<AttendanceBloc, AttendanceState>(
+          BlocBuilder<AttendanceActivityBloc, AttendanceActivityState>(
             builder: (context, state) {
-    
-              if (state is AttendanceLoading) {
-                return buildAttendanceShimmer();
+
+              if (state is AttendanceActivityLoading) {
+                return buildActivityLogShimmer();
               }
-    
-              if (state is AttendanceLoaded) {
-                final data = state.data
-                    .where((e) => e.checkInActivity != null && e.checkInActivity!.toString().trim().isNotEmpty)
-                    .toList()
-                  ..sort((a, b) => b.date.compareTo(a.date));
+
+              if (state is AttendanceActivityLoaded) {
+                // Flatten each ActivityEntity into one entry per type
+                final List<({String fullName, String date, String type, Color typeColor, String? datetime, String? location, String? contactName, String? note, List<String> images})> entries = [];
+
+                for (final item in state.activityLogs) {
+                  if (item.clockInDate != null) {
+                    entries.add((fullName: item.fullName, date: item.date, type: 'Clock In', typeColor: const Color(0xFF27AE60), datetime: item.clockInDate, location: item.clockInLocation, contactName: null, note: item.clockInNote, images: item.clockInAttachment ?? []));
+                  }
+                  if (item.clockOutDate != null) {
+                    entries.add((fullName: item.fullName, date: item.date, type: 'Clock Out', typeColor: const Color(0xFFE74C3C), datetime: item.clockOutDate, location: item.clockOutLocation, contactName: null, note: item.clockOutNote, images: item.clockOutAttachment ?? []));
+                  }
+                  if (item.checkInDate != null) {
+                    entries.add((fullName: item.fullName, date: item.date, type: 'Check In', typeColor: const Color(0xFF2980B9), datetime: item.checkInDate, location: item.checkInLocation, contactName: null, note: item.checkInNote, images: item.checkInAttachment ?? []));
+                  }
+                  for (final v in item.visits) {
+                    if (v.datetime != null) {
+                      entries.add((fullName: item.fullName, date: item.date, type: 'Visit', typeColor: const Color(0xFFE67E22), datetime: v.datetime, location: v.lastProject, contactName: v.contactName, note: v.note, images: v.attachment ?? []));
+                    }
+                  }
+                }
+
+                entries.sort((a, b) => b.date.compareTo(a.date));
+
+                if (entries.isEmpty) {
+                  return const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 20),
+                    child: Center(child: Text('Tidak ada data aktivitas')),
+                  );
+                }
 
                 // Group by date
-                final Map<String, List<AttendanceEntity>> grouped = {};
-                for (final item in data) {
-                  grouped.putIfAbsent(item.date, () => []).add(item);
+                final Map<String, List<({String fullName, String date, String type, Color typeColor, String? datetime, String? location, String? contactName, String? note, List<String> images})>> grouped = {};
+                for (final e in entries) {
+                  grouped.putIfAbsent(e.date, () => []).add(e);
                 }
                 final dates = grouped.keys.toList();
 
@@ -841,35 +932,258 @@ class _AttandancePageState extends State<AttandancePage> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Padding(
-                          padding: const EdgeInsets.only(top: 12, bottom:10),
-                          child: Row(
-                            children: [
-                              Text(
-                                dateLabel,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 14,
-                                ),
-                              ),
-                            ],
+                          padding: const EdgeInsets.only(top: 12, bottom: 10),
+                          child: Text(
+                            dateLabel,
+                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
                           ),
                         ),
-                        ...items.map((item) => _buildCardAktivity(item)),
+                        ...items.map((e) => _buildCardActivityNew(
+                          fullName: e.fullName,
+                          type: e.type,
+                          typeColor: e.typeColor,
+                          datetime: e.datetime,
+                          location: e.location,
+                          contactName: e.contactName,
+                          note: e.note,
+                          images: e.images,
+                        )),
                       ],
                     );
                   },
                 );
               }
-    
-              if (state is AttendanceError) {
+
+              if (state is AttendanceActivityError) {
                 return Center(child: Text(state.message));
               }
-    
+
+              return SizedBox();
+            },
+          ),
+          BlocBuilder<AttendanceActivityBloc, AttendanceActivityState>(
+            builder: (context, state) {
+              if (state is AttendanceActivityLoaded && state.activityLoadingMore) {
+                return const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 16),
+                  child: Center(child: CircularProgressIndicator()),
+                );
+              }
               return SizedBox();
             },
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildCardActivityNew({
+    required String fullName,
+    required String type,
+    required Color typeColor,
+    required String? datetime,
+    required String? location,
+    required String? contactName,
+    required String? note,
+    required List<String> images,
+  }) {
+    return StatefulBuilder(
+      builder: (context, setStateSB) {
+        final ScrollController scrollController = ScrollController();
+        bool isAtStart = true;
+        bool isAtEnd = false;
+
+        void updateScrollState() {
+          if (!scrollController.hasClients) return;
+          final maxScroll = scrollController.position.maxScrollExtent;
+          final offset = scrollController.offset;
+          setStateSB(() {
+            isAtStart = offset <= 0;
+            isAtEnd = offset >= maxScroll;
+          });
+        }
+
+        scrollController.addListener(updateScrollState);
+
+        String formatTime(String? value) {
+          if (value == null) return '-';
+          final dt = DateTime.tryParse(value);
+          if (dt == null) return '-';
+          return DateFormat('hh:mm').format(dt);
+        }
+
+        return Container(
+          margin: const EdgeInsets.only(bottom: 30),
+          decoration: BoxDecoration(
+            color: const Color(whiteColor),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              /// ================= HEADER =================
+              Container(
+                padding: const EdgeInsets.only(left: 12),
+                decoration: BoxDecoration(
+                  border: Border(
+                    left: BorderSide(color: Color(purpleColor), width: 5),
+                  ),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          width: 40,
+                          height: 40,
+                          decoration: BoxDecoration(
+                            color: Color(primaryColor),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Center(
+                            child: Text(
+                              getInitials(fullName),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                                color: Color(whiteColor),
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 5),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              fullName,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                            ),
+                            Container(
+                              width: 180,
+                              child: Text(location ?? '', maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 8)),
+                            ),
+                            if (contactName != null && contactName.isNotEmpty)
+                              Container(
+                                width: 180,
+                                child: Row(
+                                  children: [
+                                    Icon(Icons.person_outline, size: 11, color: const Color(0xFFE67E22)),
+                                    const SizedBox(width: 2),
+                                    Expanded(
+                                      child: Text(contactName, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 11, color: Color(0xFFE67E22))),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                          ],
+                        ),
+                      ],
+                    ),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text(formatTime(datetime), style: const TextStyle(fontSize: 11)),
+                        const SizedBox(height: 2),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: typeColor.withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(4),
+                            border: Border.all(color: typeColor.withValues(alpha: 0.5)),
+                          ),
+                          child: Text(type, style: TextStyle(fontSize: 10, color: typeColor, fontWeight: FontWeight.w600)),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 5),
+              Text(note ?? '', style: const TextStyle(fontWeight: FontWeight.w100)),
+              const SizedBox(height: 10),
+
+              /// ================= IMAGES =================
+              if (images.isNotEmpty)
+                SizedBox(
+                  height: 200,
+                  child: Stack(
+                    children: [
+                      ListView.builder(
+                        controller: scrollController,
+                        scrollDirection: Axis.horizontal,
+                        itemCount: images.length,
+                        itemBuilder: (context, index) {
+                          return GestureDetector(
+                            onTap: () => _showImagePreview(images[index]),
+                            child: Container(
+                              margin: const EdgeInsets.only(right: 10),
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(8),
+                                child: Image.network(
+                                  convertDriveUrl(images[index]),
+                                  width: 200,
+                                  height: 200,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (context, error, stackTrace) => Container(
+                                    width: 200,
+                                    height: 200,
+                                    color: Colors.grey.shade200,
+                                    child: const Icon(Icons.broken_image, size: 40),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                      if (images.length > 1 && !isAtStart)
+                        Positioned(
+                          left: 5, top: 0, bottom: 0,
+                          child: Center(
+                            child: GestureDetector(
+                              onTap: () {
+                                final newOffset = (scrollController.offset - 250).clamp(0.0, scrollController.position.maxScrollExtent);
+                                scrollController.animateTo(newOffset, duration: const Duration(milliseconds: 250), curve: Curves.easeInOut);
+                              },
+                              child: Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.4), shape: BoxShape.circle),
+                                child: const Icon(Icons.arrow_back_ios, color: Colors.white, size: 16),
+                              ),
+                            ),
+                          ),
+                        ),
+                      if (images.length > 1 && !isAtEnd)
+                        Positioned(
+                          right: 5, top: 0, bottom: 0,
+                          child: Center(
+                            child: GestureDetector(
+                              onTap: () {
+                                final newOffset = (scrollController.offset + 250).clamp(0.0, scrollController.position.maxScrollExtent);
+                                scrollController.animateTo(newOffset, duration: const Duration(milliseconds: 250), curve: Curves.easeInOut);
+                              },
+                              child: Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.4), shape: BoxShape.circle),
+                                child: const Icon(Icons.arrow_forward_ios, color: Colors.white, size: 16),
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+            ],
+          ),
+        );
+      },
     );
   }
 
@@ -1216,7 +1530,8 @@ class _AttandancePageState extends State<AttandancePage> {
         ),
         child: LayoutBuilder(
           builder: (context, constraints) {
-            final tabWidth = constraints.maxWidth / 2.6;
+            const double overlap = 25;
+            final tabWidth = (constraints.maxWidth + (tabs.length - 1) * overlap) / tabs.length;
 
             final page = _pageController.hasClients? (_pageController.page ?? 0): selectedIndex.toDouble();
 
@@ -1229,7 +1544,7 @@ class _AttandancePageState extends State<AttandancePage> {
               children: order.map((index) {
                 return _buildStackTab(
                   index: index,
-                  left: index * (tabWidth - 25),
+                  left: index * (tabWidth - overlap),
                   tabWidth: tabWidth,
                   height: height,
                   tabs: tabs,
@@ -1551,4 +1866,32 @@ class _AttandancePageState extends State<AttandancePage> {
       ],
     );
   }
+}
+
+class _ButtonLogDelegate extends SliverPersistentHeaderDelegate {
+  final Widget child;
+  final bool isPinned;
+  static const double _height = 76.0;
+
+  _ButtonLogDelegate(this.child, {this.isPinned = false});
+
+  @override
+  Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 1),
+      color:  Colors.transparent,
+      alignment: Alignment.center,
+      child: child,
+    );
+  }
+
+  @override
+  double get maxExtent => _height;
+
+  @override
+  double get minExtent => _height;
+
+  @override
+  bool shouldRebuild(_ButtonLogDelegate oldDelegate) =>
+      oldDelegate.isPinned != isPinned || oldDelegate.child != child;
 }

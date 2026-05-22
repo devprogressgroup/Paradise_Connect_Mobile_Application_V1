@@ -435,6 +435,86 @@ Widget buildSaleskitShimmer() {
   );
 }
 
+// ─── Activity Log Item ────────────────────────────────────────────────────────
+// Matches: _buildCardActivityNew — left-border card: circle avatar + name col + time/badge + image row
+Widget buildActivityLogShimmer() {
+  return ListView.builder(
+    physics: const NeverScrollableScrollPhysics(),
+    shrinkWrap: true,
+    itemCount: 4,
+    itemBuilder: (_, __) => _shimmerWrap(
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 20),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // Left purple border placeholder
+              Container(width: 5, decoration: BoxDecoration(color: Colors.white, borderRadius: const BorderRadius.only(topLeft: Radius.circular(12), bottomLeft: Radius.circular(12)))),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Header row
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Row(
+                            children: [
+                              const _ShimmerBox(width: 40, height: 40, borderRadius: 20),
+                              const SizedBox(width: 8),
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  _ShimmerBox(width: 130, height: 14),
+                                  const SizedBox(height: 5),
+                                  _ShimmerBox(width: 100, height: 11),
+                                ],
+                              ),
+                            ],
+                          ),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              _ShimmerBox(width: 40, height: 11),
+                              const SizedBox(height: 4),
+                              _ShimmerBox(width: 56, height: 18, borderRadius: 4),
+                            ],
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+                      // Note line
+                      _ShimmerBox(width: 180, height: 11),
+                      const SizedBox(height: 10),
+                      // Image strip
+                      Row(
+                        children: [
+                          _ShimmerBox(width: 100, height: 100, borderRadius: 8),
+                          const SizedBox(width: 8),
+                          _ShimmerBox(width: 100, height: 100, borderRadius: 8),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+            ],
+          ),
+        ),
+      ),
+    ),
+  );
+}
+
 // ─── Attendance Item ──────────────────────────────────────────────────────────
 // Matches: padding(4v,8h), Row: 70x40(r6) date box + icon+text col + 2x40 divider + icon+text col
 Widget buildAttendanceShimmer() {

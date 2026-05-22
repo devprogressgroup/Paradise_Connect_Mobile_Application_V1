@@ -1,16 +1,19 @@
 import 'package:progress_group/features/attandance/data/datasource/attendance_remote_datasource.dart';
+import 'package:progress_group/features/attandance/data/models/attendance_activity_model.dart';
 import 'package:progress_group/features/attandance/data/models/attendance_model.dart';
 import 'package:progress_group/features/attandance/data/models/location_model.dart';
+import 'package:progress_group/features/attandance/domain/entities/attendance_activity_entity.dart';
 import 'package:progress_group/features/attandance/domain/entities/attandance_entity.dart';
 import 'package:progress_group/features/attandance/domain/entities/location_entity.dart';
 
 abstract class AttendanceRepository {
-  Future<List<AttendanceEntity>> getAttendance({List<int>? salesPersonIds});
+  Future<({List<AttendanceEntity> data, int lastPage})> getAttendance({List<int>? salesPersonIds, String? startDate, String? endDate, int page = 1});
   Future<AttendanceEntity?> getTodayAttendance();
   Future<List<AttendanceLocation>> getLocations();
   Future<List<AttendanceLocation>> getOfficeLocations();
   Future<void> submitAttendance({required String datetime,required int flag,required String location,String? note,String? filePath,required int nikNumber,});
   Future<void> submitAttendanceActivity({required String datetime,required int flag,required String location,String? note,required List<String> filePaths,required int nikNumber,});
+  Future<({List<AttendanceActivityEntity> data, int lastPage})> getAttendanceActivity({List<int>? salesPersonIds, String? startDate, String? endDate, String? location, int page, int perPage});
 }
 
 class AttendanceRepositoryImpl implements AttendanceRepository {
@@ -93,10 +96,12 @@ class AttendanceRepositoryImpl implements AttendanceRepository {
   }
 
   @override
-  Future<List<AttendanceEntity>> getAttendance({List<int>? salesPersonIds}) async {
-    final result = await remote.getAttendance(salesPersonIds: salesPersonIds);
+  Future<({List<AttendanceEntity> data, int lastPage})> getAttendance({List<int>? salesPersonIds, String? startDate, String? endDate, int page = 1}) async {
+    final result = await remote.getAttendance(salesPersonIds: salesPersonIds, startDate: startDate, endDate: endDate, page: page);
 
-    final list = result['data']['data'] as List;
+    final pagination = result['data'] as Map<String, dynamic>;
+    final list = pagination['data'] as List;
+    final lastPage = (pagination['last_page'] as num?)?.toInt() ?? 1;
     final models = list.map((e) => AttendanceModel.fromJson(e)).toList();
 
     // Grouping by Date and FullName to merge ClockIn and ClockOut
@@ -128,7 +133,24 @@ class AttendanceRepositoryImpl implements AttendanceRepository {
       }
     }
 
-    return grouped.values.toList();
+    return (data: grouped.values.toList(), lastPage: lastPage);
+  }
+
+  @override
+  Future<({List<AttendanceActivityEntity> data, int lastPage})> getAttendanceActivity({List<int>? salesPersonIds, String? startDate, String? endDate, String? location, int page = 1, int perPage = 20}) async {
+    final result = await remote.getAttendanceActivity(
+      salesPersonIds: salesPersonIds,
+      startDate: startDate,
+      endDate: endDate,
+      location: location,
+      page: page,
+      perPage: perPage,
+    );
+    final pagination = result['data'] as Map<String, dynamic>;
+    final list = pagination['data'] as List;
+    final lastPage = (pagination['last_page'] as num?)?.toInt() ?? 1;
+    final data = list.map((e) => AttendanceActivityModel.fromJson(e as Map<String, dynamic>)).toList();
+    return (data: data, lastPage: lastPage);
   }
 
   @override

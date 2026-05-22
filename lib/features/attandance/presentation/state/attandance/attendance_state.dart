@@ -12,13 +12,23 @@ class AttendanceLoaded extends AttendanceState {
   final List<AttendanceLocation>? locations;
   final List<AttendanceLocation>? officeLocations;
   final AttendanceEntity? todayData;
+  final int attendancePage;
+  final int attendanceLastPage;
+  final bool attendanceLoadingMore;
 
-  AttendanceLoaded({required this.data, this.locations, this.officeLocations, this.todayData});
+  AttendanceLoaded({
+    required this.data,
+    this.locations,
+    this.officeLocations,
+    this.todayData,
+    this.attendancePage = 1,
+    this.attendanceLastPage = 1,
+    this.attendanceLoadingMore = false,
+  });
 }
 
 class AttendanceError extends AttendanceState {
   final String message;
-
   AttendanceError(this.message);
 }
 

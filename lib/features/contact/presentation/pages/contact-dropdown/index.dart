@@ -85,6 +85,15 @@ class _DropdownListContactState extends State<DropdownListContact> {
                               color: Color(primaryColor),
                               fontWeight: FontWeight.bold,
                               fontSize: 16)),
+                    )
+                  else if (widget.args.allowClear && _tempSelectedIds.isNotEmpty)
+                    TextButton(
+                      onPressed: () => context.pop(<OwnerDropdownItem>[]),
+                      child: Text("Clear",
+                          style: TextStyle(
+                              color: Colors.red,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16)),
                     ),
                 ],
               ),

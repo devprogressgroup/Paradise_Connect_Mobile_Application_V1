@@ -7,7 +7,11 @@ class GetAttendanceEvent extends AttendanceEvent {
 
 class FetchAttendanceDataEvent extends AttendanceEvent {
   final List<int>? salesPersonIds;
-  FetchAttendanceDataEvent({this.salesPersonIds});
+  final String? startDate;
+  final String? endDate;
+  final int page;
+  final bool isLoadMore;
+  FetchAttendanceDataEvent({this.salesPersonIds, this.startDate, this.endDate, this.page = 1, this.isLoadMore = false});
 }
 
 class GetLocationsEvent extends AttendanceEvent {}

@@ -410,26 +410,33 @@ class _CameraPageState extends State<CameraPage> {
                                child: InkWell(
                                  onTap: () async {
                                    final state = context.read<AttendanceBloc>().state;
-                                   if (state is AttendanceLoaded && state.locations != null) {
-                                     final items = state.locations!.map((e) => OwnerDropdownItem(id: e.id, name: e.name)).toList();
-
-                                     final result = await context.pushNamed(
-                                       'detailContactDropdown',
-                                       extra: ContactDropdownArgs(
-                                         title: 'Select Pameran',
-                                         items: items,
-                                         selectedId: _selectedLocationId,
-                                         isMultiSelect: false,
+                                   if (state is! AttendanceLoaded || state.locations == null) {
+                                     ScaffoldMessenger.of(context).showSnackBar(
+                                       const SnackBar(
+                                         content: Text('Data lokasi belum tersedia, silahkan tunggu sebentar'),
+                                         duration: Duration(seconds: 2),
                                        ),
                                      );
+                                     return;
+                                   }
+                                   final items = state.locations!.map((e) => OwnerDropdownItem(id: e.id, name: e.name)).toList();
 
-                                     if (result != null) {
-                                       final selected = result as OwnerDropdownItem;
-                                       setState(() {
-                                         _selectedLocationId = selected.id;
-                                         pameranTC.text = selected.name;
-                                       });
-                                     }
+                                   final result = await context.pushNamed(
+                                     'detailContactDropdown',
+                                     extra: ContactDropdownArgs(
+                                       title: 'Select Pameran',
+                                       items: items,
+                                       selectedId: _selectedLocationId,
+                                       isMultiSelect: false,
+                                     ),
+                                   );
+
+                                   if (result != null) {
+                                     final selected = result as OwnerDropdownItem;
+                                     setState(() {
+                                       _selectedLocationId = selected.id;
+                                       pameranTC.text = selected.name;
+                                     });
                                    }
                                  },
                                  child: Row(

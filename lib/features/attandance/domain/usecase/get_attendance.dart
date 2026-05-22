@@ -6,7 +6,7 @@ class GetAttendanceUseCase {
 
   GetAttendanceUseCase(this.repository);
 
-  Future<List<AttendanceEntity>> call({List<int>? salesPersonIds}) {
-    return repository.getAttendance(salesPersonIds: salesPersonIds);
+  Future<({List<AttendanceEntity> data, int lastPage})> call({List<int>? salesPersonIds, String? startDate, String? endDate, int page = 1}) {
+    return repository.getAttendance(salesPersonIds: salesPersonIds, startDate: startDate, endDate: endDate, page: page);
   }
 }

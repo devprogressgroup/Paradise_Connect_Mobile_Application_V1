@@ -48,8 +48,14 @@ class DioClient {
             _isHandling401 = true;
 
             final currentToken = await _authLocalDataSource.getToken();
-            if (currentToken != null && currentToken.isNotEmpty) {
-              try {
+
+            // Token sudah null = user logout duluan, jangan tampilkan dialog sesi habis
+            if (currentToken == null || currentToken.isEmpty) {
+              _isHandling401 = false;
+              return handler.next(e);
+            }
+
+            try {
                 final refreshDio = Dio(BaseOptions(
                   baseUrl: ApiConstants.baseUrl,
                   headers: {
@@ -72,9 +78,8 @@ class DioClient {
                   final retryResponse = await _dio.fetch(e.requestOptions);
                   return handler.resolve(retryResponse);
                 }
-              } catch (_) {
-                // Refresh failed — fall through to logout
-              }
+            } catch (_) {
+              // Refresh failed — fall through to logout
             }
 
             await _authLocalDataSource.clearToken();
