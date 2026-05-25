@@ -28,6 +28,7 @@ import 'package:progress_group/features/contact/presentation/state/whatsapp_acti
 import '../../../../../core/utils/widget/custom_header.dart';
 import '../../../../../core/utils/widget/attendance_alerts_widget.dart';
 import '../../../../../core/utils/widget/custom_filter_button.dart';
+import '../../../../../core/utils/widget/error_dialog.dart';
 import '../../../../contact/data/models/dropdown/date_filter.dart';
 
 class HomePage extends StatefulWidget {
@@ -127,26 +128,41 @@ class _HomePageState extends State<HomePage> {
       groupBy: "Annual",
     ));
 
-    // Hanya fetch profile jika belum loaded
-    final profileState = context.read<ProfileBloc>().state;
-    if (profileState is! ProfileLoaded) {
-      context.read<ProfileBloc>().add(GetProfileEvent());
-    }
-
-    context.read<ActivityBloc>().add(
-      FetchActivitiesEvent(
-        followUpStartDate: todayStr,
-        followUpEndDate: todayStr,
-        isRefresh: true,
-      ),
-    );
-
-    context.read<NotifActivityBloc>().add(const FetchActivitiesEvent(isRefresh: true));
+    context.read<ProfileBloc>().add(GetProfileEvent());
     context.read<WhatsappActivityBloc>().add(const FetchWhatsappUnreadSummaryEvent(0));
     context.read<AttendanceBloc>().add(FetchAttendanceDataEvent());
-    context.read<ProspectStatusSummaryBloc>().add(
-      FetchProspectStatusSummaryEvent(startDate: _prospectStartDate, endDate: _prospectEndDate),
-    );
+
+    // Jika profile belum dimuat, anggap sales agar data tetap dimuat.
+    // Jika sudah dimuat dan bukan sales, lewati API khusus sales.
+    final profileState = context.read<ProfileBloc>().state;
+    final isSales = profileState is! ProfileLoaded || profileState.profile.salesPersonId != null;
+    if (!isSales) return;
+
+    // Upcoming Task — hanya fetch jika belum loaded atau force refresh
+    final activityState = context.read<ActivityBloc>().state;
+    if (force || activityState.status != ActivityStatus.loaded) {
+      context.read<ActivityBloc>().add(
+        FetchActivitiesEvent(
+          followUpStartDate: todayStr,
+          followUpEndDate: todayStr,
+          isRefresh: true,
+        ),
+      );
+    }
+
+    // Notifikasi activity — hanya fetch jika belum loaded atau force refresh
+    final notifState = context.read<NotifActivityBloc>().state;
+    if (force || notifState.status != ActivityStatus.loaded) {
+      context.read<NotifActivityBloc>().add(const FetchActivitiesEvent(isRefresh: true));
+    }
+
+    // Prospect Status — hanya fetch jika belum loaded atau force refresh
+    final prospectState = context.read<ProspectStatusSummaryBloc>().state;
+    if (force || prospectState.status != ProspectStatusSummaryStatus.loaded) {
+      context.read<ProspectStatusSummaryBloc>().add(
+        FetchProspectStatusSummaryEvent(startDate: _prospectStartDate, endDate: _prospectEndDate),
+      );
+    }
   }
 
   @override
@@ -181,7 +197,7 @@ class _HomePageState extends State<HomePage> {
           Expanded(
             child: RefreshIndicator(
               onRefresh: () async {
-                await _loadData();
+                await _loadData(force: true);
               },
               child: SingleChildScrollView(
                 physics: const AlwaysScrollableScrollPhysics(),
@@ -397,7 +413,13 @@ class _HomePageState extends State<HomePage> {
   }
 
   Widget _buildProspectStatusSection() {
-    return BlocBuilder<ProspectStatusSummaryBloc, ProspectStatusSummaryState>(
+    return BlocConsumer<ProspectStatusSummaryBloc, ProspectStatusSummaryState>(
+      listenWhen: (prev, curr) =>
+          curr.status == ProspectStatusSummaryStatus.error &&
+          prev.status != ProspectStatusSummaryStatus.error,
+      listener: (context, state) {
+        showErrorDialog(context, state.errorMessage ?? 'Gagal memuat prospect status');
+      },
       builder: (context, state) {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -465,16 +487,6 @@ class _HomePageState extends State<HomePage> {
             const SizedBox(height: 8),
             if (state.status == ProspectStatusSummaryStatus.loading)
               buildProspectStatusShimmer()
-            else if (state.status == ProspectStatusSummaryStatus.error)
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(10),
-                  boxShadow: [BoxShadow(color: Colors.grey.withValues(alpha: 0.2), spreadRadius: 2, blurRadius: 5, offset: const Offset(0, 3))],
-                ),
-                child: Center(child: Text(state.errorMessage ?? "Gagal memuat data", style: const TextStyle(color: Colors.red, fontSize: 13))),
-              )
             else if (state.summary != null) ...[
               Container(
                 decoration: BoxDecoration(

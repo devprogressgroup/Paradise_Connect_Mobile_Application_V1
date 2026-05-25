@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-enum AppEnvironment { production, development }
+enum AppEnvironment { production, development, development2 }
 
 class _EnvConfig {
   final String label;
@@ -37,6 +37,13 @@ class ApiConstants {
       waServerURL: 'http://192.168.8.38:3000',
       serverUrl: 'http://192.168.8.38:8000',
     ),
+    AppEnvironment.development2: _EnvConfig(
+      label: 'Development 2',
+      baseUrl: 'http://172.20.10.3:8000/api',
+      storageUrl: 'http://172.20.10.3:8000/storage',
+      waServerURL: 'http://172.20.10.3:3000',
+      serverUrl: 'http://172.20.10.3:8000',
+    ),
   };
 
   static AppEnvironment _currentEnv = AppEnvironment.production;
@@ -48,17 +55,23 @@ class ApiConstants {
 
   static void loadFromPrefs(SharedPreferences prefs) {
     final saved = prefs.getString(_prefKey);
-    _currentEnv = saved == 'development'
-        ? AppEnvironment.development
-        : AppEnvironment.production;
+    _currentEnv = switch (saved) {
+      'development' => AppEnvironment.development,
+      'development2' => AppEnvironment.development2,
+      _ => AppEnvironment.production,
+    };
     envNotifier.value = _currentEnv;
   }
 
   static Future<void> switchEnv(AppEnvironment env) async {
     _currentEnv = env;
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(
-        _prefKey, env == AppEnvironment.development ? 'development' : 'production');
+    final key = switch (env) {
+      AppEnvironment.development => 'development',
+      AppEnvironment.development2 => 'development2',
+      AppEnvironment.production => 'production',
+    };
+    await prefs.setString(_prefKey, key);
     envNotifier.value = env;
   }
 

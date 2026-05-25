@@ -35,6 +35,7 @@ import 'package:progress_group/features/inbox/presentation/state/inbox/inbox_sta
 import 'package:url_launcher/url_launcher.dart';
 import '../../../../../core/utils/widget/custom_bg_icon.dart';
 import '../../../../../core/utils/widget/custom_buttomsheet.dart';
+import '../../../../../core/utils/widget/error_dialog.dart';
 import 'package:progress_group/features/contact/presentation/widgets/contact_options_sheet.dart';
 
 class ContactDetailPage extends StatefulWidget {
@@ -108,7 +109,7 @@ class _ContactDetailPageState extends State<ContactDetailPage>with TickerProvide
         _activityScrollController.position.maxScrollExtent - 200) {
       final contactId = widget.args.dataContact?.contactId;
       if (contactId != null) {
-        context.read<ActivityBloc>().add(
+        context.read<ContactDetailActivityBloc>().add(
           FetchActivitiesEvent(contactId: contactId),
         );
       }
@@ -174,7 +175,7 @@ class _ContactDetailPageState extends State<ContactDetailPage>with TickerProvide
   Future<void> _getActivity() async {
     final contactId = widget.args.dataContact?.contactId;
     if (contactId != null) {
-      context.read<ActivityBloc>().add(
+      context.read<ContactDetailActivityBloc>().add(
         FetchActivitiesEvent(contactId: contactId, isRefresh: true),
       );
     }
@@ -202,7 +203,7 @@ class _ContactDetailPageState extends State<ContactDetailPage>with TickerProvide
 
   @override
   void dispose() {
-    context.read<ActivityBloc>().add(ResetActivityEvent());
+    context.read<ContactDetailActivityBloc>().add(ResetActivityEvent());
     context.read<ActivityProspectStatusBloc>().add(
       ResetActivityProspectStatusEvent(),
     );
@@ -619,7 +620,7 @@ class _ContactDetailPageState extends State<ContactDetailPage>with TickerProvide
   }
 
   Widget _buildActivityContent() {
-    return BlocBuilder<ActivityBloc, ActivityState>(
+    return BlocBuilder<ContactDetailActivityBloc, ActivityState>(
       builder: (context, activityState) {
         return BlocBuilder<
           ActivityProspectStatusBloc,
@@ -1006,7 +1007,13 @@ class _ContactDetailPageState extends State<ContactDetailPage>with TickerProvide
               },
               child: RefreshIndicator(
                 onRefresh: _getAttachment,
-                child: BlocBuilder<AttachmentCubit, AttachmentState>(
+                child: BlocConsumer<AttachmentCubit, AttachmentState>(
+                  listenWhen: (prev, curr) => curr is AttachmentError && prev is! AttachmentError,
+                  listener: (context, state) {
+                    if (state is AttachmentError) {
+                      showErrorDialog(context, state.message);
+                    }
+                  },
                   builder: (context, state) {
                     if (state is AttachmentLoading) {
                       return buildAttachmentShimmer();
@@ -1185,9 +1192,6 @@ class _ContactDetailPageState extends State<ContactDetailPage>with TickerProvide
                           );
                         },
                       );
-                    }
-                    if (state is AttachmentError) {
-                      return Center(child: Text(state.message));
                     }
                     return SizedBox();
                   },

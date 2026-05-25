@@ -150,6 +150,15 @@ class NotifActivityBloc extends ActivityBloc {
   });
 }
 
+/// Isolated ActivityBloc for ContactDetailPage so it doesn't share state with HomePage.
+class ContactDetailActivityBloc extends ActivityBloc {
+  ContactDetailActivityBloc({
+    required super.getActivitiesUseCase,
+    required super.createActivityUseCase,
+    required super.postStatusFollowUseCase,
+  });
+}
+
 
 
 class ActivityVisitBloc extends Bloc<CreateVisitEvent, VisitState> {

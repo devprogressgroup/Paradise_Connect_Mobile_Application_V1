@@ -37,6 +37,9 @@ import 'package:progress_group/features/saleskit/presentation/state/township/tow
 import 'package:progress_group/features/saleskit/presentation/state/township/township_state.dart';
 import 'package:progress_group/features/contact/presentation/state/property_unit/property_unit_cubit.dart';
 import 'package:progress_group/features/contact/presentation/state/property_unit/property_unit_state.dart';
+import '../../../../../core/utils/widget/error_dialog.dart';
+import '../../state/activity/activity_bloc.dart';
+import '../../state/activity/activity_event.dart';
 
 class ContactFormPage extends StatefulWidget {
   final ContactDetailArgs args;
@@ -306,11 +309,14 @@ class _ContactFormPageState extends State<ContactFormPage> {
     selectedSource2Id = int.tryParse(contact.sumberInformasi2 ?? '');
     volumePlanTC.text = contact.volumePlan?.toString() ?? '';
     vCountTC.text = contact.visitCount?.toString() ?? '';
+    
     firstVisitorDateTC.text = contact.firstVisitDate != null ? DateHelper.formatDate(DateTime.parse(contact.firstVisitDate!)) : '';
     lastVisitorDateTC.text = contact.lastVisitDate != null ? DateHelper.formatDate(DateTime.parse(contact.lastVisitDate!)) : '';
     firstApptDateTC.text = contact.firstApptDate != null ? DateHelper.formatDate(DateTime.parse(contact.firstApptDate!)) : '';
     lastApptDateTC.text = contact.lastApptDate != null ? DateHelper.formatDate(DateTime.parse(contact.lastApptDate!)) : '';
+    
     dealValueTC.text = contact.dealValue ?? '';
+    
     reserveDateTC.text = contact.lastReserveDate != null ? DateHelper.formatDate(DateTime.parse(contact.lastReserveDate!)) : '';
     firstReserveDateTC.text = contact.firstReserveDate != null ? DateHelper.formatDate(DateTime.parse(contact.firstReserveDate!)) : '';
     lossReasonNoteTC.text = contact.lostReasonNote ?? '';
@@ -789,25 +795,50 @@ class _ContactFormPageState extends State<ContactFormPage> {
   }
 
   Future<void> _handleSave() async {
+    print('handleSave : ${selectedStatusId?.toString()}');
     final today = DateHelper.formatDate(DateTime.now());
     final isCreate = widget.args.page == 0;
     final isUpdate = widget.args.page == 1;
 
     setState(() => _showValidation = true);
 
-    // Validasi Input
-    if (fullNameTC.text.isEmpty || waTC.text.isEmpty || selectedSalutation == null || selectedOwnerId == null || selectFirstProject == null || selectedSource1Id == null || selectedSource2Id == null || generalNotesTC.text.isEmpty) {
+    bool invalidId(int? id) => id == null || id == 0;
+    final projectValid = isCreate ? selectFirstProject != null : selectLastProject != null;
+    if (fullNameTC.text.isEmpty ||
+        waTC.text.isEmpty ||
+        selectedSalutation == null ||
+        selectedOwnerId == null ||
+        selectedStatusId == null ||
+        !projectValid ||
+        invalidId(selectedSource1Id) ||
+        invalidId(selectedSource2Id) ||
+        generalNotesTC.text.isEmpty) {
       return;
     }
     if (!_validateEmail()) return;
 
-    // Auto-fill tanggal untuk data baru
-    if (isCreate || widget.args.dataContact == null) {
-      if (firstApptDateTC.text.isEmpty) firstApptDateTC.text = today;
-      if (firstVisitorDateTC.text.isEmpty) firstVisitorDateTC.text = today;
-      if (fspTC.text.isEmpty) fspTC.text = today;
-      if (fakadTC.text.isEmpty) fakadTC.text = today;
-    }
+    // Status group flags (same grouping as contact-add _submitUpdateStatus)
+    const apptIds    = [53, 60,];
+    const reserveIds = [54, 70, 71, 72];
+    const visitIds   = [63, 64, 65, 66];
+    const spIds      = [74];
+    const lostIds    = [55, 56, 57, 58, 61, 62, 67, 68, 69, 73, 75, 77, 78];
+
+    final isAppt    = apptIds.contains(selectedStatusId);
+    final isReserve = reserveIds.contains(selectedStatusId);
+    final isVisit   = visitIds.contains(selectedStatusId);
+    final isSP      = spIds.contains(selectedStatusId);
+    final isLost    = lostIds.contains(selectedStatusId);
+
+    // first* date: kirim hanya jika status cocok DAN existing kosong (atau create mode)
+    final existing        = widget.args.dataContact;
+    final firstApptEmpty  = isCreate || existing?.firstApptDate == null   || (existing!.firstApptDate?.isEmpty   ?? true);
+    final firstVisitEmpty = isCreate || existing?.firstVisitDate == null  || (existing!.firstVisitDate?.isEmpty  ?? true);
+    final firstReserveEmpty = isCreate || existing?.firstReserveDate == null || (existing!.firstReserveDate?.isEmpty ?? true);
+    final firstSPEmpty    = isCreate || existing?.firstSpDate == null     || (existing!.firstSpDate?.isEmpty     ?? true);
+
+    // Helper: pakai nilai field, fallback ke today jika kosong
+    String dateOr(String fieldValue) => fieldValue.isNotEmpty ? fieldValue : today;
 
     // Mapping Dynamic Properties
     final List<Map<String, dynamic>> propertiesJson = [];
@@ -815,58 +846,80 @@ class _ContactFormPageState extends State<ContactFormPage> {
       if (ctrl.text.isNotEmpty) propertiesJson.add({'property_id': id, 'property_value': ctrl.text});
     });
 
-    // Konstruksi Params
     final params = CreateContactParams(
       salutation: selectedSalutation ?? '',
+      fullName: fullNameTC.text.isNotEmpty ? fullNameTC.text : null,
+      primaryPhone: waTC.text.isNotEmpty ? waTC.text : null,
+      whatsappNumber: waTC.text.isNotEmpty ? waTC.text : null,
+      primaryEmail: emailTC.text.isNotEmpty ? emailTC.text : null,
+
       salesExecutiveId: selectedSalesExecutiveId,
       salesManagerId: selectedSalesManagerId,
       salesSupervisorId: selectedSupervisorId,
       salesTeamId: selectedTeamId,
-      salesChannelId: selectedSource1Id,
+
       statusProspectId: selectedStatusId,
+
+      lastProject: isUpdate ? selectLastProject : selectFirstProject,
+      firstProject: isUpdate ? null : selectFirstProject,
+      lastProjectCategory: isUpdate ? selectLastProjectCategory : null,
+      firstProjectCategory: isUpdate ? null : selectFirstProjectCategory,
+      lastProduct: isUpdate ? selectLastProjectProduct : null,
+      firstProduct: isUpdate ? null : selectFirstProjectProduct,
+      lastBlokNo: isUpdate ? (lBlockNoTC.text.isNotEmpty ? lBlockNoTC.text : null) : (fBlockNoTC.text.isNotEmpty ? fBlockNoTC.text : null),
+      firstBlokNo: isUpdate ? null : (fBlockNoTC.text.isNotEmpty ? fBlockNoTC.text : null),
+      lastProjectId: isUpdate ? selectLastTownshipId : selectFirstTownshipId,
+      firstProjectId: _existingFirstProjectId == null ? selectFirstTownshipId : null,
+      lastClusterId: isUpdate ? selectLastClusterId : null,
+      firstClusterId: isUpdate ? (_existingFirstClusterId == null ? selectLastClusterId : null) : null,
+      lastCommercialId: isUpdate ? selectLastCommercialId : null,
+      firstCommercialId: isUpdate ? (_existingFirstCommercialId == null ? selectLastCommercialId : null) : null,
+      lastProductId: isUpdate ? selectLastProductId : null,
+      firstProductId: isUpdate ? (_existingFirstProductId == null ? selectLastProductId : null) : null,
+
+      salesChannelId: selectedSource1Id,
       sumberInformasi2: selectedSource2Id?.toString(),
+
       generalNotes: generalNotesTC.text.isNotEmpty ? generalNotesTC.text : null,
-      propertiesJson: propertiesJson.isNotEmpty ? propertiesJson : null,
-      fullName: fullNameTC.text.isNotEmpty ? fullNameTC.text : null,
-      primaryEmail: emailTC.text.isNotEmpty ? emailTC.text : null,
-      primaryPhone: waTC.text.isNotEmpty ? waTC.text : null,
-      whatsappNumber: waTC.text.isNotEmpty ? waTC.text : null,
-      lastProject: selectLastProject,
-      lastProduct: selectLastProjectProduct,
-      lastProjectCategory: selectLastProjectCategory,
-      lastBlokNo: lBlockNoTC.text.isNotEmpty ? lBlockNoTC.text : null,
+
+      lostReasonId: selectedLostReasonId,
+      lostReasonNote: lossReasonNoteTC.text.isNotEmpty ? lossReasonNoteTC.text : null,
+
+      // Appt dates — kirim hanya jika status appt
+      lastApptDate:  isAppt ? _toBackendDate(dateOr(isUpdate ? lastApptDateTC.text : firstApptDateTC.text)) : null,
+      firstApptDate: isAppt && firstApptEmpty ? _toBackendDate(dateOr(firstApptDateTC.text)) : null,
+
+      // Visit dates — kirim hanya jika status visit
+      lastVisitDate:  isVisit ? _toBackendDate(dateOr(isUpdate ? lastVisitorDateTC.text : firstVisitorDateTC.text)) : null,
+      firstVisitDate: isVisit && firstVisitEmpty ? _toBackendDate(dateOr(firstVisitorDateTC.text)) : null,
+
+      // Reserve dates — kirim hanya jika status reserve
+      reserveDate:      isReserve ? _toBackendDate(dateOr(reserveDateTC.text)) : null,
+      lastReserveDate:  isReserve ? _toBackendDate(dateOr(reserveDateTC.text)) : null,
+      firstReserveDate: isReserve && firstReserveEmpty
+          ? _toBackendDate(dateOr(firstReserveDateTC.text.isNotEmpty ? firstReserveDateTC.text : reserveDateTC.text))
+          : null,
+
+      // SP dates — kirim hanya jika status SP
+      lastSPDate:  isSP ? _toBackendDate(dateOr(lspTC.text)) : null,
+      firstSPDate: isSP && firstSPEmpty ? _toBackendDate(dateOr(fspTC.text)) : null,
+
+      // Akad dates — hanya dikirim saat edit
+      lastAkadDate:  isUpdate ? _toBackendDate(lakadTC.text) : null,
+      firstAkadDate: isUpdate && (existing?.firstAkadDate == null || (existing!.firstAkadDate?.isEmpty ?? true))
+          ? _toBackendDate(fakadTC.text)
+          : null,
+
+      // Lost dates — kirim hanya jika status lost
+      lostDate:     isLost ? _toBackendDate(dateOr(lastLostDateTC.text)) : null,
+      lastLostDate: isLost ? _toBackendDate(dateOr(lastLostDateTC.text)) : null,
+
+      dealValue: dealValueTC.text.isNotEmpty ? dealValueTC.text : null,
+      visitCount: vCountTC.text.isNotEmpty ? int.tryParse(vCountTC.text) : null,
+      volumePlan: volumePlanTC.text.isNotEmpty ? volumePlanTC.text : null,
       noKtp: noKTPTC.text.isNotEmpty ? noKTPTC.text : null,
       ktpAddress: ktpAddressTC.text.isNotEmpty ? ktpAddressTC.text : null,
-      volumePlan: volumePlanTC.text.isNotEmpty ? volumePlanTC.text : null,
-      visitCount: vCountTC.text.isNotEmpty ? int.tryParse(vCountTC.text) : null,
-      lastVisitDate: _toBackendDate(lastVisitorDateTC.text),
-      lastApptDate: _toBackendDate(lastApptDateTC.text),
-      dealValue: dealValueTC.text.isNotEmpty ? dealValueTC.text : null,
-      reserveDate: _toBackendDate(reserveDateTC.text),
-      lastReserveDate: _toBackendDate(reserveDateTC.text),
-      firstReserveDate: firstReserveDateTC.text.isEmpty ? _toBackendDate(reserveDateTC.text) : null,
-      lostReasonNote: lossReasonNoteTC.text.isNotEmpty ? lossReasonNoteTC.text : null,
-      lastSPDate: _toBackendDate(lspTC.text),
-      firstBlokNo: isUpdate ? null : (fBlockNoTC.text.isNotEmpty ? fBlockNoTC.text : null),
-      firstProduct: isUpdate ? null : selectFirstProjectProduct,
-      firstProjectCategory: isUpdate ? null : selectFirstProjectCategory,
-      firstProject: isUpdate ? null : selectFirstProject,
-      firstVisitDate: isUpdate ? null : _toBackendDate(firstVisitorDateTC.text),
-      firstApptDate: isUpdate ? null : _toBackendDate(firstApptDateTC.text),
-      firstSPDate: fspTC.text.isEmpty ? _toBackendDate(lspTC.text) : (isUpdate ? null : _toBackendDate(fspTC.text)),
-      lastAkadDate: _toBackendDate(lakadTC.text),
-      firstAkadDate: fakadTC.text.isEmpty ? _toBackendDate(lakadTC.text) : (isUpdate ? null : _toBackendDate(fakadTC.text)),
-      lostDate: _toBackendDate(lastLostDateTC.text),
-      lastLostDate: _toBackendDate(lastLostDateTC.text),
-      lostReasonId: selectedLostReasonId,
-      firstProjectId: _existingFirstProjectId == null ? selectFirstTownshipId : null,
-      lastProjectId: selectLastTownshipId,
-      firstClusterId: isUpdate ? (_existingFirstClusterId == null ? selectLastClusterId : null) : null,
-      lastClusterId: isUpdate ? selectLastClusterId : null,
-      firstCommercialId: isUpdate ? (_existingFirstCommercialId == null ? selectLastCommercialId : null) : null,
-      lastCommercialId: isUpdate ? selectLastCommercialId : null,
-      firstProductId: isUpdate ? (_existingFirstProductId == null ? selectLastProductId : null) : null,
-      lastProductId: isUpdate ? selectLastProductId : null,
+      propertiesJson: propertiesJson.isNotEmpty ? propertiesJson : null,
     );
     setState(() => _isSaving = true);
     if (isUpdate) {
@@ -995,7 +1048,17 @@ class _ContactFormPageState extends State<ContactFormPage> {
                 _autoFillFromProfile();
               });
             }
-            return BlocBuilder<ContactBloc, ContactState>(
+            return BlocConsumer<ContactBloc, ContactState>(
+              listenWhen: (prev, curr) =>
+                  curr.status == ContactStatus.error && prev.status != ContactStatus.error,
+              listener: (context, contactState) {
+                showErrorDialog(
+                  context,
+                  contactState.errorMessage ?? 'Gagal memuat data kontak',
+                ).then((_) {
+                  if (context.mounted) context.pop();
+                });
+              },
               builder: (context, contactState) {
                 final statusLoading = context.watch<ProspectStatusBloc>().state.status != ProspectStatusEnum.loaded;
                 final propertiesLoading = context.watch<ContactPropertiesBloc>().state.status != ContactPropertiesStatus.loaded;
@@ -1009,13 +1072,6 @@ class _ContactFormPageState extends State<ContactFormPage> {
                     (showDetailLoading || statusLoading || propertiesLoading)) {
                   return Scaffold(
                     body: buildFormShimmer(),
-                  );
-                }
-
-                // 🔥 ERROR
-                if (contactState.status == ContactStatus.error) {
-                  return Scaffold(
-                    body: Center(child: Text(contactState.errorMessage ?? 'Error load detail')),
                   );
                 }
 
@@ -1209,6 +1265,8 @@ class _ContactFormPageState extends State<ContactFormPage> {
                            _buildFieldDown(
                             label: "Project",
                             value: selectLastProject,
+                            isError: _showValidation && selectLastProject == null,
+                            errorText: (_showValidation && selectLastProject == null) ? 'Wajib diisi' : null,
                             onTap: () async {
                               final townshipState = context.read<TownshipBloc>().state;
                               if (townshipState is TownshipLoaded) {
@@ -1340,6 +1398,8 @@ class _ContactFormPageState extends State<ContactFormPage> {
                            _buildFieldDown(
                             label: "Sales Channel",
                             value: selectedSource1Name,
+                            isError: _showValidation && (selectedSource1Id == null || selectedSource1Id == 0),
+                            errorText: (_showValidation && (selectedSource1Id == null || selectedSource1Id == 0)) ? 'Wajib diisi' : null,
                             onTap: () async {
                               final sourceState = context.read<InfoSourceBloc>().state;
                               final sources = sourceState.sourcesMap[1];
@@ -1368,6 +1428,8 @@ class _ContactFormPageState extends State<ContactFormPage> {
                           _buildFieldDown(
                             label: "Sales Channel Detail",
                             value: selectedSource2Name,
+                            isError: _showValidation && (selectedSource2Id == null || selectedSource2Id == 0),
+                            errorText: (_showValidation && (selectedSource2Id == null || selectedSource2Id == 0)) ? 'Wajib diisi' : null,
                             onTap: () async {
                               final sourceState = context.read<InfoSourceBloc>().state;
                               final sources = sourceState.sourcesMap[2];
@@ -1397,6 +1459,8 @@ class _ContactFormPageState extends State<ContactFormPage> {
                             label: "Note",
                             controller: generalNotesTC,
                             focusNode: generalNotesFN,
+                            isError: _showValidation && generalNotesTC.text.isEmpty,
+                            errorText: (_showValidation && generalNotesTC.text.isEmpty) ? 'Wajib diisi' : null,
                           ),
                          _buildFieldDown(
                             label: "Lost Reason",
@@ -1762,8 +1826,8 @@ class _ContactFormPageState extends State<ContactFormPage> {
                       _buildFieldDown(
                         label: "Sales Channel",
                         value: selectedSource1Name,
-                        isError: _showValidation && selectedSource1Id == null,
-                        errorText: (_showValidation && selectedSource1Id == null) ? 'Wajib diisi' : null,
+                        isError: _showValidation && (selectedSource1Id == null || selectedSource1Id == 0),
+                        errorText: (_showValidation && (selectedSource1Id == null || selectedSource1Id == 0)) ? 'Wajib diisi' : null,
                         onTap: () async {
                           final sourceState = context.read<InfoSourceBloc>().state;
                           final sources = sourceState.sourcesMap[1];
@@ -1792,8 +1856,8 @@ class _ContactFormPageState extends State<ContactFormPage> {
                       _buildFieldDown(
                         label: "Sales Channel Detail",
                         value: selectedSource2Name,
-                        isError: _showValidation && selectedSource2Id == null,
-                        errorText: (_showValidation && selectedSource2Id == null) ? 'Wajib diisi' : null,
+                        isError: _showValidation && (selectedSource2Id == null || selectedSource2Id == 0),
+                        errorText: (_showValidation && (selectedSource2Id == null || selectedSource2Id == 0)) ? 'Wajib diisi' : null,
                         onTap: () async {
                           final sourceState = context.read<InfoSourceBloc>().state;
                           final sources = sourceState.sourcesMap[2];
@@ -2080,6 +2144,12 @@ class _ContactFormPageState extends State<ContactFormPage> {
         page: 6,
         sourceRoute: 'editContact',
       ),
+    );
+
+    if (!mounted || contact.contactId == null) return;
+    context.read<ContactBloc>().add(FetchContactDetailEvent(contact.contactId!));
+    context.read<ContactDetailActivityBloc>().add(
+      FetchActivitiesEvent(contactId: contact.contactId!, isRefresh: true),
     );
   }
 

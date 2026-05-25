@@ -534,20 +534,25 @@ class _ContactAddPageState extends State<ContactAddPage> {
   void _submitUpdateStatus(BuildContext context) {
     final contact = widget.args.dataContact;
 
-    final firstApptDate =(selectedStatusId == 60 || selectedStatusId == 53) &&(contact?.firstApptDate == null && selectedDate != null)? DateFormat('yyyy-MM-dd').format(selectedDate!): null;
-    final lastApptDate =(selectedStatusId == 60 || selectedStatusId == 53) &&selectedDate != null? DateFormat('yyyy-MM-dd').format(selectedDate!): null;
+    // Appt: 53, 60, 76
+    final firstApptDate =(selectedStatusId == 60 || selectedStatusId == 53 || selectedStatusId == 76) &&(contact?.firstApptDate == null && selectedDate != null)? DateFormat('yyyy-MM-dd').format(selectedDate!): null;
+    final lastApptDate =(selectedStatusId == 60 || selectedStatusId == 53 || selectedStatusId == 76) &&selectedDate != null? DateFormat('yyyy-MM-dd').format(selectedDate!): null;
 
+    // Reserve: 54, 70, 71, 72
     final firstReserveDate =(selectedStatusId == 54 ||selectedStatusId == 70 ||selectedStatusId == 71 ||selectedStatusId == 72) &&(contact?.firstReserveDate == null && selectedDate != null)? DateFormat('yyyy-MM-dd').format(selectedDate!): null;
     final lastReserveDate =(selectedStatusId == 54 ||selectedStatusId == 70 ||selectedStatusId == 71 ||selectedStatusId == 72) &&(selectedDate != null)? DateFormat('yyyy-MM-dd').format(selectedDate!): null;
 
-    final firstVisitDate =(selectedStatusId == 63 ||selectedStatusId == 64 ||selectedStatusId == 65 ||selectedStatusId == 66) &&(contact?.firstVisitDate == null && selectedDate != null)? DateFormat('yyyy-MM-dd').format(selectedDate!): null;
-    final lastVisitDate =(selectedStatusId == 63 ||selectedStatusId == 64 ||selectedStatusId == 65 ||selectedStatusId == 66) &&(selectedDate != null)? DateFormat('yyyy-MM-dd').format(selectedDate!): null;
+    // Visit: 63, 64, 65, 66, 67, 68, 69
+    final firstVisitDate =(selectedStatusId == 63 ||selectedStatusId == 64 ||selectedStatusId == 65 ||selectedStatusId == 66 ||selectedStatusId == 67 ||selectedStatusId == 68 ||selectedStatusId == 69) &&(contact?.firstVisitDate == null && selectedDate != null)? DateFormat('yyyy-MM-dd').format(selectedDate!): null;
+    final lastVisitDate =(selectedStatusId == 63 ||selectedStatusId == 64 ||selectedStatusId == 65 ||selectedStatusId == 66 ||selectedStatusId == 67 ||selectedStatusId == 68 ||selectedStatusId == 69) &&(selectedDate != null)? DateFormat('yyyy-MM-dd').format(selectedDate!): null;
 
+    // SP: 74
     final firstSPDate =(selectedStatusId == 74) &&(contact?.firstSpDate == null && selectedDate != null)? DateFormat('yyyy-MM-dd').format(selectedDate!): null;
     final lastSPDate = (selectedStatusId == 74) && (selectedDate != null) ? DateFormat('yyyy-MM-dd').format(selectedDate!) : null;
 
-    final firstLostDate = contact?.firstLostDate != null && selectedDate != null? DateFormat('yyyy-MM-dd').format(selectedDate!): null;
-    final lostDate =(selectedStatusId == 55 ||selectedStatusId == 56 ||selectedStatusId == 57 ||selectedStatusId == 58 ||selectedStatusId == 61 ||selectedStatusId == 62 ||selectedStatusId == 67 ||selectedStatusId == 68 ||selectedStatusId == 69 ||selectedStatusId == 73 ||selectedStatusId == 77 ||selectedStatusId == 78 ||selectedStatusId == 75) &&(selectedDate != null)? DateFormat('yyyy-MM-dd').format(selectedDate!): null;
+    // Lost: 43, 55-58, 61-62, 67-69, 73, 75, 77, 78
+    final firstLostDate =(contact?.firstLostDate == null && selectedDate != null)? DateFormat('yyyy-MM-dd').format(selectedDate!): null;
+    final lostDate =(selectedStatusId == 43 ||selectedStatusId == 55 ||selectedStatusId == 56 ||selectedStatusId == 57 ||selectedStatusId == 58 ||selectedStatusId == 61 ||selectedStatusId == 62 ||selectedStatusId == 67 ||selectedStatusId == 68 ||selectedStatusId == 69 ||selectedStatusId == 73 ||selectedStatusId == 77 ||selectedStatusId == 78 ||selectedStatusId == 75) &&(selectedDate != null)? DateFormat('yyyy-MM-dd').format(selectedDate!): null;
 
     if (contact == null) return;
 
@@ -568,15 +573,17 @@ class _ContactAddPageState extends State<ContactAddPage> {
 
       lostDate: lostDate,
 
+      volumePlan: volumeTC.text.isNotEmpty ? volumeTC.text : null,
       visitCount: int.tryParse(jmlDatang),
-      lastBlokNo: lBlockNoTC.text,
+      lastBlokNo: lBlockNoTC.text.isNotEmpty ? lBlockNoTC.text : null,
       lastProject: selectedProject,
+      lastProjectId: selectedTownshipId,
       lastProduct: selectedProduct,
       lastProjectCategory: selectedProjectCategory,
-      generalNotes: descTC.text,
+      generalNotes: descTC.text.isNotEmpty ? descTC.text : null,
       lostReasonId: selectedLostReasonId,
-      nameSP: nameSPTC.text,
-      lostReasonNote: lostReasonNoteTC.text,
+      nameSP: nameSPTC.text.isNotEmpty ? nameSPTC.text : null,
+      lostReasonNote: lostReasonNoteTC.text.isNotEmpty ? lostReasonNoteTC.text : null,
     );
 
     print(
@@ -596,6 +603,8 @@ class _ContactAddPageState extends State<ContactAddPage> {
         files: selectedImages,
       );
       context.read<ActivityVisitBloc>().add(CreateVisitEvent(paramsVisit));
+      // Also update contact-level fields (project, category, notes) that CreateVisitEvent doesn't save
+      context.read<ContactBloc>().add(UpdateContactEvent(contact.contactId!, params));
     } else {
       context.read<ContactBloc>().add(
         UpdateContactEvent(contact.contactId!, params),
@@ -684,7 +693,11 @@ class _ContactAddPageState extends State<ContactAddPage> {
         BlocListener<ContactBloc, ContactState>(
           listener: (ctx, state) {
             if (state.status == ContactStatus.updateSuccess) {
-              context.pop();
+              // For visit statuses, pop is handled by ActivityVisitBloc listener
+              const visitStatusIds = [63, 64, 65, 66, 67, 68, 69];
+              if (!visitStatusIds.contains(selectedStatusId)) {
+                context.pop();
+              }
             } else if (state.status == ContactStatus.detailLoaded &&
                 state.contactDetail != null) {
               final data = state.contactDetail!;

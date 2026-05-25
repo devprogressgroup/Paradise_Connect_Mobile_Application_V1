@@ -10,6 +10,7 @@ import 'package:progress_group/features/inbox/presentation/state/message/message
 import 'package:progress_group/features/inbox/presentation/state/message/message_event.dart';
 import 'package:progress_group/features/inbox/presentation/state/message/message_state.dart';
 import 'package:video_player/video_player.dart';
+import '../../../../../core/utils/widget/error_dialog.dart';
 
 class InboxDetailPage extends StatefulWidget {
   final InboxDetailArgs args;
@@ -84,14 +85,16 @@ class _InboxDetailPageState extends State<InboxDetailPage> {
               child: Container(
                 padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
                 decoration: BoxDecoration(color: Color(whiteColor), borderRadius: BorderRadius.circular(24)),
-                child: BlocBuilder<MessageBloc, MessageState>(
-                  builder: (context, state) {
-                    if (state is MessageLoading) return buildMessageShimmer();
-
+                child: BlocConsumer<MessageBloc, MessageState>(
+                  listenWhen: (prev, curr) => curr is MessageError && prev is! MessageError,
+                  listener: (context, state) {
                     if (state is MessageError) {
                       _isFetchingMore = false;
-                      return Center(child: Text(state.message));
+                      showErrorDialog(context, state.message);
                     }
+                  },
+                  builder: (context, state) {
+                    if (state is MessageLoading) return buildMessageShimmer();
 
                     if (state is MessageLoaded) {
                       _isFetchingMore = state.isFetchingMore;

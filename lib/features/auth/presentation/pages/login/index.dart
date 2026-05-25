@@ -102,6 +102,15 @@ class _LoginPageState extends State<LoginPage> {
                     style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 16),
+                  const SizedBox(height: 10),
+                  _envOption(
+                    ctx,
+                    env: AppEnvironment.development2,
+                    label: 'Development 2',
+                    subtitle: '192.168.18.150:8000',
+                    color: const Color(0xFF3B82F6),
+                    currentEnv: currentEnv,
+                  ),
                   _envOption(
                     ctx,
                     env: AppEnvironment.production,
@@ -119,6 +128,7 @@ class _LoginPageState extends State<LoginPage> {
                     color: const Color(0xFFF59E0B),
                     currentEnv: currentEnv,
                   ),
+                  
                   const SizedBox(height: 8),
                 ],
               ),

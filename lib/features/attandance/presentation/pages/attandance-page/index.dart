@@ -24,6 +24,7 @@ import 'package:progress_group/features/contact/data/arguments/contact_dropdown_
 import 'package:progress_group/features/contact/data/models/dropdown/date_filter.dart';
 import '../../../../../core/utils/helpers/date_helper.dart';
 import '../../../../../core/utils/widget/custom_header.dart';
+import '../../../../../core/utils/widget/error_dialog.dart';
 import '../../../data/arguments/attandance_args.dart';
 
 class AttandancePage extends StatefulWidget {
@@ -427,7 +428,7 @@ class _AttandancePageState extends State<AttandancePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Color(whiteColor),
+      backgroundColor: Color(grey11Color),
       body: BlocListener<AttendanceBloc, AttendanceState>(
         listener: (context, state) {
           if (state is AttendanceLoaded && !_hasSetInitialTab) {
@@ -809,13 +810,19 @@ class _AttandancePageState extends State<AttandancePage> {
           ),
           SizedBox(height: 5),
     
-          BlocBuilder<AttendanceBloc, AttendanceState>(
+          BlocConsumer<AttendanceBloc, AttendanceState>(
+            listenWhen: (prev, curr) => curr is AttendanceError && prev is! AttendanceError,
+            listener: (context, state) {
+              if (state is AttendanceError) {
+                showErrorDialog(context, state.message);
+              }
+            },
             builder: (context, state) {
-    
+
               if (state is AttendanceLoading) {
                 return buildAttendanceShimmer();
               }
-    
+
               if (state is AttendanceLoaded) {
                 final data = state.data;
                 return Column(
@@ -835,11 +842,7 @@ class _AttandancePageState extends State<AttandancePage> {
                   ],
                 );
               }
-    
-              if (state is AttendanceError) {
-                return Center(child: Text(state.message));
-              }
-    
+
               return SizedBox();
             },
           ),
@@ -854,7 +857,7 @@ class _AttandancePageState extends State<AttandancePage> {
       margin: EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       padding: EdgeInsets.symmetric(vertical: 14, horizontal: 16),
       decoration: BoxDecoration(
-        color: Color(whiteColor),
+        color: Color(grey11Color),
         borderRadius: BorderRadius.circular(16),
       ),
       child: Column(
@@ -872,7 +875,13 @@ class _AttandancePageState extends State<AttandancePage> {
             ],
           ),
           SizedBox(height: 5),
-          BlocBuilder<AttendanceActivityBloc, AttendanceActivityState>(
+          BlocConsumer<AttendanceActivityBloc, AttendanceActivityState>(
+            listenWhen: (prev, curr) => curr is AttendanceActivityError && prev is! AttendanceActivityError,
+            listener: (context, state) {
+              if (state is AttendanceActivityError) {
+                showErrorDialog(context, state.message);
+              }
+            },
             builder: (context, state) {
 
               if (state is AttendanceActivityLoading) {
@@ -935,7 +944,7 @@ class _AttandancePageState extends State<AttandancePage> {
                           padding: const EdgeInsets.only(top: 12, bottom: 10),
                           child: Text(
                             dateLabel,
-                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                           ),
                         ),
                         ...items.map((e) => _buildCardActivityNew(
@@ -952,10 +961,6 @@ class _AttandancePageState extends State<AttandancePage> {
                     );
                   },
                 );
-              }
-
-              if (state is AttendanceActivityError) {
-                return Center(child: Text(state.message));
               }
 
               return SizedBox();
@@ -1747,7 +1752,8 @@ class _ActivityCardState extends State<_ActivityCard> {
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 30),
+      margin: const EdgeInsets.only(bottom: 15),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: const Color(whiteColor),
         borderRadius: BorderRadius.circular(12),

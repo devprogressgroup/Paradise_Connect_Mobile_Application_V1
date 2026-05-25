@@ -94,7 +94,7 @@ class _ProfilePageState extends State<ProfilePage> {
 
           return RefreshIndicator(
             onRefresh: () async {
-              context.read<ProfileBloc>().add(GetProfileEvent());
+              context.read<ProfileBloc>().add(GetProfileEvent(forceRefresh: true));
             },
             child: SingleChildScrollView(
               physics: const AlwaysScrollableScrollPhysics(),

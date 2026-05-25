@@ -26,6 +26,7 @@ import '../../state/prospect_status/prospect_status_bloc.dart';
 import '../../state/prospect_status/prospect_status_event.dart';
 import '../../state/prospect_status/prospect_status_state.dart';
 import '../../../../../core/utils/widget/custom_filter_button.dart';
+import '../../../../../core/utils/widget/error_dialog.dart';
 import '../../../domain/entities/prospect/prospect_status.dart';
 
 class ContactPage extends StatefulWidget {
@@ -60,6 +61,24 @@ class _ContactPageState extends State<ContactPage> {
     ));
 
     context.read<ProspectStatusBloc>().add(FetchProspectStatusesEvent());
+  }
+
+  @override
+  void didUpdateWidget(ContactPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final newIds = widget.initialStatusIds;
+    final oldIds = oldWidget.initialStatusIds;
+    final changed = newIds != null &&
+        newIds.isNotEmpty &&
+        newIds.toString() != (oldIds ?? []).toString();
+    if (changed) {
+      _searchController.clear();
+      context.read<ContactBloc>().add(FetchContactsEvent(
+        search: '',
+        isRefresh: true,
+        statusProspectIds: newIds,
+      ));
+    }
   }
 
   @override
@@ -121,7 +140,12 @@ class _ContactPageState extends State<ContactPage> {
                       },
                     ),
                     Expanded(
-                      child: BlocBuilder<ContactBloc, ContactState>(
+                      child: BlocConsumer<ContactBloc, ContactState>(
+                        listenWhen: (prev, curr) =>
+                            curr.status == ContactStatus.error && prev.status != ContactStatus.error,
+                        listener: (context, state) {
+                          showErrorDialog(context, state.errorMessage ?? 'Gagal memuat data kontak');
+                        },
                         builder: (context, state) {
                           contactEntity = state.contacts;
                           if (state.status == ContactStatus.loading && contactEntity.isEmpty) {
@@ -218,42 +242,44 @@ class _ContactPageState extends State<ContactPage> {
                                     if (index == 2) {
                                       return BlocBuilder<ContactBloc, ContactState>(
                                         builder: (context, contactState) {
-                                          String label = 'Status';
-                                          bool isSelected = contactState.statusProspectIds != null && contactState.statusProspectIds!.isNotEmpty;
+                                          return BlocBuilder<ProspectStatusBloc, ProspectStatusState>(
+                                            builder: (context, statusState) {
+                                              String label = 'Status';
+                                              bool isSelected = contactState.statusProspectIds != null && contactState.statusProspectIds!.isNotEmpty;
 
-                                          if (isSelected) {
-                                            final statusState = context.read<ProspectStatusBloc>().state;
-                                            if (statusState.status == ProspectStatusEnum.loaded) {
-                                              if (contactState.statusProspectIds!.length == 1) {
-                                                final status = statusState.statuses.cast<ProspectStatusEntity?>().firstWhere((e) => e?.statusProspectId ==contactState.statusProspectIds!.first,orElse: () => null,);
-                                                if (status != null) label = status.statusProspectName;
-                                              } else {
-                                                label = "${contactState.statusProspectIds!.length} Statuses";
-                                              }
-                                            }
-                                          }
-
-                                          return CustomFilterButton(
-                                            label: label,
-                                            isSelected: isSelected,
-                                            onTap: () async {
-                                              final statusState = context.read<ProspectStatusBloc>().state;
-                                              if (statusState.status == ProspectStatusEnum.loaded) {
-                                                final List<OwnerDropdownItem> statusItems = statusState.statuses.map((e) => OwnerDropdownItem(id: e.statusProspectId,name: e.statusProspectName,)).toList();
-
-                                                final result = await context.pushNamed('detailContactDropdown',extra: ContactDropdownArgs(title: 'Pilih Status',items: statusItems,selectedIds: contactState.statusProspectIds,isMultiSelect: true,),);
-
-                                                if (result != null) {
-                                                  final selected = result as List<OwnerDropdownItem>;
-                                                  context.read<ContactBloc>().add(
-                                                    FetchContactsEvent(
-                                                      statusProspectIds: selected.map((e) => e.id!).toList(),
-                                                      isRefresh: true,
-                                                      clearStatus: selected.isEmpty,
-                                                    ),
-                                                  );
+                                              if (isSelected && statusState.status == ProspectStatusEnum.loaded) {
+                                                if (contactState.statusProspectIds!.length == 1) {
+                                                  final status = statusState.statuses.cast<ProspectStatusEntity?>().firstWhere((e) => e?.statusProspectId == contactState.statusProspectIds!.first, orElse: () => null,);
+                                                  if (status != null) label = status.statusProspectName;
+                                                } else {
+                                                  label = "${contactState.statusProspectIds!.length} Statuses";
                                                 }
                                               }
+
+                                              return CustomFilterButton(
+                                                label: label,
+                                                isSelected: isSelected,
+                                                onTap: () async {
+                                                  if (statusState.status == ProspectStatusEnum.loaded) {
+                                                    final List<OwnerDropdownItem> statusItems = statusState.statuses.map((e) => OwnerDropdownItem(id: e.statusProspectId, name: e.statusProspectName,)).toList();
+
+                                                    final result = await context.pushNamed('detailContactDropdown', extra: ContactDropdownArgs(title: 'Pilih Status', items: statusItems, selectedIds: contactState.statusProspectIds, isMultiSelect: true,),);
+
+                                                    if (result != null) {
+                                                      final selected = result as List<OwnerDropdownItem>;
+                                                      if (context.mounted) {
+                                                        context.read<ContactBloc>().add(
+                                                          FetchContactsEvent(
+                                                            statusProspectIds: selected.map((e) => e.id!).toList(),
+                                                            isRefresh: true,
+                                                            clearStatus: selected.isEmpty,
+                                                          ),
+                                                        );
+                                                      }
+                                                    }
+                                                  }
+                                                },
+                                              );
                                             },
                                           );
                                         },
@@ -310,11 +336,6 @@ class _ContactPageState extends State<ContactPage> {
                               Expanded(
                                 child: Builder(
                                   builder: (context) {
-                                    if (state.status == ContactStatus.error && contactEntity.isEmpty) {
-                                      return Center(
-                                        child: Text(state.errorMessage ?? 'Error loading contacts'),
-                                      );
-                                    }
                                     if (state.contacts.isEmpty) {
                                       return const Center(child: Text('No contacts found'));
                                     }

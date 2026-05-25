@@ -12,6 +12,7 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
   }
 
   Future<void> _onGetProfile(GetProfileEvent event, Emitter<ProfileState> emit) async {
+    if (!event.forceRefresh && state is ProfileLoaded) return;
     emit(ProfileLoading());
     try {
       final profile = await getProfileUseCase();

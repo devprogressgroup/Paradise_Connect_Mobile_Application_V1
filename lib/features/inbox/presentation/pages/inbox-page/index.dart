@@ -33,6 +33,7 @@ import 'package:progress_group/features/inbox/presentation/state/whatsapp_qr/wha
 
 import '../../../../../core/constants/assets.dart';
 import '../../../../../core/utils/widget/custom_button.dart';
+import '../../../../../core/utils/widget/error_dialog.dart';
 
 class InboxPage extends StatefulWidget {
   const InboxPage({super.key});
@@ -184,13 +185,16 @@ class _InboxPageState extends State<InboxPage> {
                         color: Color(whiteColor),
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      child: BlocBuilder<WhatsappDeviceBloc, WhatsappDeviceState>(
+                      child: BlocConsumer<WhatsappDeviceBloc, WhatsappDeviceState>(
+                        listenWhen: (prev, curr) => curr is WhatsappDeviceError && prev is! WhatsappDeviceError,
+                        listener: (context, state) {
+                          if (state is WhatsappDeviceError) {
+                            showErrorDialog(context, state.message);
+                          }
+                        },
                         builder: (context, state) {
                           if (state is WhatsappDeviceLoading) {
                             return const ShimmerInboxItem();
-                          }
-                          if (state is WhatsappDeviceError) {
-                            return Center(child: Text(state.message));
                           }
                           if (state is WhatsappDeviceLoaded) {
                             if (state.devices.isEmpty) {
@@ -515,14 +519,17 @@ class _InboxPageState extends State<InboxPage> {
   }
 
   Widget _buildTabBarView() {
-    return BlocBuilder<InboxContactBloc, InboxContactState>(
+    return BlocConsumer<InboxContactBloc, InboxContactState>(
+      listenWhen: (prev, curr) => curr is InboxContactError && prev is! InboxContactError,
+      listener: (context, state) {
+        if (state is InboxContactError) {
+          _isFetchingMore = false;
+          showErrorDialog(context, state.message);
+        }
+      },
       builder: (context, state) {
         if (state is InboxContactLoading) {
           return buildInboxShimmer();
-        }
-        if (state is InboxContactError) {
-          _isFetchingMore = false;
-          return Center(child: Text(state.message));
         }
         if (state is InboxContactLoaded) {
           _isFetchingMore = state.isFetchingMore;
