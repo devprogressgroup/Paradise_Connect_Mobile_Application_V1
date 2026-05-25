@@ -25,6 +25,7 @@ class InboxContactRemoteDataSourceImpl implements InboxContactRemoteDataSource {
           'status_prospect_id': statusProspectId,
           'start_date': startDate,
           'end_date': endDate,
+          'limit': 10
         },
       );
 

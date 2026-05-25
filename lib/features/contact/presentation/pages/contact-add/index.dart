@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:file_picker/file_picker.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:progress_group/core/utils/widget/shimmer_loading.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -316,6 +317,58 @@ class _ContactAddPageState extends State<ContactAddPage> {
     }
   }
 
+  Future<void> _pickFromGallery() async {
+    final List<XFile> results = await picker.pickMultiImage(imageQuality: 80);
+    if (results.isNotEmpty) {
+      setState(() {
+        selectedImages.addAll(results.map((x) => File(x.path)));
+      });
+    }
+  }
+
+  void _showPhotoPickerBottomSheet() {
+    showModalBottomSheet(
+      context: context,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            SizedBox(height: 8),
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Color(grey7Color),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            SizedBox(height: 16),
+            ListTile(
+              leading: Icon(Icons.camera_alt, color: Color(primaryColor)),
+              title: Text("Camera"),
+              onTap: () {
+                Navigator.pop(ctx);
+                _openCamera();
+              },
+            ),
+            ListTile(
+              leading: Icon(Icons.photo_library, color: Color(primaryColor)),
+              title: Text("Upload from Gallery"),
+              onTap: () {
+                Navigator.pop(ctx);
+                _pickFromGallery();
+              },
+            ),
+            SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+  }
+
   Future<void> pickDateTime(BuildContext context) async {
     final now = DateTime.now();
 
@@ -349,6 +402,64 @@ class _ContactAddPageState extends State<ContactAddPage> {
         0,
       );
     });
+  }
+
+  Future<void> _openGoogleCalendar({
+    required String title,
+    required DateTime start,
+    required String? description,
+  }) async {
+    final end = start.add(const Duration(hours: 1));
+    final fmt = DateFormat("yyyyMMdd'T'HHmmss");
+    final dates = '${fmt.format(start)}/${fmt.format(end)}';
+    final params = <String, String>{
+      'action': 'TEMPLATE',
+      'text': title,
+      'dates': dates,
+    };
+    if (description != null && description.isNotEmpty) {
+      params['details'] = description;
+    }
+    final uri = Uri.https('calendar.google.com', '/calendar/render', params);
+    try {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } catch (_) {
+      await launchUrl(uri, mode: LaunchMode.platformDefault);
+    }
+  }
+
+  Future<void> _showAddToCalendarDialog({
+    required DateTime followUpDate,
+    required String? description,
+  }) async {
+    final contactName = widget.args.dataContact?.fullName ?? 'Contact';
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Tambah ke Google Calendar?'),
+        content: Text(
+          'Follow up "$contactName" pada ${DateHelper.formatDateTimeShort(followUpDate)}',
+          style: const TextStyle(fontSize: 14),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Tidak'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Ya'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true) {
+      await _openGoogleCalendar(
+        title: 'Follow Up - $contactName',
+        start: followUpDate,
+        description: description,
+      );
+    }
   }
 
   void _submitActivity({
@@ -536,7 +647,14 @@ class _ContactAddPageState extends State<ContactAddPage> {
         BlocListener<ActivityBloc, ActivityState>(
           listener: (ctx, state) {
             if (state.status == ActivityStatus.createSuccess || state.status == ActivityStatus.followUpSuccess) {
-              context.pop();
+              if (widget.args.page == 3 && selectedDate != null) {
+                _showAddToCalendarDialog(
+                  followUpDate: selectedDate!,
+                  description: descFormActivityTC.text.trim().isEmpty ? null : descFormActivityTC.text.trim(),
+                ).then((_) => context.pop());
+              } else {
+                context.pop();
+              }
             } else if (state.status == ActivityStatus.error) {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
@@ -2079,9 +2197,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
 
                   return customButton(isLoading ? null : () {
                       if (isFollowUpFlow && widget.args.dataActivity != null) {
-                        context.read<ActivityBloc>().add(
-                          PostStatusFollowEvent([widget.args.dataActivity!.activityId]),
-                        );
+                        context.read<ActivityBloc>().add(PostStatusFollowEvent([widget.args.dataActivity!.activityId]), );
                       } else {
                         _submitActivity(activityType: widget.args.namePage ?? '',activityDate: DateTime.now(),notesTC: descFormActivityTC,isFollowUp: isFollowUp,followUpDate: selectedDate,);
                       }
@@ -2109,7 +2225,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            "Reminder",
+            "Follow Up",
             style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.bold,
@@ -2147,6 +2263,15 @@ class _ContactAddPageState extends State<ContactAddPage> {
               ),
             ),
           ),
+          SizedBox(height: 12),
+          Text(
+            "Description",
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+              color: Color(grey2Color),
+            ),
+          ),
           SizedBox(height: 6),
           TextField(
             maxLines: 4,
@@ -2179,33 +2304,6 @@ class _ContactAddPageState extends State<ContactAddPage> {
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  Text(
-                    "Follow Up Reminder",
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                      color: Color(grey2Color),
-                    ),
-                  ),
-                  SizedBox(width: 12),
-                  Transform.scale(
-                    scale: 0.8,
-                    child: CupertinoSwitch(
-                      value: isFollowUp,
-                      activeTrackColor: Color(primaryColor),
-                      onChanged: (value) {
-                        setState(() {
-                          isFollowUp = value;
-                        });
-                      },
-                    ),
-                  ),
-                ],
-              ),
-             
               SizedBox(height: 32),
               BlocBuilder<ActivityBloc, ActivityState>(
                 builder: (context, state) {
@@ -2218,7 +2316,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
                           PostStatusFollowEvent([widget.args.dataActivity!.activityId]),
                         );
                       } else {
-                        _submitActivity(activityType: widget.args.namePage ?? '',activityDate: DateTime.now(),notesTC: descFormActivityTC,isFollowUp: isFollowUp,followUpDate: selectedDate,);
+                        _submitActivity(activityType: widget.args.namePage ?? '',activityDate: selectedDate ?? DateTime.now(),notesTC: descFormActivityTC,isFollowUp: true,followUpDate: selectedDate ?? DateTime.now(),);
                       }
                     },
                     isLoading ? 'Menyimpan...' : (widget.args.buttonLabel ?? 'Save'),
@@ -2250,10 +2348,19 @@ class _ContactAddPageState extends State<ContactAddPage> {
               ),
             ),
             if (hasImages)
-              IconButton(
-                onPressed: _openCamera,
-                icon: Icon(Icons.camera_alt, color: Color(primaryColor)),
-                tooltip: 'Take Photo',
+              Row(
+                children: [
+                  IconButton(
+                    onPressed: _pickFromGallery,
+                    icon: Icon(Icons.photo_library, color: Color(primaryColor)),
+                    tooltip: 'Upload from Gallery',
+                  ),
+                  IconButton(
+                    onPressed: _openCamera,
+                    icon: Icon(Icons.camera_alt, color: Color(primaryColor)),
+                    tooltip: 'Take Photo',
+                  ),
+                ],
               ),
           ],
         ),
@@ -2308,7 +2415,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
           )
         else
           GestureDetector(
-            onTap: _openCamera,
+            onTap: _showPhotoPickerBottomSheet,
             child: Container(
               width: double.infinity,
               height: 100,

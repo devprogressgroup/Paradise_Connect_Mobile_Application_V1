@@ -189,7 +189,7 @@ class _TaskPageState extends State<TaskPage> {
             page: page,
             namePage: namePage,
             dataActivity: activity,
-            buttonLabel: 'Followed Up',
+            buttonLabel: 'Complete',
             dataContact: ContactEntity(
               contactId: activity.contactId,
               fullName: activity.contactName,

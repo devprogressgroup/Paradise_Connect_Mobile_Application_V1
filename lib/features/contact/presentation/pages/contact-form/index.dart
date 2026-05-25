@@ -151,115 +151,15 @@ class _ContactFormPageState extends State<ContactFormPage> {
   bool _isSaving = false;
   String? _highlightedField;
 
-  List<OwnerDropdownItem> itemsProject = [
-    OwnerDropdownItem(name: "Paradise Serpong City 1"),
-    OwnerDropdownItem(name: "Paradise Serpong City 2"),
-    OwnerDropdownItem(name: "Paradise Resort City"),
-  ];
-  List<OwnerDropdownItem> itemsProjectCategory = [
+  final List<OwnerDropdownItem> itemsProjectCategory = [
     OwnerDropdownItem(name: "Residential"),
     OwnerDropdownItem(name: "Commercial"),
   ];
-  final Map<String, Map<String, List<String>>> projectData = {
-    "Paradise Serpong City 2": {
-      "Residential": [
-        "Hampton",
-        "Lilac",
-        "Woodle",
-        "Sandwood",
-        "Ariawood | Ecoardence",
-      ],
-    },
-    "Paradise Serpong City 1": {
-      "Residential": [
-        "Envato",
-        "Omnia",
-        "Grayson",
-        "Solavita",
-        "Everest",
-        "Clivia",
-        "Florida",
-        "Solavista",
-      ],
-      "Commercial": [
-        "Terrace Corner A",
-        "Terrace Corner B",
-        "Standard",
-        "Terrace",
-        "Standard Corner A",
-        "Standard Corner B",
-      ],
-    },
-    "Paradise Resort City": {
-      "Residential": [
-        "Arabelle",
-        "Bella",
-        "Calan",
-        "Elowyn",
-        "Bryn",
-        "Calaya",
-        "Cayenne",
-        "Cove",
-        "Cavara",
-        "Coral",
-      ],
-    },
-  };
 
-  List<OwnerDropdownItem> itemsLastProject = [
-    OwnerDropdownItem(name: "Paradise Serpong City 1"),
-    OwnerDropdownItem(name: "Paradise Serpong City 2"),
-    OwnerDropdownItem(name: "Paradise Resort City"),
-  ];
-  List<OwnerDropdownItem> itemsLastProjectCategory = [
+  final List<OwnerDropdownItem> itemsLastProjectCategory = [
     OwnerDropdownItem(name: "Residential"),
     OwnerDropdownItem(name: "Commercial"),
   ];
-  final Map<String, Map<String, List<String>>> projecLasttData = {
-    "Paradise Serpong City 2": {
-      "Residential": [
-        "Hampton",
-        "Lilac",
-        "Woodle",
-        "Sandwood",
-        "Ariawood | Ecoardence",
-      ],
-    },
-    "Paradise Serpong City 1": {
-      "Residential": [
-        "Envato",
-        "Omnia",
-        "Grayson",
-        "Solavita",
-        "Everest",
-        "Clivia",
-        "Florida",
-        "Solavista",
-      ],
-      "Commercial": [
-        "Terrace Corner A",
-        "Terrace Corner B",
-        "Standard",
-        "Terrace",
-        "Standard Corner A",
-        "Standard Corner B",
-      ],
-    },
-    "Paradise Resort City": {
-      "Residential": [
-        "Arabelle",
-        "Bella",
-        "Calan",
-        "Elowyn",
-        "Bryn",
-        "Calaya",
-        "Cayenne",
-        "Cove",
-        "Cavara",
-        "Coral",
-      ],
-    },
-  };
 
   final ScrollController _scrollController = ScrollController();
   bool _hideWhatsappField = false;
@@ -273,16 +173,6 @@ class _ContactFormPageState extends State<ContactFormPage> {
      
   }
 
-  List<OwnerDropdownItem> getProductList() {
-    if (selectFirstProject == null || selectFirstProjectCategory == null) {
-      return [];
-    }
-
-    final products =
-        projectData[selectFirstProject]?[selectFirstProjectCategory] ?? [];
-
-    return products.map((e) => OwnerDropdownItem(name: e)).toList();
-  }
 
 
 
@@ -331,6 +221,18 @@ class _ContactFormPageState extends State<ContactFormPage> {
         ProspectStatusEnum.loaded) {
       context.read<ProspectStatusBloc>().add(FetchProspectStatusesEvent());
     }
+
+    // Load townships for project dropdown
+    final townshipState = context.read<TownshipBloc>().state;
+    if (townshipState is! TownshipLoaded) {
+      context.read<TownshipBloc>().add(GetTownshipsEvent());
+    } else if (widget.args.page == 0 && selectFirstProject == null && townshipState.townships.isNotEmpty) {
+      final first = townshipState.townships.first;
+      setState(() {
+        selectFirstProject = first.name;
+        selectFirstTownshipId = first.id;
+      });
+    }
     if (context.read<ContactPropertiesBloc>().state.status !=
         ContactPropertiesStatus.loaded) {
       context.read<ContactPropertiesBloc>().add(FetchContactPropertiesEvent());
@@ -368,19 +270,6 @@ class _ContactFormPageState extends State<ContactFormPage> {
         if (vCountTC.text.isEmpty) vCountTC.text = "0";
 
         selectedSalutation ??= "Bapak";
-        selectFirstProject ??= itemsProject.first.name;
-        selectFirstProjectCategory ??= itemsProjectCategory.first.name;
-        final firstProducts =projectData[selectFirstProject]?[selectFirstProjectCategory] ?? [];
-        if (firstProducts.isNotEmpty) {
-          selectFirstProjectProduct ??= firstProducts.first;
-        }
-
-        selectLastProject ??= itemsLastProject.first.name;
-        selectLastProjectCategory ??= itemsLastProjectCategory.first.name;
-        final lastProducts = projecLasttData[selectLastProject]?[selectLastProjectCategory] ?? [];
-        if (lastProducts.isNotEmpty) {
-          selectLastProjectProduct ??= lastProducts.first;
-        }
       });
     }
 
@@ -1055,6 +944,20 @@ class _ContactFormPageState extends State<ContactFormPage> {
             listener: (context, state) {
               if (state is ProfileLoaded && widget.args.page == 0) {
                 _autoFillFromProfile();
+              }
+            },
+          ),
+          BlocListener<TownshipBloc, TownshipState>(
+            listener: (context, state) {
+              if (state is TownshipLoaded &&
+                  widget.args.page == 0 &&
+                  selectFirstProject == null &&
+                  state.townships.isNotEmpty) {
+                final first = state.townships.first;
+                setState(() {
+                  selectFirstProject = first.name;
+                  selectFirstTownshipId = first.id;
+                });
               }
             },
           ),

@@ -369,6 +369,29 @@ Widget buildHomeTaskShimmer() {
   );
 }
 
+Widget buildProspectStatusShimmer() {
+  return _shimmerWrap(
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          decoration: BoxDecoration(
+          
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Column(
+            children: List.generate(6, (i) => Container(
+              height: 44,
+              margin: EdgeInsets.only(left: 14, right: 14, top: i == 0 ? 8 : 0, bottom: 8),
+              decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(6)),
+            )),
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
 // ─── Home Chart ───────────────────────────────────────────────────────────────
 Widget buildHomeChartShimmer() {
   return _shimmerWrap(

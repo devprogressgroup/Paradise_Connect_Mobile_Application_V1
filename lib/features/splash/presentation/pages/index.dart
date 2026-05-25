@@ -3,7 +3,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:progress_group/app/router.dart';
 import 'package:progress_group/core/constants/assets.dart';
-import 'package:progress_group/core/constants/colors.dart';
 import 'package:progress_group/features/auth/presentation/state/profile/profile_bloc.dart';
 import 'package:progress_group/features/auth/presentation/state/profile/profile_event.dart';
 import 'package:progress_group/features/auth/presentation/state/profile/profile_state.dart';
@@ -60,11 +59,8 @@ class _SplashPageState extends State<SplashPage> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Image.asset(logoParadiseSerpong, width: 160),
-              const SizedBox(height: 32),
-              const CircularProgressIndicator(
-                valueColor: AlwaysStoppedAnimation<Color>(Color(primaryColor)),
-              ),
+              Image.asset(logoParadiseConnect, width: 160),
+              
             ],
           ),
         ),

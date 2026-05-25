@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:progress_group/core/constants/colors.dart';
+import 'package:progress_group/core/network/api_constants.dart';
 import 'package:local_auth/local_auth.dart';
 import '../../../../../core/utils/widget/custom_loading.dart';
 import '../../../../../core/utils/widget/custom_snackbar.dart';
@@ -80,6 +81,104 @@ class _LoginPageState extends State<LoginPage> {
     }
   }
 
+  void _showEnvSwitcher() {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        return ValueListenableBuilder<AppEnvironment>(
+          valueListenable: ApiConstants.envNotifier,
+          builder: (_, currentEnv, __) {
+            return Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Pilih Environment',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 16),
+                  _envOption(
+                    ctx,
+                    env: AppEnvironment.production,
+                    label: 'Production',
+                    subtitle: '192.168.8.21:9090',
+                    color: const Color(0xFF22C55E),
+                    currentEnv: currentEnv,
+                  ),
+                  const SizedBox(height: 10),
+                  _envOption(
+                    ctx,
+                    env: AppEnvironment.development,
+                    label: 'Development',
+                    subtitle: '192.168.8.38:8000',
+                    color: const Color(0xFFF59E0B),
+                    currentEnv: currentEnv,
+                  ),
+                  const SizedBox(height: 8),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _envOption(
+    BuildContext ctx, {
+    required AppEnvironment env,
+    required String label,
+    required String subtitle,
+    required Color color,
+    required AppEnvironment currentEnv,
+  }) {
+    final isSelected = currentEnv == env;
+    return GestureDetector(
+      onTap: () async {
+        Navigator.pop(ctx);
+        if (currentEnv != env) {
+          await ApiConstants.switchEnv(env);
+        }
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        decoration: BoxDecoration(
+          color: isSelected ? color.withValues(alpha: 0.08) : Colors.grey.withValues(alpha: 0.06),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: isSelected ? color : Colors.transparent,
+            width: 1.5,
+          ),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 10,
+              height: 10,
+              decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(label, style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: isSelected ? color : Colors.black87)),
+                  Text(subtitle, style: TextStyle(fontSize: 12, color: Colors.grey[600])),
+                ],
+              ),
+            ),
+            if (isSelected) Icon(Icons.check_circle, color: color, size: 20),
+          ],
+        ),
+      ),
+    );
+  }
+
   void _login() {
     final email = _emailController.text.trim();
     final password = _passwordController.text.trim();
@@ -153,14 +252,17 @@ class _LoginPageState extends State<LoginPage> {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       // Header
-                      const Text(
-                        'Sign In',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: 0,
-                          color: Color(blue2Color),
+                      GestureDetector(
+                        onTap: _showEnvSwitcher,
+                        child: const Text(
+                          'Sign In',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: 0,
+                            color: Color(blue2Color),
+                          ),
                         ),
                       ),
                       const SizedBox(height: 32),
@@ -373,10 +475,45 @@ class _LoginPageState extends State<LoginPage> {
                           ),
                         ],
                       ),
-                      const SizedBox(height: 32),
+                      // const SizedBox(height: 16),
+                      // // Env badge
+                      // Center(
+                      //   child: ValueListenableBuilder<AppEnvironment>(
+                      //     valueListenable: ApiConstants.envNotifier,
+                      //     builder: (_, env, __) {
+                      //       final isProd = env == AppEnvironment.production;
+                      //       final color = isProd ? const Color(0xFF22C55E) : const Color(0xFFF59E0B);
+                      //       return GestureDetector(
+                      //         onTap: _showEnvSwitcher,
+                      //         child: Container(
+                      //           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      //           decoration: BoxDecoration(
+                      //             color: color.withValues(alpha: 0.1),
+                      //             borderRadius: BorderRadius.circular(20),
+                      //             border: Border.all(color: color.withValues(alpha: 0.4)),
+                      //           ),
+                      //           child: Row(
+                      //             mainAxisSize: MainAxisSize.min,
+                      //             children: [
+                      //               Container(width: 7, height: 7, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
+                      //               const SizedBox(width: 6),
+                      //               Text(
+                      //                 isProd ? 'Production' : 'Development',
+                      //                 style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: color),
+                      //               ),
+                      //               const SizedBox(width: 4),
+                      //               Icon(Icons.unfold_more_rounded, size: 14, color: color),
+                      //             ],
+                      //           ),
+                      //         ),
+                      //       );
+                      //     },
+                      //   ),
+                      // ),
+                      const SizedBox(height: 24),
                       SizedBox(
                         width: double.infinity,
-                        height: 56, // ✅ samakan
+                        height: 56,
                         child: Row(
                           children: [
                             Expanded( // 🔥 WAJIB biar gak overflow

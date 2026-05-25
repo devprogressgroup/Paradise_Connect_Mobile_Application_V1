@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:progress_group/core/constants/assets.dart';
 import 'package:progress_group/core/constants/colors.dart';
+import 'package:progress_group/core/utils/helpers/date_helper.dart';
 import 'package:progress_group/features/attandance/presentation/state/attandance/attendance_bloc.dart';
 import 'package:progress_group/features/attandance/presentation/state/attandance/attendance_state.dart';
 
@@ -52,7 +53,6 @@ class AttendanceAlertsWidget extends StatelessWidget {
     return GestureDetector(
       onTap: () => context.go('/attandance'),
       child: Container(
-        margin: const EdgeInsets.only(bottom: 5),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: BoxDecoration(
           color: Colors.white,
@@ -73,18 +73,9 @@ class AttendanceAlertsWidget extends StatelessWidget {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      message,
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.bold,
-                        color: Color(blackColor),
-                      ),
-                    ),
-                    Text(
-                      'Tap untuk absensi',
-                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(grey2Color)),
-                    ),
+                    Text(message,style: TextStyle(fontSize: 14,fontWeight: FontWeight.bold,color: Color(blackColor),),),
+                    Text('Tap untuk absensi',style: TextStyle(fontSize: 12,fontWeight: FontWeight.bold,color: Color(grey2Color)),),
+                    Text('${DateHelper.formatToIndonesian(DateTime.now(),)}',style: TextStyle(fontSize: 12,fontWeight: FontWeight.bold,color: Color(grey2Color)),),
                   ],
                 ),
               ],

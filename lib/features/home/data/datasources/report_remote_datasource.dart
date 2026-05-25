@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 
 abstract class ReportRemoteDataSource {
   Future<Map<String, dynamic>> getVolumeReport(String start, String end, String group);
+  Future<Map<String, dynamic>> getProspectStatusSummary({String? startDate, String? endDate});
 }
 
 class ReportRemoteDataSourceImpl implements ReportRemoteDataSource {
@@ -19,9 +20,25 @@ class ReportRemoteDataSourceImpl implements ReportRemoteDataSource {
           'group_by': group,
         },
       );
-      return response.data; // Mengasumsikan Dio Client sudah menangani jsonDecode
+      return response.data;
     } on DioException catch (e) {
       throw Exception(e.response?.data['message'] ?? "Gagal mengambil data report");
+    }
+  }
+
+  @override
+  Future<Map<String, dynamic>> getProspectStatusSummary({String? startDate, String? endDate}) async {
+    try {
+      final Map<String, dynamic> params = {};
+      if (startDate != null) params['start_date'] = startDate;
+      if (endDate != null) params['end_date'] = endDate;
+      final response = await dio.get(
+        '/sales/prospect-statuses',
+        queryParameters: params.isNotEmpty ? params : null,
+      );
+      return response.data;
+    } on DioException catch (e) {
+      throw Exception(e.response?.data['message'] ?? "Gagal mengambil data prospect status");
     }
   }
 }

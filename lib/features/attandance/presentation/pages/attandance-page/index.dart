@@ -987,203 +987,16 @@ class _AttandancePageState extends State<AttandancePage> {
     required String? note,
     required List<String> images,
   }) {
-    return StatefulBuilder(
-      builder: (context, setStateSB) {
-        final ScrollController scrollController = ScrollController();
-        bool isAtStart = true;
-        bool isAtEnd = false;
-
-        void updateScrollState() {
-          if (!scrollController.hasClients) return;
-          final maxScroll = scrollController.position.maxScrollExtent;
-          final offset = scrollController.offset;
-          setStateSB(() {
-            isAtStart = offset <= 0;
-            isAtEnd = offset >= maxScroll;
-          });
-        }
-
-        scrollController.addListener(updateScrollState);
-
-        String formatTime(String? value) {
-          if (value == null) return '-';
-          final dt = DateTime.tryParse(value);
-          if (dt == null) return '-';
-          return DateFormat('hh:mm').format(dt);
-        }
-
-        return Container(
-          margin: const EdgeInsets.only(bottom: 30),
-          decoration: BoxDecoration(
-            color: const Color(whiteColor),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              /// ================= HEADER =================
-              Container(
-                padding: const EdgeInsets.only(left: 12),
-                decoration: BoxDecoration(
-                  border: Border(
-                    left: BorderSide(color: Color(purpleColor), width: 5),
-                  ),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Row(
-                      children: [
-                        Container(
-                          width: 40,
-                          height: 40,
-                          decoration: BoxDecoration(
-                            color: Color(primaryColor),
-                            shape: BoxShape.circle,
-                          ),
-                          child: Center(
-                            child: Text(
-                              getInitials(fullName),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.bold,
-                                color: Color(whiteColor),
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 5),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              fullName,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
-                            ),
-                            Container(
-                              width: 180,
-                              child: Text(location ?? '', maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 8)),
-                            ),
-                            if (contactName != null && contactName.isNotEmpty)
-                              Container(
-                                width: 180,
-                                child: Row(
-                                  children: [
-                                    Icon(Icons.person_outline, size: 11, color: const Color(0xFFE67E22)),
-                                    const SizedBox(width: 2),
-                                    Expanded(
-                                      child: Text(contactName, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 11, color: Color(0xFFE67E22))),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                          ],
-                        ),
-                      ],
-                    ),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        Text(formatTime(datetime), style: const TextStyle(fontSize: 11)),
-                        const SizedBox(height: 2),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: typeColor.withValues(alpha: 0.12),
-                            borderRadius: BorderRadius.circular(4),
-                            border: Border.all(color: typeColor.withValues(alpha: 0.5)),
-                          ),
-                          child: Text(type, style: TextStyle(fontSize: 10, color: typeColor, fontWeight: FontWeight.w600)),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-
-              const SizedBox(height: 5),
-              Text(note ?? '', style: const TextStyle(fontWeight: FontWeight.w100)),
-              const SizedBox(height: 10),
-
-              /// ================= IMAGES =================
-              if (images.isNotEmpty)
-                SizedBox(
-                  height: 200,
-                  child: Stack(
-                    children: [
-                      ListView.builder(
-                        controller: scrollController,
-                        scrollDirection: Axis.horizontal,
-                        itemCount: images.length,
-                        itemBuilder: (context, index) {
-                          return GestureDetector(
-                            onTap: () => _showImagePreview(images[index]),
-                            child: Container(
-                              margin: const EdgeInsets.only(right: 10),
-                              child: ClipRRect(
-                                borderRadius: BorderRadius.circular(8),
-                                child: Image.network(
-                                  convertDriveUrl(images[index]),
-                                  width: 200,
-                                  height: 200,
-                                  fit: BoxFit.cover,
-                                  errorBuilder: (context, error, stackTrace) => Container(
-                                    width: 200,
-                                    height: 200,
-                                    color: Colors.grey.shade200,
-                                    child: const Icon(Icons.broken_image, size: 40),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-                      if (images.length > 1 && !isAtStart)
-                        Positioned(
-                          left: 5, top: 0, bottom: 0,
-                          child: Center(
-                            child: GestureDetector(
-                              onTap: () {
-                                final newOffset = (scrollController.offset - 250).clamp(0.0, scrollController.position.maxScrollExtent);
-                                scrollController.animateTo(newOffset, duration: const Duration(milliseconds: 250), curve: Curves.easeInOut);
-                              },
-                              child: Container(
-                                padding: const EdgeInsets.all(8),
-                                decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.4), shape: BoxShape.circle),
-                                child: const Icon(Icons.arrow_back_ios, color: Colors.white, size: 16),
-                              ),
-                            ),
-                          ),
-                        ),
-                      if (images.length > 1 && !isAtEnd)
-                        Positioned(
-                          right: 5, top: 0, bottom: 0,
-                          child: Center(
-                            child: GestureDetector(
-                              onTap: () {
-                                final newOffset = (scrollController.offset + 250).clamp(0.0, scrollController.position.maxScrollExtent);
-                                scrollController.animateTo(newOffset, duration: const Duration(milliseconds: 250), curve: Curves.easeInOut);
-                              },
-                              child: Container(
-                                padding: const EdgeInsets.all(8),
-                                decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.4), shape: BoxShape.circle),
-                                child: const Icon(Icons.arrow_forward_ios, color: Colors.white, size: 16),
-                              ),
-                            ),
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-            ],
-          ),
-        );
-      },
+    return _ActivityCard(
+      fullName: fullName,
+      type: type,
+      typeColor: typeColor,
+      datetime: datetime,
+      location: location,
+      contactName: contactName,
+      note: note,
+      images: images,
+      onImageTap: _showImagePreview,
     );
   }
 
@@ -1864,6 +1677,241 @@ class _AttandancePageState extends State<AttandancePage> {
           ),
         ),
       ],
+    );
+  }
+}
+
+class _ActivityCard extends StatefulWidget {
+  final String fullName;
+  final String type;
+  final Color typeColor;
+  final String? datetime;
+  final String? location;
+  final String? contactName;
+  final String? note;
+  final List<String> images;
+  final void Function(String url) onImageTap;
+
+  const _ActivityCard({
+    required this.fullName,
+    required this.type,
+    required this.typeColor,
+    required this.datetime,
+    required this.location,
+    required this.contactName,
+    required this.note,
+    required this.images,
+    required this.onImageTap,
+  });
+
+  @override
+  State<_ActivityCard> createState() => _ActivityCardState();
+}
+
+class _ActivityCardState extends State<_ActivityCard> {
+  late final ScrollController _scrollController;
+  bool _isAtStart = true;
+  bool _isAtEnd = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController = ScrollController();
+    _scrollController.addListener(_updateScrollState);
+  }
+
+  @override
+  void dispose() {
+    _scrollController.removeListener(_updateScrollState);
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _updateScrollState() {
+    if (!_scrollController.hasClients) return;
+    final maxScroll = _scrollController.position.maxScrollExtent;
+    final offset = _scrollController.offset;
+    setState(() {
+      _isAtStart = offset <= 0;
+      _isAtEnd = offset >= maxScroll;
+    });
+  }
+
+  String _formatTime(String? value) {
+    if (value == null) return '-';
+    final dt = DateTime.tryParse(value);
+    if (dt == null) return '-';
+    return DateFormat('hh:mm').format(dt);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 30),
+      decoration: BoxDecoration(
+        color: const Color(whiteColor),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.only(left: 12),
+            decoration: BoxDecoration(
+              border: Border(
+                left: BorderSide(color: Color(purpleColor), width: 5),
+              ),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: Color(primaryColor),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Center(
+                        child: Text(
+                          getInitials(widget.fullName),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: Color(whiteColor),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 5),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          widget.fullName,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                        ),
+                        SizedBox(
+                          width: 180,
+                          child: Text(widget.location ?? '', maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 8)),
+                        ),
+                        if (widget.contactName != null && widget.contactName!.isNotEmpty)
+                          SizedBox(
+                            width: 180,
+                            child: Row(
+                              children: [
+                                const Icon(Icons.person_outline, size: 11, color: Color(0xFFE67E22)),
+                                const SizedBox(width: 2),
+                                Expanded(
+                                  child: Text(widget.contactName!, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 11, color: Color(0xFFE67E22))),
+                                ),
+                              ],
+                            ),
+                          ),
+                      ],
+                    ),
+                  ],
+                ),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(_formatTime(widget.datetime), style: const TextStyle(fontSize: 11)),
+                    const SizedBox(height: 2),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: widget.typeColor.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(4),
+                        border: Border.all(color: widget.typeColor.withValues(alpha: 0.5)),
+                      ),
+                      child: Text(widget.type, style: TextStyle(fontSize: 10, color: widget.typeColor, fontWeight: FontWeight.w600)),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 5),
+          Text(widget.note ?? '', style: const TextStyle(fontWeight: FontWeight.w100)),
+          const SizedBox(height: 10),
+          if (widget.images.isNotEmpty)
+            SizedBox(
+              height: 200,
+              child: Stack(
+                children: [
+                  ListView.builder(
+                    controller: _scrollController,
+                    scrollDirection: Axis.horizontal,
+                    itemCount: widget.images.length,
+                    itemBuilder: (context, index) {
+                      return GestureDetector(
+                        onTap: () => widget.onImageTap(widget.images[index]),
+                        child: Container(
+                          margin: const EdgeInsets.only(right: 10),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(8),
+                            child: Image.network(
+                              convertDriveUrl(widget.images[index]),
+                              width: 200,
+                              height: 200,
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) => Container(
+                                width: 200,
+                                height: 200,
+                                color: Colors.grey.shade200,
+                                child: const Icon(Icons.broken_image, size: 40),
+                              ),
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                  if (widget.images.length > 1 && !_isAtStart)
+                    Positioned(
+                      left: 5, top: 0, bottom: 0,
+                      child: Center(
+                        child: GestureDetector(
+                          onTap: () {
+                            final newOffset = (_scrollController.offset - 250).clamp(0.0, _scrollController.position.maxScrollExtent);
+                            _scrollController.animateTo(newOffset, duration: const Duration(milliseconds: 250), curve: Curves.easeInOut);
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.4), shape: BoxShape.circle),
+                            child: const Icon(Icons.arrow_back_ios, color: Colors.white, size: 16),
+                          ),
+                        ),
+                      ),
+                    ),
+                  if (widget.images.length > 1 && !_isAtEnd)
+                    Positioned(
+                      right: 5, top: 0, bottom: 0,
+                      child: Center(
+                        child: GestureDetector(
+                          onTap: () {
+                            final newOffset = (_scrollController.offset + 250).clamp(0.0, _scrollController.position.maxScrollExtent);
+                            _scrollController.animateTo(newOffset, duration: const Duration(milliseconds: 250), curve: Curves.easeInOut);
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.4), shape: BoxShape.circle),
+                            child: const Icon(Icons.arrow_forward_ios, color: Colors.white, size: 16),
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+        ],
+      ),
     );
   }
 }

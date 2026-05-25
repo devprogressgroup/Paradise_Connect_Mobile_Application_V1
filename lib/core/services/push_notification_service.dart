@@ -173,7 +173,7 @@ class PushNotificationService {
           extra: ContactDetailArgs(
             page: page,
             namePage: namePage,
-            buttonLabel: 'Followed Up',
+            buttonLabel: 'Complete',
             dataActivity: ActivityEntity(
               activityId:        activityId,
               contactId:         contactId,

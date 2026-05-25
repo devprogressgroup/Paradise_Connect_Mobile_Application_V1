@@ -29,7 +29,8 @@ import '../../../../../core/utils/widget/custom_filter_button.dart';
 import '../../../domain/entities/prospect/prospect_status.dart';
 
 class ContactPage extends StatefulWidget {
-  const ContactPage({super.key});
+  final List<int>? initialStatusIds;
+  const ContactPage({super.key, this.initialStatusIds});
 
   @override
   State<ContactPage> createState() => _ContactPageState();
@@ -52,7 +53,11 @@ class _ContactPageState extends State<ContactPage> {
 
     _scrollController = ScrollController()..addListener(_onScroll);
 
-    context.read<ContactBloc>().add(const FetchContactsEvent(search: '', isRefresh: true));
+    context.read<ContactBloc>().add(FetchContactsEvent(
+      search: '',
+      isRefresh: true,
+      statusProspectIds: widget.initialStatusIds,
+    ));
 
     context.read<ProspectStatusBloc>().add(FetchProspectStatusesEvent());
   }
@@ -272,6 +277,7 @@ class _ContactPageState extends State<ContactPage> {
                                                   'label': selectedDateLabel,
                                                   'startDate': contactState.startDate,
                                                   'endDate': contactState.endDate,
+                                                  'isSingleSelect': true,
                                                 },
                                               );
 

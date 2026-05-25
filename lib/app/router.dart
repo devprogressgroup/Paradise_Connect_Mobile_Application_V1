@@ -97,7 +97,10 @@ class AppRouter {
           ),
           GoRoute(
             path: '/contact',
-            builder: (context, state) => const ContactPage(),
+            builder: (context, state) {
+              final initialStatusIds = state.extra is List<int> ? state.extra as List<int> : null;
+              return ContactPage(initialStatusIds: initialStatusIds);
+            },
             routes: [
               GoRoute(
                 name: 'detailContact',

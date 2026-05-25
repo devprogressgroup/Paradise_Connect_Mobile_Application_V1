@@ -17,6 +17,21 @@ class DioClient {
     _isHandling401 = false;
   }
 
+  static void _showGlobalSnackbar(String message) {
+    final context = AppRouter.rootNavigatorKey.currentContext;
+    if (context == null || !context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.red[700],
+        behavior: SnackBarBehavior.floating,
+        margin: const EdgeInsets.all(16),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        duration: const Duration(seconds: 3),
+      ),
+    );
+  }
+
   DioClient(this._authLocalDataSource) {
     _dio = Dio(
       BaseOptions(
@@ -41,8 +56,27 @@ class DioClient {
           print(">>> [${options.method}] ${options.uri}");
           return handler.next(options);
         },
+        onResponse: (response, handler) {
+          final data = response.data;
+          if (data is Map) {
+            final status = data['status'];
+            final message = data['message']?.toString() ?? '';
+            if (status == false && message.toLowerCase().contains('too many')) {
+              _showGlobalSnackbar('Terlalu banyak percobaan. Coba beberapa saat lagi.');
+            }
+          }
+          return handler.next(response);
+        },
         onError: (DioException e, handler) async {
           print("DIO ERROR: ${e.message}");
+
+          if (e.response?.statusCode == 429) {
+            final message = e.response?.data is Map
+                ? (e.response!.data['message']?.toString() ?? 'Terlalu banyak percobaan.')
+                : 'Terlalu banyak percobaan. Coba beberapa saat lagi.';
+            _showGlobalSnackbar(message);
+            return handler.next(e);
+          }
 
           if (e.response?.statusCode == 401 && !_isHandling401) {
             _isHandling401 = true;

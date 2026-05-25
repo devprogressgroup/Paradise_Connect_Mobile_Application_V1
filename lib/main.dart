@@ -46,8 +46,11 @@ import 'package:progress_group/features/contact/presentation/state/attachment/at
 import 'package:progress_group/features/contact/presentation/state/info_source/info_source_bloc.dart';
 import 'package:progress_group/features/contact/presentation/state/lost_reason/lost_reason_block.dart';
 import 'package:progress_group/features/contact/presentation/state/whatsapp_activity/whatsapp_unread_summary_bloc.dart';
+import 'package:progress_group/core/network/api_constants.dart';
 import 'package:progress_group/features/home/domain/usecases/get_report_whatsapp_usecase.dart';
+import 'package:progress_group/features/home/domain/usecases/get_prospect_status_summary_usecase.dart';
 import 'package:progress_group/features/home/presentation/state/report-whatsapp/report_bloc.dart';
+import 'package:progress_group/features/home/presentation/state/prospect-status-summary/prospect_status_summary_bloc.dart';
 import 'package:progress_group/features/inbox/data/datasources/inbox_remote_datasource.dart';
 import 'package:progress_group/features/inbox/data/datasources/message_remote_datasource.dart';
 import 'package:progress_group/features/inbox/domain/repositories/inbox_contact_repo_impl.dart';
@@ -109,6 +112,7 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await initializeDateFormatting('id_ID', null);
   final prefs = await SharedPreferences.getInstance();
+  ApiConstants.loadFromPrefs(prefs);
 
   try {
     await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
@@ -147,9 +151,16 @@ class _MyAppState extends State<MyApp> {
   @override
   void initState() {
     super.initState();
+    ApiConstants.envNotifier.addListener(_resetApp);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       PushNotificationService.processPendingMessage();
     });
+  }
+
+  @override
+  void dispose() {
+    ApiConstants.envNotifier.removeListener(_resetApp);
+    super.dispose();
   }
 
   void _resetApp() {
@@ -195,6 +206,7 @@ class _MyAppState extends State<MyApp> {
     final reportRemoteDataSource = ReportRemoteDataSourceImpl(dioClient.dio);
     final reportRepository = ReportRepositoryImpl(reportRemoteDataSource);
     final getVolumeReportUseCase = GetVolumeReportUseCase(reportRepository);
+    final getProspectStatusSummaryUseCase = GetProspectStatusSummaryUseCase(reportRepository);
 
     // Contacts & Activities
     final contactRemoteDataSource = ContactRemoteDataSourceImpl(dioClient.dio);
@@ -259,6 +271,7 @@ class _MyAppState extends State<MyApp> {
             BlocProvider(create: (_) => ProfileBloc(getProfileUseCase: getProfileUseCase)),
             BlocProvider(create: (_) => MessageBloc(getMessagesUseCase)),
             BlocProvider(create: (_) => ReportBloc(getVolumeReportUseCase)),
+            BlocProvider(create: (_) => ProspectStatusSummaryBloc(getProspectStatusSummaryUseCase: getProspectStatusSummaryUseCase)),
             BlocProvider(create: (_) => ContactBloc(getContactsUseCase: getContactsUseCase, createContactUseCase: createContactUseCase, updateContactUseCase: updateContactUseCase, deleteContactUseCase: deleteContactUseCase, getContactDetailUseCase: getContactDetailUseCase)),
             BlocProvider(create: (_) => ProspectStatusBloc(getProspectStatusesUseCase: getProspectStatusesUseCase)),
             BlocProvider(create: (_) => ContactPropertiesBloc(getContactPropertiesUseCase: getContactPropertiesUseCase)),
