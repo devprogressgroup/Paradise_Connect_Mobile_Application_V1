@@ -1,5 +1,4 @@
 import 'dart:io';
-
 import 'dart:typed_data';
 
 class CreateVisitParams {
@@ -11,6 +10,7 @@ class CreateVisitParams {
   final List<File>? files;
   final Uint8List? fileBytes;
   final String? fileName;
+  final List<Uint8List>? filesBytesData;
 
   CreateVisitParams({
     required this.contactId,
@@ -21,5 +21,6 @@ class CreateVisitParams {
     this.files,
     this.fileBytes,
     this.fileName,
+    this.filesBytesData,
   });
 }

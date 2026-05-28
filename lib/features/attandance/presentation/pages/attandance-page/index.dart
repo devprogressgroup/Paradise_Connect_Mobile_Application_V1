@@ -7,7 +7,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:progress_group/core/constants/colors.dart';
-import 'package:progress_group/core/utils/helpers/image_url.dart';
+import 'package:progress_group/core/utils/widget/drive_image/drive_image.dart';
 import 'package:progress_group/core/utils/helpers/initial_name_helper.dart';
 import 'package:progress_group/core/utils/widget/custom_filter_button.dart';
 import 'package:progress_group/features/attandance/domain/entities/attandance_entity.dart';
@@ -373,21 +373,22 @@ class _AttandancePageState extends State<AttandancePage> {
   }
 
   void _showImagePreview(String url) {
+    final screen = MediaQuery.of(context).size;
+    final imgW = screen.width - 20;
+    final imgH = screen.height - 120;
+
     showDialog(
       context: context,
-      builder: (context) => Dialog(
+      barrierColor: Colors.black87,
+      builder: (ctx) => Dialog(
         backgroundColor: Colors.transparent,
-        insetPadding: EdgeInsets.all(10),
+        insetPadding: const EdgeInsets.all(10),
         child: Stack(
           alignment: Alignment.center,
           children: [
             GestureDetector(
-              onTap: () => Navigator.pop(context),
-              child: Container(
-                width: double.infinity,
-                height: double.infinity,
-                color: Colors.transparent,
-              ),
+              onTap: () => Navigator.pop(ctx),
+              child: const SizedBox.expand(),
             ),
             Column(
               mainAxisSize: MainAxisSize.min,
@@ -395,8 +396,8 @@ class _AttandancePageState extends State<AttandancePage> {
                 Align(
                   alignment: Alignment.topRight,
                   child: IconButton(
-                    icon: Icon(Icons.close, color: Colors.white, size: 30),
-                    onPressed: () => Navigator.pop(context),
+                    icon: const Icon(Icons.close, color: Colors.white, size: 30),
+                    onPressed: () => Navigator.pop(ctx),
                   ),
                 ),
                 ClipRRect(
@@ -405,13 +406,24 @@ class _AttandancePageState extends State<AttandancePage> {
                     panEnabled: true,
                     minScale: 0.5,
                     maxScale: 4,
-                    child: Image.network(
-                      convertDriveUrl(url),
+                    child: DriveImage(
+                      url: url,
+                      width: imgW,
+                      height: imgH,
                       fit: BoxFit.contain,
-                      errorBuilder: (context, error, stackTrace) => Container(
+                      errorWidget: Container(
+                        width: imgW,
+                        height: 300,
                         color: Colors.white,
-                        padding: EdgeInsets.all(20),
-                        child: Icon(Icons.broken_image, size: 50, color: Colors.grey),
+                        alignment: Alignment.center,
+                        child: const Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.broken_image, size: 60, color: Colors.grey),
+                            SizedBox(height: 12),
+                            Text('Gambar tidak dapat dimuat', style: TextStyle(color: Colors.grey)),
+                          ],
+                        ),
                       ),
                     ),
                   ),
@@ -989,7 +1001,131 @@ class _AttandancePageState extends State<AttandancePage> {
       contactName: contactName,
       note: note,
       images: images,
-      onImageTap: _showImagePreview,
+      onImageTap: (url) => _showActivityDetailDialog(
+        tappedUrl: url,
+        allImages: images,
+        datetime: datetime,
+        location: location,
+        note: note,
+        contactName: contactName,
+        type: type,
+      ),
+    );
+  }
+
+  void _showActivityDetailDialog({
+    required String tappedUrl,
+    required List<String> allImages,
+    String? datetime,
+    String? location,
+    String? note,
+    String? contactName,
+    String? type,
+  }) {
+    String formatTime(String? value) {
+      if (value == null) return '-';
+      final dt = DateTime.tryParse(value);
+      if (dt == null) return '-';
+      return DateFormat('hh:mm a').format(dt);
+    }
+
+    String formatDate(String? value) {
+      if (value == null) return '-';
+      final dt = DateTime.tryParse(value);
+      if (dt == null) return '-';
+      return DateHelper.formatDate(dt);
+    }
+
+    // Index gambar yang ditap — untuk sorot di thumbnail strip
+    int selectedIndex = allImages.indexOf(tappedUrl);
+    if (selectedIndex < 0) selectedIndex = 0;
+
+    showDialog(
+      context: context,
+      barrierColor: Colors.black54,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (ctx, setDialogState) {
+            final currentUrl = allImages[selectedIndex];
+            return Dialog(
+              backgroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+              child: SizedBox(
+                width: MediaQuery.of(ctx).size.width * 0.85,
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Gambar utama — klik untuk fullscreen
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(16),
+                        child: DriveImage(
+                          url: currentUrl,
+                          width: double.infinity,
+                          height: 220,
+                          fit: BoxFit.cover,
+                          onTap: () => _showImagePreview(currentUrl),
+                        ),
+                      ),
+
+                      // Thumbnail strip kalau lebih dari 1 gambar
+                      if (allImages.length > 1) ...[
+                        const SizedBox(height: 10),
+                        SizedBox(
+                          height: 56,
+                          child: ListView.builder(
+                            scrollDirection: Axis.horizontal,
+                            itemCount: allImages.length,
+                            itemBuilder: (_, i) => GestureDetector(
+                              onTap: () => setDialogState(() => selectedIndex = i),
+                              child: Container(
+                                margin: const EdgeInsets.only(right: 8),
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(
+                                    color: i == selectedIndex ? Color(primaryColor) : Colors.transparent,
+                                    width: 2,
+                                  ),
+                                ),
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(6),
+                                  child: DriveImage(url: allImages[i], width: 52, height: 52, fit: BoxFit.cover),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+
+                      const SizedBox(height: 14),
+                      if (type != null)
+                        _buildInfoRow(Icons.local_activity, type, Color(primaryColor)),
+                      const SizedBox(height: 6),
+                      _buildInfoRow(Icons.access_time_filled, formatTime(datetime), Color(greenPercentColor)),
+                      const SizedBox(height: 6),
+                      _buildInfoRow(Icons.calendar_today, formatDate(datetime), Color(primaryColor)),
+                      if (location != null && location.isNotEmpty) ...[
+                        const SizedBox(height: 6),
+                        _buildInfoRow(Icons.map, location, Color(primaryColor)),
+                      ],
+                      if (contactName != null && contactName.isNotEmpty) ...[
+                        const SizedBox(height: 6),
+                        _buildInfoRow(Icons.person, contactName, Color(primaryColor)),
+                      ],
+                      if (note != null && note.isNotEmpty) ...[
+                        const SizedBox(height: 6),
+                        _buildInfoRow(Icons.notes, note, Color(primaryColor)),
+                      ],
+                      const SizedBox(height: 16),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
+        );
+      },
     );
   }
 
@@ -1183,25 +1319,16 @@ class _AttandancePageState extends State<AttandancePage> {
                         scrollDirection: Axis.horizontal,
                         itemCount: images.length,
                         itemBuilder: (context, index) {
-                          return GestureDetector(
-                            onTap: () => _showImagePreview(images[index]),
-                            child: Container(
-                              margin: const EdgeInsets.only(right: 10),
-                              child: ClipRRect(
-                                borderRadius: BorderRadius.circular(8),
-                                child: Image.network(
-                                  convertDriveUrl(images[index]),
-                                  width: 200,
-                                  height: 200,
-                                  fit: BoxFit.cover,
-                                  errorBuilder: (context, error, stackTrace) =>
-                                      Container(
-                                    width: 200,
-                                    height: 200,
-                                    color: Colors.grey.shade200,
-                                    child: const Icon(Icons.broken_image, size: 40),
-                                  ),
-                                ),
+                          return Container(
+                            margin: const EdgeInsets.only(right: 10),
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(8),
+                              child: DriveImage(
+                                url: images[index],
+                                width: 200,
+                                height: 200,
+                                fit: BoxFit.cover,
+                                onTap: () => _showImagePreview(images[index]),
                               ),
                             ),
                           );
@@ -1442,11 +1569,14 @@ class _AttandancePageState extends State<AttandancePage> {
             padding: const EdgeInsets.symmetric(horizontal:70, vertical: 5),
             child: Stack(
               children: [
-                GestureDetector(
-                  onTap: () => _showImagePreview(image),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(8),
-                    child: Image.network(convertDriveUrl(image), width: 200, height: 200, fit: BoxFit.cover, errorBuilder: (context, error, stackTrace) => Container(width: 200, height: 200, color: Colors.grey.shade200, child: const Icon(Icons.broken_image, size: 40))),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: DriveImage(
+                    url: image,
+                    width: 200,
+                    height: 200,
+                    fit: BoxFit.cover,
+                    onTap: () => _showImagePreview(image),
                   ),
                 ),
                 Positioned.fill(
@@ -1598,20 +1728,12 @@ class _AttandancePageState extends State<AttandancePage> {
                   ClipRRect(
                     borderRadius: BorderRadius.circular(16),
                     child: displayImage != null
-                        ? GestureDetector(
+                        ? DriveImage(
+                            url: displayImage,
+                            width: double.infinity,
+                            height: 180,
+                            fit: BoxFit.cover,
                             onTap: () => _showImagePreview(displayImage),
-                            child: Image.network(
-                              convertDriveUrl(displayImage),
-                              width: double.infinity,
-                              height: 180,
-                              fit: BoxFit.cover,
-                              errorBuilder: (context, error, stackTrace) =>
-                                  Container(
-                                height: 180,
-                                color: Colors.grey.shade200,
-                                child: const Icon(Icons.broken_image, size: 50),
-                              ),
-                            ),
                           )
                         : Container(
                             height: 180,
@@ -1851,32 +1973,21 @@ class _ActivityCardState extends State<_ActivityCard> {
                     scrollDirection: Axis.horizontal,
                     itemCount: widget.images.length,
                     itemBuilder: (context, index) {
-                      return GestureDetector(
-                        onTap: () => widget.onImageTap(widget.images[index]),
-                        child: Container(
-                          margin: const EdgeInsets.only(right: 10),
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(8),
-                            child: Image.network(
-                              convertDriveUrl(widget.images[index]),
+                      return Container(
+                        margin: const EdgeInsets.only(right: 10),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: DriveImage(
+                            url: widget.images[index],
+                            width: 200,
+                            height: 200,
+                            fit: BoxFit.cover,
+                            onTap: () => widget.onImageTap(widget.images[index]),
+                            errorWidget: Container(
                               width: 200,
                               height: 200,
-                              fit: BoxFit.cover,
-                              loadingBuilder: (context, child, progress) {
-                                if (progress == null) return child;
-                                return Container(
-                                  width: 200,
-                                  height: 200,
-                                  color: Colors.grey.shade200,
-                                  child: const Center(child: CircularProgressIndicator(strokeWidth: 2)),
-                                );
-                              },
-                              errorBuilder: (context, error, stackTrace) => Container(
-                                width: 200,
-                                height: 200,
-                                color: Colors.grey.shade200,
-                                child: const Icon(Icons.broken_image, size: 40),
-                              ),
+                              color: Colors.grey.shade200,
+                              child: const Icon(Icons.broken_image, size: 40),
                             ),
                           ),
                         ),

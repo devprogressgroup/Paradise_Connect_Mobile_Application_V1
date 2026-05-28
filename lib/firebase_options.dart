@@ -7,9 +7,7 @@ import 'package:flutter/foundation.dart'
 class DefaultFirebaseOptions {
   static FirebaseOptions get currentPlatform {
     if (kIsWeb) {
-      throw UnsupportedError(
-        'DefaultFirebaseOptions have not been configured for web.',
-      );
+      return web;
     }
     switch (defaultTargetPlatform) {
       case TargetPlatform.android:
@@ -23,7 +21,6 @@ class DefaultFirebaseOptions {
     }
   }
 
-  // Nilai diambil dari google-services.json (paradise-connect-mobile-6effd)
   static const FirebaseOptions android = FirebaseOptions(
     apiKey: 'AIzaSyARKkkCwhqqTeqHUQ8OFloW4e9gDg8WmrY',
     appId: '1:729428932735:android:8ec407c3ca726a7ea6274a',
@@ -32,13 +29,27 @@ class DefaultFirebaseOptions {
     storageBucket: 'paradise-connect-mobile-6effd.firebasestorage.app',
   );
 
-  // iOS — sesuaikan dengan GoogleService-Info.plist jika ada
+  // Nilai diambil dari google-services.json (paradise-connect-mobile-6effd)
+
   static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'AIzaSyARKkkCwhqqTeqHUQ8OFloW4e9gDg8WmrY',
-    appId: '1:729428932735:ios:8ec407c3ca726a7ea6274a',
+    apiKey: 'AIzaSyA4zCrddsInlOO8UjNzfr_5bGnYTE63RLs',
+    appId: '1:729428932735:ios:c119e9fad116bc75a6274a',
     messagingSenderId: '729428932735',
     projectId: 'paradise-connect-mobile-6effd',
     storageBucket: 'paradise-connect-mobile-6effd.firebasestorage.app',
     iosBundleId: 'com.example.progressGroup',
   );
+
+  // iOS — sesuaikan dengan GoogleService-Info.plist jika ada
+
+  static const FirebaseOptions web = FirebaseOptions(
+    apiKey: 'AIzaSyAED1oPCnC4UooAu5E_XhJ6ESi5szeEsdo',
+    appId: '1:729428932735:web:baa1b4577aa0ca01a6274a',
+    messagingSenderId: '729428932735',
+    projectId: 'paradise-connect-mobile-6effd',
+    authDomain: 'paradise-connect-mobile-6effd.firebaseapp.com',
+    storageBucket: 'paradise-connect-mobile-6effd.firebasestorage.app',
+    measurementId: 'G-CSPZP3F9M7',
+  );
+
 }

@@ -176,6 +176,7 @@ class AttendanceBloc extends Bloc<AttendanceEvent, AttendanceState> {
           location: event.location,
           note: event.note,
           filePath: event.filePath,
+          fileBytes: event.fileBytes,
           nikNumber: event.nikNumber,
         );
         emit(AttendanceSubmitSuccess());
@@ -193,6 +194,7 @@ class AttendanceBloc extends Bloc<AttendanceEvent, AttendanceState> {
           location: event.location,
           note: event.note,
           filePaths: event.filePaths,
+          fileBytesData: event.fileBytesData,
           nikNumber: event.nikNumber,
         );
         emit(AttendanceSubmitSuccess());

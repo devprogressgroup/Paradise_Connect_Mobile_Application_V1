@@ -1,5 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:file_picker/file_picker.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:progress_group/core/utils/widget/shimmer_loading.dart';
@@ -98,6 +100,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
   String? selectedFileName;
   bool isPdf = false;
   List<File> selectedImages = [];
+  List<Uint8List> selectedImageBytes = [];
 
   List<OwnerDropdownItem> itemsJmlDatang = [
     OwnerDropdownItem(name: "1"),
@@ -321,9 +324,12 @@ class _ContactAddPageState extends State<ContactAddPage> {
     );
 
     if (result != null) {
-      final file = File(result as String);
       setState(() {
-        selectedImages.add(file);
+        if (kIsWeb) {
+          selectedImageBytes.add(result as Uint8List);
+        } else {
+          selectedImages.add(File(result as String));
+        }
       });
     }
   }
@@ -331,9 +337,17 @@ class _ContactAddPageState extends State<ContactAddPage> {
   Future<void> _pickFromGallery() async {
     final List<XFile> results = await picker.pickMultiImage(imageQuality: 80);
     if (results.isNotEmpty) {
-      setState(() {
-        selectedImages.addAll(results.map((x) => File(x.path)));
-      });
+      if (kIsWeb) {
+        for (final x in results) {
+          final bytes = await x.readAsBytes();
+          selectedImageBytes.add(Uint8List.fromList(bytes));
+        }
+        setState(() {});
+      } else {
+        setState(() {
+          selectedImages.addAll(results.map((x) => File(x.path)));
+        });
+      }
     }
   }
 
@@ -637,7 +651,8 @@ class _ContactAddPageState extends State<ContactAddPage> {
         visitCount: int.parse(jmlDatang),
         activityDate: DateFormat('yyyy-MM-dd HH:mm:ss').format(selectedDate!),
         notes: descTC.text,
-        files: selectedImages,
+        files: selectedImages.isEmpty ? null : selectedImages,
+        filesBytesData: selectedImageBytes.isEmpty ? null : selectedImageBytes,
       );
       context.read<ActivityVisitBloc>().add(CreateVisitEvent(paramsVisit));
       // Also update contact-level fields (project, category, notes) that CreateVisitEvent doesn't save
@@ -663,7 +678,8 @@ class _ContactAddPageState extends State<ContactAddPage> {
       visitCount: int.parse(jmlDatang),
       activityDate: DateFormat('yyyy-MM-dd HH:mm:ss').format(selectedDate!),
       notes: descTC.text,
-      files: selectedImages,
+      files: selectedImages.isEmpty ? null : selectedImages,
+      filesBytesData: selectedImageBytes.isEmpty ? null : selectedImageBytes,
     );
 
     context.read<ActivityVisitBloc>().add(CreateVisitEvent(params));
@@ -2381,7 +2397,8 @@ class _ContactAddPageState extends State<ContactAddPage> {
   }
 
   Widget _buildVisitPhotos() {
-    final hasImages = selectedImages.isNotEmpty && (widget.args.page == 4 || widget.args.page == 6);
+    final totalImages = selectedImages.length + selectedImageBytes.length;
+    final hasImages = totalImages > 0 && (widget.args.page == 4 || widget.args.page == 6);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -2420,20 +2437,22 @@ class _ContactAddPageState extends State<ContactAddPage> {
             height: 100,
             child: ListView.builder(
               scrollDirection: Axis.horizontal,
-              itemCount: selectedImages.length,
+              itemCount: totalImages,
               itemBuilder: (context, index) {
+                final isFileBased = index < selectedImages.length;
+                final bytesIndex = index - selectedImages.length;
+
+                final imageWidget = isFileBased
+                    ? Image.file(selectedImages[index], width: 100, height: 100, fit: BoxFit.cover)
+                    : Image.memory(selectedImageBytes[bytesIndex], width: 100, height: 100, fit: BoxFit.cover);
+
                 return Stack(
                   children: [
                     Padding(
                       padding: const EdgeInsets.only(right: 8.0),
                       child: ClipRRect(
                         borderRadius: BorderRadius.circular(8),
-                        child: Image.file(
-                          selectedImages[index],
-                          width: 100,
-                          height: 100,
-                          fit: BoxFit.cover,
-                        ),
+                        child: imageWidget,
                       ),
                     ),
                     Positioned(
@@ -2442,15 +2461,19 @@ class _ContactAddPageState extends State<ContactAddPage> {
                       child: GestureDetector(
                         onTap: () {
                           setState(() {
-                            selectedImages.removeAt(index);
+                            if (isFileBased) {
+                              selectedImages.removeAt(index);
+                            } else {
+                              selectedImageBytes.removeAt(bytesIndex);
+                            }
                           });
                         },
                         child: Container(
-                          decoration: BoxDecoration(
+                          decoration: const BoxDecoration(
                             color: Colors.black54,
                             shape: BoxShape.circle,
                           ),
-                          child: Icon(
+                          child: const Icon(
                             Icons.close,
                             color: Colors.white,
                             size: 20,

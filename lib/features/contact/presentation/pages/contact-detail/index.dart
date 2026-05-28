@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:progress_group/core/constants/assets.dart';
+import 'package:progress_group/core/utils/widget/drive_image/drive_image.dart';
 import 'package:progress_group/core/utils/widget/shimmer_loading.dart';
 import 'package:progress_group/core/constants/colors.dart';
 import 'package:progress_group/core/utils/helpers/date_helper.dart';
@@ -1079,27 +1080,21 @@ class _ContactDetailPageState extends State<ContactDetailPage>with TickerProvide
                                     ),
                                     child: ClipRRect(
                                       borderRadius: BorderRadius.circular(12),
-                                      child: Image.network(
-                                        convertDriveUrl(item.attachmentUrl),
+                                      child: DriveImage(
+                                        url: item.attachmentUrl,
+                                        width: 58,
+                                        height: 44,
                                         fit: BoxFit.cover,
-                                        errorBuilder:
-                                            (context, error, stackTrace) {
-                                              return Container(
-                                                width: 58,
-                                                height: 44,
-                                                decoration: BoxDecoration(
-                                                  color: Color(whiteColor),
-                                                  borderRadius:BorderRadius.circular(14),
-                                                  border: Border.all(
-                                                    color: Color(primaryColor),
-                                                  ),
-                                                ),
-                                                child: Icon(
-                                                  Icons.picture_as_pdf,
-                                                  color: Color(primaryColor),
-                                                ),
-                                              );
-                                            },
+                                        errorWidget: Container(
+                                          width: 58,
+                                          height: 44,
+                                          decoration: BoxDecoration(
+                                            color: Color(whiteColor),
+                                            borderRadius: BorderRadius.circular(14),
+                                            border: Border.all(color: Color(primaryColor)),
+                                          ),
+                                          child: Icon(Icons.picture_as_pdf, color: Color(primaryColor)),
+                                        ),
                                       ),
                                     ),
                                   ),
@@ -1292,9 +1287,10 @@ class _ContactDetailPageState extends State<ContactDetailPage>with TickerProvide
   }
 
   void _showImagePreview(BuildContext context, String imageUrl) {
+    final screenSize = MediaQuery.of(context).size;
     showDialog(
       context: context,
-      barrierColor: Colors.black.withOpacity(0.8),
+      barrierColor: Colors.black87,
       builder: (dialogContext) => Dialog(
         backgroundColor: Colors.transparent,
         insetPadding: const EdgeInsets.all(10),
@@ -1303,25 +1299,36 @@ class _ContactDetailPageState extends State<ContactDetailPage>with TickerProvide
           children: [
             GestureDetector(
               onTap: () => Navigator.pop(dialogContext),
-              child: InteractiveViewer(
-                child: Image.network(
-                  convertDriveUrl(imageUrl),
-                  fit: BoxFit.contain,
-                  errorBuilder: (context, error, stackTrace) => Container(
-                    color: Colors.white,
-                    padding: const EdgeInsets.all(20),
-                    child: const Icon(
-                      Icons.broken_image,
-                      size: 100,
-                      color: Colors.grey,
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  maxWidth: screenSize.width - 20,
+                  maxHeight: screenSize.height - 80,
+                ),
+                child: InteractiveViewer(
+                  child: DriveImage(
+                    url: imageUrl,
+                    width: screenSize.width - 20,
+                    height: screenSize.height - 80,
+                    fit: BoxFit.contain,
+                    errorWidget: SizedBox(
+                      width: screenSize.width - 20,
+                      height: 300,
+                      child: const Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.broken_image, size: 80, color: Colors.white54),
+                          SizedBox(height: 12),
+                          Text('Gambar tidak dapat dimuat', style: TextStyle(color: Colors.white54)),
+                        ],
+                      ),
                     ),
                   ),
                 ),
               ),
             ),
             Positioned(
-              top: 10,
-              right: 10,
+              top: 0,
+              right: 0,
               child: IconButton(
                 icon: const Icon(Icons.close, color: Colors.white, size: 30),
                 onPressed: () => Navigator.pop(dialogContext),
@@ -1357,11 +1364,6 @@ class _ContactDetailPageState extends State<ContactDetailPage>with TickerProvide
   }
 }
 
-String convertDriveUrl(String url) {
-  final uri = Uri.parse(url);
-  final id = uri.pathSegments[2];
-  return 'https://drive.google.com/uc?export=view&id=$id';
-}
 
 class ActivityItem extends StatefulWidget {
   final ActivityEntity item;
@@ -1582,24 +1584,12 @@ class _ActivityItemState extends State<ActivityItem> {
                               }
                             },
                             child: ClipRRect(
-                              child: Image.network(
-                                convertDriveUrl(item.imagePaths![index]),
-                                fit: BoxFit.fill,
-                                loadingBuilder: (context, child, progress) {
-                                  if (progress == null) return child;
-                                  return const ShimmerAttachmentItem();
-                                },
-                                errorBuilder: (context, error, stackTrace) {
-                                  return Container(
-                                    color: Colors.grey.shade200,
-                                    alignment: Alignment.center,
-                                    child: const Icon(
-                                      Icons.broken_image,
-                                      size: 30,
-                                      color: Colors.grey,
-                                    ),
-                                  );
-                                },
+                              borderRadius: BorderRadius.circular(8),
+                              child: DriveImage(
+                                url: item.imagePaths![index],
+                                width: 180,
+                                height: 180,
+                                fit: BoxFit.cover,
                               ),
                             ),
                           ),

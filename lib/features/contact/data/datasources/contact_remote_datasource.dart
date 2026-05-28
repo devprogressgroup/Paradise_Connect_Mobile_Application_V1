@@ -277,7 +277,13 @@ class ContactRemoteDataSourceImpl implements ContactRemoteDataSource {
         'visit_count': params.visitCount,
         'activity_date': params.activityDate,
         'notes': params.notes,
-        if (params.files != null && params.files!.isNotEmpty)
+        if (params.filesBytesData != null && params.filesBytesData!.isNotEmpty)
+          'files[]': params.filesBytesData!
+              .asMap()
+              .entries
+              .map((e) => MultipartFile.fromBytes(e.value, filename: 'photo_${e.key}.jpg'))
+              .toList()
+        else if (params.files != null && params.files!.isNotEmpty)
           'files[]': await Future.wait(
             params.files!.map((file) => MultipartFile.fromFile(file.path)).toList(),
           ),

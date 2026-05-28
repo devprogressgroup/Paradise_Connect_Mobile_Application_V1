@@ -1,3 +1,4 @@
+import 'dart:typed_data';
 import 'package:progress_group/features/attandance/data/datasource/attendance_remote_datasource.dart';
 import 'package:progress_group/features/attandance/data/models/attendance_activity_model.dart';
 import 'package:progress_group/features/attandance/data/models/attendance_model.dart';
@@ -11,8 +12,8 @@ abstract class AttendanceRepository {
   Future<AttendanceEntity?> getTodayAttendance();
   Future<List<AttendanceLocation>> getLocations();
   Future<List<AttendanceLocation>> getOfficeLocations();
-  Future<void> submitAttendance({required String datetime,required int flag,required String location,String? note,String? filePath,required int nikNumber,});
-  Future<void> submitAttendanceActivity({required String datetime,required int flag,required String location,String? note,required List<String> filePaths,required int nikNumber,});
+  Future<void> submitAttendance({required String datetime,required int flag,required String location,String? note,String? filePath,Uint8List? fileBytes,required int nikNumber,});
+  Future<void> submitAttendanceActivity({required String datetime,required int flag,required String location,String? note,required List<String> filePaths,List<Uint8List>? fileBytesData,required int nikNumber,});
   Future<({List<AttendanceActivityEntity> data, int lastPage})> getAttendanceActivity({List<int>? salesPersonIds, String? startDate, String? endDate, String? location, int page, int perPage});
 }
 
@@ -160,6 +161,7 @@ class AttendanceRepositoryImpl implements AttendanceRepository {
     required String location,
     String? note,
     String? filePath,
+    Uint8List? fileBytes,
     required int nikNumber,
   }) async {
     await remote.postAttendance(
@@ -168,6 +170,7 @@ class AttendanceRepositoryImpl implements AttendanceRepository {
       locationName: location,
       note: note,
       filePath: filePath,
+      fileBytes: fileBytes,
       nikNumber: nikNumber,
     );
   }
@@ -179,6 +182,7 @@ class AttendanceRepositoryImpl implements AttendanceRepository {
     required String location,
     String? note,
     required List<String> filePaths,
+    List<Uint8List>? fileBytesData,
     required int nikNumber,
   }) async {
     await remote.postAttendanceActivity(
@@ -187,6 +191,7 @@ class AttendanceRepositoryImpl implements AttendanceRepository {
       locationName: location,
       note: note,
       filePaths: filePaths,
+      fileBytesData: fileBytesData,
       nikNumber: nikNumber,
     );
   }

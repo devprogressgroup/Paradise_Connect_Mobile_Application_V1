@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 abstract class AttendanceEvent {}
 
 class GetAttendanceEvent extends AttendanceEvent {
@@ -24,6 +26,7 @@ class SubmitAttendanceEvent extends AttendanceEvent {
   final String location;
   final String? note;
   final String? filePath;
+  final Uint8List? fileBytes;
   final int nikNumber;
 
   SubmitAttendanceEvent({
@@ -32,6 +35,7 @@ class SubmitAttendanceEvent extends AttendanceEvent {
     required this.location,
     this.note,
     this.filePath,
+    this.fileBytes,
     required this.nikNumber,
   });
 }
@@ -42,6 +46,7 @@ class SubmitAttendanceActivityEvent extends AttendanceEvent {
   final String location;
   final String? note;
   final List<String> filePaths;
+  final List<Uint8List>? fileBytesData;
   final int nikNumber;
 
   SubmitAttendanceActivityEvent({
@@ -50,6 +55,7 @@ class SubmitAttendanceActivityEvent extends AttendanceEvent {
     required this.location,
     this.note,
     required this.filePaths,
+    this.fileBytesData,
     required this.nikNumber,
   });
 }

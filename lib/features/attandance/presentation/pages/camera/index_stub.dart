@@ -1,0 +1,617 @@
+// Web-only camera implementation using browser getUserMedia API.
+// Loaded via conditional export in index.dart when dart.library.io is false.
+// ignore: avoid_web_libraries_in_flutter, deprecated_member_use
+import 'dart:html' as html;
+import 'dart:ui_web' as ui_web;
+import 'dart:convert';
+import 'dart:typed_data';
+
+import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
+import 'package:progress_group/core/utils/helpers/date_helper.dart';
+import 'package:progress_group/core/utils/widget/custom_button.dart';
+import 'package:progress_group/features/attandance/data/arguments/attandance_args.dart';
+import 'package:progress_group/features/attandance/presentation/state/attandance/attendance_bloc.dart';
+import 'package:progress_group/features/attandance/presentation/state/attandance/attendance_event.dart';
+import 'package:progress_group/features/attandance/presentation/state/attandance/attendance_state.dart';
+import 'package:progress_group/features/auth/presentation/state/profile/profile_bloc.dart';
+import 'package:progress_group/features/auth/presentation/state/profile/profile_state.dart';
+import 'package:progress_group/features/contact/data/arguments/contact_dropdown_args.dart';
+import '../../../../../core/constants/colors.dart';
+import '../../../../../core/utils/widget/custom_header.dart';
+
+enum _CameraStatus { requesting, ready, captured, error }
+
+enum _CameraError { permissionDenied, noDevice, inUse, insecure, unknown }
+
+class CameraPage extends StatefulWidget {
+  final AttandanceArgs args;
+  const CameraPage({super.key, required this.args});
+
+  @override
+  State<CameraPage> createState() => _CameraPageState();
+}
+
+class _CameraPageState extends State<CameraPage> {
+  // Camera
+  html.VideoElement? _video;
+  html.MediaStream? _stream;
+  _CameraStatus _status = _CameraStatus.requesting;
+  _CameraError? _error;
+  final String _viewId = 'web-camera-${DateTime.now().millisecondsSinceEpoch}';
+
+  // Photos — identik dengan _imageFiles di mobile
+  List<Uint8List> _imageBytesList = [];
+  bool _isAddingMore = false;
+
+  // Form — identik mobile
+  final TextEditingController notesTC = TextEditingController();
+  final TextEditingController pameranTC = TextEditingController();
+  final FocusNode notesFN = FocusNode();
+  int? _selectedLocationId;
+
+  bool get _isMultiplePhotosSupported =>
+      widget.args.type?.toLowerCase() == 'checkin' || widget.args.flag == 6;
+
+  @override
+  void initState() {
+    super.initState();
+    context.read<AttendanceBloc>().add(GetOfficeLocationsEvent());
+    context.read<AttendanceBloc>().add(GetLocationsEvent());
+    _setupAndRegister();
+  }
+
+  void _setupAndRegister() {
+    final video = html.VideoElement()
+      ..autoplay = true
+      ..muted = true
+      ..style.width = '100%'
+      ..style.height = '100%'
+      ..style.objectFit = 'cover';
+    ui_web.platformViewRegistry.registerViewFactory(_viewId, (_) => video);
+    _video = video;
+    _requestCamera();
+  }
+
+  Future<void> _requestCamera() async {
+    if (mounted) setState(() => _status = _CameraStatus.requesting);
+    try {
+      final stream = await html.window.navigator.mediaDevices!.getUserMedia({
+        'video': {'facingMode': 'user'},
+        'audio': false,
+      });
+      _video!.srcObject = stream;
+      await _video!.play();
+      _stream = stream;
+      if (mounted) setState(() => _status = _CameraStatus.ready);
+    } catch (e) {
+      if (mounted) setState(() {
+        _status = _CameraStatus.error;
+        _error = _parseError(e);
+      });
+    }
+  }
+
+  _CameraError _parseError(Object e) {
+    final msg = e.toString().toLowerCase();
+    if (msg.contains('notallowed') || msg.contains('permissiondenied') || msg.contains('permission')) {
+      return _CameraError.permissionDenied;
+    }
+    if (msg.contains('notfound') || msg.contains('devicenotfound')) {
+      return _CameraError.noDevice;
+    }
+    if (msg.contains('notreadable') || msg.contains('trackstart') || msg.contains('abort')) {
+      return _CameraError.inUse;
+    }
+    if (msg.contains('security') || msg.contains('https')) {
+      return _CameraError.insecure;
+    }
+    return _CameraError.unknown;
+  }
+
+  void _takePicture() {
+    final video = _video;
+    if (video == null || video.videoWidth == 0) return;
+
+    final canvas = html.CanvasElement(width: video.videoWidth, height: video.videoHeight);
+    canvas.context2D.drawImage(video, 0, 0);
+    final dataUrl = canvas.toDataUrl('image/jpeg', 0.85);
+    final bytes = Uint8List.fromList(base64Decode(dataUrl.split(',')[1]));
+
+    // skipPreview: langsung return bytes (dipakai contact-add)
+    if (widget.args.skipPreview == true) {
+      if (mounted) context.pop(bytes);
+      return;
+    }
+
+    setState(() {
+      _imageBytesList.add(bytes);
+      _isAddingMore = false;
+      _status = _CameraStatus.captured;
+    });
+  }
+
+  void _takeMorePhotos() => setState(() => _isAddingMore = true);
+
+  void _handleSubmit() {
+    if (_imageBytesList.isEmpty) return;
+
+    if (widget.args.isReturnImage == true) {
+      context.pop(_imageBytesList.first);
+      return;
+    }
+
+    final flag = widget.args.flag;
+    final datetime = DateFormat('yyyy-MM-dd HH:mm:ss').format(DateTime.now());
+    final location = pameranTC.text.isNotEmpty
+        ? pameranTC.text
+        : (widget.args.location ?? 'Unknown');
+
+    int nikNumber = 0;
+    final profileState = context.read<ProfileBloc>().state;
+    if (profileState is ProfileLoaded) {
+      nikNumber = profileState.profile.nikNumber ?? 0;
+    }
+
+    if (_isMultiplePhotosSupported) {
+      context.read<AttendanceBloc>().add(SubmitAttendanceActivityEvent(
+        datetime: datetime,
+        flag: flag!,
+        location: location,
+        note: notesTC.text,
+        filePaths: const [],
+        fileBytesData: _imageBytesList,
+        nikNumber: nikNumber,
+      ));
+    } else {
+      context.read<AttendanceBloc>().add(SubmitAttendanceEvent(
+        datetime: datetime,
+        flag: flag!,
+        location: location,
+        note: notesTC.text,
+        fileBytes: _imageBytesList.first,
+        nikNumber: nikNumber,
+      ));
+    }
+  }
+
+  @override
+  void dispose() {
+    _stream?.getTracks().forEach((t) => t.stop());
+    notesTC.dispose();
+    pameranTC.dispose();
+    notesFN.dispose();
+    super.dispose();
+  }
+
+  // ─── Build ────────────────────────────────────────────────────────────────
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocListener<AttendanceBloc, AttendanceState>(
+      listener: (context, state) {
+        if (state is AttendanceSubmitSuccess) {
+          if (context.canPop()) {
+            context.pop(true);
+          } else {
+            context.go('/attandance');
+          }
+        } else if (state is AttendanceError) {
+          final msg = state.message.startsWith('Exception: ')
+              ? state.message.replaceFirst('Exception: ', '')
+              : state.message;
+          showDialog(
+            context: context,
+            builder: (ctx) => AlertDialog(
+              title: const Text('Gagal'),
+              content: Text(msg),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(ctx).pop(),
+                  child: const Text('OK'),
+                ),
+              ],
+            ),
+          );
+        }
+      },
+      child: Scaffold(
+        body: SafeArea(
+          child: Column(
+            children: [
+              customHeader(
+                context,
+                widget.args.type ?? '-',
+                colorBg: Color(primaryColor),
+                colorBack: Color(whiteColor),
+                colorTitle: Color(whiteColor),
+                isBack: true,
+                iconLeft: _isMultiplePhotosSupported
+                    ? (_isAddingMore ? Icons.close : null)
+                    : (_imageBytesList.isNotEmpty ? Icons.history : null),
+                iconLeftOnTap: () {
+                  setState(() {
+                    if (_isAddingMore) {
+                      _isAddingMore = false;
+                    } else {
+                      _imageBytesList.clear();
+                      _status = _CameraStatus.ready;
+                    }
+                  });
+                },
+                colorIconLeft: Color(whiteColor),
+              ),
+              Expanded(child: _buildBody()),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBody() {
+    switch (_status) {
+      case _CameraStatus.requesting:
+        return _buildRequesting();
+      case _CameraStatus.error:
+        return _buildError(_error ?? _CameraError.unknown);
+      case _CameraStatus.captured:
+        if (_isAddingMore) return _buildCameraView();
+        return _buildPreview();
+      case _CameraStatus.ready:
+        return _buildCameraView();
+    }
+  }
+
+  // ── Loading saat minta izin ──────────────────────────────────────────────
+
+  Widget _buildRequesting() {
+    return const Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          CircularProgressIndicator(),
+          SizedBox(height: 20),
+          Text('Meminta akses kamera...', style: TextStyle(fontSize: 14, color: Colors.grey)),
+          SizedBox(height: 8),
+          Text('Izinkan akses kamera di popup browser.', style: TextStyle(fontSize: 12, color: Colors.grey)),
+        ],
+      ),
+    );
+  }
+
+  // ── Live preview kamera ──────────────────────────────────────────────────
+
+  Widget _buildCameraView() {
+    if (_status == _CameraStatus.requesting) return _buildRequesting();
+    return Stack(
+      children: [
+        Positioned.fill(child: HtmlElementView(viewType: _viewId)),
+        Positioned(
+          bottom: 40,
+          left: 0,
+          right: 0,
+          child: Column(
+            children: [
+              Text(widget.args.location ?? '', style: const TextStyle(color: Colors.white)),
+              Text(widget.args.time ?? '', style: const TextStyle(color: Colors.white)),
+              const SizedBox(height: 20),
+              GestureDetector(
+                onTap: _takePicture,
+                child: Container(
+                  height: 70,
+                  width: 70,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Color(primaryColor),
+                    boxShadow: const [BoxShadow(color: Colors.black38, blurRadius: 8)],
+                  ),
+                  child: const Icon(Icons.camera_alt, color: Colors.white, size: 30),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ── Preview setelah capture — identik mobile ─────────────────────────────
+
+  Widget _buildPreview() {
+    return BlocBuilder<AttendanceBloc, AttendanceState>(
+      builder: (context, state) {
+        final isLoading = state is AttendanceSubmitLoading;
+        return Stack(
+          children: [
+            SingleChildScrollView(
+              padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+              child: Container(
+                color: Color(whiteColor),
+                child: Column(
+                  children: [
+                    // Single photo
+                    if (!_isMultiplePhotosSupported)
+                      Stack(
+                        children: [
+                          SizedBox(
+                            height: 330,
+                            width: double.infinity,
+                            child: Image.memory(_imageBytesList.first, fit: BoxFit.cover),
+                          ),
+                          Positioned(
+                            bottom: 0, left: 0, right: 0,
+                            child: Container(
+                              color: Color(blue2Color).withValues(alpha: 0.5),
+                              padding: const EdgeInsets.all(16),
+                              child: Column(
+                                children: [
+                                  Row(children: [Icon(Icons.access_time_filled, color: Color(greenPercentColor), size: 25), const SizedBox(width: 10), Text(widget.args.time ?? '-', style: const TextStyle(color: Colors.white))]),
+                                  const SizedBox(height: 10),
+                                  Row(children: [Icon(Icons.calendar_today_sharp, color: Color(primaryColor), size: 25), const SizedBox(width: 10), Text(DateHelper.formatDate(DateTime.now()), style: const TextStyle(color: Colors.white))]),
+                                  const SizedBox(height: 10),
+                                  Row(children: [Icon(Icons.location_on, color: Color(primaryColor), size: 25), const SizedBox(width: 10), SizedBox(width: 250, child: Text(widget.args.location ?? '-', style: const TextStyle(color: Colors.white), overflow: TextOverflow.ellipsis))]),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
+                      )
+                    // Multiple photos
+                    else
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text('Check In Photos', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(grey2Color))),
+                                IconButton(
+                                  onPressed: _takeMorePhotos,
+                                  icon: Icon(Icons.camera_alt, color: Color(primaryColor)),
+                                  iconSize: 20,
+                                  padding: EdgeInsets.zero,
+                                  constraints: const BoxConstraints(),
+                                ),
+                              ],
+                            ),
+                          ),
+                          SizedBox(
+                            height: 100,
+                            child: ListView.builder(
+                              scrollDirection: Axis.horizontal,
+                              padding: const EdgeInsets.symmetric(horizontal: 16),
+                              itemCount: _imageBytesList.length,
+                              itemBuilder: (context, index) => Stack(
+                                children: [
+                                  Padding(
+                                    padding: const EdgeInsets.only(right: 8),
+                                    child: ClipRRect(
+                                      borderRadius: BorderRadius.circular(8),
+                                      child: Image.memory(_imageBytesList[index], width: 100, height: 100, fit: BoxFit.cover),
+                                    ),
+                                  ),
+                                  Positioned(
+                                    top: 0, right: 8,
+                                    child: GestureDetector(
+                                      onTap: () => setState(() => _imageBytesList.removeAt(index)),
+                                      child: Container(
+                                        decoration: const BoxDecoration(color: Colors.black54, shape: BoxShape.circle),
+                                        child: const Icon(Icons.close, color: Colors.white, size: 20),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 20),
+                          _buildInfoField(label: 'Location', value: widget.args.location ?? '-'),
+                          const SizedBox(height: 8),
+                          _buildInfoField(label: 'Time', value: widget.args.time ?? '-'),
+                          const SizedBox(height: 8),
+                          _buildInfoField(label: 'Date', value: DateHelper.formatDate(DateTime.now())),
+                        ],
+                      ),
+
+                    if (widget.args.isReturnImage != true)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const SizedBox(height: 10),
+                            Text('Pameran/ Open Table (optional)', style: TextStyle(fontSize: 14, color: Color(grey2Color))),
+                            const SizedBox(height: 5),
+                            Container(
+                              width: double.infinity,
+                              height: 50,
+                              decoration: BoxDecoration(
+                                border: Border.all(color: Color(grey8Color), width: 1),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: InkWell(
+                                onTap: () async {
+                                  final state = context.read<AttendanceBloc>().state;
+                                  if (state is! AttendanceLoaded || state.locations == null) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(content: Text('Data lokasi belum tersedia, silahkan tunggu sebentar'), duration: Duration(seconds: 2)),
+                                    );
+                                    return;
+                                  }
+                                  final items = state.locations!.map((e) => OwnerDropdownItem(id: e.id, name: e.name)).toList();
+                                  final result = await context.pushNamed(
+                                    'detailContactDropdown',
+                                    extra: ContactDropdownArgs(title: 'Select Pameran', items: items, selectedId: _selectedLocationId, isMultiSelect: false),
+                                  );
+                                  if (result != null) {
+                                    final selected = result as OwnerDropdownItem;
+                                    setState(() {
+                                      _selectedLocationId = selected.id;
+                                      pameranTC.text = selected.name;
+                                    });
+                                  }
+                                },
+                                child: Row(
+                                  children: [
+                                    Expanded(
+                                      child: TextField(
+                                        enabled: false,
+                                        controller: pameranTC,
+                                        decoration: InputDecoration(
+                                          hintText: 'Select Pameran',
+                                          hintStyle: TextStyle(color: Color(grey2Color), fontSize: 14),
+                                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                          border: InputBorder.none,
+                                        ),
+                                      ),
+                                    ),
+                                    const Icon(Icons.keyboard_arrow_up),
+                                    const SizedBox(width: 5),
+                                  ],
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Text('Notes', style: TextStyle(fontSize: 14, color: Color(grey2Color))),
+                            const SizedBox(height: 5),
+                            SizedBox(
+                              height: 80,
+                              child: TextFormField(
+                                maxLines: null,
+                                minLines: 3,
+                                controller: notesTC,
+                                focusNode: notesFN,
+                                onTapOutside: (_) => notesFN.unfocus(),
+                                decoration: InputDecoration(
+                                  hintText: 'Enter notes...',
+                                  hintStyle: TextStyle(fontSize: 14, color: Color(grey4Color)),
+                                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: Color(grey8Color))),
+                                  enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: Color(grey8Color))),
+                                  focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: Color(primaryColor))),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 40),
+                            customButton(_handleSubmit, 'Submit'),
+                            const SizedBox(height: 20),
+                          ],
+                        ),
+                      )
+                    else
+                      Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: customButton(_handleSubmit, 'Confirm Photo'),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+            if (isLoading)
+              Positioned.fill(
+                child: Container(
+                  color: Colors.black.withValues(alpha: 0.4),
+                  child: const Center(child: CircularProgressIndicator()),
+                ),
+              ),
+          ],
+        );
+      },
+    );
+  }
+
+  // ── Error dengan pesan & panduan spesifik ────────────────────────────────
+
+  Widget _buildError(_CameraError error) {
+    final info = _errorInfo(error);
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(info.icon, size: 64, color: Colors.grey.shade400),
+            const SizedBox(height: 20),
+            Text(info.title, textAlign: TextAlign.center, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+            const SizedBox(height: 10),
+            Text(info.message, textAlign: TextAlign.center, style: TextStyle(fontSize: 13, color: Colors.grey.shade600, height: 1.5)),
+            if (info.steps != null) ...[
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(color: Colors.grey.shade100, borderRadius: BorderRadius.circular(10)),
+                child: Text(info.steps!, style: TextStyle(fontSize: 12, color: Colors.grey.shade700, height: 1.6)),
+              ),
+            ],
+            if (error != _CameraError.insecure) ...[
+              const SizedBox(height: 24),
+              ElevatedButton.icon(
+                onPressed: _requestCamera,
+                icon: const Icon(Icons.refresh),
+                label: const Text('Coba Lagi'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Color(primaryColor),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildInfoField({required String label, String? value}) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(label, style: TextStyle(fontSize: 14, color: Color(grey2Color))),
+          const SizedBox(height: 5),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+            decoration: BoxDecoration(borderRadius: BorderRadius.circular(8), border: Border.all(color: Color(grey8Color))),
+            child: Text(value ?? '-', style: TextStyle(fontSize: 13, color: Color(grey2Color)), overflow: TextOverflow.ellipsis),
+          ),
+        ],
+      ),
+    );
+  }
+
+  _ErrorInfo _errorInfo(_CameraError error) {
+    switch (error) {
+      case _CameraError.permissionDenied:
+        return _ErrorInfo(
+          icon: Icons.no_photography_outlined,
+          title: 'Akses Kamera Ditolak',
+          message: 'Browser tidak mendapat izin mengakses kamera.',
+          steps: '1. Klik ikon 🔒 / kamera di address bar browser\n2. Ubah izin Kamera ke "Izinkan"\n3. Refresh halaman lalu coba lagi',
+        );
+      case _CameraError.noDevice:
+        return _ErrorInfo(icon: Icons.videocam_off_outlined, title: 'Kamera Tidak Ditemukan', message: 'Perangkat tidak memiliki kamera atau kamera tidak terdeteksi.\nPastikan kamera sudah terpasang dan tidak dinonaktifkan.');
+      case _CameraError.inUse:
+        return _ErrorInfo(icon: Icons.camera_outlined, title: 'Kamera Sedang Digunakan', message: 'Kamera sedang dipakai oleh aplikasi atau tab lain.\nTutup aplikasi lain yang menggunakan kamera, lalu coba lagi.');
+      case _CameraError.insecure:
+        return _ErrorInfo(icon: Icons.lock_open_outlined, title: 'Koneksi Tidak Aman', message: 'Browser hanya mengizinkan akses kamera melalui koneksi HTTPS.\nHubungi administrator untuk mengaktifkan HTTPS.');
+      case _CameraError.unknown:
+        return _ErrorInfo(icon: Icons.error_outline, title: 'Kamera Tidak Dapat Dibuka', message: 'Terjadi kesalahan saat membuka kamera.');
+    }
+  }
+}
+
+class _ErrorInfo {
+  final IconData icon;
+  final String title;
+  final String message;
+  final String? steps;
+  const _ErrorInfo({required this.icon, required this.title, required this.message, this.steps});
+}

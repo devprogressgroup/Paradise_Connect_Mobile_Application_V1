@@ -1,3 +1,4 @@
+import 'dart:typed_data';
 import 'package:progress_group/features/attandance/domain/repositories/attandance_repository.dart';
 
 class SubmitAttendanceUseCase {
@@ -11,6 +12,7 @@ class SubmitAttendanceUseCase {
     required String location,
     String? note,
     String? filePath,
+    Uint8List? fileBytes,
     required int nikNumber,
   }) {
     return repository.submitAttendance(
@@ -19,7 +21,9 @@ class SubmitAttendanceUseCase {
       location: location,
       note: note,
       filePath: filePath,
+      fileBytes: fileBytes,
       nikNumber: nikNumber,
     );
+
   }
 }
