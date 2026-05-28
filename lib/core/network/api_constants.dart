@@ -39,12 +39,15 @@ class ApiConstants {
     ),
     AppEnvironment.development2: _EnvConfig(
       label: 'Development 2',
-      baseUrl: 'http://192.168.18.150:8000/api',
-      storageUrl: 'http://192.168.18.150:8000/storage',
-      waServerURL: 'http://192.168.18.150:3000',
-      serverUrl: 'http://192.168.18.150:8000',
+      baseUrl: 'http://172.20.10.3:8000/api',
+      storageUrl: 'http://172.20.10.3:8000/storage',
+      waServerURL: 'http://172.20.10.3:3000',
+      serverUrl: 'http://172.20.10.3:8000',
     ),
   };
+
+
+
 
   static AppEnvironment _currentEnv = AppEnvironment.production;
   static final ValueNotifier<AppEnvironment> envNotifier = ValueNotifier(AppEnvironment.production);

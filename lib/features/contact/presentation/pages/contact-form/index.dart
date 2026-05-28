@@ -673,12 +673,6 @@ class _ContactFormPageState extends State<ContactFormPage> {
     // 2. Check if owner is a subordinate
     var subordinatePath = findPath(user.subordinates, ownerId);
     if (subordinatePath != null) {
-      final userNode = HierarchyNodeEntity(
-        salesPersonId: user.salesPersonId!,
-        fullName: user.fullName,
-        positionName: user.positionName,
-      );
-
       // Collect superiors from salesRoles (bottom-up: immediate boss first)
       final superiors = <HierarchyNodeEntity>[];
       if (user.salesRoles.isNotEmpty) {
@@ -691,7 +685,17 @@ class _ContactFormPageState extends State<ContactFormPage> {
 
       // Chain top-to-bottom: [GM, ..., User, Sub1, ..., Owner]
       // reversed later to display bottom-to-top
-      chain = [...superiors.reversed, userNode, ...subordinatePath];
+      // Skip userNode if sales_person_id is null (e.g. superadmin)
+      if (user.salesPersonId != null) {
+        final userNode = HierarchyNodeEntity(
+          salesPersonId: user.salesPersonId!,
+          fullName: user.fullName,
+          positionName: user.positionName,
+        );
+        chain = [...superiors.reversed, userNode, ...subordinatePath];
+      } else {
+        chain = [...superiors.reversed, ...subordinatePath];
+      }
     } else if (user.salesPersonId == ownerId) {
       // 3. Case: Selecting themselves. Chain: [User, Boss, Grandboss...]
       final userNode = HierarchyNodeEntity(
@@ -739,7 +743,9 @@ class _ContactFormPageState extends State<ContactFormPage> {
           displayChain = chain;
         }
 
-        final teamName = user.salesTeamName;
+        final ownerNode = subordinatePath?.last;
+        final teamName = user.salesTeamName ?? ownerNode?.salesTeamName;
+        final teamId = user.salesTeamId ?? ownerNode?.salesTeamId;
         if (teamName != null) {
           salesInfoFields.add({'label': 'Sales Team', 'name': teamName, 'id': null});
         }
@@ -754,7 +760,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
 
         selectedSalesExecutiveId = ownerId;
         selectedSalesExecutiveName = displayChain.first.fullName;
-        selectedTeamId = user.salesTeamId;
+        selectedTeamId = teamId;
         selectedSupervisorId = null;
         selectedSalesManagerId = null;
         selectedSalesManagerName = null;
@@ -778,6 +784,15 @@ class _ContactFormPageState extends State<ContactFormPage> {
         }
       }
     });
+
+    print('=== [Owner Selected] ownerId: $ownerId ===');
+    for (final f in salesInfoFields) {
+      print('  ${f['label']}: ${f['name']} (id: ${f['id']})');
+    }
+    print('  selectedSalesExecutiveId: $selectedSalesExecutiveId');
+    print('  selectedSalesManagerId: $selectedSalesManagerId');
+    print('  selectedSupervisorId: $selectedSupervisorId');
+    print('  selectedTeamId: $selectedTeamId');
   }
 
   void dispose() {
@@ -1256,7 +1271,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
                                 ownerItems.add(
                                   OwnerDropdownItem(
                                     id: user.salesPersonId,
-                                    name: user.fullName,
+                                    name: '${user.fullName} (me)',
                                     subtitle: user.positionName,
                                   ),
                                 );
@@ -1273,7 +1288,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
                                       addSubs(s.subordinates);
                                   }
                                 }
-                
+
                                 addSubs(user.subordinates);
                 
                                 if (ownerItems.length == 1) {
@@ -1843,7 +1858,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
                           if (profileState is ProfileLoaded) {
                             final user = profileState.profile;
                             final List<OwnerDropdownItem> ownerItems = [];
-                            ownerItems.add(OwnerDropdownItem(id: user.salesPersonId, name: user.fullName, subtitle: user.positionName));
+                            ownerItems.add(OwnerDropdownItem(id: user.salesPersonId, name: '${user.fullName} (me)', subtitle: user.positionName));
                             void addSubs(List<HierarchyNodeEntity> subs) {
                               for (var s in subs) {
                                 ownerItems.add(OwnerDropdownItem(id: s.salesPersonId, name: s.fullName, subtitle: s.positionName));
