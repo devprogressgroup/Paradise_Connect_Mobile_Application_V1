@@ -1085,6 +1085,11 @@ class _ContactDetailPageState extends State<ContactDetailPage>with TickerProvide
                                         width: 58,
                                         height: 44,
                                         fit: BoxFit.cover,
+                                        onTap: () {
+                                          if (item.attachmentUrl.isNotEmpty) {
+                                            context.pushNamed('attachmentWebView', extra: item.attachmentUrl);
+                                          }
+                                        },
                                         errorWidget: Container(
                                           width: 58,
                                           height: 44,
@@ -1569,28 +1574,25 @@ class _ActivityItemState extends State<ActivityItem> {
                       itemBuilder: (context, index) {
                         return Container(
                           margin: const EdgeInsets.only(right: 10),
-                          child: GestureDetector(
-                            onTap: () {
-                              // Find the parent state to call _showImagePreview
-                              final parentState = context
-                                  .findAncestorStateOfType<
-                                    _ContactDetailPageState
-                                  >();
-                              if (parentState != null) {
-                                parentState._showImagePreview(
-                                  context,
-                                  item.imagePaths![index],
-                                );
-                              }
-                            },
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(8),
-                              child: DriveImage(
-                                url: item.imagePaths![index],
-                                width: 180,
-                                height: 180,
-                                fit: BoxFit.cover,
-                              ),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(8),
+                            child: DriveImage(
+                              url: item.imagePaths![index],
+                              width: 180,
+                              height: 180,
+                              fit: BoxFit.cover,
+                              onTap: () {
+                                final parentState = context
+                                    .findAncestorStateOfType<
+                                      _ContactDetailPageState
+                                    >();
+                                if (parentState != null) {
+                                  parentState._showImagePreview(
+                                    context,
+                                    item.imagePaths![index],
+                                  );
+                                }
+                              },
                             ),
                           ),
                         );

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:progress_group/core/utils/widget/shimmer_loading.dart';
 import 'package:geocoding/geocoding.dart';
@@ -41,8 +42,9 @@ class _AttandancePageState extends State<AttandancePage> {
   final double radiusMeter = 1050;
 
   StreamSubscription<Position>? _positionStream;
+  Position? _currentPosition;
   late ScrollController _scrollController;
-  
+
   int selectedIndex = 0;
   String selectedMenu ='activity';
   String? _address;
@@ -200,34 +202,23 @@ class _AttandancePageState extends State<AttandancePage> {
         distanceFilter: 5,
       ),
     ).listen((Position position) async {
+      // Selalu simpan posisi terbaru agar tombol bisa langsung pakai tanpa re-request GPS
+      _currentPosition = position;
 
       if (_isProcessing) return;
       _isProcessing = true;
 
       try {
-        Geolocator.distanceBetween(
-          officeLat,
-          officeLng,
-          position.latitude,
-          position.longitude,
-        );
-
         if (!mounted) return;
-
-        setState(() {
-          // update state seperlunya
-        });
 
         // ⛔ batasi geocoding
         if (_lastGeocodeTime == null ||
             DateTime.now().difference(_lastGeocodeTime!) > const Duration(seconds: 10)) {
-
           _lastGeocodeTime = DateTime.now();
           await _getAddressFromLatLng(position);
         }
-
       } catch (e) {
-        print('ERROR LOCATION: $e');
+        debugPrint('ERROR LOCATION: $e');
       } finally {
         _isProcessing = false;
       }
@@ -256,10 +247,14 @@ class _AttandancePageState extends State<AttandancePage> {
   }
 
   Future<Position?> _getCurrentLocationOnce() async {
+    // Gunakan posisi dari stream jika sudah tersedia — langsung, tanpa delay
+    if (_currentPosition != null) return _currentPosition;
+
+    // Fallback: minta sekali. Web pakai medium (network-based, lebih cepat dari GPS)
     try {
       return await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high,
-        timeLimit: const Duration(seconds: 5),
+        desiredAccuracy: kIsWeb ? LocationAccuracy.medium : LocationAccuracy.high,
+        timeLimit: const Duration(seconds: 15),
       );
     } catch (e) {
       debugPrint("DEBUG: Location Error: $e");
@@ -287,24 +282,14 @@ class _AttandancePageState extends State<AttandancePage> {
     }
 
     final state = context.read<AttendanceBloc>().state;
-
-    if (state is! AttendanceLoaded) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Data kantor belum siap"),
-          backgroundColor: Colors.orange,
-        ),
-      );
-      return;
-    }
+    final officeLocations = state is AttendanceLoaded ? state.officeLocations : null;
 
     double? nearestDistance;
     double? activeRadius;
     String? nearestOfficeName;
 
-    if (state.officeLocations != null &&
-        state.officeLocations!.isNotEmpty) {
-      for (var office in state.officeLocations!) {
+    if (officeLocations != null && officeLocations.isNotEmpty) {
+      for (var office in officeLocations) {
         if (office.latitude != null && office.longitude != null) {
           final d = Geolocator.distanceBetween(
             office.latitude!,

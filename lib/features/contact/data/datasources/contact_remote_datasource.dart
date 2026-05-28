@@ -400,7 +400,10 @@ class ContactRemoteDataSourceImpl implements ContactRemoteDataSource {
         if (params.activityId != null) 'activity_id': params.activityId,
         'attachment_type_id': params.attachmentTypeId,
         if (params.attachmentNote != null) 'attachment_note': params.attachmentNote,
-        if (params.file != null && params.file!.path.isNotEmpty) 'file': await MultipartFile.fromFile(params.file!.path),
+        if (params.fileBytes != null)
+          'file': MultipartFile.fromBytes(params.fileBytes!, filename: params.fileName ?? 'file')
+        else if (params.file != null && params.file!.path.isNotEmpty)
+          'file': await MultipartFile.fromFile(params.file!.path),
       });
 
       final response = await dio.post(
@@ -459,7 +462,10 @@ class ContactRemoteDataSourceImpl implements ContactRemoteDataSource {
         if (params.activityId != null) 'activity_id': params.activityId,
         'attachment_type_id': params.attachmentTypeId,
         if (params.attachmentNote != null) 'attachment_note': params.attachmentNote,
-        if (params.file != null && params.file!.path.isNotEmpty) 'file': await MultipartFile.fromFile(params.file!.path),
+        if (params.fileBytes != null)
+          'file': MultipartFile.fromBytes(params.fileBytes!, filename: params.fileName ?? 'file')
+        else if (params.file != null && params.file!.path.isNotEmpty)
+          'file': await MultipartFile.fromFile(params.file!.path),
       });
 
       final response = await dio.patch(

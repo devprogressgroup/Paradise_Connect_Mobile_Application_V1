@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:progress_group/core/utils/widget/drive_image/drive_image.dart';
 import 'package:go_router/go_router.dart';
 import 'package:progress_group/core/network/api_constants.dart';
 import 'package:progress_group/core/utils/widget/custom_header.dart';
@@ -345,17 +346,13 @@ class _SalesKitPageState extends State<SalesKitPage> {
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(8, 8, 8, 4),
                   child: LayoutBuilder(
-                    builder: (_, constraints) => Image.network(
-                      imageUrl,
+                    builder: (_, constraints) => DriveImage(
+                      url: imageUrl,
                       width: constraints.maxWidth,
                       height: constraints.maxHeight,
                       fit: BoxFit.contain,
-                      alignment: Alignment.center,
-                      errorBuilder: (_, __, ___) => const Icon(
-                        Icons.broken_image,
-                        size: 40,
-                        color: Colors.grey,
-                      ),
+                      onTap: onTap,
+                      errorWidget: const Icon(Icons.broken_image, size: 40, color: Colors.grey),
                     ),
                   ),
                 ),
@@ -493,22 +490,22 @@ class _SalesKitPageState extends State<SalesKitPage> {
           borderRadius: BorderRadius.circular(16),
           child: Stack(
             children: [
-              Container(
+              // Background image — DriveImage pakai <img> tag di web (bypass CORS)
+              SizedBox(
                 height: height,
                 width: double.infinity,
-                decoration: BoxDecoration(
-                  image: DecorationImage(
-                    image: NetworkImage(backgroundImageUrl),
-                    fit: BoxFit.cover,
-                    onError: (_, __) {},
-                  ),
-                  color: Color(blue2Color),
+                child: DriveImage(
+                  url: backgroundImageUrl,
+                  width: double.infinity,
+                  height: height,
+                  fit: BoxFit.cover,
+                  errorWidget: Container(height: height, color: Color(blue2Color)),
                 ),
               ),
               Container(
                 height: height,
                 width: double.infinity,
-                color: Color(blue2Color).withOpacity(0.7),
+                color: Color(blue2Color).withValues(alpha: 0.7),
               ),
               SizedBox(
                 height: height,
@@ -516,15 +513,14 @@ class _SalesKitPageState extends State<SalesKitPage> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Image.network(
-                      logoImageUrl,
+                    DriveImage(
+                      url: logoImageUrl,
                       height: 140,
                       width: 140,
                       fit: BoxFit.contain,
-                      errorBuilder: (context, error, stackTrace) =>
-                          const Icon(Icons.broken_image, color: Colors.white),
+                      onTap: ontap,
+                      errorWidget: const Icon(Icons.broken_image, color: Colors.white),
                     ),
-                    
                   ],
                 ),
               ),

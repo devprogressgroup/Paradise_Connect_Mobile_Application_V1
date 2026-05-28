@@ -12,7 +12,7 @@ import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:progress_group/core/constants/assets.dart';
-import 'package:progress_group/core/utils/helpers/image_url.dart';
+import 'package:progress_group/core/utils/widget/drive_image/drive_image.dart';
 import 'package:progress_group/core/utils/widget/custom_button.dart';
 import 'package:progress_group/features/attandance/data/arguments/attandance_args.dart';
 import 'package:progress_group/features/contact/data/arguments/contact_dropdown_args.dart';
@@ -97,6 +97,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
   String? selectedProjectCategory;
 
   File? selectedFile;
+  Uint8List? selectedFileBytes;
   String? selectedFileName;
   bool isPdf = false;
   List<File> selectedImages = [];
@@ -299,16 +300,30 @@ class _ContactAddPageState extends State<ContactAddPage> {
     final result = await FilePicker.platform.pickFiles(
       type: FileType.custom,
       allowedExtensions: ['jpg', 'jpeg', 'png', 'pdf'],
+      withData: kIsWeb,
     );
 
-    if (result != null && result.files.single.path != null) {
-      final file = File(result.files.single.path!);
+    if (result == null) return;
+    final picked = result.files.single;
 
-      setState(() {
-        selectedFile = file;
-        selectedFileName = result.files.single.name;
-        isPdf = selectedFileName!.toLowerCase().endsWith('.pdf');
-      });
+    if (kIsWeb) {
+      if (picked.bytes != null) {
+        setState(() {
+          selectedFileBytes = picked.bytes;
+          selectedFile = null;
+          selectedFileName = picked.name;
+          isPdf = picked.name.toLowerCase().endsWith('.pdf');
+        });
+      }
+    } else {
+      if (picked.path != null) {
+        setState(() {
+          selectedFile = File(picked.path!);
+          selectedFileBytes = null;
+          selectedFileName = picked.name;
+          isPdf = picked.name.toLowerCase().endsWith('.pdf');
+        });
+      }
     }
   }
 
@@ -532,10 +547,8 @@ class _ContactAddPageState extends State<ContactAddPage> {
       return;
     }
 
-    if (!isEdit && selectedImage == null && selectedFile == null) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Pilih file')));
+    if (!isEdit && selectedImage == null && selectedFile == null && selectedFileBytes == null) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Pilih file')));
       return;
     }
     final fileToUpload = selectedFile ?? selectedImage;
@@ -544,6 +557,8 @@ class _ContactAddPageState extends State<ContactAddPage> {
       attachmentTypeId: selectedTypeId!,
       attachmentNote: descTC.text.isEmpty ? null : descTC.text,
       file: fileToUpload,
+      fileBytes: selectedFileBytes,
+      fileName: selectedFileName,
     );
 
     context.read<UploadAttachmentBloc>().add(
@@ -1912,25 +1927,25 @@ class _ContactAddPageState extends State<ContactAddPage> {
                 ),
                 child:
                     (selectedFile != null ||
+                        selectedFileBytes != null ||
                         selectedImage != null ||
                         existingImageUrl != null)
                     ? ClipRRect(
                         borderRadius: BorderRadius.circular(8),
-                        child: (selectedFile != null && isPdf)
+                        child: isPdf
                             ? Column(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  Icon(
-                                    Icons.picture_as_pdf,
-                                    size: 60,
-                                    color: Colors.red,
-                                  ),
-                                  SizedBox(height: 8),
-                                  Text(
-                                    selectedFileName ?? "PDF File",
-                                    textAlign: TextAlign.center,
-                                  ),
+                                  const Icon(Icons.picture_as_pdf, size: 60, color: Colors.red),
+                                  const SizedBox(height: 8),
+                                  Text(selectedFileName ?? "PDF File", textAlign: TextAlign.center),
                                 ],
+                              )
+                            : selectedFileBytes != null
+                            ? Image.memory(
+                                selectedFileBytes!,
+                                width: double.infinity,
+                                fit: BoxFit.cover,
                               )
                             : (selectedFile != null || selectedImage != null)
                             ? Image.file(
@@ -1938,15 +1953,10 @@ class _ContactAddPageState extends State<ContactAddPage> {
                                 width: double.infinity,
                                 fit: BoxFit.cover,
                               )
-                            : Image.network(
-                                convertDriveUrl(existingImageUrl!),
+                            : DriveImage(
+                                url: existingImageUrl!,
                                 width: double.infinity,
                                 fit: BoxFit.cover,
-                                errorBuilder: (context, error, stackTrace) {
-                                  return Center(
-                                    child: Icon(Icons.broken_image),
-                                  );
-                                },
                               ),
                       )
                     : Column(
