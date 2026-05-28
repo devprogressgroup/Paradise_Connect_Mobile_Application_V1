@@ -696,7 +696,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
               // For visit statuses, pop is handled by ActivityVisitBloc listener
               const visitStatusIds = [63, 64, 65, 66, 67, 68, 69];
               if (!visitStatusIds.contains(selectedStatusId)) {
-                context.pop();
+                context.pop(0); // 0 = Activity tab
               }
             } else if (state.status == ContactStatus.detailLoaded &&
                 state.contactDetail != null) {
@@ -757,7 +757,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
         BlocListener<ActivityVisitBloc, VisitState>(
           listener: (ctx, state) {
             if (state is VisitSuccess) {
-              context.pop();
+              context.pop(0); // 0 = Activity tab
             } else if (state is VisitError) {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(

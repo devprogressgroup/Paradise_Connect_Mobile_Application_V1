@@ -1,3 +1,7 @@
+import 'dart:convert';
+
+import 'package:flutter/foundation.dart';
+
 import '../../data/datasources/siteplan_remote_datasource.dart';
 import '../entities/project_site.dart';
 import 'site_plan_repository.dart';
@@ -16,6 +20,7 @@ class SitePlanRepositoryImpl implements SitePlanRepository {
   @override
   Future<List<ProjectSite>> getAvailableSites() async {
     final data = await dataSource.getSiteplanSettings();
+    debugPrint('SITE PLAN response: ${jsonEncode(data)}');
     final List<ProjectSite> sites = [];
     final townships = data['townships'] as List<dynamic>? ?? [];
 
@@ -25,10 +30,12 @@ class SitePlanRepositoryImpl implements SitePlanRepository {
         if (cluster['show_on_mobile'] == 1) {
           final companyId = cluster['company_id']?.toString() ?? '';
           final siteplanId = cluster['id']?.toString() ?? '';
+          final url = '$_baseUrl?pdkey=hoaxprogress&company_id=$companyId&siteplan_id=$siteplanId';
+          debugPrint('SITE PLAN [SitePlan] URL: $url');
           sites.add(ProjectSite(
             groupName: cluster['township_name'] as String? ??township['township_name'] as String? ??'',
             unitName: cluster['siteplan_name'] as String? ?? '',
-            url: '$_baseUrl?pdkey=hoaxprogress&company_id=$companyId&siteplan_id=$siteplanId',
+            url: url,
             headers: _webviewHeaders,
           ));
         }

@@ -160,18 +160,27 @@ class _CameraPageState extends State<CameraPage> {
     return BlocListener<AttendanceBloc, AttendanceState>(
       listener: (context, state) {
         if (state is AttendanceSubmitSuccess) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("Attendance recorded successfully!")),
-          );
-          
           if (context.canPop()) {
             context.pop(true);
           } else {
             context.go('/attandance');
           }
         } else if (state is AttendanceError) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(state.message), backgroundColor: Colors.red),
+          final msg = state.message.startsWith('Exception: ')
+              ? state.message.replaceFirst('Exception: ', '')
+              : state.message;
+          showDialog(
+            context: context,
+            builder: (ctx) => AlertDialog(
+              title: const Text('Gagal'),
+              content: Text(msg),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(ctx).pop(),
+                  child: const Text('OK'),
+                ),
+              ],
+            ),
           );
         }
       },

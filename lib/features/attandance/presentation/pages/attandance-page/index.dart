@@ -24,7 +24,6 @@ import 'package:progress_group/features/contact/data/arguments/contact_dropdown_
 import 'package:progress_group/features/contact/data/models/dropdown/date_filter.dart';
 import '../../../../../core/utils/helpers/date_helper.dart';
 import '../../../../../core/utils/widget/custom_header.dart';
-import '../../../../../core/utils/widget/error_dialog.dart';
 import '../../../data/arguments/attandance_args.dart';
 
 class AttandancePage extends StatefulWidget {
@@ -810,13 +809,7 @@ class _AttandancePageState extends State<AttandancePage> {
           ),
           SizedBox(height: 5),
     
-          BlocConsumer<AttendanceBloc, AttendanceState>(
-            listenWhen: (prev, curr) => curr is AttendanceError && prev is! AttendanceError,
-            listener: (context, state) {
-              if (state is AttendanceError) {
-                showErrorDialog(context, state.message);
-              }
-            },
+          BlocBuilder<AttendanceBloc, AttendanceState>(
             builder: (context, state) {
 
               if (state is AttendanceLoading) {
@@ -846,6 +839,7 @@ class _AttandancePageState extends State<AttandancePage> {
               return SizedBox();
             },
           ),
+
         ],
       ),
     );
@@ -875,13 +869,7 @@ class _AttandancePageState extends State<AttandancePage> {
             ],
           ),
           SizedBox(height: 5),
-          BlocConsumer<AttendanceActivityBloc, AttendanceActivityState>(
-            listenWhen: (prev, curr) => curr is AttendanceActivityError && prev is! AttendanceActivityError,
-            listener: (context, state) {
-              if (state is AttendanceActivityError) {
-                showErrorDialog(context, state.message);
-              }
-            },
+          BlocBuilder<AttendanceActivityBloc, AttendanceActivityState>(
             builder: (context, state) {
 
               if (state is AttendanceActivityLoading) {
@@ -1757,6 +1745,13 @@ class _ActivityCardState extends State<_ActivityCard> {
       decoration: BoxDecoration(
         color: const Color(whiteColor),
         borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.06),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1867,6 +1862,15 @@ class _ActivityCardState extends State<_ActivityCard> {
                               width: 200,
                               height: 200,
                               fit: BoxFit.cover,
+                              loadingBuilder: (context, child, progress) {
+                                if (progress == null) return child;
+                                return Container(
+                                  width: 200,
+                                  height: 200,
+                                  color: Colors.grey.shade200,
+                                  child: const Center(child: CircularProgressIndicator(strokeWidth: 2)),
+                                );
+                              },
                               errorBuilder: (context, error, stackTrace) => Container(
                                 width: 200,
                                 height: 200,

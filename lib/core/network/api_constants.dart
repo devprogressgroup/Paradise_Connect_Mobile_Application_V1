@@ -39,16 +39,15 @@ class ApiConstants {
     ),
     AppEnvironment.development2: _EnvConfig(
       label: 'Development 2',
-      baseUrl: 'http://172.20.10.3:8000/api',
-      storageUrl: 'http://172.20.10.3:8000/storage',
-      waServerURL: 'http://172.20.10.3:3000',
-      serverUrl: 'http://172.20.10.3:8000',
+      baseUrl: 'http://192.168.18.150:8000/api',
+      storageUrl: 'http://192.168.18.150:8000/storage',
+      waServerURL: 'http://192.168.18.150:3000',
+      serverUrl: 'http://192.168.18.150:8000',
     ),
   };
 
   static AppEnvironment _currentEnv = AppEnvironment.production;
-  static final ValueNotifier<AppEnvironment> envNotifier =
-      ValueNotifier(AppEnvironment.production);
+  static final ValueNotifier<AppEnvironment> envNotifier = ValueNotifier(AppEnvironment.production);
 
   static AppEnvironment get currentEnv => _currentEnv;
   static String get envLabel => _configs[_currentEnv]!.label;
@@ -84,14 +83,9 @@ class ApiConstants {
 
   static const String paradiseUrl = 'https://paradise.co.id';
 
-  static String townshipImageUrl(String slug, String fileName) =>
-      '$paradiseUrl/bin/db/images/township/$slug/$fileName';
+  static String townshipImageUrl(String slug, String fileName) =>'$paradiseUrl/bin/db/images/township/$slug/$fileName';
 
-  static String clusterImageUrl(String townshipSlug, String fileName) =>
-      '$paradiseUrl/bin/db/images/cluster/$townshipSlug/$fileName';
+  static String clusterImageUrl(String townshipSlug, String fileName) =>'$paradiseUrl/bin/db/images/cluster/$townshipSlug/$fileName';
 
-  static String commercialImageUrl(String filePath) =>
-      filePath.startsWith('bin/db/')
-          ? '$paradiseUrl/$filePath'
-          : '$paradiseUrl/bin/db/images/commercial/$filePath';
+  static String commercialImageUrl(String filePath) => filePath.startsWith('bin/db/') ? '$paradiseUrl/$filePath' : '$paradiseUrl/bin/db/images/commercial/$filePath';
 }

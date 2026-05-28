@@ -1,14 +1,7 @@
 String getInitials(String name) {
-  List<String> names = name.split(" ");
-  String initials = "";
-
-  if (names.length > 0) {
-    initials += names[0][0].toUpperCase();
-  }
-
-  if (names.length > 1) {
-    initials += names[1][0].toUpperCase();
-  }
-
+  final parts = name.trim().split(RegExp(r'\s+')).where((e) => e.isNotEmpty).toList();
+  String initials = '';
+  if (parts.isNotEmpty) initials += parts[0][0].toUpperCase();
+  if (parts.length > 1) initials += parts[1][0].toUpperCase();
   return initials;
 }

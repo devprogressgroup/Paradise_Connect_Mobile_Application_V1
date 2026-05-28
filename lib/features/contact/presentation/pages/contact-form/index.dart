@@ -166,6 +166,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
 
   final ScrollController _scrollController = ScrollController();
   bool _hideWhatsappField = false;
+  bool _formInitialized = false;
   double _lastOffset = 0;
   final Map<String, GlobalKey> _fieldKeys = {};
 
@@ -196,6 +197,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
       } else if (widget.args.dataContact != null) {
         await _fillForm(widget.args.dataContact!);
       }
+      _formInitialized = true;
       if (widget.args.focusField != null) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (mounted) {
@@ -973,12 +975,17 @@ class _ContactFormPageState extends State<ContactFormPage> {
         } else if (state.status == ContactStatus.updateSuccess && widget.args.page == 1) {
           setState(() => _isSaving = false);
           this.context.read<ContactBloc>().add(const FetchContactsEvent(isRefresh: true));
+          final newContact = state.contactDetail;
           WidgetsBinding.instance.addPostFrameCallback((_) {
             if (!mounted) return;
-            this.context.pop();
+             this.context.pushReplacementNamed(
+                'detailContact',
+                extra: ContactDetailArgs(dataContact: newContact, initialTab: 0),
+              );
           });
         } else if (state.status == ContactStatus.detailLoaded &&
-            state.contactDetail != null) {
+            state.contactDetail != null &&
+            !_formInitialized) {
           _fillForm(state.contactDetail!);
         } else if (state.status == ContactStatus.error && widget.args.page != 2) {
           setState(() => _isSaving = false);
@@ -1270,9 +1277,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
                             onTap: () async {
                               final townshipState = context.read<TownshipBloc>().state;
                               if (townshipState is TownshipLoaded) {
-                                final items = townshipState.townships
-                                    .map((t) => OwnerDropdownItem(id: t.id, name: t.name))
-                                    .toList();
+                                final items = townshipState.townships .map((t) => OwnerDropdownItem(id: t.id, name: t.name)) .toList();
                                 final result = await context.pushNamed(
                                   'detailContactDropdown',
                                   extra: ContactDropdownArgs(

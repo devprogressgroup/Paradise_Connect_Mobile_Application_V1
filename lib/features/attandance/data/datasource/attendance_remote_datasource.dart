@@ -46,24 +46,27 @@ class AttendanceRemoteDataSourceImpl implements AttendanceRemoteDataSource {
         if (endDate != null) 'end_date': endDate,
       },
     );
-
     return response.data;
   }
 
   @override
   Future<Map<String, dynamic>> postAttendance({  required String attendanceDatetime,  required int flag,  required String locationName,  String? note,  String? filePath, required int nikNumber}) async {
-    final formData = FormData.fromMap({
-      'attendance_datetime': attendanceDatetime,
-      'flag': flag,
-      'location_name': locationName,
-      'nik_number': nikNumber,
-      if (note != null) 'note': note,
-      if (filePath != null)
-        'file_attachment': await MultipartFile.fromFile(filePath),
-    });
+    try {
+      final formData = FormData.fromMap({
+        'attendance_datetime': attendanceDatetime,
+        'flag': flag,
+        'location_name': locationName,
+        'nik_number': nikNumber,
+        if (note != null) 'note': note,
+        if (filePath != null)
+          'file_attachment': await MultipartFile.fromFile(filePath),
+      });
 
-    final response = await dio.post('/attendance', data: formData);
-    return response.data;
+      final response = await dio.post('/attendance', data: formData);
+      return response.data;
+    } on DioException catch (e) {
+      throw Exception(e.response?.data?['message'] ?? 'Gagal submit attendance');
+    }
   }
 
   @override
@@ -85,21 +88,25 @@ class AttendanceRemoteDataSourceImpl implements AttendanceRemoteDataSource {
 
   @override
   Future<Map<String, dynamic>> postAttendanceActivity({  required String attendanceDatetime,  required int flag,  required String locationName,  String? note,  required List<String> filePaths, required int nikNumber}) async {
-    final formData = FormData.fromMap({
-      'attendance_datetime': attendanceDatetime,
-      'flag': flag,
-      'location_name': locationName,
-      if (note != null) 'note': note,
-    });
+    try {
+      final formData = FormData.fromMap({
+        'attendance_datetime': attendanceDatetime,
+        'flag': flag,
+        'location_name': locationName,
+        if (note != null) 'note': note,
+      });
 
-    for (var path in filePaths) {
-      formData.files.add(MapEntry(
-        'files[]',
-        await MultipartFile.fromFile(path),
-      ));
+      for (var path in filePaths) {
+        formData.files.add(MapEntry(
+          'files[]',
+          await MultipartFile.fromFile(path),
+        ));
+      }
+
+      final response = await dio.post('/attendance/activity', data: formData);
+      return response.data;
+    } on DioException catch (e) {
+      throw Exception(e.response?.data?['message'] ?? 'Gagal submit activity');
     }
-
-    final response = await dio.post('/attendance/activity', data: formData);
-    return response.data;
   }
 }
