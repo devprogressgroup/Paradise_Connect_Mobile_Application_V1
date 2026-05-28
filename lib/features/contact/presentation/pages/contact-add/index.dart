@@ -213,25 +213,31 @@ class _ContactAddPageState extends State<ContactAddPage> {
     if ((widget.args.page == 6 || widget.args.page <= 4) &&
         widget.args.dataContact != null) {
       final data = widget.args.dataContact!;
+      // createContactParams hadir ketika dibuka dari edit form (sourceRoute='editContact')
+      // sehingga data yang belum disimpan dari edit form ikut terbawa.
+      final params = widget.args.createContactParams;
 
       setState(() {
-        selectedProject = data.lastProject ?? data.firstProject;
-        selectedProduct = (data.lastProduct?.isNotEmpty == true) ? data.lastProduct : null;
+        // Prioritas: createContactParams (edit form) > dataContact (server)
+        selectedProject = (params?.lastProject ?? params?.firstProject) ?? data.lastProject ?? data.firstProject;
+        selectedProduct = (params?.lastProduct?.isNotEmpty == true)
+            ? params!.lastProduct
+            : (data.lastProduct?.isNotEmpty == true ? data.lastProduct : null);
+
         const _visitAllowedIds = [63, 64, 65];
         final rawStatusId = data.statusProspectId;
         selectedStatusId = (widget.args.page == 4 && !_visitAllowedIds.contains(rawStatusId))
             ? 63
             : rawStatusId;
-        selectedBlockNo = data.lastBlokNo;
-        selectedProjectCategory = data.lastProjectCategory;
-        lBlockNoTC.text = data.lastBlokNo ?? '';
-        jmlDatang = data.visitCount?.toString() ?? "1";
-        descTC.text = data.generalNotes ?? "";
-        volumeTC.text = data.volumePlan != null
-            ? data.volumePlan.toString()
-            : '0';
-        selectedLostReasonId = data.lostReasonId;
-        lostReasonNoteTC.text = data.lostReasonNote ?? '';
+
+        selectedBlockNo = params?.lastBlokNo ?? data.lastBlokNo;
+        selectedProjectCategory = params?.lastProjectCategory ?? data.lastProjectCategory;
+        lBlockNoTC.text = params?.lastBlokNo ?? data.lastBlokNo ?? '';
+        jmlDatang = (params?.visitCount ?? data.visitCount)?.toString() ?? "1";
+        descTC.text = params?.generalNotes ?? data.generalNotes ?? "";
+        volumeTC.text = params?.volumePlan ?? (data.volumePlan != null ? data.volumePlan.toString() : '0');
+        selectedLostReasonId = params?.lostReasonId ?? data.lostReasonId;
+        lostReasonNoteTC.text = params?.lostReasonNote ?? data.lostReasonNote ?? '';
 
         // Resolusi Nama Status
         final statusState = context.read<ProspectStatusBloc>().state;
@@ -248,7 +254,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
         final reasonState = context.read<LostReasonBloc>().state;
         if (reasonState.status == LostReasonStatus.loaded) {
           for (final r in reasonState.reasons) {
-            if (r.lostReasonId == data.lostReasonId) {
+            if (r.lostReasonId == selectedLostReasonId) {
               selectedLostReasonName = r.lostReasonName;
               break;
             }
@@ -262,7 +268,12 @@ class _ContactAddPageState extends State<ContactAddPage> {
       });
 
       if (selectedProject != null) _loadTownshipClusters(selectedProject!);
-      context.read<ContactBloc>().add(FetchContactDetailEvent(data.contactId!));
+
+      // Jika createContactParams tersedia, skip fetch server agar data edit form
+      // tidak ditimpa oleh respons server.
+      if (params == null) {
+        context.read<ContactBloc>().add(FetchContactDetailEvent(data.contactId!));
+      }
     }
 
     if (widget.args.page == 5 && widget.args.dataAttachment != null) {
@@ -533,6 +544,8 @@ class _ContactAddPageState extends State<ContactAddPage> {
 
   void _submitUpdateStatus(BuildContext context) {
     final contact = widget.args.dataContact;
+    // Field dari edit form yang tidak tampil di UI halaman ini
+    final editParams = widget.args.createContactParams;
 
     // Appt: 53, 60, 76
     final firstApptDate =(selectedStatusId == 60 || selectedStatusId == 53 || selectedStatusId == 76) &&(contact?.firstApptDate == null && selectedDate != null)? DateFormat('yyyy-MM-dd').format(selectedDate!): null;
@@ -557,33 +570,57 @@ class _ContactAddPageState extends State<ContactAddPage> {
     if (contact == null) return;
 
     final params = CreateContactParams(
+      // ── Field tersembunyi dari edit form (tidak ada di UI halaman ini) ──
+      salutation: editParams?.salutation,
+      fullName: editParams?.fullName,
+      primaryPhone: editParams?.primaryPhone,
+      whatsappNumber: editParams?.whatsappNumber,
+      primaryEmail: editParams?.primaryEmail,
+      salesExecutiveId: editParams?.salesExecutiveId,
+      salesManagerId: editParams?.salesManagerId,
+      salesSupervisorId: editParams?.salesSupervisorId,
+      salesTeamId: editParams?.salesTeamId,
+      salesChannelId: editParams?.salesChannelId,
+      sumberInformasi2: editParams?.sumberInformasi2,
+      dealValue: editParams?.dealValue,
+      noKtp: editParams?.noKtp,
+      ktpAddress: editParams?.ktpAddress,
+      propertiesJson: editParams?.propertiesJson,
+      firstProjectId: editParams?.firstProjectId,
+      firstClusterId: editParams?.firstClusterId,
+      firstCommercialId: editParams?.firstCommercialId,
+      firstProductId: editParams?.firstProductId,
+      firstBlokNo: editParams?.firstBlokNo,
+      firstProject: editParams?.firstProject,
+      firstProjectCategory: editParams?.firstProjectCategory,
+      firstProduct: editParams?.firstProduct,
+
+      // ── Field dari UI halaman ini (override edit form) ──
       statusProspectId: selectedStatusId,
-
-      firstApptDate: firstApptDate,
-      firstLostDate: firstLostDate,
-      firstReserveDate: firstReserveDate,
-      firstSPDate: firstSPDate,
-      firstVisitDate: firstVisitDate,
-
-      lastApptDate: lastApptDate,
-      lastLostDate: lostDate,
-      lastReserveDate: lastReserveDate,
-      lastSPDate: lastSPDate,
-      lastVisitDate: lastVisitDate,
-
-      lostDate: lostDate,
-
-      volumePlan: volumeTC.text.isNotEmpty ? volumeTC.text : null,
-      visitCount: int.tryParse(jmlDatang),
+      generalNotes: descTC.text.isNotEmpty ? descTC.text : null,
       lastBlokNo: lBlockNoTC.text.isNotEmpty ? lBlockNoTC.text : null,
       lastProject: selectedProject,
       lastProjectId: selectedTownshipId,
       lastProduct: selectedProduct,
       lastProjectCategory: selectedProjectCategory,
-      generalNotes: descTC.text.isNotEmpty ? descTC.text : null,
+      volumePlan: volumeTC.text.isNotEmpty ? volumeTC.text : null,
+      visitCount: int.tryParse(jmlDatang),
       lostReasonId: selectedLostReasonId,
       nameSP: nameSPTC.text.isNotEmpty ? nameSPTC.text : null,
       lostReasonNote: lostReasonNoteTC.text.isNotEmpty ? lostReasonNoteTC.text : null,
+
+      // ── Tanggal berdasarkan status ──
+      firstApptDate: firstApptDate,
+      firstLostDate: firstLostDate,
+      firstReserveDate: firstReserveDate,
+      firstSPDate: firstSPDate,
+      firstVisitDate: firstVisitDate,
+      lastApptDate: lastApptDate,
+      lastLostDate: lostDate,
+      lastReserveDate: lastReserveDate,
+      lastSPDate: lastSPDate,
+      lastVisitDate: lastVisitDate,
+      lostDate: lostDate,
     );
 
     print(

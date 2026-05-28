@@ -170,18 +170,111 @@ class _ContactFormPageState extends State<ContactFormPage> {
   double _lastOffset = 0;
   final Map<String, GlobalKey> _fieldKeys = {};
 
+  CreateContactParams createContactParams = CreateContactParams();
+
+  CreateContactParams _buildCurrentParams() {
+    final isUpdate = widget.args.page == 1;
+    final List<Map<String, dynamic>> propertiesJson = [];
+    _propertyControllers.forEach((id, ctrl) {
+      if (ctrl.text.isNotEmpty) {
+        propertiesJson.add({'property_id': id, 'property_value': ctrl.text});
+      }
+    });
+    return CreateContactParams(
+      salutation: selectedSalutation,
+      fullName: fullNameTC.text.isNotEmpty ? fullNameTC.text : null,
+      primaryPhone: waTC.text.isNotEmpty ? waTC.text : null,
+      whatsappNumber: waTC.text.isNotEmpty ? waTC.text : null,
+      primaryEmail: emailTC.text.isNotEmpty ? emailTC.text : null,
+      salesExecutiveId: selectedSalesExecutiveId,
+      salesManagerId: selectedSalesManagerId,
+      salesSupervisorId: selectedSupervisorId,
+      salesTeamId: selectedTeamId,
+      statusProspectId: selectedStatusId,
+      lastProject: isUpdate ? selectLastProject : selectFirstProject,
+      firstProject: isUpdate ? null : selectFirstProject,
+      lastProjectCategory: isUpdate ? selectLastProjectCategory : null,
+      firstProjectCategory: isUpdate ? null : selectFirstProjectCategory,
+      lastProduct: isUpdate ? selectLastProjectProduct : null,
+      firstProduct: isUpdate ? null : selectFirstProjectProduct,
+      lastBlokNo: isUpdate ? (lBlockNoTC.text.isNotEmpty ? lBlockNoTC.text : null) : null,
+      firstBlokNo: isUpdate ? null : (fBlockNoTC.text.isNotEmpty ? fBlockNoTC.text : null),
+      lastProjectId: isUpdate ? selectLastTownshipId : null,
+      firstProjectId: isUpdate ? null : (_existingFirstProjectId == null ? selectFirstTownshipId : null),
+      lastClusterId: isUpdate ? selectLastClusterId : null,
+      firstClusterId: isUpdate ? (_existingFirstClusterId == null ? selectLastClusterId : null) : null,
+      lastCommercialId: isUpdate ? selectLastCommercialId : null,
+      firstCommercialId: isUpdate ? (_existingFirstCommercialId == null ? selectLastCommercialId : null) : null,
+      lastProductId: isUpdate ? selectLastProductId : null,
+      firstProductId: isUpdate ? (_existingFirstProductId == null ? selectLastProductId : null) : null,
+      salesChannelId: selectedSource1Id,
+      sumberInformasi2: selectedSource2Id?.toString(),
+      generalNotes: generalNotesTC.text.isNotEmpty ? generalNotesTC.text : null,
+      lostReasonId: selectedLostReasonId,
+      lostReasonNote: lossReasonNoteTC.text.isNotEmpty ? lossReasonNoteTC.text : null,
+      lastApptDate: _toBackendDate(isUpdate ? lastApptDateTC.text : firstApptDateTC.text),
+      firstApptDate: _toBackendDate(firstApptDateTC.text),
+      lastVisitDate: _toBackendDate(isUpdate ? lastVisitorDateTC.text : firstVisitorDateTC.text),
+      firstVisitDate: _toBackendDate(firstVisitorDateTC.text),
+      reserveDate: _toBackendDate(reserveDateTC.text),
+      lastReserveDate: _toBackendDate(reserveDateTC.text),
+      firstReserveDate: _toBackendDate(firstReserveDateTC.text.isNotEmpty ? firstReserveDateTC.text : reserveDateTC.text),
+      lastSPDate: _toBackendDate(lspTC.text),
+      firstSPDate: _toBackendDate(fspTC.text),
+      lastAkadDate: _toBackendDate(lakadTC.text),
+      firstAkadDate: _toBackendDate(fakadTC.text),
+      lostDate: _toBackendDate(lastLostDateTC.text),
+      lastLostDate: _toBackendDate(lastLostDateTC.text),
+      dealValue: dealValueTC.text.isNotEmpty ? dealValueTC.text : null,
+      visitCount: vCountTC.text.isNotEmpty ? int.tryParse(vCountTC.text) : null,
+      volumePlan: volumePlanTC.text.isNotEmpty ? volumePlanTC.text : null,
+      noKtp: noKTPTC.text.isNotEmpty ? noKTPTC.text : null,
+      ktpAddress: ktpAddressTC.text.isNotEmpty ? ktpAddressTC.text : null,
+      propertiesJson: propertiesJson.isNotEmpty ? propertiesJson : null,
+    );
+  }
+
+  void _syncParams() {
+    createContactParams = _buildCurrentParams();
+  }
+
+  @override
+  void setState(VoidCallback fn) {
+    super.setState(fn);
+    createContactParams = _buildCurrentParams();
+  }
+
+  void _addControllerListeners() {
+    for (final tc in [
+      fullNameTC, emailTC, waTC, fBlockNoTC, salesExecutiveTC, salesManagerTC,
+      generalNotesTC, lBlockNoTC, noKTPTC, ktpAddressTC, volumePlanTC, vCountTC,
+      firstVisitorDateTC, lastVisitorDateTC, firstApptDateTC, lastApptDateTC,
+      dealValueTC, reserveDateTC, firstReserveDateTC, lossReasonNoteTC,
+      fspTC, lspTC, fakadTC, lakadTC, createAdTC, lastLostDateTC, lostDateTC,
+    ]) {
+      tc.addListener(_syncParams);
+    }
+  }
+
+  TextEditingController _getOrCreatePropertyController(int propertyId) {
+    if (!_propertyControllers.containsKey(propertyId)) {
+      final ctrl = TextEditingController();
+      ctrl.addListener(_syncParams);
+      _propertyControllers[propertyId] = ctrl;
+    }
+    return _propertyControllers[propertyId]!;
+  }
+
   @override
   void initState() {
     super.initState();
     _init();
-     
   }
 
 
 
-
-
   void _init() async {
+    _addControllerListeners();
     final contactId = widget.args.dataContact?.contactId;
     final contactState = context.read<ContactBloc>().state;
     final currentDetail = contactState.contactDetail;
@@ -459,12 +552,9 @@ class _ContactFormPageState extends State<ContactFormPage> {
               final pid = p['property_id'];
               final val = p['property_value'];
               if (pid != null) {
-                _propertyControllers.putIfAbsent(
-                  pid,
-                  () => TextEditingController(),
-                );
+                final ctrl = _getOrCreatePropertyController(pid as int);
                 if (val != null)
-                  _propertyControllers[pid]!.text = val.toString();
+                  ctrl.text = val.toString();
               }
             }
           }
@@ -491,12 +581,9 @@ class _ContactFormPageState extends State<ContactFormPage> {
                     p['property_value'] ?? p['value'] ?? p['propertyValue'];
                 if (pid != null) {
                   final id = int.tryParse(pid.toString()) ?? pid as int;
-                  _propertyControllers.putIfAbsent(
-                    id,
-                    () => TextEditingController(),
-                  );
+                  final ctrl = _getOrCreatePropertyController(id);
                   if (val != null)
-                    _propertyControllers[id]!.text = val.toString();
+                    ctrl.text = val.toString();
                 }
               } catch (_) {}
             }
@@ -506,11 +593,8 @@ class _ContactFormPageState extends State<ContactFormPage> {
               try {
                 final id = int.tryParse(k.toString());
                 if (id != null) {
-                  _propertyControllers.putIfAbsent(
-                    id,
-                    () => TextEditingController(),
-                  );
-                  if (v != null) _propertyControllers[id]!.text = v.toString();
+                  final ctrl = _getOrCreatePropertyController(id);
+                  if (v != null) ctrl.text = v.toString();
                 }
               } catch (_) {}
             });
@@ -1261,6 +1345,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
                                       selectedStatusId = picked.statusProspectId;
                                       selectedStatusProspectName = picked.statusProspectName;
                                     });
+                                    print('createContactParams after status pick: ${createContactParams.toJson()}');
                                   }
                                 }
                               } else {
@@ -1677,33 +1762,30 @@ class _ContactFormPageState extends State<ContactFormPage> {
                               hint: group.label,
                               child: Column(
                                 children: group.properties.map((prop) {
-                                  _propertyControllers.putIfAbsent(
-                                    prop.propertyId,
-                                    () => TextEditingController(),
-                                  );
-                
+                                  final propCtrl = _getOrCreatePropertyController(prop.propertyId);
+
                                   if (prop.fieldType == 'date') {
                                     return _buildField(
                                       label: prop.label,
-                                      controller: _propertyControllers[prop.propertyId]!,
+                                      controller: propCtrl,
                                       focusNode: FocusNode(),
                                       fieldType: 'date',
                                     );
                                   }
-                
+
                                   if (prop.fieldType == 'number') {
                                     return _buildField(
                                       label: prop.label,
-                                      controller: _propertyControllers[prop.propertyId]!,
+                                      controller: propCtrl,
                                       focusNode: FocusNode(),
                                       fieldType: 'int',
                                     );
                                   }
-                
+
                                   // default text
                                   return _buildField(
                                     label: prop.label,
-                                    controller: _propertyControllers[prop.propertyId]!,
+                                    controller: propCtrl,
                                     focusNode: FocusNode(),
                                   );
                                 }).toList(),
@@ -2148,9 +2230,9 @@ class _ContactFormPageState extends State<ContactFormPage> {
         dataContact: contact.copyWith(statusProspectId: selectedStatusId),
         page: 6,
         sourceRoute: 'editContact',
+        createContactParams: createContactParams,
       ),
     );
-
     if (!mounted || contact.contactId == null) return;
     context.read<ContactBloc>().add(FetchContactDetailEvent(contact.contactId!));
     context.read<ContactDetailActivityBloc>().add(
