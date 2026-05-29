@@ -307,37 +307,15 @@ class _AttandancePageState extends State<AttandancePage> {
       }
     }
 
-    final effectiveDistance = nearestDistance ??
-        Geolocator.distanceBetween(
-          officeLat,
-          officeLng,
-          position.latitude,
-          position.longitude,
-        );
-
+    final effectiveDistance = nearestDistance ?? Geolocator.distanceBetween( officeLat, officeLng, position.latitude, position.longitude, );
     final effectiveRadius = activeRadius ?? radiusMeter;
-
     final isInRadius = effectiveDistance <= effectiveRadius;
 
     if (!isInRadius && flagParam != 6) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Diluar Lokasi"),
-          backgroundColor: Colors.red,
-        ),
-      );
+      ScaffoldMessenger.of(context).showSnackBar( const SnackBar( content: Text("Diluar Lokasi"), backgroundColor: Colors.red, ), );
       return;
     }
-
-    final result = await context.pushNamed(
-      'camera',
-      extra: AttandanceArgs(
-        flag: flagParam,
-        type: title,
-        location: nearestOfficeName ?? _address,
-        time: DateHelper.formatTime(DateTime.now()),
-      ),
-    );
+    final result = await context.pushNamed('camera', extra: AttandanceArgs(flag: flagParam, type: title, location: nearestOfficeName ?? _address, time: DateHelper.formatTime(DateTime.now()), ), );
 
     if (result == true) {
       _getLog();

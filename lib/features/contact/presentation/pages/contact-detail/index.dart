@@ -1108,11 +1108,16 @@ class _ContactDetailPageState extends State<ContactDetailPage>with TickerProvide
                                     crossAxisAlignment:CrossAxisAlignment.start,
                                     mainAxisAlignment:MainAxisAlignment.spaceBetween,
                                     children: [
-                                      Text(
-                                        item.attachmentTypeName,
-                                        style: TextStyle(
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.w700,
+                                      Container(
+                                        width: MediaQuery.of(context).size.width * 0.5,
+                                        child: Text(
+                                          item.attachmentTypeName,
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w700,
+                                          ),
                                         ),
                                       ),
                                       Text(
