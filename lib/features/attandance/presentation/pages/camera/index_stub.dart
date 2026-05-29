@@ -13,6 +13,7 @@ import 'package:intl/intl.dart';
 import 'package:progress_group/core/utils/helpers/date_helper.dart';
 import 'package:progress_group/core/utils/widget/custom_button.dart';
 import 'package:progress_group/features/attandance/data/arguments/attandance_args.dart';
+import 'package:progress_group/features/attandance/domain/entities/location_entity.dart';
 import 'package:progress_group/features/attandance/presentation/state/attandance/attendance_bloc.dart';
 import 'package:progress_group/features/attandance/presentation/state/attandance/attendance_event.dart';
 import 'package:progress_group/features/attandance/presentation/state/attandance/attendance_state.dart';
@@ -44,6 +45,7 @@ class _CameraPageState extends State<CameraPage> {
 
   // Photos — identik dengan _imageFiles di mobile
   List<Uint8List> _imageBytesList = [];
+  List<String> _imageDataUrls = [];
   bool _isAddingMore = false;
 
   // Form — identik mobile
@@ -51,6 +53,7 @@ class _CameraPageState extends State<CameraPage> {
   final TextEditingController pameranTC = TextEditingController();
   final FocusNode notesFN = FocusNode();
   int? _selectedLocationId;
+  AttendanceLocation? _selectedPameranLocation;
 
   bool get _isMultiplePhotosSupported =>
       widget.args.type?.toLowerCase() == 'checkin' || widget.args.flag == 6;
@@ -128,6 +131,7 @@ class _CameraPageState extends State<CameraPage> {
 
     setState(() {
       _imageBytesList.add(bytes);
+      _imageDataUrls.add(dataUrl);
       _isAddingMore = false;
       _status = _CameraStatus.captured;
     });
@@ -155,6 +159,10 @@ class _CameraPageState extends State<CameraPage> {
       nikNumber = profileState.profile.nikNumber ?? 0;
     }
 
+    final activeLocationId = _selectedPameranLocation?.id ?? widget.args.locationId;
+    final activeLat = _selectedPameranLocation?.latitude ?? widget.args.latitude;
+    final activeLng = _selectedPameranLocation?.longitude ?? widget.args.longitude;
+
     if (_isMultiplePhotosSupported) {
       context.read<AttendanceBloc>().add(SubmitAttendanceActivityEvent(
         datetime: datetime,
@@ -164,6 +172,9 @@ class _CameraPageState extends State<CameraPage> {
         filePaths: const [],
         fileBytesData: _imageBytesList,
         nikNumber: nikNumber,
+        locationId: activeLocationId,
+        latitude: activeLat,
+        longitude: activeLng,
       ));
     } else {
       context.read<AttendanceBloc>().add(SubmitAttendanceEvent(
@@ -173,6 +184,9 @@ class _CameraPageState extends State<CameraPage> {
         note: notesTC.text,
         fileBytes: _imageBytesList.first,
         nikNumber: nikNumber,
+        locationId: activeLocationId,
+        latitude: activeLat,
+        longitude: activeLng,
       ));
     }
   }
@@ -237,6 +251,7 @@ class _CameraPageState extends State<CameraPage> {
                       _isAddingMore = false;
                     } else {
                       _imageBytesList.clear();
+                      _imageDataUrls.clear();
                       _status = _CameraStatus.ready;
                     }
                   });
@@ -339,7 +354,7 @@ class _CameraPageState extends State<CameraPage> {
                           SizedBox(
                             height: 330,
                             width: double.infinity,
-                            child: Image.memory(_imageBytesList.first, fit: BoxFit.cover),
+                            child: Image.network(_imageDataUrls.first, fit: BoxFit.cover),
                           ),
                           Positioned(
                             bottom: 0, left: 0, right: 0,
@@ -392,13 +407,16 @@ class _CameraPageState extends State<CameraPage> {
                                     padding: const EdgeInsets.only(right: 8),
                                     child: ClipRRect(
                                       borderRadius: BorderRadius.circular(8),
-                                      child: Image.memory(_imageBytesList[index], width: 100, height: 100, fit: BoxFit.cover),
+                                      child: Image.network(_imageDataUrls[index], width: 100, height: 100, fit: BoxFit.cover),
                                     ),
                                   ),
                                   Positioned(
                                     top: 0, right: 8,
                                     child: GestureDetector(
-                                      onTap: () => setState(() => _imageBytesList.removeAt(index)),
+                                      onTap: () => setState(() {
+                                          _imageBytesList.removeAt(index);
+                                          _imageDataUrls.removeAt(index);
+                                        }),
                                       child: Container(
                                         decoration: const BoxDecoration(color: Colors.black54, shape: BoxShape.circle),
                                         child: const Icon(Icons.close, color: Colors.white, size: 20),
@@ -450,8 +468,10 @@ class _CameraPageState extends State<CameraPage> {
                                   );
                                   if (result != null) {
                                     final selected = result as OwnerDropdownItem;
+                                    final fullLoc = state.locations!.firstWhere((e) => e.id == selected.id);
                                     setState(() {
                                       _selectedLocationId = selected.id;
+                                      _selectedPameranLocation = fullLoc;
                                       pameranTC.text = selected.name;
                                     });
                                   }
