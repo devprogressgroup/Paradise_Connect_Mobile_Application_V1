@@ -14,6 +14,9 @@ class SubmitAttendanceUseCase {
     String? filePath,
     Uint8List? fileBytes,
     required int nikNumber,
+    int? locationId,
+    String? latitude,
+    String? longitude,
   }) {
     return repository.submitAttendance(
       datetime: datetime,
@@ -23,7 +26,9 @@ class SubmitAttendanceUseCase {
       filePath: filePath,
       fileBytes: fileBytes,
       nikNumber: nikNumber,
+      locationId: locationId,
+      latitude: latitude,
+      longitude: longitude,
     );
-
   }
 }

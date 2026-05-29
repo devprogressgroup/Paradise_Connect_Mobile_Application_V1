@@ -2,14 +2,19 @@ import 'dart:convert';
 
 import 'package:dio/dio.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/foundation.dart' show debugPrint, kIsWeb;
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:progress_group/app/router.dart';
 import 'package:progress_group/features/contact/data/arguments/contact_detail_args.dart';
 import 'package:progress_group/features/contact/domain/entities/activity/activity_entity.dart';
 import 'package:progress_group/features/contact/domain/entities/contact/contact_entity.dart';
+import 'web_notification_stub.dart'
+    if (dart.library.js_interop) 'web_notification.dart';
 
 const String _channelId = 'upcoming_task_channel';
 const String _channelName = 'Upcoming Tasks';
+const String _vapidKey =
+    'BGIeIvkhfZzClnpnsLcZLyggcadQqTf_g996DoCZ1hJGeLcd0Tn8gHHuUnmjhvFA62wHqFLVDLaJjmZeGHC95PQ';
 
 final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
     FlutterLocalNotificationsPlugin();
@@ -22,7 +27,7 @@ class PushNotificationService {
   /// Dipanggil setelah DioClient dibuat (di build() MyApp) agar token bisa dikirim ke backend.
   static void setDio(Dio dio) {
     _dio = dio;
-    _messaging.getToken().then((token) {
+    _messaging.getToken(vapidKey: kIsWeb ? _vapidKey : null).then((token) {
       if (token != null) _sendTokenToBackend(token);
     });
   }
@@ -30,7 +35,7 @@ class PushNotificationService {
   /// Dipanggil sekali di main() setelah Firebase.initializeApp().
   static Future<void> initialize() async {
     await _requestPermission();
-    await _setupLocalNotifications();
+    if (!kIsWeb) await _setupLocalNotifications();
     await _registerToken();
 
     _messaging.onTokenRefresh.listen(_sendTokenToBackend);
@@ -53,11 +58,12 @@ class PushNotificationService {
   }
 
   static Future<void> _requestPermission() async {
-    await _messaging.requestPermission(
+    final settings = await _messaging.requestPermission(
       alert: true,
       badge: true,
       sound: true,
     );
+    debugPrint('[FCM] Permission: ${settings.authorizationStatus}');
   }
 
   static Future<void> _setupLocalNotifications() async {
@@ -89,8 +95,14 @@ class PushNotificationService {
   }
 
   static Future<void> _registerToken() async {
-    final token = await _messaging.getToken();
-    if (token != null) await _sendTokenToBackend(token);
+    try {
+      debugPrint('[FCM] Requesting token, kIsWeb=$kIsWeb');
+      final token = await _messaging.getToken(vapidKey: kIsWeb ? _vapidKey : null);
+      debugPrint('[FCM] Token: $token');
+      if (token != null) await _sendTokenToBackend(token);
+    } catch (e) {
+      debugPrint('[FCM] getToken error: $e');
+    }
   }
 
   static Future<void> _sendTokenToBackend(String token) async {
@@ -104,6 +116,11 @@ class PushNotificationService {
   static void _handleForegroundMessage(RemoteMessage message) {
     final notification = message.notification;
     if (notification == null) return;
+
+    if (kIsWeb) {
+      showWebNotification(notification.title, notification.body);
+      return;
+    }
 
     flutterLocalNotificationsPlugin.show(
       notification.hashCode,

@@ -4,8 +4,8 @@ import 'package:dio/dio.dart';
 abstract class AttendanceRemoteDataSource {
   Future<Map<String, dynamic>> getAttendance({List<int>? salesPersonIds, String? startDate, String? endDate, int page = 1, int perPage = 10});
   Future<Map<String, dynamic>> getTodayAttendance();
-  Future<Map<String, dynamic>> postAttendance({required String attendanceDatetime,required int flag,required String locationName,String? note,String? filePath,Uint8List? fileBytes,required int nikNumber});
-  Future<Map<String, dynamic>> postAttendanceActivity({required String attendanceDatetime,  required int flag,  required String locationName,  String? note,  required List<String> filePaths, List<Uint8List>? fileBytesData, required int nikNumber});
+  Future<Map<String, dynamic>> postAttendance({required String attendanceDatetime, required int flag, required String locationName, String? note, String? filePath, Uint8List? fileBytes, required int nikNumber, int? locationId, String? latitude, String? longitude});
+  Future<Map<String, dynamic>> postAttendanceActivity({required String attendanceDatetime, required int flag, required String locationName, String? note, required List<String> filePaths, List<Uint8List>? fileBytesData, required int nikNumber, int? locationId, String? latitude, String? longitude});
   Future<Map<String, dynamic>> getLocations();
   Future<Map<String, dynamic>> getOfficeLocations();
   Future<Map<String, dynamic>> getAttendanceActivity({List<int>? salesPersonIds, String? startDate, String? endDate, String? location, int page, int perPage});
@@ -51,7 +51,7 @@ class AttendanceRemoteDataSourceImpl implements AttendanceRemoteDataSource {
   }
 
   @override
-  Future<Map<String, dynamic>> postAttendance({required String attendanceDatetime, required int flag, required String locationName, String? note, String? filePath, Uint8List? fileBytes, required int nikNumber}) async {
+  Future<Map<String, dynamic>> postAttendance({required String attendanceDatetime, required int flag, required String locationName, String? note, String? filePath, Uint8List? fileBytes, required int nikNumber, int? locationId, String? latitude, String? longitude}) async {
     try {
       MultipartFile? attachment;
       if (fileBytes != null) {
@@ -65,6 +65,10 @@ class AttendanceRemoteDataSourceImpl implements AttendanceRemoteDataSource {
         'flag': flag,
         'location_name': locationName,
         'nik_number': nikNumber,
+        'serial': 'PARADISE CONNECT',
+        if (locationId != null) 'location_id': locationId,
+        if (latitude != null) 'latitude': latitude,
+        if (longitude != null) 'longitude': longitude,
         if (note != null) 'note': note,
         if (attachment != null) 'file_attachment': attachment,
       });
@@ -72,6 +76,7 @@ class AttendanceRemoteDataSourceImpl implements AttendanceRemoteDataSource {
       final response = await dio.post('/attendance', data: formData);
       return response.data;
     } on DioException catch (e) {
+      if (e.type == DioExceptionType.cancel && e.error == 'SESSION_EXPIRED') throw Exception('SESSION_EXPIRED');
       throw Exception(e.response?.data?['message'] ?? 'Gagal submit attendance');
     }
   }
@@ -94,12 +99,17 @@ class AttendanceRemoteDataSourceImpl implements AttendanceRemoteDataSource {
   }
 
   @override
-  Future<Map<String, dynamic>> postAttendanceActivity({required String attendanceDatetime, required int flag, required String locationName, String? note, required List<String> filePaths, List<Uint8List>? fileBytesData, required int nikNumber}) async {
+  Future<Map<String, dynamic>> postAttendanceActivity({required String attendanceDatetime, required int flag, required String locationName, String? note, required List<String> filePaths, List<Uint8List>? fileBytesData, required int nikNumber, int? locationId, String? latitude, String? longitude}) async {
     try {
       final formData = FormData.fromMap({
         'attendance_datetime': attendanceDatetime,
         'flag': flag,
         'location_name': locationName,
+        'nik_number': nikNumber,
+        'serial': 'PARADISE CONNECT',
+        if (locationId != null) 'location_id': locationId,
+        if (latitude != null) 'latitude': latitude,
+        if (longitude != null) 'longitude': longitude,
         if (note != null) 'note': note,
       });
 
@@ -122,6 +132,7 @@ class AttendanceRemoteDataSourceImpl implements AttendanceRemoteDataSource {
       final response = await dio.post('/attendance/activity', data: formData);
       return response.data;
     } on DioException catch (e) {
+      if (e.type == DioExceptionType.cancel && e.error == 'SESSION_EXPIRED') throw Exception('SESSION_EXPIRED');
       throw Exception(e.response?.data?['message'] ?? 'Gagal submit activity');
     }
   }

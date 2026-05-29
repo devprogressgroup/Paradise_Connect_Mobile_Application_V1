@@ -1,10 +1,13 @@
+import 'package:progress_group/features/attandance/domain/entities/location_entity.dart';
+
 class OwnerDropdownItem {
   final int? id;
   final String name;
+  final AttendanceLocation? attendanceLocation;
   final String? typeData;
   final String? subtitle;
 
-  OwnerDropdownItem({this.id, required this.name, this.typeData, this.subtitle});
+  OwnerDropdownItem({this.id, required this.name, this.attendanceLocation, this.typeData, this.subtitle});
 }
 
 class ContactDropdownArgs {

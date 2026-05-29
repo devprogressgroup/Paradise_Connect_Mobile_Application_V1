@@ -204,11 +204,19 @@ class _ContactAddPageState extends State<ContactAddPage> {
             activity.nextFollowUpDate!.isNotEmpty) {
           try {
             isFollowUp = true;
-            selectedDate = DateTime.parse(activity.nextFollowUpDate!);
+            final d = DateTime.parse(activity.nextFollowUpDate!);
+            final n = DateTime.now();
+            selectedDate = d.hour == 0 && d.minute == 0
+                ? DateTime(d.year, d.month, d.day, n.hour, n.minute, 0)
+                : d;
           } catch (_) {}
         } else if (activity.activityDate.isNotEmpty) {
           try {
-            selectedDate = DateTime.parse(activity.activityDate);
+            final d = DateTime.parse(activity.activityDate);
+            final n = DateTime.now();
+            selectedDate = d.hour == 0 && d.minute == 0
+                ? DateTime(d.year, d.month, d.day, n.hour, n.minute, 0)
+                : d;
           } catch (_) {}
         }
       });
@@ -2392,7 +2400,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
                           PostStatusFollowEvent([widget.args.dataActivity!.activityId]),
                         );
                       } else {
-                        _submitActivity(activityType: widget.args.namePage ?? '',activityDate: selectedDate ?? DateTime.now(),notesTC: descFormActivityTC,isFollowUp: true,followUpDate: selectedDate ?? DateTime.now(),);
+                        _submitActivity(activityType: widget.args.namePage ?? '',activityDate: DateTime.now(),notesTC: descFormActivityTC,isFollowUp: true,followUpDate: selectedDate ?? DateTime.now(),);
                       }
                     },
                     isLoading ? 'Menyimpan...' : (widget.args.buttonLabel ?? 'Save'),

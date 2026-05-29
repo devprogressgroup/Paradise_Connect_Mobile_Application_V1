@@ -14,6 +14,7 @@ import 'package:progress_group/features/contact/data/arguments/contact_dropdown_
 
 import '../../../../../core/constants/colors.dart';
 import '../../../../../core/utils/widget/custom_header.dart';
+import 'package:progress_group/features/attandance/domain/entities/location_entity.dart';
 import 'package:progress_group/features/auth/presentation/state/profile/profile_bloc.dart';
 import 'package:progress_group/features/auth/presentation/state/profile/profile_state.dart';
 
@@ -40,6 +41,7 @@ class _CameraPageState extends State<CameraPage> {
   bool _isSwitching = false;
   bool _isAddingMore = false;
   int? _selectedLocationId;
+  AttendanceLocation? _selectedPameranLocation;
 
 
   @override
@@ -139,10 +141,14 @@ class _CameraPageState extends State<CameraPage> {
       nikNumber = profileState.profile.nikNumber ?? 0;
     }
 
+    final activeLocationId = _selectedPameranLocation?.id ?? widget.args.locationId;
+    final activeLat = _selectedPameranLocation?.latitude ?? widget.args.latitude;
+    final activeLng = _selectedPameranLocation?.longitude ?? widget.args.longitude;
+
     if (_isMultiplePhotosSupported) {
-      context.read<AttendanceBloc>().add(SubmitAttendanceActivityEvent(datetime: datetime,flag: flag!,location: location,note: notesTC.text,filePaths: _imageFiles.map((e) => e.path).toList(),nikNumber: nikNumber,));
+      context.read<AttendanceBloc>().add(SubmitAttendanceActivityEvent(datetime: datetime, flag: flag!, location: location, note: notesTC.text, filePaths: _imageFiles.map((e) => e.path).toList(), nikNumber: nikNumber, locationId: activeLocationId, latitude: activeLat, longitude: activeLng,));
     } else {
-      context.read<AttendanceBloc>().add(SubmitAttendanceEvent(datetime: datetime,flag: flag!,location: location,note: notesTC.text,filePath: _imageFiles.first.path,nikNumber: nikNumber,));
+      context.read<AttendanceBloc>().add(SubmitAttendanceEvent(datetime: datetime, flag: flag!, location: location, note: notesTC.text, filePath: _imageFiles.first.path, nikNumber: nikNumber, locationId: activeLocationId, latitude: activeLat, longitude: activeLng,));
     }
   }
 
@@ -169,6 +175,8 @@ class _CameraPageState extends State<CameraPage> {
           final msg = state.message.startsWith('Exception: ')
               ? state.message.replaceFirst('Exception: ', '')
               : state.message;
+          // Session expired sudah ditangani oleh DioClient interceptor, skip dialog duplikat
+          if (msg == 'SESSION_EXPIRED' || msg.contains('[cancel]')) return;
           showDialog(
             context: context,
             builder: (ctx) => AlertDialog(
@@ -398,7 +406,86 @@ class _CameraPageState extends State<CameraPage> {
                         ],
                       ),
 
-                    if (widget.args.isReturnImage != true)
+                    // if (widget.args.isReturnImage != true)
+                    //   Padding(
+                    //     padding: const EdgeInsets.symmetric(horizontal: 16),
+                    //     child: Column(
+                    //       crossAxisAlignment: CrossAxisAlignment.start,
+                    //       children: [
+                    //         SizedBox(height: 10),
+                    //          Text("Pameran/ Open Table (optional)", style: TextStyle(fontSize: 14, color: Color(grey2Color))),
+                    //          SizedBox(height: 5),
+
+                    //          Container(
+                    //            width: double.infinity,
+                    //            height: 50,
+                    //            alignment: Alignment.centerRight,
+                    //            decoration: BoxDecoration(
+                    //              border: Border.all(color: Color(grey8Color), width: 1),
+                    //              borderRadius: BorderRadius.circular(12),
+                    //            ),
+                    //            child: InkWell(
+                    //              onTap: () async {
+                    //                final blocState = context.read<AttendanceBloc>().state;
+                    //                if (blocState is! AttendanceLoaded || blocState.locations == null || blocState.locations!.isEmpty) {
+                    //                  ScaffoldMessenger.of(context).showSnackBar(
+                    //                    const SnackBar(
+                    //                      content: Text('Data lokasi belum tersedia, silahkan tunggu sebentar'),
+                    //                      duration: Duration(seconds: 2),
+                    //                    ),
+                    //                  );
+                    //                  return;
+                    //                }
+                    //                // Capture lokasi sebelum push agar tidak perlu baca BLoC setelah await
+                    //                final locations = blocState.locations!;
+                    //                final items = locations.map((e) => OwnerDropdownItem(id: e.id, name: e.name)).toList();
+
+                    //                final result = await context.pushNamed(
+                    //                  'detailContactDropdown',
+                    //                  extra: ContactDropdownArgs(
+                    //                    title: 'Select Pameran',
+                    //                    items: items,
+                    //                    selectedId: _selectedLocationId,
+                    //                    isMultiSelect: false,
+                    //                  ),
+                    //                );
+
+                    //                if (result != null) {
+                    //                  final selected = result as OwnerDropdownItem;
+                    //                  final fullLoc = locations.firstWhere(
+                    //                    (e) => e.id == selected.id,
+                    //                    orElse: () => AttendanceLocation(id: selected.id ?? 0, name: selected.name),
+                    //                  );
+                    //                  setState(() {
+                    //                    _selectedLocationId = selected.id;
+                    //                    pameranTC.text = selected.name;
+                    //                    _selectedPameranLocation = fullLoc;
+                    //                  });
+                    //                }
+                    //              },
+                    //              child: Row(
+                    //                children: [
+                    //                  Expanded(
+                    //                    child: TextField(
+                    //                      enabled: false,
+                    //                      maxLines: 1,
+                    //                      minLines: 1,
+                    //                      controller: pameranTC,
+                    //                      decoration: InputDecoration(
+                    //                        hintText: "Select Pameran",
+                    //                        hintStyle: TextStyle(color: Color(grey2Color), fontSize: 14),
+                    //                        contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    //                        border: InputBorder.none,
+                    //                      ),
+                    //                    ),
+                    //                  ),
+                    //                  Icon(Icons.keyboard_arrow_up),
+                    //                  SizedBox(width: 5),
+                    //                ],
+                    //              ),
+                    //            ),
+                    //          ),
+                     if (widget.args.isReturnImage != true)
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 16),
                         child: Column(
@@ -442,8 +529,10 @@ class _CameraPageState extends State<CameraPage> {
 
                                    if (result != null) {
                                      final selected = result as OwnerDropdownItem;
+                                     final fullLoc = state.locations!.firstWhere((e) => e.id == selected.id);
                                      setState(() {
                                        _selectedLocationId = selected.id;
+                                       _selectedPameranLocation = fullLoc;
                                        pameranTC.text = selected.name;
                                      });
                                    }

@@ -141,6 +141,12 @@ class DioClient {
               _isHandling401 = false;
               AppRouter.router.go('/login');
             }
+            // Reject dengan marker khusus agar feature layer tidak tampilkan dialog duplikat
+            return handler.reject(DioException(
+              requestOptions: e.requestOptions,
+              error: 'SESSION_EXPIRED',
+              type: DioExceptionType.cancel,
+            ));
           }
           return handler.next(e);
         },

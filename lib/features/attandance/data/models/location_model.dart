@@ -13,8 +13,8 @@ class AttendanceLocationModel extends AttendanceLocation {
     return AttendanceLocationModel(
       id: json['location_id'],
       name: json['location_name'] ?? '',
-      latitude: json['latitude'] is String ? double.tryParse(json['latitude']) : (json['latitude'] as num?)?.toDouble(),
-      longitude: json['longitude'] is String ? double.tryParse(json['longitude']) : (json['longitude'] as num?)?.toDouble(),
+      latitude: json['latitude']?.toString(),
+      longitude: json['longitude']?.toString(),
       radius: json['radius_meter'],
     );
   }

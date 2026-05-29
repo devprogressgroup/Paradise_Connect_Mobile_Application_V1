@@ -287,13 +287,18 @@ class _AttandancePageState extends State<AttandancePage> {
     double? nearestDistance;
     double? activeRadius;
     String? nearestOfficeName;
+    int? nearestOfficeId;
+    String? nearestOfficeLat;
+    String? nearestOfficeLng;
 
     if (officeLocations != null && officeLocations.isNotEmpty) {
       for (var office in officeLocations) {
-        if (office.latitude != null && office.longitude != null) {
+        final lat = double.tryParse(office.latitude ?? '');
+        final lng = double.tryParse(office.longitude ?? '');
+        if (lat != null && lng != null) {
           final d = Geolocator.distanceBetween(
-            office.latitude!,
-            office.longitude!,
+            lat,
+            lng,
             position.latitude,
             position.longitude,
           );
@@ -302,6 +307,9 @@ class _AttandancePageState extends State<AttandancePage> {
             nearestDistance = d;
             activeRadius = office.radius?.toDouble() ?? radiusMeter;
             nearestOfficeName = office.name;
+            nearestOfficeId = office.id;
+            nearestOfficeLat = office.latitude;
+            nearestOfficeLng = office.longitude;
           }
         }
       }
@@ -315,7 +323,7 @@ class _AttandancePageState extends State<AttandancePage> {
       ScaffoldMessenger.of(context).showSnackBar( const SnackBar( content: Text("Diluar Lokasi"), backgroundColor: Colors.red, ), );
       return;
     }
-    final result = await context.pushNamed('camera', extra: AttandanceArgs(flag: flagParam, type: title, location: nearestOfficeName ?? _address, time: DateHelper.formatTime(DateTime.now()), ), );
+    final result = await context.pushNamed('camera', extra: AttandanceArgs(flag: flagParam, type: title, location: nearestOfficeName ?? _address, time: DateHelper.formatTime(DateTime.now()), locationId: nearestOfficeId, latitude: nearestOfficeLat, longitude: nearestOfficeLng, ), );
 
     if (result == true) {
       _getLog();

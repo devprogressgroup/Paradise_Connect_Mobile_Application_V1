@@ -12,8 +12,8 @@ abstract class AttendanceRepository {
   Future<AttendanceEntity?> getTodayAttendance();
   Future<List<AttendanceLocation>> getLocations();
   Future<List<AttendanceLocation>> getOfficeLocations();
-  Future<void> submitAttendance({required String datetime,required int flag,required String location,String? note,String? filePath,Uint8List? fileBytes,required int nikNumber,});
-  Future<void> submitAttendanceActivity({required String datetime,required int flag,required String location,String? note,required List<String> filePaths,List<Uint8List>? fileBytesData,required int nikNumber,});
+  Future<void> submitAttendance({required String datetime,required int flag,required String location,String? note,String? filePath,Uint8List? fileBytes,required int nikNumber,int? locationId,String? latitude,String? longitude,});
+  Future<void> submitAttendanceActivity({required String datetime,required int flag,required String location,String? note,required List<String> filePaths,List<Uint8List>? fileBytesData,required int nikNumber,int? locationId,String? latitude,String? longitude,});
   Future<({List<AttendanceActivityEntity> data, int lastPage})> getAttendanceActivity({List<int>? salesPersonIds, String? startDate, String? endDate, String? location, int page, int perPage});
 }
 
@@ -163,6 +163,9 @@ class AttendanceRepositoryImpl implements AttendanceRepository {
     String? filePath,
     Uint8List? fileBytes,
     required int nikNumber,
+    int? locationId,
+    String? latitude,
+    String? longitude,
   }) async {
     await remote.postAttendance(
       attendanceDatetime: datetime,
@@ -172,6 +175,9 @@ class AttendanceRepositoryImpl implements AttendanceRepository {
       filePath: filePath,
       fileBytes: fileBytes,
       nikNumber: nikNumber,
+      locationId: locationId,
+      latitude: latitude,
+      longitude: longitude,
     );
   }
 
@@ -184,6 +190,9 @@ class AttendanceRepositoryImpl implements AttendanceRepository {
     required List<String> filePaths,
     List<Uint8List>? fileBytesData,
     required int nikNumber,
+    int? locationId,
+    String? latitude,
+    String? longitude,
   }) async {
     await remote.postAttendanceActivity(
       attendanceDatetime: datetime,
@@ -193,6 +202,9 @@ class AttendanceRepositoryImpl implements AttendanceRepository {
       filePaths: filePaths,
       fileBytesData: fileBytesData,
       nikNumber: nikNumber,
+      locationId: locationId,
+      latitude: latitude,
+      longitude: longitude,
     );
   }
 }

@@ -87,10 +87,11 @@ class _SitePlanPageState extends State<SitePlanPage> {
     super.initState();
     _initWebViewController();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final state = context.read<SiteplanBloc>().state;
-      if (state is SiteplanLoaded && state.sites.isNotEmpty) {
-        _initFromSites(state.sites);
-      }
+      setState(() {
+        _selectedSite = null;
+        _sites = [];
+      });
+      context.read<SiteplanBloc>().add(LoadSiteplanEvent());
     });
   }
 
