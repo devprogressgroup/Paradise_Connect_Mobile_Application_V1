@@ -732,7 +732,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
         BlocListener<ActivityBloc, ActivityState>(
           listener: (ctx, state) {
             if (state.status == ActivityStatus.createSuccess || state.status == ActivityStatus.followUpSuccess) {
-              if (widget.args.page == 3 && selectedDate != null) {
+              if (state.status == ActivityStatus.createSuccess && widget.args.page == 3 && selectedDate != null) {
                 _showAddToCalendarDialog(
                   followUpDate: selectedDate!,
                   description: descFormActivityTC.text.trim().isEmpty ? null : descFormActivityTC.text.trim(),

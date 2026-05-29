@@ -22,6 +22,26 @@ class AttendanceActivityVisitModel extends AttendanceActivityVisit {
   }
 }
 
+class AttendanceActivityCheckInModel extends AttendanceActivityCheckIn {
+  AttendanceActivityCheckInModel({
+    super.checkInDate,
+    super.checkInLocation,
+    super.checkInNote,
+    super.checkInAttachment,
+  });
+
+  factory AttendanceActivityCheckInModel.fromJson(Map<String, dynamic> json) {
+    return AttendanceActivityCheckInModel(
+      checkInDate: json['check_in_date'],
+      checkInLocation: json['check_in_location'],
+      checkInNote: json['check_in_note'],
+      checkInAttachment: json['check_in_attachment'] != null
+          ? List<String>.from(json['check_in_attachment'])
+          : null,
+    );
+  }
+}
+
 class AttendanceActivityModel extends AttendanceActivityEntity {
   AttendanceActivityModel({
     required super.date,
@@ -35,16 +55,17 @@ class AttendanceActivityModel extends AttendanceActivityEntity {
     super.clockOutLocation,
     super.clockOutNote,
     super.clockOutAttachment,
-    super.checkInDate,
-    super.checkInLocation,
-    super.checkInNote,
-    super.checkInAttachment,
+    super.checkIns,
     super.visits,
   });
 
   factory AttendanceActivityModel.fromJson(Map<String, dynamic> json) {
     final visitsList = (json['visits'] as List? ?? [])
         .map((v) => AttendanceActivityVisitModel.fromJson(v as Map<String, dynamic>))
+        .toList();
+
+    final checkInsList = (json['check_ins'] as List? ?? [])
+        .map((c) => AttendanceActivityCheckInModel.fromJson(c as Map<String, dynamic>))
         .toList();
 
     return AttendanceActivityModel(
@@ -63,12 +84,7 @@ class AttendanceActivityModel extends AttendanceActivityEntity {
       clockOutAttachment: json['clock_out_attachment'] != null
           ? List<String>.from(json['clock_out_attachment'])
           : null,
-      checkInDate: json['check_in_date'],
-      checkInLocation: json['check_in_location'],
-      checkInNote: json['check_in_note'],
-      checkInAttachment: json['check_in_attachment'] != null
-          ? List<String>.from(json['check_in_attachment'])
-          : null,
+      checkIns: checkInsList,
       visits: visitsList,
     );
   }

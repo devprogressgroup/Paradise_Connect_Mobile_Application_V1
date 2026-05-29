@@ -171,27 +171,41 @@ class _NotifPageState extends State<NotifPage> {
 
                                                   return GestureDetector(
                                                     onTap: () async {
-                                                      int page = 6;
-                                                      String namePage = "Update Status Prospect";
-                                                      if (isCall) { page = 0; namePage = "Call"; }
-                                                      else if (isWhatsApp) { page = 1; namePage = "WhatsApp"; }
-                                                      else if (isMeeting) { page = 2; namePage = "Meeting"; }
-                                                      else if (isTask) { page = 3; namePage = "Task"; }
-                                                      else if (isVisit) { page = 4; namePage = "Visit"; }
-
-                                                      await context.pushNamed(
-                                                        'addContact',
-                                                        extra: ContactDetailArgs(
-                                                          page: page,
-                                                          namePage: namePage,
-                                                          dataActivity: activity,
-                                                          buttonLabel: 'Complete',
-                                                          dataContact: ContactEntity(
-                                                            contactId: activity.contactId,
-                                                            fullName: activity.contactName,
+                                                      if (isCompleted) {
+                                                        await context.pushNamed(
+                                                          'detailContact',
+                                                          extra: ContactDetailArgs(
+                                                            dataContact: ContactEntity(
+                                                              contactId: activity.contactId,
+                                                              fullName: activity.contactName,
+                                                            ),
+                                                            dataActivity: activity,
+                                                            initialTab: 0,
                                                           ),
-                                                        ),
-                                                      );
+                                                        );
+                                                      } else {
+                                                        int page = 6;
+                                                        String namePage = "Update Status Prospect";
+                                                        if (isCall) { page = 0; namePage = "Call"; }
+                                                        else if (isWhatsApp) { page = 1; namePage = "WhatsApp"; }
+                                                        else if (isMeeting) { page = 2; namePage = "Meeting"; }
+                                                        else if (isTask) { page = 3; namePage = "Task"; }
+                                                        else if (isVisit) { page = 4; namePage = "Visit"; }
+
+                                                        await context.pushNamed(
+                                                          'addContact',
+                                                          extra: ContactDetailArgs(
+                                                            page: page,
+                                                            namePage: namePage,
+                                                            dataActivity: activity,
+                                                            buttonLabel: 'Complete',
+                                                            dataContact: ContactEntity(
+                                                              contactId: activity.contactId,
+                                                              fullName: activity.contactName,
+                                                            ),
+                                                          ),
+                                                        );
+                                                      }
                                                       if (context.mounted) _loadData();
                                                     },
                                                     child: Container(

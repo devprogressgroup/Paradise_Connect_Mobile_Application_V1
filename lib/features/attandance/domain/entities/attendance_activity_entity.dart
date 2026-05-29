@@ -14,6 +14,20 @@ class AttendanceActivityVisit {
   });
 }
 
+class AttendanceActivityCheckIn {
+  final String? checkInDate;
+  final String? checkInLocation;
+  final String? checkInNote;
+  final List<String>? checkInAttachment;
+
+  AttendanceActivityCheckIn({
+    this.checkInDate,
+    this.checkInLocation,
+    this.checkInNote,
+    this.checkInAttachment,
+  });
+}
+
 class AttendanceActivityEntity {
   final String date;
   final int salesPersonId;
@@ -29,11 +43,7 @@ class AttendanceActivityEntity {
   final String? clockOutNote;
   final List<String>? clockOutAttachment;
 
-  final String? checkInDate;
-  final String? checkInLocation;
-  final String? checkInNote;
-  final List<String>? checkInAttachment;
-
+  final List<AttendanceActivityCheckIn> checkIns;
   final List<AttendanceActivityVisit> visits;
 
   AttendanceActivityEntity({
@@ -48,10 +58,7 @@ class AttendanceActivityEntity {
     this.clockOutLocation,
     this.clockOutNote,
     this.clockOutAttachment,
-    this.checkInDate,
-    this.checkInLocation,
-    this.checkInNote,
-    this.checkInAttachment,
+    this.checkIns = const [],
     this.visits = const [],
   });
 }

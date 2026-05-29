@@ -870,8 +870,10 @@ class _AttandancePageState extends State<AttandancePage> {
                   if (item.clockOutDate != null) {
                     entries.add((fullName: item.fullName, date: item.date, type: 'Clock Out', typeColor: const Color(0xFFE74C3C), datetime: item.clockOutDate, location: item.clockOutLocation, contactName: null, note: item.clockOutNote, images: item.clockOutAttachment ?? []));
                   }
-                  if (item.checkInDate != null) {
-                    entries.add((fullName: item.fullName, date: item.date, type: 'Check In', typeColor: const Color(0xFF2980B9), datetime: item.checkInDate, location: item.checkInLocation, contactName: null, note: item.checkInNote, images: item.checkInAttachment ?? []));
+                  for (final c in item.checkIns) {
+                    if (c.checkInDate != null) {
+                      entries.add((fullName: item.fullName, date: item.date, type: 'Check In', typeColor: const Color(0xFF2980B9), datetime: c.checkInDate, location: c.checkInLocation, contactName: null, note: c.checkInNote, images: c.checkInAttachment ?? []));
+                    }
                   }
                   for (final v in item.visits) {
                     if (v.datetime != null) {
@@ -880,7 +882,16 @@ class _AttandancePageState extends State<AttandancePage> {
                   }
                 }
 
-                entries.sort((a, b) => b.date.compareTo(a.date));
+                entries.sort((a, b) {
+                  final dateCmp = b.date.compareTo(a.date);
+                  if (dateCmp != 0) return dateCmp;
+                  final aDt = a.datetime != null ? DateTime.tryParse(a.datetime!) : null;
+                  final bDt = b.datetime != null ? DateTime.tryParse(b.datetime!) : null;
+                  if (aDt == null && bDt == null) return 0;
+                  if (aDt == null) return 1;
+                  if (bDt == null) return -1;
+                  return bDt.compareTo(aDt);
+                });
 
                 if (entries.isEmpty) {
                   return const Padding(
@@ -894,7 +905,7 @@ class _AttandancePageState extends State<AttandancePage> {
                 for (final e in entries) {
                   grouped.putIfAbsent(e.date, () => []).add(e);
                 }
-                final dates = grouped.keys.toList();
+                final dates = grouped.keys.toList()..sort((a, b) => b.compareTo(a));
 
                 return ListView.builder(
                   shrinkWrap: true,
@@ -1567,9 +1578,9 @@ class _AttandancePageState extends State<AttandancePage> {
                       children: [
                         Row(
                           children: [
-                            Icon(Icons.access_time_filled, color:flagParam == 0? Color(greenPercentColor): Color(redPeriodColor), size: 10),
+                            Icon(Icons.access_time_filled, color: flagParam == 0 ? Color(greenPercentColor) : flagParam == 1 ? Color(redPeriodColor) : Color(primaryColor), size: 10),
                             SizedBox(width: 10),
-                            Text(() { final raw = flagParam == 0 ? attendance?.clockIn : attendance?.clockOut; final dt = raw != null ? DateTime.tryParse(raw) : null; return dt != null ? DateHelper.formatTime(dt) : (raw ?? '-'); }(), style: TextStyle(color: Colors.white, fontSize: 10)),
+                            Text(() { final raw = flagParam == 0 ? attendance?.clockIn : flagParam == 1 ? attendance?.clockOut : attendance?.checkInActivity; final dt = raw != null ? DateTime.tryParse(raw) : null; return dt != null ? DateHelper.formatTime(dt) : (raw ?? '-'); }(), style: TextStyle(color: Colors.white, fontSize: 10)),
                           ],
                         ),
                         Row(
@@ -1585,7 +1596,7 @@ class _AttandancePageState extends State<AttandancePage> {
                             SizedBox(width: 10),
                             SizedBox(
                               width: 150,
-                              child: Text("${flagParam == 0? attendance?.location0 :attendance?.location1}", style: TextStyle(color: Colors.white, fontSize: 10), overflow: TextOverflow.ellipsis),
+                              child: Text("${flagParam == 0 ? attendance?.location0 : flagParam == 1 ? attendance?.location1 : attendance?.location6}", style: TextStyle(color: Colors.white, fontSize: 10), overflow: TextOverflow.ellipsis),
                             ),
                           ],
                         ),
