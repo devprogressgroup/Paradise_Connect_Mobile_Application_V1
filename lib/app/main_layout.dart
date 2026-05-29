@@ -274,21 +274,21 @@ class _MainLayoutState extends State<MainLayout> {
               ),
                _buildDrawerItem(context, icSidebarAttandance, 'Attandance', path: '/attandance', index: 6),
               const Spacer(),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 40.0),
-                child: ElevatedButton.icon(
-                  onPressed: () {
-                    // WA Redirect
-                  },
-                  icon: Image.asset(icSidebarChatSA, width: 24, height: 24, color: Colors.white),
-                  label: const Text('Chat SA',style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w700)),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Color(primaryColor),
-                    minimumSize: const Size(double.infinity, 48),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  ),
-                ),
-              ),
+              // Padding(
+              //   padding: const EdgeInsets.symmetric(horizontal: 40.0),
+              //   child: ElevatedButton.icon(
+              //     onPressed: () {
+              //       // WA Redirect
+              //     },
+              //     icon: Image.asset(icSidebarChatSA, width: 24, height: 24, color: Colors.white),
+              //     label: const Text('Chat SA',style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w700)),
+              //     style: ElevatedButton.styleFrom(
+              //       backgroundColor: Color(primaryColor),
+              //       minimumSize: const Size(double.infinity, 48),
+              //       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              //     ),
+              //   ),
+              // ),
               const Spacer(),
               Padding(
                 padding: const EdgeInsets.symmetric( horizontal: 20),

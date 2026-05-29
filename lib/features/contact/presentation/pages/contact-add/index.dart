@@ -737,6 +737,14 @@ class _ContactAddPageState extends State<ContactAddPage> {
                   followUpDate: selectedDate!,
                   description: descFormActivityTC.text.trim().isEmpty ? null : descFormActivityTC.text.trim(),
                 ).then((_) => context.pop());
+              } else if (state.status == ActivityStatus.followUpSuccess) {
+                context.pushReplacementNamed(
+                  'detailContact',
+                  extra: ContactDetailArgs(
+                    dataContact: widget.args.dataContact,
+                    initialTab: 0,
+                  ),
+                );
               } else {
                 context.pop();
               }
