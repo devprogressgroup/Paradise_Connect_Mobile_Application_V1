@@ -142,6 +142,15 @@ class _FilePickerSheet extends StatelessWidget {
   // Web desktop browser: falls back to file picker.
   Future<PickedFileResult?> _pickCamera() async {
     try {
+      if (kIsWeb) {
+        // Web: image_picker_for_web uses <input capture="environment"> —
+        // opens camera on mobile browsers, file dialog on desktop browsers.
+        // imageQuality & preferredCameraDevice are not supported on web.
+        final XFile? file = await ImagePicker().pickImage(source: ImageSource.camera);
+        if (file == null) return null;
+        final bytes = await file.readAsBytes();
+        return PickedFileResult(path: null, bytes: bytes, name: file.name, isImage: true, isPdf: false);
+      }
       final XFile? file = await ImagePicker().pickImage(
         source: ImageSource.camera,
         imageQuality: 85,
@@ -150,13 +159,14 @@ class _FilePickerSheet extends StatelessWidget {
       if (file == null) return null;
       final bytes = await file.readAsBytes();
       return PickedFileResult(
-        path: kIsWeb ? null : file.path,
+        path: file.path,
         bytes: bytes,
         name: file.name,
         isImage: true,
         isPdf: false,
       );
-    } catch (_) {
+    } catch (e) {
+      print('[CustomFilePicker] camera error: $e');
       return null;
     }
   }
@@ -193,7 +203,8 @@ class _FilePickerSheet extends StatelessWidget {
           isPdf: false,
         );
       }
-    } catch (_) {
+    } catch (e) {
+      print('[CustomFilePicker] gallery error: $e');
       return null;
     }
   }
@@ -219,7 +230,8 @@ class _FilePickerSheet extends StatelessWidget {
         isImage: false,
         isPdf: isPdf,
       );
-    } catch (_) {
+    } catch (e) {
+      print('[CustomFilePicker] document error: $e');
       return null;
     }
   }

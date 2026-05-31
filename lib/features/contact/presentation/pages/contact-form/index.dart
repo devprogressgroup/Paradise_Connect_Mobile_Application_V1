@@ -32,12 +32,14 @@ import '../../state/prospect_status/prospect_status_state.dart';
 import '../../state/contact_properties/contact_properties_bloc.dart';
 import '../../state/contact_properties/contact_properties_event.dart';
 import '../../state/contact_properties/contact_properties_state.dart';
+import '../../../domain/entities/contact/contact_property.dart';
 import 'package:progress_group/features/saleskit/presentation/state/township/township_bloc.dart';
 import 'package:progress_group/features/saleskit/presentation/state/township/township_event.dart';
 import 'package:progress_group/features/saleskit/presentation/state/township/township_state.dart';
 import 'package:progress_group/features/contact/presentation/state/property_unit/property_unit_cubit.dart';
 import 'package:progress_group/features/contact/presentation/state/property_unit/property_unit_state.dart';
 import '../../../../../core/utils/widget/error_dialog.dart';
+import '../../../../../core/utils/widget/custom_file_picker.dart';
 import '../../state/activity/activity_bloc.dart';
 import '../../state/activity/activity_event.dart';
 
@@ -119,6 +121,8 @@ class _ContactFormPageState extends State<ContactFormPage> {
 
   List<Map<String, dynamic>> salesInfoFields = [];
   final Map<int, TextEditingController> _propertyControllers = {};
+  final Map<int, PickedFileResult?> _propertyFiles = {};
+  bool _propertyFocusHandled = false;
   bool _isDialogShowing = false;
 
   FocusNode fullNameFN = FocusNode();
@@ -176,8 +180,16 @@ class _ContactFormPageState extends State<ContactFormPage> {
     final isUpdate = widget.args.page == 1;
     final List<Map<String, dynamic>> propertiesJson = [];
     _propertyControllers.forEach((id, ctrl) {
-      if (ctrl.text.isNotEmpty) {
+      if (ctrl.text.isNotEmpty && _propertyFiles[id] == null) {
         propertiesJson.add({'property_id': id, 'property_value': ctrl.text});
+      }
+    });
+    Map<int, Uint8List>? fileBytes;
+    Map<int, String>? fileNames;
+    _propertyFiles.forEach((id, file) {
+      if (file != null && file.bytes != null) {
+        (fileBytes ??= {})[id] = file.bytes!;
+        (fileNames ??= {})[id] = file.name;
       }
     });
     return CreateContactParams(
@@ -231,6 +243,8 @@ class _ContactFormPageState extends State<ContactFormPage> {
       noKtp: noKTPTC.text.isNotEmpty ? noKTPTC.text : null,
       ktpAddress: ktpAddressTC.text.isNotEmpty ? ktpAddressTC.text : null,
       propertiesJson: propertiesJson.isNotEmpty ? propertiesJson : null,
+      propertyFileBytes: fileBytes,
+      propertyFileNames: fileNames,
     );
   }
 
@@ -331,10 +345,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
         selectFirstTownshipId = first.id;
       });
     }
-    if (context.read<ContactPropertiesBloc>().state.status !=
-        ContactPropertiesStatus.loaded) {
-      context.read<ContactPropertiesBloc>().add(FetchContactPropertiesEvent());
-    }
+    context.read<ContactPropertiesBloc>().add(FetchContactPropertiesEvent());
     if (context.read<LostReasonBloc>().state.status != LostReasonStatus.loaded) {
       context.read<LostReasonBloc>().add(FetchLostReasonsEvent());
     }
@@ -1768,6 +1779,20 @@ class _ContactFormPageState extends State<ContactFormPage> {
                         if (state.status == ContactPropertiesStatus.error) {
                           return Padding(padding: const EdgeInsets.all(8.0), child: Text('Failed to load properties: ${state.errorMessage}'));
                         }
+
+                        // Auto-scroll + auto-open when arriving from view mode with a focusField
+                        if (state.status == ContactPropertiesStatus.loaded &&
+                            widget.args.focusField != null &&
+                            widget.args.page == 1 &&
+                            !_propertyFocusHandled) {
+                          WidgetsBinding.instance.addPostFrameCallback((_) {
+                            if (!mounted || _propertyFocusHandled) return;
+                            _propertyFocusHandled = true;
+                            Future.delayed(const Duration(milliseconds: 200), () {
+                              if (mounted) _scrollToField(widget.args.focusField!);
+                            });
+                          });
+                        }
                 
                         final groups = state.groups.where((g) => g.name != 'sales_information' && g.name != 'contact_information').toList();
                 
@@ -1795,6 +1820,14 @@ class _ContactFormPageState extends State<ContactFormPage> {
                                       focusNode: FocusNode(),
                                       fieldType: 'int',
                                     );
+                                  }
+
+                                  if (prop.fieldType == 'select') {
+                                    return _buildPropertySelectField(prop, propCtrl);
+                                  }
+
+                                  if (prop.fieldType == 'file') {
+                                    return _buildPropertyFileField(prop.propertyId, prop.label);
                                   }
 
                                   // default text
@@ -2185,6 +2218,34 @@ class _ContactFormPageState extends State<ContactFormPage> {
     );
   }
 
+  void _showPropertySelectSheet(ContactProperty prop, TextEditingController ctrl) async {
+    final items = prop.options.asMap().entries.map((e) =>
+      OwnerDropdownItem(id: e.key, name: e.value['label'] ?? ''),
+    ).toList();
+
+    final currentIdx = prop.options.indexWhere((o) => o['value'] == ctrl.text);
+
+    final result = await context.pushNamed(
+      'detailContactDropdown',
+      extra: ContactDropdownArgs(
+        title: 'Pilih ${prop.label}',
+        items: items,
+        selectedId: currentIdx >= 0 ? currentIdx : null,
+      ),
+    );
+
+    if (result != null && mounted) {
+      final selected = result as OwnerDropdownItem;
+      final value = prop.options[selected.id!]['value'] ?? '';
+      setState(() => ctrl.text = value);
+    }
+  }
+
+  void _showPropertyFilePicker(int propertyId) async {
+    final result = await CustomFilePicker.show(context);
+    if (result != null && mounted) setState(() => _propertyFiles[propertyId] = result);
+  }
+
   void _scrollToField(String fieldLabel) {
     final key = _fieldKeys[fieldLabel];
     if (key?.currentContext != null) {
@@ -2252,6 +2313,141 @@ class _ContactFormPageState extends State<ContactFormPage> {
     context.read<ContactBloc>().add(FetchContactDetailEvent(contact.contactId!));
     context.read<ContactDetailActivityBloc>().add(
       FetchActivitiesEvent(contactId: contact.contactId!, isRefresh: true),
+    );
+  }
+
+  Widget _buildPropertySelectField(ContactProperty prop, TextEditingController ctrl) {
+    final bool canNavigate = widget.args.page == 2;
+    final bool isHighlighted = _highlightedField == prop.label;
+    final fieldKey = _fieldKeys.putIfAbsent(prop.label, () => GlobalKey());
+    final String selectedValue = ctrl.text;
+    final bool isEmpty = selectedValue.isEmpty;
+    final String displayLabel = isEmpty
+        ? prop.label
+        : (prop.options.firstWhere(
+            (o) => o['value'] == selectedValue,
+            orElse: () => {'label': selectedValue, 'value': selectedValue},
+          )['label'] ?? selectedValue);
+
+    return GestureDetector(
+      onTap: canNavigate
+          ? () => _goToEdit(focusField: prop.label)
+          : () => _showPropertySelectSheet(prop, ctrl),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 300),
+        key: fieldKey,
+        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+        constraints: const BoxConstraints(minHeight: 50),
+        decoration: BoxDecoration(
+          color: isHighlighted ? Color(primaryColor).withValues(alpha: 0.06) : Color(whiteColor),
+          border: Border(bottom: BorderSide(width: isHighlighted ? 2 : 1, color: isHighlighted ? Color(primaryColor) : Color(grey9Color))),
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (!isEmpty)
+                    Text(prop.label, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: isHighlighted ? Color(primaryColor) : Color(grey2Color))),
+                  Text(
+                    displayLabel,
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      color: isHighlighted ? Color(primaryColor) : isEmpty ? Color(grey2Color) : Color(blackColor),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            if (!canNavigate) const Icon(Icons.arrow_drop_down, size: 28),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPropertyFileField(int propertyId, String label) {
+    final bool canNavigate = widget.args.page == 2;
+    final bool isHighlighted = _highlightedField == label;
+    final fieldKey = _fieldKeys.putIfAbsent(label, () => GlobalKey());
+    final picked = _propertyFiles[propertyId];
+    final existingUrl = _getOrCreatePropertyController(propertyId).text;
+    final hasExisting = existingUrl.isNotEmpty;
+    final hasFile = picked != null || hasExisting;
+
+    return GestureDetector(
+      onTap: canNavigate ? () => _goToEdit(focusField: label) : null,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 300),
+        key: fieldKey,
+        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+        constraints: const BoxConstraints(minHeight: 50),
+        decoration: BoxDecoration(
+          color: isHighlighted ? Color(primaryColor).withValues(alpha: 0.06) : Color(whiteColor),
+          border: Border(bottom: BorderSide(width: isHighlighted ? 2 : 1, color: isHighlighted ? Color(primaryColor) : Color(grey9Color))),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Label kecil di atas (sama seperti _buildFieldDown)
+            Text(label, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: isHighlighted ? Color(primaryColor) : Color(grey2Color))),
+            const SizedBox(height: 4),
+            Row(
+              children: [
+                Expanded(
+                  child: hasFile
+                      ? GestureDetector(
+                          onTap: canNavigate
+                              ? null
+                              : () {
+                                  final url = picked != null ? null : existingUrl;
+                                  if (url != null && url.isNotEmpty) {
+                                    context.pushNamed('attachmentWebView', extra: url);
+                                  } else if (picked != null) {
+                                    // new picked file — no URL yet, just re-pick
+                                    _showPropertyFilePicker(propertyId);
+                                  }
+                                },
+                          child: Row(
+                            children: [
+                              Icon(Icons.insert_drive_file_rounded, size: 16, color: Color(primaryColor)),
+                              const SizedBox(width: 6),
+                              Expanded(
+                                child: Text(
+                                  picked != null ? picked.name : 'Lihat File',
+                                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(primaryColor)),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ),
+                        )
+                      : const SizedBox.shrink(),
+                ),
+                if (!canNavigate) ...[
+                  if (hasFile)
+                    GestureDetector(
+                      onTap: () => setState(() {
+                        _propertyFiles[propertyId] = null;
+                        _getOrCreatePropertyController(propertyId).clear();
+                      }),
+                      child: Icon(Icons.close, color: Color(redColor), size: 20),
+                    ),
+                  const SizedBox(width: 8),
+                  GestureDetector(
+                    onTap: () => _showPropertyFilePicker(propertyId),
+                    child: Icon(Icons.upload_file_rounded, color: Color(grey2Color), size: 20),
+                  ),
+                ],
+              ],
+            ),
+          ],
+        ),
+      ),
     );
   }
 

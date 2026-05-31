@@ -1,3 +1,4 @@
+import 'dart:typed_data';
 import 'package:equatable/equatable.dart';
 
 class CreateContactParams extends Equatable {
@@ -55,6 +56,8 @@ class CreateContactParams extends Equatable {
   final int? lastCommercialId;
   final int? firstProductId;
   final int? lastProductId;
+  final Map<int, Uint8List>? propertyFileBytes;
+  final Map<int, String>? propertyFileNames;
 
   const CreateContactParams({
     this.fullName,
@@ -111,6 +114,8 @@ class CreateContactParams extends Equatable {
     this.lastCommercialId,
     this.firstProductId,
     this.lastProductId,
+    this.propertyFileBytes,
+    this.propertyFileNames,
   });
 
   Map<String, dynamic> toJson() {
@@ -228,5 +233,7 @@ class CreateContactParams extends Equatable {
     lastCommercialId,
     firstProductId,
     lastProductId,
+    propertyFileBytes,
+    propertyFileNames,
   ];
 }

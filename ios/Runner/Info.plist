@@ -49,6 +49,12 @@
 		</dict>
 		<key>NSContactsUsageDescription</key>
 		<string>Digunakan untuk mengisi data kontak secara otomatis dari buku kontak</string>
+		<key>NSCameraUsageDescription</key>
+		<string>Digunakan untuk mengambil foto dokumen atau lampiran</string>
+		<key>NSPhotoLibraryUsageDescription</key>
+		<string>Digunakan untuk memilih foto atau file dari galeri</string>
+		<key>NSPhotoLibraryAddUsageDescription</key>
+		<string>Digunakan untuk menyimpan foto ke galeri</string>
 		<key>UIApplicationSupportsIndirectInputEvents</key>
 		<true/>
 		<key>UILaunchStoryboardName</key>

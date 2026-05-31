@@ -3,11 +3,12 @@ import '../../../domain/entities/contact/contact_property.dart';
 class ContactPropertyModel extends ContactProperty {
   ContactPropertyModel({
     required super.propertyId,
-    required super.objectId,
+    super.objectId,
     required super.groupId,
     required super.name,
     required super.label,
     required super.fieldType,
+    super.options = const [],
   });
 
   factory ContactPropertyModel.fromJson(Map<String, dynamic> json) {
@@ -18,6 +19,10 @@ class ContactPropertyModel extends ContactProperty {
       name: json['name'],
       label: json['label'],
       fieldType: json['field_type'],
+      options: (json['options'] as List<dynamic>?)
+              ?.map((o) => {'label': o['label'] as String, 'value': o['value'] as String})
+              .toList() ??
+          [],
     );
   }
 }

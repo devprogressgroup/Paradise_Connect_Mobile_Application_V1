@@ -1,5 +1,4 @@
 
-import 'dart:convert';
 
 import 'package:dio/dio.dart';
 import 'package:progress_group/core/utils/helpers/error_message.dart';
@@ -187,23 +186,56 @@ class ContactRemoteDataSourceImpl implements ContactRemoteDataSource {
     }
   }
 
-  @override
+  FormData _buildFormData(CreateContactParams params) {
+    final data = <String, dynamic>{};
+
+    // Scalar contact fields
+    params.toJson().forEach((key, value) {
+      if (key == 'properties_json' || key == 'properties' || value == null) return;
+      if (value is List || value is Map) return;
+      data[key] = value;
+    });
+
+    // Build properties_json list — Dio's FormData.fromMap serializes List<Map>
+    // into properties_json[0][property_id], properties_json[0][property_value], etc.
+    // which is exactly what the backend service expects.
+    final propertiesList = <Map<String, dynamic>>[];
+
+    for (final entry in (params.propertiesJson ?? [])) {
+      propertiesList.add({
+        'property_id': entry['property_id'],
+        'property_value': entry['property_value'],
+      });
+    }
+
+    params.propertyFileBytes?.forEach((propId, bytes) {
+      final name = params.propertyFileNames?[propId] ?? 'file';
+      propertiesList.add({
+        'property_id': propId,
+        'property_value': MultipartFile.fromBytes(bytes, filename: name),
+      });
+    });
+
+    if (propertiesList.isNotEmpty) {
+      data['properties_json'] = propertiesList;
+    }
+
+    print('[FormData] data keys: ${data.keys.toList()}');
+    print('[FormData] properties_json: $propertiesList');
+
+    return FormData.fromMap(data);
+  }
+
   Future<ContactModel> createContact(CreateContactParams params) async {
     try {
-      final response = await dio.post(
-        '/contacts/create',
-        data: params.toJson(),
-      );
+      final response = await dio.post('/contacts/create', data: _buildFormData(params));
 
       if (response.data['status'] == true) {
         return ContactModel.fromJson(response.data['data']);
       }
-
       throw Exception(response.data['message'] ?? 'Failed to create contact');
     } on DioException catch (e) {
       print("error create contact: ${e.response?.data}");
-      print("params create contact: ${params.toJson()}");
-
       throw Exception(getErrorMessage(e, 'Failed to create contact'));
     }
   }
@@ -211,20 +243,14 @@ class ContactRemoteDataSourceImpl implements ContactRemoteDataSource {
   @override
   Future<void> updateContact(int id, CreateContactParams params) async {
     try {
-      final response = await dio.patch(
-        '/contacts/$id',
-        data: params.toJson(),
-      );
+      final response = await dio.patch('/contacts/$id', data: _buildFormData(params));
 
       if (response.data['status'] != true) {
         throw Exception(response.data['message'] ?? 'Failed to update contact');
       }
     } on DioException catch (e) {
       print("error update contact: ${e.response?.data}");
-      print(
-    "params update contact id $id:\n${const JsonEncoder.withIndent('  ').convert(params.toJson())}",
-  );
-
+      print("error detail: ${e.response?.data}");
       throw Exception(getErrorMessage(e, 'Failed to update contact'));
     }
   }
