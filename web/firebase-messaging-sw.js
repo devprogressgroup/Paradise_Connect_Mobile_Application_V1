@@ -14,26 +14,36 @@ const messaging = firebase.messaging();
 
 // Handles background / terminated notifications on web
 messaging.onBackgroundMessage(function(payload) {
-  const notificationTitle = (payload.notification && payload.notification.title) || 'Notifikasi Baru';
-  const notificationOptions = {
-    body: (payload.notification && payload.notification.body) || '',
+  const title = (payload.notification && payload.notification.title)
+    || (payload.data && payload.data.title)
+    || 'Paradise Connect';
+
+  const body = (payload.notification && payload.notification.body)
+    || (payload.data && payload.data.body)
+    || '';
+
+  return self.registration.showNotification(title, {
+    body: body,
     icon: '/icons/Icon-192.png',
-    data: payload.data || {}
-  };
-  return self.registration.showNotification(notificationTitle, notificationOptions);
+    badge: '/icons/Icon-192.png',
+    data: payload.data || {},
+    requireInteraction: false,
+  });
 });
 
-// Focus existing tab (or open new one) when notification is clicked
+// Navigate to the app when notification is clicked
 self.addEventListener('notificationclick', function(event) {
   event.notification.close();
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function(clientList) {
+      // Focus existing open tab if found
       for (let i = 0; i < clientList.length; i++) {
         const client = clientList[i];
         if ('focus' in client) {
           return client.focus();
         }
       }
+      // Otherwise open a new tab
       if (clients.openWindow) {
         return clients.openWindow('/');
       }

@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:dio/dio.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart' show debugPrint, kIsWeb;
+import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:progress_group/app/router.dart';
 import 'package:progress_group/features/contact/data/arguments/contact_detail_args.dart';
@@ -23,6 +24,10 @@ class PushNotificationService {
   static Dio? _dio;
   static RemoteMessage? _pendingMessage;
   static final FirebaseMessaging _messaging = FirebaseMessaging.instance;
+
+  /// Key untuk menampilkan SnackBar dari luar widget tree (web foreground notif).
+  /// Pasang ke MaterialApp.scaffoldMessengerKey di main.dart.
+  static final scaffoldMessengerKey = GlobalKey<ScaffoldMessengerState>();
 
   /// Dipanggil setelah DioClient dibuat (di build() MyApp) agar token bisa dikirim ke backend.
   static void setDio(Dio dio) {
@@ -108,19 +113,50 @@ class PushNotificationService {
   static Future<void> _sendTokenToBackend(String token) async {
     if (_dio == null) return;
     try {
-      await _dio!.post('/fcm-token', data: {'fcm_token': token});
+      await _dio!.post('/fcm-token', data: {
+        'fcm_token': token,
+        'platform': kIsWeb ? 'web' : 'mobile',
+      });
     } catch (_) {}
+  }
+
+  /// Tampilkan in-app SnackBar di web — selalu muncul meski tab sedang fokus.
+  static void _showWebBanner(String? title, String? body) {
+    if (title == null) return;
+    scaffoldMessengerKey.currentState
+      ?..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
+              if (body != null && body.isNotEmpty) Text(body),
+            ],
+          ),
+          duration: const Duration(seconds: 6),
+          behavior: SnackBarBehavior.floating,
+          margin: const EdgeInsets.all(16),
+        ),
+      );
   }
 
   // Tampilkan local notification saat app di foreground
   static void _handleForegroundMessage(RemoteMessage message) {
     final notification = message.notification;
-    if (notification == null) return;
 
     if (kIsWeb) {
-      showWebNotification(notification.title, notification.body);
+      final title = notification?.title ?? message.data['title'] as String?;
+      final body  = notification?.body  ?? message.data['body']  as String?;
+      // Browser sering suppress Notification API saat tab aktif — tampilkan
+      // in-app banner sebagai fallback yang selalu muncul.
+      _showWebBanner(title, body);
+      showWebNotification(title, body);
       return;
     }
+
+    if (notification == null) return;
 
     flutterLocalNotificationsPlugin.show(
       notification.hashCode,

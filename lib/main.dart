@@ -261,6 +261,7 @@ class _MyAppState extends State<MyApp> {
 
     return MaterialApp.router(
       debugShowCheckedModeBanner: false,
+      scaffoldMessengerKey: PushNotificationService.scaffoldMessengerKey,
       theme: AppTheme.lightTheme,
       routerConfig: AppRouter.router,
       builder: (context, child) {
