@@ -1156,7 +1156,7 @@ class _ContactDetailPageState extends State<ContactDetailPage>with TickerProvide
                                             dataContact:
                                                 widget.args.dataContact,
                                             dataAttachment: item,
-                                            page: 6,
+                                            page: 7,
                                             namePage: "Attachment",
                                           ),
                                         );

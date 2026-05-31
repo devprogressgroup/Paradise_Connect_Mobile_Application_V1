@@ -288,7 +288,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
       }
     }
 
-    if (widget.args.page == 5 && widget.args.dataAttachment != null) {
+    if ((widget.args.page == 5 || widget.args.page == 7) && widget.args.dataAttachment != null) {
       final data = widget.args.dataAttachment!;
 
       setState(() {
@@ -546,7 +546,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
     final contactId = widget.args.dataContact?.contactId;
     if (contactId == null) return;
 
-    final isEdit = widget.args.page == 6;
+    final isEdit = widget.args.page == 7;
 
     if (selectedTypeId == null) {
       ScaffoldMessenger.of(
@@ -568,6 +568,15 @@ class _ContactAddPageState extends State<ContactAddPage> {
       fileBytes: selectedFileBytes,
       fileName: selectedFileName,
     );
+
+    print('[submitAttachment] isEdit: $isEdit');
+    print('[submitAttachment] contactId: $contactId');
+    print('[submitAttachment] attachmentId: ${isEdit ? widget.args.dataAttachment?.contactAttachmentId : null}');
+    print('[submitAttachment] attachmentTypeId: ${params.attachmentTypeId}');
+    print('[submitAttachment] attachmentNote: ${params.attachmentNote}');
+    print('[submitAttachment] file: ${params.file?.path}');
+    print('[submitAttachment] fileBytes length: ${params.fileBytes?.length}');
+    print('[submitAttachment] fileName: ${params.fileName}');
 
     context.read<UploadAttachmentBloc>().add(
       SubmitAttachmentEvent(
@@ -902,7 +911,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
                     children: [
                       customHeader(
                         context,
-                        widget.args.page == 0? "Call": widget.args.page == 1? "WhatsApp": widget.args.page == 2? "Meeting": widget.args.page == 3? "Reminder": widget.args.page == 4? "Visit": widget.args.page == 5? "Attachment": selectedStatusName,
+                        widget.args.page == 0? "Call": widget.args.page == 1? "WhatsApp": widget.args.page == 2? "Meeting": widget.args.page == 3? "Reminder": widget.args.page == 4? "Visit": (widget.args.page == 5 || widget.args.page == 7)? "Attachment": selectedStatusName,
                         isBack: true,
                         colorBack: Color(primaryColor),
                       ),
@@ -913,7 +922,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
                           child: SingleChildScrollView(
                             child: Column(
                               children: [
-                                if (widget.args.page == 5)
+                                if (widget.args.page == 5 || widget.args.page == 7)
                                   _buildAttachment()
                                 else if (widget.args.page == 4)
                                   _buildVisit()
@@ -2060,13 +2069,18 @@ class _ContactAddPageState extends State<ContactAddPage> {
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text(
-                          selectedTypeName,
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: selectedTypeName == "Select type"
-                                ? Color(grey2Color)
-                                : Colors.black,
+                        Container(
+                          width: MediaQuery.of(context).size.width * 0.6,
+                          child: Text(
+                            selectedTypeName,
+                            overflow: TextOverflow.ellipsis,
+                            maxLines: 1,
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: selectedTypeName == "Select type"
+                                  ? Color(grey2Color)
+                                  : Colors.black,
+                            ),
                           ),
                         ),
                         if (state is AttachmentTypeLoading)
