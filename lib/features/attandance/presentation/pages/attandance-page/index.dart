@@ -1870,58 +1870,56 @@ class _ActivityCardState extends State<_ActivityCard> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Row(
-                  children: [
-                    Container(
-                      width: 40,
-                      height: 40,
-                      decoration: BoxDecoration(
-                        color: Color(primaryColor),
-                        shape: BoxShape.circle,
-                      ),
-                      child: Center(
-                        child: Text(
-                          getInitials(widget.fullName),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                            color: Color(whiteColor),
-                          ),
+                Expanded(
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 40,
+                        height: 40,
+                        decoration: BoxDecoration(
+                          color: Color(primaryColor),
+                          shape: BoxShape.circle,
                         ),
-                      ),
-                    ),
-                    const SizedBox(width: 5),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          widget.fullName,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
-                        ),
-                        SizedBox(
-                          width: 180,
-                          child: Text(widget.location ?? '', maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 8)),
-                        ),
-                        if (widget.contactName != null && widget.contactName!.isNotEmpty)
-                          SizedBox(
-                            width: 180,
-                            child: Row(
-                              children: [
-                                const Icon(Icons.person_outline, size: 11, color: Color(0xFFE67E22)),
-                                const SizedBox(width: 2),
-                                Expanded(
-                                  child: Text(widget.contactName!, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 11, color: Color(0xFFE67E22))),
-                                ),
-                              ],
+                        child: Center(
+                          child: Text(
+                            getInitials(widget.fullName),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              color: Color(whiteColor),
                             ),
                           ),
-                      ],
-                    ),
-                  ],
+                        ),
+                      ),
+                      const SizedBox(width: 5),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              widget.fullName,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                            ),
+                            Text(widget.location ?? '', maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 8)),
+                            if (widget.contactName != null && widget.contactName!.isNotEmpty)
+                              Row(
+                                children: [
+                                  const Icon(Icons.person_outline, size: 11, color: Color(0xFFE67E22)),
+                                  const SizedBox(width: 2),
+                                  Expanded(
+                                    child: Text(widget.contactName!, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 11, color: Color(0xFFE67E22))),
+                                  ),
+                                ],
+                              ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
@@ -1946,36 +1944,40 @@ class _ActivityCardState extends State<_ActivityCard> {
           Text(widget.note ?? '', style: const TextStyle(fontWeight: FontWeight.w100)),
           const SizedBox(height: 10),
           if (widget.images.isNotEmpty)
-            SizedBox(
-              height: 200,
-              child: Stack(
-                children: [
-                  ListView.builder(
-                    controller: _scrollController,
-                    scrollDirection: Axis.horizontal,
-                    itemCount: widget.images.length,
-                    itemBuilder: (context, index) {
-                      return Container(
-                        margin: const EdgeInsets.only(right: 10),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(8),
-                          child: DriveImage(
-                            url: widget.images[index],
-                            width: 200,
-                            height: 200,
-                            fit: BoxFit.cover,
-                            onTap: () => widget.onImageTap(widget.images[index]),
-                            errorWidget: Container(
-                              width: 200,
-                              height: 200,
-                              color: Colors.grey.shade200,
-                              child: const Icon(Icons.broken_image, size: 40),
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final availableWidth = constraints.maxWidth;
+                final imageWidth = widget.images.length == 1 ? availableWidth : 200.0;
+                return SizedBox(
+                  height: 200,
+                  child: Stack(
+                    children: [
+                      ListView.builder(
+                        controller: _scrollController,
+                        scrollDirection: Axis.horizontal,
+                        itemCount: widget.images.length,
+                        itemBuilder: (context, index) {
+                          return Container(
+                            margin: const EdgeInsets.only(right: 10),
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(8),
+                              child: DriveImage(
+                                url: widget.images[index],
+                                width: imageWidth,
+                                height: 200,
+                                fit: BoxFit.cover,
+                                onTap: () => widget.onImageTap(widget.images[index]),
+                                errorWidget: Container(
+                                  width: imageWidth,
+                                  height: 200,
+                                  color: Colors.grey.shade200,
+                                  child: const Icon(Icons.broken_image, size: 40),
+                                ),
+                              ),
                             ),
-                          ),
-                        ),
-                      );
-                    },
-                  ),
+                          );
+                        },
+                      ),
                   if (widget.images.length > 1 && !_isAtStart)
                     Positioned(
                       left: 5, top: 0, bottom: 0,
@@ -2012,7 +2014,9 @@ class _ActivityCardState extends State<_ActivityCard> {
                     ),
                 ],
               ),
-            ),
+            );
+          },
+        ),
         ],
       ),
     );
