@@ -71,6 +71,34 @@ class _ProfilePageState extends State<ProfilePage> {
     }
   }
 
+  void _submit(String originalEmail, String originalPhone) {
+    final email = emailTC.text.trim();
+    final phone = phoneTC.text.trim();
+    final password = passwordTC.text.trim();
+    final confirmPassword = confirmPasswordTC.text.trim();
+
+    if (password.isNotEmpty && password != confirmPassword) {
+      showSnackbar(context, "Password dan konfirmasi password tidak sama", isError: true);
+      return;
+    }
+
+    final emailChanged = email.isNotEmpty && email != originalEmail;
+    final phoneChanged = phone.isNotEmpty && phone != originalPhone;
+    final passwordChanged = password.isNotEmpty;
+
+    if (!emailChanged && !phoneChanged && !passwordChanged) {
+      showSnackbar(context, "Tidak ada perubahan data", isError: false);
+      return;
+    }
+
+    context.read<AuthBloc>().add(UpdateProfileEvent(
+      email: emailChanged ? email : null,
+      phoneNumber: phoneChanged ? phone : null,
+      password: passwordChanged ? password : null,
+      passwordConfirmation: passwordChanged ? confirmPassword : null,
+    ));
+  }
+
   Future<bool> _showPasswordConfirmDialog() async {
     final profileState = context.read<ProfileBloc>().state;
     if (profileState is! ProfileLoaded) return false;
@@ -109,6 +137,15 @@ class _ProfilePageState extends State<ProfilePage> {
       listener: (context, state) {
         if (state is BiometricEnabledLoaded) {
           setState(() => _biometricEnabled = state.enabled);
+        } else if (state is AuthLoading) {
+          showSnackbar(context, "Menyimpan...", isError: false);
+        } else if (state is AuthSuccess) {
+          passwordTC.clear();
+          confirmPasswordTC.clear();
+          showSnackbar(context, state.message, isError: false);
+          context.read<ProfileBloc>().add(GetProfileEvent(forceRefresh: true));
+        } else if (state is AuthFailure) {
+          showSnackbar(context, state.error, isError: true);
         }
       },
       child: Scaffold(
@@ -348,7 +385,7 @@ class _ProfilePageState extends State<ProfilePage> {
                     const SizedBox(height: 20),
                     Row(
                       children: [
-                        Expanded(child: customButton(() {}, "Submit")),
+                        Expanded(child: customButton(() => _submit(user.email, user.phoneNumber), "Submit")),
                         const SizedBox(width: 20),
                         Expanded(
                           child: customButton(

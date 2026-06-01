@@ -12,6 +12,7 @@ abstract class AuthRepository {
   Future<void> saveCredentials(String username, String password);
   Future<void> saveBiometricEnabled(bool value);
   Future<bool> getBiometricEnabled();
+  Future<String> updateProfile({String? email, String? phoneNumber, String? password, String? passwordConfirmation});
   Future<void> logout();
   Future<UserProfileEntity> getProfile();
 }

@@ -11,6 +11,7 @@ import 'package:progress_group/features/auth/domain/usecase/logout_usecase.dart'
 import 'package:progress_group/features/auth/domain/usecase/reset_password_usecase.dart';
 import 'package:progress_group/features/auth/domain/usecase/save_biometric_enabled_usecase.dart';
 import 'package:progress_group/features/auth/domain/usecase/save_credentials_usecase.dart';
+import 'package:progress_group/features/auth/domain/usecase/update_profile_usecase.dart';
 
 import 'auth_event.dart';
 import 'auth_state.dart';
@@ -24,6 +25,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   final GetBiometricEnabledUseCase getBiometricEnabledUseCase;
   final SaveBiometricEnabledUseCase saveBiometricEnabledUseCase;
   final SaveCredentialsUseCase saveCredentialsUseCase;
+  final UpdateProfileUseCase updateProfileUseCase;
   final LogoutUseCase logoutUseCase;
 
   AuthBloc({
@@ -35,6 +37,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     required this.getBiometricEnabledUseCase,
     required this.saveBiometricEnabledUseCase,
     required this.saveCredentialsUseCase,
+    required this.updateProfileUseCase,
     required this.logoutUseCase,
   }) : super(AuthInitial()) {
     on<LoginEvent>(_onLogin);
@@ -45,6 +48,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     on<CheckBiometricEnabledEvent>(_onCheckBiometricEnabled);
     on<SaveBiometricEnabledEvent>(_onSaveBiometricEnabled);
     on<SaveCredentialsForBiometricEvent>(_onSaveCredentialsForBiometric);
+    on<UpdateProfileEvent>(_onUpdateProfile);
     on<LogoutEvent>(_onLogout);
   }
 
@@ -130,6 +134,21 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       emit(BiometricEnabledLoaded(event.enabled));
     } catch (e) {
       emit(AuthFailure(e.toString()));
+    }
+  }
+
+  Future<void> _onUpdateProfile(UpdateProfileEvent event, Emitter<AuthState> emit) async {
+    emit(AuthLoading());
+    try {
+      final message = await updateProfileUseCase(
+        email: event.email,
+        phoneNumber: event.phoneNumber,
+        password: event.password,
+        passwordConfirmation: event.passwordConfirmation,
+      );
+      emit(AuthSuccess(message));
+    } catch (e) {
+      emit(AuthFailure(e.toString().replaceAll("Exception: ", "")));
     }
   }
 

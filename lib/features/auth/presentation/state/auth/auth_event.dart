@@ -32,6 +32,15 @@ class SaveCredentialsForBiometricEvent extends AuthEvent {
   SaveCredentialsForBiometricEvent(this.username, this.password);
 }
 
+class UpdateProfileEvent extends AuthEvent {
+  final String? email;
+  final String? phoneNumber;
+  final String? password;
+  final String? passwordConfirmation;
+
+  UpdateProfileEvent({this.email, this.phoneNumber, this.password, this.passwordConfirmation});
+}
+
 class LogoutEvent extends AuthEvent {}
 
 class ClearRememberMeEvent extends AuthEvent {}

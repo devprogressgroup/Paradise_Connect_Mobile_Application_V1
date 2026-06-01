@@ -110,6 +110,24 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
+  Future<String> updateProfile({String? email, String? phoneNumber, String? password, String? passwordConfirmation}) async {
+    final result = await remoteDataSource.updateProfile(
+      email: email,
+      phoneNumber: phoneNumber,
+      password: password,
+      passwordConfirmation: passwordConfirmation,
+    );
+
+    final response = BaseResponse<dynamic>.fromJson(result, (data) => data);
+
+    if (!response.status) {
+      throw Exception(response.errors != null ? parseError(response.errors) : response.message);
+    }
+
+    return response.message;
+  }
+
+  @override
   Future<void> saveBiometricEnabled(bool value) {
     return localDataSource.saveBiometricEnabled(value);
   }
