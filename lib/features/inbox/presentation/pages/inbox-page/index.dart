@@ -422,7 +422,7 @@ class _InboxPageState extends State<InboxPage> {
                           borderRadius: BorderRadius.circular(24),
                           boxShadow: [
                             BoxShadow(
-                              color: Color(shadowColor).withOpacity(0.08),
+                              color: Color(shadowColor).withValues(alpha: 0.08),
                               blurRadius: 10,
                               offset: const Offset(0, -2),
                             ),
@@ -620,13 +620,13 @@ class _InboxPageState extends State<InboxPage> {
                       Expanded(
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          crossAxisAlignment: CrossAxisAlignment.center,
                           children: [
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Container(
-                                  width: 150,
-                                  child: Text(
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
                                     item.name,
                                     style: const TextStyle(
                                       fontWeight: FontWeight.w700,
@@ -635,10 +635,7 @@ class _InboxPageState extends State<InboxPage> {
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
                                   ),
-                                ),
-                                Container(
-                                  width: 150,
-                                  child: Text(
+                                  Text(
                                     item.ownerName ?? item.jid,
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
@@ -647,9 +644,10 @@ class _InboxPageState extends State<InboxPage> {
                                       color: Colors.grey,
                                     ),
                                   ),
-                                ),
-                              ],
+                                ],
+                              ),
                             ),
+                            const SizedBox(width: 8),
                             Column(
                               crossAxisAlignment: CrossAxisAlignment.end,
                               children: [
@@ -661,16 +659,7 @@ class _InboxPageState extends State<InboxPage> {
                                       color: Colors.grey,
                                     ),
                                   ),
-                                  Text(
-                                        '${item.unreadCount}',
-                                        style: const TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 10,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
                                 const SizedBox(height: 4),
-
                                 if (item.unreadCount > 0)
                                   Container(
                                     padding: const EdgeInsets.all(4),
@@ -694,7 +683,7 @@ class _InboxPageState extends State<InboxPage> {
                                     ),
                                   ),
                               ],
-                            )
+                            ),
                           ],
                         ),
                       ),

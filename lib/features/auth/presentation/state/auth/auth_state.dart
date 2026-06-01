@@ -22,6 +22,11 @@ class AuthFailure extends AuthState {
 
 
 
+class BiometricEnabledLoaded extends AuthState {
+  final bool enabled;
+  BiometricEnabledLoaded(this.enabled);
+}
+
 class RememberMeLoaded extends AuthState {
   final String username;
   final String password;

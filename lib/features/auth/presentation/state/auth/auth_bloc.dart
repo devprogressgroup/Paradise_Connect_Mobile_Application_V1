@@ -2,11 +2,15 @@
 
 
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:progress_group/features/auth/domain/usecase/clear_remember_me_usecase.dart';
 import 'package:progress_group/features/auth/domain/usecase/forgot_password_usecase.dart';
+import 'package:progress_group/features/auth/domain/usecase/get_biometric_enabled_usecase.dart';
 import 'package:progress_group/features/auth/domain/usecase/get_remember_me_usecase.dart';
 import 'package:progress_group/features/auth/domain/usecase/login_usecase.dart';
 import 'package:progress_group/features/auth/domain/usecase/logout_usecase.dart';
 import 'package:progress_group/features/auth/domain/usecase/reset_password_usecase.dart';
+import 'package:progress_group/features/auth/domain/usecase/save_biometric_enabled_usecase.dart';
+import 'package:progress_group/features/auth/domain/usecase/save_credentials_usecase.dart';
 
 import 'auth_event.dart';
 import 'auth_state.dart';
@@ -16,6 +20,10 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   final ForgotPasswordUseCase forgotPasswordUseCase;
   final ResetPasswordUsecase resetPasswordUsecase;
   final GetRememberMeUseCase getRememberMeUseCase;
+  final ClearRememberMeUseCase clearRememberMeUseCase;
+  final GetBiometricEnabledUseCase getBiometricEnabledUseCase;
+  final SaveBiometricEnabledUseCase saveBiometricEnabledUseCase;
+  final SaveCredentialsUseCase saveCredentialsUseCase;
   final LogoutUseCase logoutUseCase;
 
   AuthBloc({
@@ -23,12 +31,20 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     required this.forgotPasswordUseCase,
     required this.resetPasswordUsecase,
     required this.getRememberMeUseCase,
+    required this.clearRememberMeUseCase,
+    required this.getBiometricEnabledUseCase,
+    required this.saveBiometricEnabledUseCase,
+    required this.saveCredentialsUseCase,
     required this.logoutUseCase,
   }) : super(AuthInitial()) {
     on<LoginEvent>(_onLogin);
     on<ForgotPasswordEvent>(_onForgotPassword);
     on<ResetPasswordEvent>(_onResetPassword);
     on<CheckRememberMeEvent>(_onCheckRememberMe);
+    on<ClearRememberMeEvent>(_onClearRememberMe);
+    on<CheckBiometricEnabledEvent>(_onCheckBiometricEnabled);
+    on<SaveBiometricEnabledEvent>(_onSaveBiometricEnabled);
+    on<SaveCredentialsForBiometricEvent>(_onSaveCredentialsForBiometric);
     on<LogoutEvent>(_onLogout);
   }
 
@@ -75,6 +91,43 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       } else {
         emit(RememberMeEmpty());
       }
+    } catch (e) {
+      emit(AuthFailure(e.toString()));
+    }
+  }
+
+  Future<void> _onClearRememberMe(ClearRememberMeEvent event, Emitter<AuthState> emit) async {
+    try {
+      await clearRememberMeUseCase();
+      emit(RememberMeEmpty());
+    } catch (e) {
+      emit(AuthFailure(e.toString()));
+    }
+  }
+
+  Future<void> _onCheckBiometricEnabled(CheckBiometricEnabledEvent event, Emitter<AuthState> emit) async {
+    try {
+      final enabled = await getBiometricEnabledUseCase();
+      emit(BiometricEnabledLoaded(enabled));
+    } catch (e) {
+      emit(BiometricEnabledLoaded(false));
+    }
+  }
+
+  Future<void> _onSaveCredentialsForBiometric(SaveCredentialsForBiometricEvent event, Emitter<AuthState> emit) async {
+    try {
+      await saveCredentialsUseCase(event.username, event.password);
+      await saveBiometricEnabledUseCase(true);
+      emit(BiometricEnabledLoaded(true));
+    } catch (e) {
+      emit(AuthFailure(e.toString()));
+    }
+  }
+
+  Future<void> _onSaveBiometricEnabled(SaveBiometricEnabledEvent event, Emitter<AuthState> emit) async {
+    try {
+      await saveBiometricEnabledUseCase(event.enabled);
+      emit(BiometricEnabledLoaded(event.enabled));
     } catch (e) {
       emit(AuthFailure(e.toString()));
     }

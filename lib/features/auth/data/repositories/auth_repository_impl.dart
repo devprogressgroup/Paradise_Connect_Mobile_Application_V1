@@ -105,6 +105,21 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
+  Future<void> saveCredentials(String username, String password) {
+    return localDataSource.saveRememberMe(username, password);
+  }
+
+  @override
+  Future<void> saveBiometricEnabled(bool value) {
+    return localDataSource.saveBiometricEnabled(value);
+  }
+
+  @override
+  Future<bool> getBiometricEnabled() {
+    return localDataSource.getBiometricEnabled();
+  }
+
+  @override
   Future<void> logout() async {
     await localDataSource.clearToken();
   }

@@ -19,6 +19,19 @@ class ForgotPasswordEvent extends AuthEvent {
 
 class CheckRememberMeEvent extends AuthEvent {}
 
+class CheckBiometricEnabledEvent extends AuthEvent {}
+
+class SaveBiometricEnabledEvent extends AuthEvent {
+  final bool enabled;
+  SaveBiometricEnabledEvent(this.enabled);
+}
+
+class SaveCredentialsForBiometricEvent extends AuthEvent {
+  final String username;
+  final String password;
+  SaveCredentialsForBiometricEvent(this.username, this.password);
+}
+
 class LogoutEvent extends AuthEvent {}
 
 class ClearRememberMeEvent extends AuthEvent {}

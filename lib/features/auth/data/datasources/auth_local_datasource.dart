@@ -11,6 +11,9 @@ abstract class AuthLocalDataSource {
 
   Future<void> saveAutoLogin(bool value);
   Future<bool> isAutoLogin();
+
+  Future<void> saveBiometricEnabled(bool value);
+  Future<bool> getBiometricEnabled();
 }
 
 class AuthLocalDataSourceImpl implements AuthLocalDataSource {
@@ -23,6 +26,7 @@ class AuthLocalDataSourceImpl implements AuthLocalDataSource {
   static const _rememberUsernameKey = 'remember_username';
   static const _rememberPasswordKey = 'remember_password';
   static const _autoLoginKey = 'is_auto_login';
+  static const _biometricEnabledKey = 'biometric_enabled';
 
   @override
   Future<void> saveToken(String token, {bool persistent = false}) async {
@@ -76,5 +80,15 @@ class AuthLocalDataSourceImpl implements AuthLocalDataSource {
   @override
   Future<bool> isAutoLogin() async {
     return sharedPreferences.getBool(_autoLoginKey) ?? false;
+  }
+
+  @override
+  Future<void> saveBiometricEnabled(bool value) async {
+    await sharedPreferences.setBool(_biometricEnabledKey, value);
+  }
+
+  @override
+  Future<bool> getBiometricEnabled() async {
+    return sharedPreferences.getBool(_biometricEnabledKey) ?? false;
   }
 }

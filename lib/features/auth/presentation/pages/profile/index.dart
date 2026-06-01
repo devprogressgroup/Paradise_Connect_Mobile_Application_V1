@@ -1,10 +1,14 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
+import 'package:local_auth/local_auth.dart';
 import 'package:progress_group/core/utils/widget/shimmer_loading.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:progress_group/core/utils/widget/custom_button.dart';
+import 'package:progress_group/core/utils/widget/custom_snackbar.dart';
 import 'package:progress_group/features/auth/presentation/state/auth/auth_bloc.dart';
 import 'package:progress_group/features/auth/presentation/state/auth/auth_event.dart';
+import 'package:progress_group/features/auth/presentation/state/auth/auth_state.dart';
 import 'package:progress_group/features/auth/presentation/state/profile/profile_bloc.dart';
 import 'package:progress_group/features/auth/presentation/state/profile/profile_event.dart';
 import 'package:progress_group/features/auth/presentation/state/profile/profile_state.dart';
@@ -33,11 +37,59 @@ class _ProfilePageState extends State<ProfilePage> {
 
   bool _isObscure = true;
   bool _isObscureConfirm = true;
+  bool _biometricEnabled = false;
+
+  final LocalAuthentication _localAuth = LocalAuthentication();
 
   @override
   void initState() {
     super.initState();
     context.read<ProfileBloc>().add(GetProfileEvent());
+    context.read<AuthBloc>().add(CheckBiometricEnabledEvent());
+  }
+
+  Future<void> _onBiometricToggle(bool value) async {
+    if (value) {
+      try {
+        final isSupported = await _localAuth.isDeviceSupported();
+        final availableBiometrics = await _localAuth.getAvailableBiometrics();
+
+        if (!isSupported || availableBiometrics.isEmpty) {
+          if (mounted) showSnackbar(context, "Fingerprint belum didaftarkan di perangkat ini", isError: true);
+          return;
+        }
+      } catch (e) {
+        if (mounted) showSnackbar(context, "Gagal cek biometrik: $e", isError: true);
+        return;
+      }
+
+      // Minta password untuk simpan credentials
+      final confirmed = await _showPasswordConfirmDialog();
+      if (!confirmed) return;
+    } else {
+      if (mounted) context.read<AuthBloc>().add(SaveBiometricEnabledEvent(false));
+    }
+  }
+
+  Future<bool> _showPasswordConfirmDialog() async {
+    final profileState = context.read<ProfileBloc>().state;
+    if (profileState is! ProfileLoaded) return false;
+
+    final username = profileState.profile.username;
+
+    final password = await showDialog<String>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => _BiometricPasswordDialog(username: username),
+    );
+
+    if (password != null && mounted) {
+      context.read<AuthBloc>().add(
+        SaveCredentialsForBiometricEvent(username, password),
+      );
+      return true;
+    }
+    return false;
   }
 
 
@@ -46,19 +98,27 @@ class _ProfilePageState extends State<ProfilePage> {
     emailTC.dispose();
     phoneTC.dispose();
     passwordTC.dispose();
+    confirmPasswordTC.dispose();
     super.dispose();
   }
 
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: SafeArea(
-        child: Column(
-          children: [
-            customHeader(context, "My Profile", isBack: true, colorBack: Color(primaryColor), onBack: () => context.go('/')),
-            Expanded(child: _buildBody()),
-          ],
+    return BlocListener<AuthBloc, AuthState>(
+      listener: (context, state) {
+        if (state is BiometricEnabledLoaded) {
+          setState(() => _biometricEnabled = state.enabled);
+        }
+      },
+      child: Scaffold(
+        body: SafeArea(
+          child: Column(
+            children: [
+              customHeader(context, "My Profile", isBack: true, colorBack: Color(primaryColor), onBack: () => context.go('/')),
+              Expanded(child: _buildBody()),
+            ],
+          ),
         ),
       ),
     );
@@ -66,7 +126,13 @@ class _ProfilePageState extends State<ProfilePage> {
 
 
   Widget _buildBody() {
-    return BlocBuilder<ProfileBloc, ProfileState>(
+    return BlocConsumer<ProfileBloc, ProfileState>(
+      listener: (context, state) {
+        if (state is ProfileLoaded) {
+          emailTC.text = state.profile.email;
+          phoneTC.text = state.profile.phoneNumber;
+        }
+      },
       builder: (context, state) {
         if (state is ProfileLoading) {
           return buildProfileShimmer();
@@ -89,8 +155,6 @@ class _ProfilePageState extends State<ProfilePage> {
 
         if (state is ProfileLoaded) {
           final user = state.profile;
-          emailTC.text = user.email;
-          phoneTC.text = user.phoneNumber;
 
           return RefreshIndicator(
             onRefresh: () async {
@@ -148,7 +212,17 @@ class _ProfilePageState extends State<ProfilePage> {
                         ),
                       ],
                     ),
-                    Text("NIK Number : ${user.nikNumber}"),
+                    // if (user.nikNumber != null) ...[
+                    //   const SizedBox(height: 8),
+                    //   Row(
+                    //     children: [
+                    //       Text(
+                    //         "NIK: ${user.nikNumber}",
+                    //         style: TextStyle(fontSize: 13, color: Colors.grey[600]),
+                    //       ),
+                    //     ],
+                    //   ),
+                    // ],
                     const SizedBox(height: 16),
                     Divider(color: Colors.grey.shade300),
                     const SizedBox(height: 16),
@@ -209,6 +283,56 @@ class _ProfilePageState extends State<ProfilePage> {
                       ),
                     ),
                     const SizedBox(height: 20),
+                    if (!kIsWeb) ...[
+                    Divider(color: Colors.grey.shade300),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        Container(
+                          width: 40,
+                          height: 40,
+                          decoration: BoxDecoration(
+                            color: _biometricEnabled
+                                ? Color(primaryColor).withValues(alpha: 0.1)
+                                : Colors.grey.shade100,
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Icon(
+                            Icons.fingerprint,
+                            color: _biometricEnabled ? Color(primaryColor) : Colors.grey,
+                            size: 24,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                "Login Biometrik",
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                  color: Color(grey2Color),
+                                ),
+                              ),
+                              Text(
+                                "Gunakan fingerprint atau face ID untuk login",
+                                style: TextStyle(fontSize: 12, color: Colors.grey),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Switch(
+                          value: _biometricEnabled,
+                          onChanged: _onBiometricToggle,
+                          activeThumbColor: Color(primaryColor),
+                          activeTrackColor: Color(primaryColor).withValues(alpha: 0.3),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    ], // end if (!kIsWeb)
                     // if (user.salesRoles.isNotEmpty) ...[
                     //   _label("Atasan"),
                     //   const SizedBox(height: 6),
@@ -404,6 +528,71 @@ class _ProfilePageState extends State<ProfilePage> {
   }
  Widget _label(String title){
     return Text(title, style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(grey2Color)));
+  }
+}
+
+class _BiometricPasswordDialog extends StatefulWidget {
+  final String username;
+  const _BiometricPasswordDialog({required this.username});
+
+  @override
+  State<_BiometricPasswordDialog> createState() => _BiometricPasswordDialogState();
+}
+
+class _BiometricPasswordDialogState extends State<_BiometricPasswordDialog> {
+  final _passController = TextEditingController();
+  bool _isObscure = true;
+
+  @override
+  void dispose() {
+    _passController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text("Konfirmasi Password"),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            "Masukkan password untuk akun",
+            style: TextStyle(fontSize: 13, color: Colors.grey[600]),
+          ),
+          Text(widget.username, style: const TextStyle(fontWeight: FontWeight.bold)),
+          const SizedBox(height: 12),
+          TextField(
+            controller: _passController,
+            obscureText: _isObscure,
+            autofocus: true,
+            decoration: InputDecoration(
+              hintText: "Password",
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+              suffixIcon: IconButton(
+                icon: Icon(_isObscure ? Icons.visibility_off_outlined : Icons.visibility_outlined),
+                onPressed: () => setState(() => _isObscure = !_isObscure),
+              ),
+            ),
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(null),
+          child: const Text("Batal"),
+        ),
+        ElevatedButton(
+          onPressed: () {
+            final pass = _passController.text.trim();
+            if (pass.isEmpty) return;
+            Navigator.of(context).pop(pass);
+          },
+          child: const Text("Aktifkan"),
+        ),
+      ],
+    );
   }
 
 }

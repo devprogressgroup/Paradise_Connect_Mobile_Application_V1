@@ -23,8 +23,12 @@ import 'package:progress_group/features/attandance/presentation/state/attendance
 import 'package:progress_group/features/auth/data/datasources/auth_local_datasource.dart';
 import 'package:progress_group/features/auth/data/datasources/auth_remote_datasource.dart';
 import 'package:progress_group/features/auth/data/repositories/auth_repository_impl.dart';
+import 'package:progress_group/features/auth/domain/usecase/clear_remember_me_usecase.dart';
 import 'package:progress_group/features/auth/domain/usecase/forgot_password_usecase.dart';
+import 'package:progress_group/features/auth/domain/usecase/get_biometric_enabled_usecase.dart';
 import 'package:progress_group/features/auth/domain/usecase/get_remember_me_usecase.dart';
+import 'package:progress_group/features/auth/domain/usecase/save_biometric_enabled_usecase.dart';
+import 'package:progress_group/features/auth/domain/usecase/save_credentials_usecase.dart';
 import 'package:progress_group/features/auth/domain/usecase/login_usecase.dart';
 import 'package:progress_group/features/auth/domain/usecase/get_profile_usecase.dart';
 import 'package:progress_group/features/auth/domain/usecase/logout_usecase.dart';
@@ -191,6 +195,10 @@ class _MyAppState extends State<MyApp> {
     final loginUseCase = LoginUseCase(repository);
     final forgotPasswordUseCase = ForgotPasswordUseCase(repository);
     final getRememberMeUseCase = GetRememberMeUseCase(repository);
+    final clearRememberMeUseCase = ClearRememberMeUseCase(repository);
+    final getBiometricEnabledUseCase = GetBiometricEnabledUseCase(repository);
+    final saveBiometricEnabledUseCase = SaveBiometricEnabledUseCase(repository);
+    final saveCredentialsUseCase = SaveCredentialsUseCase(repository);
     final resetPasswordUsecase = ResetPasswordUsecase(repository);
     final logoutUseCase = LogoutUseCase(repository);
     final getProfileUseCase = GetProfileUseCase(repository);
@@ -268,7 +276,7 @@ class _MyAppState extends State<MyApp> {
         return MultiBlocProvider(
           key: _blocKey,
           providers: [
-            BlocProvider(create: (_) => AuthBloc(loginUseCase: loginUseCase, forgotPasswordUseCase: forgotPasswordUseCase, getRememberMeUseCase: getRememberMeUseCase, resetPasswordUsecase: resetPasswordUsecase, logoutUseCase: logoutUseCase)),
+            BlocProvider(create: (_) => AuthBloc(loginUseCase: loginUseCase, forgotPasswordUseCase: forgotPasswordUseCase, getRememberMeUseCase: getRememberMeUseCase, clearRememberMeUseCase: clearRememberMeUseCase, getBiometricEnabledUseCase: getBiometricEnabledUseCase, saveBiometricEnabledUseCase: saveBiometricEnabledUseCase, saveCredentialsUseCase: saveCredentialsUseCase, resetPasswordUsecase: resetPasswordUsecase, logoutUseCase: logoutUseCase)),
             BlocProvider(create: (_) => InboxContactBloc(getInboxContactsUsecase)),
             BlocProvider(create: (_) => WhatsappDeviceBloc(getWhatsappDevicesUsecase)),
             BlocProvider(create: (_) => WhatsappQrBloc(getQrSessionUsecase)),

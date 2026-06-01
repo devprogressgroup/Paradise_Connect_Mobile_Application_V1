@@ -9,6 +9,9 @@ abstract class AuthRepository {
   Future<String> resetPassword(ResetPasswordEntity entity);
   Future<(String, String)?> getRememberMe();
   Future<void> clearRememberMe();
+  Future<void> saveCredentials(String username, String password);
+  Future<void> saveBiometricEnabled(bool value);
+  Future<bool> getBiometricEnabled();
   Future<void> logout();
   Future<UserProfileEntity> getProfile();
 }

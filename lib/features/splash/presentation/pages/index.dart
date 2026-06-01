@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
@@ -16,23 +18,37 @@ class SplashPage extends StatefulWidget {
 }
 
 class _SplashPageState extends State<SplashPage> {
+  Timer? _fallbackTimer;
+
   @override
   void initState() {
     super.initState();
     _checkToken();
   }
 
+  @override
+  void dispose() {
+    _fallbackTimer?.cancel();
+    super.dispose();
+  }
+
   void _checkToken() async {
-    await Future.delayed(const Duration(seconds: 1));
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('auth_token');
 
     if (!mounted) return;
 
     if (token != null && token.isNotEmpty) {
-      // Token ada — validasi ke server lewat GetProfile
       context.read<ProfileBloc>().add(GetProfileEvent());
+
+      // Fallback: kalau server tidak respond dalam 3 detik, langsung ke login
+      _fallbackTimer = Timer(const Duration(seconds: 3), () {
+        if (mounted && context.read<ProfileBloc>().state is ProfileLoading) {
+          context.go('/login');
+        }
+      });
     } else {
+      // Tidak ada token — langsung ke login tanpa delay
       context.go('/login');
     }
   }

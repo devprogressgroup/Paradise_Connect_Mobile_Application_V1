@@ -1,6 +1,7 @@
 import 'package:chewie/chewie.dart';
 import 'package:flutter/material.dart';
 import 'package:progress_group/core/utils/widget/shimmer_loading.dart';
+import 'package:progress_group/features/contact/presentation/pages/attachment-view/index.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 import 'package:progress_group/core/constants/colors.dart';
@@ -158,15 +159,47 @@ class _InboxDetailPageState extends State<InboxDetailPage> {
   }
 
   Widget _header() {
+    final data = widget.args.data;
     return Container(
       padding: const EdgeInsets.all(16),
       child: Row(
         children: [
           GestureDetector(onTap: () => Navigator.pop(context), child: Icon(Icons.arrow_back, color: Color(primaryColor))),
           const SizedBox(width: 10),
-          Expanded(child: Text(widget.args.data.name, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold))),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(20),
+            child: data.photo != null && data.photo!.isNotEmpty
+                ? Image.network(
+                    data.photo!,
+                    width: 40,
+                    height: 40,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => _avatarFallback(data.initials),
+                  )
+                : _avatarFallback(data.initials),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(data.name, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold), maxLines: 1, overflow: TextOverflow.ellipsis),
+                if (data.ownerName != null && data.ownerName!.isNotEmpty)
+                  Text(data.ownerName!, style: TextStyle(fontSize: 12, color: Colors.grey[600]), maxLines: 1, overflow: TextOverflow.ellipsis),
+              ],
+            ),
+          ),
         ],
       ),
+    );
+  }
+
+  Widget _avatarFallback(String initials) {
+    return Container(
+      width: 40,
+      height: 40,
+      decoration: BoxDecoration(color: Color(primaryColor), borderRadius: BorderRadius.circular(20)),
+      child: Center(child: Text(initials, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14))),
     );
   }
 
@@ -183,8 +216,8 @@ class _InboxDetailPageState extends State<InboxDetailPage> {
                 Row(mainAxisSize: MainAxisSize.min, children: [Text(msg.formattedTime, style: TextStyle(fontSize: 12, color: Color(grey2Color))), const SizedBox(width: 6), Text(sender, style: const TextStyle(fontWeight: FontWeight.bold))]),
                 const SizedBox(height: 4),
                 Container(
-                  padding: EdgeInsets.all(msg.mediaUrl != null ? 4 : 10),
-                  decoration: BoxDecoration(color: Color(primaryColor).withOpacity(0.1), borderRadius: BorderRadius.circular(12).copyWith(topRight: Radius.zero)),
+                  padding: EdgeInsets.all(_isPdf(msg) ? 6 : msg.mediaUrl != null ? 4 : 10),
+                  decoration: BoxDecoration(color: Color(primaryColor).withValues(alpha: 0.1), borderRadius: BorderRadius.circular(12).copyWith(topRight: Radius.zero)),
                   child: _content(msg),
                 ),
               ],
@@ -200,7 +233,18 @@ class _InboxDetailPageState extends State<InboxDetailPage> {
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
         children: [
-          CircleAvatar(radius: 20, backgroundColor: Color(grey10Color)),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(20),
+            child: widget.args.data.photo != null && widget.args.data.photo!.isNotEmpty
+                ? Image.network(
+                    widget.args.data.photo!,
+                    width: 40,
+                    height: 40,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => _avatarFallback(widget.args.data.initials),
+                  )
+                : _avatarFallback(widget.args.data.initials),
+          ),
           const SizedBox(width: 8),
           Flexible(
             child: Column(
@@ -209,8 +253,8 @@ class _InboxDetailPageState extends State<InboxDetailPage> {
                 Row(mainAxisSize: MainAxisSize.min, children: [Text(sender, style: const TextStyle(fontWeight: FontWeight.bold)), const SizedBox(width: 6), Text(msg.formattedTime, style: TextStyle(fontSize: 12, color: Color(grey2Color)))]),
                 const SizedBox(height: 4),
                 Container(
-                  padding: EdgeInsets.all(msg.mediaUrl != null ? 4 : 10),
-                  decoration: BoxDecoration(color: Color(grey10Color).withOpacity(0.5), borderRadius: BorderRadius.circular(12).copyWith(topLeft: Radius.zero)),
+                  padding: EdgeInsets.all(_isPdf(msg) ? 6 : msg.mediaUrl != null ? 4 : 10),
+                  decoration: BoxDecoration(color: Color(grey10Color).withValues(alpha: 0.5), borderRadius: BorderRadius.circular(12).copyWith(topLeft: Radius.zero)),
                   child: _content(msg),
                 ),
               ],
@@ -221,18 +265,110 @@ class _InboxDetailPageState extends State<InboxDetailPage> {
     );
   }
 
+  bool _isPdf(ChatMessage msg) {
+    if (msg.messageType == 'document') return true;
+    final url = msg.mediaUrl ?? '';
+    return url.toLowerCase().endsWith('.pdf');
+  }
+
   Widget _content(ChatMessage msg) {
     final text = msg.body.replaceAll("[REACTION]", "").trim();
+    final hasMedia = msg.mediaUrl != null && msg.mediaUrl!.isNotEmpty;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        if (msg.mediaUrl != null && msg.mediaUrl!.isNotEmpty)
-          ClipRRect(
-            borderRadius: BorderRadius.circular(8),
-            child: Image.network(msg.mediaUrl!, width: MediaQuery.of(context).size.width * 0.6, fit: BoxFit.cover),
+        if (hasMedia && _isPdf(msg))
+          _pdfCard(msg.mediaUrl!, msg.caption ?? msg.body),
+        if (hasMedia && !_isPdf(msg))
+          GestureDetector(
+            onTap: () => _openImageViewer(msg.mediaUrl!),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: Image.network(
+                msg.mediaUrl!,
+                width: MediaQuery.of(context).size.width * 0.6,
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => const Icon(Icons.broken_image, size: 40, color: Colors.grey),
+              ),
+            ),
           ),
-        if (text.isNotEmpty) Text(text),
+        if (text.isNotEmpty && !_isPdf(msg)) ...[
+          if (hasMedia) const SizedBox(height: 4),
+          Text(text),
+        ],
       ],
+    );
+  }
+
+  void _openImageViewer(String url) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => Scaffold(
+          backgroundColor: Colors.black,
+          appBar: AppBar(
+            backgroundColor: Colors.black,
+            iconTheme: const IconThemeData(color: Colors.white),
+            elevation: 0,
+          ),
+          body: Center(
+            child: InteractiveViewer(
+              minScale: 0.5,
+              maxScale: 4.0,
+              child: Image.network(
+                url,
+                fit: BoxFit.contain,
+                loadingBuilder: (_, child, progress) => progress == null
+                    ? child
+                    : const Center(child: CircularProgressIndicator(color: Colors.white)),
+                errorBuilder: (_, __, ___) => const Icon(Icons.broken_image, color: Colors.white, size: 60),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _pdfCard(String url, String label) {
+    final fileName = Uri.tryParse(url)?.pathSegments.lastOrNull ?? 'document.pdf';
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => AttachmentWebViewPage(url: url)),
+        );
+      },
+      child: Container(
+        width: MediaQuery.of(context).size.width * 0.55,
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: Colors.grey.shade200),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(color: Colors.red.shade50, borderRadius: BorderRadius.circular(8)),
+              child: const Icon(Icons.picture_as_pdf, color: Colors.red, size: 28),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(fileName, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+                  const SizedBox(height: 2),
+                  Text('Tap untuk buka', style: TextStyle(fontSize: 10, color: Colors.grey[500])),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

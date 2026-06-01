@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
@@ -23,6 +24,7 @@ class _LoginPageState extends State<LoginPage> {
   bool _loadingDialogShown = false;
   bool _rememberMe = false;
   bool _isObscure = true;
+  bool _biometricEnabled = false;
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _emailFN = FocusNode();
@@ -35,16 +37,17 @@ class _LoginPageState extends State<LoginPage> {
   void initState() {
     super.initState();
     context.read<AuthBloc>().add(CheckRememberMeEvent());
+    context.read<AuthBloc>().add(CheckBiometricEnabledEvent());
   }
 
 
   Future<void> _loginWithBiometric() async {
     try {
       final isSupported = await _auth.isDeviceSupported();
-      final canCheck = await _auth.canCheckBiometrics;
+      final availableBiometrics = await _auth.getAvailableBiometrics();
 
-      if (!isSupported || !canCheck) {
-        showSnackbar(context, "Device tidak support biometrik", isError: true);
+      if (!isSupported || availableBiometrics.isEmpty) {
+        if (context.mounted) showSnackbar(context, "Fingerprint belum didaftarkan di perangkat ini", isError: true);
         return;
       }
 
@@ -58,26 +61,20 @@ class _LoginPageState extends State<LoginPage> {
 
       if (!didAuthenticate) return;
 
-      /// 🔥 AMBIL DATA REMEMBER ME
-      final state = context.read<AuthBloc>().state;
+      final email = _emailController.text.trim();
+      final password = _passwordController.text.trim();
 
-      if (state is RememberMeLoaded) {
-        final email = state.username;
-        final password = state.password;
-
-        if (email.isEmpty || password.isEmpty) {
-          showSnackbar(context, "Tidak ada data login tersimpan", isError: true);
-          return;
-        }
-
-        context.read<AuthBloc>().add(
-          LoginEvent(email, password, rememberMe: true),
-        );
-      } else {
-        showSnackbar(context, "Aktifkan Remember Me dulu", isError: true);
+      if (email.isEmpty || password.isEmpty) {
+        if (context.mounted) showSnackbar(context, "Login manual sekali dulu untuk menyimpan kredensial", isError: true);
+        return;
       }
+
+      if (!context.mounted) return;
+      context.read<AuthBloc>().add(
+        LoginEvent(email, password, rememberMe: true),
+      );
     } catch (e) {
-      print("Biometric gagal: $e");
+      if (context.mounted) showSnackbar(context, "Biometrik gagal: $e", isError: true);
     }
   }
 
@@ -197,7 +194,8 @@ class _LoginPageState extends State<LoginPage> {
       return;
     }
 
-    context.read<AuthBloc>().add(LoginEvent(email, password, rememberMe: _rememberMe));
+    // Kalau biometrik aktif, selalu simpan credentials (tidak perlu Remember Me)
+    context.read<AuthBloc>().add(LoginEvent(email, password, rememberMe: _rememberMe || _biometricEnabled));
   }
 
 
@@ -222,7 +220,9 @@ class _LoginPageState extends State<LoginPage> {
 
         hideLoadingDialog(_loadingDialogShown, context);
 
-        if (state is RememberMeLoaded) {
+        if (state is BiometricEnabledLoaded) {
+          setState(() => _biometricEnabled = state.enabled);
+        } else if (state is RememberMeLoaded) {
           _emailController.text = state.username;
           _passwordController.text = state.password;
           setState(() => _rememberMe = true);
@@ -426,59 +426,66 @@ class _LoginPageState extends State<LoginPage> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Row(
-                            children: [
-                              GestureDetector(
-                                onTap: () {
-                                  setState(() {
-                                    _rememberMe = !_rememberMe;
-                                  });
-                                  if (!_rememberMe) {
-                                    context.read<AuthBloc>().add(ClearRememberMeEvent());
-                                  }
-                                },
-                                child: AnimatedContainer(
-                                  duration: const Duration(milliseconds: 150),
-                                  height: 24,
-                                  width: 24,
-                                  decoration: BoxDecoration(
-                                    color: Colors.transparent,
-                                    borderRadius: BorderRadius.circular(4),
-                                    border: Border.all(
-                                      color: _rememberMe
-                                          ? Color(blackColor)
-                                          : Colors.grey,
-                                      width: 1.5,
+                          Flexible(
+                            child: Row(
+                              children: [
+                                GestureDetector(
+                                  onTap: () {
+                                    setState(() {
+                                      _rememberMe = !_rememberMe;
+                                    });
+                                    if (!_rememberMe) {
+                                      context.read<AuthBloc>().add(ClearRememberMeEvent());
+                                    }
+                                  },
+                                  child: AnimatedContainer(
+                                    duration: const Duration(milliseconds: 150),
+                                    height: 24,
+                                    width: 24,
+                                    decoration: BoxDecoration(
+                                      color: Colors.transparent,
+                                      borderRadius: BorderRadius.circular(4),
+                                      border: Border.all(
+                                        color: _rememberMe
+                                            ? Color(blackColor)
+                                            : Colors.grey,
+                                        width: 1.5,
+                                      ),
                                     ),
+                                    child: _rememberMe
+                                        ? Icon(
+                                            Icons.check,
+                                            size: 16,
+                                            color: Color(primaryColor),
+                                          )
+                                        : null,
                                   ),
-                                  child: _rememberMe
-                                      ? Icon(
-                                          Icons.check,
-                                          size: 16,
-                                          color: Color(primaryColor),
-                                        )
-                                      : null,
                                 ),
-                              ),
-                              const SizedBox(width: 8),
-                              Text(
-                                'Remember me',
-                                style: TextStyle(
-                                  color: Color(blue2Color),
-                                  fontSize: 14,
+                                const SizedBox(width: 8),
+                                Text(
+                                  'Remember me',
+                                  style: TextStyle(
+                                    color: Color(blue2Color),
+                                    fontSize: 13,
+                                  ),
                                 ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
                           TextButton(
                             onPressed: () {
                               context.pushNamed("forgot-password", extra: 1);
                             },
+                            style: TextButton.styleFrom(
+                              padding: EdgeInsets.zero,
+                              minimumSize: Size.zero,
+                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                            ),
                             child: Text(
                               'Forgot password?',
                               style: TextStyle(
                                 color: Color(grey3Color),
-                                fontSize: 14,
+                                fontSize: 13,
                                 fontWeight: FontWeight.w400,
                               ),
                             ),
@@ -549,26 +556,25 @@ class _LoginPageState extends State<LoginPage> {
                               ),
                             ),
 
-                            const SizedBox(width: 12),
-
-                            Container(
-                              height: 56,
-                              width: 56,
-                              decoration: BoxDecoration(
-                                color: Color(primaryColor),
-                                borderRadius: BorderRadius.circular(16),
-                              ),
-                              child: IconButton(
-                                onPressed: () {
-                                  _loginWithBiometric();
-                                },
-                                icon: const Icon(
-                                  Icons.fingerprint,
-                                  color: Colors.white,
-                                  size: 28,
+                            if (_biometricEnabled && !kIsWeb) ...[
+                              const SizedBox(width: 12),
+                              Container(
+                                height: 56,
+                                width: 56,
+                                decoration: BoxDecoration(
+                                  color: Color(primaryColor),
+                                  borderRadius: BorderRadius.circular(16),
+                                ),
+                                child: IconButton(
+                                  onPressed: _loginWithBiometric,
+                                  icon: const Icon(
+                                    Icons.fingerprint,
+                                    color: Colors.white,
+                                    size: 28,
+                                  ),
                                 ),
                               ),
-                            ),
+                            ],
                           ],
                         ),
                       ),

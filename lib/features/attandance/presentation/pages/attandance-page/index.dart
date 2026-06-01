@@ -1032,8 +1032,11 @@ class _AttandancePageState extends State<AttandancePage> {
             return Dialog(
               backgroundColor: Colors.white,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-              child: SizedBox(
-                width: MediaQuery.of(ctx).size.width * 0.85,
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  maxWidth: MediaQuery.of(ctx).size.width * 0.85,
+                  maxHeight: MediaQuery.of(ctx).size.height * 0.85,
+                ),
                 child: Padding(
                   padding: const EdgeInsets.all(16),
                   child: Column(
@@ -1045,7 +1048,7 @@ class _AttandancePageState extends State<AttandancePage> {
                         child: DriveImage(
                           url: currentUrl,
                           width: double.infinity,
-                          height: 220,
+                          height: 200,
                           fit: BoxFit.cover,
                           onTap: () => _showImagePreview(currentUrl),
                         ),
@@ -1081,25 +1084,34 @@ class _AttandancePageState extends State<AttandancePage> {
                       ],
 
                       const SizedBox(height: 14),
-                      if (type != null)
-                        _buildInfoRow(Icons.local_activity, type, Color(primaryColor)),
-                      const SizedBox(height: 6),
-                      _buildInfoRow(Icons.access_time_filled, formatTime(datetime), Color(greenPercentColor)),
-                      const SizedBox(height: 6),
-                      _buildInfoRow(Icons.calendar_today, formatDate(datetime), Color(primaryColor)),
-                      if (location != null && location.isNotEmpty) ...[
-                        const SizedBox(height: 6),
-                        _buildInfoRow(Icons.map, location, Color(primaryColor)),
-                      ],
-                      if (contactName != null && contactName.isNotEmpty) ...[
-                        const SizedBox(height: 6),
-                        _buildInfoRow(Icons.person, contactName, Color(primaryColor)),
-                      ],
-                      if (note != null && note.isNotEmpty) ...[
-                        const SizedBox(height: 6),
-                        _buildInfoRow(Icons.notes, note, Color(primaryColor)),
-                      ],
-                      const SizedBox(height: 16),
+                      Flexible(
+                        child: SingleChildScrollView(
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              if (type != null)
+                                _buildInfoRow(Icons.local_activity, type, Color(primaryColor)),
+                              const SizedBox(height: 6),
+                              _buildInfoRow(Icons.access_time_filled, formatTime(datetime), Color(greenPercentColor)),
+                              const SizedBox(height: 6),
+                              _buildInfoRow(Icons.calendar_today, formatDate(datetime), Color(primaryColor)),
+                              if (location != null && location.isNotEmpty) ...[
+                                const SizedBox(height: 6),
+                                _buildInfoRow(Icons.map, location, Color(primaryColor)),
+                              ],
+                              if (contactName != null && contactName.isNotEmpty) ...[
+                                const SizedBox(height: 6),
+                                _buildInfoRow(Icons.person, contactName, Color(primaryColor)),
+                              ],
+                              if (note != null && note.isNotEmpty) ...[
+                                const SizedBox(height: 6),
+                                _buildInfoRow(Icons.notes, note, Color(primaryColor)),
+                              ],
+                              const SizedBox(height: 8),
+                            ],
+                          ),
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -1126,13 +1138,12 @@ class _AttandancePageState extends State<AttandancePage> {
           color: Colors.transparent,
 
         child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            
+
             /// DATE
             Container(
-              width: 70,
-              height: 40,
+              width: 56,
+              height: 48,
               decoration: BoxDecoration(
                 color: Color(grey9Color),
                 borderRadius: BorderRadius.circular(6),
@@ -1140,43 +1151,45 @@ class _AttandancePageState extends State<AttandancePage> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Text("${date.day}", style: TextStyle(fontWeight: FontWeight.bold)),
-                  Text(DateFormat('EEE').format(date)),
+                  Text("${date.day}", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                  Text(DateFormat('EEE').format(date), style: TextStyle(fontSize: 11)),
                 ],
               ),
             ),
 
+            const SizedBox(width: 8),
+
             /// CLOCK IN
-            GestureDetector(
-              onTap: item.clockIn != null? () => _showAttendanceDialog(item, 0): null,
-              child: Container(
-                width: 100,
+            Expanded(
+              child: GestureDetector(
+                onTap: item.clockIn != null ? () => _showAttendanceDialog(item, 0) : null,
                 child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(Icons.access_time_filled,size: 17, color: Color(greenPercentColor)),
-                    Text(formatTime(item.clockIn)),
+                    Icon(Icons.access_time_filled, size: 16, color: Color(greenPercentColor)),
+                    const SizedBox(height: 2),
+                    Text(formatTime(item.clockIn), textAlign: TextAlign.center, style: const TextStyle(fontSize: 12)),
                   ],
                 ),
               ),
             ),
 
-            Container(width: 2, height: 40, color: Color(grey9Color)),
+            Container(width: 1, height: 40, color: Color(grey9Color)),
 
             /// CLOCK OUT
-            GestureDetector(
-              onTap: item.clockOut != null? () => _showAttendanceDialog(item, 1): null,
-              child: Container(
-                width: 100,
+            Expanded(
+              child: GestureDetector(
+                onTap: item.clockOut != null ? () => _showAttendanceDialog(item, 1) : null,
                 child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(Icons.access_time_filled,size: 17, color: Color(redPeriodColor)),
-                    Text(formatTime(item.clockOut)),
+                    Icon(Icons.access_time_filled, size: 16, color: Color(redPeriodColor)),
+                    const SizedBox(height: 2),
+                    Text(formatTime(item.clockOut), textAlign: TextAlign.center, style: const TextStyle(fontSize: 12)),
                   ],
                 ),
               ),
             ),
-
-
           ],
         ),
       ),
@@ -1607,41 +1620,44 @@ class _AttandancePageState extends State<AttandancePage> {
               ],
             ),
           )
-        : Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(DateHelper.formatTime(DateTime.now()), style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
-              Text(DateHelper.formatDate(DateTime.now()), style: TextStyle(fontSize: 11, color: Color(grey6Color))),
-              SizedBox(height: 8),
-              Material(
-                color: Colors.transparent,
-                child: InkWell(
-                  borderRadius: BorderRadius.circular(100),
-                  onTap: () async { _handleMoveCamera(title, flagParam); },
-                  child: Container(
-                    height: 90,
-                    width: 90,
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(shape: BoxShape.circle, color: Color(primaryColor).withOpacity(0.1)),
+        : SingleChildScrollView(
+            reverse: true,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(DateHelper.formatTime(DateTime.now()), style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+                Text(DateHelper.formatDate(DateTime.now()), style: TextStyle(fontSize: 11, color: Color(grey6Color))),
+                SizedBox(height: 8),
+                Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(100),
+                    onTap: () async { _handleMoveCamera(title, flagParam); },
                     child: Container(
-                      height: 80,
-                      width: 80,
+                      height: 90,
+                      width: 90,
                       alignment: Alignment.center,
-                      decoration: BoxDecoration(shape: BoxShape.circle, color: Color(primaryColor).withOpacity(0.2)),
+                      decoration: BoxDecoration(shape: BoxShape.circle, color: Color(primaryColor).withValues(alpha: 0.1)),
                       child: Container(
-                        height: 70,
-                        width: 70,
+                        height: 80,
+                        width: 80,
                         alignment: Alignment.center,
-                        decoration: BoxDecoration(shape: BoxShape.circle, color: Color(primaryColor)),
-                        child: Text(title, textAlign: TextAlign.center, style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Color(whiteColor))),
+                        decoration: BoxDecoration(shape: BoxShape.circle, color: Color(primaryColor).withValues(alpha: 0.2)),
+                        child: Container(
+                          height: 70,
+                          width: 70,
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(shape: BoxShape.circle, color: Color(primaryColor)),
+                          child: Text(title, textAlign: TextAlign.center, style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Color(whiteColor))),
+                        ),
                       ),
                     ),
                   ),
                 ),
-              ),
-              SizedBox(height: 12),
-              Text("Please $title!", style: TextStyle(fontSize: 12, color: Color(grey6Color))),
-            ],
+                SizedBox(height: 12),
+                Text("Please $title!", style: TextStyle(fontSize: 12, color: Color(grey6Color))),
+              ],
+            ),
           ),
   );
 }  
