@@ -227,35 +227,51 @@ class _MainLayoutState extends State<MainLayout> {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.start,
                     children: [
-                      Row(
-                        children: [
-                          CircleAvatar(
-                            radius: 27,
-                            backgroundColor: Color(primaryColor),
-                            child: Icon(Icons.person, color: Colors.white, size: 37),
-                          ),
-                          SizedBox(width: 10),
-                          Expanded(
-                            child: BlocBuilder<ProfileBloc, ProfileState>(
-                              builder: (context, state) {
-                                String userName = "User";
-                                String userPosition = "";
-                                if (state is ProfileLoaded) {
-                                  userName = state.profile.fullName;
-                                  userPosition = state.profile.positionName ?? "";
-                                }
-                                return Column(
+                      BlocBuilder<ProfileBloc, ProfileState>(
+                        builder: (context, state) {
+                          String userName = "User";
+                          String userPosition = "";
+                          String? photoUrl;
+                          if (state is ProfileLoaded) {
+                            userName = state.profile.fullName;
+                            userPosition = state.profile.positionName ?? "";
+                            photoUrl = state.profile.photoUrl;
+                          }
+                          return Row(
+                            children: [
+                              ClipOval(
+                                child: photoUrl != null
+                                    ? Image.network(
+                                        photoUrl,
+                                        width: 54,
+                                        height: 54,
+                                        fit: BoxFit.cover,
+                                        errorBuilder: (_, __, ___) => CircleAvatar(
+                                          radius: 27,
+                                          backgroundColor: Color(primaryColor),
+                                          child: Icon(Icons.person, color: Colors.white, size: 37),
+                                        ),
+                                      )
+                                    : CircleAvatar(
+                                        radius: 27,
+                                        backgroundColor: Color(primaryColor),
+                                        child: Icon(Icons.person, color: Colors.white, size: 37),
+                                      ),
+                              ),
+                              SizedBox(width: 10),
+                              Expanded(
+                                child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(userName, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w400, color: Color(grey2Color))),
                                     if (userPosition.isNotEmpty)
                                       Text(userPosition, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w400, color: Color(grey2Color))),
                                   ],
-                                );
-                              },
-                            ),
-                          ),
-                        ],
+                                ),
+                              ),
+                            ],
+                          );
+                        },
                       ),
                     ],
                   ),

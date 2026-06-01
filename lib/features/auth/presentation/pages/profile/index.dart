@@ -1,5 +1,8 @@
+import 'dart:typed_data';
+
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:local_auth/local_auth.dart';
 import 'package:progress_group/core/utils/widget/shimmer_loading.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -12,8 +15,6 @@ import 'package:progress_group/features/auth/presentation/state/auth/auth_state.
 import 'package:progress_group/features/auth/presentation/state/profile/profile_bloc.dart';
 import 'package:progress_group/features/auth/presentation/state/profile/profile_event.dart';
 import 'package:progress_group/features/auth/presentation/state/profile/profile_state.dart';
-import 'package:progress_group/core/network/api_constants.dart';
-
 import '../../../../../core/constants/colors.dart';
 import '../../../../../core/utils/widget/custom_header.dart';
 
@@ -38,12 +39,38 @@ class _ProfilePageState extends State<ProfilePage> {
   bool _isObscure = true;
   bool _isObscureConfirm = true;
   bool _biometricEnabled = false;
+  XFile? _selectedPhoto;
+  Uint8List? _selectedPhotoBytes;
 
   final LocalAuthentication _localAuth = LocalAuthentication();
+  final ImagePicker _imagePicker = ImagePicker();
+
+  Future<void> _pickPhoto() async {
+    final picked = await _imagePicker.pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 80,
+      maxWidth: 800,
+    );
+    if (picked != null) {
+      final bytes = await picked.readAsBytes();
+      setState(() {
+        _selectedPhoto = picked;
+        _selectedPhotoBytes = bytes;
+      });
+    }
+  }
 
   @override
   void initState() {
     super.initState();
+
+    // Isi controller langsung jika data sudah ada (hindari listener tidak terpanggil)
+    final profileState = context.read<ProfileBloc>().state;
+    if (profileState is ProfileLoaded) {
+      emailTC.text = profileState.profile.email;
+      phoneTC.text = profileState.profile.phoneNumber;
+    }
+
     context.read<ProfileBloc>().add(GetProfileEvent());
     context.read<AuthBloc>().add(CheckBiometricEnabledEvent());
   }
@@ -85,8 +112,9 @@ class _ProfilePageState extends State<ProfilePage> {
     final emailChanged = email.isNotEmpty && email != originalEmail;
     final phoneChanged = phone.isNotEmpty && phone != originalPhone;
     final passwordChanged = password.isNotEmpty;
+    final photoChanged = _selectedPhoto != null;
 
-    if (!emailChanged && !phoneChanged && !passwordChanged) {
+    if (!emailChanged && !phoneChanged && !passwordChanged && !photoChanged) {
       showSnackbar(context, "Tidak ada perubahan data", isError: false);
       return;
     }
@@ -96,6 +124,9 @@ class _ProfilePageState extends State<ProfilePage> {
       phoneNumber: phoneChanged ? phone : null,
       password: passwordChanged ? password : null,
       passwordConfirmation: passwordChanged ? confirmPassword : null,
+      photoPath: kIsWeb ? null : _selectedPhoto?.path,
+      photoBytes: _selectedPhotoBytes,
+      photoFilename: _selectedPhoto?.name,
     ));
   }
 
@@ -142,6 +173,7 @@ class _ProfilePageState extends State<ProfilePage> {
         } else if (state is AuthSuccess) {
           passwordTC.clear();
           confirmPasswordTC.clear();
+          setState(() { _selectedPhoto = null; _selectedPhotoBytes = null; });
           showSnackbar(context, state.message, isError: false);
           context.read<ProfileBloc>().add(GetProfileEvent(forceRefresh: true));
         } else if (state is AuthFailure) {
@@ -213,27 +245,48 @@ class _ProfilePageState extends State<ProfilePage> {
                     /// PROFILE HEADER
                     Row(
                       children: [
-                        ClipOval(
-                          child: user.photo != null
-                              ? Image.network(
-                                  user.photo!.startsWith('http') 
-                                    ? user.photo! 
-                                    : "${ApiConstants.storageUrl}/${user.photo}",
-                                  width: 60,
-                                  height: 60,
-                                  fit: BoxFit.cover,
-                                  errorBuilder: (context, error, stackTrace) {
-                                    return CircleAvatar(
-                                        radius: 27,
-                                        backgroundColor: Color(primaryColor),
-                                        child: Icon(Icons.person, color: Colors.white, size: 37));
-                                  },
-                                )
-                              : CircleAvatar(
-                                  radius: 27,
-                                  backgroundColor: Color(primaryColor),
-                                  child: Icon(Icons.person, color: Colors.white, size: 37),
+                        GestureDetector(
+                          onTap: _pickPhoto,
+                          child: Stack(
+                            children: [
+                              ClipOval(
+                                child: _selectedPhotoBytes != null
+                                    ? Image.memory(
+                                        _selectedPhotoBytes!,
+                                        width: 60, height: 60, fit: BoxFit.cover,
+                                      )
+                                    : user.photoUrl != null
+                                        ? Image.network(
+                                            user.photoUrl!,
+                                            width: 60,
+                                            height: 60,
+                                            fit: BoxFit.cover,
+                                            errorBuilder: (_, __, ___) => CircleAvatar(
+                                              radius: 27,
+                                              backgroundColor: Color(primaryColor),
+                                              child: Icon(Icons.person, color: Colors.white, size: 37),
+                                            ),
+                                          )
+                                        : CircleAvatar(
+                                            radius: 27,
+                                            backgroundColor: Color(primaryColor),
+                                            child: Icon(Icons.person, color: Colors.white, size: 37),
+                                          ),
+                              ),
+                              Positioned(
+                                bottom: 0, right: 0,
+                                child: Container(
+                                  padding: const EdgeInsets.all(4),
+                                  decoration: BoxDecoration(
+                                    color: Color(primaryColor),
+                                    shape: BoxShape.circle,
+                                    border: Border.all(color: Colors.white, width: 1.5),
+                                  ),
+                                  child: const Icon(Icons.camera_alt, color: Colors.white, size: 12),
                                 ),
+                              ),
+                            ],
+                          ),
                         ),
                         const SizedBox(width: 12),
                         Column(
@@ -244,7 +297,6 @@ class _ProfilePageState extends State<ProfilePage> {
                               child: Text(user.fullName, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold))),
                             if (user.positionName != null && user.positionName!.isNotEmpty)
                               Text(user.positionName!, style: const TextStyle(fontSize: 14, color: Colors.blueAccent)),
-                            Text(user.permissionScope, style: const TextStyle(fontSize: 13, color: Colors.grey)),
                           ],
                         ),
                       ],
@@ -513,7 +565,7 @@ class _ProfilePageState extends State<ProfilePage> {
 
   Widget _inputField({   required TextEditingController controller,   required FocusNode focusNode,   required String hint,   TextInputType? keyboardType,   bool obscure = false,   Widget? suffix, }) {
     return SizedBox(
-      height: 48,
+      height: 60,
       child: TextFormField(
         controller: controller,
         focusNode: focusNode,

@@ -37,8 +37,11 @@ class UpdateProfileEvent extends AuthEvent {
   final String? phoneNumber;
   final String? password;
   final String? passwordConfirmation;
+  final String? photoPath;
+  final List<int>? photoBytes;
+  final String? photoFilename;
 
-  UpdateProfileEvent({this.email, this.phoneNumber, this.password, this.passwordConfirmation});
+  UpdateProfileEvent({this.email, this.phoneNumber, this.password, this.passwordConfirmation, this.photoPath, this.photoBytes, this.photoFilename});
 }
 
 class LogoutEvent extends AuthEvent {}

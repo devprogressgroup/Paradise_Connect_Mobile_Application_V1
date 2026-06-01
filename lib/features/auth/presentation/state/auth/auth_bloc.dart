@@ -145,6 +145,9 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         phoneNumber: event.phoneNumber,
         password: event.password,
         passwordConfirmation: event.passwordConfirmation,
+        photoPath: event.photoPath,
+        photoBytes: event.photoBytes,
+        photoFilename: event.photoFilename,
       );
       emit(AuthSuccess(message));
     } catch (e) {

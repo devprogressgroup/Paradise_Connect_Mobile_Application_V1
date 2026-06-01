@@ -188,7 +188,7 @@ class _MyAppState extends State<MyApp> {
     // Infrastructure
     final localDataSource = AuthLocalDataSourceImpl(widget.prefs);
     final dioClient = DioClient(localDataSource);
-    PushNotificationService.setDio(dioClient.dio);
+    PushNotificationService.setDio(dioClient.dio); // set dio saja, token dikirim setelah login
     
     // Auth
     final remoteDataSource = AuthRemoteDataSourceImpl(dioClient.dio);
@@ -312,8 +312,9 @@ class _MyAppState extends State<MyApp> {
               if (state is AuthSuccess) {
                 context.read<ProfileBloc>().add(GetProfileEvent());
                 AppRouter.authNotifier.value = true;
-                // Kirim FCM token setelah login berhasil (dioClient sudah punya auth token)
+                // Kirim FCM token setelah login berhasil (auth token sudah ada)
                 PushNotificationService.setDio(dioClient.dio);
+                PushNotificationService.sendTokenAfterLogin();
               } else if (state is AuthLoggedOut) {
                 // Restart aplikasi total seolah-olah baru dibuka pertama kali
                 _resetApp();

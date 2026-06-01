@@ -32,6 +32,7 @@ class UserProfileEntity {
   final String phoneNumber;
   final bool isActive;
   final String? photo;
+  final String? photoUrl;
   final String permissionScope;
   final String? positionName;
   final int? nikNumber;
@@ -49,6 +50,7 @@ class UserProfileEntity {
     required this.phoneNumber,
     required this.isActive,
     this.photo,
+    this.photoUrl,
     required this.permissionScope,
     this.positionName,
     this.nikNumber,
@@ -58,4 +60,5 @@ class UserProfileEntity {
     this.salesRoles = const [],
     this.subordinates = const [],
   });
+
 }

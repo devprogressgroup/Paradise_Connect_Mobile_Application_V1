@@ -32,6 +32,10 @@ class PushNotificationService {
   /// Dipanggil setelah DioClient dibuat (di build() MyApp) agar token bisa dikirim ke backend.
   static void setDio(Dio dio) {
     _dio = dio;
+  }
+
+  /// Dipanggil setelah login berhasil — saat itu auth token sudah ada
+  static void sendTokenAfterLogin() {
     _messaging.getToken(vapidKey: kIsWeb ? _vapidKey : null).then((token) {
       if (token != null) _sendTokenToBackend(token);
     });
@@ -41,7 +45,8 @@ class PushNotificationService {
   static Future<void> initialize() async {
     await _requestPermission();
     if (!kIsWeb) await _setupLocalNotifications();
-    await _registerToken();
+    // Token dikirim ke backend setelah login via sendTokenAfterLogin()
+    // _registerToken() hanya untuk refresh listener
 
     _messaging.onTokenRefresh.listen(_sendTokenToBackend);
     FirebaseMessaging.onMessage.listen(_handleForegroundMessage);
@@ -99,16 +104,6 @@ class PushNotificationService {
         ?.createNotificationChannel(channel);
   }
 
-  static Future<void> _registerToken() async {
-    try {
-      debugPrint('[FCM] Requesting token, kIsWeb=$kIsWeb');
-      final token = await _messaging.getToken(vapidKey: kIsWeb ? _vapidKey : null);
-      debugPrint('[FCM] Token: $token');
-      if (token != null) await _sendTokenToBackend(token);
-    } catch (e) {
-      debugPrint('[FCM] getToken error: $e');
-    }
-  }
 
   static Future<void> _sendTokenToBackend(String token) async {
     if (_dio == null) return;

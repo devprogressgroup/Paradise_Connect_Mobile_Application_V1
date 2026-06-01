@@ -8,7 +8,7 @@ abstract class AuthRemoteDataSource {
   Future<Map<String, dynamic>> forgotPassword(String phone);
   Future<Map<String, dynamic>> resetPassword(ResetPasswordEntity resetPasswordEntity);
   Future<Map<String, dynamic>> getMe();
-  Future<Map<String, dynamic>> updateProfile({String? email, String? phoneNumber, String? password, String? passwordConfirmation});
+  Future<Map<String, dynamic>> updateProfile({String? email, String? phoneNumber, String? password, String? passwordConfirmation, String? photoPath, List<int>? photoBytes, String? photoFilename});
 }
 
 class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
@@ -102,18 +102,45 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     String? phoneNumber,
     String? password,
     String? passwordConfirmation,
+    String? photoPath,
+    List<int>? photoBytes,
+    String? photoFilename,
   }) async {
     try {
-      final data = <String, dynamic>{};
-      if (email != null && email.isNotEmpty) data['email'] = email;
-      if (phoneNumber != null && phoneNumber.isNotEmpty) data['phone_number'] = phoneNumber;
-      if (password != null && password.isNotEmpty) {
-        data['password'] = password;
-        data['password_confirmation'] = passwordConfirmation ?? password;
-      }
+      final hasPath = photoPath != null && photoPath.isNotEmpty;
+      final hasBytes = photoBytes != null && photoBytes.isNotEmpty;
 
-      final response = await dio.put('/me', data: data);
-      return response.data;
+      if (hasPath || hasBytes) {
+        MultipartFile photoFile;
+        if (hasBytes) {
+          photoFile = MultipartFile.fromBytes(photoBytes, filename: photoFilename ?? 'photo.jpg');
+        } else {
+          photoFile = await MultipartFile.fromFile(photoPath!, filename: photoPath.split('/').last);
+        }
+
+        final formData = FormData.fromMap({
+          if (email != null && email.isNotEmpty) 'email': email,
+          if (phoneNumber != null && phoneNumber.isNotEmpty) 'phone_number': phoneNumber,
+          if (password != null && password.isNotEmpty) ...{
+            'password': password,
+            'password_confirmation': passwordConfirmation ?? password,
+          },
+          'photo': photoFile,
+          '_method': 'PUT',
+        });
+        final response = await dio.post('/me', data: formData);
+        return response.data;
+      } else {
+        final data = <String, dynamic>{};
+        if (email != null && email.isNotEmpty) data['email'] = email;
+        if (phoneNumber != null && phoneNumber.isNotEmpty) data['phone_number'] = phoneNumber;
+        if (password != null && password.isNotEmpty) {
+          data['password'] = password;
+          data['password_confirmation'] = passwordConfirmation ?? password;
+        }
+        final response = await dio.put('/me', data: data);
+        return response.data;
+      }
     } on DioException catch (e) {
       if (e.response != null) {
         return e.response!.data;
