@@ -1232,7 +1232,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          "Alasan Lost",
+          "Lost Reaseon Note",
           style: TextStyle(
             fontSize: 12,
             fontWeight: FontWeight.bold,
@@ -1248,7 +1248,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
           onTapOutside: (event) => lostReasonNoteFN.unfocus(),
           textInputAction: TextInputAction.newline,
           decoration: InputDecoration(
-            hintText: "Alasan Lost....",
+            hintText: "Lost Reaseon Note....",
             hintStyle: TextStyle(color: Color(grey2Color), fontSize: 14),
             contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             border: OutlineInputBorder(
@@ -1408,7 +1408,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
               final result = await context.pushNamed(
                 'detailContactDropdown',
                 extra: ContactDropdownArgs(
-                  title: 'Pilih Status',
+                  title: 'Pilih Status Prospect',
                   items: statusItems,
                   selectedId: selectedStatusId,
                 ),
@@ -1476,7 +1476,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          "Alasan Lost",
+          "Lost Reason",
           style: TextStyle(
             fontSize: 12,
             fontWeight: FontWeight.bold,
@@ -1501,7 +1501,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
               final result = await context.pushNamed(
                 'detailContactDropdown',
                 extra: ContactDropdownArgs(
-                  title: 'Pilih Alasan',
+                  title: 'Pilih Lost Reason',
                   items: items,
                   selectedId: selectedLostReasonId,
                 ),
@@ -1597,7 +1597,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
               final result = await context.pushNamed(
                 'detailContactDropdown',
                 extra: ContactDropdownArgs(
-                  title: 'Project',
+                  title: 'Pilih Project',
                   items: items,
                   selectedId: selectedTownshipId,
                 ),
@@ -1676,7 +1676,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
             final result = await context.pushNamed(
               'detailContactDropdown',
               extra: ContactDropdownArgs(
-                title: 'Jumlah Datang',
+                title: 'Pilih Jumlah Datang',
                 items: selectedStatusId == 65
                     ? itemsJmlDatang
                     : (itemsJmlDatang.isNotEmpty ? [itemsJmlDatang.first] : []),
@@ -1742,7 +1742,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
             final result = await context.pushNamed(
               'detailContactDropdown',
               extra: ContactDropdownArgs(
-                title: 'Project Category',
+                title: 'Pilih Project Category',
                 items: itemsProjectCategory,
                 selectedId: selectedItem.id,
               ),
@@ -1830,7 +1830,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
             final result = await context.pushNamed(
               'detailContactDropdown',
               extra: ContactDropdownArgs(
-                title: 'Product',
+                title: 'Pilih Product',
                 items: productItems,
                 selectedId: null,
               ),
@@ -2033,7 +2033,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
                       final result = await context.pushNamed(
                         'detailContactDropdown',
                         extra: ContactDropdownArgs(
-                          title: 'Attachment Type',
+                          title: 'Pilih Attachment Type',
                           items: items,
                           selectedId: selectedTypeId,
                         ),

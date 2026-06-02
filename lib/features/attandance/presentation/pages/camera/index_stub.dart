@@ -1,4 +1,4 @@
-// Web-only camera implementation using browser getUserMedia API.
+﻿// Web-only camera implementation using browser getUserMedia API.
 // Loaded via conditional export in index.dart when dart.library.io is false.
 // ignore: avoid_web_libraries_in_flutter, deprecated_member_use
 import 'dart:html' as html;
@@ -43,12 +43,12 @@ class _CameraPageState extends State<CameraPage> {
   _CameraError? _error;
   final String _viewId = 'web-camera-${DateTime.now().millisecondsSinceEpoch}';
 
-  // Photos — identik dengan _imageFiles di mobile
+  // Photos â€” identik dengan _imageFiles di mobile
   List<Uint8List> _imageBytesList = [];
   List<String> _imageDataUrls = [];
   bool _isAddingMore = false;
 
-  // Form — identik mobile
+  // Form â€” identik mobile
   final TextEditingController notesTC = TextEditingController();
   final TextEditingController pameranTC = TextEditingController();
   final FocusNode notesFN = FocusNode();
@@ -200,7 +200,7 @@ class _CameraPageState extends State<CameraPage> {
     super.dispose();
   }
 
-  // ─── Build ────────────────────────────────────────────────────────────────
+  // â”€â”€â”€ Build â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   @override
   Widget build(BuildContext context) {
@@ -280,7 +280,7 @@ class _CameraPageState extends State<CameraPage> {
     }
   }
 
-  // ── Loading saat minta izin ──────────────────────────────────────────────
+  // â”€â”€ Loading saat minta izin â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   Widget _buildRequesting() {
     return const Center(
@@ -297,7 +297,7 @@ class _CameraPageState extends State<CameraPage> {
     );
   }
 
-  // ── Live preview kamera ──────────────────────────────────────────────────
+  // â”€â”€ Live preview kamera â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   Widget _buildCameraView() {
     if (_status == _CameraStatus.requesting) return _buildRequesting();
@@ -333,7 +333,7 @@ class _CameraPageState extends State<CameraPage> {
     );
   }
 
-  // ── Preview setelah capture — identik mobile ─────────────────────────────
+  // â”€â”€ Preview setelah capture â€” identik mobile â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   Widget _buildPreview() {
     return BlocBuilder<AttendanceBloc, AttendanceState>(
@@ -545,7 +545,7 @@ class _CameraPageState extends State<CameraPage> {
     );
   }
 
-  // ── Error dengan pesan & panduan spesifik ────────────────────────────────
+  // â”€â”€ Error dengan pesan & panduan spesifik â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   Widget _buildError(_CameraError error) {
     final info = _errorInfo(error);
@@ -614,7 +614,7 @@ class _CameraPageState extends State<CameraPage> {
           icon: Icons.no_photography_outlined,
           title: 'Akses Kamera Ditolak',
           message: 'Browser tidak mendapat izin mengakses kamera.',
-          steps: '1. Klik ikon 🔒 / kamera di address bar browser\n2. Ubah izin Kamera ke "Izinkan"\n3. Refresh halaman lalu coba lagi',
+          steps: '1. Klik ikon ðŸ”’ / kamera di address bar browser\n2. Ubah izin Kamera ke "Izinkan"\n3. Refresh halaman lalu coba lagi',
         );
       case _CameraError.noDevice:
         return _ErrorInfo(icon: Icons.videocam_off_outlined, title: 'Kamera Tidak Ditemukan', message: 'Perangkat tidak memiliki kamera atau kamera tidak terdeteksi.\nPastikan kamera sudah terpasang dan tidak dinonaktifkan.');

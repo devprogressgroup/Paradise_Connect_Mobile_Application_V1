@@ -1223,7 +1223,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
                         children: [
                            _buildFieldDown(
                             label: "Salutation",
-                            value: selectedSalutation ?? "Select Salutation",
+                            value: selectedSalutation ?? "Pilih Salutation",
                             isError: _showValidation && (selectedSalutation?.isEmpty ?? true),
                             errorText: (_showValidation && (selectedSalutation?.isEmpty ?? true)) ? 'Wajib diisi' : null,
                             onTap: () async {
@@ -1352,7 +1352,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
                                 final result = await context.pushNamed(
                                   'detailContactDropdown',
                                   extra: ContactDropdownArgs(
-                                    title: 'Pilih Status',
+                                    title: 'Pilih Status Prospect',
                                     items: statusItems,
                                     selectedId: selectedStatusId,
                                   ),
@@ -1392,7 +1392,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
                                 final result = await context.pushNamed(
                                   'detailContactDropdown',
                                   extra: ContactDropdownArgs(
-                                    title: 'Project',
+                                    title: 'Pilih Project',
                                     items: items,
                                     selectedId: selectLastTownshipId,
                                   ),
@@ -1425,7 +1425,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
                               final result = await context.pushNamed(
                                 'detailContactDropdown',
                                 extra: ContactDropdownArgs(
-                                  title: 'Project Category',
+                                  title: 'Pilih Project Category',
                                   items: itemsLastProjectCategory,
                                   selectedName: selectLastProjectCategory,
                                 ),
@@ -1487,7 +1487,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
                               final result = await context.pushNamed(
                                 'detailContactDropdown',
                                 extra: ContactDropdownArgs(
-                                  title: 'Product',
+                                  title: 'Pilih Product',
                                   items: puState.items,
                                   selectedId: selectLastProductId,
                                 ),
@@ -1524,7 +1524,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
                                 final result = await context.pushNamed(
                                   'detailContactDropdown',
                                   extra: ContactDropdownArgs(
-                                    title: 'Pilih Sumber',
+                                    title: 'Pilih Sales Channel',
                                     items: sourceItems,
                                     selectedId: selectedSource1Id,
                                   ),
@@ -1554,7 +1554,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
                                 final result = await context.pushNamed(
                                   'detailContactDropdown',
                                   extra: ContactDropdownArgs(
-                                    title: 'Pilih Sumber',
+                                    title: 'Pilih Sales Channel Detail',
                                     items: sourceItems,
                                     selectedId: selectedSource2Id,
                                   ),
@@ -1586,7 +1586,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
 
                               if (state.status == LostReasonStatus.loaded) {
                                 final items = state.reasons.map((e) => OwnerDropdownItem(id: e.lostReasonId,name: e.lostReasonName,),).toList();
-                                final result = await context.pushNamed('detailContactDropdown',extra: ContactDropdownArgs(title: 'Pilih Alasan',items: items,selectedId: selectedLostReasonId,),);
+                                final result = await context.pushNamed('detailContactDropdown',extra: ContactDropdownArgs(title: 'Pilih Lost Reason',items: items,selectedId: selectedLostReasonId,),);
 
                                 if (result != null) {
                                   final selected = result as OwnerDropdownItem;
@@ -1866,7 +1866,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
                    children: [
                     _buildFieldDown(
                        label: "Salutation",
-                       value: selectedSalutation ?? "Select Salutation",
+                       value: selectedSalutation ?? "Pilih Salutation",
                        isError: _showValidation && (selectedSalutation?.isEmpty ?? true),
                        errorText: (_showValidation && (selectedSalutation?.isEmpty ?? true)) ? 'Wajib diisi' : null,
                        onTap: () async {
@@ -1936,7 +1936,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
                            final result = await context.pushNamed(
                              'detailContactDropdown',
                              extra: ContactDropdownArgs(
-                               title: 'Project',
+                               title: 'Pilih Project',
                                items: items,
                                selectedId: selectFirstTownshipId,
                              ),
@@ -1971,7 +1971,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
                             final result = await context.pushNamed(
                               'detailContactDropdown',
                               extra: ContactDropdownArgs(
-                                title: 'Pilih Sumber',
+                                title: 'Pilih Sales Channel',
                                 items: sourceItems,
                                 selectedId: selectedSource1Id,
                               ),
@@ -2001,7 +2001,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
                             final result = await context.pushNamed(
                               'detailContactDropdown',
                               extra: ContactDropdownArgs(
-                                title: 'Pilih Sumber',
+                                title: 'Pilih Sales Channel Detail',
                                 items: sourceItems,
                                 selectedId: selectedSource2Id,
                               ),

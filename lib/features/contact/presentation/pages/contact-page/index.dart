@@ -263,7 +263,7 @@ class _ContactPageState extends State<ContactPage> {
                                                   if (statusState.status == ProspectStatusEnum.loaded) {
                                                     final List<OwnerDropdownItem> statusItems = statusState.statuses.map((e) => OwnerDropdownItem(id: e.statusProspectId, name: e.statusProspectName,)).toList();
 
-                                                    final result = await context.pushNamed('detailContactDropdown', extra: ContactDropdownArgs(title: 'Pilih Status', items: statusItems, selectedIds: contactState.statusProspectIds, isMultiSelect: true,),);
+                                                    final result = await context.pushNamed('detailContactDropdown', extra: ContactDropdownArgs(title: 'Pilih Status Prospect', items: statusItems, selectedIds: contactState.statusProspectIds, isMultiSelect: true,),);
 
                                                     if (result != null) {
                                                       final selected = result as List<OwnerDropdownItem>;

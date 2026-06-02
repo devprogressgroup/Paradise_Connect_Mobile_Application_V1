@@ -482,7 +482,7 @@ class _CameraPageState extends State<CameraPage> {
                     //                final result = await context.pushNamed(
                     //                  'detailContactDropdown',
                     //                  extra: ContactDropdownArgs(
-                    //                    title: 'Select Pameran',
+                    //                    title: 'Pilih Pameran',
                     //                    items: items,
                     //                    selectedId: _selectedLocationId,
                     //                    isMultiSelect: false,
@@ -511,7 +511,7 @@ class _CameraPageState extends State<CameraPage> {
                     //                      minLines: 1,
                     //                      controller: pameranTC,
                     //                      decoration: InputDecoration(
-                    //                        hintText: "Select Pameran",
+                    //                        hintText: "Pilih Pameran",
                     //                        hintStyle: TextStyle(color: Color(grey2Color), fontSize: 14),
                     //                        contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                     //                        border: InputBorder.none,
@@ -578,7 +578,7 @@ class _CameraPageState extends State<CameraPage> {
                                      final result = await context.pushNamed(
                                        'detailContactDropdown',
                                        extra: ContactDropdownArgs(
-                                         title: 'Select Pameran',
+                                         title: 'Pilih Pameran',
                                          items: items,
                                          selectedId: _selectedPameranLocation?.id,
                                          isMultiSelect: false,
@@ -602,7 +602,7 @@ class _CameraPageState extends State<CameraPage> {
                                            minLines: 1,
                                            controller: pameranTC,
                                            decoration: InputDecoration(
-                                             hintText: "Select Pameran",
+                                             hintText: "Pilih Pameran",
                                              hintStyle: TextStyle(color: Color(grey2Color), fontSize: 14),
                                              contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                                              border: InputBorder.none,

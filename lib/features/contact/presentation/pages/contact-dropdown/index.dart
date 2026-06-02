@@ -27,12 +27,14 @@ class _DropdownListContactState extends State<DropdownListContact> {
   }
 
   List<OwnerDropdownItem> get _filteredItems {
-    if (_searchQuery.isEmpty) return widget.args.items;
-    final q = _searchQuery.toLowerCase();
-    return widget.args.items.where((item) {
-      return item.name.toLowerCase().contains(q) ||
-          (item.subtitle?.toLowerCase().contains(q) ?? false);
-    }).toList();
+    final items = _searchQuery.isEmpty
+        ? widget.args.items
+        : widget.args.items.where((item) {
+            final q = _searchQuery.toLowerCase();
+            return item.name.toLowerCase().contains(q) ||
+                (item.subtitle?.toLowerCase().contains(q) ?? false);
+          }).toList();
+    return items..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
   }
 
   @override

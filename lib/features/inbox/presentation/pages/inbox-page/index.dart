@@ -1,4 +1,4 @@
-import 'dart:async';
+﻿import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:progress_group/core/utils/widget/shimmer_loading.dart';
@@ -301,7 +301,7 @@ class _InboxPageState extends State<InboxPage> {
                     
                                           final result = await context.pushNamed(
                                             'detailContactDropdown',
-                                            extra: ContactDropdownArgs(title: 'Pilih Owner', items: ownerItems, selectedIds: contactState.ownerIds, isMultiSelect: true),
+                                            extra: ContactDropdownArgs(title: 'Select Owner', items: ownerItems, selectedIds: contactState.ownerIds, isMultiSelect: true),
                                           );
                     
                                           if (result != null) {
@@ -388,7 +388,7 @@ class _InboxPageState extends State<InboxPage> {
                     
                                       final result = await context.pushNamed(
                                         'detailContactDropdown',
-                                        extra: ContactDropdownArgs(title: 'Pilih Status', items: statusItems, selectedIds: contactState.statusProspectIds, isMultiSelect: true),
+                                        extra: ContactDropdownArgs(title: 'Select Status Prospect', items: statusItems, selectedIds: contactState.statusProspectIds, isMultiSelect: true),
                                       );
                     
                                       if (result != null) {
