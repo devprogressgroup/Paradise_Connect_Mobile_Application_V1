@@ -102,10 +102,10 @@ class ContactRepositoryImpl implements ContactRepository {
   }
 
   @override
-  Future<Either<String, void>> updateContact(  int id,  CreateContactParams params,) async {
+  Future<Either<String, ContactEntity>> updateContact(int id, CreateContactParams params) async {
     try {
-      await remoteDataSource.updateContact(id, params);
-      return const Right(null);
+      final result = await remoteDataSource.updateContact(id, params);
+      return Right(result);
     } catch (e) {
       return Left(e.toString());
     }

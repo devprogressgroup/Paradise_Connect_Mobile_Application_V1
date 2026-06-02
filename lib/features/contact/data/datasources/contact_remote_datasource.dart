@@ -33,7 +33,7 @@ abstract class ContactRemoteDataSource {
 
   Future<ContactModel> createContact(CreateContactParams params);
 
-  Future<void> updateContact(int id, CreateContactParams params);
+  Future<ContactModel> updateContact(int id, CreateContactParams params);
 
   Future<void> deleteContact(int id);
 
@@ -241,16 +241,20 @@ class ContactRemoteDataSourceImpl implements ContactRemoteDataSource {
   }
 
   @override
-  Future<void> updateContact(int id, CreateContactParams params) async {
+  Future<ContactModel> updateContact(int id, CreateContactParams params) async {
     try {
-      final response = await dio.patch('/contacts/$id', data: _buildFormData(params));
+      final hasFiles = params.propertyFileBytes?.isNotEmpty == true;
+      final response = await dio.patch(
+        '/contacts/$id',
+        data: hasFiles ? _buildFormData(params) : params.toJson(),
+      );
 
       if (response.data['status'] != true) {
         throw Exception(response.data['message'] ?? 'Failed to update contact');
       }
+      return ContactModel.fromJson(response.data['data']);
     } on DioException catch (e) {
       print("error update contact: ${e.response?.data}");
-      print("error detail: ${e.response?.data}");
       throw Exception(getErrorMessage(e, 'Failed to update contact'));
     }
   }

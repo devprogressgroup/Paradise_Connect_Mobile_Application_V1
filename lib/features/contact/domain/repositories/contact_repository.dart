@@ -24,7 +24,7 @@ abstract class ContactRepository {
   Future<Either<String, List<ProspectStatusEntity>>> getProspectStatuses({String? type});
   Future<Either<String, List<LostReasonEntity>>> getLostReasons();
   Future<Either<String, List<ContactPropertyGroup>>> getContactProperties();
-  Future<Either<String, void>> updateContact(int id, CreateContactParams params);
+  Future<Either<String, ContactEntity>> updateContact(int id, CreateContactParams params);
   Future<Either<String, ContactEntity>> createContact(CreateContactParams params);
   Future<Either<String, void>> deleteContact(int id);
   Future<Either<String, List<ActivityEntity>>> getActivities({int? contactId, int? dealId, String? activityType, String? followUpStartDate, String? followUpEndDate, int page = 1,});
