@@ -21,25 +21,30 @@ class VersionCheckResult {
 }
 
 class VersionCheckService {
-  /// Ambil versi yang tersimpan di lokal (dari install terakhir)
   static Future<String?> getInstalledVersion() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getString(_kInstalledVersionKey);
   }
 
-  /// Simpan versi ke lokal — dipanggil saat pertama install atau setelah update
   static Future<void> saveInstalledVersion(String version) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_kInstalledVersionKey, version);
   }
 
   static Future<VersionCheckResult> check() async {
-    debugPrint('[VersionCheck] check() dipanggil');
+    if (kIsWeb) {
+      return const VersionCheckResult(
+        requiresUpdate: false,
+        latestVersion: '',
+        currentVersion: '',
+        downloadUrl: '',
+      );
+    }
+
     try {
       final info = await PackageInfo.fromPlatform();
       final currentVersion = info.version;
 
-      // Pertama kali install → simpan versi ke lokal
       final savedVersion = await getInstalledVersion();
       if (savedVersion == null) {
         await saveInstalledVersion(currentVersion);
@@ -66,16 +71,7 @@ class VersionCheckService {
 
       final latestVersion = data['data']['version'] as String;
       final downloadUrl = (data['data']['download_url'] as String?) ?? '';
-
-      // Bandingkan versi server vs versi yang terinstall saat ini
       final requiresUpdate = _compareVersions(latestVersion, currentVersion) > 0;
-
-      debugPrint('┌─── Version Check ────────────────────');
-      debugPrint('│ 📱 Versi app           : $currentVersion');
-      debugPrint('│ 💾 Versi lokal (prefs) : ${savedVersion ?? "(baru install)"}');
-      debugPrint('│ 🌐 Versi server (API)  : $latestVersion');
-      debugPrint('│ 🔔 Ada update?         : ${requiresUpdate ? "YA → popup muncul" : "TIDAK → lanjut normal"}');
-      debugPrint('└──────────────────────────────────────');
 
       return VersionCheckResult(
         requiresUpdate: requiresUpdate,
@@ -83,9 +79,8 @@ class VersionCheckService {
         currentVersion: currentVersion,
         downloadUrl: downloadUrl,
       );
-    } catch (e) {
-      debugPrint('[VersionCheck] ERROR: $e');
-      return VersionCheckResult(
+    } catch (_) {
+      return const VersionCheckResult(
         requiresUpdate: false,
         latestVersion: '',
         currentVersion: '',
@@ -94,7 +89,6 @@ class VersionCheckService {
     }
   }
 
-  /// Positif jika [a] > [b], negatif jika [a] < [b], 0 jika sama
   static int _compareVersions(String a, String b) {
     final aParts = a.split('.').map((e) => int.tryParse(e) ?? 0).toList();
     final bParts = b.split('.').map((e) => int.tryParse(e) ?? 0).toList();

@@ -168,14 +168,11 @@ class _MyAppState extends State<MyApp> {
   }
 
   Future<void> _checkVersion() async {
-    debugPrint('[VersionCheck] _checkVersion() dipanggil');
     try {
       final result = await VersionCheckService.check();
-      debugPrint('[VersionCheck] requiresUpdate=${result.requiresUpdate}');
       if (!mounted || !result.requiresUpdate) return;
 
       final context = AppRouter.rootNavigatorKey.currentContext;
-      debugPrint('[VersionCheck] context=$context');
       if (context == null || !context.mounted) return;
 
       showDialog(

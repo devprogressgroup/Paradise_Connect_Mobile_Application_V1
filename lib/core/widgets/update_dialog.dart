@@ -44,34 +44,7 @@ class UpdateDialog extends StatelessWidget {
                 style: TextStyle(fontSize: 13, color: Color(0xFF666666), height: 1.5),
                 textAlign: TextAlign.center,
               ),
-              const SizedBox(height: 16),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF0F4FF),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    _VersionBadge(
-                      label: 'Versi Kamu',
-                      version: currentVersion,
-                      color: Colors.red[400]!,
-                    ),
-                    const Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 12),
-                      child: Icon(Icons.arrow_forward_rounded, size: 16, color: Colors.grey),
-                    ),
-                    _VersionBadge(
-                      label: 'Versi Terbaru',
-                      version: latestVersion,
-                      color: Colors.green[600]!,
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 20),
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton.icon(
