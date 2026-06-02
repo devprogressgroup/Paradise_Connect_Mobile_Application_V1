@@ -298,6 +298,15 @@ class _SalesKitPageState extends State<SalesKitPage> {
     ];
 
 
+    if (items.isEmpty) {
+      return const Center(
+        child: Text(
+          'Tidak ada data produk',
+          style: TextStyle(color: Colors.grey),
+        ),
+      );
+    }
+
     return GridView.builder(
       physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.all(26),
@@ -447,6 +456,16 @@ class _SalesKitPageState extends State<SalesKitPage> {
           ),
         ),
         SizedBox(height: 15),
+        if (townships.isEmpty)
+          const Padding(
+            padding: EdgeInsets.only(top: 40),
+            child: Center(
+              child: Text(
+                'Tidak ada data project',
+                style: TextStyle(color: Colors.grey),
+              ),
+            ),
+          ),
         ...townships.map(
           (township) => buildProjectBanner(
             backgroundImageUrl: ApiConstants.townshipImageUrl(

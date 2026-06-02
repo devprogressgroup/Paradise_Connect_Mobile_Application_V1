@@ -169,9 +169,11 @@ class _NotifPageState extends State<NotifPage> {
                                                   final isVisit = type.contains('visit');
                                                   final isTask = type.contains('task');
 
+                                                  final isCreatedContact = activity.activityType == 'Created contact';
+
                                                   return GestureDetector(
                                                     onTap: () async {
-                                                      if (isCompleted) {
+                                                      if (isCreatedContact) {
                                                         await context.pushNamed(
                                                           'detailContact',
                                                           extra: ContactDetailArgs(

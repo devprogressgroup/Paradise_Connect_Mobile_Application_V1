@@ -337,7 +337,7 @@ class _ContactPageState extends State<ContactPage> {
                                 child: Builder(
                                   builder: (context) {
                                     if (state.contacts.isEmpty) {
-                                      return const Center(child: Text('No contacts found'));
+                                      return const Center(child: Text('Tidak ada data kontak'));
                                     }
                                     return RefreshIndicator(
                                       onRefresh: _onRefresh,

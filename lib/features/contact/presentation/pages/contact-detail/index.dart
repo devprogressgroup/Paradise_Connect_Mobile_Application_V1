@@ -748,7 +748,22 @@ class _ContactDetailPageState extends State<ContactDetailPage>with TickerProvide
                         // =========================
                         return RefreshIndicator(
                           onRefresh: _getActivity,
-                          child: ListView(
+                          child: grouped.isEmpty
+                              ? ListView(
+                                  physics: const AlwaysScrollableScrollPhysics(),
+                                  children: const [
+                                    Padding(
+                                      padding: EdgeInsets.only(top: 60),
+                                      child: Center(
+                                        child: Text(
+                                          'Tidak ada data aktivitas',
+                                          style: TextStyle(color: Colors.grey),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                )
+                              : ListView(
                           controller: _activityScrollController,
                           physics: const AlwaysScrollableScrollPhysics(),
                           padding: const EdgeInsets.symmetric(

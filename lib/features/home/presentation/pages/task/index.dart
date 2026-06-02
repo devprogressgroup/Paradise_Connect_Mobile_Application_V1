@@ -123,7 +123,7 @@ class _TaskPageState extends State<TaskPage> {
                                               children: const [
                                                 Padding(
                                                   padding: EdgeInsets.all(16),
-                                                  child: Center(child: Text("No upcoming tasks for today")),
+                                                  child: Center(child: Text("Tidak ada task untuk hari ini")),
                                                 ),
                                               ],
                                             ),

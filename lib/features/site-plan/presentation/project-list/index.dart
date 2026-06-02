@@ -35,7 +35,14 @@ class ProjectListPage extends StatelessWidget {
                     },
                     child: isLoading
                         ? const Center(child: CircularProgressIndicator())
-                        : ListView.builder(
+                        : currentSites.isEmpty
+                            ? const Center(
+                                child: Text(
+                                  'Tidak ada data site plan',
+                                  style: TextStyle(color: Colors.grey),
+                                ),
+                              )
+                            : ListView.builder(
                             physics: const AlwaysScrollableScrollPhysics(),
                             padding: const EdgeInsets.all(16),
                             itemCount: currentSites.length,

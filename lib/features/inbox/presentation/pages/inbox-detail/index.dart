@@ -113,6 +113,15 @@ class _InboxDetailPageState extends State<InboxDetailPage> {
                         _isFirstLoad = false;
                       }
 
+                      if (messages.isEmpty) {
+                        return const Center(
+                          child: Text(
+                            'Tidak ada pesan',
+                            style: TextStyle(color: Colors.grey),
+                          ),
+                        );
+                      }
+
                       return ListView.builder(
                         controller: _scrollController,
                         reverse: true,
