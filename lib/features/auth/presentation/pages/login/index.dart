@@ -25,6 +25,7 @@ class _LoginPageState extends State<LoginPage> {
   bool _rememberMe = false;
   bool _isObscure = true;
   bool _biometricEnabled = false;
+  List<BiometricType> _availableBiometrics = [];
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _emailFN = FocusNode();
@@ -32,27 +33,45 @@ class _LoginPageState extends State<LoginPage> {
 
   final LocalAuthentication _auth = LocalAuthentication();
 
-
   @override
   void initState() {
     super.initState();
     context.read<AuthBloc>().add(CheckRememberMeEvent());
     context.read<AuthBloc>().add(CheckBiometricEnabledEvent());
+    _loadAvailableBiometrics();
+  }
+
+  Future<void> _loadAvailableBiometrics() async {
+    final isSupported = await _auth.isDeviceSupported();
+    if (!isSupported) return;
+    final biometrics = await _auth.getAvailableBiometrics();
+    if (mounted) setState(() => _availableBiometrics = biometrics);
+  }
+
+  IconData get _biometricIcon {
+    if (_availableBiometrics.contains(BiometricType.face)) return Icons.face_unlock_outlined;
+    if (_availableBiometrics.contains(BiometricType.iris)) return Icons.remove_red_eye_outlined;
+    return Icons.fingerprint;
+  }
+
+  String get _biometricReason {
+    if (_availableBiometrics.contains(BiometricType.face)) return 'Scan wajah untuk login';
+    if (_availableBiometrics.contains(BiometricType.iris)) return 'Scan iris untuk login';
+    return 'Scan fingerprint untuk login';
   }
 
 
   Future<void> _loginWithBiometric() async {
     try {
       final isSupported = await _auth.isDeviceSupported();
-      final availableBiometrics = await _auth.getAvailableBiometrics();
 
-      if (!isSupported || availableBiometrics.isEmpty) {
-        if (context.mounted) showSnackbar(context, "Fingerprint belum didaftarkan di perangkat ini", isError: true);
+      if (!isSupported) {
+        if (context.mounted) showSnackbar(context, "Perangkat ini tidak mendukung autentikasi biometrik", isError: true);
         return;
       }
 
       final didAuthenticate = await _auth.authenticate(
-        localizedReason: 'Scan fingerprint untuk login',
+        localizedReason: _biometricReason,
         options: const AuthenticationOptions(
           biometricOnly: true,
           stickyAuth: true,
@@ -251,7 +270,7 @@ class _LoginPageState extends State<LoginPage> {
                     borderRadius: BorderRadius.circular(32),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.08),
+                        color: Colors.black.withValues(alpha: 0.08),
                         blurRadius: 20,
                         offset: const Offset(0, 10),
                       ),
@@ -277,7 +296,7 @@ class _LoginPageState extends State<LoginPage> {
                       ),
                       const SizedBox(height: 32),
                       Text(
-                        "Email Address",
+                        "Username / Email Address",
                         style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w700,
@@ -567,8 +586,8 @@ class _LoginPageState extends State<LoginPage> {
                                 ),
                                 child: IconButton(
                                   onPressed: _loginWithBiometric,
-                                  icon: const Icon(
-                                    Icons.fingerprint,
+                                  icon: Icon(
+                                    _biometricIcon,
                                     color: Colors.white,
                                     size: 28,
                                   ),

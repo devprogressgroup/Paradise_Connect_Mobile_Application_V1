@@ -21,13 +21,13 @@
   <!-- iOS meta tags & icons -->
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <meta name="apple-mobile-web-app-title" content="progress_group">
+  <meta name="apple-mobile-web-app-title" content="Paradise Connect">
   <link rel="apple-touch-icon" href="icons/Icon-192.png">
 
   <!-- Favicon -->
   <link rel="icon" type="image/png" href="favicon.png">
 
-  <title>progress_group</title>
+  <title>Paradise Connect</title>
   <link rel="manifest" href="manifest.json">
   
   
@@ -115,5 +115,18 @@
   -->
   <script src="flutter_bootstrap.js" async=""></script>
 
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', function () {
+        navigator.serviceWorker.register('flutter_service_worker.js')
+          .then(function (reg) {
+            console.log('[PWA] Service worker registered:', reg.scope);
+          })
+          .catch(function (err) {
+            console.warn('[PWA] Service worker registration failed:', err);
+          });
+      });
+    }
+  </script>
 
 </body></html>

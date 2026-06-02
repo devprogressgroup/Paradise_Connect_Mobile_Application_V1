@@ -801,6 +801,17 @@ class _AttandancePageState extends State<AttandancePage> {
 
               if (state is AttendanceLoaded) {
                 final data = state.data;
+                if (data.isEmpty) {
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 24),
+                    child: Center(
+                      child: Text(
+                        "Tidak ada data attendance",
+                        style: TextStyle(fontSize: 14, color: Colors.grey),
+                      ),
+                    ),
+                  );
+                }
                 return Column(
                   children: [
                     ListView.builder(

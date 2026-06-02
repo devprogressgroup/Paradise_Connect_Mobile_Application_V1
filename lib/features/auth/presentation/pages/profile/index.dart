@@ -39,10 +39,24 @@ class _ProfilePageState extends State<ProfilePage> {
   bool _isObscure = true;
   bool _isObscureConfirm = true;
   bool _biometricEnabled = false;
+  List<BiometricType> _availableBiometrics = [];
   XFile? _selectedPhoto;
   Uint8List? _selectedPhotoBytes;
 
   final LocalAuthentication _localAuth = LocalAuthentication();
+
+  IconData get _biometricIcon {
+    if (_availableBiometrics.contains(BiometricType.face)) return Icons.face_unlock_outlined;
+    if (_availableBiometrics.contains(BiometricType.iris)) return Icons.remove_red_eye_outlined;
+    return Icons.fingerprint;
+  }
+
+  String get _biometricSubtitle {
+    if (_availableBiometrics.contains(BiometricType.face)) return 'Gunakan face ID untuk login';
+    if (_availableBiometrics.contains(BiometricType.iris)) return 'Gunakan iris untuk login';
+    if (_availableBiometrics.contains(BiometricType.fingerprint)) return 'Gunakan fingerprint untuk login';
+    return 'Gunakan biometrik untuk login';
+  }
   final ImagePicker _imagePicker = ImagePicker();
 
   Future<void> _pickPhoto() async {
@@ -73,20 +87,33 @@ class _ProfilePageState extends State<ProfilePage> {
 
     context.read<ProfileBloc>().add(GetProfileEvent());
     context.read<AuthBloc>().add(CheckBiometricEnabledEvent());
+    _loadAvailableBiometrics();
+  }
+
+  Future<void> _loadAvailableBiometrics() async {
+    final isSupported = await _localAuth.isDeviceSupported();
+    if (!isSupported) return;
+    final biometrics = await _localAuth.getAvailableBiometrics();
+    if (mounted) setState(() => _availableBiometrics = biometrics);
   }
 
   Future<void> _onBiometricToggle(bool value) async {
     if (value) {
       try {
         final isSupported = await _localAuth.isDeviceSupported();
-        final availableBiometrics = await _localAuth.getAvailableBiometrics();
-
-        if (!isSupported || availableBiometrics.isEmpty) {
-          if (mounted) showSnackbar(context, "Fingerprint belum didaftarkan di perangkat ini", isError: true);
+        if (!isSupported) {
+          if (mounted) showSnackbar(context, "Perangkat ini tidak mendukung autentikasi biometrik", isError: true);
           return;
         }
+
+        final didAuthenticate = await _localAuth.authenticate(
+          localizedReason: 'Verifikasi biometrik untuk mengaktifkan fitur ini',
+          options: const AuthenticationOptions(biometricOnly: true, stickyAuth: true),
+        );
+
+        if (!didAuthenticate) return;
       } catch (e) {
-        if (mounted) showSnackbar(context, "Gagal cek biometrik: $e", isError: true);
+        if (mounted) showSnackbar(context, "Biometrik tidak tersedia di perangkat ini", isError: true);
         return;
       }
 
@@ -387,7 +414,7 @@ class _ProfilePageState extends State<ProfilePage> {
                             borderRadius: BorderRadius.circular(10),
                           ),
                           child: Icon(
-                            Icons.fingerprint,
+                            _biometricIcon,
                             color: _biometricEnabled ? Color(primaryColor) : Colors.grey,
                             size: 24,
                           ),
@@ -406,7 +433,7 @@ class _ProfilePageState extends State<ProfilePage> {
                                 ),
                               ),
                               Text(
-                                "Gunakan fingerprint atau face ID untuk login",
+                                _biometricSubtitle,
                                 style: TextStyle(fontSize: 12, color: Colors.grey),
                               ),
                             ],

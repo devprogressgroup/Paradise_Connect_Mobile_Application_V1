@@ -148,7 +148,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
               }
               else {
                 showSnackbar(context, state.message);
-                context.go('/');
+                context.go('/login');
               }
             }
 

@@ -91,7 +91,10 @@ class _SitePlanPageState extends State<SitePlanPage> {
   }
 
   void _openProjectList() async {
-    final result = await context.pushNamed('projectList', extra: _sites);
+    final result = await context.pushNamed('projectList', extra: {
+      'sites': _sites,
+      'selected': _selectedSite,
+    });
     if (result != null && result is ProjectSite) {
       setState(() => _selectedSite = result);
       _loadSite(result);

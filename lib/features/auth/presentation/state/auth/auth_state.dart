@@ -13,6 +13,12 @@ class AuthSuccess extends AuthState {
   AuthSuccess(this.message, {this.data});
 }
 
+// State khusus untuk login berhasil — hanya ini yang trigger authNotifier
+class LoginSuccess extends AuthState {
+  final String message;
+  LoginSuccess(this.message);
+}
+
 class AuthFailure extends AuthState {
   final String error;
 

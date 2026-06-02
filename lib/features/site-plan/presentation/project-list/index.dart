@@ -10,7 +10,8 @@ import '../state/siteplan_state.dart';
 
 class ProjectListPage extends StatelessWidget {
   final List<ProjectSite> sites;
-  const ProjectListPage({super.key, required this.sites});
+  final ProjectSite? selectedSite;
+  const ProjectListPage({super.key, required this.sites, this.selectedSite});
 
   @override
   Widget build(BuildContext context) {
@@ -43,21 +44,44 @@ class ProjectListPage extends StatelessWidget {
                               final showHeader = index == 0 ||
                                   currentSites[index - 1].groupName != site.groupName;
 
+                              final isSelected =
+                                  selectedSite?.unitName == site.unitName &&
+                                  selectedSite?.groupName == site.groupName;
+
                               return Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   if (showHeader) ...[
-                                    Text(
-                                      site.groupName.toUpperCase(),
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.bold,
-                                        color: Colors.blue.shade900,
+                                    Padding(
+                                      padding: const EdgeInsets.only(top: 8),
+                                      child: Text(
+                                        site.groupName.toUpperCase(),
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.blue.shade900,
+                                        ),
                                       ),
                                     ),
                                   ],
                                   ListTile(
-                                    title: Text(site.unitName),
+                                    title: Text(
+                                      site.unitName,
+                                      style: TextStyle(
+                                        fontWeight: isSelected
+                                            ? FontWeight.bold
+                                            : FontWeight.normal,
+                                        color: isSelected
+                                            ? Colors.blue.shade800
+                                            : null,
+                                      ),
+                                    ),
+                                    tileColor: isSelected
+                                        ? Colors.blue.shade50
+                                        : null,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
                                     onTap: () => context.pop(site),
                                   ),
                                 ],

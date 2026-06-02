@@ -25,11 +25,13 @@ class ApiConstants {
   static const Map<AppEnvironment, _EnvConfig> _configs = {
     AppEnvironment.production: _EnvConfig(
       label: 'Production',
-      baseUrl: 'http://192.168.18.150:9090/api',
-      storageUrl: 'http://192.168.18.150:9090/storage',
+      baseUrl: 'http://192.168.8.21:9090/api',
+      storageUrl: 'http://192.168.8.21:9090/storage',
       waServerURL: 'http://192.168.8.40:3000',
-      serverUrl: 'http://192.168.18.150:9090',
+      serverUrl: 'http://192.168.8.21:9090',
     ),
+
+    
     
     AppEnvironment.development: _EnvConfig(
       label: 'Development',

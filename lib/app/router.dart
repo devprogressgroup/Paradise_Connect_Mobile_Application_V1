@@ -188,8 +188,10 @@ class AppRouter {
                 name: 'projectList',
                 path: 'project-list',
                 builder: (context, state) {
-                  final args = (state.extra as List<ProjectSite>?) ?? [];
-                  return ProjectListPage(sites: args);
+                  final extra = state.extra as Map<String, dynamic>?;
+                  final sites = (extra?['sites'] as List<ProjectSite>?) ?? [];
+                  final selected = extra?['selected'] as ProjectSite?;
+                  return ProjectListPage(sites: sites, selectedSite: selected);
                 },
               ),
             ],

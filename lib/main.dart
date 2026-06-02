@@ -309,7 +309,7 @@ class _MyAppState extends State<MyApp> {
           ],
           child: BlocListener<AuthBloc, AuthState>(
             listener: (context, state) {
-              if (state is AuthSuccess) {
+              if (state is LoginSuccess) {
                 context.read<ProfileBloc>().add(GetProfileEvent());
                 AppRouter.authNotifier.value = true;
                 // Kirim FCM token setelah login berhasil (auth token sudah ada)
