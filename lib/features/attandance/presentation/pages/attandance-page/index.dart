@@ -16,6 +16,8 @@ import 'package:progress_group/features/attandance/presentation/state/attandance
 import 'package:progress_group/features/attandance/presentation/state/attandance/attendance_event.dart';
 import 'package:progress_group/features/attandance/presentation/state/attandance/attendance_state.dart';
 import 'package:progress_group/features/attandance/presentation/state/attendance_activity/attendance_activity_bloc.dart';
+import 'package:progress_group/features/attandance/presentation/state/pameran_location/pameran_location_cubit.dart';
+import 'package:progress_group/features/attandance/presentation/state/office_location/office_location_cubit.dart';
 import 'package:progress_group/features/attandance/presentation/state/attendance_activity/attendance_activity_event.dart';
 import 'package:progress_group/features/attandance/presentation/state/attendance_activity/attendance_activity_state.dart';
 import 'package:progress_group/features/auth/domain/entities/user_profile.dart';
@@ -87,6 +89,9 @@ class _AttandancePageState extends State<AttandancePage> {
         if (id != null) _attendanceOwnerIds = [id];
       }
       _getLog();
+
+      context.read<OfficeLocationCubit>().load();
+      context.read<PameranLocationCubit>().load();
     });
   }
 
@@ -281,8 +286,7 @@ class _AttandancePageState extends State<AttandancePage> {
       return;
     }
 
-    final state = context.read<AttendanceBloc>().state;
-    final officeLocations = state is AttendanceLoaded ? state.officeLocations : null;
+    final officeLocations = context.read<OfficeLocationCubit>().state;
 
     double? nearestDistance;
     double? activeRadius;
@@ -291,7 +295,7 @@ class _AttandancePageState extends State<AttandancePage> {
     String? nearestOfficeLat;
     String? nearestOfficeLng;
 
-    if (officeLocations != null && officeLocations.isNotEmpty) {
+    if (officeLocations.isNotEmpty) {
       for (var office in officeLocations) {
         final lat = double.tryParse(office.latitude ?? '');
         final lng = double.tryParse(office.longitude ?? '');

@@ -10,6 +10,8 @@ import 'package:progress_group/features/attandance/data/arguments/attandance_arg
 import 'package:progress_group/features/attandance/presentation/state/attandance/attendance_bloc.dart';
 import 'package:progress_group/features/attandance/presentation/state/attandance/attendance_event.dart';
 import 'package:progress_group/features/attandance/presentation/state/attandance/attendance_state.dart';
+import 'package:progress_group/features/attandance/presentation/state/pameran_location/pameran_location_cubit.dart';
+import 'package:progress_group/features/attandance/presentation/state/office_location/office_location_cubit.dart';
 import 'package:progress_group/features/contact/data/arguments/contact_dropdown_args.dart';
 
 import '../../../../../core/constants/colors.dart';
@@ -40,7 +42,6 @@ class _CameraPageState extends State<CameraPage> {
   List<CameraDescription>? _cameras;
   bool _isSwitching = false;
   bool _isAddingMore = false;
-  int? _selectedLocationId;
   AttendanceLocation? _selectedPameranLocation;
 
 
@@ -48,8 +49,26 @@ class _CameraPageState extends State<CameraPage> {
   void initState() {
     super.initState();
     _initCamera();
-    context.read<AttendanceBloc>().add(GetOfficeLocationsEvent());
-    context.read<AttendanceBloc>().add(GetLocationsEvent());
+    WidgetsBinding.instance.addPostFrameCallback((_) => _tryAutoFillLocation());
+  }
+
+  void _tryAutoFillLocation() {
+    if (widget.args.locationId == null) return;
+    final isClockInOut = widget.args.flag == 0 || widget.args.flag == 1;
+    final locationList = isClockInOut
+        ? context.read<OfficeLocationCubit>().state
+        : context.read<PameranLocationCubit>().state;
+    if (locationList.isEmpty) return;
+    final match = locationList.cast<AttendanceLocation?>().firstWhere(
+      (e) => e?.id == widget.args.locationId,
+      orElse: () => null,
+    );
+    if (match != null) {
+      setState(() {
+        _selectedPameranLocation = match;
+        pameranTC.text = match.name;
+      });
+    }
   }
 
 
@@ -163,35 +182,53 @@ class _CameraPageState extends State<CameraPage> {
 
   @override
   Widget build(BuildContext context) {
-    return BlocListener<AttendanceBloc, AttendanceState>(
-      listener: (context, state) {
-        if (state is AttendanceSubmitSuccess) {
-          if (context.canPop()) {
-            context.pop(true);
-          } else {
-            context.go('/attandance');
-          }
-        } else if (state is AttendanceError) {
-          final msg = state.message.startsWith('Exception: ')
-              ? state.message.replaceFirst('Exception: ', '')
-              : state.message;
-          // Session expired sudah ditangani oleh DioClient interceptor, skip dialog duplikat
-          if (msg == 'SESSION_EXPIRED' || msg.contains('[cancel]')) return;
-          showDialog(
-            context: context,
-            builder: (ctx) => AlertDialog(
-              title: const Text('Gagal'),
-              content: Text(msg),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.of(ctx).pop(),
-                  child: const Text('OK'),
+    return MultiBlocListener(
+      listeners: [
+        BlocListener<OfficeLocationCubit, List<AttendanceLocation>>(
+          listener: (context, _) {
+            if ((widget.args.flag == 0 || widget.args.flag == 1) &&
+                _selectedPameranLocation == null) {
+              _tryAutoFillLocation();
+            }
+          },
+        ),
+        BlocListener<PameranLocationCubit, List<AttendanceLocation>>(
+          listener: (context, _) {
+            if (widget.args.flag == 6 && _selectedPameranLocation == null) {
+              _tryAutoFillLocation();
+            }
+          },
+        ),
+        BlocListener<AttendanceBloc, AttendanceState>(
+          listener: (context, state) {
+            if (state is AttendanceSubmitSuccess) {
+              if (context.canPop()) {
+                context.pop(true);
+              } else {
+                context.go('/attandance');
+              }
+            } else if (state is AttendanceError) {
+              final msg = state.message.startsWith('Exception: ')
+                  ? state.message.replaceFirst('Exception: ', '')
+                  : state.message;
+              if (msg == 'SESSION_EXPIRED' || msg.contains('[cancel]')) return;
+              showDialog(
+                context: context,
+                builder: (ctx) => AlertDialog(
+                  title: const Text('Gagal'),
+                  content: Text(msg),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.of(ctx).pop(),
+                      child: const Text('OK'),
+                    ),
+                  ],
                 ),
-              ],
-            ),
-          );
-        }
-      },
+              );
+            }
+          },
+        ),
+      ],
       child: Scaffold(
         body: SafeArea(
           child: Column(
@@ -240,18 +277,20 @@ class _CameraPageState extends State<CameraPage> {
     var scale = size.aspectRatio * _controller!.value.aspectRatio;
     if (scale < 1) scale = 1 / scale;
 
-    return Stack(
-      children: [
-        Positioned.fill(
-          child: Transform.scale(
-            scale: scale,
-            child: Center(
-              child: CameraPreview(_controller!),
+    return ClipRect(
+      child: Stack(
+        children: [
+          Positioned.fill(
+            child: Transform.scale(
+              scale: scale,
+              child: Center(
+                child: CameraPreview(_controller!),
+              ),
             ),
           ),
-        ),
-        _buildBottomOverlay(),
-      ],
+          _buildBottomOverlay(),
+        ],
+      ),
     );
   }
 
@@ -495,70 +534,87 @@ class _CameraPageState extends State<CameraPage> {
                              Text("Pameran/ Open Table (optional)", style: TextStyle(fontSize: 14, color: Color(grey2Color))),
                              SizedBox(height: 5),
 
-                             Container(
-                               width: double.infinity,
-                               height: 50,
-                               alignment: Alignment.centerRight,
-                               decoration: BoxDecoration(
-                                 border: Border.all(color: Color(grey8Color), width: 1),
-                                 borderRadius: BorderRadius.circular(12),
-                               ),
-                               child: InkWell(
-                                 onTap: () async {
-                                   final state = context.read<AttendanceBloc>().state;
-                                   if (state is! AttendanceLoaded || state.locations == null) {
-                                     ScaffoldMessenger.of(context).showSnackBar(
-                                       const SnackBar(
-                                         content: Text('Data lokasi belum tersedia, silahkan tunggu sebentar'),
-                                         duration: Duration(seconds: 2),
+                             if (widget.args.flag == 0 || widget.args.flag == 1)
+                               // Clock In / Clock Out — read only, auto-filled
+                               Container(
+                                 width: double.infinity,
+                                 height: 50,
+                                 padding: const EdgeInsets.symmetric(horizontal: 16),
+                                 alignment: Alignment.centerLeft,
+                                 decoration: BoxDecoration(
+                                   color: Color(grey10Color),
+                                   border: Border.all(color: Color(grey8Color), width: 1),
+                                   borderRadius: BorderRadius.circular(12),
+                                 ),
+                                 child: Text(
+                                   pameranTC.text.isNotEmpty ? pameranTC.text : '-',
+                                   style: TextStyle(fontSize: 14, color: Color(grey2Color)),
+                                   overflow: TextOverflow.ellipsis,
+                                 ),
+                               )
+                             else
+                               // Check In (flag == 6) — dropdown bisa dipilih
+                               Container(
+                                 width: double.infinity,
+                                 height: 50,
+                                 alignment: Alignment.centerRight,
+                                 decoration: BoxDecoration(
+                                   border: Border.all(color: Color(grey8Color), width: 1),
+                                   borderRadius: BorderRadius.circular(12),
+                                 ),
+                                 child: InkWell(
+                                   onTap: () async {
+                                     final locationList = context.read<PameranLocationCubit>().state;
+                                     if (locationList.isEmpty) {
+                                       ScaffoldMessenger.of(context).showSnackBar(
+                                         const SnackBar(
+                                           content: Text('Data lokasi belum tersedia, silahkan tunggu sebentar'),
+                                           duration: Duration(seconds: 2),
+                                         ),
+                                       );
+                                       return;
+                                     }
+                                     final items = locationList.map((e) => OwnerDropdownItem(id: e.id, name: e.name)).toList();
+                                     final result = await context.pushNamed(
+                                       'detailContactDropdown',
+                                       extra: ContactDropdownArgs(
+                                         title: 'Select Pameran',
+                                         items: items,
+                                         selectedId: _selectedPameranLocation?.id,
+                                         isMultiSelect: false,
                                        ),
                                      );
-                                     return;
-                                   }
-                                   final items = state.locations!.map((e) => OwnerDropdownItem(id: e.id, name: e.name)).toList();
-
-                                   final result = await context.pushNamed(
-                                     'detailContactDropdown',
-                                     extra: ContactDropdownArgs(
-                                       title: 'Select Pameran',
-                                       items: items,
-                                       selectedId: _selectedLocationId,
-                                       isMultiSelect: false,
-                                     ),
-                                   );
-
-                                   if (result != null) {
-                                     final selected = result as OwnerDropdownItem;
-                                     final fullLoc = state.locations!.firstWhere((e) => e.id == selected.id);
-                                     setState(() {
-                                       _selectedLocationId = selected.id;
-                                       _selectedPameranLocation = fullLoc;
-                                       pameranTC.text = selected.name;
-                                     });
-                                   }
-                                 },
-                                 child: Row(
-                                   children: [
-                                     Expanded(
-                                       child: TextField(
-                                         enabled: false,
-                                         maxLines: 1,
-                                         minLines: 1,
-                                         controller: pameranTC,
-                                         decoration: InputDecoration(
-                                           hintText: "Select Pameran",
-                                           hintStyle: TextStyle(color: Color(grey2Color), fontSize: 14),
-                                           contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                                           border: InputBorder.none,
+                                     if (result != null) {
+                                       final selected = result as OwnerDropdownItem;
+                                       final fullLoc = locationList.firstWhere((e) => e.id == selected.id);
+                                       setState(() {
+                                         _selectedPameranLocation = fullLoc;
+                                         pameranTC.text = selected.name;
+                                       });
+                                     }
+                                   },
+                                   child: Row(
+                                     children: [
+                                       Expanded(
+                                         child: TextField(
+                                           enabled: false,
+                                           maxLines: 1,
+                                           minLines: 1,
+                                           controller: pameranTC,
+                                           decoration: InputDecoration(
+                                             hintText: "Select Pameran",
+                                             hintStyle: TextStyle(color: Color(grey2Color), fontSize: 14),
+                                             contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                             border: InputBorder.none,
+                                           ),
                                          ),
                                        ),
-                                     ),
-                                     Icon(Icons.keyboard_arrow_up),
-                                     SizedBox(width: 5),
-                                   ],
+                                       Icon(Icons.keyboard_arrow_up),
+                                       SizedBox(width: 5),
+                                     ],
+                                   ),
                                  ),
                                ),
-                             ),
 
                             SizedBox(height: 8),
                             Text("Notes", style: TextStyle(fontSize: 14, color: Color(grey2Color))),
@@ -603,7 +659,7 @@ class _CameraPageState extends State<CameraPage> {
             if (isLoading)
               Positioned.fill(
                 child: Container(
-                  color: Colors.black.withOpacity(0.4),
+                  color: Colors.black.withValues(alpha: 0.4),
                   child: const Center(child: CircularProgressIndicator()),
                 ),
               ),
