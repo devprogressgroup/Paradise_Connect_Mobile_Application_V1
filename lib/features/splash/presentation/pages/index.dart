@@ -41,14 +41,12 @@ class _SplashPageState extends State<SplashPage> {
     if (token != null && token.isNotEmpty) {
       context.read<ProfileBloc>().add(GetProfileEvent());
 
-      // Fallback: kalau server tidak respond dalam 3 detik, langsung ke login
       _fallbackTimer = Timer(const Duration(seconds: 3), () {
         if (mounted && context.read<ProfileBloc>().state is ProfileLoading) {
           context.go('/login');
         }
       });
     } else {
-      // Tidak ada token — langsung ke login tanpa delay
       context.go('/login');
     }
   }
@@ -58,11 +56,9 @@ class _SplashPageState extends State<SplashPage> {
     return BlocListener<ProfileBloc, ProfileState>(
       listener: (context, state) async {
         if (state is ProfileLoaded) {
-          // Token valid — set auth flag lalu masuk home
           AppRouter.authNotifier.value = true;
           context.go('/');
         } else if (state is ProfileFailure) {
-          // Token expired/invalid — hapus token lalu ke login
           final prefs = await SharedPreferences.getInstance();
           await prefs.remove('auth_token');
           await prefs.setBool('is_auto_login', false);
@@ -76,7 +72,6 @@ class _SplashPageState extends State<SplashPage> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Image.asset(logoParadiseConnect, width: 160),
-              
             ],
           ),
         ),

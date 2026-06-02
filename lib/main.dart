@@ -72,6 +72,8 @@ import 'package:progress_group/features/inbox/presentation/state/message/message
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'app/router.dart';
+import 'core/services/version_check_service.dart';
+import 'core/widgets/update_dialog.dart';
 import 'features/saleskit/data/datasources/saleskit_remote_datasource.dart';
 import 'features/site-plan/data/datasources/siteplan_remote_datasource.dart';
 import 'features/site-plan/domain/repositories/site_plan_repository_impl.dart';
@@ -153,7 +155,6 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> {
-  // Key ini digunakan untuk memaksa rebuild seluruh MultiBlocProvider
   Key _blocKey = UniqueKey();
 
   @override
@@ -162,7 +163,31 @@ class _MyAppState extends State<MyApp> {
     ApiConstants.envNotifier.addListener(_resetApp);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       PushNotificationService.processPendingMessage();
+      _checkVersion();
     });
+  }
+
+  Future<void> _checkVersion() async {
+    debugPrint('[VersionCheck] _checkVersion() dipanggil');
+    try {
+      final result = await VersionCheckService.check();
+      debugPrint('[VersionCheck] requiresUpdate=${result.requiresUpdate}');
+      if (!mounted || !result.requiresUpdate) return;
+
+      final context = AppRouter.rootNavigatorKey.currentContext;
+      debugPrint('[VersionCheck] context=$context');
+      if (context == null || !context.mounted) return;
+
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (_) => UpdateDialog(
+          currentVersion: result.currentVersion,
+          latestVersion: result.latestVersion,
+          downloadUrl: result.downloadUrl,
+        ),
+      );
+    } catch (_) {}
   }
 
   @override

@@ -1861,12 +1861,7 @@ class _ActivityCardState extends State<_ActivityCard> {
     });
   }
 
-  String _formatTime(String? value) {
-    if (value == null) return '-';
-    final dt = DateTime.tryParse(value);
-    if (dt == null) return '-';
-    return DateFormat('hh:mm').format(dt);
-  }
+  
 
   @override
   Widget build(BuildContext context) {
@@ -1951,7 +1946,7 @@ class _ActivityCardState extends State<_ActivityCard> {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    Text(_formatTime(widget.datetime), style: const TextStyle(fontSize: 11)),
+                    Text(DateHelper.formatTime(DateTime.parse(widget.datetime!)), style: const TextStyle(fontSize: 11)),
                     const SizedBox(height: 2),
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
