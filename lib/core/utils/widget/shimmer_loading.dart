@@ -935,6 +935,20 @@ Widget buildSaleskitDetailShimmer() {
   );
 }
 
+// ─── Contact Detail Header Name ──────────────────────────────────────────────
+Widget buildContactHeaderNameShimmer() {
+  return _shimmerWrap(
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _ShimmerBox(width: 60, height: 11, borderRadius: 4),
+        const SizedBox(height: 6),
+        _ShimmerBox(width: 160, height: 20, borderRadius: 4),
+      ],
+    ),
+  );
+}
+
 // ─── Form / Detail Loading ────────────────────────────────────────────────────
 Widget buildFormShimmer() {
   return _shimmerWrap(

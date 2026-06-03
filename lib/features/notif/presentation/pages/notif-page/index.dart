@@ -30,7 +30,7 @@ class NotifPage extends StatefulWidget {
 class _NotifPageState extends State<NotifPage> {
   String _selectedActivityType = 'All';
 
-  final List<String> _activityTypes = ['All', 'WhatsApp', 'Call', 'Visit', 'Meeting', 'Task'];
+  final List<String> _activityTypes = ['All', 'WhatsApp', 'Call', 'Visit', 'Reminder', 'Task'];
 
   @override
   void initState() {
@@ -146,7 +146,8 @@ class _NotifPageState extends State<NotifPage> {
                                               padding: const EdgeInsets.symmetric(horizontal: 16),
                                               children: [
                                                 const SizedBox(height: 10),
-                                                const AttendanceAlertsWidget(),
+                                                if (_selectedActivityType == 'All')
+                                                  const AttendanceAlertsWidget(),
 
                                                 /// WHATSAPP UNREAD SUMMARY
                                                 if (_selectedActivityType == 'All' || _selectedActivityType == 'WhatsApp')
@@ -167,13 +168,14 @@ class _NotifPageState extends State<NotifPage> {
                                                   final isCall = type.contains('call');
                                                   final isMeeting = type.contains('meeting');
                                                   final isVisit = type.contains('visit');
+                                                  final isReminder = type.contains('reminder');
                                                   final isTask = type.contains('task');
 
                                                   final isCreatedContact = activity.activityType == 'Created contact';
 
                                                   return GestureDetector(
                                                     onTap: () async {
-                                                      if (isCreatedContact) {
+                                                      if (isCreatedContact || isCompleted) {
                                                         await context.pushNamed(
                                                           'detailContact',
                                                           extra: ContactDetailArgs(
@@ -191,6 +193,7 @@ class _NotifPageState extends State<NotifPage> {
                                                         if (isCall) { page = 0; namePage = "Call"; }
                                                         else if (isWhatsApp) { page = 1; namePage = "WhatsApp"; }
                                                         else if (isMeeting) { page = 2; namePage = "Meeting"; }
+                                                        else if (isReminder) { page = 3; namePage = "Reminder"; }
                                                         else if (isTask) { page = 3; namePage = "Task"; }
                                                         else if (isVisit) { page = 4; namePage = "Visit"; }
 

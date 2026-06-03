@@ -288,6 +288,9 @@ class _ContactDetailPageState extends State<ContactDetailPage>with TickerProvide
                                       const SizedBox(width: 10),
                                       BlocBuilder<ContactBloc, ContactState>(
                                         builder: (context, contactState) {
+                                          if (contactState.status == ContactStatus.loading) {
+                                            return buildContactHeaderNameShimmer();
+                                          }
                                           final name = contactState.contactDetail?.fullName
                                               ?? widget.args.dataContact?.fullName
                                               ?? '-';
@@ -1490,6 +1493,8 @@ class _ActivityItemState extends State<ActivityItem> {
 
     return GestureDetector(
       onTap: () {
+        if (item.statusFollow == 1) return;
+
         final type = item.activityType.toLowerCase();
         int page = 6;
         String namePage = "Update Status Prospect";
@@ -1500,24 +1505,25 @@ class _ActivityItemState extends State<ActivityItem> {
         } else if (type.contains('whatsapp')) {
           page = 1;
           namePage = "WhatsApp";
-        // } else if (type.contains('meeting')) {
-        //   page = 2;
-        //   namePage = "Meeting";
-        } else if (type.contains('Reminder')) {
+        } else if (type.contains('reminder')) {
           page = 3;
           namePage = "Reminder";
+        } else if (type.contains('task')) {
+          page = 3;
+          namePage = "Task";
         } else if (type.contains('visit')) {
           page = 4;
           namePage = "Visit";
         }
 
-        // Find the parent state to get dataContact
         final parentState = context.findAncestorStateOfType<_ContactDetailPageState>();
         if (parentState != null) {
           parentState._navigateToAddContact(
             ContactDetailArgs(
               page: page,
               namePage: namePage,
+              dataActivity: widget.item,
+              buttonLabel: 'Complete',
               dataContact: parentState.widget.args.dataContact,
             ),
           );
@@ -1544,7 +1550,10 @@ class _ActivityItemState extends State<ActivityItem> {
                     padding: EdgeInsets.only(left: 12),
                     decoration: BoxDecoration(
                       border: Border(
-                        left: BorderSide(color: Color(purpleColor), width: 5),
+                        left: BorderSide(
+                          color: item.statusFollow == 1 ? Colors.grey : Color(purpleColor),
+                          width: 5,
+                        ),
                       ),
                     ),
                     child: Column(
@@ -1552,9 +1561,11 @@ class _ActivityItemState extends State<ActivityItem> {
                       children: [
                         Text(
                           item.activityType,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 12,
+                            color: item.statusFollow == 1 ? Colors.grey : null,
+                            decoration: item.statusFollow == 1 ? TextDecoration.lineThrough : null,
                           ),
                         ),
                         Text(
@@ -1577,6 +1588,31 @@ class _ActivityItemState extends State<ActivityItem> {
                     ),
                   ),
                 ),
+                if (item.statusFollow == 1)
+                  Container(
+                    margin: const EdgeInsets.only(left: 8),
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: Colors.green.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: Colors.green, width: 1),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.check_circle, color: Colors.green, size: 12),
+                        SizedBox(width: 4),
+                        Text(
+                          'Complete',
+                          style: TextStyle(
+                            color: Colors.green,
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
               ],
             ),
 
