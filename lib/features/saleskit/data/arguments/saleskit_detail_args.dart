@@ -6,6 +6,7 @@ class SalesKitDetailArgs {
   final String? brochure;
   final String? productKnowledge;
   final String? priceList;
+  final String? other;
 
   SalesKitDetailArgs({
     this.title,
@@ -15,5 +16,6 @@ class SalesKitDetailArgs {
     this.brochure,
     this.productKnowledge,
     this.priceList,
+    this.other,
   });
 }

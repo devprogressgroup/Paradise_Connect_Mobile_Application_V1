@@ -66,13 +66,13 @@ class _SalesKitPageState extends State<SalesKitPage> {
     );
   }
 
-  bool _hasContent(String? brochure, String? priceList, String? productKnowledge) {
+  bool _hasContent(String? brochure, String? priceList, String? productKnowledge, String? other) {
     bool hasValue(String? v) => v != null && v.isNotEmpty;
-    return hasValue(brochure) || hasValue(priceList) || hasValue(productKnowledge);
+    return hasValue(brochure) || hasValue(priceList) || hasValue(productKnowledge) || hasValue(other);
   }
 
   void _navigateToDetail(SalesKitDetailArgs args) {
-    if (!_hasContent(args.brochure, args.priceList, args.productKnowledge)) {
+    if (!_hasContent(args.brochure, args.priceList, args.productKnowledge, args.other)) {
       showDialog(
         context: context,
         builder: (dialogContext) => AlertDialog(
@@ -146,7 +146,17 @@ class _SalesKitPageState extends State<SalesKitPage> {
                       onTap: () => _openUrl(args.productKnowledge, "Product Knowledge ${args.title ?? ''}".trim()),
                     ),
                   ],
-                  
+                  if (args.other != null && args.other!.isNotEmpty) ...[
+                    SizedBox(height: 15),
+                    _buildButtonBorder(
+                      title: "Promotion Kit",
+                      colorBg: whiteColor,
+                      colorTitle: primaryColor,
+                      logo: icAttacment,
+                      onTap: () => _openUrl(args.other, "Promotion Kit ${args.title ?? ''}".trim()),
+                    ),
+                  ],
+
                 ],
               ),
             ),
@@ -282,6 +292,7 @@ class _SalesKitPageState extends State<SalesKitPage> {
           brochure: c.brochure,
           productKnowledge: c.productKnowledge,
           priceList: c.priceList,
+          other: c.other,
         ),
       )),
       ...commercials.where((c) => c.showOnMobile == 1).map((c) => (
@@ -293,6 +304,7 @@ class _SalesKitPageState extends State<SalesKitPage> {
           brochure: c.brochure,
           productKnowledge: c.productKnowledge,
           priceList: c.priceList,
+          other: c.other,
         ),
       )),
     ];

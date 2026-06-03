@@ -10,6 +10,7 @@ class ClusterModel extends ClusterEntity {
     super.brochure,
     super.productKnowledge,
     super.priceList,
+    super.other,
     super.showOnMobile,
   });
 
@@ -23,6 +24,7 @@ class ClusterModel extends ClusterEntity {
       brochure: json['brochure'] as String?,
       productKnowledge: json['product_knowledge'] as String?,
       priceList: json['price_list'] as String?,
+      other: json['other'] as String?,
       showOnMobile: json['show_on_mobile'] is int ? json['show_on_mobile'] as int : 0,
     );
   }

@@ -7,6 +7,7 @@ class ClusterEntity {
   final String? brochure;
   final String? productKnowledge;
   final String? priceList;
+  final String? other;
   final int showOnMobile;
 
   const ClusterEntity({
@@ -18,6 +19,7 @@ class ClusterEntity {
     this.brochure,
     this.productKnowledge,
     this.priceList,
+    this.other,
     this.showOnMobile = 0,
   });
 }
