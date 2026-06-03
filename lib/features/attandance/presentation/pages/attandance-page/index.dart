@@ -886,23 +886,26 @@ class _AttandancePageState extends State<AttandancePage> {
               Widget content = const SizedBox();
               if (state is AttendanceActivityLoaded) {
                 // Flatten each ActivityEntity into one entry per type
-                final List<({String fullName, String date, String type, Color typeColor, String? datetime, String? location, String? contactName, String? note, List<String> images})> entries = [];
+                final profileState = context.read<ProfileBloc>().state;
+                final isAtasan = profileState is ProfileLoaded && profileState.profile.subordinates.isNotEmpty;
+
+                final List<({String fullName, String date, String type, Color typeColor, String? datetime, String? location, String? contactName, String? note, List<String> images, int? statusValidasi, String? noteValidasi, int? logId})> entries = [];
 
                 for (final item in state.activityLogs) {
                   if (item.clockInDate != null) {
-                    entries.add((fullName: item.fullName, date: item.date, type: 'Clock In', typeColor: const Color(0xFF27AE60), datetime: item.clockInDate, location: item.clockInLocation, contactName: null, note: item.clockInNote, images: item.clockInAttachment ?? []));
+                    entries.add((fullName: item.fullName, date: item.date, type: 'Clock In', typeColor: const Color(0xFF27AE60), datetime: item.clockInDate, location: item.clockInLocation, contactName: null, note: item.clockInNote, images: item.clockInAttachment ?? [], statusValidasi: null, noteValidasi: null, logId: null));
                   }
                   if (item.clockOutDate != null) {
-                    entries.add((fullName: item.fullName, date: item.date, type: 'Clock Out', typeColor: const Color(0xFFE74C3C), datetime: item.clockOutDate, location: item.clockOutLocation, contactName: null, note: item.clockOutNote, images: item.clockOutAttachment ?? []));
+                    entries.add((fullName: item.fullName, date: item.date, type: 'Clock Out', typeColor: const Color(0xFFE74C3C), datetime: item.clockOutDate, location: item.clockOutLocation, contactName: null, note: item.clockOutNote, images: item.clockOutAttachment ?? [], statusValidasi: null, noteValidasi: null, logId: null));
                   }
                   for (final c in item.checkIns) {
                     if (c.checkInDate != null) {
-                      entries.add((fullName: item.fullName, date: item.date, type: 'Check In', typeColor: const Color(0xFF2980B9), datetime: c.checkInDate, location: c.checkInLocation, contactName: null, note: c.checkInNote, images: c.checkInAttachment ?? []));
+                      entries.add((fullName: item.fullName, date: item.date, type: 'Check In', typeColor: const Color(0xFF2980B9), datetime: c.checkInDate, location: c.checkInLocation, contactName: null, note: c.checkInNote, images: c.checkInAttachment ?? [], statusValidasi: c.statusValidasi, noteValidasi: c.noteValidasi, logId: c.logId));
                     }
                   }
                   for (final v in item.visits) {
                     if (v.datetime != null) {
-                      entries.add((fullName: item.fullName, date: item.date, type: 'Visit', typeColor: const Color(0xFFE67E22), datetime: v.datetime, location: v.lastProject, contactName: v.contactName, note: v.note, images: v.attachment ?? []));
+                      entries.add((fullName: item.fullName, date: item.date, type: 'Visit', typeColor: const Color(0xFFE67E22), datetime: v.datetime, location: v.lastProject, contactName: v.contactName, note: v.note, images: v.attachment ?? [], statusValidasi: null, noteValidasi: null, logId: null));
                     }
                   }
                 }
@@ -925,7 +928,7 @@ class _AttandancePageState extends State<AttandancePage> {
                   );
                 } else {
                   // Group by date
-                  final Map<String, List<({String fullName, String date, String type, Color typeColor, String? datetime, String? location, String? contactName, String? note, List<String> images})>> grouped = {};
+                  final Map<String, List<({String fullName, String date, String type, Color typeColor, String? datetime, String? location, String? contactName, String? note, List<String> images, int? statusValidasi, String? noteValidasi, int? logId})>> grouped = {};
                   for (final e in entries) {
                     grouped.putIfAbsent(e.date, () => []).add(e);
                   }
@@ -962,6 +965,10 @@ class _AttandancePageState extends State<AttandancePage> {
                             contactName: e.contactName,
                             note: e.note,
                             images: e.images,
+                            statusValidasi: e.statusValidasi,
+                            noteValidasi: e.noteValidasi,
+                            logId: e.logId,
+                            isAtasan: isAtasan,
                           )),
                         ],
                       );
@@ -1015,6 +1022,10 @@ class _AttandancePageState extends State<AttandancePage> {
     required String? contactName,
     required String? note,
     required List<String> images,
+    int? statusValidasi,
+    String? noteValidasi,
+    int? logId,
+    bool isAtasan = false,
   }) {
     return _ActivityCard(
       fullName: fullName,
@@ -1025,6 +1036,10 @@ class _AttandancePageState extends State<AttandancePage> {
       contactName: contactName,
       note: note,
       images: images,
+      statusValidasi: statusValidasi,
+      noteValidasi: noteValidasi,
+      logId: logId,
+      isAtasan: isAtasan,
       onImageTap: (url) => _showActivityDetailDialog(
         tappedUrl: url,
         allImages: images,
@@ -1849,6 +1864,10 @@ class _ActivityCard extends StatefulWidget {
   final String? note;
   final List<String> images;
   final void Function(String url) onImageTap;
+  final int? statusValidasi;
+  final String? noteValidasi;
+  final int? logId;
+  final bool isAtasan;
 
   const _ActivityCard({
     required this.fullName,
@@ -1860,6 +1879,10 @@ class _ActivityCard extends StatefulWidget {
     required this.note,
     required this.images,
     required this.onImageTap,
+    this.statusValidasi,
+    this.noteValidasi,
+    this.logId,
+    this.isAtasan = false,
   });
 
   @override
@@ -1895,7 +1918,93 @@ class _ActivityCardState extends State<_ActivityCard> {
     });
   }
 
-  
+  void _showNoteValidasiDialog() {
+    final noteController = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Alasan Invalid'),
+        content: TextField(
+          controller: noteController,
+          decoration: const InputDecoration(hintText: 'Masukkan catatan validasi...'),
+          maxLines: 3,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: const Text('Batal'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.of(dialogContext).pop();
+              context.read<AttendanceActivityBloc>().add(
+                ValidasiCheckInEvent(
+                  logId: widget.logId!,
+                  statusValidasi: 0,
+                  noteValidasi: noteController.text.trim().isEmpty ? null : noteController.text.trim(),
+                ),
+              );
+            },
+            child: const Text('Kirim', style: TextStyle(color: Color(0xFFE74C3C))),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildValidasiIcon() {
+    if (widget.statusValidasi == 1) {
+      return const Icon(Icons.check_circle, color: Color(0xFF27AE60), size: 30);
+    } else if (widget.statusValidasi == 0) {
+      return GestureDetector(
+        onTap: () {
+          showDialog(
+            context: context,
+            builder: (dialogContext) => AlertDialog(
+              title: const Text('Catatan Validasi'),
+              content: Text(widget.noteValidasi?.isNotEmpty == true ? widget.noteValidasi! : 'Tidak ada catatan.'),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(dialogContext).pop(),
+                  child: const Text('Tutup'),
+                ),
+              ],
+            ),
+          );
+        },
+        child: const Icon(Icons.cancel, color: Color(0xFFE74C3C), size: 25),
+      );
+    } else {
+      if (!widget.isAtasan || widget.logId == null) {
+        return const Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.cancel, color: Color(0xFFE74C3C), size: 25),
+            SizedBox(width: 2),
+            Icon(Icons.check_circle, color: Color(0xFF27AE60), size: 25),
+          ],
+        );
+      }
+      return Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          GestureDetector(
+            onTap: () => _showNoteValidasiDialog(),
+            child: const Icon(Icons.cancel, color: Color(0xFFE74C3C), size: 25),
+          ),
+          const SizedBox(width: 2),
+          GestureDetector(
+            onTap: () {
+              context.read<AttendanceActivityBloc>().add(
+                ValidasiCheckInEvent(logId: widget.logId!, statusValidasi: 1),
+              );
+            },
+            child: const Icon(Icons.check_circle, color: Color(0xFF27AE60), size: 25),
+          ),
+        ],
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -1930,8 +2039,8 @@ class _ActivityCardState extends State<_ActivityCard> {
                   child: Row(
                     children: [
                       Container(
-                        width: 40,
-                        height: 40,
+                        width: 45,
+                        height: 45,
                         decoration: BoxDecoration(
                           color: Color(primaryColor),
                           shape: BoxShape.circle,
@@ -1942,7 +2051,7 @@ class _ActivityCardState extends State<_ActivityCard> {
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: const TextStyle(
-                              fontSize: 12,
+                              fontSize: 15,
                               fontWeight: FontWeight.bold,
                               color: Color(whiteColor),
                             ),
@@ -1960,7 +2069,9 @@ class _ActivityCardState extends State<_ActivityCard> {
                               overflow: TextOverflow.ellipsis,
                               style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
                             ),
-                            Text(widget.location ?? '', maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 8)),
+                            Text(DateHelper.formatTime(DateTime.parse(widget.datetime!)), style: const TextStyle(fontSize: 10)),
+                            const SizedBox(height: 2),
+                            Text(widget.location ?? '', maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 10)),
                             if (widget.contactName != null && widget.contactName!.isNotEmpty)
                               Row(
                                 children: [
@@ -1980,8 +2091,6 @@ class _ActivityCardState extends State<_ActivityCard> {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    Text(DateHelper.formatTime(DateTime.parse(widget.datetime!)), style: const TextStyle(fontSize: 11)),
-                    const SizedBox(height: 2),
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                       decoration: BoxDecoration(
@@ -1991,6 +2100,10 @@ class _ActivityCardState extends State<_ActivityCard> {
                       ),
                       child: Text(widget.type, style: TextStyle(fontSize: 10, color: widget.typeColor, fontWeight: FontWeight.w600)),
                     ),
+                    if (widget.type == 'Check In') ...[
+                      const SizedBox(height: 4),
+                      _buildValidasiIcon(),
+                    ],
                   ],
                 ),
               ],

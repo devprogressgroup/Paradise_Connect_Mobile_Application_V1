@@ -1,5 +1,13 @@
 abstract class AttendanceActivityEvent {}
 
+class ValidasiCheckInEvent extends AttendanceActivityEvent {
+  final int logId;
+  final int statusValidasi;
+  final String? noteValidasi;
+
+  ValidasiCheckInEvent({required this.logId, required this.statusValidasi, this.noteValidasi});
+}
+
 class GetAttendanceActivityEvent extends AttendanceActivityEvent {
   final List<int>? salesPersonIds;
   final String? startDate;

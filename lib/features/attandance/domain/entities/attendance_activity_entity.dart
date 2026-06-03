@@ -15,16 +15,24 @@ class AttendanceActivityVisit {
 }
 
 class AttendanceActivityCheckIn {
+  final int? logId;
   final String? checkInDate;
   final String? checkInLocation;
   final String? checkInNote;
   final List<String>? checkInAttachment;
+  final int? statusValidasi;
+  final String? statusValidasiLabel;
+  final String? noteValidasi;
 
   AttendanceActivityCheckIn({
+    this.logId,
     this.checkInDate,
     this.checkInLocation,
     this.checkInNote,
     this.checkInAttachment,
+    this.statusValidasi,
+    this.statusValidasiLabel,
+    this.noteValidasi,
   });
 }
 

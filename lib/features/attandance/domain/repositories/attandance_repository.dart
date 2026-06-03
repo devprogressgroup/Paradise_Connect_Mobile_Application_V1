@@ -15,6 +15,7 @@ abstract class AttendanceRepository {
   Future<void> submitAttendance({required String datetime,required int flag,required String location,String? note,String? filePath,Uint8List? fileBytes,required int nikNumber,int? locationId,String? latitude,String? longitude,});
   Future<void> submitAttendanceActivity({required String datetime,required int flag,required String location,String? note,required List<String> filePaths,List<Uint8List>? fileBytesData,required int nikNumber,int? locationId,String? latitude,String? longitude,});
   Future<({List<AttendanceActivityEntity> data, int lastPage})> getAttendanceActivity({List<int>? salesPersonIds, String? startDate, String? endDate, String? location, int page, int perPage});
+  Future<void> validasiCheckIn({required int logId, required int statusValidasi, String? noteValidasi});
 }
 
 class AttendanceRepositoryImpl implements AttendanceRepository {
@@ -135,6 +136,11 @@ class AttendanceRepositoryImpl implements AttendanceRepository {
     }
 
     return (data: grouped.values.toList(), lastPage: lastPage);
+  }
+
+  @override
+  Future<void> validasiCheckIn({required int logId, required int statusValidasi, String? noteValidasi}) async {
+    await remote.postValidasiCheckIn(logId: logId, statusValidasi: statusValidasi, noteValidasi: noteValidasi);
   }
 
   @override

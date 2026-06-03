@@ -9,6 +9,7 @@ abstract class AttendanceRemoteDataSource {
   Future<Map<String, dynamic>> getLocations();
   Future<Map<String, dynamic>> getOfficeLocations();
   Future<Map<String, dynamic>> getAttendanceActivity({List<int>? salesPersonIds, String? startDate, String? endDate, String? location, int page, int perPage});
+  Future<void> postValidasiCheckIn({required int logId, required int statusValidasi, String? noteValidasi});
 }
 
 class AttendanceRemoteDataSourceImpl implements AttendanceRemoteDataSource {
@@ -134,6 +135,21 @@ class AttendanceRemoteDataSourceImpl implements AttendanceRemoteDataSource {
     } on DioException catch (e) {
       if (e.type == DioExceptionType.cancel && e.error == 'SESSION_EXPIRED') throw Exception('SESSION_EXPIRED');
       throw Exception(e.response?.data?['message'] ?? 'Gagal submit activity');
+    }
+  }
+
+  @override
+  Future<void> postValidasiCheckIn({required int logId, required int statusValidasi, String? noteValidasi}) async {
+    try {
+      final Map<String, dynamic> body = {
+        'log_id': logId,
+        'status_validasi': statusValidasi,
+        if (statusValidasi == 0 && noteValidasi != null) 'note_validasi': noteValidasi,
+      };
+      await dio.post('/attendance/validasi', data: body);
+    } on DioException catch (e) {
+      if (e.type == DioExceptionType.cancel && e.error == 'SESSION_EXPIRED') throw Exception('SESSION_EXPIRED');
+      throw Exception(e.response?.data?['message'] ?? 'Gagal melakukan validasi');
     }
   }
 }

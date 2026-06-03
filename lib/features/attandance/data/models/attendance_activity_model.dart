@@ -24,20 +24,28 @@ class AttendanceActivityVisitModel extends AttendanceActivityVisit {
 
 class AttendanceActivityCheckInModel extends AttendanceActivityCheckIn {
   AttendanceActivityCheckInModel({
+    super.logId,
     super.checkInDate,
     super.checkInLocation,
     super.checkInNote,
     super.checkInAttachment,
+    super.statusValidasi,
+    super.statusValidasiLabel,
+    super.noteValidasi,
   });
 
   factory AttendanceActivityCheckInModel.fromJson(Map<String, dynamic> json) {
     return AttendanceActivityCheckInModel(
+      logId: json['log_id'],
       checkInDate: json['check_in_date'],
       checkInLocation: json['check_in_location'],
       checkInNote: json['check_in_note'],
       checkInAttachment: json['check_in_attachment'] != null
           ? List<String>.from(json['check_in_attachment'])
           : null,
+      statusValidasi: json['status_validasi'],
+      statusValidasiLabel: json['status_validasi_label'],
+      noteValidasi: json['note_validasi'],
     );
   }
 }
@@ -60,13 +68,9 @@ class AttendanceActivityModel extends AttendanceActivityEntity {
   });
 
   factory AttendanceActivityModel.fromJson(Map<String, dynamic> json) {
-    final visitsList = (json['visits'] as List? ?? [])
-        .map((v) => AttendanceActivityVisitModel.fromJson(v as Map<String, dynamic>))
-        .toList();
+    final visitsList = (json['visits'] as List? ?? []).map((v) => AttendanceActivityVisitModel.fromJson(v as Map<String, dynamic>)).toList();
 
-    final checkInsList = (json['check_ins'] as List? ?? [])
-        .map((c) => AttendanceActivityCheckInModel.fromJson(c as Map<String, dynamic>))
-        .toList();
+    final checkInsList = (json['check_ins'] as List? ?? []) .map((c) => AttendanceActivityCheckInModel.fromJson(c as Map<String, dynamic>)) .toList();
 
     return AttendanceActivityModel(
       date: json['date'] ?? '',
@@ -75,9 +79,7 @@ class AttendanceActivityModel extends AttendanceActivityEntity {
       clockInDate: json['clock_in_date'],
       clockInLocation: json['clock_in_location'],
       clockInNote: json['clock_in_note'],
-      clockInAttachment: json['clock_in_attachment'] != null
-          ? List<String>.from(json['clock_in_attachment'])
-          : null,
+      clockInAttachment: json['clock_in_attachment'] != null? List<String>.from(json['clock_in_attachment']): null,
       clockOutDate: json['clock_out_date'],
       clockOutLocation: json['clock_out_location'],
       clockOutNote: json['clock_out_note'],
