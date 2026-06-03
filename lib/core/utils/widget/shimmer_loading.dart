@@ -538,6 +538,171 @@ Widget buildActivityLogShimmer() {
   );
 }
 
+// ─── Attendance Floating Card (tab bar + clock buttons) ──────────────────────
+Widget buildAttendanceFloatingCardShimmer() {
+  return _shimmerWrap(
+    child: Column(
+      children: [
+        // Tab bar area
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 10),
+          child: Container(
+            height: 45,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(22.5),
+            ),
+          ),
+        ),
+        const SizedBox(height: 5),
+        // Button area
+        SizedBox(
+          height: 180,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              _ShimmerBox(width: 110, height: 22, borderRadius: 4),
+              const SizedBox(height: 6),
+              _ShimmerBox(width: 80, height: 13, borderRadius: 4),
+              const SizedBox(height: 14),
+              const _ShimmerBox(width: 90, height: 90, borderRadius: 45),
+              const SizedBox(height: 12),
+              _ShimmerBox(width: 120, height: 12, borderRadius: 4),
+            ],
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
+// ─── Dashboard Top (Welcome text + date range selector) ──────────────────────
+Widget buildDashboardTopShimmer() {
+  return _shimmerWrap(
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _ShimmerBox(width: 200, height: 16, borderRadius: 4),
+        const SizedBox(height: 6),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Row(
+            children: [
+              const _ShimmerBox(width: 22, height: 22, borderRadius: 4),
+              const SizedBox(width: 10),
+              _ShimmerBox(width: 160, height: 14, borderRadius: 4),
+            ],
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
+// ─── Dashboard Chart Header (Statistics + Chat Volume / X Days) ──────────────
+Widget buildDashboardChartHeaderShimmer() {
+  return _shimmerWrap(
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _ShimmerBox(width: 60, height: 10, borderRadius: 4),
+        const SizedBox(height: 6),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            _ShimmerBox(width: 100, height: 14, borderRadius: 4),
+            _ShimmerBox(width: 60, height: 14, borderRadius: 4),
+          ],
+        ),
+      ],
+    ),
+  );
+}
+
+// ─── Inbox Filter Chips (Owner / Date / Status) ──────────────────────────────
+Widget buildInboxFilterShimmer() {
+  return _shimmerWrap(
+    child: Row(
+      children: [
+        _ShimmerBox(width: 80, height: 32, borderRadius: 20),
+        const SizedBox(width: 8),
+        _ShimmerBox(width: 100, height: 32, borderRadius: 20),
+        const SizedBox(width: 8),
+        _ShimmerBox(width: 80, height: 32, borderRadius: 20),
+      ],
+    ),
+  );
+}
+
+// ─── Inbox Tab Bar (Personal / Groups) ───────────────────────────────────────
+Widget buildInboxTabBarShimmer() {
+  return _shimmerWrap(
+    child: Container(
+      height: 30,
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(30),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Container(
+              margin: const EdgeInsets.all(3),
+              decoration: BoxDecoration(
+                color: Colors.grey.shade300,
+                borderRadius: BorderRadius.circular(27),
+              ),
+            ),
+          ),
+          Expanded(
+            child: Container(
+              margin: const EdgeInsets.all(3),
+              decoration: BoxDecoration(
+                color: Colors.grey.shade300,
+                borderRadius: BorderRadius.circular(27),
+              ),
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
+}
+
+// ─── Log Section Header (title + filter button) ──────────────────────────────
+Widget buildLogHeaderShimmer() {
+  return _shimmerWrap(
+    child: Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        _ShimmerBox(width: 130, height: 18, borderRadius: 4),
+        _ShimmerBox(width: 90, height: 32, borderRadius: 20),
+      ],
+    ),
+  );
+}
+
+// ─── Attendance Tab Buttons (Activity / Attendance Log) ───────────────────────
+Widget buildAttendanceTabButtonShimmer() {
+  return _shimmerWrap(
+    child: Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Row(
+        children: [
+          Expanded(child: _ShimmerBox(width: double.infinity, height: 30, borderRadius: 12)),
+          const SizedBox(width: 8),
+          Expanded(child: _ShimmerBox(width: double.infinity, height: 30, borderRadius: 12)),
+        ],
+      ),
+    ),
+  );
+}
+
 // ─── Attendance Item ──────────────────────────────────────────────────────────
 // Matches: padding(4v,8h), Row: 70x40(r6) date box + icon+text col + 2x40 divider + icon+text col
 Widget buildAttendanceShimmer() {

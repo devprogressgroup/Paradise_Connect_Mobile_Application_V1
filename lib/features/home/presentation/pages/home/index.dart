@@ -58,7 +58,7 @@ class _HomePageState extends State<HomePage> {
     final now = DateTime.now();
     _prospectStartDate = DateFormat('yyyy-MM-dd').format(DateTime(now.year - 1, now.month, now.day));
     _prospectEndDate   = DateFormat('yyyy-MM-dd').format(now);
-    _prospectDateLabel = '1 Tahun Terakhir';
+    _prospectDateLabel = 'Last 1 Year';
     _loadData();
   }
 
@@ -207,35 +207,40 @@ class _HomePageState extends State<HomePage> {
                   children: [
                   BlocBuilder<ProfileBloc, ProfileState>(
                     builder: (context, state) {
-                      String userName = "User";
-                      if (state is ProfileLoaded) {
-                        userName = state.profile.fullName;
+                      if (state is ProfileLoading) {
+                        return buildDashboardTopShimmer();
                       }
-                      return Text("Welcome back, $userName !", style: TextStyle(fontSize: 16, color: Color(grey2Color)));
+                      final userName = state is ProfileLoaded ? state.profile.fullName : "User";
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text("Welcome back, $userName !", style: TextStyle(fontSize: 16, color: Color(grey2Color))),
+                          const SizedBox(height: 6),
+                          GestureDetector(
+                            onTap: _selectDateRange,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
+                              decoration: BoxDecoration(
+                                color: Color(grey10Color),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: Row(
+                                children: [
+                                  Image.asset(icCalendar, width: 22, height: 22),
+                                  const SizedBox(width: 10),
+                                  Text(
+                                    "${DateHelper.formatDate(_chartStartDate)}  - ${DateHelper.formatDate(_chartEndDate)}",
+                                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(grey2Color)),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
+                      );
                     },
                   ),
-                    SizedBox(height: 6),
-                     GestureDetector(
-                      onTap: _selectDateRange,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
-                        decoration: BoxDecoration(
-                          color: Color(grey10Color),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: Row(
-                          children: [
-                            Image.asset(icCalendar, width: 22, height: 22),
-                            const SizedBox(width: 10),
-                            Text(
-                              "${DateHelper.formatDate(_chartStartDate)}  - ${DateHelper.formatDate(_chartEndDate)}",
-                              style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(grey2Color)),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    SizedBox(height: 6),
+                   SizedBox(height: 12),
                     _buildComingTask(),
                     SizedBox(height: 12),
                     _buildProspectStatusSection(),
@@ -438,6 +443,9 @@ class _HomePageState extends State<HomePage> {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            if (state.status == ProspectStatusSummaryStatus.loading)
+              buildLogHeaderShimmer()
+            else
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -648,27 +656,34 @@ class _HomePageState extends State<HomePage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                "Statistics",
-                style: TextStyle(fontSize: 10, fontWeight: FontWeight.w400, color: Colors.grey),
-              ),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          BlocBuilder<ReportBloc, ReportState>(
+            builder: (context, chartHeaderState) {
+              if (chartHeaderState is ReportInitial || chartHeaderState is ReportLoading) {
+                return buildDashboardChartHeaderShimmer();
+              }
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Text(
-                    "Chat Volume",
-                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                    "Statistics",
+                    style: TextStyle(fontSize: 10, fontWeight: FontWeight.w400, color: Colors.grey),
                   ),
-                  Text(
-                    "${day} Days",
-                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        "Chat Volume",
+                        style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                      ),
+                      Text(
+                        "${day} Days",
+                        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                      ),
+                    ],
                   ),
                 ],
-              ),
-            ],
+              );
+            },
           ),
           const SizedBox(height: 20),
           BlocBuilder<ReportBloc, ReportState>(

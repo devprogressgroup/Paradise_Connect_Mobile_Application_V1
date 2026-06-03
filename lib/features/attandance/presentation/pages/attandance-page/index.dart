@@ -471,7 +471,16 @@ class _AttandancePageState extends State<AttandancePage> {
 
                           /// BUTTON
                           SliverToBoxAdapter(child: const SizedBox(height: 35)),
-                          SliverToBoxAdapter(child: _buildButtonLog()),
+                          SliverToBoxAdapter(
+                            child: BlocBuilder<AttendanceBloc, AttendanceState>(
+                              builder: (context, state) {
+                                if (state is AttendanceLoading) {
+                                  return buildAttendanceTabButtonShimmer();
+                                }
+                                return _buildButtonLog();
+                              },
+                            ),
+                          ),
                           // SliverPersistentHeader(
                           //   key: const ValueKey('button_log'),
                           //   pinned: true,
@@ -780,65 +789,71 @@ class _AttandancePageState extends State<AttandancePage> {
         color: Color(whiteColor),
         borderRadius: BorderRadius.circular(16),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text("Attendance Log", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-              Row(
+      child: BlocBuilder<AttendanceBloc, AttendanceState>(
+        builder: (context, state) {
+          if (state is AttendanceLoading) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                buildLogHeaderShimmer(),
+                const SizedBox(height: 5),
+                buildAttendanceShimmer(),
+              ],
+            );
+          }
+
+          Widget content = const SizedBox();
+          if (state is AttendanceLoaded) {
+            final data = state.data;
+            if (data.isEmpty) {
+              content = Padding(
+                padding: const EdgeInsets.symmetric(vertical: 24),
+                child: Center(
+                  child: Text(
+                    "Tidak ada data attendance",
+                    style: TextStyle(fontSize: 14, color: Colors.grey),
+                  ),
+                ),
+              );
+            } else {
+              content = Column(
                 children: [
-                  _filterOwner(isMultiSelect: false, section: 'attendance'),
+                  ListView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    padding: EdgeInsets.zero,
+                    itemCount: data.length,
+                    itemBuilder: (_, i) => _buildCardAttendance(data[i]),
+                  ),
+                  if (state.attendanceLoadingMore)
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 16),
+                      child: Center(child: CircularProgressIndicator()),
+                    ),
+                ],
+              );
+            }
+          }
+
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text("Attendance Log", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                  Row(
+                    children: [
+                      _filterOwner(isMultiSelect: false, section: 'attendance'),
+                    ],
+                  ),
                 ],
               ),
+              SizedBox(height: 5),
+              content,
             ],
-          ),
-          SizedBox(height: 5),
-    
-          BlocBuilder<AttendanceBloc, AttendanceState>(
-            builder: (context, state) {
-
-              if (state is AttendanceLoading) {
-                return buildAttendanceShimmer();
-              }
-
-              if (state is AttendanceLoaded) {
-                final data = state.data;
-                if (data.isEmpty) {
-                  return Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 24),
-                    child: Center(
-                      child: Text(
-                        "Tidak ada data attendance",
-                        style: TextStyle(fontSize: 14, color: Colors.grey),
-                      ),
-                    ),
-                  );
-                }
-                return Column(
-                  children: [
-                    ListView.builder(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      padding: EdgeInsets.zero,
-                      itemCount: data.length,
-                      itemBuilder: (_, i) => _buildCardAttendance(data[i]),
-                    ),
-                    if (state.attendanceLoadingMore)
-                      const Padding(
-                        padding: EdgeInsets.symmetric(vertical: 16),
-                        child: Center(child: CircularProgressIndicator()),
-                      ),
-                  ],
-                );
-              }
-
-              return SizedBox();
-            },
-          ),
-
-        ],
+          );
+        },
       ),
     );
   }
@@ -855,25 +870,20 @@ class _AttandancePageState extends State<AttandancePage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text("Activity", style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
-              Row(
-                children: [
-                  _filterOwner(isMultiSelect: true, section: 'activity'),
-                ],
-              ),
-            ],
-          ),
-          SizedBox(height: 5),
           BlocBuilder<AttendanceActivityBloc, AttendanceActivityState>(
             builder: (context, state) {
-
               if (state is AttendanceActivityLoading) {
-                return buildActivityLogShimmer();
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    buildLogHeaderShimmer(),
+                    const SizedBox(height: 5),
+                    buildActivityLogShimmer(),
+                  ],
+                );
               }
 
+              Widget content = const SizedBox();
               if (state is AttendanceActivityLoaded) {
                 // Flatten each ActivityEntity into one entry per type
                 final List<({String fullName, String date, String type, Color typeColor, String? datetime, String? location, String? contactName, String? note, List<String> images})> entries = [];
@@ -909,58 +919,75 @@ class _AttandancePageState extends State<AttandancePage> {
                 });
 
                 if (entries.isEmpty) {
-                  return const Padding(
+                  content = const Padding(
                     padding: EdgeInsets.symmetric(vertical: 20),
                     child: Center(child: Text('Tidak ada data aktivitas')),
                   );
-                }
+                } else {
+                  // Group by date
+                  final Map<String, List<({String fullName, String date, String type, Color typeColor, String? datetime, String? location, String? contactName, String? note, List<String> images})>> grouped = {};
+                  for (final e in entries) {
+                    grouped.putIfAbsent(e.date, () => []).add(e);
+                  }
+                  final dates = grouped.keys.toList()..sort((a, b) => b.compareTo(a));
 
-                // Group by date
-                final Map<String, List<({String fullName, String date, String type, Color typeColor, String? datetime, String? location, String? contactName, String? note, List<String> images})>> grouped = {};
-                for (final e in entries) {
-                  grouped.putIfAbsent(e.date, () => []).add(e);
-                }
-                final dates = grouped.keys.toList()..sort((a, b) => b.compareTo(a));
-
-                return ListView.builder(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  padding: EdgeInsets.zero,
-                  itemCount: dates.length,
-                  itemBuilder: (_, i) {
-                    final date = dates[i];
-                    final items = grouped[date]!;
-                    final parsedDate = DateTime.tryParse(date);
-                    final dateLabel = parsedDate != null
-                        ? DateHelper.formatToIndonesian(parsedDate)
-                        : date;
-                    return Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Padding(
-                          padding: const EdgeInsets.only(top: 12, bottom: 10),
-                          child: Text(
-                            dateLabel,
-                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                  content = ListView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    padding: EdgeInsets.zero,
+                    itemCount: dates.length,
+                    itemBuilder: (_, i) {
+                      final date = dates[i];
+                      final items = grouped[date]!;
+                      final parsedDate = DateTime.tryParse(date);
+                      final dateLabel = parsedDate != null
+                          ? DateHelper.formatToIndonesian(parsedDate)
+                          : date;
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.only(top: 12, bottom: 10),
+                            child: Text(
+                              dateLabel,
+                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                            ),
                           ),
-                        ),
-                        ...items.map((e) => _buildCardActivityNew(
-                          fullName: e.fullName,
-                          type: e.type,
-                          typeColor: e.typeColor,
-                          datetime: e.datetime,
-                          location: e.location,
-                          contactName: e.contactName,
-                          note: e.note,
-                          images: e.images,
-                        )),
-                      ],
-                    );
-                  },
-                );
+                          ...items.map((e) => _buildCardActivityNew(
+                            fullName: e.fullName,
+                            type: e.type,
+                            typeColor: e.typeColor,
+                            datetime: e.datetime,
+                            location: e.location,
+                            contactName: e.contactName,
+                            note: e.note,
+                            images: e.images,
+                          )),
+                        ],
+                      );
+                    },
+                  );
+                }
               }
 
-              return SizedBox();
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text("Activity", style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
+                      Row(
+                        children: [
+                          _filterOwner(isMultiSelect: true, section: 'activity'),
+                        ],
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 5),
+                  content,
+                ],
+              );
             },
           ),
           BlocBuilder<AttendanceActivityBloc, AttendanceActivityState>(
@@ -1442,12 +1469,15 @@ class _AttandancePageState extends State<AttandancePage> {
         ),
         child: BlocBuilder<AttendanceBloc, AttendanceState>(
           builder: (context, state) {
+            if (state is AttendanceLoading) {
+              return buildAttendanceFloatingCardShimmer();
+            }
             final AttendanceEntity? today = state is AttendanceLoaded ? state.todayData : null;
             return Column(
               children: [
                 _buildTabBar(),
                 const SizedBox(height: 5),
-                
+
                 _buildPageView(today),
               ],
             );

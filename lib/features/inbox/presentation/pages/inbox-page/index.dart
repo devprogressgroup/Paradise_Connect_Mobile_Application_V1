@@ -237,7 +237,12 @@ class _InboxPageState extends State<InboxPage> {
                     ),
                   ),
                   SizedBox(height: 10),
-                  Align(
+                  BlocBuilder<InboxContactBloc, InboxContactState>(
+                    builder: (context, inboxState) {
+                      if (inboxState is InboxContactLoading) {
+                        return buildInboxFilterShimmer();
+                      }
+                      return Align(
                     alignment: Alignment.centerLeft,
                     child: SingleChildScrollView(
                       scrollDirection: Axis.horizontal,
@@ -410,6 +415,8 @@ class _InboxPageState extends State<InboxPage> {
                         ],
                       ),
                     ),
+                  );
+                    },
                   ),
                   SizedBox(height: 10),
                   Expanded(
@@ -430,7 +437,14 @@ class _InboxPageState extends State<InboxPage> {
                         ),
                         child: Column(
                           children: [
-                            _buildTabBar(),
+                            BlocBuilder<InboxContactBloc, InboxContactState>(
+                              builder: (context, state) {
+                                if (state is InboxContactLoading) {
+                                  return buildInboxTabBarShimmer();
+                                }
+                                return _buildTabBar();
+                              },
+                            ),
                             Expanded(child: _buildTabBarView()),
                           ],
                         ),
