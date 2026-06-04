@@ -53,8 +53,9 @@ class ApiConstants {
       label: 'Production Domain',
       baseUrl: 'https://apidevconnect.paradise.id/api',
       storageUrl: 'https://apidevconnect.paradise.id/storage',
-      waServerURL: 'https://192.168.8.40:3000',
+      waServerURL: 'https://whatsapp.paradise.id',
       serverUrl: 'https://apidevconnect.paradise.id',
+   
     ),
   };
 

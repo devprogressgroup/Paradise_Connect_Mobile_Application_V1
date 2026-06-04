@@ -10,6 +10,8 @@ abstract class AttendanceRemoteDataSource {
   Future<Map<String, dynamic>> getOfficeLocations();
   Future<Map<String, dynamic>> getAttendanceActivity({List<int>? salesPersonIds, String? startDate, String? endDate, String? location, int page, int perPage});
   Future<void> postValidasiCheckIn({required int logId, required int statusValidasi, String? noteValidasi});
+  Future<Map<String, dynamic>> getAttendanceApprovalToday({String? search, String? status, int? flag, int page = 1, int perPage = 10});
+  Future<void> postAttendanceApproval({required int logId, required int approve});
 }
 
 class AttendanceRemoteDataSourceImpl implements AttendanceRemoteDataSource {
@@ -150,6 +152,40 @@ class AttendanceRemoteDataSourceImpl implements AttendanceRemoteDataSource {
     } on DioException catch (e) {
       if (e.type == DioExceptionType.cancel && e.error == 'SESSION_EXPIRED') throw Exception('SESSION_EXPIRED');
       throw Exception(e.response?.data?['message'] ?? 'Gagal melakukan validasi');
+    }
+  }
+
+  @override
+  Future<Map<String, dynamic>> getAttendanceApprovalToday({
+    String? search,
+    String? status,
+    int? flag,
+    int page = 1,
+    int perPage = 10,
+  }) async {
+    final queryParams = <String, dynamic>{
+      'page': page,
+      'per_page': perPage,
+    };
+    if (search != null && search.isNotEmpty) queryParams['search'] = search;
+    if (status != null && status.isNotEmpty) queryParams['status'] = status;
+    if (flag != null) queryParams['flag'] = flag;
+
+    final response = await dio.get('/attendance/approval/today', queryParameters: queryParams);
+    return response.data;
+  }
+
+  @override
+  Future<void> postAttendanceApproval({required int logId, required int approve}) async {
+    try {
+      final body = {
+        'log_id': logId,
+        'approve': approve,
+      };
+      await dio.post('/attendance/approval', data: body);
+    } on DioException catch (e) {
+      if (e.type == DioExceptionType.cancel && e.error == 'SESSION_EXPIRED') throw Exception('SESSION_EXPIRED');
+      throw Exception(e.response?.data?['message'] ?? 'Gagal melakukan approval');
     }
   }
 }

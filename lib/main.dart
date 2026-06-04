@@ -8,6 +8,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:progress_group/core/network/dio_client.dart';
 import 'package:progress_group/core/services/push_notification_service.dart';
+import 'package:progress_group/features/attandance/domain/usecase/get_attendance_approval_today.dart';
 import 'package:progress_group/firebase_options.dart';
 import 'package:progress_group/features/attandance/data/datasource/attendance_remote_datasource.dart';
 import 'package:progress_group/features/attandance/domain/repositories/attandance_repository.dart';
@@ -19,8 +20,10 @@ import 'package:progress_group/features/attandance/domain/usecase/get_attendance
 import 'package:progress_group/features/attandance/domain/usecase/submit_attendance.dart';
 import 'package:progress_group/features/attandance/domain/usecase/submit_attendance_activity.dart';
 import 'package:progress_group/features/attandance/domain/usecase/validasi_check_in.dart';
+import 'package:progress_group/features/attandance/domain/usecase/post_attendance_approval.dart';
 import 'package:progress_group/features/attandance/presentation/state/attandance/attendance_bloc.dart';
 import 'package:progress_group/features/attandance/presentation/state/attendance_activity/attendance_activity_bloc.dart';
+import 'package:progress_group/features/attandance/presentation/state/attendance_approval/attendance_approval_cubit.dart';
 import 'package:progress_group/features/attandance/presentation/state/pameran_location/pameran_location_cubit.dart';
 import 'package:progress_group/features/attandance/presentation/state/office_location/office_location_cubit.dart';
 import 'package:progress_group/features/auth/data/datasources/auth_local_datasource.dart';
@@ -294,6 +297,8 @@ class _MyAppState extends State<MyApp> {
     final submitAttendanceActivityUseCase = SubmitAttendanceActivityUseCase(attendanceRepository);
     final getAttendanceActivityUseCase = GetAttendanceActivityUseCase(attendanceRepository);
     final validasiCheckInUseCase = ValidasiCheckInUseCase(attendanceRepository);
+    final getAttendanceApprovalTodayUseCase = GetAttendanceApprovalTodayUseCase(attendanceRepository);
+    final postAttendanceApprovalUseCase = PostAttendanceApprovalUseCase(attendanceRepository);
 
     return MaterialApp.router(
       debugShowCheckedModeBanner: false,
@@ -327,6 +332,7 @@ class _MyAppState extends State<MyApp> {
             BlocProvider(create: (_) => PameranLocationCubit(getLocationsUseCase)),
             BlocProvider(create: (_) => OfficeLocationCubit(getOfficeLocationsUseCase)),
             BlocProvider(create: (_) => AttendanceActivityBloc(getAttendanceActivityUseCase: getAttendanceActivityUseCase, validasiCheckInUseCase: validasiCheckInUseCase)),
+            BlocProvider(create: (_) => AttendanceApprovalCubit(getAttendanceApprovalTodayUseCase, postAttendanceApprovalUseCase)),
             BlocProvider(create: (_) => WhatsappActivityBloc(getWhatsappActivityUseCase)),
             BlocProvider(create: (_) => InfoSourceBloc(getInfoSourcesUseCase: getInfoSourcesUseCase)),
             BlocProvider(create: (_) => LostReasonBloc(getLostReasonsUseCase: getLostReasonsUseCase)),

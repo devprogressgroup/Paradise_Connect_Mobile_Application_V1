@@ -2,9 +2,11 @@ import 'dart:typed_data';
 import 'package:progress_group/features/attandance/data/datasource/attendance_remote_datasource.dart';
 import 'package:progress_group/features/attandance/data/models/attendance_activity_model.dart';
 import 'package:progress_group/features/attandance/data/models/attendance_model.dart';
+import 'package:progress_group/features/attandance/data/models/attendance_approval_model.dart';
 import 'package:progress_group/features/attandance/data/models/location_model.dart';
 import 'package:progress_group/features/attandance/domain/entities/attendance_activity_entity.dart';
 import 'package:progress_group/features/attandance/domain/entities/attandance_entity.dart';
+import 'package:progress_group/features/attandance/domain/entities/attendance_approval_entity.dart';
 import 'package:progress_group/features/attandance/domain/entities/location_entity.dart';
 
 abstract class AttendanceRepository {
@@ -16,6 +18,8 @@ abstract class AttendanceRepository {
   Future<void> submitAttendanceActivity({required String datetime,required int flag,required String location,String? note,required List<String> filePaths,List<Uint8List>? fileBytesData,required int nikNumber,int? locationId,String? latitude,String? longitude,});
   Future<({List<AttendanceActivityEntity> data, int lastPage})> getAttendanceActivity({List<int>? salesPersonIds, String? startDate, String? endDate, String? location, int page, int perPage});
   Future<void> validasiCheckIn({required int logId, required int statusValidasi, String? noteValidasi});
+  Future<({List<AttendanceApprovalEntity> data, int lastPage})> getAttendanceApprovalToday({String? search, String? status, int? flag, int page = 1, int perPage = 10});
+  Future<void> postAttendanceApproval({required int logId, required int approve});
 }
 
 class AttendanceRepositoryImpl implements AttendanceRepository {
@@ -161,18 +165,7 @@ class AttendanceRepositoryImpl implements AttendanceRepository {
   }
 
   @override
-  Future<void> submitAttendance({
-    required String datetime,
-    required int flag,
-    required String location,
-    String? note,
-    String? filePath,
-    Uint8List? fileBytes,
-    required int nikNumber,
-    int? locationId,
-    String? latitude,
-    String? longitude,
-  }) async {
+  Future<void> submitAttendance({   required String datetime,   required int flag,   required String location,   String? note,   String? filePath,   Uint8List? fileBytes,   required int nikNumber,   int? locationId,   String? latitude,   String? longitude, }) async {
     await remote.postAttendance(
       attendanceDatetime: datetime,
       flag: flag,
@@ -188,18 +181,7 @@ class AttendanceRepositoryImpl implements AttendanceRepository {
   }
 
   @override
-  Future<void> submitAttendanceActivity({
-    required String datetime,
-    required int flag,
-    required String location,
-    String? note,
-    required List<String> filePaths,
-    List<Uint8List>? fileBytesData,
-    required int nikNumber,
-    int? locationId,
-    String? latitude,
-    String? longitude,
-  }) async {
+  Future<void> submitAttendanceActivity({  required String datetime,  required int flag,  required String location,  String? note,  required List<String> filePaths,  List<Uint8List>? fileBytesData,  required int nikNumber,  int? locationId,  String? latitude,  String? longitude,}) async {
     await remote.postAttendanceActivity(
       attendanceDatetime: datetime,
       flag: flag,
@@ -212,5 +194,28 @@ class AttendanceRepositoryImpl implements AttendanceRepository {
       latitude: latitude,
       longitude: longitude,
     );
+  }
+
+  @override
+  Future<({List<AttendanceApprovalEntity> data, int lastPage})> getAttendanceApprovalToday({  String? search,  String? status,  int? flag,  int page = 1,  int perPage = 10,}) async {
+    final result = await remote.getAttendanceApprovalToday(
+      search: search,
+      status: status,
+      flag: flag,
+      page: page,
+      perPage: perPage,
+    );
+    if (result['status'] == true && result['data'] != null) {
+      final rawData = result['data']['data'] as List<dynamic>? ?? [];
+      final data = rawData.map((e) => AttendanceApprovalModel.fromJson(e as Map<String, dynamic>)).toList();
+      final lastPage = (result['data']['last_page'] as num?)?.toInt() ?? 1;
+      return (data: data, lastPage: lastPage);
+    }
+    return (data: <AttendanceApprovalEntity>[], lastPage: 1);
+  }
+
+  @override
+  Future<void> postAttendanceApproval({required int logId, required int approve}) async {
+    await remote.postAttendanceApproval(logId: logId, approve: approve);
   }
 }

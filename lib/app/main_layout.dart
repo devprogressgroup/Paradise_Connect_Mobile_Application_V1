@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:progress_group/core/constants/assets.dart';
 import 'package:progress_group/core/constants/colors.dart';
+import 'package:progress_group/core/utils/pwa_install.dart';
 import 'package:progress_group/features/auth/presentation/state/auth/auth_bloc.dart';
 import 'package:progress_group/features/auth/presentation/state/auth/auth_event.dart';
 import 'package:progress_group/features/auth/presentation/state/profile/profile_bloc.dart';
@@ -27,11 +28,22 @@ class _MainLayoutState extends State<MainLayout> {
   DateTime? _lastPressedAt;
   String? _currentUri;
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+  bool _pwaAvailable = false;
 
   @override
   void initState() {
     super.initState();
     context.read<WhatsappActivityBloc>().add(const FetchWhatsappUnreadSummaryEvent(0));
+    _checkPwaInstall();
+  }
+
+  void _checkPwaInstall() {
+    // Poll briefly after load to detect if install prompt is available
+    Future.delayed(const Duration(seconds: 2), () {
+      if (mounted && isPwaInstallAvailable()) {
+        setState(() => _pwaAvailable = true);
+      }
+    });
   }
 
   int get _currentIndex {
@@ -305,11 +317,31 @@ class _MainLayoutState extends State<MainLayout> {
               //   ),
               // ),
               const Spacer(),
+              if (_pwaAvailable)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: GestureDetector(
+                    onTap: () {
+                      Navigator.of(context).pop();
+                      showPwaInstallPrompt().then((_) {
+                        if (mounted) setState(() => _pwaAvailable = isPwaInstallAvailable());
+                      });
+                    },
+                    child: Row(
+                      children: [
+                        Icon(Icons.install_mobile_outlined, color: Color(primaryColor), size: 24),
+                        SizedBox(width: 10),
+                        Text("Install App", style: TextStyle(color: Color(primaryColor), fontSize: 16, fontWeight: FontWeight.w600)),
+                      ],
+                    ),
+                  ),
+                ),
+              if (_pwaAvailable) const SizedBox(height: 16),
               Padding(
                 padding: const EdgeInsets.symmetric( horizontal: 20),
                 child: GestureDetector(
                   onTap: () {
-                    Navigator.of(context).pop(); // tutup drawer dulu
+                    Navigator.of(context).pop();
                     context.read<AuthBloc>().add(LogoutEvent());
                   },
                   child: Row(

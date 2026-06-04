@@ -20,6 +20,7 @@ import 'package:progress_group/features/attandance/presentation/state/pameran_lo
 import 'package:progress_group/features/attandance/presentation/state/office_location/office_location_cubit.dart';
 import 'package:progress_group/features/attandance/presentation/state/attendance_activity/attendance_activity_event.dart';
 import 'package:progress_group/features/attandance/presentation/state/attendance_activity/attendance_activity_state.dart';
+import 'package:progress_group/features/attandance/presentation/state/attendance_approval/attendance_approval_cubit.dart';
 import 'package:progress_group/features/auth/domain/entities/user_profile.dart';
 import 'package:progress_group/features/auth/presentation/state/profile/profile_bloc.dart';
 import 'package:progress_group/features/auth/presentation/state/profile/profile_state.dart';
@@ -87,6 +88,9 @@ class _AttandancePageState extends State<AttandancePage> {
       if (profileState is ProfileLoaded) {
         final id = profileState.profile.salesPersonId;
         if (id != null) _attendanceOwnerIds = [id];
+        if (profileState.profile.subordinates.isNotEmpty) {
+          context.read<AttendanceApprovalCubit>().loadBadge();
+        }
       }
       _getLog();
 
@@ -498,7 +502,30 @@ class _AttandancePageState extends State<AttandancePage> {
         child: SafeArea(
           child: Column(
             children: [
-              customHeader(context,'Attendance',colorBg: Color(primaryColor),colorBack: Color(whiteColor),colorTitle: Color(whiteColor),iconRight: Icons.arrow_back,iconRightOnTap: () => context.go('/'),colorIconRight: Color(whiteColor),),
+              BlocBuilder<ProfileBloc, ProfileState>(
+                builder: (context, profileState) {
+                  final isAtasan = profileState is ProfileLoaded && profileState.profile.subordinates.isNotEmpty;
+                  return ValueListenableBuilder<bool>(
+                    valueListenable: context.read<AttendanceApprovalCubit>().hasPendingApproval,
+                    builder: (context, hasPending, _) {
+                      return customHeader(
+                        context,
+                        'Attendance',
+                        colorBg: Color(primaryColor),
+                        colorBack: Color(whiteColor),
+                        colorTitle: Color(whiteColor),
+                        iconRight: Icons.arrow_back,
+                        iconRightOnTap: () => context.go('/'),
+                        colorIconRight: Color(whiteColor),
+                        iconLeft: isAtasan ? Icons.checklist : null,
+                        colorIconLeft: Color(whiteColor),
+                        iconLeftOnTap: isAtasan ? () => context.pushNamed('approval') : null,
+                        showBadgeLeft: isAtasan && hasPending,
+                      );
+                    },
+                  );
+                },
+              ),
               Expanded(
                 child: Stack(
                   children: [
@@ -2011,54 +2038,94 @@ class _ActivityCardState extends State<_ActivityCard> {
     );
   }
 
-  Widget _buildValidasiIcon() {
+  Widget _buildValidasiBottom() {
     if (widget.statusValidasi == 1) {
-      return const Icon(Icons.check_circle, color: Color(0xFF27AE60), size: 30);
+      return Row(
+        children: const [
+          Icon(Icons.thumb_up_rounded, color: Color(0xFF27AE60), size: 18),
+          SizedBox(width: 6),
+          Text('Like', style: TextStyle(color: Color(0xFF27AE60), fontWeight: FontWeight.w600, fontSize: 13)),
+        ],
+      );
     } else if (widget.statusValidasi == 0) {
-      return GestureDetector(
-        onTap: () {
-          showDialog(
-            context: context,
-            builder: (dialogContext) => AlertDialog(
-              title: const Text('Catatan Validasi'),
-              content: Text(widget.noteValidasi?.isNotEmpty == true ? widget.noteValidasi! : 'Tidak ada catatan.'),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.of(dialogContext).pop(),
-                  child: const Text('Tutup'),
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: const [
+              Icon(Icons.thumb_down_rounded, color: Color(0xFFE74C3C), size: 18),
+              SizedBox(width: 6),
+              Text('Dislike', style: TextStyle(color: Color(0xFFE74C3C), fontWeight: FontWeight.w600, fontSize: 13)),
+            ],
+          ),
+          if (widget.noteValidasi != null && widget.noteValidasi!.isNotEmpty) ...[
+            const SizedBox(height: 4),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Icon(Icons.notes, size: 13, color: Colors.grey),
+                const SizedBox(width: 4),
+                Expanded(
+                  child: Text(widget.noteValidasi!, style: const TextStyle(fontSize: 12, color: Colors.grey)),
                 ),
               ],
             ),
-          );
-        },
-        child: const Icon(Icons.cancel, color: Color(0xFFE74C3C), size: 25),
+          ],
+        ],
       );
     } else {
       if (!widget.isAtasan || widget.logId == null) {
-        return const Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.cancel, color: Color(0xFFE74C3C), size: 25),
-            SizedBox(width: 2),
-            Icon(Icons.check_circle, color: Color(0xFF27AE60), size: 25),
+        return Row(
+          children: const [
+            Icon(Icons.hourglass_empty, color: Colors.orange, size: 16),
+            SizedBox(width: 6),
+            Text('Menunggu validasi', style: TextStyle(color: Colors.orange, fontSize: 12)),
           ],
         );
       }
       return Row(
-        mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.end,
         children: [
           GestureDetector(
-            onTap: () => _showNoteValidasiDialog(),
-            child: const Icon(Icons.cancel, color: Color(0xFFE74C3C), size: 25),
+            onTap: _showNoteValidasiDialog,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+              decoration: BoxDecoration(
+                border: Border.all(color: const Color(0xFFE74C3C)),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.thumb_down_rounded, color: Color(0xFFE74C3C), size: 16),
+                  SizedBox(width: 4),
+                  Text('Dislike', style: TextStyle(color: Color(0xFFE74C3C), fontSize: 13, fontWeight: FontWeight.w600)),
+                ],
+              ),
+            ),
           ),
-          const SizedBox(width: 2),
+          const SizedBox(width: 8),
           GestureDetector(
             onTap: () {
               context.read<AttendanceActivityBloc>().add(
                 ValidasiCheckInEvent(logId: widget.logId!, statusValidasi: 1),
               );
             },
-            child: const Icon(Icons.check_circle, color: Color(0xFF27AE60), size: 25),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+              decoration: BoxDecoration(
+                color: const Color(0xFF27AE60),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.thumb_up_rounded, color: Colors.white, size: 16),
+                  SizedBox(width: 4),
+                  Text('Like', style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600)),
+                ],
+              ),
+            ),
           ),
         ],
       );
@@ -2159,10 +2226,6 @@ class _ActivityCardState extends State<_ActivityCard> {
                       ),
                       child: Text(widget.type, style: TextStyle(fontSize: 10, color: widget.typeColor, fontWeight: FontWeight.w600)),
                     ),
-                    if (widget.type == 'Check In') ...[
-                      const SizedBox(height: 4),
-                      _buildValidasiIcon(),
-                    ],
                   ],
                 ),
               ],
@@ -2245,6 +2308,12 @@ class _ActivityCardState extends State<_ActivityCard> {
             );
           },
         ),
+          if (widget.type == 'Check In') ...[
+            const SizedBox(height: 10),
+            const Divider(height: 1),
+            const SizedBox(height: 10),
+            _buildValidasiBottom(),
+          ],
         ],
       ),
     );

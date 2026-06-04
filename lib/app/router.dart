@@ -1,6 +1,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:progress_group/features/attandance/presentation/pages/approval/index.dart';
 import 'package:progress_group/features/contact/data/arguments/contact_dropdown_args.dart';
 import 'package:progress_group/features/contact/presentation/pages/attachment-view/index.dart';
 import 'package:progress_group/features/contact/presentation/pages/contact-dropdown/index.dart';
@@ -9,6 +10,7 @@ import 'package:progress_group/features/inbox/presentation/pages/qr/index.dart';
 
 import '../features/attandance/data/arguments/attandance_args.dart';
 import '../features/attandance/presentation/pages/attandance-page/index.dart';
+import '../features/attandance/presentation/pages/approval/index.dart';
 import '../features/attandance/presentation/pages/camera/index.dart';
 import '../features/auth/presentation/pages/forgot-password/index.dart';
 import '../features/auth/presentation/pages/login/index.dart';
@@ -219,6 +221,11 @@ class AppRouter {
                   final args = state.extra as AttandanceArgs;
                   return CameraPage(args: args);
                 },
+              ),
+              GoRoute(
+                path: 'approval',
+                name: 'approval',
+                builder: (context, state) => const ApprovalPage(),
               ),
             ],
           ),

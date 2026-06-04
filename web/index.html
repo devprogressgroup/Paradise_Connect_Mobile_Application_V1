@@ -16,7 +16,8 @@
 
   <meta charset="UTF-8">
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
-  <meta name="description" content="A new Flutter project.">
+  <meta name="description" content="Aplikasi Paradise Connect oleh Progress Group.">
+  <meta name="theme-color" content="#2196F3">
 
   <!-- iOS meta tags & icons -->
   <meta name="mobile-web-app-capable" content="yes">
@@ -116,6 +117,41 @@
   <script src="flutter_bootstrap.js" async=""></script>
 
   <script>
+    // PWA Install Prompt
+    let _pwaInstallPrompt = null;
+
+    window.addEventListener('beforeinstallprompt', function (e) {
+      e.preventDefault();
+      _pwaInstallPrompt = e;
+      console.log('[PWA] Install prompt ready');
+      // Notify Flutter that install is available
+      if (window._pwaInstallAvailableCallback) {
+        window._pwaInstallAvailableCallback();
+      }
+    });
+
+    window.addEventListener('appinstalled', function () {
+      _pwaInstallPrompt = null;
+      console.log('[PWA] App installed successfully');
+    });
+
+    // Called from Flutter via js_interop
+    window.showPwaInstallPrompt = function () {
+      if (_pwaInstallPrompt) {
+        _pwaInstallPrompt.prompt();
+        _pwaInstallPrompt.userChoice.then(function (result) {
+          console.log('[PWA] User choice:', result.outcome);
+          _pwaInstallPrompt = null;
+        });
+        return true;
+      }
+      return false;
+    };
+
+    window.isPwaInstallAvailable = function () {
+      return _pwaInstallPrompt !== null;
+    };
+
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', function () {
         navigator.serviceWorker.register('flutter_service_worker.js')
