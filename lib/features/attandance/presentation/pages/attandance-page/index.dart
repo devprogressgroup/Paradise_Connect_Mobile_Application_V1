@@ -384,11 +384,7 @@ class _AttandancePageState extends State<AttandancePage> {
 
     debugPrint('[Attendance] nearestOffice: $nearestOfficeName, distance: ${effectiveDistance.toStringAsFixed(1)}m, radius: ${effectiveRadius}m, inRadius: $isInRadius');
 
-    if (!isInRadius && flagParam != 6) {
-      ScaffoldMessenger.of(context).showSnackBar( const SnackBar( content: Text("Diluar Lokasi"), backgroundColor: Colors.red, ), );
-      return;
-    }
-    final result = await context.pushNamed('camera', extra: AttandanceArgs(flag: flagParam, type: title, location: nearestOfficeName ?? _address, time: DateHelper.formatTime(DateTime.now()), locationId: nearestOfficeId, latitude: nearestOfficeLat, longitude: nearestOfficeLng, ), );
+    final result = await context.pushNamed('camera', extra: AttandanceArgs(flag: flagParam, type: title, location: isInRadius ? (nearestOfficeName ?? _address) : _address, time: DateHelper.formatTime(DateTime.now()), locationId: nearestOfficeId, latitude: nearestOfficeLat, longitude: nearestOfficeLng, ), );
 
     if (result == true) {
       _getLog();
@@ -406,6 +402,8 @@ class _AttandancePageState extends State<AttandancePage> {
       startDate: _activityStartDate,
       endDate: _activityEndDate,
     ));
+    context.read<OfficeLocationCubit>().load();
+    context.read<PameranLocationCubit>().load();
   }
 
   void _showImagePreview(String url) {
