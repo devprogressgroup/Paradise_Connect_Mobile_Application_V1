@@ -190,7 +190,7 @@ class _AttandancePageState extends State<AttandancePage> {
         ),
       );
 
-      await Geolocator.openAppSettings();
+      if (!kIsWeb) await Geolocator.openAppSettings();
       return false;
     }
 
@@ -201,13 +201,55 @@ class _AttandancePageState extends State<AttandancePage> {
     final hasPermission = await _handleLocationPermission();
     if (!hasPermission) return;
 
+    if (kIsWeb) {
+      // Web: browser geolocation API tidak mendukung distanceFilter via stream dengan baik,
+      // gunakan getCurrentPosition sekali saat init, lalu stream tanpa filter.
+      try {
+        final position = await Geolocator.getCurrentPosition(
+          locationSettings: WebSettings(
+            accuracy: LocationAccuracy.medium,
+            timeLimit: const Duration(seconds: 15),
+          ),
+        );
+        if (!mounted) return;
+        _currentPosition = position;
+        debugPrint('[Location] Web init: ${position.latitude}, ${position.longitude}');
+        await _getAddressFromLatLng(position);
+      } catch (e) {
+        debugPrint('[Location] Web init error: $e');
+      }
+      // Tetap pasang stream untuk update posisi berikutnya di web
+      _positionStream = Geolocator.getPositionStream(
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.medium,
+        ),
+      ).listen((Position position) async {
+        _currentPosition = position;
+        debugPrint('[Location] Web stream update: ${position.latitude}, ${position.longitude}');
+        if (_isProcessing) return;
+        _isProcessing = true;
+        try {
+          if (!mounted) return;
+          if (_lastGeocodeTime == null ||
+              DateTime.now().difference(_lastGeocodeTime!) > const Duration(seconds: 30)) {
+            _lastGeocodeTime = DateTime.now();
+            await _getAddressFromLatLng(position);
+          }
+        } catch (e) {
+          debugPrint('[Location] Web geocode error: $e');
+        } finally {
+          _isProcessing = false;
+        }
+      });
+      return;
+    }
+
     _positionStream = Geolocator.getPositionStream(
       locationSettings: const LocationSettings(
         accuracy: LocationAccuracy.high,
         distanceFilter: 5,
       ),
     ).listen((Position position) async {
-      // Selalu simpan posisi terbaru agar tombol bisa langsung pakai tanpa re-request GPS
       _currentPosition = position;
 
       if (_isProcessing) return;
@@ -216,14 +258,13 @@ class _AttandancePageState extends State<AttandancePage> {
       try {
         if (!mounted) return;
 
-        // ⛔ batasi geocoding
         if (_lastGeocodeTime == null ||
             DateTime.now().difference(_lastGeocodeTime!) > const Duration(seconds: 10)) {
           _lastGeocodeTime = DateTime.now();
           await _getAddressFromLatLng(position);
         }
       } catch (e) {
-        debugPrint('ERROR LOCATION: $e');
+        debugPrint('[Location] Stream error: $e');
       } finally {
         _isProcessing = false;
       }
@@ -255,14 +296,17 @@ class _AttandancePageState extends State<AttandancePage> {
     // Gunakan posisi dari stream jika sudah tersedia — langsung, tanpa delay
     if (_currentPosition != null) return _currentPosition;
 
-    // Fallback: minta sekali. Web pakai medium (network-based, lebih cepat dari GPS)
+    // Fallback: minta sekali. Web pakai WebSettings (timeLimit hanya di web), mobile pakai LocationSettings.
     try {
-      return await Geolocator.getCurrentPosition(
-        desiredAccuracy: kIsWeb ? LocationAccuracy.medium : LocationAccuracy.high,
-        timeLimit: const Duration(seconds: 15),
-      );
+      final locationSettings = kIsWeb
+          ? WebSettings(
+              accuracy: LocationAccuracy.medium,
+              timeLimit: const Duration(seconds: 15),
+            )
+          : const LocationSettings(accuracy: LocationAccuracy.high);
+      return await Geolocator.getCurrentPosition(locationSettings: locationSettings);
     } catch (e) {
-      debugPrint("DEBUG: Location Error: $e");
+      debugPrint('[Location] getCurrentPosition error: $e');
       return null;
     }
   }
@@ -286,7 +330,19 @@ class _AttandancePageState extends State<AttandancePage> {
       return;
     }
 
-    final officeLocations = context.read<OfficeLocationCubit>().state;
+    final officeLocationCubit = context.read<OfficeLocationCubit>();
+    var officeLocations = officeLocationCubit.state;
+
+    // Race condition fix: kalau data belum dimuat, tunggu sebentar
+    if (officeLocations.isEmpty) {
+      debugPrint('[Attendance] Office locations belum ada, load ulang...');
+      await officeLocationCubit.load();
+      if (!mounted) return;
+      officeLocations = officeLocationCubit.state;
+    }
+
+    debugPrint('[Attendance] officeLocations count: ${officeLocations.length}');
+    debugPrint('[Attendance] device position: ${position.latitude}, ${position.longitude}');
 
     double? nearestDistance;
     double? activeRadius;
@@ -306,6 +362,7 @@ class _AttandancePageState extends State<AttandancePage> {
             position.latitude,
             position.longitude,
           );
+          debugPrint('[Attendance] Office "${office.name}" lat:$lat lng:$lng radius:${office.radius} → jarak: ${d.toStringAsFixed(1)}m');
 
           if (nearestDistance == null || d < nearestDistance) {
             nearestDistance = d;
@@ -315,6 +372,8 @@ class _AttandancePageState extends State<AttandancePage> {
             nearestOfficeLat = office.latitude;
             nearestOfficeLng = office.longitude;
           }
+        } else {
+          debugPrint('[Attendance] Office "${office.name}" lat/lng invalid: ${office.latitude}, ${office.longitude}');
         }
       }
     }
@@ -322,6 +381,8 @@ class _AttandancePageState extends State<AttandancePage> {
     final effectiveDistance = nearestDistance ?? Geolocator.distanceBetween( officeLat, officeLng, position.latitude, position.longitude, );
     final effectiveRadius = activeRadius ?? radiusMeter;
     final isInRadius = effectiveDistance <= effectiveRadius;
+
+    debugPrint('[Attendance] nearestOffice: $nearestOfficeName, distance: ${effectiveDistance.toStringAsFixed(1)}m, radius: ${effectiveRadius}m, inRadius: $isInRadius');
 
     if (!isInRadius && flagParam != 6) {
       ScaffoldMessenger.of(context).showSnackBar( const SnackBar( content: Text("Diluar Lokasi"), backgroundColor: Colors.red, ), );

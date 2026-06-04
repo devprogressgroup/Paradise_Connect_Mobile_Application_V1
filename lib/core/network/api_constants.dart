@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-enum AppEnvironment { production, development, development2 }
+enum AppEnvironment { production, development, development2, productionDomain }
 
 class _EnvConfig {
   final String label;
@@ -47,6 +47,15 @@ class ApiConstants {
       waServerURL: 'http://192.168.18.150:3000',
       serverUrl: 'http://192.168.18.150:8000',
     ),
+
+
+    AppEnvironment.productionDomain: _EnvConfig(
+      label: 'Production Domain',
+      baseUrl: 'https://apidevconnect.paradise.id/api',
+      storageUrl: 'https://apidevconnect.paradise.id/storage',
+      waServerURL: 'https://192.168.8.40:3000',
+      serverUrl: 'https://apidevconnect.paradise.id',
+    ),
   };
 
 
@@ -63,6 +72,7 @@ class ApiConstants {
     _currentEnv = switch (saved) {
       'development' => AppEnvironment.development,
       'development2' => AppEnvironment.development2,
+      'productionDomain' => AppEnvironment.productionDomain,
       _ => AppEnvironment.production,
     };
     envNotifier.value = _currentEnv;
@@ -74,6 +84,7 @@ class ApiConstants {
     final key = switch (env) {
       AppEnvironment.development => 'development',
       AppEnvironment.development2 => 'development2',
+      AppEnvironment.productionDomain => 'productionDomain',
       AppEnvironment.production => 'production',
     };
     await prefs.setString(_prefKey, key);

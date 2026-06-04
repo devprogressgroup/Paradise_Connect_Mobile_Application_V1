@@ -144,7 +144,16 @@ class _LoginPageState extends State<LoginPage> {
                     color: const Color(0xFFF59E0B),
                     currentEnv: currentEnv,
                   ),
-                  
+                  const SizedBox(height: 10),
+                  _envOption(
+                    ctx,
+                    env: AppEnvironment.productionDomain,
+                    label: 'Production Domain',
+                    subtitle: 'apidevconnect.paradise.id:9090',
+                    color: const Color(0xFF8B5CF6),
+                    currentEnv: currentEnv,
+                  ),
+
                   const SizedBox(height: 8),
                 ],
               ),
