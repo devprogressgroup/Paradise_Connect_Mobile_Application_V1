@@ -80,6 +80,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
   TextEditingController createAdTC = TextEditingController();
   TextEditingController lastLostDateTC = TextEditingController();
   TextEditingController lostDateTC = TextEditingController();
+  TextEditingController periodePameranDateTC = TextEditingController();
 
   String? selectedSalutation;
   int? selectedOwnerId;
@@ -152,7 +153,10 @@ class _ContactFormPageState extends State<ContactFormPage> {
   FocusNode lakadFN = FocusNode();
   FocusNode createAdFN = FocusNode();
   FocusNode lastLostDateFN = FocusNode();
+  FocusNode periodePameranDateFN = FocusNode();
 
+  String? _periodePameranDateBackend;
+  static const List<int> _pameranIds = [29, 30, 31, 32];
 
   bool _showValidation = false;
   bool _isSaving = false;
@@ -245,6 +249,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
       propertiesJson: propertiesJson.isNotEmpty ? propertiesJson : null,
       propertyFileBytes: fileBytes,
       propertyFileNames: fileNames,
+      periodePameranDate: _pameranIds.contains(selectedSource1Id) ? _periodePameranDateBackend : null,
     );
   }
 
@@ -265,6 +270,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
       firstVisitorDateTC, lastVisitorDateTC, firstApptDateTC, lastApptDateTC,
       dealValueTC, reserveDateTC, firstReserveDateTC, lossReasonNoteTC,
       fspTC, lspTC, fakadTC, lakadTC, createAdTC, lastLostDateTC, lostDateTC,
+      periodePameranDateTC,
     ]) {
       tc.addListener(_syncParams);
     }
@@ -413,6 +419,11 @@ class _ContactFormPageState extends State<ContactFormPage> {
     selectedSource1Id = contact.salesChannelId;
     selectedSource2Name = contact.sumberInformasi2Name;
     selectedSource2Id = int.tryParse(contact.sumberInformasi2 ?? '');
+    if (_pameranIds.contains(selectedSource1Id)) {
+      final now = DateTime.now();
+      _periodePameranDateBackend = '${DateHelper.formatNumericCompact(now)} ${DateFormat('HH:mm:ss').format(now)}';
+      periodePameranDateTC.text = DateHelper.formatDate(now);
+    }
     volumePlanTC.text = contact.volumePlan?.toString() ?? '';
     vCountTC.text = contact.visitCount?.toString() ?? '';
     
@@ -846,7 +857,8 @@ class _ContactFormPageState extends State<ContactFormPage> {
     fakadFN.dispose();
     lakadFN.dispose();
     lastLostDateTC.dispose();
-
+    periodePameranDateTC.dispose();
+    periodePameranDateFN.dispose();
 
     selectFirstProject = null;
     selectLastProject = null;
@@ -1032,6 +1044,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
       noKtp: noKTPTC.text.isNotEmpty ? noKTPTC.text : null,
       ktpAddress: ktpAddressTC.text.isNotEmpty ? ktpAddressTC.text : null,
       propertiesJson: propertiesJson.isNotEmpty ? propertiesJson : null,
+      periodePameranDate: _pameranIds.contains(selectedSource1Id) ? _periodePameranDateBackend : null,
     );
     setState(() => _isSaving = true);
     if (isUpdate) {
@@ -1531,6 +1544,15 @@ class _ContactFormPageState extends State<ContactFormPage> {
                                 );
                                 if (result != null) {
                                   final selected = result as OwnerDropdownItem;
+                                  final isPameran = _pameranIds.contains(selected.id);
+                                  if (isPameran) {
+                                    final now = DateTime.now();
+                                    _periodePameranDateBackend = '${DateHelper.formatNumericCompact(now)} ${DateFormat('HH:mm:ss').format(now)}';
+                                    periodePameranDateTC.text = DateHelper.formatDate(now);
+                                  } else {
+                                    _periodePameranDateBackend = null;
+                                    periodePameranDateTC.text = '';
+                                  }
                                   setState(() {
                                     selectedSource1Id = selected.id;
                                     selectedSource1Name = selected.name;
@@ -1571,6 +1593,13 @@ class _ContactFormPageState extends State<ContactFormPage> {
                               }
                             },
                           ),
+                          if (_pameranIds.contains(selectedSource1Id))
+                            _buildField(
+                              label: "Periode Pameran Date",
+                              controller: periodePameranDateTC,
+                              focusNode: periodePameranDateFN,
+                              readOnly: true,
+                            ),
                            _buildField(
                             label: "Note",
                             controller: generalNotesTC,
@@ -1978,6 +2007,15 @@ class _ContactFormPageState extends State<ContactFormPage> {
                             );
                             if (result != null) {
                               final selected = result as OwnerDropdownItem;
+                              final isPameran = _pameranIds.contains(selected.id);
+                              if (isPameran) {
+                                final now = DateTime.now();
+                                _periodePameranDateBackend = '${DateHelper.formatNumericCompact(now)} ${DateFormat('HH:mm:ss').format(now)}';
+                                periodePameranDateTC.text = DateHelper.formatDate(now);
+                              } else {
+                                _periodePameranDateBackend = null;
+                                periodePameranDateTC.text = '';
+                              }
                               setState(() {
                                 selectedSource1Id = selected.id;
                                 selectedSource1Name = selected.name;
@@ -2018,6 +2056,13 @@ class _ContactFormPageState extends State<ContactFormPage> {
                           }
                         },
                       ),
+                      if (_pameranIds.contains(selectedSource1Id))
+                        _buildField(
+                          label: "Periode Pameran Date",
+                          controller: periodePameranDateTC,
+                          focusNode: periodePameranDateFN,
+                          readOnly: true,
+                        ),
                      _buildField(
                        label: "Note",
                        controller: generalNotesTC,

@@ -58,6 +58,7 @@ class CreateContactParams extends Equatable {
   final int? lastProductId;
   final Map<int, Uint8List>? propertyFileBytes;
   final Map<int, String>? propertyFileNames;
+  final String? periodePameranDate;
 
   const CreateContactParams({
     this.fullName,
@@ -116,6 +117,7 @@ class CreateContactParams extends Equatable {
     this.lastProductId,
     this.propertyFileBytes,
     this.propertyFileNames,
+    this.periodePameranDate,
   });
 
   Map<String, dynamic> toJson() {
@@ -174,6 +176,7 @@ class CreateContactParams extends Equatable {
       if (lastCommercialId != null) 'last_commercial_id': lastCommercialId,
       if (firstProductId != null) 'first_product_id': firstProductId,
       if (lastProductId != null) 'last_product_id': lastProductId,
+      if (periodePameranDate != null) 'periode_pameran_date': periodePameranDate,
     };
   }
 
@@ -235,5 +238,6 @@ class CreateContactParams extends Equatable {
     lastProductId,
     propertyFileBytes,
     propertyFileNames,
+    periodePameranDate,
   ];
 }
