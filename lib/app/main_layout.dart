@@ -55,6 +55,7 @@ class _MainLayoutState extends State<MainLayout> {
     if (location.startsWith('/sales-kit')) return 5;
     if (location.startsWith('/attandance')) return 6;
     if (location.startsWith('/profile')) return 7;
+    if (location.startsWith('/landing-page')) return 8;
     return -1;
   }
   
@@ -295,6 +296,7 @@ class _MainLayoutState extends State<MainLayout> {
               _buildDrawerItem(context, icSidebarInbox, 'Inbox', path: '/inbox', index: 2),
               _buildDrawerItem(context, icSidebarSitePlan, 'Site Plan', path: '/site-plan', index: 4),
               _buildDrawerItem(context, icSidebarSalesKit, 'Sales Kit', path: '/sales-kit', index: 5),
+              _buildDrawerItem(context, '', 'Landing Page', path: '/landing-page', index: 8, iconData: Icons.language_outlined),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: Divider(),
@@ -361,7 +363,7 @@ class _MainLayoutState extends State<MainLayout> {
     );
   }
 
-  Widget _buildDrawerItem(BuildContext context, String icon, String title, {required String path, required int index}) {
+  Widget _buildDrawerItem(BuildContext context, String icon, String title, {required String path, required int index, IconData? iconData}) {
     final currentIndex = _currentIndex;
     final isActive = currentIndex == index || (index == 4 && currentIndex == 3);
 
@@ -384,12 +386,9 @@ class _MainLayoutState extends State<MainLayout> {
                 ),
                 child: Row(
                   children: [
-                    Image.asset(
-                      icon,
-                      width: 24,
-                      height: 24,
-                      color: isActive ? Color(primaryColor) : Color(grey2Color),
-                    ),
+                    iconData != null
+                        ? Icon(iconData, size: 24, color: isActive ? Color(primaryColor) : Color(grey2Color))
+                        : Image.asset(icon, width: 24, height: 24, color: isActive ? Color(primaryColor) : Color(grey2Color)),
                     const SizedBox(width: 12),
                     Text(
                       title,

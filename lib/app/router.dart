@@ -31,6 +31,7 @@ import '../features/saleskit/presentation/saleskit-page/index.dart';
 import '../features/site-plan/domain/entities/project_site.dart';
 import '../features/site-plan/presentation/project-list/index.dart';
 import '../features/site-plan/presentation/site-plan-page/index.dart';
+import '../features/landing-page/presentation/landing-page/index.dart';
 import '../features/splash/presentation/pages/index.dart';
 import 'main_layout.dart';
 
@@ -239,6 +240,11 @@ class AppRouter {
             path: '/profile',
             name: "profile",
             builder: (context, state) => const ProfilePage(),
+          ),
+          GoRoute(
+            path: '/landing-page',
+            name: 'landingPage',
+            builder: (context, state) => const LandingPage(),
           ),
         ],
       ),
