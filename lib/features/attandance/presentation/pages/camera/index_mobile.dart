@@ -574,7 +574,7 @@ class _CameraPageState extends State<CameraPage> {
                                   SizedBox(width: 6),
                                   Expanded(
                                     child: Text(
-                                      'Kamu berada di luar lokasi yang ditentukan',
+                                      'Absensi diluar lokasi kerja memerlukan approval atasan',
                                       style: TextStyle(color: Colors.orange, fontSize: 12),
                                     ),
                                   ),

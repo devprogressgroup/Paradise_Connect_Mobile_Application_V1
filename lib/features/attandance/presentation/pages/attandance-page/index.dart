@@ -326,7 +326,7 @@ class _AttandancePageState extends State<AttandancePage> {
     // Gunakan posisi dari stream jika sudah tersedia — langsung, tanpa delay
     if (_currentPosition != null) return _currentPosition;
 
-    // Fallback: minta sekali. Web pakai WebSettings (timeLimit hanya di web), mobile pakai LocationSettings.
+    // Fallback: minta sekali. Web pakai WebSettings (timeLimit), mobile pakai LocationSettings.
     try {
       final locationSettings = kIsWeb
           ? WebSettings(
@@ -345,7 +345,7 @@ class _AttandancePageState extends State<AttandancePage> {
   Future<void> _handleMoveCamera(String title, int flagParam) async {
     if (!mounted) return;
 
-    // Ambil lokasi
+    // Ambil lokasi — web langsung proceed meski null (stream masih jalan di background)
     final position = await _getCurrentLocationOnce();
 
     if (position == null) {
@@ -387,13 +387,10 @@ class _AttandancePageState extends State<AttandancePage> {
         final lng = double.tryParse(office.longitude ?? '');
         if (lat != null && lng != null) {
           final d = Geolocator.distanceBetween(
-            lat,
-            lng,
-            position.latitude,
-            position.longitude,
+            lat, lng,
+            position.latitude, position.longitude,
           );
           debugPrint('[Attendance] Office "${office.name}" lat:$lat lng:$lng radius:${office.radius} → jarak: ${d.toStringAsFixed(1)}m');
-
           if (nearestDistance == null || d < nearestDistance) {
             nearestDistance = d;
             activeRadius = office.radius?.toDouble() ?? radiusMeter;
@@ -408,7 +405,7 @@ class _AttandancePageState extends State<AttandancePage> {
       }
     }
 
-    final effectiveDistance = nearestDistance ?? Geolocator.distanceBetween( officeLat, officeLng, position.latitude, position.longitude, );
+    final effectiveDistance = nearestDistance ?? Geolocator.distanceBetween(officeLat, officeLng, position.latitude, position.longitude);
     final effectiveRadius = activeRadius ?? radiusMeter;
     final isInRadius = effectiveDistance <= effectiveRadius;
 
