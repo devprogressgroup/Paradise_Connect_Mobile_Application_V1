@@ -375,6 +375,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
                 // Kirim FCM token setelah login berhasil (auth token sudah ada)
                 PushNotificationService.setDio(dioClient.dio);
                 PushNotificationService.sendTokenAfterLogin();
+                PushNotificationService.checkAndShowUpdateBanner();
               } else if (state is AuthLoggedOut) {
                 // Restart aplikasi total seolah-olah baru dibuka pertama kali
                 _resetApp();

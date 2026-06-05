@@ -5,6 +5,7 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart' show debugPrint, kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:progress_group/app/router.dart';
 import 'package:progress_group/features/contact/data/arguments/contact_detail_args.dart';
 import 'package:progress_group/features/contact/domain/entities/activity/activity_entity.dart';
@@ -33,6 +34,67 @@ class PushNotificationService {
   /// Dipanggil setelah DioClient dibuat (di build() MyApp) agar token bisa dikirim ke backend.
   static void setDio(Dio dio) {
     _dio = dio;
+  }
+
+  /// Cek versi app ke server. Jika ada update → tampil banner di atas layar.
+  static Future<void> checkAndShowUpdateBanner() async {
+    if (kIsWeb) return; // hanya mobile
+    try {
+      final dio = _dio ?? Dio();
+      final resp = await dio.get('/app-version');
+      final data = resp.data['data'];
+      final serverVersion = (data['version'] as String?)?.trim() ?? '';
+      final downloadUrl   = (data['download_url'] as String?) ?? '';
+      if (serverVersion.isEmpty) return;
+
+      final info           = await PackageInfo.fromPlatform();
+      final currentVersion = info.version.trim();
+
+      if (!_isNewer(serverVersion, currentVersion)) return;
+
+      scaffoldMessengerKey.currentState
+        ?..hideCurrentMaterialBanner()
+        ..showMaterialBanner(
+          MaterialBanner(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            content: Text(
+              'Versi baru tersedia: v$serverVersion',
+              style: const TextStyle(fontWeight: FontWeight.w600),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  scaffoldMessengerKey.currentState?.hideCurrentMaterialBanner();
+                },
+                child: const Text('Nanti'),
+              ),
+              TextButton(
+                onPressed: () {
+                  scaffoldMessengerKey.currentState?.hideCurrentMaterialBanner();
+                  if (downloadUrl.isNotEmpty) {
+                    launchUrl(Uri.parse(downloadUrl), mode: LaunchMode.externalApplication);
+                  }
+                },
+                child: const Text('Download', style: TextStyle(fontWeight: FontWeight.bold)),
+              ),
+            ],
+          ),
+        );
+    } catch (_) {}
+  }
+
+  /// Bandingkan versi semantic (major.minor.patch). Return true jika [a] > [b].
+  static bool _isNewer(String a, String b) {
+    final av = a.split('.').map((e) => int.tryParse(e) ?? 0).toList();
+    final bv = b.split('.').map((e) => int.tryParse(e) ?? 0).toList();
+    final len = av.length > bv.length ? av.length : bv.length;
+    for (int i = 0; i < len; i++) {
+      final ai = i < av.length ? av[i] : 0;
+      final bi = i < bv.length ? bv[i] : 0;
+      if (ai > bi) return true;
+      if (ai < bi) return false;
+    }
+    return false;
   }
 
   /// Dipanggil setelah login berhasil — saat itu auth token sudah ada
