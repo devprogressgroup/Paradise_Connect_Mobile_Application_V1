@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 
-Widget customHeader(BuildContext context, String title, {bool isBack = false, Color? colorBack, Color? colorBg, Color? colorTitle,IconData? iconLeft, IconData? iconRight,VoidCallback? iconLeftOnTap,VoidCallback? iconRightOnTap, VoidCallback? onBack, Color? colorIconLeft, Color? colorIconRight, bool showBadgeLeft = false}) {
+Widget customHeader(BuildContext context, String title, {bool isBack = false, Color? colorBack, Color? colorBg, Color? colorTitle,IconData? iconLeft, IconData? iconRight,VoidCallback? iconLeftOnTap,VoidCallback? iconRightOnTap, VoidCallback? onBack, Color? colorIconLeft, Color? colorIconRight, bool showBadgeLeft = false, IconData? iconLeft2, Color? colorIconLeft2, VoidCallback? iconLeft2OnTap}) {
   return Container(
     decoration: BoxDecoration(
       color: colorBg ?? Colors.white,
@@ -40,31 +40,43 @@ Widget customHeader(BuildContext context, String title, {bool isBack = false, Co
                   SizedBox(width: 10),
                 ],
               ),
-              Container(width:200,child: Text(title, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: colorTitle))),
+              Container(width:180,child: Text(title, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: colorTitle))),
             ],
           ),
-          if(iconLeft != null)
-          Stack(
-            clipBehavior: Clip.none,
+          Row(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              IconButton(
-                icon:  Icon(iconLeft, size: 24, color: colorIconLeft),
-                onPressed: () {
-                  iconLeftOnTap?.call();
-                },
-              ),
-              if (showBadgeLeft)
-                Positioned(
-                  right: 8,
-                  top: 8,
-                  child: Container(
-                    padding: const EdgeInsets.all(4),
-                    decoration: const BoxDecoration(
-                      color: Colors.red,
-                      shape: BoxShape.circle,
-                    ),
-                  ),
+              if(iconLeft2 != null)
+                IconButton(
+                  icon: Icon(iconLeft2, size: 24, color: colorIconLeft2),
+                  onPressed: () {
+                    iconLeft2OnTap?.call();
+                  },
                 ),
+              if(iconLeft != null)
+              Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  IconButton(
+                    icon:  Icon(iconLeft, size: 24, color: colorIconLeft),
+                    onPressed: () {
+                      iconLeftOnTap?.call();
+                    },
+                  ),
+                  if (showBadgeLeft)
+                    Positioned(
+                      right: 8,
+                      top: 8,
+                      child: Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: const BoxDecoration(
+                          color: Colors.red,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
             ],
           ),
         ],

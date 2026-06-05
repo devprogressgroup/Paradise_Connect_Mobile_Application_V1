@@ -12,6 +12,7 @@ abstract class AttendanceRemoteDataSource {
   Future<void> postValidasiCheckIn({required int logId, required int statusValidasi, String? noteValidasi});
   Future<Map<String, dynamic>> getAttendanceApprovalToday({String? search, String? status, int? flag, int page = 1, int perPage = 10});
   Future<void> postAttendanceApproval({required int logId, required int approve});
+  Future<void> downloadAttendancePdf({required int nikNumber, required String startDate, required String endDate, required String savePath});
 }
 
 class AttendanceRemoteDataSourceImpl implements AttendanceRemoteDataSource {
@@ -186,6 +187,25 @@ class AttendanceRemoteDataSourceImpl implements AttendanceRemoteDataSource {
     } on DioException catch (e) {
       if (e.type == DioExceptionType.cancel && e.error == 'SESSION_EXPIRED') throw Exception('SESSION_EXPIRED');
       throw Exception(e.response?.data?['message'] ?? 'Gagal melakukan approval');
+    }
+  }
+
+  @override
+  Future<void> downloadAttendancePdf({required int nikNumber, required String startDate, required String endDate, required String savePath}) async {
+    try {
+      await dio.download(
+        '/attendance/report/pdf',
+        savePath,
+        queryParameters: {
+          'nik_number': nikNumber,
+          'start_date': startDate,
+          'end_date': endDate,
+        },
+        options: Options(receiveTimeout: const Duration(seconds: 60)),
+      );
+    } on DioException catch (e) {
+      if (e.type == DioExceptionType.cancel && e.error == 'SESSION_EXPIRED') throw Exception('SESSION_EXPIRED');
+      throw Exception('Gagal mengunduh PDF');
     }
   }
 }

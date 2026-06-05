@@ -1,5 +1,7 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:path_provider/path_provider.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:progress_group/core/utils/widget/shimmer_loading.dart';
 import 'package:geocoding/geocoding.dart';
@@ -7,6 +9,7 @@ import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:progress_group/core/constants/colors.dart';
 import 'package:progress_group/core/utils/widget/drive_image/drive_image.dart';
 import 'package:progress_group/core/utils/helpers/initial_name_helper.dart';
@@ -21,6 +24,8 @@ import 'package:progress_group/features/attandance/presentation/state/office_loc
 import 'package:progress_group/features/attandance/presentation/state/attendance_activity/attendance_activity_event.dart';
 import 'package:progress_group/features/attandance/presentation/state/attendance_activity/attendance_activity_state.dart';
 import 'package:progress_group/features/attandance/presentation/state/attendance_approval/attendance_approval_cubit.dart';
+import 'package:progress_group/features/attandance/presentation/state/attendance_pdf/attendance_pdf_cubit.dart';
+import 'package:progress_group/features/attandance/presentation/state/attendance_pdf/attendance_pdf_state.dart';
 import 'package:progress_group/features/auth/domain/entities/user_profile.dart';
 import 'package:progress_group/features/auth/presentation/state/profile/profile_bloc.dart';
 import 'package:progress_group/features/auth/presentation/state/profile/profile_state.dart';
@@ -474,11 +479,213 @@ class _AttandancePageState extends State<AttandancePage> {
     );
   }
 
+  Future<void> _showPdfDatePickerDialog() async {
+    final profileState = context.read<ProfileBloc>().state;
+    if (profileState is! ProfileLoaded) return;
+    final nikNumber = profileState.profile.nikNumber;
+    if (nikNumber == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('NIK tidak ditemukan')),
+      );
+      return;
+    }
+
+    final now = DateTime.now();
+    DateTime startDate = DateTime(now.year, now.month, 1);
+    DateTime endDate = DateTime(now.year, now.month + 1, 0);
+
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setStateDialog) => AlertDialog(
+          title: const Text('Download PDF Kehadiran'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: const Icon(Icons.calendar_today),
+                title: const Text('Tanggal Mulai'),
+                subtitle: Text(DateFormat('dd MMMM yyyy', 'id_ID').format(startDate)),
+                onTap: () async {
+                  final picked = await showDatePicker(
+                    context: ctx,
+                    initialDate: startDate,
+                    firstDate: DateTime(2020),
+                    lastDate: DateTime(now.year + 1, 12, 31),
+                  );
+                  if (picked != null) setStateDialog(() => startDate = picked);
+                },
+              ),
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: const Icon(Icons.calendar_today),
+                title: const Text('Tanggal Akhir'),
+                subtitle: Text(DateFormat('dd MMMM yyyy', 'id_ID').format(endDate)),
+                onTap: () async {
+                  final picked = await showDatePicker(
+                    context: ctx,
+                    initialDate: endDate,
+                    firstDate: startDate,
+                    lastDate: DateTime(now.year + 1, 12, 31),
+                  );
+                  if (picked != null) setStateDialog(() => endDate = picked);
+                },
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(false),
+              child: const Text('Batal'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.of(ctx).pop(true),
+              child: const Text('Download'),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (result == true && mounted) {
+      final start = DateFormat('yyyy-MM-dd').format(startDate);
+      final end = DateFormat('yyyy-MM-dd').format(endDate);
+      context.read<AttendancePdfCubit>().download(
+        nikNumber: nikNumber,
+        startDate: start,
+        endDate: end,
+      );
+    }
+  }
+
+  void _showPdfOptions(BuildContext context, String filePath) {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 40,
+                height: 4,
+                margin: const EdgeInsets.only(bottom: 12),
+                decoration: BoxDecoration(
+                  color: Colors.grey[300],
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: Text(
+                  'PDF Kehadiran berhasil diunduh',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                ),
+              ),
+              ListTile(
+                leading: const Icon(Icons.save_alt),
+                title: const Text('Simpan ke Penyimpanan'),
+                onTap: () {
+                  Navigator.of(ctx).pop();
+                  _savePdfToStorage(filePath);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.share),
+                title: const Text('Bagikan'),
+                onTap: () {
+                  Navigator.of(ctx).pop();
+                  Share.shareXFiles([XFile(filePath)], text: 'Laporan Kehadiran');
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _savePdfToStorage(String tempFilePath) async {
+    try {
+      final fileName = tempFilePath.split('/').last;
+      String savedPath;
+
+      if (Platform.isAndroid) {
+        final publicDownloads = Directory('/storage/emulated/0/Download');
+        try {
+          savedPath = '${publicDownloads.path}/$fileName';
+          await File(tempFilePath).copy(savedPath);
+        } catch (_) {
+          final extDir = await getExternalStorageDirectory();
+          if (extDir == null) throw Exception('Penyimpanan tidak tersedia');
+          savedPath = '${extDir.path}/$fileName';
+          await File(tempFilePath).copy(savedPath);
+        }
+      } else if (Platform.isIOS) {
+        final dir = await getApplicationDocumentsDirectory();
+        savedPath = '${dir.path}/$fileName';
+        await File(tempFilePath).copy(savedPath);
+      } else {
+        throw Exception('Platform tidak didukung');
+      }
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('PDF disimpan di: $savedPath'),
+            duration: const Duration(seconds: 4),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Gagal menyimpan: ${e.toString()}')),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Color(grey11Color),
-      body: BlocListener<AttendanceBloc, AttendanceState>(
+      body: BlocListener<AttendancePdfCubit, AttendancePdfState>(
+        listener: (context, state) async {
+          if (state is AttendancePdfLoading) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Row(
+                  children: [
+                    SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)),
+                    SizedBox(width: 12),
+                    Text('Mengunduh PDF...'),
+                  ],
+                ),
+                duration: Duration(seconds: 30),
+              ),
+            );
+          } else if (state is AttendancePdfSuccess) {
+            ScaffoldMessenger.of(context).hideCurrentSnackBar();
+            if (!kIsWeb) {
+              _showPdfOptions(context, state.filePath);
+            }
+            context.read<AttendancePdfCubit>().reset();
+          } else if (state is AttendancePdfError) {
+            print("Gagal download: ${state.message}");
+            ScaffoldMessenger.of(context).hideCurrentSnackBar();
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Gagal download: ${state.message}')),
+            );
+            context.read<AttendancePdfCubit>().reset();
+          }
+        },
+        child: BlocListener<AttendanceBloc, AttendanceState>(
         listener: (context, state) {
           if (state is AttendanceLoaded && !_hasSetInitialTab) {
             final now = DateTime.now();
@@ -521,6 +728,9 @@ class _AttandancePageState extends State<AttandancePage> {
                         colorIconLeft: Color(whiteColor),
                         iconLeftOnTap: isAtasan ? () => context.pushNamed('approval') : null,
                         showBadgeLeft: isAtasan && hasPending,
+                        iconLeft2: Icons.picture_as_pdf,
+                        colorIconLeft2: Color(whiteColor),
+                        iconLeft2OnTap: _showPdfDatePickerDialog,
                       );
                     },
                   );
@@ -587,7 +797,7 @@ class _AttandancePageState extends State<AttandancePage> {
             ],
           ),
         ),
-    ));
+    )));
   }
 
   Widget _buildButtonLog(){
