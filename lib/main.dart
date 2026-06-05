@@ -117,6 +117,10 @@ import 'features/contact/presentation/state/attachment/upload_attachment_bloc.da
 import 'features/contact/domain/usecases/property/get_property_units_usecase.dart';
 import 'features/contact/domain/usecases/property/get_property_commercial_units_usecase.dart';
 import 'features/contact/presentation/state/property_unit/property_unit_cubit.dart';
+import 'features/landing-page/data/datasources/landing_page_remote_datasource.dart';
+import 'features/landing-page/data/repositories/landing_page_repository_impl.dart';
+import 'features/landing-page/domain/usecases/get_landing_page_url_usecase.dart';
+import 'features/landing-page/presentation/state/landing_page_cubit.dart';
 
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
@@ -161,12 +165,13 @@ class MyApp extends StatefulWidget {
   State<MyApp> createState() => _MyAppState();
 }
 
-class _MyAppState extends State<MyApp> {
+class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   Key _blocKey = UniqueKey();
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     ApiConstants.envNotifier.addListener(_resetApp);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       PushNotificationService.processPendingMessage();
@@ -174,9 +179,21 @@ class _MyAppState extends State<MyApp> {
     });
   }
 
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _checkVersion();
+    }
+  }
+
   Future<void> _checkVersion() async {
     try {
       final result = await VersionCheckService.check();
+      debugPrint('=== VERSION CHECK ===');
+      debugPrint('App version   : ${result.currentVersion}');
+      debugPrint('Backend version: ${result.latestVersion}');
+      debugPrint('Requires update: ${result.requiresUpdate}');
+      debugPrint('====================');
       if (!mounted || !result.requiresUpdate) return;
 
       final context = AppRouter.rootNavigatorKey.currentContext;
@@ -196,6 +213,7 @@ class _MyAppState extends State<MyApp> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     ApiConstants.envNotifier.removeListener(_resetApp);
     super.dispose();
   }
@@ -280,6 +298,11 @@ class _MyAppState extends State<MyApp> {
     final siteplanRemoteDataSource = SiteplanRemoteDataSourceImpl(dioClient.dio);
     final siteplanRepository = SitePlanRepositoryImpl(siteplanRemoteDataSource);
 
+    // Landing Page
+    final landingPageRemoteDataSource = LandingPageRemoteDataSourceImpl(dioClient.dio);
+    final landingPageRepository = LandingPageRepositoryImpl(landingPageRemoteDataSource);
+    final getLandingPageUrlUseCase = GetLandingPageUrlUseCase(landingPageRepository);
+
     // SalesKit / Townships
     final salesKitRemoteDataSource = SalesKitRemoteDataSourceImpl(dioClient.dio);
     final salesKitRepository = SalesKitRepositoryImpl(salesKitRemoteDataSource);
@@ -339,6 +362,7 @@ class _MyAppState extends State<MyApp> {
             BlocProvider(create: (_) => InfoSourceBloc(getInfoSourcesUseCase: getInfoSourcesUseCase)),
             BlocProvider(create: (_) => LostReasonBloc(getLostReasonsUseCase: getLostReasonsUseCase)),
             BlocProvider(create: (_) => PropertyUnitCubit(getPropertyUnitsUseCase, getPropertyCommercialUnitsUseCase)),
+            BlocProvider(create: (_) => LandingPageCubit(getLandingPageUrlUseCase)..fetchUrl()),
             BlocProvider(create: (_) => SiteplanBloc(siteplanRepository)..add(LoadSiteplanEvent())),
             BlocProvider(create: (_) => TownshipBloc(getTownshipsUseCase)..add(GetTownshipsEvent())),
             BlocProvider(create: (_) => SalesKitDetailBloc(getClustersUseCase: getClustersUseCase, getCommercialsUseCase: getCommercialsUseCase)),

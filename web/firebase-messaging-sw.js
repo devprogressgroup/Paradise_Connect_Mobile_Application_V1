@@ -49,7 +49,9 @@ function getTargetUrl(data) {
 // Navigate to the app when notification is clicked
 self.addEventListener('notificationclick', function(event) {
   event.notification.close();
-  const targetUrl = getTargetUrl(event.notification.data || {});
+  const data      = event.notification.data || {};
+  const targetUrl = getTargetUrl(data);
+
 
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function(clientList) {

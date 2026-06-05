@@ -9,6 +9,7 @@ import 'package:progress_group/app/router.dart';
 import 'package:progress_group/features/contact/data/arguments/contact_detail_args.dart';
 import 'package:progress_group/features/contact/domain/entities/activity/activity_entity.dart';
 import 'package:progress_group/features/contact/domain/entities/contact/contact_entity.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'web_notification_stub.dart'
     if (dart.library.js_interop) 'web_notification.dart';
 
@@ -207,6 +208,14 @@ class PushNotificationService {
 
     if (type == 'approval_pending' || type == 'attendance_null_location') {
       AppRouter.router.goNamed('approval');
+      return;
+    }
+
+    if (type == 'app_update') {
+      final url = data['download_url'] as String?;
+      if (url != null && url.isNotEmpty) {
+        launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
+      }
       return;
     }
 
