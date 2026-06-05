@@ -42,6 +42,7 @@ import '../../../../../core/utils/widget/error_dialog.dart';
 import '../../../../../core/utils/widget/custom_file_picker.dart';
 import '../../state/activity/activity_bloc.dart';
 import '../../state/activity/activity_event.dart';
+import '../../state/pameran_aktif/pameran_aktif_cubit.dart';
 
 class ContactFormPage extends StatefulWidget {
   final ContactDetailArgs args;
@@ -94,6 +95,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
   int? selectedSalesExecutiveId;
   String? selectedSalesExecutiveName;
   int? selectedSalesManagerId;
+  int? selectedGeneralManagerId;
 
   String? selectedSalesManagerName;
   String? selectFirstProject;
@@ -202,9 +204,11 @@ class _ContactFormPageState extends State<ContactFormPage> {
       primaryPhone: waTC.text.isNotEmpty ? waTC.text : null,
       whatsappNumber: waTC.text.isNotEmpty ? waTC.text : null,
       primaryEmail: emailTC.text.isNotEmpty ? emailTC.text : null,
+      ownerId: selectedOwnerId,
       salesExecutiveId: selectedSalesExecutiveId,
       salesManagerId: selectedSalesManagerId,
       salesSupervisorId: selectedSupervisorId,
+      salesGeneralManagerId: selectedGeneralManagerId,
       salesTeamId: selectedTeamId,
       statusProspectId: selectedStatusId,
       lastProject: isUpdate ? selectLastProject : selectFirstProject,
@@ -254,6 +258,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
   }
 
   void _syncParams() {
+    _syncPameranBackendDate();
     createContactParams = _buildCurrentParams();
   }
 
@@ -274,6 +279,18 @@ class _ContactFormPageState extends State<ContactFormPage> {
     ]) {
       tc.addListener(_syncParams);
     }
+  }
+
+  void _syncPameranBackendDate() {
+    final text = periodePameranDateTC.text;
+    if (text.isEmpty) {
+      _periodePameranDateBackend = null;
+      return;
+    }
+    final parsed = _parseDateOrToday(text);
+    final now = DateTime.now();
+    final combined = DateTime(parsed.year, parsed.month, parsed.day, now.hour, now.minute, now.second);
+    _periodePameranDateBackend = '${DateHelper.formatNumericCompact(combined)} ${DateFormat('HH:mm:ss').format(combined)}';
   }
 
   TextEditingController _getOrCreatePropertyController(int propertyId) {
@@ -423,6 +440,9 @@ class _ContactFormPageState extends State<ContactFormPage> {
       final now = DateTime.now();
       _periodePameranDateBackend = '${DateHelper.formatNumericCompact(now)} ${DateFormat('HH:mm:ss').format(now)}';
       periodePameranDateTC.text = DateHelper.formatDate(now);
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) context.read<PameranAktifCubit>().load();
+      });
     }
     volumePlanTC.text = contact.volumePlan?.toString() ?? '';
     vCountTC.text = contact.visitCount?.toString() ?? '';
@@ -513,6 +533,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
       if (profileState is ProfileLoaded) {
         final user = profileState.profile;
 
+        // Find name by sales_person_id (for SE, Manager)
         String? findName(int? id) {
           if (id == null) return null;
           if (user.salesPersonId == id) return user.fullName;
@@ -549,9 +570,46 @@ class _ContactFormPageState extends State<ContactFormPage> {
           return null;
         }
 
-        selectedOwnerName = contact.ownerName ?? findName(selectedOwnerId);
-        selectedSalesExecutiveName =contact.salesExecutiveName ?? findName(selectedSalesExecutiveId);
-        selectedSalesManagerName =contact.salesManagerName ?? findName(selectedSalesManagerId);
+        // Find name by user_id (for owner)
+        String? findNameByUserId(int? userId) {
+          if (userId == null) return null;
+          if (user.userId == userId) return user.fullName;
+
+          HierarchyNodeEntity? foundSub;
+          void searchSub(List<HierarchyNodeEntity> subs) {
+            for (var s in subs) {
+              if (s.userId == userId) foundSub = s;
+              if (foundSub == null && s.subordinates.isNotEmpty)
+                searchSub(s.subordinates);
+            }
+          }
+
+          searchSub(user.subordinates);
+          if (foundSub != null) return foundSub!.fullName;
+
+          HierarchyNodeEntity? foundAtasan;
+          void searchAtasan(HierarchyNodeEntity? current) {
+            while (current != null) {
+              if (current.userId == userId) {
+                foundAtasan = current;
+                break;
+              }
+              current = current.parent;
+            }
+          }
+
+          for (var role in user.salesRoles) {
+            searchAtasan(role);
+            if (foundAtasan != null) break;
+          }
+          if (foundAtasan != null) return foundAtasan!.fullName;
+
+          return null;
+        }
+
+        selectedOwnerName = contact.ownerName ?? findNameByUserId(selectedOwnerId);
+        selectedSalesExecutiveName = contact.salesExecutiveName ?? findName(selectedSalesExecutiveId);
+        selectedSalesManagerName = contact.salesManagerName ?? findName(selectedSalesManagerId);
       }
 
       final statusState = context.read<ProspectStatusBloc>().state;
@@ -652,11 +710,11 @@ class _ContactFormPageState extends State<ContactFormPage> {
         if (widget.args.page == 0) {
           final List<OwnerDropdownItem> ownerItems = [];
 
-          ownerItems.add(OwnerDropdownItem(id: user.salesPersonId, name: user.fullName, subtitle: user.positionName));
+          ownerItems.add(OwnerDropdownItem(id: user.userId, name: user.fullName, subtitle: user.positionName));
 
           void addSubs(List<HierarchyNodeEntity> subs) {
             for (var s in subs) {
-              ownerItems.add(OwnerDropdownItem(id: s.salesPersonId, name: s.fullName, subtitle: s.positionName));
+              ownerItems.add(OwnerDropdownItem(id: s.userId, name: s.fullName, subtitle: s.positionName));
 
               if (s.subordinates.isNotEmpty) addSubs(s.subordinates);
             }
@@ -677,23 +735,23 @@ class _ContactFormPageState extends State<ContactFormPage> {
       }
     }
   
-  void _updateSalesInformation(int ownerId, UserProfileEntity user) {
+  void _updateSalesInformation(int ownerUserId, UserProfileEntity user) {
     List<HierarchyNodeEntity> chain = [];
 
     List<HierarchyNodeEntity>? findPath(
       List<HierarchyNodeEntity> nodes,
-      int id,
+      int userId,
     ) {
       for (var node in nodes) {
-        if (node.salesPersonId == id) return [node];
-        var subPath = findPath(node.subordinates, id);
+        if (node.userId == userId) return [node];
+        var subPath = findPath(node.subordinates, userId);
         if (subPath != null) return [node, ...subPath];
       }
       return null;
     }
 
-    // 2. Check if owner is a subordinate
-    var subordinatePath = findPath(user.subordinates, ownerId);
+    // Check if owner is a subordinate
+    var subordinatePath = findPath(user.subordinates, ownerUserId);
     if (subordinatePath != null) {
       // Collect superiors from salesRoles (bottom-up: immediate boss first)
       final superiors = <HierarchyNodeEntity>[];
@@ -718,10 +776,11 @@ class _ContactFormPageState extends State<ContactFormPage> {
       } else {
         chain = [...superiors.reversed, ...subordinatePath];
       }
-    } else if (user.salesPersonId == ownerId) {
+    } else if (user.userId == ownerUserId) {
       // 3. Case: Selecting themselves. Chain: [User, Boss, Grandboss...]
       final userNode = HierarchyNodeEntity(
         salesPersonId: user.salesPersonId!,
+        userId: user.userId,
         fullName: user.fullName,
         positionName: user.positionName,
       );
@@ -742,7 +801,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
         bool found = false;
         while (current != null) {
           temp.add(current);
-          if (current.salesPersonId == ownerId) {
+          if (current.userId == ownerUserId) {
             found = true;
             break;
           }
@@ -780,34 +839,34 @@ class _ContactFormPageState extends State<ContactFormPage> {
           });
         }
 
-        selectedSalesExecutiveId = ownerId;
+        selectedSalesExecutiveId = null;
         selectedSalesExecutiveName = displayChain.first.fullName;
         selectedTeamId = teamId;
         selectedSupervisorId = null;
         selectedSalesManagerId = null;
         selectedSalesManagerName = null;
+        selectedGeneralManagerId = null;
 
-        if (displayChain.length > 1) {
-          selectedSupervisorId = displayChain[1].salesPersonId;
-          for (int i = 1; i < displayChain.length; i++) {
-            if (displayChain[i].positionName?.toLowerCase().contains(
-                  "manager",
-                ) ??
-                false) {
-              selectedSalesManagerId = displayChain[i].salesPersonId;
-              selectedSalesManagerName = displayChain[i].fullName;
-              break;
+        for (final node in displayChain) {
+          final pos = (node.positionName ?? '').toLowerCase();
+          if (pos.contains('general')) {
+            selectedGeneralManagerId = node.salesPersonId;
+          } else if (pos.contains('manager')) {
+            if (selectedSalesManagerId == null) {
+              selectedSalesManagerId = node.salesPersonId;
+              selectedSalesManagerName = node.fullName;
             }
-          }
-          if (selectedSalesManagerId == null) {
-            selectedSalesManagerId = displayChain[1].salesPersonId;
-            selectedSalesManagerName = displayChain[1].fullName;
+          } else if (pos.contains('supervisor')) {
+            selectedSupervisorId = node.salesPersonId;
+          } else {
+            // sales executive or unknown position
+            selectedSalesExecutiveId = node.salesPersonId;
           }
         }
       }
     });
 
-    print('=== [Owner Selected] ownerId: $ownerId ===');
+    print('=== [Owner Selected] ownerUserId: $ownerUserId ===');
     for (final f in salesInfoFields) {
       print('  ${f['label']}: ${f['name']} (id: ${f['id']})');
     }
@@ -869,6 +928,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
     selectedSource2Id = null;
     selectedLostReasonId = null;
     selectedStatusId = null;
+    selectedGeneralManagerId = null;
 
     for (final c in _propertyControllers.values) {
       c.dispose();
@@ -970,6 +1030,13 @@ class _ContactFormPageState extends State<ContactFormPage> {
       if (ctrl.text.isNotEmpty) propertiesJson.add({'property_id': id, 'property_value': ctrl.text});
     });
 
+    print('[HANDLE_SAVE] selectedOwnerId: $selectedOwnerId');
+    print('[HANDLE_SAVE] selectedSalesExecutiveId: $selectedSalesExecutiveId');
+    print('[HANDLE_SAVE] selectedSalesManagerId: $selectedSalesManagerId');
+    print('[HANDLE_SAVE] selectedSupervisorId: $selectedSupervisorId');
+    print('[HANDLE_SAVE] selectedGeneralManagerId: $selectedGeneralManagerId');
+    print('[HANDLE_SAVE] selectedTeamId: $selectedTeamId');
+
     final params = CreateContactParams(
       salutation: selectedSalutation ?? '',
       fullName: fullNameTC.text.isNotEmpty ? fullNameTC.text : null,
@@ -977,9 +1044,11 @@ class _ContactFormPageState extends State<ContactFormPage> {
       whatsappNumber: waTC.text.isNotEmpty ? waTC.text : null,
       primaryEmail: emailTC.text.isNotEmpty ? emailTC.text : null,
 
+      ownerId: selectedOwnerId,
       salesExecutiveId: selectedSalesExecutiveId,
       salesManagerId: selectedSalesManagerId,
       salesSupervisorId: selectedSupervisorId,
+      salesGeneralManagerId: selectedGeneralManagerId,
       salesTeamId: selectedTeamId,
 
       statusProspectId: selectedStatusId,
@@ -1294,7 +1363,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
                                 final List<OwnerDropdownItem> ownerItems = [];
                                 ownerItems.add(
                                   OwnerDropdownItem(
-                                    id: user.salesPersonId,
+                                    id: user.userId,
                                     name: '${user.fullName} (me)',
                                     subtitle: user.positionName,
                                   ),
@@ -1303,7 +1372,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
                                   for (var s in subs) {
                                     ownerItems.add(
                                       OwnerDropdownItem(
-                                        id: s.salesPersonId,
+                                        id: s.userId,
                                         name: s.fullName,
                                         subtitle: s.positionName,
                                       ),
@@ -1549,6 +1618,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
                                     final now = DateTime.now();
                                     _periodePameranDateBackend = '${DateHelper.formatNumericCompact(now)} ${DateFormat('HH:mm:ss').format(now)}';
                                     periodePameranDateTC.text = DateHelper.formatDate(now);
+                                    context.read<PameranAktifCubit>().load();
                                   } else {
                                     _periodePameranDateBackend = null;
                                     periodePameranDateTC.text = '';
@@ -1594,18 +1664,27 @@ class _ContactFormPageState extends State<ContactFormPage> {
                             },
                           ),
                           if (_pameranIds.contains(selectedSource1Id))
-                            _buildField(
-                              label: "Periode Pameran Date",
-                              controller: periodePameranDateTC,
-                              focusNode: periodePameranDateFN,
-                              readOnly: true,
-                            ),
+                            Builder(builder: (context) {
+                              final ps = context.watch<PameranAktifCubit>().state;
+                              final list = ps is PameranAktifLoaded ? ps.data : [];
+                              final firstDate = list.isNotEmpty ? list.map((e) => e.startDate).reduce((a, b) => a.isBefore(b) ? a : b) : null;
+                              final lastDate = list.isNotEmpty ? list.map((e) => e.endDate).reduce((a, b) => a.isAfter(b) ? a : b) : null;
+                              return _buildField(
+                                label: "Periode Pameran Date",
+                                controller: periodePameranDateTC,
+                                focusNode: periodePameranDateFN,
+                                fieldType: 'date',
+                                dateFirstDate: firstDate,
+                                dateLastDate: lastDate,
+                              );
+                            }),
                            _buildField(
                             label: "Note",
                             controller: generalNotesTC,
                             focusNode: generalNotesFN,
                             isError: _showValidation && generalNotesTC.text.isEmpty,
                             errorText: (_showValidation && generalNotesTC.text.isEmpty) ? 'Wajib diisi' : null,
+                            minLines: 3,
                           ),
                          _buildFieldDown(
                             label: "Lost Reason",
@@ -1920,10 +1999,10 @@ class _ContactFormPageState extends State<ContactFormPage> {
                           if (profileState is ProfileLoaded) {
                             final user = profileState.profile;
                             final List<OwnerDropdownItem> ownerItems = [];
-                            ownerItems.add(OwnerDropdownItem(id: user.salesPersonId, name: '${user.fullName} (me)', subtitle: user.positionName));
+                            ownerItems.add(OwnerDropdownItem(id: user.userId, name: '${user.fullName} (me)', subtitle: user.positionName));
                             void addSubs(List<HierarchyNodeEntity> subs) {
                               for (var s in subs) {
-                                ownerItems.add(OwnerDropdownItem(id: s.salesPersonId, name: s.fullName, subtitle: s.positionName));
+                                ownerItems.add(OwnerDropdownItem(id: s.userId, name: s.fullName, subtitle: s.positionName));
                                 if (s.subordinates.isNotEmpty) addSubs(s.subordinates);
                               }
                             }
@@ -2012,6 +2091,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
                                 final now = DateTime.now();
                                 _periodePameranDateBackend = '${DateHelper.formatNumericCompact(now)} ${DateFormat('HH:mm:ss').format(now)}';
                                 periodePameranDateTC.text = DateHelper.formatDate(now);
+                                context.read<PameranAktifCubit>().load();
                               } else {
                                 _periodePameranDateBackend = null;
                                 periodePameranDateTC.text = '';
@@ -2057,18 +2137,27 @@ class _ContactFormPageState extends State<ContactFormPage> {
                         },
                       ),
                       if (_pameranIds.contains(selectedSource1Id))
-                        _buildField(
-                          label: "Periode Pameran Date",
-                          controller: periodePameranDateTC,
-                          focusNode: periodePameranDateFN,
-                          readOnly: true,
-                        ),
+                        Builder(builder: (context) {
+                          final ps = context.watch<PameranAktifCubit>().state;
+                          final list = ps is PameranAktifLoaded ? ps.data : [];
+                          final firstDate = list.isNotEmpty ? list.map((e) => e.startDate).reduce((a, b) => a.isBefore(b) ? a : b) : null;
+                          final lastDate = list.isNotEmpty ? list.map((e) => e.endDate).reduce((a, b) => a.isAfter(b) ? a : b) : null;
+                          return _buildField(
+                            label: "Periode Pameran Date",
+                            controller: periodePameranDateTC,
+                            focusNode: periodePameranDateFN,
+                            fieldType: 'date',
+                            dateFirstDate: firstDate,
+                            dateLastDate: lastDate,
+                          );
+                        }),
                      _buildField(
                        label: "Note",
                        controller: generalNotesTC,
                        focusNode: generalNotesFN,
                        isError: _showValidation && generalNotesTC.text.isEmpty,
                        errorText: (_showValidation && generalNotesTC.text.isEmpty) ? 'Wajib diisi' : null,
+                       minLines: 3,
                      ),
                    ],
                  ),
@@ -2496,7 +2585,10 @@ class _ContactFormPageState extends State<ContactFormPage> {
     );
   }
 
-  Widget _buildField({required String label,required TextEditingController controller,required FocusNode focusNode,String fieldType = 'text',bool isError = false,String? errorText,bool? readOnly, }) {
+
+  
+
+  Widget _buildField({required String label,required TextEditingController controller,required FocusNode focusNode,String fieldType = 'text',bool isError = false,String? errorText,bool? readOnly, int? minLines, DateTime? dateFirstDate, DateTime? dateLastDate,}) {
     final bool isReadOnly = readOnly == true || widget.args.page == 2;
     final bool isDisplayGrey = widget.args.page == 2;
     final bool canNavigate = widget.args.page == 2 && label != "Create Date";
@@ -2537,8 +2629,8 @@ class _ContactFormPageState extends State<ContactFormPage> {
                                       final DateTime? picked = await showDatePicker(
                                         context: context,
                                         initialDate: _parseDateOrToday(controller.text),
-                                        firstDate: DateTime(1900),
-                                        lastDate: DateTime(2100),
+                                        firstDate: dateFirstDate ?? DateTime(1900),
+                                        lastDate: dateLastDate ?? DateTime(2100),
                                       );
                                       if (picked != null) {
                                         controller.text = DateHelper.formatDate(picked);
@@ -2606,6 +2698,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
                             focusNode: focusNode,
                             readOnly: isReadOnly,
                             enabled: !isReadOnly,
+                            minLines: minLines,
                             maxLines: null,
                             style: TextStyle(fontSize: 12, color: isHighlighted ? Color(primaryColor) : (readOnly == true ? Color(grey2Color) : Color(blackColor)), fontWeight: FontWeight.w700),
                             decoration: InputDecoration(

@@ -171,13 +171,13 @@ class _ContactPageState extends State<ContactPage> {
                                               if (isSelected && profileState is ProfileLoaded) {
                                                 if (contactState.ownerIds!.length == 1) {
                                                   final id = contactState.ownerIds!.first;
-                                                  if (profileState.profile.salesPersonId == id) {
+                                                  if (profileState.profile.userId == id) {
                                                     label = profileState.profile.fullName;
                                                   } else {
                                                     HierarchyNodeEntity? found;
                                                     void search(List<HierarchyNodeEntity> nodes) {
                                                       for (var n in nodes) {
-                                                        if (n.salesPersonId == id) found = n;
+                                                        if (n.userId == id) found = n;
                                                         if (found == null && n.subordinates.isNotEmpty)
                                                           search(n.subordinates);
                                                       }
@@ -200,7 +200,7 @@ class _ContactPageState extends State<ContactPage> {
                                                     final List<OwnerDropdownItem> ownerItems = [];
 
                                                     ownerItems.add(OwnerDropdownItem(
-                                                      id: user.salesPersonId,
+                                                      id: user.userId,
                                                       name: user.fullName,
                                                       subtitle: user.positionName,
                                                     ));
@@ -208,7 +208,7 @@ class _ContactPageState extends State<ContactPage> {
                                                     void addSubs(List<HierarchyNodeEntity> subs) {
                                                       for (var s in subs) {
                                                         ownerItems.add(OwnerDropdownItem(
-                                                          id: s.salesPersonId,
+                                                          id: s.userId,
                                                           name: s.fullName,
                                                           subtitle: s.positionName,
                                                         ));

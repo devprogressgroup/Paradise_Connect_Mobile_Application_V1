@@ -1,6 +1,7 @@
 class HierarchyNodeEntity {
   final int? salesRoleId;
   final int salesPersonId;
+  final int? userId;
   final int? salesPersonParentId;
   final int? salesTeamId;
   final String? salesTeamName;
@@ -13,6 +14,7 @@ class HierarchyNodeEntity {
   HierarchyNodeEntity({
     this.salesRoleId,
     required this.salesPersonId,
+    this.userId,
     this.salesPersonParentId,
     this.salesTeamId,
     this.salesTeamName,

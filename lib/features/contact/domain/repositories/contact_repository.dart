@@ -1,5 +1,6 @@
 import 'package:dartz/dartz.dart';
 import 'package:progress_group/features/contact/domain/entities/activity/activity_prospect_status.dart';
+import 'package:progress_group/features/contact/domain/entities/pameran/pameran_aktif_entity.dart';
 import 'package:progress_group/features/contact/domain/entities/activity/create_activity_visit_params.dart';
 import 'package:progress_group/features/contact/domain/entities/activity/whatsapp_activity_entity.dart';
 import 'package:progress_group/features/contact/domain/entities/attachment/attachment_entity.dart';
@@ -39,4 +40,5 @@ abstract class ContactRepository {
   Future<Either<String, void>> updateAttachment({  required int contactId,  required int attachmentId,  required UploadAttachmentParams params,});
   Future<Either<String, List<PropertyUnitCluster>>> getPropertyUnits({required int townshipId});
   Future<Either<String, List<PropertyUnitCluster>>> getPropertyCommercialUnits({required int townshipId});
+  Future<Either<String, List<PameranAktifEntity>>> getPameranAktif();
 }

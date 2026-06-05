@@ -4,6 +4,7 @@ class HierarchyNodeModel extends HierarchyNodeEntity {
   HierarchyNodeModel({
     super.salesRoleId,
     required super.salesPersonId,
+    super.userId,
     super.salesPersonParentId,
     super.salesTeamId,
     super.salesTeamName,
@@ -18,6 +19,7 @@ class HierarchyNodeModel extends HierarchyNodeEntity {
     return HierarchyNodeModel(
       salesRoleId: json['sales_role_id'],
       salesPersonId: json['sales_person_id'],
+      userId: json['user_id'],
       salesPersonParentId: json['sales_person_parent_id'],
       salesTeamId: json['sales_team_id'],
       salesTeamName: json['sales_team_name'],

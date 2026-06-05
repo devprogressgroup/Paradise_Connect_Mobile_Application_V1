@@ -1042,10 +1042,19 @@ class _ContactDetailPageState extends State<ContactDetailPage>with TickerProvide
                       final list = state.data;
 
                       if (list.isEmpty) {
-                        return Center(child: Text("No attachment"));
+                        return ListView(
+                          physics: const AlwaysScrollableScrollPhysics(),
+                          children: [
+                            SizedBox(
+                              height: 300,
+                              child: Center(child: Text("No attachment")),
+                            ),
+                          ],
+                        );
                       }
 
                       return ListView.builder(
+                        physics: const AlwaysScrollableScrollPhysics(),
                         itemCount: list.length,
                         itemBuilder: (context, index) {
                           final item = list[index];
@@ -1156,6 +1165,7 @@ class _ContactDetailPageState extends State<ContactDetailPage>with TickerProvide
 
                                   Spacer(),
                                   PopupMenuButton<String>(
+                                    enabled: item.attachmentTypeId != 0,
                                     icon: Container(
                                       height: 44,
                                       width: 44,

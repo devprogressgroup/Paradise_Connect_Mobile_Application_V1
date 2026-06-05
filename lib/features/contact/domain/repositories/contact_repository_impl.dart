@@ -6,6 +6,7 @@ import 'package:progress_group/features/contact/domain/entities/attachment/attac
 import 'package:progress_group/features/contact/domain/entities/attachment/attachment_type.dart';
 import 'package:progress_group/features/contact/domain/entities/info_source/info_source.dart';
 import 'package:progress_group/features/contact/domain/entities/lost_reason/lost_reason_entity.dart';
+import 'package:progress_group/features/contact/domain/entities/pameran/pameran_aktif_entity.dart';
 import 'package:progress_group/features/contact/domain/entities/property/property_unit_entity.dart';
 import '../entities/activity/activity_entity.dart';
 import '../entities/contact/contact_entity.dart';
@@ -262,6 +263,16 @@ class ContactRepositoryImpl implements ContactRepository {
   Future<Either<String, List<PropertyUnitCluster>>> getPropertyCommercialUnits({required int townshipId}) async {
     try {
       final result = await remoteDataSource.getPropertyCommercialUnits(townshipId: townshipId);
+      return Right(result);
+    } catch (e) {
+      return Left(e.toString());
+    }
+  }
+
+  @override
+  Future<Either<String, List<PameranAktifEntity>>> getPameranAktif() async {
+    try {
+      final result = await remoteDataSource.getPameranAktif();
       return Right(result);
     } catch (e) {
       return Left(e.toString());

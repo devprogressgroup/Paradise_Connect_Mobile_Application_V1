@@ -1,5 +1,7 @@
 
 
+import 'dart:convert';
+
 import 'package:dio/dio.dart';
 import 'package:progress_group/core/utils/helpers/error_message.dart';
 import 'package:progress_group/features/contact/data/models/activity/activitty_prospect_status._model.dart';
@@ -13,6 +15,7 @@ import 'package:progress_group/features/contact/data/models/contact/contact_resp
 import 'package:progress_group/features/contact/data/models/dropdown/prospect_status_model.dart';
 import 'package:progress_group/features/contact/data/models/info_source/info_source_model.dart';
 import 'package:progress_group/features/contact/data/models/lost_reason/lost_reason_model.dart';
+import 'package:progress_group/features/contact/data/models/pameran/pameran_aktif_model.dart';
 import 'package:progress_group/features/contact/data/models/property/property_unit_model.dart';
 import 'package:progress_group/features/contact/domain/entities/activity/create_activity_params.dart';
 import 'package:progress_group/features/contact/domain/entities/activity/create_activity_visit_params.dart';
@@ -61,6 +64,7 @@ abstract class ContactRemoteDataSource {
 
   Future<List<PropertyUnitClusterModel>> getPropertyUnits({required int townshipId});
   Future<List<PropertyUnitClusterModel>> getPropertyCommercialUnits({required int townshipId});
+  Future<List<PameranAktifModel>> getPameranAktif();
 }
 
 class ContactRemoteDataSourceImpl implements ContactRemoteDataSource {
@@ -81,7 +85,7 @@ class ContactRemoteDataSourceImpl implements ContactRemoteDataSource {
           if (search != null && search.isNotEmpty) 'search': search,
           if (startDate != null && startDate.isNotEmpty) 'start_date': startDate,
           if (endDate != null && endDate.isNotEmpty) 'end_date': endDate,
-          if (ownerIds != null && ownerIds.isNotEmpty) 'sales_executive_id': ownerIds.join(','),
+          if (ownerIds != null && ownerIds.isNotEmpty) 'owner_id': ownerIds.join(','),
           if (statusProspectIds != null && statusProspectIds.isNotEmpty) 'status_prospect_id': statusProspectIds.join(','),
         },
       );
@@ -220,8 +224,11 @@ class ContactRemoteDataSourceImpl implements ContactRemoteDataSource {
       data['properties_json'] = propertiesList;
     }
 
-    print('[FormData] data keys: ${data.keys.toList()}');
-    print('[FormData] properties_json: $propertiesList');
+    print('[CREATE CONTACT] ${const JsonEncoder.withIndent('  ').convert({
+      'params_toJson': params.toJson(),
+      'formData': data,
+      'properties_json': propertiesList,
+    })}');
 
     return FormData.fromMap(data);
   }
@@ -462,6 +469,7 @@ class ContactRemoteDataSourceImpl implements ContactRemoteDataSource {
       if (response.data['status'] == true) {
         final List<dynamic> data = response.data['data'];
 
+        print('[ATTACHMENTS] raw: ${const JsonEncoder.withIndent('  ').convert(data)}');
         return data.map((json) => ContactAttachmentModel.fromJson(json)).toList();
       }
 
@@ -546,6 +554,20 @@ class ContactRemoteDataSourceImpl implements ContactRemoteDataSource {
       throw Exception(response.data['message'] ?? 'Gagal memuat data produk');
     } on DioException catch (e) {
       throw Exception(getErrorMessage(e, 'Gagal memuat data produk'));
+    }
+  }
+
+  @override
+  Future<List<PameranAktifModel>> getPameranAktif() async {
+    try {
+      final response = await dio.get('/pameran/aktif');
+      if (response.data['status'] == true) {
+        final List<dynamic> data = response.data['data'];
+        return data.map((json) => PameranAktifModel.fromJson(json as Map<String, dynamic>)).toList();
+      }
+      return [];
+    } on DioException catch (e) {
+      throw Exception(getErrorMessage(e, 'Gagal memuat data pameran aktif'));
     }
   }
 }

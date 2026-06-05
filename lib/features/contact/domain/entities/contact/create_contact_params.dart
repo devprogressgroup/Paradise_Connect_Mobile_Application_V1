@@ -17,9 +17,11 @@ class CreateContactParams extends Equatable {
   final String? lastProjectCategory;
   final String? firstBlokNo;
   final String? lastBlokNo;
+  final int? ownerId;
   final int? salesExecutiveId;
   final int? salesManagerId;
   final int? salesSupervisorId;
+  final int? salesGeneralManagerId;
   final int? salesTeamId;
   final int? salesChannelId;
   final int? statusProspectId;
@@ -76,9 +78,11 @@ class CreateContactParams extends Equatable {
     this.lastProjectCategory,
     this.firstBlokNo,
     this.lastBlokNo,
+    this.ownerId,
     this.salesExecutiveId,
     this.salesManagerId,
     this.salesSupervisorId,
+    this.salesGeneralManagerId,
     this.salesTeamId,
     this.salesChannelId,
     this.statusProspectId,
@@ -137,9 +141,11 @@ class CreateContactParams extends Equatable {
       if (lastProjectCategory != null) 'last_project_category': lastProjectCategory,
       if (firstBlokNo != null) 'first_blok_no': firstBlokNo,
       if (lastBlokNo != null) 'last_blok_no': lastBlokNo,
+      if (ownerId != null) 'owner_id': ownerId,
       if (salesExecutiveId != null) 'sales_executive_id': salesExecutiveId,
       if (salesManagerId != null) 'sales_manager_id': salesManagerId,
       if (salesSupervisorId != null) 'sales_supervisor_id': salesSupervisorId,
+      if (salesGeneralManagerId != null) 'sales_general_manager_id': salesGeneralManagerId,
       if (salesTeamId != null) 'sales_team_id': salesTeamId,
       if (salesChannelId != null) 'sales_channel_id': salesChannelId,
       if (statusProspectId != null) 'status_prospect_id': statusProspectId,
@@ -197,9 +203,11 @@ class CreateContactParams extends Equatable {
     lastProjectCategory,
     firstBlokNo,
     lastBlokNo,
+    ownerId,
     salesExecutiveId,
     salesManagerId,
     salesSupervisorId,
+    salesGeneralManagerId,
     salesTeamId,
     salesChannelId,
     statusProspectId,
