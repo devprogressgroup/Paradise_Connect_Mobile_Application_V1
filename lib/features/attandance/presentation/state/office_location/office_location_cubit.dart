@@ -8,7 +8,8 @@ class OfficeLocationCubit extends Cubit<List<AttendanceLocation>> {
 
   OfficeLocationCubit(this.getOfficeLocationsUseCase) : super([]);
 
-  Future<void> load() async {
+  Future<void> load({bool force = false}) async {
+    if (!force && state.isNotEmpty) return;
     try {
       final locations = await getOfficeLocationsUseCase();
       debugPrint('[OfficeLocation] Loaded ${locations.length} offices: ${locations.map((e) => '${e.name}(lat:${e.latitude},lng:${e.longitude},r:${e.radius})').join(', ')}');

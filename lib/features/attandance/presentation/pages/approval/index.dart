@@ -8,6 +8,7 @@ import 'package:progress_group/features/contact/data/arguments/contact_dropdown_
 import '../../../../../core/constants/colors.dart';
 import '../../../../../core/utils/widget/custom_header.dart';
 import '../../../../../core/utils/widget/custom_search_field.dart';
+import '../../../../../core/utils/widget/shimmer_loading.dart';
 
 
 class ApprovalPage extends StatefulWidget {
@@ -173,7 +174,7 @@ class _ApprovalPageState extends State<ApprovalPage> {
           children: [
             customHeader(
               context,
-              'Approval Page',
+              'Approval',
               colorBg: const Color(primaryColor),
               colorBack: const Color(whiteColor),
               colorTitle: const Color(whiteColor),
@@ -223,7 +224,7 @@ class _ApprovalPageState extends State<ApprovalPage> {
               child: BlocBuilder<AttendanceApprovalCubit, AttendanceApprovalState>(
                 builder: (context, state) {
                   if (state is AttendanceApprovalLoading) {
-                    return const Center(child: CircularProgressIndicator());
+                    return SingleChildScrollView(child: buildApprovalShimmer());
                   } else if (state is AttendanceApprovalError) {
                     return Center(child: Text('Error: ${state.message}'));
                   } else if (state is AttendanceApprovalLoaded) {
@@ -231,8 +232,11 @@ class _ApprovalPageState extends State<ApprovalPage> {
                     if (logs.isEmpty) {
                       return const Center(child: Text('No approval data found.'));
                     }
-                    return ListView.builder(
+                    return RefreshIndicator(
+                      onRefresh: () async => context.read<AttendanceApprovalCubit>().load(),
+                      child: ListView.builder(
                       controller: _scrollController,
+                      physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
                       padding: const EdgeInsets.all(16),
                       itemCount: logs.length + (state.isLoadingMore ? 1 : 0),
                       itemBuilder: (context, index) {
@@ -431,6 +435,7 @@ class _ApprovalPageState extends State<ApprovalPage> {
                           ),
                         );
                       },
+                    ),
                     );
                   }
                   return const Center(child: CircularProgressIndicator());

@@ -14,6 +14,8 @@ class AttendanceEntity {
   final String? location1;
   final String? location6;
   final String? fullName;
+  final int? isApprove0;
+  final int? isApprove1;
 
 
 
@@ -33,6 +35,8 @@ class AttendanceEntity {
     this.location1,
     this.location6,
     required this.fullName,
+    this.isApprove0,
+    this.isApprove1,
   });
 
 }

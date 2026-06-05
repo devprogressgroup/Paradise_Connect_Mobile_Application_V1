@@ -1114,6 +1114,53 @@ Widget buildContactHeaderNameShimmer() {
   );
 }
 
+// ─── Approval Card ────────────────────────────────────────────────────────────
+Widget buildApprovalShimmer() {
+  return ListView.builder(
+    physics: const NeverScrollableScrollPhysics(),
+    shrinkWrap: true,
+    padding: const EdgeInsets.all(16),
+    itemCount: 6,
+    itemBuilder: (_, __) => _shimmerWrap(
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                _ShimmerBox(width: 140, height: 16),
+                _ShimmerBox(width: 70, height: 24, borderRadius: 8),
+              ],
+            ),
+            const SizedBox(height: 12),
+            _ShimmerBox(width: 180, height: 12),
+            const SizedBox(height: 8),
+            _ShimmerBox(width: double.infinity, height: 12),
+            const SizedBox(height: 8),
+            _ShimmerBox(width: 220, height: 12),
+            const SizedBox(height: 16),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                _ShimmerBox(width: 90, height: 36, borderRadius: 8),
+                const SizedBox(width: 8),
+                _ShimmerBox(width: 90, height: 36, borderRadius: 8),
+              ],
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
+}
+
 // ─── Form / Detail Loading ────────────────────────────────────────────────────
 Widget buildFormShimmer() {
   return _shimmerWrap(

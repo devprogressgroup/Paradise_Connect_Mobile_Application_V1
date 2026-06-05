@@ -6,6 +6,9 @@ import 'package:go_router/go_router.dart';
 import 'package:progress_group/core/constants/colors.dart';
 import 'package:progress_group/core/constants/assets.dart';
 import 'package:progress_group/core/utils/helpers/date_helper.dart';
+import 'package:progress_group/features/attandance/domain/entities/attendance_approval_entity.dart';
+import 'package:progress_group/features/attandance/presentation/state/attendance_approval/attendance_approval_cubit.dart';
+import 'package:progress_group/features/attandance/presentation/state/attendance_approval/attendance_approval_state.dart';
 import 'package:progress_group/features/attandance/presentation/state/attandance/attendance_bloc.dart';
 import 'package:progress_group/features/attandance/presentation/state/attandance/attendance_event.dart';
 import 'package:progress_group/features/home/presentation/state/report-whatsapp/report_bloc.dart';
@@ -156,6 +159,14 @@ class _HomePageState extends State<HomePage> {
       context.read<NotifActivityBloc>().add(const FetchActivitiesEvent(isRefresh: true));
     }
 
+    // Pending approval untuk upcoming task — hanya GM dan Sales Manager
+    final canManageApproval = profileState is ProfileLoaded &&
+        const ['General Manager', 'Sales Manager']
+            .contains(profileState.profile.positionName);
+    if (canManageApproval) {
+      context.read<AttendanceApprovalCubit>().load(status: 'pending');
+    }
+
     // Prospect Status — hanya fetch jika belum loaded atau force refresh
     final prospectState = context.read<ProspectStatusSummaryBloc>().state;
     if (force || prospectState.status != ProspectStatusSummaryStatus.loaded) {
@@ -262,16 +273,27 @@ class _HomePageState extends State<HomePage> {
   Widget _buildComingTask() {
     return BlocBuilder<ActivityBloc, ActivityState>(
       builder: (context, state) {
-        final rawActivities = state.activities;
+        return BlocBuilder<AttendanceApprovalCubit, AttendanceApprovalState>(
+          builder: (context, approvalState) {
+            final rawActivities = state.activities;
 
-        if (state.status == ActivityStatus.loading && rawActivities.isEmpty) {
-          return buildHomeTaskShimmer();
-        }
+            if (state.status == ActivityStatus.loading && rawActivities.isEmpty) {
+              return buildHomeTaskShimmer();
+            }
 
-        final activities = rawActivities
-            .where((a) => a.statusFollow != 1)
-            .toList()
-          ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+            final activities = rawActivities
+                .where((a) => a.statusFollow != 1)
+                .toList()
+              ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+
+            // Hanya tampil pending approval untuk GM dan Sales Manager
+            final homeProfileState = context.read<ProfileBloc>().state;
+            final canManageApproval = homeProfileState is ProfileLoaded &&
+                const ['General Manager', 'Sales Manager']
+                    .contains(homeProfileState.profile.positionName);
+            final pendingApprovals = canManageApproval && approvalState is AttendanceApprovalLoaded
+                ? approvalState.logs.where((a) => a.isApprove != 1 && a.isReject != 1).toList()
+                : <AttendanceApprovalEntity>[];
 
         return Column(
           children: [
@@ -324,7 +346,7 @@ class _HomePageState extends State<HomePage> {
                       final isVisit = type.contains('visit');
                       final isReminder = type.contains('reminder');
                       final isTask = type.contains('task');
-                      final isLast = index == activities.length - 1;
+                      final isLast = index == activities.length - 1 && pendingApprovals.isEmpty;
 
                       return GestureDetector(
                         onTap: () async {
@@ -422,10 +444,78 @@ class _HomePageState extends State<HomePage> {
                         ),
                       );
                     }),
+
+                  // ── Pending approval items ─────────────────────────────
+                  ...pendingApprovals.asMap().entries.map((entry) {
+                    final index = entry.key;
+                    final approval = entry.value;
+                    final isLastItem = activities.isEmpty
+                        ? index == pendingApprovals.length - 1
+                        : false;
+                    final dt = DateTime.tryParse(approval.attendanceDatetime ?? '');
+                    return GestureDetector(
+                      onTap: () async {
+                        await context.pushNamed('approval');
+                        if (context.mounted) _loadData(force: true);
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: isLastItem
+                              ? const BorderRadius.vertical(bottom: Radius.circular(10))
+                              : BorderRadius.zero,
+                          border: isLastItem
+                              ? null
+                              : Border(bottom: BorderSide(color: Color(grey10Color), width: 1)),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Row(
+                              children: [
+                                Icon(Icons.how_to_reg_outlined, color: Colors.orange, size: 40),
+                                const SizedBox(width: 10),
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      approval.flagLabel ?? 'Approval',
+                                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(blackColor)),
+                                    ),
+                                    Text(
+                                      approval.fullName ?? '-',
+                                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(grey2Color)),
+                                    ),
+                                    if (dt != null)
+                                      Text(
+                                        DateHelper.formatTime(dt),
+                                        style: TextStyle(fontSize: 12, color: Color(grey2Color)),
+                                      ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                              decoration: BoxDecoration(
+                                color: Colors.orange.withValues(alpha: 0.12),
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(color: Colors.orange.withValues(alpha: 0.4)),
+                              ),
+                              child: const Text('Pending', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Colors.orange)),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  }),
                 ],
               ),
             ),
           ],
+        );
+          },
         );
       },
     );

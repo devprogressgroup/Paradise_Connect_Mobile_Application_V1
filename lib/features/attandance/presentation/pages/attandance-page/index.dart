@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:path_provider/path_provider.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -93,7 +94,8 @@ class _AttandancePageState extends State<AttandancePage> {
       if (profileState is ProfileLoaded) {
         final id = profileState.profile.salesPersonId;
         if (id != null) _attendanceOwnerIds = [id];
-        if (profileState.profile.subordinates.isNotEmpty) {
+        if (const ['General Manager', 'Sales Manager']
+            .contains(profileState.profile.positionName)) {
           context.read<AttendanceApprovalCubit>().loadBadge();
         }
       }
@@ -282,6 +284,25 @@ class _AttandancePageState extends State<AttandancePage> {
 
   Future<void> _getAddressFromLatLng(Position position) async {
     try {
+      if (kIsWeb) {
+        // geocoding package tidak support web — pakai Nominatim (OpenStreetMap)
+        final dio = Dio();
+        final response = await dio.get(
+          'https://nominatim.openstreetmap.org/reverse',
+          queryParameters: {
+            'lat': position.latitude,
+            'lon': position.longitude,
+            'format': 'json',
+          },
+          options: Options(headers: {'Accept-Language': 'id'}),
+        );
+        final display = response.data['display_name'] as String?;
+        if (display != null && mounted) {
+          setState(() => _address = display);
+        }
+        return;
+      }
+
       List<Placemark> placemarks = await placemarkFromCoordinates(
         position.latitude,
         position.longitude,
@@ -393,7 +414,7 @@ class _AttandancePageState extends State<AttandancePage> {
 
     debugPrint('[Attendance] nearestOffice: $nearestOfficeName, distance: ${effectiveDistance.toStringAsFixed(1)}m, radius: ${effectiveRadius}m, inRadius: $isInRadius');
 
-    final result = await context.pushNamed('camera', extra: AttandanceArgs(flag: flagParam, type: title, location: isInRadius ? (nearestOfficeName ?? _address) : _address, time: DateHelper.formatTime(DateTime.now()), locationId: nearestOfficeId, latitude: nearestOfficeLat, longitude: nearestOfficeLng, ), );
+    final result = await context.pushNamed('camera', extra: AttandanceArgs(flag: flagParam, type: title, location: isInRadius ? (nearestOfficeName ?? _address) : _address, time: DateHelper.formatTime(DateTime.now()), locationId: isInRadius ? nearestOfficeId : null, latitude: nearestOfficeLat, longitude: nearestOfficeLng, ), );
 
     if (result == true) {
       _getLog();
@@ -711,7 +732,9 @@ class _AttandancePageState extends State<AttandancePage> {
             children: [
               BlocBuilder<ProfileBloc, ProfileState>(
                 builder: (context, profileState) {
-                  final isAtasan = profileState is ProfileLoaded && profileState.profile.subordinates.isNotEmpty;
+                  final isAtasan = profileState is ProfileLoaded &&
+                      const ['General Manager', 'Sales Manager']
+                          .contains(profileState.profile.positionName);
                   return ValueListenableBuilder<bool>(
                     valueListenable: context.read<AttendanceApprovalCubit>().hasPendingApproval,
                     builder: (context, hasPending, _) {
@@ -1183,7 +1206,9 @@ class _AttandancePageState extends State<AttandancePage> {
               if (state is AttendanceActivityLoaded) {
                 // Flatten each ActivityEntity into one entry per type
                 final profileState = context.read<ProfileBloc>().state;
-                final isAtasan = profileState is ProfileLoaded && profileState.profile.subordinates.isNotEmpty;
+                final isAtasan = profileState is ProfileLoaded &&
+                    const ['General Manager', 'Sales Manager']
+                        .contains(profileState.profile.positionName);
 
                 final List<({String fullName, String date, String type, Color typeColor, String? datetime, String? location, String? contactName, String? note, List<String> images, int? statusValidasi, String? noteValidasi, int? logId})> entries = [];
 
@@ -1336,6 +1361,7 @@ class _AttandancePageState extends State<AttandancePage> {
       noteValidasi: noteValidasi,
       logId: logId,
       isAtasan: isAtasan,
+      onValidated: _getLog,
       onImageTap: (url) => _showActivityDetailDialog(
         tappedUrl: url,
         allImages: images,
@@ -1913,9 +1939,42 @@ class _AttandancePageState extends State<AttandancePage> {
     );
   }
 
-  Widget _buildCheckForm({required String title, required int flagParam, String? image,AttendanceEntity? attendance}) {
+  Widget _buildCheckForm({required String title, required int flagParam, String? image, AttendanceEntity? attendance, int? isApprove}) {
+  final hasApproveStatus = image == null && (flagParam == 0 || flagParam == 1) && isApprove != null;
+  final isRejected = hasApproveStatus && isApprove == 0;
+  final isPending  = hasApproveStatus && isApprove == 1;
   return Expanded(
-    child: image != null && flagParam != 6
+    child: isRejected
+        ? Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(DateHelper.formatTime(DateTime.now()), style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+                Text(DateHelper.formatDate(DateTime.now()), style: TextStyle(fontSize: 11, color: Color(grey6Color))),
+                SizedBox(height: 8),
+                Icon(Icons.cancel_outlined, color: Color(0xFFE74C3C), size: 48),
+                SizedBox(height: 8),
+                Text('Approval Rejected', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFFE74C3C))),
+                SizedBox(height: 4),
+              ],
+            ),
+          )
+        : isPending
+        ? Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(DateHelper.formatTime(DateTime.now()), style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+                Text(DateHelper.formatDate(DateTime.now()), style: TextStyle(fontSize: 11, color: Color(grey6Color))),
+                SizedBox(height: 8),
+                Icon(Icons.hourglass_top_rounded, color: Colors.orange, size: 48),
+                SizedBox(height: 8),
+                Text('Pending Approval', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.orange)),
+                SizedBox(height: 4),
+              ],
+            ),
+          )
+        : image != null && flagParam != 6
         ? Padding(
             padding: const EdgeInsets.symmetric(horizontal:70, vertical: 5),
             child: Stack(
@@ -2025,7 +2084,8 @@ class _AttandancePageState extends State<AttandancePage> {
           title: "Clock Out",
           flagParam: 1,
           image: (today?.fileAttchment1 != null && today!.fileAttchment1!.isNotEmpty)? today.fileAttchment1!.last: null,
-          attendance: today,  
+          attendance: today,
+          isApprove: today?.isApprove1,
         ),
       ],
     );
@@ -2041,6 +2101,7 @@ class _AttandancePageState extends State<AttandancePage> {
           flagParam: 0,
           image: (today?.fileAttchment0 != null && today!.fileAttchment0!.isNotEmpty)? today.fileAttchment0!.first: null,
           attendance: today,
+          isApprove: today?.isApprove0,
         ),
       ],
     );
@@ -2164,6 +2225,7 @@ class _ActivityCard extends StatefulWidget {
   final String? noteValidasi;
   final int? logId;
   final bool isAtasan;
+  final VoidCallback? onValidated;
 
   const _ActivityCard({
     required this.fullName,
@@ -2179,6 +2241,7 @@ class _ActivityCard extends StatefulWidget {
     this.noteValidasi,
     this.logId,
     this.isAtasan = false,
+    this.onValidated,
   });
 
   @override
@@ -2240,6 +2303,7 @@ class _ActivityCardState extends State<_ActivityCard> {
                   noteValidasi: noteController.text.trim().isEmpty ? null : noteController.text.trim(),
                 ),
               );
+              widget.onValidated?.call();
             },
             child: const Text('Kirim', style: TextStyle(color: Color(0xFFE74C3C))),
           ),
@@ -2250,43 +2314,37 @@ class _ActivityCardState extends State<_ActivityCard> {
 
   Widget _buildValidasiBottom() {
     if (widget.statusValidasi == 1) {
-      return Row(
-        children: const [
+      return const Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
           Icon(Icons.thumb_up_rounded, color: Color(0xFF27AE60), size: 18),
-          SizedBox(width: 6),
-          Text('Like', style: TextStyle(color: Color(0xFF27AE60), fontWeight: FontWeight.w600, fontSize: 13)),
         ],
       );
     } else if (widget.statusValidasi == 0) {
       return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Row(
-            children: const [
+          const Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
               Icon(Icons.thumb_down_rounded, color: Color(0xFFE74C3C), size: 18),
-              SizedBox(width: 6),
-              Text('Dislike', style: TextStyle(color: Color(0xFFE74C3C), fontWeight: FontWeight.w600, fontSize: 13)),
             ],
           ),
           if (widget.noteValidasi != null && widget.noteValidasi!.isNotEmpty) ...[
             const SizedBox(height: 4),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Icon(Icons.notes, size: 13, color: Colors.grey),
-                const SizedBox(width: 4),
-                Expanded(
-                  child: Text(widget.noteValidasi!, style: const TextStyle(fontSize: 12, color: Colors.grey)),
-                ),
-              ],
+            Text(
+              widget.noteValidasi!,
+              style: const TextStyle(fontSize: 12, color: Colors.grey),
+              textAlign: TextAlign.center,
             ),
           ],
         ],
       );
     } else {
       if (!widget.isAtasan || widget.logId == null) {
-        return Row(
-          children: const [
+        return const Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
             Icon(Icons.hourglass_empty, color: Colors.orange, size: 16),
             SizedBox(width: 6),
             Text('Menunggu validasi', style: TextStyle(color: Colors.orange, fontSize: 12)),
@@ -2294,7 +2352,7 @@ class _ActivityCardState extends State<_ActivityCard> {
         );
       }
       return Row(
-        mainAxisAlignment: MainAxisAlignment.end,
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
           GestureDetector(
             onTap: _showNoteValidasiDialog,
@@ -2304,14 +2362,7 @@ class _ActivityCardState extends State<_ActivityCard> {
                 border: Border.all(color: const Color(0xFFE74C3C)),
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: const Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.thumb_down_rounded, color: Color(0xFFE74C3C), size: 16),
-                  SizedBox(width: 4),
-                  Text('Dislike', style: TextStyle(color: Color(0xFFE74C3C), fontSize: 13, fontWeight: FontWeight.w600)),
-                ],
-              ),
+              child: const Icon(Icons.thumb_down_rounded, color: Color(0xFFE74C3C), size: 16),
             ),
           ),
           const SizedBox(width: 8),
@@ -2320,6 +2371,7 @@ class _ActivityCardState extends State<_ActivityCard> {
               context.read<AttendanceActivityBloc>().add(
                 ValidasiCheckInEvent(logId: widget.logId!, statusValidasi: 1),
               );
+              widget.onValidated?.call();
             },
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
@@ -2327,14 +2379,7 @@ class _ActivityCardState extends State<_ActivityCard> {
                 color: const Color(0xFF27AE60),
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: const Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.thumb_up_rounded, color: Colors.white, size: 16),
-                  SizedBox(width: 4),
-                  Text('Like', style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600)),
-                ],
-              ),
+              child: const Icon(Icons.thumb_up_rounded, color: Colors.white, size: 16),
             ),
           ),
         ],

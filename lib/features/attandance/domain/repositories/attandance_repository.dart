@@ -56,6 +56,7 @@ class AttendanceRepositoryImpl implements AttendanceRepository {
     String? clockIn, clockOut, checkInActivity;
     String? location0, location1, location6;
     String? note0, note1, note6;
+    int? isApprove0, isApprove1;
     List<String>? fileAttchment0, fileAttchment1, fileAttchment6;
 
     for (var log in logs) {
@@ -64,17 +65,21 @@ class AttendanceRepositoryImpl implements AttendanceRepository {
       final locationName = log['location_name'] as String?;
       final note = log['note'] as String?;
       final files = (log['file_attachment'] as List?)?.map((e) => e.toString()).toList();
+      final isApproveRaw = log['is_approve'];
+      final isApproveInt = isApproveRaw is int ? isApproveRaw : int.tryParse(isApproveRaw?.toString() ?? '');
 
       if (flag == 0) {
         clockIn = datetime;
         location0 = locationName;
         note0 = note;
         fileAttchment0 = files;
+        isApprove0 = isApproveInt;
       } else if (flag == 1) {
         clockOut = datetime;
         location1 = locationName;
         note1 = note;
         fileAttchment1 = files;
+        isApprove1 = isApproveInt;
       } else if (flag == 6) {
         checkInActivity = datetime;
         location6 = locationName;
@@ -99,6 +104,8 @@ class AttendanceRepositoryImpl implements AttendanceRepository {
       fileAttchment0: fileAttchment0,
       fileAttchment1: fileAttchment1,
       fileAttchment6: fileAttchment6,
+      isApprove0: isApprove0,
+      isApprove1: isApprove1,
     );
   }
 

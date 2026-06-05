@@ -116,25 +116,37 @@ class PushNotificationService {
   }
 
   /// Tampilkan in-app SnackBar di web — selalu muncul meski tab sedang fokus.
-  static void _showWebBanner(String? title, String? body) {
+  static void _showWebBanner(String? title, String? body, {VoidCallback? onTap}) {
     if (title == null) return;
-    scaffoldMessengerKey.currentState
-      ?..hideCurrentSnackBar()
-      ..showSnackBar(
-        SnackBar(
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
-              if (body != null && body.isNotEmpty) Text(body),
-            ],
-          ),
-          duration: const Duration(seconds: 6),
-          behavior: SnackBarBehavior.floating,
-          margin: const EdgeInsets.all(16),
+    final messenger = scaffoldMessengerKey.currentState;
+    if (messenger == null) return;
+
+    messenger.hideCurrentSnackBar();
+    messenger.showSnackBar(
+      SnackBar(
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
+            if (body != null && body.isNotEmpty) Text(body),
+          ],
         ),
-      );
+        duration: const Duration(seconds: 8),
+        behavior: SnackBarBehavior.floating,
+        margin: const EdgeInsets.all(16),
+        action: onTap != null
+            ? SnackBarAction(
+                label: 'Lihat',
+                textColor: Colors.amber,
+                onPressed: () {
+                  messenger.hideCurrentSnackBar();
+                  onTap();
+                },
+              )
+            : null,
+      ),
+    );
   }
 
   // Tampilkan local notification saat app di foreground
@@ -144,9 +156,9 @@ class PushNotificationService {
     if (kIsWeb) {
       final title = notification?.title ?? message.data['title'] as String?;
       final body  = notification?.body  ?? message.data['body']  as String?;
-      // Browser sering suppress Notification API saat tab aktif — tampilkan
-      // in-app banner sebagai fallback yang selalu muncul.
-      _showWebBanner(title, body);
+      // Tap banner → navigasi sesuai type notifikasi
+      final onTap = () => _navigateFromData(message.data);
+      _showWebBanner(title, body, onTap: onTap);
       showWebNotification(title, body);
       return;
     }
@@ -190,6 +202,11 @@ class PushNotificationService {
         tab = 1;
       }
       AppRouter.router.go('/attandance?initialTab=$tab');
+      return;
+    }
+
+    if (type == 'approval_pending' || type == 'attendance_null_location') {
+      AppRouter.router.goNamed('approval');
       return;
     }
 

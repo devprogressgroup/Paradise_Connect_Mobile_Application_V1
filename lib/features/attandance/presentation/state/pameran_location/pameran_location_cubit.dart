@@ -7,7 +7,8 @@ class PameranLocationCubit extends Cubit<List<AttendanceLocation>> {
 
   PameranLocationCubit(this.getLocationsUseCase) : super([]);
 
-  Future<void> load() async {
+  Future<void> load({bool force = false}) async {
+    if (!force && state.isNotEmpty) return;
     try {
       final locations = await getLocationsUseCase();
       emit(locations);

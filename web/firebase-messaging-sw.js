@@ -31,21 +31,42 @@ messaging.onBackgroundMessage(function(payload) {
   });
 });
 
+// Resolve target URL based on notification data type
+function getTargetUrl(data) {
+  const type = data && data.type;
+  if (type === 'approval_pending' || type === 'attendance_null_location') {
+    return '/attandance/approval';
+  }
+  if (type === 'attendance') {
+    const action = data.action || '';
+    if (action === 'clock_out') return '/attandance?initialTab=2';
+    if (action === 'checkin_activity') return '/attandance?initialTab=1';
+    return '/attandance';
+  }
+  return '/';
+}
+
 // Navigate to the app when notification is clicked
 self.addEventListener('notificationclick', function(event) {
   event.notification.close();
+  const targetUrl = getTargetUrl(event.notification.data || {});
+
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function(clientList) {
-      // Focus existing open tab if found
+      // Focus existing open tab and navigate to target URL
       for (let i = 0; i < clientList.length; i++) {
         const client = clientList[i];
-        if ('focus' in client) {
-          return client.focus();
+        if (client.url && 'focus' in client) {
+          return client.navigate(targetUrl).then(function(c) {
+            return c ? c.focus() : client.focus();
+          }).catch(function() {
+            return client.focus();
+          });
         }
       }
-      // Otherwise open a new tab
+      // Otherwise open a new tab at the target URL
       if (clients.openWindow) {
-        return clients.openWindow('/');
+        return clients.openWindow(targetUrl);
       }
     })
   );

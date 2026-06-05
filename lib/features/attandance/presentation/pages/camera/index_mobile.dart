@@ -44,6 +44,11 @@ class _CameraPageState extends State<CameraPage> {
   bool _isAddingMore = false;
   AttendanceLocation? _selectedPameranLocation;
 
+  bool get _showRealtimeLocationWarning {
+    final flag = widget.args.flag;
+    if (flag != 0 && flag != 1) return false;
+    return _selectedPameranLocation == null;
+  }
 
   @override
   void initState() {
@@ -445,85 +450,7 @@ class _CameraPageState extends State<CameraPage> {
                         ],
                       ),
 
-                    // if (widget.args.isReturnImage != true)
-                    //   Padding(
-                    //     padding: const EdgeInsets.symmetric(horizontal: 16),
-                    //     child: Column(
-                    //       crossAxisAlignment: CrossAxisAlignment.start,
-                    //       children: [
-                    //         SizedBox(height: 10),
-                    //          Text("Pameran/ Open Table (optional)", style: TextStyle(fontSize: 14, color: Color(grey2Color))),
-                    //          SizedBox(height: 5),
-
-                    //          Container(
-                    //            width: double.infinity,
-                    //            height: 50,
-                    //            alignment: Alignment.centerRight,
-                    //            decoration: BoxDecoration(
-                    //              border: Border.all(color: Color(grey8Color), width: 1),
-                    //              borderRadius: BorderRadius.circular(12),
-                    //            ),
-                    //            child: InkWell(
-                    //              onTap: () async {
-                    //                final blocState = context.read<AttendanceBloc>().state;
-                    //                if (blocState is! AttendanceLoaded || blocState.locations == null || blocState.locations!.isEmpty) {
-                    //                  ScaffoldMessenger.of(context).showSnackBar(
-                    //                    const SnackBar(
-                    //                      content: Text('Data lokasi belum tersedia, silahkan tunggu sebentar'),
-                    //                      duration: Duration(seconds: 2),
-                    //                    ),
-                    //                  );
-                    //                  return;
-                    //                }
-                    //                // Capture lokasi sebelum push agar tidak perlu baca BLoC setelah await
-                    //                final locations = blocState.locations!;
-                    //                final items = locations.map((e) => OwnerDropdownItem(id: e.id, name: e.name)).toList();
-
-                    //                final result = await context.pushNamed(
-                    //                  'detailContactDropdown',
-                    //                  extra: ContactDropdownArgs(
-                    //                    title: 'Pilih Pameran',
-                    //                    items: items,
-                    //                    selectedId: _selectedLocationId,
-                    //                    isMultiSelect: false,
-                    //                  ),
-                    //                );
-
-                    //                if (result != null) {
-                    //                  final selected = result as OwnerDropdownItem;
-                    //                  final fullLoc = locations.firstWhere(
-                    //                    (e) => e.id == selected.id,
-                    //                    orElse: () => AttendanceLocation(id: selected.id ?? 0, name: selected.name),
-                    //                  );
-                    //                  setState(() {
-                    //                    _selectedLocationId = selected.id;
-                    //                    pameranTC.text = selected.name;
-                    //                    _selectedPameranLocation = fullLoc;
-                    //                  });
-                    //                }
-                    //              },
-                    //              child: Row(
-                    //                children: [
-                    //                  Expanded(
-                    //                    child: TextField(
-                    //                      enabled: false,
-                    //                      maxLines: 1,
-                    //                      minLines: 1,
-                    //                      controller: pameranTC,
-                    //                      decoration: InputDecoration(
-                    //                        hintText: "Pilih Pameran",
-                    //                        hintStyle: TextStyle(color: Color(grey2Color), fontSize: 14),
-                    //                        contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                    //                        border: InputBorder.none,
-                    //                      ),
-                    //                    ),
-                    //                  ),
-                    //                  Icon(Icons.keyboard_arrow_up),
-                    //                  SizedBox(width: 5),
-                    //                ],
-                    //              ),
-                    //            ),
-                    //          ),
+                    
                      if (widget.args.isReturnImage != true)
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -619,7 +546,7 @@ class _CameraPageState extends State<CameraPage> {
                             SizedBox(height: 8),
                             Text("Notes", style: TextStyle(fontSize: 14, color: Color(grey2Color))),
                             SizedBox(height: 5),
-
+                            
                             Container(
                               height: 80,
                               child: TextFormField(
@@ -639,8 +566,23 @@ class _CameraPageState extends State<CameraPage> {
                               ),
                             ),
 
-                            SizedBox(height: 40),
-                            customButton(_handleSubmit, "Submit"),
+                            if (_showRealtimeLocationWarning) ...[
+                              const SizedBox(height: 8),
+                              Row(
+                                children: const [
+                                  Icon(Icons.warning_amber_rounded, color: Colors.orange, size: 16),
+                                  SizedBox(width: 6),
+                                  Expanded(
+                                    child: Text(
+                                      'Kamu berada di luar lokasi yang ditentukan',
+                                      style: TextStyle(color: Colors.orange, fontSize: 12),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                            SizedBox(height: 20),
+                            customButton(_handleSubmit,_showRealtimeLocationWarning?"Request Approval": "Submit"),
                             SizedBox(height: 20),
                           ],
                         ),
