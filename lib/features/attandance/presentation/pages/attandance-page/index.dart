@@ -58,6 +58,7 @@ class _AttandancePageState extends State<AttandancePage> {
   String selectedMenu ='activity';
   String? _address;
   bool _isProcessing = false;
+  bool _isCameraOpening = false;
   DateTime? _lastGeocodeTime;
   bool _hasSetInitialTab = false;
   bool _isButtonPinned = false;
@@ -163,45 +164,74 @@ class _AttandancePageState extends State<AttandancePage> {
     );
   }
 
-  Future<bool> _handleLocationPermission() async {
-    bool serviceEnabled;
-    LocationPermission permission;
-
-    // cek GPS aktif
-    serviceEnabled = await Geolocator.isLocationServiceEnabled();
+  Future<bool> _handleLocationPermission({bool fromUserGesture = false}) async {
+    // Di web, isLocationServiceEnabled hanya cek apakah browser support geolocation
+    final serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('GPS belum aktif'),
-        ),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Browser tidak mendukung geolocation')),
+        );
+      }
       return false;
     }
 
-    // cek permission
-    permission = await Geolocator.checkPermission();
+    LocationPermission permission = await Geolocator.checkPermission();
 
     if (permission == LocationPermission.denied) {
+      // Di web, requestPermission() hanya muncul jika dipanggil saat user gesture.
+      // Kalau dipanggil saat init (bukan gesture), Chrome bisa suppress dialog.
+      if (!fromUserGesture && kIsWeb) {
+        // Jangan request saat init di web — tunggu user klik dulu
+        return false;
+      }
       permission = await Geolocator.requestPermission();
-
       if (permission == LocationPermission.denied) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Izin lokasi ditolak'),
-          ),
-        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Izin lokasi ditolak. Izinkan lokasi di browser untuk melanjutkan.'),
+              backgroundColor: Colors.orange,
+            ),
+          );
+        }
         return false;
       }
     }
 
     if (permission == LocationPermission.deniedForever) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Izin lokasi ditolak permanen, buka settings'),
-        ),
-      );
-
-      if (!kIsWeb) await Geolocator.openAppSettings();
+      if (mounted) {
+        if (kIsWeb) {
+          showDialog(
+            context: context,
+            builder: (ctx) => AlertDialog(
+              title: const Text('Izin Lokasi Diblokir'),
+              content: const Text(
+                'Chrome memblokir akses lokasi untuk halaman ini.\n\n'
+                'Cara mengaktifkan:\n'
+                '1. Klik ikon 🔒 atau ⓘ di address bar\n'
+                '2. Pilih "Site settings"\n'
+                '3. Ubah "Location" ke "Allow"\n'
+                '4. Refresh halaman',
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  child: const Text('Mengerti'),
+                ),
+              ],
+            ),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Izin lokasi ditolak permanen. Buka settings untuk mengaktifkan.'),
+              backgroundColor: Colors.red,
+            ),
+          );
+          await Geolocator.openAppSettings();
+        }
+      }
       return false;
     }
 
@@ -209,7 +239,9 @@ class _AttandancePageState extends State<AttandancePage> {
   }
 
   Future<void> _initLocation() async {
-    final hasPermission = await _handleLocationPermission();
+    // fromUserGesture: false — saat init, di web kita hanya cek kalau sudah granted
+    // Chrome tidak akan munculkan dialog izin kecuali dipicu user gesture
+    final hasPermission = await _handleLocationPermission(fromUserGesture: false);
     if (!hasPermission) return;
 
     if (kIsWeb) {
@@ -343,78 +375,111 @@ class _AttandancePageState extends State<AttandancePage> {
 
 
   Future<void> _handleMoveCamera(String title, int flagParam) async {
-    if (!mounted) return;
+    if (!mounted || _isCameraOpening) return;
+    setState(() => _isCameraOpening = true);
 
-    // Ambil lokasi — web langsung proceed meski null (stream masih jalan di background)
-    final position = await _getCurrentLocationOnce();
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Mohon tunggu, sedang mempersiapkan kamera...'),
+        duration: Duration(seconds: 30),
+        backgroundColor: Colors.blueGrey,
+      ),
+    );
 
-    if (position == null) {
+    try {
+      // Pastikan permission granted — ini dipicu user gesture, Chrome akan munculkan dialog
+      final hasPermission = await _handleLocationPermission(fromUserGesture: true);
+      if (!hasPermission) {
+        if (mounted) ScaffoldMessenger.of(context).hideCurrentSnackBar();
+        return;
+      }
+
+      // Ambil lokasi — web langsung proceed meski null (stream masih jalan di background)
+      final position = await _getCurrentLocationOnce();
+
+      if (position == null) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).hideCurrentSnackBar();
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text("Lokasi belum terdeteksi, coba lagi"),
+              backgroundColor: Colors.orange,
+            ),
+          );
+        }
+        return;
+      }
+
+      final officeLocationCubit = context.read<OfficeLocationCubit>();
+      var officeLocations = officeLocationCubit.state;
+
+      // Race condition fix: kalau data belum dimuat, tunggu sebentar
+      if (officeLocations.isEmpty) {
+        debugPrint('[Attendance] Office locations belum ada, load ulang...');
+        await officeLocationCubit.load();
+        if (!mounted) return;
+        officeLocations = officeLocationCubit.state;
+      }
+
+      debugPrint('[Attendance] officeLocations count: ${officeLocations.length}');
+      debugPrint('[Attendance] device position: ${position.latitude}, ${position.longitude}');
+
+      double? nearestDistance;
+      double? activeRadius;
+      String? nearestOfficeName;
+      int? nearestOfficeId;
+      String? nearestOfficeLat;
+      String? nearestOfficeLng;
+
+      if (officeLocations.isNotEmpty) {
+        for (var office in officeLocations) {
+          final lat = double.tryParse(office.latitude ?? '');
+          final lng = double.tryParse(office.longitude ?? '');
+          if (lat != null && lng != null) {
+            final d = Geolocator.distanceBetween(
+              lat, lng,
+              position.latitude, position.longitude,
+            );
+            debugPrint('[Attendance] Office "${office.name}" lat:$lat lng:$lng radius:${office.radius} → jarak: ${d.toStringAsFixed(1)}m');
+            if (nearestDistance == null || d < nearestDistance) {
+              nearestDistance = d;
+              activeRadius = office.radius?.toDouble() ?? radiusMeter;
+              nearestOfficeName = office.name;
+              nearestOfficeId = office.id;
+              nearestOfficeLat = office.latitude;
+              nearestOfficeLng = office.longitude;
+            }
+          } else {
+            debugPrint('[Attendance] Office "${office.name}" lat/lng invalid: ${office.latitude}, ${office.longitude}');
+          }
+        }
+      }
+
+      final effectiveDistance = nearestDistance ?? Geolocator.distanceBetween(officeLat, officeLng, position.latitude, position.longitude);
+      final effectiveRadius = activeRadius ?? radiusMeter;
+      final isInRadius = effectiveDistance <= effectiveRadius;
+
+      debugPrint('[Attendance] nearestOffice: $nearestOfficeName, distance: ${effectiveDistance.toStringAsFixed(1)}m, radius: ${effectiveRadius}m, inRadius: $isInRadius');
+
+      if (mounted) ScaffoldMessenger.of(context).hideCurrentSnackBar();
+
+      final result = await context.pushNamed('camera', extra: AttandanceArgs(flag: flagParam, type: title, location: isInRadius ? (nearestOfficeName ?? _address) : _address, time: DateHelper.formatTime(DateTime.now()), locationId: isInRadius ? nearestOfficeId : null, latitude: nearestOfficeLat, longitude: nearestOfficeLng, ), );
+
+      if (result == true) {
+        _getLog();
+      }
+    } catch (e) {
       if (mounted) {
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("Lokasi belum terdeteksi"),
-            backgroundColor: Colors.orange,
+          SnackBar(
+            content: Text('Gagal membuka kamera: ${e.toString().replaceAll("Exception: ", "")}. Coba lagi.'),
+            backgroundColor: Colors.red,
           ),
         );
       }
-      return;
-    }
-
-    final officeLocationCubit = context.read<OfficeLocationCubit>();
-    var officeLocations = officeLocationCubit.state;
-
-    // Race condition fix: kalau data belum dimuat, tunggu sebentar
-    if (officeLocations.isEmpty) {
-      debugPrint('[Attendance] Office locations belum ada, load ulang...');
-      await officeLocationCubit.load();
-      if (!mounted) return;
-      officeLocations = officeLocationCubit.state;
-    }
-
-    debugPrint('[Attendance] officeLocations count: ${officeLocations.length}');
-    debugPrint('[Attendance] device position: ${position.latitude}, ${position.longitude}');
-
-    double? nearestDistance;
-    double? activeRadius;
-    String? nearestOfficeName;
-    int? nearestOfficeId;
-    String? nearestOfficeLat;
-    String? nearestOfficeLng;
-
-    if (officeLocations.isNotEmpty) {
-      for (var office in officeLocations) {
-        final lat = double.tryParse(office.latitude ?? '');
-        final lng = double.tryParse(office.longitude ?? '');
-        if (lat != null && lng != null) {
-          final d = Geolocator.distanceBetween(
-            lat, lng,
-            position.latitude, position.longitude,
-          );
-          debugPrint('[Attendance] Office "${office.name}" lat:$lat lng:$lng radius:${office.radius} → jarak: ${d.toStringAsFixed(1)}m');
-          if (nearestDistance == null || d < nearestDistance) {
-            nearestDistance = d;
-            activeRadius = office.radius?.toDouble() ?? radiusMeter;
-            nearestOfficeName = office.name;
-            nearestOfficeId = office.id;
-            nearestOfficeLat = office.latitude;
-            nearestOfficeLng = office.longitude;
-          }
-        } else {
-          debugPrint('[Attendance] Office "${office.name}" lat/lng invalid: ${office.latitude}, ${office.longitude}');
-        }
-      }
-    }
-
-    final effectiveDistance = nearestDistance ?? Geolocator.distanceBetween(officeLat, officeLng, position.latitude, position.longitude);
-    final effectiveRadius = activeRadius ?? radiusMeter;
-    final isInRadius = effectiveDistance <= effectiveRadius;
-
-    debugPrint('[Attendance] nearestOffice: $nearestOfficeName, distance: ${effectiveDistance.toStringAsFixed(1)}m, radius: ${effectiveRadius}m, inRadius: $isInRadius');
-
-    final result = await context.pushNamed('camera', extra: AttandanceArgs(flag: flagParam, type: title, location: isInRadius ? (nearestOfficeName ?? _address) : _address, time: DateHelper.formatTime(DateTime.now()), locationId: isInRadius ? nearestOfficeId : null, latitude: nearestOfficeLat, longitude: nearestOfficeLng, ), );
-
-    if (result == true) {
-      _getLog();
+    } finally {
+      if (mounted) setState(() => _isCameraOpening = false);
     }
   }
 
@@ -944,6 +1009,7 @@ class _AttandancePageState extends State<AttandancePage> {
         return CustomFilterButton(
           label: label,
           isSelected: isSelected,
+          maxWidth: 130,
           onTap: () async {
             if (profileState is ProfileLoaded) {
               final user = profileState.profile;
@@ -1207,23 +1273,23 @@ class _AttandancePageState extends State<AttandancePage> {
                     const ['General Manager', 'Sales Manager']
                         .contains(profileState.profile.positionName);
 
-                final List<({String fullName, String date, String type, Color typeColor, String? datetime, String? location, String? contactName, String? note, List<String> images, int? statusValidasi, String? noteValidasi, int? logId})> entries = [];
+                final List<({String fullName, String? photoUrl, String date, String type, Color typeColor, String? datetime, String? location, String? contactName, String? note, List<String> images, int? statusValidasi, String? noteValidasi, int? logId})> entries = [];
 
                 for (final item in state.activityLogs) {
                   if (item.clockInDate != null) {
-                    entries.add((fullName: item.fullName, date: item.date, type: 'Clock In', typeColor: const Color(0xFF27AE60), datetime: item.clockInDate, location: item.clockInLocation, contactName: null, note: item.clockInNote, images: item.clockInAttachment ?? [], statusValidasi: null, noteValidasi: null, logId: null));
+                    entries.add((fullName: item.fullName, photoUrl: item.photoUrl, date: item.date, type: 'Clock In', typeColor: const Color(0xFF27AE60), datetime: item.clockInDate, location: item.clockInLocation, contactName: null, note: item.clockInNote, images: item.clockInAttachment ?? [], statusValidasi: null, noteValidasi: null, logId: null));
                   }
                   if (item.clockOutDate != null) {
-                    entries.add((fullName: item.fullName, date: item.date, type: 'Clock Out', typeColor: const Color(0xFFE74C3C), datetime: item.clockOutDate, location: item.clockOutLocation, contactName: null, note: item.clockOutNote, images: item.clockOutAttachment ?? [], statusValidasi: null, noteValidasi: null, logId: null));
+                    entries.add((fullName: item.fullName, photoUrl: item.photoUrl, date: item.date, type: 'Clock Out', typeColor: const Color(0xFFE74C3C), datetime: item.clockOutDate, location: item.clockOutLocation, contactName: null, note: item.clockOutNote, images: item.clockOutAttachment ?? [], statusValidasi: null, noteValidasi: null, logId: null));
                   }
                   for (final c in item.checkIns) {
                     if (c.checkInDate != null) {
-                      entries.add((fullName: item.fullName, date: item.date, type: 'Check In', typeColor: const Color(0xFF2980B9), datetime: c.checkInDate, location: c.checkInLocation, contactName: null, note: c.checkInNote, images: c.checkInAttachment ?? [], statusValidasi: c.statusValidasi, noteValidasi: c.noteValidasi, logId: c.logId));
+                      entries.add((fullName: item.fullName, photoUrl: item.photoUrl, date: item.date, type: 'Check In', typeColor: const Color(0xFF2980B9), datetime: c.checkInDate, location: c.checkInLocation, contactName: null, note: c.checkInNote, images: c.checkInAttachment ?? [], statusValidasi: c.statusValidasi, noteValidasi: c.noteValidasi, logId: c.logId));
                     }
                   }
                   for (final v in item.visits) {
                     if (v.datetime != null) {
-                      entries.add((fullName: item.fullName, date: item.date, type: 'Visit', typeColor: const Color(0xFFE67E22), datetime: v.datetime, location: v.lastProject, contactName: v.contactName, note: v.note, images: v.attachment ?? [], statusValidasi: null, noteValidasi: null, logId: null));
+                      entries.add((fullName: item.fullName, photoUrl: item.photoUrl, date: item.date, type: 'Visit', typeColor: const Color(0xFFE67E22), datetime: v.datetime, location: v.lastProject, contactName: v.contactName, note: v.note, images: v.attachment ?? [], statusValidasi: null, noteValidasi: null, logId: null));
                     }
                   }
                 }
@@ -1246,7 +1312,7 @@ class _AttandancePageState extends State<AttandancePage> {
                   );
                 } else {
                   // Group by date
-                  final Map<String, List<({String fullName, String date, String type, Color typeColor, String? datetime, String? location, String? contactName, String? note, List<String> images, int? statusValidasi, String? noteValidasi, int? logId})>> grouped = {};
+                  final Map<String, List<({String fullName, String? photoUrl, String date, String type, Color typeColor, String? datetime, String? location, String? contactName, String? note, List<String> images, int? statusValidasi, String? noteValidasi, int? logId})>> grouped = {};
                   for (final e in entries) {
                     grouped.putIfAbsent(e.date, () => []).add(e);
                   }
@@ -1276,6 +1342,7 @@ class _AttandancePageState extends State<AttandancePage> {
                           ),
                           ...items.map((e) => _buildCardActivityNew(
                             fullName: e.fullName,
+                            photoUrl: e.photoUrl,
                             type: e.type,
                             typeColor: e.typeColor,
                             datetime: e.datetime,
@@ -1333,6 +1400,7 @@ class _AttandancePageState extends State<AttandancePage> {
 
   Widget _buildCardActivityNew({
     required String fullName,
+    String? photoUrl,
     required String type,
     required Color typeColor,
     required String? datetime,
@@ -1347,6 +1415,7 @@ class _AttandancePageState extends State<AttandancePage> {
   }) {
     return _ActivityCard(
       fullName: fullName,
+      photoUrl: photoUrl,
       type: type,
       typeColor: typeColor,
       datetime: datetime,
@@ -1380,20 +1449,7 @@ class _AttandancePageState extends State<AttandancePage> {
     String? contactName,
     String? type,
   }) {
-    String formatTime(String? value) {
-      if (value == null) return '-';
-      final dt = DateTime.tryParse(value);
-      if (dt == null) return '-';
-      return DateFormat('hh:mm a').format(dt);
-    }
-
-    String formatDate(String? value) {
-      if (value == null) return '-';
-      final dt = DateTime.tryParse(value);
-      if (dt == null) return '-';
-      return DateHelper.formatDate(dt);
-    }
-
+   
     // Index gambar yang ditap — untuk sorot di thumbnail strip
     int selectedIndex = allImages.indexOf(tappedUrl);
     if (selectedIndex < 0) selectedIndex = 0;
@@ -1419,15 +1475,34 @@ class _AttandancePageState extends State<AttandancePage> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       // Gambar utama — klik untuk fullscreen
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(16),
-                        child: DriveImage(
-                          url: currentUrl,
-                          width: double.infinity,
-                          height: 200,
-                          fit: BoxFit.cover,
-                          onTap: () => _showImagePreview(currentUrl),
-                        ),
+                      Stack(
+                        children: [
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(16),
+                            child: DriveImage(
+                              url: currentUrl,
+                              width: double.infinity,
+                              height: 200,
+                              fit: BoxFit.cover,
+                              onTap: () => _showImagePreview(currentUrl),
+                            ),
+                          ),
+                          Positioned(
+                            top: 8,
+                            right: 8,
+                            child: GestureDetector(
+                              onTap: () => _showImagePreview(currentUrl),
+                              child: Container(
+                                padding: const EdgeInsets.all(4),
+                                decoration: BoxDecoration(
+                                  color: Colors.black.withValues(alpha: 0.45),
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: const Icon(Icons.fullscreen, color: Colors.white, size: 18),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
 
                       // Thumbnail strip kalau lebih dari 1 gambar
@@ -1468,9 +1543,9 @@ class _AttandancePageState extends State<AttandancePage> {
                               if (type != null)
                                 _buildInfoRow(Icons.local_activity, type, Color(primaryColor)),
                               const SizedBox(height: 6),
-                              _buildInfoRow(Icons.access_time_filled, formatTime(datetime), Color(greenPercentColor)),
+                              _buildInfoRow(Icons.access_time_filled, datetime != null ? DateHelper.formatTime(DateTime.parse(datetime)) : '-', Color(greenPercentColor)),
                               const SizedBox(height: 6),
-                              _buildInfoRow(Icons.calendar_today, formatDate(datetime), Color(primaryColor)),
+                              _buildInfoRow(Icons.calendar_today, datetime != null ? DateHelper.formatDate(DateTime.parse(datetime)) : '-', Color(primaryColor)),
                               if (location != null && location.isNotEmpty) ...[
                                 const SizedBox(height: 6),
                                 _buildInfoRow(Icons.map, location, Color(primaryColor)),
@@ -1501,12 +1576,8 @@ class _AttandancePageState extends State<AttandancePage> {
 
   Widget _buildCardAttendance(AttendanceEntity item) {
     final date = DateTime.parse(item.date);
-
-    String formatTime(String? value) {
-      if (value == null) return "-";
-      final dt = DateTime.parse(value);
-      return DateFormat('hh:mm a').format(dt);
-    }
+    final bool pendingIn = item.clockIn != null && (item.needsApproval0 ?? false) && item.isApprove0 == null && item.isReject0 == null;
+    final bool pendingOut = item.clockOut != null && (item.needsApproval1 ?? false) && item.isApprove1 == null && item.isReject1 == null;
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
@@ -1538,13 +1609,22 @@ class _AttandancePageState extends State<AttandancePage> {
             /// CLOCK IN
             Expanded(
               child: GestureDetector(
-                onTap: item.clockIn != null ? () => _showAttendanceDialog(item, 0) : null,
+                onTap: (!pendingIn && item.clockIn != null) ? () => _showAttendanceDialog(item, 0) : null,
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Icon(Icons.access_time_filled, size: 16, color: Color(greenPercentColor)),
                     const SizedBox(height: 2),
-                    Text(formatTime(item.clockIn), textAlign: TextAlign.center, style: const TextStyle(fontSize: 12)),
+                    if (pendingIn) ...[
+                      const Text('-', textAlign: TextAlign.center, style: TextStyle(fontSize: 12)),
+                      _buildPendingLabel(),
+                    ] else ...[
+                      Text(item.clockIn != null ? DateHelper.formatTime(DateTime.parse(item.clockIn!)) : '-', textAlign: TextAlign.center, style: const TextStyle(fontSize: 12)),
+                      if (item.isApprove0 == 1)
+                        _buildStatusDot(true)
+                      else if (item.isReject0 == 1)
+                        _buildStatusDot(false),
+                    ],
                   ],
                 ),
               ),
@@ -1555,19 +1635,58 @@ class _AttandancePageState extends State<AttandancePage> {
             /// CLOCK OUT
             Expanded(
               child: GestureDetector(
-                onTap: item.clockOut != null ? () => _showAttendanceDialog(item, 1) : null,
+                onTap: (!pendingOut && item.clockOut != null) ? () => _showAttendanceDialog(item, 1) : null,
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Icon(Icons.access_time_filled, size: 16, color: Color(redPeriodColor)),
                     const SizedBox(height: 2),
-                    Text(formatTime(item.clockOut), textAlign: TextAlign.center, style: const TextStyle(fontSize: 12)),
+                    if (pendingOut) ...[
+                      const Text('-', textAlign: TextAlign.center, style: TextStyle(fontSize: 12)),
+                      _buildPendingLabel(),
+                    ] else ...[
+                      Text(item.clockOut != null ? DateHelper.formatTime(DateTime.parse(item.clockOut!)) : '-', textAlign: TextAlign.center, style: const TextStyle(fontSize: 12)),
+                      if (item.isApprove1 == 1)
+                        _buildStatusDot(true)
+                      else if (item.isReject1 == 1)
+                        _buildStatusDot(false),
+                    ],
                   ],
                 ),
               ),
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildPendingLabel() {
+    return Container(
+      margin: const EdgeInsets.only(top: 2),
+      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+      decoration: BoxDecoration(
+        color: Colors.orange,
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: const Text(
+        'Pending',
+        style: TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold),
+      ),
+    );
+  }
+
+  Widget _buildStatusDot(bool isApproved) {
+    return Container(
+      margin: const EdgeInsets.only(top: 2),
+      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+      decoration: BoxDecoration(
+        color: isApproved ? const Color(0xFF27AE60) : const Color(0xFFE74C3C),
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: Text(
+        isApproved ? 'Approved' : 'Rejected',
+        style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold),
       ),
     );
   }
@@ -1936,143 +2055,161 @@ class _AttandancePageState extends State<AttandancePage> {
     );
   }
 
-  Widget _buildCheckForm({required String title, required int flagParam, String? image, AttendanceEntity? attendance, int? isApprove}) {
-  final hasApproveStatus = image == null && (flagParam == 0 || flagParam == 1) && isApprove != null;
-  final isRejected = hasApproveStatus && isApprove == 0;
-  final isPending  = hasApproveStatus && isApprove == 1;
-  return Expanded(
-    child: isRejected
-        ? Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
+  Widget _buildCheckForm({
+    required String title,
+    required int flagParam,
+    String? image,
+    AttendanceEntity? attendance,
+    int? isApprove,
+    int? isReject,
+    bool needsApproval = false,
+    String? approveName,
+    String? rejectName,
+  }) {
+    // Build status badge based on new logic
+    Widget? statusBadge;
+    if (needsApproval) {
+      final Color badgeColor;
+      final IconData badgeIcon;
+      final String badgeLabel;
+      if (isApprove == 1) {
+        badgeColor = const Color(0xFF27AE60);
+        badgeIcon = Icons.check_circle_outline;
+        badgeLabel = 'Approved';
+      } else if (isReject == 1) {
+        badgeColor = const Color(0xFFE74C3C);
+        badgeIcon = Icons.cancel_outlined;
+        badgeLabel = 'Rejected';
+      } else {
+        badgeColor = Colors.orange;
+        badgeIcon = Icons.hourglass_top_rounded;
+        badgeLabel = 'Pending';
+      }
+      statusBadge = Container(
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+        decoration: BoxDecoration(color: badgeColor, borderRadius: BorderRadius.circular(6)),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisSize: MainAxisSize.min,
               children: [
-                Text(DateHelper.formatTime(DateTime.now()), style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
-                Text(DateHelper.formatDate(DateTime.now()), style: TextStyle(fontSize: 11, color: Color(grey6Color))),
-                SizedBox(height: 8),
-                Icon(Icons.cancel_outlined, color: Color(0xFFE74C3C), size: 48),
-                SizedBox(height: 8),
-                Text('Approval Rejected', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFFE74C3C))),
-                SizedBox(height: 4),
+                Icon(badgeIcon, color: Colors.white, size: 12),
+                const SizedBox(width: 4),
+                Text(badgeLabel, style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
               ],
             ),
-          )
-        : isPending
-        ? Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(DateHelper.formatTime(DateTime.now()), style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
-                Text(DateHelper.formatDate(DateTime.now()), style: TextStyle(fontSize: 11, color: Color(grey6Color))),
-                SizedBox(height: 8),
-                Icon(Icons.hourglass_top_rounded, color: Colors.orange, size: 48),
-                SizedBox(height: 8),
-                Text('Pending Approval', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.orange)),
-                SizedBox(height: 4),
-              ],
-            ),
-          )
-        : image != null && flagParam != 6
-        ? Padding(
-            padding: const EdgeInsets.symmetric(horizontal:70, vertical: 5),
-            child: Stack(
-              children: [
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(8),
-                  child: DriveImage(
-                    url: image,
-                    width: 200,
-                    height: 200,
-                    fit: BoxFit.cover,
-                    onTap: () => _showImagePreview(image),
-                  ),
-                ),
-                Positioned.fill(
-                  top: 123,
-                  bottom: 0,
-                  child: Container(
-                    height: 20,
-                    padding: EdgeInsets.symmetric(horizontal: 5),
-                    decoration: BoxDecoration(
-                      shape: BoxShape.rectangle,
-                      color: Color(blue2Color).withOpacity(0.5),
-                      borderRadius: BorderRadius.only(bottomLeft: Radius.circular(8), bottomRight: Radius.circular(8)),
+          ],
+        ),
+      );
+    }
+
+    final raw = flagParam == 0 ? attendance?.clockIn : flagParam == 1 ? attendance?.clockOut : attendance?.checkInActivity;
+    final dt = raw != null ? DateTime.tryParse(raw) : null;
+
+    return Expanded(
+      child: image != null && flagParam != 6
+          ? GestureDetector(
+              onTap: () { if (attendance != null) _showAttendanceDialog(attendance, flagParam); },
+              child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 70, vertical: 5),
+              child: Stack(
+                children: [
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: DriveImage(
+                      url: image,
+                      width: 200,
+                      height: 200,
+                      fit: BoxFit.cover,
                     ),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Icon(Icons.access_time_filled, color: flagParam == 0 ? Color(greenPercentColor) : flagParam == 1 ? Color(redPeriodColor) : Color(primaryColor), size: 10),
-                            SizedBox(width: 10),
-                            Text(() { final raw = flagParam == 0 ? attendance?.clockIn : flagParam == 1 ? attendance?.clockOut : attendance?.checkInActivity; final dt = raw != null ? DateTime.tryParse(raw) : null; return dt != null ? DateHelper.formatTime(dt) : (raw ?? '-'); }(), style: TextStyle(color: Colors.white, fontSize: 10)),
-                          ],
-                        ),
-                        Row(
-                          children: [
+                  ),
+                  Positioned.fill(
+                    top: 123,
+                    bottom: 0,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 5),
+                      decoration: BoxDecoration(
+                        color: Color(blue2Color).withValues(alpha: 0.5),
+                        borderRadius: const BorderRadius.only(bottomLeft: Radius.circular(8), bottomRight: Radius.circular(8)),
+                      ),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(children: [
+                            Icon(Icons.access_time_filled, color: flagParam == 0 ? Color(greenPercentColor) : Color(redPeriodColor), size: 10),
+                            const SizedBox(width: 6),
+                            Text(dt != null ? DateHelper.formatTime(dt) : '-', style: const TextStyle(color: Colors.white, fontSize: 10)),
+                          ]),
+                          Row(children: [
                             Icon(Icons.calendar_today_sharp, color: Color(primaryColor), size: 10),
-                            SizedBox(width: 10),
-                            Text(DateHelper.formatDate(DateTime.now()), style: TextStyle(color: Colors.white, fontSize: 10)),
-                          ],
-                        ),
-                        Row(
-                          children: [
+                            const SizedBox(width: 6),
+                            Text(dt != null ? DateHelper.formatDate(dt) : DateHelper.formatDate(DateTime.now()), style: const TextStyle(color: Colors.white, fontSize: 10)),
+                          ]),
+                          Row(children: [
                             Icon(Icons.location_on, color: Color(primaryColor), size: 10),
-                            SizedBox(width: 10),
+                            const SizedBox(width: 6),
                             SizedBox(
                               width: 150,
-                              child: Text("${flagParam == 0 ? attendance?.location0 : flagParam == 1 ? attendance?.location1 : attendance?.location6}", style: TextStyle(color: Colors.white, fontSize: 10), overflow: TextOverflow.ellipsis),
+                              child: Text(
+                                '${flagParam == 0 ? attendance?.location0 : attendance?.location1}',
+                                style: const TextStyle(color: Colors.white, fontSize: 10),
+                                overflow: TextOverflow.ellipsis,
+                              ),
                             ),
-                          ],
-                        ),
-                      ],
+                          ]),
+                        ],
+                      ),
                     ),
                   ),
-                ),
-              ],
+                  if (statusBadge != null)
+                    Positioned(top: 8, left: 8, child: statusBadge),
+                ],
+              ),
             ),
-          )
-        : SingleChildScrollView(
-            reverse: true,
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(DateHelper.formatTime(DateTime.now()), style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
-                Text(DateHelper.formatDate(DateTime.now()), style: TextStyle(fontSize: 11, color: Color(grey6Color))),
-                SizedBox(height: 8),
-                Material(
-                  color: Colors.transparent,
-                  child: InkWell(
-                    borderRadius: BorderRadius.circular(100),
-                    onTap: () async { _handleMoveCamera(title, flagParam); },
-                    child: Container(
-                      height: 90,
-                      width: 90,
-                      alignment: Alignment.center,
-                      decoration: BoxDecoration(shape: BoxShape.circle, color: Color(primaryColor).withValues(alpha: 0.1)),
+            )
+          : SingleChildScrollView(
+              reverse: true,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(DateHelper.formatTime(DateTime.now()), style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+                  Text(DateHelper.formatDate(DateTime.now()), style: TextStyle(fontSize: 11, color: Color(grey6Color))),
+                  const SizedBox(height: 8),
+                  Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(100),
+                      onTap: _isCameraOpening ? null : () { _handleMoveCamera(title, flagParam); },
                       child: Container(
-                        height: 80,
-                        width: 80,
+                        height: 90, width: 90,
                         alignment: Alignment.center,
-                        decoration: BoxDecoration(shape: BoxShape.circle, color: Color(primaryColor).withValues(alpha: 0.2)),
+                        decoration: BoxDecoration(shape: BoxShape.circle, color: Color(primaryColor).withValues(alpha: 0.1)),
                         child: Container(
-                          height: 70,
-                          width: 70,
+                          height: 80, width: 80,
                           alignment: Alignment.center,
-                          decoration: BoxDecoration(shape: BoxShape.circle, color: Color(primaryColor)),
-                          child: Text(title, textAlign: TextAlign.center, style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Color(whiteColor))),
+                          decoration: BoxDecoration(shape: BoxShape.circle, color: Color(primaryColor).withValues(alpha: 0.2)),
+                          child: Container(
+                            height: 70, width: 70,
+                            alignment: Alignment.center,
+                            decoration: BoxDecoration(shape: BoxShape.circle, color: Color(_isCameraOpening ? grey6Color : primaryColor)),
+                            child: _isCameraOpening
+                                ? const SizedBox(width: 28, height: 28, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5))
+                                : Text(title, textAlign: TextAlign.center, style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Color(whiteColor))),
+                          ),
                         ),
                       ),
                     ),
                   ),
-                ),
-                SizedBox(height: 12),
-                Text("Please $title!", style: TextStyle(fontSize: 12, color: Color(grey6Color))),
-              ],
+                  const SizedBox(height: 12),
+                  Text("Please $title!", style: TextStyle(fontSize: 12, color: Color(grey6Color))),
+                ],
+              ),
             ),
-          ),
-  );
-}  
+    );
+  }  
 
   Widget _buildClockOut(AttendanceEntity? today) {
     return Column(
@@ -2083,6 +2220,10 @@ class _AttandancePageState extends State<AttandancePage> {
           image: (today?.fileAttchment1 != null && today!.fileAttchment1!.isNotEmpty)? today.fileAttchment1!.last: null,
           attendance: today,
           isApprove: today?.isApprove1,
+          isReject: today?.isReject1,
+          needsApproval: today?.needsApproval1 ?? false,
+          approveName: today?.approveName1,
+          rejectName: today?.rejectName1,
         ),
       ],
     );
@@ -2099,6 +2240,10 @@ class _AttandancePageState extends State<AttandancePage> {
           image: (today?.fileAttchment0 != null && today!.fileAttchment0!.isNotEmpty)? today.fileAttchment0!.first: null,
           attendance: today,
           isApprove: today?.isApprove0,
+          isReject: today?.isReject0,
+          needsApproval: today?.needsApproval0 ?? false,
+          approveName: today?.approveName0,
+          rejectName: today?.rejectName0,
         ),
       ],
     );
@@ -2111,14 +2256,12 @@ class _AttandancePageState extends State<AttandancePage> {
     final List<String>? images =flag == 0 ? item.fileAttchment0 : item.fileAttchment1;
     final String note = flag == 0 ? item.note0 ?? "-" : item.note1 ?? "-";
     final String location =flag == 0 ? item.location0 ?? "-" : item.location1 ?? "-";
+    final int? isApprove = flag == 0 ? item.isApprove0 : item.isApprove1;
+    final int? isReject = flag == 0 ? item.isReject0 : item.isReject1;
+    final String? approveName = flag == 0 ? item.approveName0 : item.approveName1;
+    final String? rejectName = flag == 0 ? item.rejectName0 : item.rejectName1;
 
-    String formatTime(String? value) {
-      if (value == null || value == "-") return "-";
-      final dt = DateTime.parse(value);
-      return DateFormat('hh:mm a').format(dt);
-    }
-
-    final String displayTime = formatTime(timeValue);
+    final String displayTime = (timeValue != '-') ? DateHelper.formatTime(DateTime.parse(timeValue)) : '-';
     final String? displayImage =  (images != null && images.isNotEmpty)       ? (flag == 0 ? images.first : images.last)       : null;
 
     showDialog(
@@ -2137,21 +2280,41 @@ class _AttandancePageState extends State<AttandancePage> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(16),
-                    child: displayImage != null
-                        ? DriveImage(
-                            url: displayImage,
-                            width: double.infinity,
-                            height: 180,
-                            fit: BoxFit.cover,
+                  Stack(
+                    children: [
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(16),
+                        child: displayImage != null
+                            ? DriveImage(
+                                url: displayImage,
+                                width: double.infinity,
+                                height: 180,
+                                fit: BoxFit.cover,
+                                onTap: () => _showImagePreview(displayImage),
+                              )
+                            : Container(
+                                height: 180,
+                                color: Colors.grey.shade200,
+                                child: const Icon(Icons.image, size: 50),
+                              ),
+                      ),
+                      if (displayImage != null)
+                        Positioned(
+                          top: 8,
+                          right: 8,
+                          child: GestureDetector(
                             onTap: () => _showImagePreview(displayImage),
-                          )
-                        : Container(
-                            height: 180,
-                            color: Colors.grey.shade200,
-                            child: const Icon(Icons.image, size: 50),
+                            child: Container(
+                              padding: const EdgeInsets.all(4),
+                              decoration: BoxDecoration(
+                                color: Colors.black.withValues(alpha: 0.45),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: const Icon(Icons.fullscreen, color: Colors.white, size: 18),
+                            ),
                           ),
+                        ),
+                    ],
                   ),
                   const SizedBox(height: 16),
                   _buildInfoRow(
@@ -2177,6 +2340,16 @@ class _AttandancePageState extends State<AttandancePage> {
                     note,
                     Color(primaryColor),
                   ),
+                  if (isApprove == 1 || isReject == 1) ...[
+                    const SizedBox(height: 8),
+                    _buildInfoRow(
+                      isApprove == 1 ? Icons.check_circle : Icons.cancel,
+                      isApprove == 1
+                          ? 'Approved${approveName != null ? ' by $approveName' : ''}'
+                          : 'Rejected${rejectName != null ? ' by $rejectName' : ''}',
+                      isApprove == 1 ? const Color(0xFF27AE60) : const Color(0xFFE74C3C),
+                    ),
+                  ],
                   const SizedBox(height: 20),
                 ],
               ),
@@ -2210,6 +2383,7 @@ class _AttandancePageState extends State<AttandancePage> {
 
 class _ActivityCard extends StatefulWidget {
   final String fullName;
+  final String? photoUrl;
   final String type;
   final Color typeColor;
   final String? datetime;
@@ -2226,6 +2400,7 @@ class _ActivityCard extends StatefulWidget {
 
   const _ActivityCard({
     required this.fullName,
+    this.photoUrl,
     required this.type,
     required this.typeColor,
     required this.datetime,
@@ -2249,6 +2424,7 @@ class _ActivityCardState extends State<_ActivityCard> {
   late final ScrollController _scrollController;
   bool _isAtStart = true;
   bool _isAtEnd = false;
+  bool _photoError = false;
 
   @override
   void initState() {
@@ -2416,26 +2592,28 @@ class _ActivityCardState extends State<_ActivityCard> {
                 Expanded(
                   child: Row(
                     children: [
-                      Container(
-                        width: 45,
-                        height: 45,
-                        decoration: BoxDecoration(
-                          color: Color(primaryColor),
-                          shape: BoxShape.circle,
-                        ),
-                        child: Center(
+                      () {
+                        final url = widget.photoUrl;
+                        final validUrl = url != null && url.startsWith('http');
+                        if (validUrl && !_photoError) {
+                          return CircleAvatar(
+                            radius: 22.5,
+                            backgroundColor: Color(primaryColor),
+                            backgroundImage: NetworkImage(url),
+                            onBackgroundImageError: (_, __) {
+                              if (mounted) setState(() => _photoError = true);
+                            },
+                          );
+                        }
+                        return CircleAvatar(
+                          radius: 22.5,
+                          backgroundColor: Color(primaryColor),
                           child: Text(
                             getInitials(widget.fullName),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.bold,
-                              color: Color(whiteColor),
-                            ),
+                            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Color(whiteColor)),
                           ),
-                        ),
-                      ),
+                        );
+                      }(),
                       const SizedBox(width: 5),
                       Expanded(
                         child: Column(
@@ -2447,7 +2625,6 @@ class _ActivityCardState extends State<_ActivityCard> {
                               overflow: TextOverflow.ellipsis,
                               style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
                             ),
-                            Text(DateHelper.formatTime(DateTime.parse(widget.datetime!)), style: const TextStyle(fontSize: 10)),
                             const SizedBox(height: 2),
                             Text(widget.location ?? '', maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 10)),
                             if (widget.contactName != null && widget.contactName!.isNotEmpty)
@@ -2469,6 +2646,8 @@ class _ActivityCardState extends State<_ActivityCard> {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
+                    Text(DateHelper.formatTime(DateTime.parse(widget.datetime!)), style: const TextStyle(fontSize: 10)),
+
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                       decoration: BoxDecoration(

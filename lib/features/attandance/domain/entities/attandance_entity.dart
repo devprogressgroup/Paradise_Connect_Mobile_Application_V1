@@ -16,8 +16,14 @@ class AttendanceEntity {
   final String? fullName;
   final int? isApprove0;
   final int? isApprove1;
-
-
+  final int? isReject0;
+  final int? isReject1;
+  final bool? needsApproval0;
+  final bool? needsApproval1;
+  final String? approveName0;
+  final String? approveName1;
+  final String? rejectName0;
+  final String? rejectName1;
 
   AttendanceEntity({
     required this.date,
@@ -37,6 +43,14 @@ class AttendanceEntity {
     required this.fullName,
     this.isApprove0,
     this.isApprove1,
+    this.isReject0,
+    this.isReject1,
+    this.needsApproval0,
+    this.needsApproval1,
+    this.approveName0,
+    this.approveName1,
+    this.rejectName0,
+    this.rejectName1,
   });
 
 }

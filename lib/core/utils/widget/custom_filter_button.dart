@@ -6,6 +6,7 @@ class CustomFilterButton extends StatelessWidget {
   final VoidCallback onTap;
   final bool isSelected;
   final VoidCallback? onClear;
+  final double? maxWidth;
 
   const CustomFilterButton({
     super.key,
@@ -13,6 +14,7 @@ class CustomFilterButton extends StatelessWidget {
     required this.onTap,
     this.isSelected = false,
     this.onClear,
+    this.maxWidth,
   });
 
   @override
@@ -23,6 +25,7 @@ class CustomFilterButton extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(14),
         child: Container(
+          constraints: maxWidth != null ? BoxConstraints(maxWidth: maxWidth!) : null,
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
           decoration: BoxDecoration(
             color: isSelected ? Color(primaryColor) : Color(whiteColor),
@@ -33,7 +36,7 @@ class CustomFilterButton extends StatelessWidget {
             boxShadow: [
               if (!isSelected)
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
+                  color: Colors.black.withValues(alpha: 0.05),
                   blurRadius: 4,
                   offset: const Offset(0, 2),
                 ),
@@ -42,12 +45,16 @@ class CustomFilterButton extends StatelessWidget {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text(
+              Flexible(
+                child: Text(
                 label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
                 style: TextStyle(
                   fontSize: 12,
                   color: isSelected ? Colors.white : Color(blackColor),
                 ),
+              ),
               ),
               const SizedBox(width: 4),
               if (isSelected && onClear != null)

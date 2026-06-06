@@ -36,6 +36,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
   bool _isObscure2 = true;
   bool _loadingDialogShown = false;
   int _step = 1;
+  String _phone = '';
 
   ForgotPasswordDataModel? forgotPasswordData;
   ResetPasswordEntity? resetPasswordEntity;
@@ -65,6 +66,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
       return;
     }
 
+    _phone = phone;
     context.read<AuthBloc>().add(ForgotPasswordEvent(phone));
   }
 
@@ -145,11 +147,14 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
                   forgotPasswordData = state.data;
                   _step = 2;
                 });
+              } else {
+                context.read<AuthBloc>().add(LoginEvent(_phone, _passwordController.text));
               }
-              else {
-                showSnackbar(context, state.message);
-                context.go('/login');
-              }
+            }
+
+            if (state is LoginSuccess) {
+              _hideLoading();
+              context.go('/');
             }
 
             if (state is AuthFailure) {

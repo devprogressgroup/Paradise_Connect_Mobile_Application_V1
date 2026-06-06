@@ -124,8 +124,8 @@
       e.preventDefault();
       _pwaInstallPrompt = e;
       console.log('[PWA] Install prompt ready');
-      // Notify Flutter that install is available
-      if (window._pwaInstallAvailableCallback) {
+      // Notify Flutter immediately via registered callback
+      if (typeof window._pwaInstallAvailableCallback === 'function') {
         window._pwaInstallAvailableCallback();
       }
     });
@@ -133,7 +133,20 @@
     window.addEventListener('appinstalled', function () {
       _pwaInstallPrompt = null;
       console.log('[PWA] App installed successfully');
+      if (typeof window._pwaInstalledCallback === 'function') {
+        window._pwaInstalledCallback();
+      }
     });
+
+    // Called from Flutter via js_interop to register a callback
+    window.registerPwaCallbacks = function (onAvailable, onInstalled) {
+      window._pwaInstallAvailableCallback = onAvailable;
+      window._pwaInstalledCallback = onInstalled;
+      // If prompt already captured before Flutter registered, notify immediately
+      if (_pwaInstallPrompt !== null && typeof onAvailable === 'function') {
+        onAvailable();
+      }
+    };
 
     // Called from Flutter via js_interop
     window.showPwaInstallPrompt = function () {
@@ -150,6 +163,12 @@
 
     window.isPwaInstallAvailable = function () {
       return _pwaInstallPrompt !== null;
+    };
+
+    // True if already running as installed PWA (standalone mode)
+    window.isPwaRunningStandalone = function () {
+      return window.matchMedia('(display-mode: standalone)').matches ||
+             window.navigator.standalone === true;
     };
 
     if ('serviceWorker' in navigator) {

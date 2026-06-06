@@ -40,6 +40,7 @@ class AttendanceActivityEntity {
   final String date;
   final int salesPersonId;
   final String fullName;
+  final String? photoUrl;
 
   final String? clockInDate;
   final String? clockInLocation;
@@ -58,6 +59,7 @@ class AttendanceActivityEntity {
     required this.date,
     required this.salesPersonId,
     required this.fullName,
+    this.photoUrl,
     this.clockInDate,
     this.clockInLocation,
     this.clockInNote,

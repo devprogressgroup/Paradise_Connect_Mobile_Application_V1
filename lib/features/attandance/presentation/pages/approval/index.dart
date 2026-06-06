@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import '../../../../../core/utils/helpers/date_helper.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:progress_group/features/attandance/presentation/state/attendance_approval/attendance_approval_cubit.dart';
@@ -299,7 +300,7 @@ class _ApprovalPageState extends State<ApprovalPage> {
                                     const Icon(Icons.access_time, size: 16, color: Colors.grey),
                                     const SizedBox(width: 4),
                                     Text(
-                                      item.attendanceDatetime ?? '-',
+                                      item.attendanceDatetime != null ? DateHelper.formatTime(DateTime.parse(item.attendanceDatetime!)) : '-',
                                       style: const TextStyle(color: Colors.grey),
                                     ),
                                   ],

@@ -242,6 +242,8 @@ class _DropdownListContactState extends State<DropdownListContact> {
                                       children: [
                                         Text(
                                           item.name,
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
                                           style: TextStyle(
                                             fontSize: 15,
                                             fontWeight: FontWeight.w600,
@@ -252,6 +254,8 @@ class _DropdownListContactState extends State<DropdownListContact> {
                                           const SizedBox(height: 2),
                                           Text(
                                             item.subtitle!,
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
                                             style: TextStyle(
                                               fontSize: 12,
                                               color: Color(grey5Color),

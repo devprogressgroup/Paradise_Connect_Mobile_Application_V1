@@ -481,7 +481,7 @@ class _NotifPageState extends State<NotifPage> {
       Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Text(item.fullName ?? '-', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
         Text(item.flagLabel ?? '-', style: TextStyle(fontSize: 12, color: Color(grey4Color))),
-        if (dt != null) Text(DateHelper.formatTime(dt), style: TextStyle(fontSize: 12, color: Color(grey4Color))),
+        if (dt != null) Text(DateHelper.formatDate(dt), style: TextStyle(fontSize: 12, color: Color(grey4Color))),
       ])),
       Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),

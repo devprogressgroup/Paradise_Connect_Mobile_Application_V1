@@ -259,6 +259,7 @@ class _HomePageState extends State<HomePage> {
                     Text("WhatsApp", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                     SizedBox(height: 5),
                     _buildWhatsAppChart(),
+                    SizedBox(height:15),
                   ],
                 ),
               ),
@@ -489,7 +490,7 @@ class _HomePageState extends State<HomePage> {
                                     ),
                                     if (dt != null)
                                       Text(
-                                        DateHelper.formatTime(dt),
+                                        DateHelper.formatDate(dt),
                                         style: TextStyle(fontSize: 12, color: Color(grey2Color)),
                                       ),
                                   ],
@@ -657,6 +658,7 @@ class _HomePageState extends State<HomePage> {
                                     fontWeight: hasActivity ? FontWeight.w600 : FontWeight.normal,
                                     color: Color(hasActivity ? blackColor : grey2Color),
                                   ),
+                                  maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                 ),
                               ),

@@ -1499,15 +1499,18 @@ class _ContactAddPageState extends State<ContactAddPage> {
             padding: EdgeInsets.symmetric(horizontal: 16),
             alignment: Alignment.centerLeft,
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  selectedStatusName,
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: selectedStatusName == "Select status"
-                        ? Color(grey2Color)
-                        : Colors.black,
+                Expanded(
+                  child: Text(
+                    selectedStatusName,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: selectedStatusName == "Select status"
+                          ? Color(grey2Color)
+                          : Colors.black,
+                    ),
                   ),
                 ),
                 const Icon(Icons.arrow_drop_down, size: 28),
@@ -1585,15 +1588,18 @@ class _ContactAddPageState extends State<ContactAddPage> {
             padding: const EdgeInsets.symmetric(horizontal: 16),
             alignment: Alignment.centerLeft,
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  selectedLostReasonName ?? '',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: selectedLostReasonName == null
-                        ? Color(grey2Color)
-                        : Colors.black,
+                Expanded(
+                  child: Text(
+                    selectedLostReasonName ?? '',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: selectedLostReasonName == null
+                          ? Color(grey2Color)
+                          : Colors.black,
+                    ),
                   ),
                 ),
                 const Icon(Icons.arrow_drop_down, size: 28),
@@ -1676,15 +1682,18 @@ class _ContactAddPageState extends State<ContactAddPage> {
             padding: EdgeInsets.symmetric(horizontal: 16),
             alignment: Alignment.centerLeft,
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  selectedProject ?? "Select project",
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: selectedProject == null
-                        ? Color(grey2Color)
-                        : Colors.black,
+                Expanded(
+                  child: Text(
+                    selectedProject ?? "Select project",
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: selectedProject == null
+                          ? Color(grey2Color)
+                          : Colors.black,
+                    ),
                   ),
                 ),
                 const Icon(Icons.arrow_drop_down, size: 28),
@@ -1742,11 +1751,14 @@ class _ContactAddPageState extends State<ContactAddPage> {
             padding: EdgeInsets.symmetric(horizontal: 16),
             alignment: Alignment.centerLeft,
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  "${jmlDatang}",
-                  style: TextStyle(fontSize: 14, color: Colors.black),
+                Expanded(
+                  child: Text(
+                    "${jmlDatang}",
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(fontSize: 14, color: Colors.black),
+                  ),
                 ),
                 const Icon(Icons.arrow_drop_down, size: 28),
               ],
@@ -1806,15 +1818,18 @@ class _ContactAddPageState extends State<ContactAddPage> {
             padding: EdgeInsets.symmetric(horizontal: 16),
             alignment: Alignment.centerLeft,
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  selectedProjectCategory ?? "Select category",
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: selectedProjectCategory == null
-                        ? Color(grey2Color)
-                        : Colors.black,
+                Expanded(
+                  child: Text(
+                    selectedProjectCategory ?? "Select category",
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: selectedProjectCategory == null
+                          ? Color(grey2Color)
+                          : Colors.black,
+                    ),
                   ),
                 ),
                 const Icon(Icons.arrow_drop_down, size: 28),
@@ -1876,15 +1891,18 @@ class _ContactAddPageState extends State<ContactAddPage> {
             padding: EdgeInsets.symmetric(horizontal: 16),
             alignment: Alignment.centerLeft,
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  selectedProductType ?? "Select product type",
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: selectedProductType == null
-                        ? Color(grey2Color)
-                        : Colors.black,
+                Expanded(
+                  child: Text(
+                    selectedProductType ?? "Select product type",
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: selectedProductType == null
+                          ? Color(grey2Color)
+                          : Colors.black,
+                    ),
                   ),
                 ),
                 const Icon(Icons.arrow_drop_down, size: 28),
@@ -1960,15 +1978,18 @@ class _ContactAddPageState extends State<ContactAddPage> {
             padding: EdgeInsets.symmetric(horizontal: 16),
             alignment: Alignment.centerLeft,
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  selectedProduct ?? "Select product",
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: selectedProduct == null
-                        ? Color(grey2Color)
-                        : Colors.black,
+                Expanded(
+                  child: Text(
+                    selectedProduct ?? "Select product",
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: selectedProduct == null
+                          ? Color(grey2Color)
+                          : Colors.black,
+                    ),
                   ),
                 ),
                 const Icon(Icons.arrow_drop_down, size: 28),

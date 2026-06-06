@@ -56,7 +56,9 @@ class AttendanceRepositoryImpl implements AttendanceRepository {
     String? clockIn, clockOut, checkInActivity;
     String? location0, location1, location6;
     String? note0, note1, note6;
-    int? isApprove0, isApprove1;
+    int? isApprove0, isApprove1, isReject0, isReject1;
+    bool? needsApproval0, needsApproval1;
+    String? approveName0, approveName1, rejectName0, rejectName1;
     List<String>? fileAttchment0, fileAttchment1, fileAttchment6;
 
     for (var log in logs) {
@@ -67,6 +69,11 @@ class AttendanceRepositoryImpl implements AttendanceRepository {
       final files = (log['file_attachment'] as List?)?.map((e) => e.toString()).toList();
       final isApproveRaw = log['is_approve'];
       final isApproveInt = isApproveRaw is int ? isApproveRaw : int.tryParse(isApproveRaw?.toString() ?? '');
+      final isRejectRaw = log['is_reject'];
+      final isRejectInt = isRejectRaw is int ? isRejectRaw : int.tryParse(isRejectRaw?.toString() ?? '');
+      final needsApprovalBool = log['needs_approval'] as bool? ?? false;
+      final approveName = log['approve_name'] as String?;
+      final rejectName = log['reject_name'] as String?;
 
       if (flag == 0) {
         clockIn = datetime;
@@ -74,12 +81,20 @@ class AttendanceRepositoryImpl implements AttendanceRepository {
         note0 = note;
         fileAttchment0 = files;
         isApprove0 = isApproveInt;
+        isReject0 = isRejectInt;
+        needsApproval0 = needsApprovalBool;
+        approveName0 = approveName;
+        rejectName0 = rejectName;
       } else if (flag == 1) {
         clockOut = datetime;
         location1 = locationName;
         note1 = note;
         fileAttchment1 = files;
         isApprove1 = isApproveInt;
+        isReject1 = isRejectInt;
+        needsApproval1 = needsApprovalBool;
+        approveName1 = approveName;
+        rejectName1 = rejectName;
       } else if (flag == 6) {
         checkInActivity = datetime;
         location6 = locationName;
@@ -106,6 +121,14 @@ class AttendanceRepositoryImpl implements AttendanceRepository {
       fileAttchment6: fileAttchment6,
       isApprove0: isApprove0,
       isApprove1: isApprove1,
+      isReject0: isReject0,
+      isReject1: isReject1,
+      needsApproval0: needsApproval0,
+      needsApproval1: needsApproval1,
+      approveName0: approveName0,
+      approveName1: approveName1,
+      rejectName0: rejectName0,
+      rejectName1: rejectName1,
     );
   }
 
@@ -143,6 +166,16 @@ class AttendanceRepositoryImpl implements AttendanceRepository {
           location0: m.location0 ?? existing.location0,
           location1: m.location1 ?? existing.location1,
           location6: m.location6 ?? existing.location6,
+          isApprove0: m.isApprove0 ?? existing.isApprove0,
+          isApprove1: m.isApprove1 ?? existing.isApprove1,
+          isReject0: m.isReject0 ?? existing.isReject0,
+          isReject1: m.isReject1 ?? existing.isReject1,
+          needsApproval0: m.needsApproval0 ?? existing.needsApproval0,
+          needsApproval1: m.needsApproval1 ?? existing.needsApproval1,
+          approveName0: m.approveName0 ?? existing.approveName0,
+          approveName1: m.approveName1 ?? existing.approveName1,
+          rejectName0: m.rejectName0 ?? existing.rejectName0,
+          rejectName1: m.rejectName1 ?? existing.rejectName1,
         );
       }
     }

@@ -305,7 +305,7 @@ class _LoginPageState extends State<LoginPage> {
                       ),
                       const SizedBox(height: 32),
                       Text(
-                        "Username / Email Address",
+                        "Username / Email / Phone",
                         style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w700,

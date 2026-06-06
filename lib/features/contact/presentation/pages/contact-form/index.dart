@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_contacts/flutter_contacts.dart';
 import 'dart:convert';
@@ -968,7 +969,12 @@ class _ContactFormPageState extends State<ContactFormPage> {
 
       final name = full.displayName;
       final rawPhone = full.phones.isNotEmpty ? full.phones.first.number : '';
-      final phone = rawPhone.replaceAll(RegExp(r'[\s\-\(\)]'), '');
+      String phone = rawPhone.replaceAll(RegExp(r'[\s\-\(\)]'), '');
+      if (phone.startsWith('+62')) {
+        phone = '62${phone.substring(3)}';
+      } else if (phone.startsWith('08')) {
+        phone = '628${phone.substring(2)}';
+      }
 
       setState(() {
         if (name.isNotEmpty) fullNameTC.text = name;
@@ -2292,7 +2298,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
           ),
           Row(
             children: [
-              if (widget.args.page == 0) ...[
+              if (widget.args.page == 0 && !kIsWeb) ...[
                 GestureDetector(
                   onTap: _importFromContacts,
                   child: Container(

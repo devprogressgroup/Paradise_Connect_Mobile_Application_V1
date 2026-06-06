@@ -34,12 +34,26 @@ class _MainLayoutState extends State<MainLayout> {
   void initState() {
     super.initState();
     context.read<WhatsappActivityBloc>().add(const FetchWhatsappUnreadSummaryEvent(0));
-    _checkPwaInstall();
+    _setupPwa();
   }
 
-  void _checkPwaInstall() {
-    // Poll briefly after load to detect if install prompt is available
-    Future.delayed(const Duration(seconds: 2), () {
+  void _setupPwa() {
+    // Already running as installed PWA — no need to show install prompt
+    if (isPwaRunningStandalone()) return;
+
+    // Register callbacks: browser will call these the moment beforeinstallprompt fires,
+    // even if it fires after Flutter is fully loaded (common on slow connections)
+    registerPwaCallbacks(
+      onAvailable: () {
+        if (mounted) setState(() => _pwaAvailable = true);
+      },
+      onInstalled: () {
+        if (mounted) setState(() => _pwaAvailable = false);
+      },
+    );
+
+    // Also check immediately in case the event already fired before we registered
+    Future.delayed(const Duration(milliseconds: 500), () {
       if (mounted && isPwaInstallAvailable()) {
         setState(() => _pwaAvailable = true);
       }
