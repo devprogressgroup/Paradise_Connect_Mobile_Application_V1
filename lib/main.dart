@@ -58,6 +58,9 @@ import 'package:progress_group/features/contact/domain/usecases/lost_reason/get_
 import 'package:progress_group/features/contact/presentation/state/attachment/attachment_cubit.dart';
 import 'package:progress_group/features/contact/presentation/state/info_source/info_source_bloc.dart';
 import 'package:progress_group/features/contact/presentation/state/lost_reason/lost_reason_block.dart';
+import 'package:progress_group/features/contact/domain/usecases/product_type/get_product_types_usecase.dart';
+import 'package:progress_group/features/contact/presentation/state/product_type/product_type_bloc.dart';
+import 'package:progress_group/features/contact/presentation/state/product_type/product_type_event.dart';
 import 'package:progress_group/features/contact/presentation/state/pameran_aktif/pameran_aktif_cubit.dart';
 import 'package:progress_group/features/contact/presentation/state/whatsapp_activity/whatsapp_unread_summary_bloc.dart';
 import 'package:progress_group/core/network/api_constants.dart';
@@ -292,6 +295,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     final getWhatsappActivityUseCase =  GetWhatsappUnreadSummaryUseCase(contactRepository);
     final getInfoSourcesUseCase = GetInfoSourcesUseCase(contactRepository);
     final getLostReasonsUseCase = GetLostReasonsUseCase(contactRepository);
+    final getProductTypesUseCase = GetProductTypesUseCase(contactRepository);
     final getPropertyUnitsUseCase = GetPropertyUnitsUseCase(contactRepository);
     final getPropertyCommercialUnitsUseCase = GetPropertyCommercialUnitsUseCase(contactRepository);
     
@@ -362,6 +366,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
             BlocProvider(create: (_) => WhatsappActivityBloc(getWhatsappActivityUseCase)),
             BlocProvider(create: (_) => InfoSourceBloc(getInfoSourcesUseCase: getInfoSourcesUseCase)),
             BlocProvider(create: (_) => LostReasonBloc(getLostReasonsUseCase: getLostReasonsUseCase)),
+            BlocProvider(create: (_) => ProductTypeBloc(getProductTypesUseCase: getProductTypesUseCase)..add(const FetchProductTypesEvent())),
             BlocProvider(create: (_) => PropertyUnitCubit(getPropertyUnitsUseCase, getPropertyCommercialUnitsUseCase)),
             BlocProvider(create: (_) => PameranAktifCubit(contactRepository)),
             BlocProvider(create: (_) => LandingPageCubit(getLandingPageUrlUseCase)..fetchUrl()),

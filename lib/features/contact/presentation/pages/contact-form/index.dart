@@ -13,6 +13,8 @@ import 'package:progress_group/features/contact/presentation/state/info_source/i
 import 'package:progress_group/features/contact/presentation/state/info_source/info_source_event.dart';
 import 'package:progress_group/features/contact/presentation/state/lost_reason/lost_reason_block.dart';
 import 'package:progress_group/features/contact/presentation/state/lost_reason/lost_reason_event.dart';
+import 'package:progress_group/features/contact/presentation/state/product_type/product_type_bloc.dart';
+import 'package:progress_group/features/contact/presentation/state/product_type/product_type_state.dart';
 import 'package:progress_group/features/contact/presentation/state/lost_reason/lost_reason_state.dart';
 import 'package:progress_group/features/contact/presentation/state/prospect_status/prospect_status_event.dart';
 
@@ -106,6 +108,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
   String? selectLastProjectProduct;
   String? selectFirstProjectCategory;
   String? selectLastProjectCategory;
+  String? selectProductType;
   int? selectLastClusterId;
   int? selectLastCommercialId;
   int? selectLastProductId;
@@ -215,6 +218,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
       firstProject: isUpdate ? null : selectFirstProject,
       lastProjectCategory: isUpdate ? selectLastProjectCategory : null,
       firstProjectCategory: isUpdate ? null : selectFirstProjectCategory,
+      productType: selectProductType,
       lastProduct: isUpdate ? selectLastProjectProduct : null,
       firstProduct: isUpdate ? null : selectFirstProjectProduct,
       lastBlokNo: isUpdate ? (lBlockNoTC.text.isNotEmpty ? lBlockNoTC.text : null) : null,
@@ -489,6 +493,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
       selectLastProjectCategory = contact.lastProjectCategory?.isNotEmpty == true ? contact.lastProjectCategory : null;
       selectFirstProjectProduct = contact.firstProduct?.isNotEmpty == true ? contact.firstProduct : null;
       selectLastProjectProduct = contact.lastProduct?.isNotEmpty == true ? contact.lastProduct : null;
+      selectProductType = contact.productType?.isNotEmpty == true ? contact.productType : null;
 
       _existingFirstProjectId = contact.firstProjectId;
       _existingFirstClusterId = contact.firstClusterId;
@@ -1057,6 +1062,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
       firstProject: isUpdate ? null : selectFirstProject,
       lastProjectCategory: isUpdate ? selectLastProjectCategory : null,
       firstProjectCategory: isUpdate ? null : selectFirstProjectCategory,
+      productType: selectProductType,
       lastProduct: isUpdate ? selectLastProjectProduct : null,
       firstProduct: isUpdate ? null : selectFirstProjectProduct,
       lastBlokNo: isUpdate ? (lBlockNoTC.text.isNotEmpty ? lBlockNoTC.text : null) : (fBlockNoTC.text.isNotEmpty ? fBlockNoTC.text : null),
@@ -1486,6 +1492,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
                                     selectLastTownshipId = selected.id;
                                     selectLastProjectCategory = null;
                                     selectLastProjectProduct = null;
+                                    selectProductType = null;
                                   });
                                   context.read<PropertyUnitCubit>().load(
                                     selected.id!,
@@ -1517,6 +1524,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
                                 setState(() {
                                   selectLastProjectCategory = selected.name;
                                   selectLastProjectProduct = null;
+                                  selectProductType = null;
                                 });
                                 if (selectLastTownshipId != null) {
                                   context.read<PropertyUnitCubit>().load(
@@ -1524,6 +1532,43 @@ class _ContactFormPageState extends State<ContactFormPage> {
                                     isCommercial: selected.name.toLowerCase() == 'commercial',
                                   );
                                 }
+                              }
+                            },
+                          ),
+
+                          _buildFieldDown(
+                            label: "Product Type",
+                            value: selectProductType,
+                            onTap: () async {
+                              final ptState = context.read<ProductTypeBloc>().state;
+                              final items = ptState.types
+                                  .asMap()
+                                  .entries
+                                  .map((e) => OwnerDropdownItem(id: e.key, name: e.value))
+                                  .toList();
+                              if (ptState.status == ProductTypeStatus.loading) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text('Memuat data product type...')),
+                                );
+                                return;
+                              }
+                              if (items.isEmpty) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text('Data product type tidak tersedia')),
+                                );
+                                return;
+                              }
+                              final result = await context.pushNamed(
+                                'detailContactDropdown',
+                                extra: ContactDropdownArgs(
+                                  title: 'Pilih Product Type',
+                                  items: items,
+                                  selectedName: selectProductType,
+                                ),
+                              );
+                              if (result != null) {
+                                final selected = result as OwnerDropdownItem;
+                                setState(() => selectProductType = selected.name);
                               }
                             },
                           ),
@@ -2056,6 +2101,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
                                selectFirstTownshipId = selected.id;
                                selectFirstProjectCategory = null;
                                selectFirstProjectProduct = null;
+                               selectProductType = null;
                              });
                            }
                          } else {

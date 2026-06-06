@@ -34,6 +34,8 @@ import 'package:progress_group/features/contact/presentation/state/contact/conta
 import 'package:progress_group/features/contact/presentation/state/lost_reason/lost_reason_block.dart';
 import 'package:progress_group/features/contact/presentation/state/lost_reason/lost_reason_event.dart';
 import 'package:progress_group/features/contact/presentation/state/lost_reason/lost_reason_state.dart';
+import 'package:progress_group/features/contact/presentation/state/product_type/product_type_bloc.dart';
+import 'package:progress_group/features/contact/presentation/state/product_type/product_type_state.dart';
 import 'package:progress_group/features/contact/presentation/state/prospect_status/prospect_status_bloc.dart';
 import 'package:progress_group/features/contact/presentation/state/prospect_status/prospect_status_event.dart';
 import 'package:progress_group/features/contact/presentation/state/prospect_status/prospect_status_state.dart';
@@ -91,6 +93,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
 
   String? selectedProject;
   String? selectedProduct;
+  String? selectedProductType;
   int? selectedTownshipId;
   String jmlDatang = "1";
   String? selectedBlockNo;
@@ -244,6 +247,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
 
         selectedBlockNo = params?.lastBlokNo ?? data.lastBlokNo;
         selectedProjectCategory = params?.lastProjectCategory ?? data.lastProjectCategory;
+        selectedProductType = params?.productType ?? data.productType;
         lBlockNoTC.text = params?.lastBlokNo ?? data.lastBlokNo ?? '';
         jmlDatang = (params?.visitCount ?? data.visitCount)?.toString() ?? "1";
         descTC.text = params?.generalNotes ?? data.generalNotes ?? "";
@@ -589,6 +593,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
   }
 
   void _submitUpdateStatus(BuildContext context) {
+
     final contact = widget.args.dataContact;
     // Field dari edit form yang tidak tampil di UI halaman ini
     final editParams = widget.args.createContactParams;
@@ -613,6 +618,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
     final firstLostDate =(contact?.firstLostDate == null && selectedDate != null)? DateFormat('yyyy-MM-dd').format(selectedDate!): null;
     final lostDate =(selectedStatusId == 43 ||selectedStatusId == 55 ||selectedStatusId == 56 ||selectedStatusId == 57 ||selectedStatusId == 58 ||selectedStatusId == 61 ||selectedStatusId == 62 ||selectedStatusId == 67 ||selectedStatusId == 68 ||selectedStatusId == 69 ||selectedStatusId == 73 ||selectedStatusId == 77 ||selectedStatusId == 78 ||selectedStatusId == 75) &&(selectedDate != null)? DateFormat('yyyy-MM-dd').format(selectedDate!): null;
 
+    print("print save update status");
     if (contact == null) return;
 
     final params = CreateContactParams(
@@ -649,6 +655,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
       lastProjectId: selectedTownshipId,
       lastProduct: selectedProduct,
       lastProjectCategory: selectedProjectCategory,
+      productType: selectedProductType,
       volumePlan: volumeTC.text.isNotEmpty ? volumeTC.text : null,
       visitCount: int.tryParse(jmlDatang),
       lostReasonId: selectedLostReasonId,
@@ -690,9 +697,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
       // Also update contact-level fields (project, category, notes) that CreateVisitEvent doesn't save
       context.read<ContactBloc>().add(UpdateContactEvent(contact.contactId!, params));
     } else {
-      context.read<ContactBloc>().add(
-        UpdateContactEvent(contact.contactId!, params),
-      );
+      context.read<ContactBloc>().add(   UpdateContactEvent(contact.contactId!, params), );
     }
   }
 
@@ -704,8 +709,20 @@ class _ContactAddPageState extends State<ContactAddPage> {
       return;
     }
 
-    final params = CreateVisitParams(
-      contactId: widget.args.dataContact!.contactId!,
+    final contact = widget.args.dataContact;
+    final editParams = widget.args.createContactParams;
+
+    if (contact == null) return;
+
+    final firstVisitDate = (contact.firstVisitDate == null && selectedDate != null)
+        ? DateFormat('yyyy-MM-dd').format(selectedDate!)
+        : null;
+    final lastVisitDate = selectedDate != null
+        ? DateFormat('yyyy-MM-dd').format(selectedDate!)
+        : null;
+
+    final paramsVisit = CreateVisitParams(
+      contactId: contact.contactId!,
       statusProspectId: selectedStatusId!,
       visitCount: int.parse(jmlDatang),
       activityDate: DateFormat('yyyy-MM-dd HH:mm:ss').format(selectedDate!),
@@ -714,7 +731,46 @@ class _ContactAddPageState extends State<ContactAddPage> {
       filesBytesData: selectedImageBytes.isEmpty ? null : selectedImageBytes,
     );
 
-    context.read<ActivityVisitBloc>().add(CreateVisitEvent(params));
+    final paramsContact = CreateContactParams(
+      salutation: editParams?.salutation,
+      fullName: editParams?.fullName,
+      primaryPhone: editParams?.primaryPhone,
+      whatsappNumber: editParams?.whatsappNumber,
+      primaryEmail: editParams?.primaryEmail,
+      salesExecutiveId: editParams?.salesExecutiveId,
+      salesManagerId: editParams?.salesManagerId,
+      salesSupervisorId: editParams?.salesSupervisorId,
+      salesTeamId: editParams?.salesTeamId,
+      salesChannelId: editParams?.salesChannelId,
+      sumberInformasi2: editParams?.sumberInformasi2,
+      dealValue: editParams?.dealValue,
+      noKtp: editParams?.noKtp,
+      ktpAddress: editParams?.ktpAddress,
+      propertiesJson: editParams?.propertiesJson,
+      firstProjectId: editParams?.firstProjectId,
+      firstClusterId: editParams?.firstClusterId,
+      firstCommercialId: editParams?.firstCommercialId,
+      firstProductId: editParams?.firstProductId,
+      firstBlokNo: editParams?.firstBlokNo,
+      firstProject: editParams?.firstProject,
+      firstProjectCategory: editParams?.firstProjectCategory,
+      firstProduct: editParams?.firstProduct,
+      statusProspectId: selectedStatusId,
+      generalNotes: descTC.text.isNotEmpty ? descTC.text : null,
+      lastBlokNo: lBlockNoTC.text.isNotEmpty ? lBlockNoTC.text : null,
+      lastProject: selectedProject,
+      lastProjectId: selectedTownshipId,
+      lastProduct: selectedProduct,
+      lastProjectCategory: selectedProjectCategory,
+      productType: selectedProductType,
+      volumePlan: volumeTC.text.isNotEmpty ? volumeTC.text : null,
+      visitCount: int.tryParse(jmlDatang),
+      firstVisitDate: firstVisitDate,
+      lastVisitDate: lastVisitDate,
+    );
+
+    context.read<ActivityVisitBloc>().add(CreateVisitEvent(paramsVisit));
+    context.read<ContactBloc>().add(UpdateContactEvent(contact.contactId!, paramsContact));
   }
 
   @override
@@ -827,6 +883,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
                 selectedProject = data.lastProject ?? data.firstProject;
                 selectedProduct = (data.lastProduct?.isNotEmpty == true) ? data.lastProduct : null;
                 selectedProjectCategory = data.lastProjectCategory;
+                selectedProductType = data.productType?.isNotEmpty == true ? data.productType : null;
                 lBlockNoTC.text = data.lastBlokNo ?? '';
                 jmlDatang = data.visitCount?.toString() ?? "1";
                 volumeTC.text = data.volumePlan?.toString() ?? "0";
@@ -1204,21 +1261,16 @@ class _ContactAddPageState extends State<ContactAddPage> {
         return BlocBuilder<ActivityVisitBloc, VisitState>(
           builder: (context, visitState) {
             const visitStatusIds = [63, 64, 65, 66, 67, 68, 69];
-            final isVisitFlow =
-                widget.args.page == 4 ||
-                visitStatusIds.contains(selectedStatusId);
+            final isVisitFlow = widget.args.page == 4 || visitStatusIds.contains(selectedStatusId);
 
-            final isContactLoading =
-                contactState.status == ContactStatus.creating;
+            final isContactLoading = contactState.status == ContactStatus.creating;
             final isVisitLoading = visitState is VisitLoading;
             final isLoading = isVisitFlow ? isVisitLoading : isContactLoading;
 
             return customButton(
-              isLoading
-                  ? null
-                  : () => widget.args.page == 4
-                        ? _submitVisit(context)
-                        : _submitUpdateStatus(context),
+              isLoading ? null : () => widget.args.page == 4
+                  ? _submitVisit(context)
+                  : _submitUpdateStatus(context),
               widget.args.buttonLabel ?? 'Save',
             );
           },
@@ -1458,11 +1510,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
                         : Colors.black,
                   ),
                 ),
-                Icon(
-                  Icons.keyboard_arrow_down_rounded,
-                  color: Color(grey2Color),
-                  size: 30,
-                ),
+                const Icon(Icons.arrow_drop_down, size: 28),
               ],
             ),
           ),
@@ -1548,11 +1596,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
                         : Colors.black,
                   ),
                 ),
-                Icon(
-                  Icons.keyboard_arrow_down_rounded,
-                  color: Color(grey2Color),
-                  size: 30,
-                ),
+                const Icon(Icons.arrow_drop_down, size: 28),
               ],
             ),
           ),
@@ -1608,6 +1652,8 @@ class _ContactAddPageState extends State<ContactAddPage> {
                   selectedProject = selected.name;
                   selectedTownshipId = selected.id;
                   selectedProduct = null;
+                  selectedProductType = null;
+                  lBlockNoTC.clear();
                 });
                 context.read<SalesKitDetailBloc>().add(
                   LoadSalesKitDetailEvent(selected.id!),
@@ -1641,11 +1687,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
                         : Colors.black,
                   ),
                 ),
-                Icon(
-                  Icons.keyboard_arrow_down_rounded,
-                  color: Color(grey2Color),
-                  size: 30,
-                ),
+                const Icon(Icons.arrow_drop_down, size: 28),
               ],
             ),
           ),
@@ -1706,11 +1748,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
                   "${jmlDatang}",
                   style: TextStyle(fontSize: 14, color: Colors.black),
                 ),
-                Icon(
-                  Icons.keyboard_arrow_down_rounded,
-                  color: Color(grey2Color),
-                  size: 30,
-                ),
+                const Icon(Icons.arrow_drop_down, size: 28),
               ],
             ),
           ),
@@ -1752,6 +1790,9 @@ class _ContactAddPageState extends State<ContactAddPage> {
 
               setState(() {
                 selectedProjectCategory = selected.name;
+                selectedProduct = null;
+                selectedProductType = null;
+                lBlockNoTC.clear();
               });
             }
           },
@@ -1776,16 +1817,83 @@ class _ContactAddPageState extends State<ContactAddPage> {
                         : Colors.black,
                   ),
                 ),
-                Icon(
-                  Icons.keyboard_arrow_down_rounded,
-                  color: Color(grey2Color),
-                  size: 30,
-                ),
+                const Icon(Icons.arrow_drop_down, size: 28),
               ],
             ),
           ),
         ),
         SizedBox(height: 12),
+
+        Text(
+          "Product Type",
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.bold,
+            color: Color(grey2Color),
+          ),
+        ),
+        SizedBox(height: 6),
+        GestureDetector(
+          onTap: () async {
+            final ptState = context.read<ProductTypeBloc>().state;
+            final items = ptState.types
+                .asMap()
+                .entries
+                .map((e) => OwnerDropdownItem(id: e.key, name: e.value))
+                .toList();
+            if (ptState.status == ProductTypeStatus.loading) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Memuat data product type...')),
+              );
+              return;
+            }
+            if (items.isEmpty) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Data product type tidak tersedia')),
+              );
+              return;
+            }
+            final result = await context.pushNamed(
+              'detailContactDropdown',
+              extra: ContactDropdownArgs(
+                title: 'Pilih Product Type',
+                items: items,
+                selectedName: selectedProductType,
+              ),
+            );
+            if (result != null) {
+              final selected = result as OwnerDropdownItem;
+              setState(() => selectedProductType = selected.name);
+            }
+          },
+          child: Container(
+            width: double.infinity,
+            height: 40,
+            decoration: BoxDecoration(
+              border: Border.all(color: Color(grey8Color)),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            padding: EdgeInsets.symmetric(horizontal: 16),
+            alignment: Alignment.centerLeft,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  selectedProductType ?? "Select product type",
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: selectedProductType == null
+                        ? Color(grey2Color)
+                        : Colors.black,
+                  ),
+                ),
+                const Icon(Icons.arrow_drop_down, size: 28),
+              ],
+            ),
+          ),
+        ),
+        SizedBox(height: 12),
+
         Text(
           "Product",
           style: TextStyle(
@@ -1863,11 +1971,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
                         : Colors.black,
                   ),
                 ),
-                Icon(
-                  Icons.keyboard_arrow_down_rounded,
-                  color: Color(grey2Color),
-                  size: 30,
-                ),
+                const Icon(Icons.arrow_drop_down, size: 28),
               ],
             ),
           ),
@@ -2090,11 +2194,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
                             child: CircularProgressIndicator(strokeWidth: 2),
                           )
                         else
-                          Icon(
-                            Icons.keyboard_arrow_down_rounded,
-                            color: Color(grey2Color),
-                            size: 30,
-                          ),
+                          const Icon(Icons.arrow_drop_down, size: 28),
                       ],
                     ),
                   ),

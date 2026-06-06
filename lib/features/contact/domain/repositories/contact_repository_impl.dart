@@ -278,4 +278,14 @@ class ContactRepositoryImpl implements ContactRepository {
       return Left(e.toString());
     }
   }
+
+  @override
+  Future<Either<String, List<String>>> getProductTypes() async {
+    try {
+      final result = await remoteDataSource.getProductTypes();
+      return Right(result);
+    } catch (e) {
+      return Left(e.toString());
+    }
+  }
 }

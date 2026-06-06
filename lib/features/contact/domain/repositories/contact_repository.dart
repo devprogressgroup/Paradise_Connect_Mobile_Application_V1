@@ -41,4 +41,5 @@ abstract class ContactRepository {
   Future<Either<String, List<PropertyUnitCluster>>> getPropertyUnits({required int townshipId});
   Future<Either<String, List<PropertyUnitCluster>>> getPropertyCommercialUnits({required int townshipId});
   Future<Either<String, List<PameranAktifEntity>>> getPameranAktif();
+  Future<Either<String, List<String>>> getProductTypes();
 }

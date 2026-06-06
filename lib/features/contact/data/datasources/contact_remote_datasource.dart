@@ -65,6 +65,7 @@ abstract class ContactRemoteDataSource {
   Future<List<PropertyUnitClusterModel>> getPropertyUnits({required int townshipId});
   Future<List<PropertyUnitClusterModel>> getPropertyCommercialUnits({required int townshipId});
   Future<List<PameranAktifModel>> getPameranAktif();
+  Future<List<String>> getProductTypes();
 }
 
 class ContactRemoteDataSourceImpl implements ContactRemoteDataSource {
@@ -568,6 +569,20 @@ class ContactRemoteDataSourceImpl implements ContactRemoteDataSource {
       return [];
     } on DioException catch (e) {
       throw Exception(getErrorMessage(e, 'Gagal memuat data pameran aktif'));
+    }
+  }
+
+  @override
+  Future<List<String>> getProductTypes() async {
+    try {
+      final response = await dio.get('/sales/product-types');
+      if (response.data['status'] == true) {
+        final List<dynamic> data = response.data['data'];
+        return data.map((e) => e.toString()).toList();
+      }
+      return [];
+    } on DioException catch (e) {
+      throw Exception(getErrorMessage(e, 'Gagal memuat product types'));
     }
   }
 }

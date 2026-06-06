@@ -61,6 +61,7 @@ class CreateContactParams extends Equatable {
   final Map<int, Uint8List>? propertyFileBytes;
   final Map<int, String>? propertyFileNames;
   final String? periodePameranDate;
+  final String? productType;
 
   const CreateContactParams({
     this.fullName,
@@ -122,6 +123,7 @@ class CreateContactParams extends Equatable {
     this.propertyFileBytes,
     this.propertyFileNames,
     this.periodePameranDate,
+    this.productType,
   });
 
   Map<String, dynamic> toJson() {
@@ -136,9 +138,9 @@ class CreateContactParams extends Equatable {
       if (firstProject != null) 'first_project': firstProject,
       if (lastProject != null) 'last_project': lastProject,
       if (firstProduct != null) 'first_product': firstProduct,
-      if (lastProduct != null) 'last_product': lastProduct,
+      'last_product': lastProduct,
       if (firstProjectCategory != null) 'first_project_category': firstProjectCategory,
-      if (lastProjectCategory != null) 'last_project_category': lastProjectCategory,
+      'last_project_category': lastProjectCategory,
       if (firstBlokNo != null) 'first_blok_no': firstBlokNo,
       if (lastBlokNo != null) 'last_blok_no': lastBlokNo,
       if (ownerId != null) 'owner_id': ownerId,
@@ -183,6 +185,7 @@ class CreateContactParams extends Equatable {
       if (firstProductId != null) 'first_product_id': firstProductId,
       if (lastProductId != null) 'last_product_id': lastProductId,
       if (periodePameranDate != null) 'periode_pameran_date': periodePameranDate,
+      'product_type': productType,
     };
   }
 
@@ -247,5 +250,6 @@ class CreateContactParams extends Equatable {
     propertyFileBytes,
     propertyFileNames,
     periodePameranDate,
+    productType,
   ];
 }
