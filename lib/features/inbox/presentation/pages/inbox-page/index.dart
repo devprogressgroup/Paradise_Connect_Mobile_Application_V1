@@ -603,7 +603,7 @@ class _InboxPageState extends State<InboxPage> {
             itemBuilder: (context, index) {
               final item = items[index];
 
-              return InkWell(
+              return RepaintBoundary(child: InkWell(
                 onTap: () async {
                   await context.pushNamed(
                     'detailInbox',
@@ -704,7 +704,7 @@ class _InboxPageState extends State<InboxPage> {
                     ],
                   ),
                 ),
-              );
+              ));
             },
           ),
         ),

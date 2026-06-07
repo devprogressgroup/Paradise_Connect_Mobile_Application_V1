@@ -351,7 +351,7 @@ class _ContactPageState extends State<ContactPage> {
                                             return const ShimmerContactItem();
                                           }
                                           final contact = state.contacts[index];
-                                          return _buildListContacts(context, contact);
+                                          return RepaintBoundary(child: _buildListContacts(context, contact));
                                         },
                                       ),
                                     );

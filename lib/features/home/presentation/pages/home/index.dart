@@ -216,7 +216,7 @@ class _HomePageState extends State<HomePage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                  BlocBuilder<ProfileBloc, ProfileState>(
+                  RepaintBoundary(child: BlocBuilder<ProfileBloc, ProfileState>(
                     builder: (context, state) {
                       if (state is ProfileLoading) {
                         return buildDashboardTopShimmer();
@@ -250,15 +250,15 @@ class _HomePageState extends State<HomePage> {
                         ],
                       );
                     },
-                  ),
+                  )),
                    SizedBox(height: 12),
-                    _buildComingTask(),
+                    RepaintBoundary(child: _buildComingTask()),
                     SizedBox(height: 12),
-                    _buildProspectStatusSection(),
+                    RepaintBoundary(child: _buildProspectStatusSection()),
                     SizedBox(height: 12),
                     Text("WhatsApp", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                     SizedBox(height: 5),
-                    _buildWhatsAppChart(),
+                    RepaintBoundary(child: _buildWhatsAppChart()),
                     SizedBox(height:15),
                   ],
                 ),

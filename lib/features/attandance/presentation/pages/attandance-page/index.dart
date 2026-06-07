@@ -568,20 +568,16 @@ class _AttandancePageState extends State<AttandancePage> {
     if (profileState is! ProfileLoaded) return;
     final profile = profileState.profile;
 
-    if (profile.nikNumber == null && profile.salesPersonId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Data profil tidak ditemukan')),
-      );
-      return;
-    }
-
-    // Bangun daftar owner (sama persis seperti _filterOwner)
+    // Bangun daftar owner
     final List<OwnerDropdownItem> ownerItems = [];
-    ownerItems.add(OwnerDropdownItem(
-      id: profile.salesPersonId,
-      name: profile.fullName,
-      subtitle: profile.positionName,
-    ));
+    // Tambahkan diri sendiri hanya jika punya data kehadiran (salesPersonId atau nikNumber)
+    if (profile.salesPersonId != null || profile.nikNumber != null) {
+      ownerItems.add(OwnerDropdownItem(
+        id: profile.salesPersonId,
+        name: profile.fullName,
+        subtitle: profile.positionName,
+      ));
+    }
     void addSubs(List<HierarchyNodeEntity> subs) {
       for (final s in subs) {
         ownerItems.add(OwnerDropdownItem(
@@ -593,6 +589,15 @@ class _AttandancePageState extends State<AttandancePage> {
       }
     }
     addSubs(profile.subordinates);
+
+    if (ownerItems.isEmpty) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Tidak ada data karyawan yang dapat diunduh')),
+        );
+      }
+      return;
+    }
 
     final now = DateTime.now();
     DateTime startDate = DateTime(now.year, now.month, 1);
@@ -1377,7 +1382,7 @@ class _AttandancePageState extends State<AttandancePage> {
                     physics: const NeverScrollableScrollPhysics(),
                     padding: EdgeInsets.zero,
                     itemCount: data.length,
-                    itemBuilder: (_, i) => _buildCardAttendance(data[i]),
+                    itemBuilder: (_, i) => RepaintBoundary(child: _buildCardAttendance(data[i])),
                   ),
                   if (state.attendanceLoadingMore)
                     const Padding(
@@ -1502,32 +1507,34 @@ class _AttandancePageState extends State<AttandancePage> {
                       final dateLabel = parsedDate != null
                           ? DateHelper.formatToIndonesian(parsedDate)
                           : date;
-                      return Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Padding(
-                            padding: const EdgeInsets.only(top: 12, bottom: 10),
-                            child: Text(
-                              dateLabel,
-                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                      return RepaintBoundary(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Padding(
+                              padding: const EdgeInsets.only(top: 12, bottom: 10),
+                              child: Text(
+                                dateLabel,
+                                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                              ),
                             ),
-                          ),
-                          ...items.map((e) => _buildCardActivityNew(
-                            fullName: e.fullName,
-                            photoUrl: e.photoUrl,
-                            type: e.type,
-                            typeColor: e.typeColor,
-                            datetime: e.datetime,
-                            location: e.location,
-                            contactName: e.contactName,
-                            note: e.note,
-                            images: e.images,
-                            statusValidasi: e.statusValidasi,
-                            noteValidasi: e.noteValidasi,
-                            logId: e.logId,
-                            isAtasan: isAtasan,
-                          )),
-                        ],
+                            ...items.map((e) => _buildCardActivityNew(
+                              fullName: e.fullName,
+                              photoUrl: e.photoUrl,
+                              type: e.type,
+                              typeColor: e.typeColor,
+                              datetime: e.datetime,
+                              location: e.location,
+                              contactName: e.contactName,
+                              note: e.note,
+                              images: e.images,
+                              statusValidasi: e.statusValidasi,
+                              noteValidasi: e.noteValidasi,
+                              logId: e.logId,
+                              isAtasan: isAtasan,
+                            )),
+                          ],
+                        ),
                       );
                     },
                   );

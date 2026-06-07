@@ -313,16 +313,22 @@ class _TaskPageState extends State<TaskPage> {
 
             items.sort((a, b) => b.datetime.compareTo(a.datetime));
 
+            final List<Widget> headers = [
+              const SizedBox(height: 8),
+              if (!_isApprovalFiltered) const AttendanceAlertsWidget(),
+            ];
+            final int totalCount = headers.length + (items.isEmpty ? 1 : items.length);
+
             return RefreshIndicator(
               onRefresh: () async => _loadAll(),
-              child: ListView(
+              child: ListView.builder(
                 physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
                 padding: const EdgeInsets.symmetric(horizontal: 16),
-                children: [
-                  const SizedBox(height: 8),
-                  if (!_isApprovalFiltered) const AttendanceAlertsWidget(),
-                  if (items.isEmpty)
-                    Padding(
+                itemCount: totalCount,
+                itemBuilder: (_, i) {
+                  if (i < headers.length) return headers[i];
+                  if (items.isEmpty) {
+                    return Padding(
                       padding: const EdgeInsets.all(32),
                       child: Center(
                         child: Column(
@@ -333,11 +339,14 @@ class _TaskPageState extends State<TaskPage> {
                           ],
                         ),
                       ),
-                    ),
-                  ...items.map((item) => item.type == _ItemType.activity
+                    );
+                  }
+                  final item = items[i - headers.length];
+                  final Widget child = item.type == _ItemType.activity
                       ? _buildActivityItem(item.data as ActivityEntity)
-                      : _buildApprovalItem(item.data as AttendanceApprovalEntity)),
-                ],
+                      : _buildApprovalItem(item.data as AttendanceApprovalEntity);
+                  return RepaintBoundary(child: child);
+                },
               ),
             );
           },

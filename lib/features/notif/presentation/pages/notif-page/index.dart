@@ -373,24 +373,32 @@ class _NotifPageState extends State<NotifPage> {
                 final showWhatsapp = !_isApprovalFiltered &&
                     (!_isActivityFiltered || _selectedActivity.value == 'whatsapp');
 
+                // Header widgets (jumlahnya kecil/tetap)
+                final List<Widget> headers = [
+                  if (showAttendanceAlerts) const AttendanceAlertsWidget(),
+                  if (showWhatsapp)
+                    BlocBuilder<WhatsappActivityBloc, WhatsappActivityState>(
+                      builder: (_, ws) {
+                        if (ws.status == WhatsappUnreadSummaryStatus.loaded && ws.data.isNotEmpty) {
+                          return Column(children: ws.data.map(_whatsappItem).toList());
+                        }
+                        return const SizedBox();
+                      },
+                    ),
+                ];
+
+                final int totalCount = headers.length + (items.isEmpty ? 1 : items.length);
+
                 return RefreshIndicator(
                   onRefresh: () async => _loadAll(),
-                  child: ListView(
+                  child: ListView.builder(
                     physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
                     padding: const EdgeInsets.symmetric(horizontal: 16),
-                    children: [
-                      if (showAttendanceAlerts) const AttendanceAlertsWidget(),
-                      if (showWhatsapp)
-                        BlocBuilder<WhatsappActivityBloc, WhatsappActivityState>(
-                          builder: (_, ws) {
-                            if (ws.status == WhatsappUnreadSummaryStatus.loaded && ws.data.isNotEmpty) {
-                              return Column(children: ws.data.map(_whatsappItem).toList());
-                            }
-                            return const SizedBox();
-                          },
-                        ),
-                      if (items.isEmpty)
-                        Padding(
+                    itemCount: totalCount,
+                    itemBuilder: (_, i) {
+                      if (i < headers.length) return headers[i];
+                      if (items.isEmpty) {
+                        return Padding(
                           padding: const EdgeInsets.all(32),
                           child: Center(
                             child: Column(
@@ -401,13 +409,19 @@ class _NotifPageState extends State<NotifPage> {
                               ],
                             ),
                           ),
-                        ),
-                      ...items.map((item) {
-                        if (item.type == _NotifType.activity) return _activityItem(context, item.data as ActivityEntity);
-                        if (item.type == _NotifType.approval) return _approvalItem(item.data as AttendanceApprovalEntity);
-                        return _pushNotifItem(item.data as ReceivedNotifEntity);
-                      }),
-                    ],
+                        );
+                      }
+                      final item = items[i - headers.length];
+                      final Widget child;
+                      if (item.type == _NotifType.activity) {
+                        child = _activityItem(context, item.data as ActivityEntity);
+                      } else if (item.type == _NotifType.approval) {
+                        child = _approvalItem(item.data as AttendanceApprovalEntity);
+                      } else {
+                        child = _pushNotifItem(item.data as ReceivedNotifEntity);
+                      }
+                      return RepaintBoundary(child: child);
+                    },
                   ),
                 );
               },
