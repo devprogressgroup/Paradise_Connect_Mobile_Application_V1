@@ -1,7 +1,5 @@
 
 
-import 'dart:convert';
-
 import 'package:dio/dio.dart';
 import 'package:progress_group/core/utils/helpers/error_message.dart';
 import 'package:progress_group/features/contact/data/models/activity/activitty_prospect_status._model.dart';
@@ -225,12 +223,6 @@ class ContactRemoteDataSourceImpl implements ContactRemoteDataSource {
       data['properties_json'] = propertiesList;
     }
 
-    print('[CREATE CONTACT] ${const JsonEncoder.withIndent('  ').convert({
-      'params_toJson': params.toJson(),
-      'formData': data,
-      'properties_json': propertiesList,
-    })}');
-
     return FormData.fromMap(data);
   }
 
@@ -243,7 +235,6 @@ class ContactRemoteDataSourceImpl implements ContactRemoteDataSource {
       }
       throw Exception(response.data['message'] ?? 'Failed to create contact');
     } on DioException catch (e) {
-      print("error create contact: ${e.response?.data}");
       throw Exception(getErrorMessage(e, 'Failed to create contact'));
     }
   }
@@ -262,7 +253,6 @@ class ContactRemoteDataSourceImpl implements ContactRemoteDataSource {
       }
       return ContactModel.fromJson(response.data['data']);
     } on DioException catch (e) {
-      print("error update contact: ${e.response?.data}");
       throw Exception(getErrorMessage(e, 'Failed to update contact'));
     }
   }
@@ -470,7 +460,6 @@ class ContactRemoteDataSourceImpl implements ContactRemoteDataSource {
       if (response.data['status'] == true) {
         final List<dynamic> data = response.data['data'];
 
-        print('[ATTACHMENTS] raw: ${const JsonEncoder.withIndent('  ').convert(data)}');
         return data.map((json) => ContactAttachmentModel.fromJson(json)).toList();
       }
 

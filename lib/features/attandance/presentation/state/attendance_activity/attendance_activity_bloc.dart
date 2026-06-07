@@ -1,4 +1,5 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:progress_group/core/utils/helpers/error_message.dart';
 import 'package:progress_group/features/attandance/domain/entities/attendance_activity_entity.dart';
 import 'package:progress_group/features/attandance/domain/usecase/get_attendance_activity.dart';
 import 'package:progress_group/features/attandance/domain/usecase/validasi_check_in.dart';
@@ -91,7 +92,7 @@ class AttendanceActivityBloc extends Bloc<AttendanceActivityEvent, AttendanceAct
           activityLoadingMore: false,
         ));
       } catch (e) {
-        emit(AttendanceActivityError(e.toString()));
+        emit(AttendanceActivityError(cleanErrorMessage(e)));
       }
     });
   }

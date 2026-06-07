@@ -110,9 +110,33 @@ class _SitePlanPageState extends State<SitePlanPage> {
         NavigationDelegate(
           onProgress: (p) => setState(() => _loadingProgress = p / 100),
           onPageStarted: (_) => setState(() => _isWebviewLoading = true),
-          onPageFinished: (_) => setState(() => _isWebviewLoading = false),
+          onPageFinished: (_) {
+            setState(() => _isWebviewLoading = false);
+            _resetZoomToDefault();
+          },
         ),
       );
+  }
+
+  void _resetZoomToDefault() {
+    _controller.runJavaScript('''
+      (function() {
+        try {
+          var meta = document.querySelector('meta[name="viewport"]');
+          if (!meta) {
+            meta = document.createElement('meta');
+            meta.name = 'viewport';
+            if (document.head) document.head.appendChild(meta);
+          }
+          var content = meta.getAttribute('content') || '';
+          if (content.indexOf('initial-scale') < 0) {
+            meta.setAttribute('content', (content ? content + ', ' : '') + 'initial-scale=1.0');
+          } else {
+            meta.setAttribute('content', content.replace(/initial-scale=[\\d.]+/, 'initial-scale=1.0'));
+          }
+        } catch(e) {}
+      })();
+    ''');
   }
 
   Future<void> _loadSite(ProjectSite site) async {

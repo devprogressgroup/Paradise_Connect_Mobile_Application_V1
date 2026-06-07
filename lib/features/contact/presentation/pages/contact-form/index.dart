@@ -469,7 +469,6 @@ class _ContactFormPageState extends State<ContactFormPage> {
     createAdTC.text = contact.createdAt != null ? DateHelper.formatDate(DateTime.parse(contact.createdAt!)) : '';
     lastLostDateTC.text = contact.lastLostDate != null ? DateHelper.formatDate(DateTime.parse(contact.lastLostDate!)) : '';
 
-    print("data contact: $contact");
     setState(() {
       selectedSalutation = contact.salutation;
       selectedOwnerId = contact.ownerId ?? contact.salesExecutiveId;
@@ -872,14 +871,6 @@ class _ContactFormPageState extends State<ContactFormPage> {
       }
     });
 
-    print('=== [Owner Selected] ownerUserId: $ownerUserId ===');
-    for (final f in salesInfoFields) {
-      print('  ${f['label']}: ${f['name']} (id: ${f['id']})');
-    }
-    print('  selectedSalesExecutiveId: $selectedSalesExecutiveId');
-    print('  selectedSalesManagerId: $selectedSalesManagerId');
-    print('  selectedSupervisorId: $selectedSupervisorId');
-    print('  selectedTeamId: $selectedTeamId');
   }
 
   void dispose() {
@@ -990,7 +981,6 @@ class _ContactFormPageState extends State<ContactFormPage> {
   }
 
   Future<void> _handleSave() async {
-    print('handleSave : ${selectedStatusId?.toString()}');
     final today = DateHelper.formatDate(DateTime.now());
     final isCreate = widget.args.page == 0;
     final isUpdate = widget.args.page == 1;
@@ -1040,13 +1030,6 @@ class _ContactFormPageState extends State<ContactFormPage> {
     _propertyControllers.forEach((id, ctrl) {
       if (ctrl.text.isNotEmpty) propertiesJson.add({'property_id': id, 'property_value': ctrl.text});
     });
-
-    print('[HANDLE_SAVE] selectedOwnerId: $selectedOwnerId');
-    print('[HANDLE_SAVE] selectedSalesExecutiveId: $selectedSalesExecutiveId');
-    print('[HANDLE_SAVE] selectedSalesManagerId: $selectedSalesManagerId');
-    print('[HANDLE_SAVE] selectedSupervisorId: $selectedSupervisorId');
-    print('[HANDLE_SAVE] selectedGeneralManagerId: $selectedGeneralManagerId');
-    print('[HANDLE_SAVE] selectedTeamId: $selectedTeamId');
 
     final params = CreateContactParams(
       salutation: selectedSalutation ?? '',
@@ -1422,14 +1405,6 @@ class _ContactFormPageState extends State<ContactFormPage> {
                                     selectedOwnerName = owner.name;
                                   });
                                   _updateSalesInformation(owner.id ?? 0, user);
-
-                                  // Print IDs of all atasan in hierarchy chain
-                                  final atasanIds = salesInfoFields
-                                      .where((f) => f['id'] != owner.id)
-                                      .map((f) => '${f['label']}: ${f['id']}')
-                                      .toList();
-                                  print("Owner selected: ${owner.id} (${owner.name})");
-                                  print("Atasan IDs: $atasanIds");
                                 }
                               }
                             },
@@ -1465,7 +1440,6 @@ class _ContactFormPageState extends State<ContactFormPage> {
                                       selectedStatusId = picked.statusProspectId;
                                       selectedStatusProspectName = picked.statusProspectName;
                                     });
-                                    print('createContactParams after status pick: ${createContactParams.toJson()}');
                                   }
                                 }
                               } else {

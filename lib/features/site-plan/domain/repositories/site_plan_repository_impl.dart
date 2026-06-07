@@ -1,6 +1,4 @@
-import 'dart:convert';
-
-import 'package:flutter/foundation.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:progress_group/core/network/api_constants.dart';
 
 import '../../data/datasources/siteplan_remote_datasource.dart';
@@ -21,7 +19,6 @@ class SitePlanRepositoryImpl implements SitePlanRepository {
   @override
   Future<List<ProjectSite>> getAvailableSites() async {
     final data = await dataSource.getSiteplanSettings();
-    debugPrint('SITE PLAN response: ${jsonEncode(data)}');
     final List<ProjectSite> sites = [];
     final townships = data['townships'] as List<dynamic>? ?? [];
 
@@ -50,7 +47,6 @@ class SitePlanRepositoryImpl implements SitePlanRepository {
             headers = _webviewHeaders;
           }
 
-          debugPrint('SITE PLAN [SitePlan] URL: $url');
           sites.add(
             ProjectSite(
               groupName:

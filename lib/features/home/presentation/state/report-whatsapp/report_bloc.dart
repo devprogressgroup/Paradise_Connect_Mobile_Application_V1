@@ -1,4 +1,5 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:progress_group/core/utils/helpers/error_message.dart';
 import 'package:progress_group/features/home/presentation/state/report-whatsapp/report_event.dart';
 import 'package:progress_group/features/home/presentation/state/report-whatsapp/report_state.dart';
 
@@ -18,7 +19,7 @@ class ReportBloc extends Bloc<ReportEvent, ReportState> {
         );
         emit(ReportLoaded(result));
       } catch (e) {
-        emit(ReportError(e.toString()));
+        emit(ReportError(cleanErrorMessage(e)));
       }
     });
   }

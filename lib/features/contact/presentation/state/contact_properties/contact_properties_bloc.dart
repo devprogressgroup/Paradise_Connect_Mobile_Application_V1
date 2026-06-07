@@ -22,7 +22,6 @@ class ContactPropertiesBloc
         state.copyWith(status: ContactPropertiesStatus.error, errorMessage: l),
       ),
       (r) {
-        print('[ContactProperties] groups: ${r.map((g) => {'name': g.name, 'label': g.label, 'properties': g.properties.map((p) => {'id': p.propertyId, 'label': p.label, 'type': p.fieldType}).toList()}).toList()}');
         emit(state.copyWith(status: ContactPropertiesStatus.loaded, groups: r));
       },
     );

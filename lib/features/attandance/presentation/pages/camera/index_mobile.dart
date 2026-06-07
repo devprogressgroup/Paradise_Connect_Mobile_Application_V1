@@ -213,8 +213,8 @@ class _CameraPageState extends State<CameraPage> {
                 context.go('/attandance');
               }
             } else if (state is AttendanceError) {
-              final msg = state.message.startsWith('Exception: ')
-                  ? state.message.replaceFirst('Exception: ', '')
+              final msg = state.message.startsWith('  ')
+                  ? state.message.replaceFirst('  ', '')
                   : state.message;
               if (msg == 'SESSION_EXPIRED' || msg.contains('[cancel]')) return;
               showDialog(

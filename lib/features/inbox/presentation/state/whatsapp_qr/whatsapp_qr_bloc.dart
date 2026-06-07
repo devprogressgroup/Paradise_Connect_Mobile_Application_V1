@@ -1,5 +1,6 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:progress_group/core/network/api_constants.dart';
+import 'package:progress_group/core/utils/helpers/error_message.dart';
 import 'package:progress_group/features/inbox/domain/usecases/get_qr_session_usecase.dart';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
 
@@ -60,10 +61,9 @@ class WhatsappQrBloc extends Bloc<WhatsappQrEvent, WhatsappQrState> {
       emit(WhatsappQrStreaming());
 
       // 3. Connect ke Socket.IO
-      print("Socket.IO Connecting to: ${ApiConstants.waServerURL}");
       _connectSocket(event.session);
     } catch (e) {
-      emit(WhatsappQrError(e.toString()));
+      emit(WhatsappQrError(cleanErrorMessage(e)));
     }
   }
 
@@ -99,12 +99,9 @@ class WhatsappQrBloc extends Bloc<WhatsappQrEvent, WhatsappQrState> {
       'autoConnect': true,
     });
 
-    _socket?.onConnect((_) {
-      print('Socket terhubung untuk session: $session');
-    });
+    _socket?.onConnect((_) {});
 
     _socket?.on('qr', (data) {
-      print('Menerima Socket QR event');
       if (data is Map && data['sessionId'] == session) {
         String qrFull = data['qr'].toString();
         // Buang 'data:image/png;base64,' agar sisa string Base64 murni
@@ -114,7 +111,6 @@ class WhatsappQrBloc extends Bloc<WhatsappQrEvent, WhatsappQrState> {
     });
 
     _socket?.on('status', (data) {
-      print('Menerima Socket Status Event: $data');
       if (data is Map && data['status'] == 'CONNECTED') {
         add(UpdateConnectionStatusEvent('CONNECTED'));
         // Optional: otomatis putuskan socket jika udah sukses sambung

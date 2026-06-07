@@ -2,6 +2,7 @@
 
 
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:progress_group/core/utils/helpers/error_message.dart';
 import 'package:progress_group/features/auth/domain/usecase/clear_remember_me_usecase.dart';
 import 'package:progress_group/features/auth/domain/usecase/forgot_password_usecase.dart';
 import 'package:progress_group/features/auth/domain/usecase/get_biometric_enabled_usecase.dart';
@@ -58,7 +59,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       final (user, message) = await loginUseCase(event.username, event.password, rememberMe: event.rememberMe,);
       emit(LoginSuccess(message));
     } catch (e) {
-      emit(AuthFailure(e.toString()));
+      emit(AuthFailure(cleanErrorMessage(e)));
     }
   }
 
@@ -68,7 +69,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       final (data, message) = await forgotPasswordUseCase(event.phone);
       emit(AuthSuccess(message, data: data));
     } catch (e) {
-      emit(AuthFailure(e.toString()));
+      emit(AuthFailure(cleanErrorMessage(e)));
     }
   }
 
@@ -81,7 +82,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
 
       emit(AuthSuccess(message));
     } catch (e) {
-      emit(AuthFailure(e.toString().replaceAll("Exception: ", "")));
+      emit(AuthFailure(cleanErrorMessage(e)));
     }
   }
 
@@ -96,7 +97,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         emit(RememberMeEmpty());
       }
     } catch (e) {
-      emit(AuthFailure(e.toString()));
+      emit(AuthFailure(cleanErrorMessage(e)));
     }
   }
 
@@ -105,7 +106,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       await clearRememberMeUseCase();
       emit(RememberMeEmpty());
     } catch (e) {
-      emit(AuthFailure(e.toString()));
+      emit(AuthFailure(cleanErrorMessage(e)));
     }
   }
 
@@ -124,7 +125,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       await saveBiometricEnabledUseCase(true);
       emit(BiometricEnabledLoaded(true));
     } catch (e) {
-      emit(AuthFailure(e.toString()));
+      emit(AuthFailure(cleanErrorMessage(e)));
     }
   }
 
@@ -133,7 +134,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       await saveBiometricEnabledUseCase(event.enabled);
       emit(BiometricEnabledLoaded(event.enabled));
     } catch (e) {
-      emit(AuthFailure(e.toString()));
+      emit(AuthFailure(cleanErrorMessage(e)));
     }
   }
 
@@ -151,7 +152,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       );
       emit(AuthSuccess(message));
     } catch (e) {
-      emit(AuthFailure(e.toString().replaceAll("Exception: ", "")));
+      emit(AuthFailure(cleanErrorMessage(e)));
     }
   }
 
@@ -164,4 +165,4 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       emit(AuthLoggedOut());
     }
   }
-}
+}

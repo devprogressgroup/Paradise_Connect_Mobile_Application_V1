@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:progress_group/core/utils/helpers/error_message.dart';
 import '../../../domain/usecase/get_attendance_approval_today.dart';
 import '../../../domain/usecase/post_attendance_approval.dart';
 import 'attendance_approval_state.dart';
@@ -97,7 +98,7 @@ class AttendanceApprovalCubit extends Cubit<AttendanceApprovalState> {
           flag: currentState.flag,
         ));
       } else {
-        emit(AttendanceApprovalError(e.toString()));
+        emit(AttendanceApprovalError(cleanErrorMessage(e)));
       }
       throw Exception(e.toString());
     }

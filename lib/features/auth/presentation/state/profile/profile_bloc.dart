@@ -1,4 +1,5 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:progress_group/core/utils/helpers/error_message.dart';
 import '../../../domain/usecase/get_profile_usecase.dart';
 import 'profile_event.dart';
 import 'profile_state.dart';
@@ -18,7 +19,7 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
       final profile = await getProfileUseCase();
       emit(ProfileLoaded(profile));
     } catch (e) {
-      emit(ProfileFailure(e.toString().replaceAll("Exception: ", "")));
+      emit(ProfileFailure(cleanErrorMessage(e)));
     }
   }
 }

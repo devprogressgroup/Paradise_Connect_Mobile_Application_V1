@@ -1,4 +1,5 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:progress_group/core/utils/helpers/error_message.dart';
 import 'package:progress_group/features/saleskit/domain/usecase/get_clusters_usecase.dart';
 import 'package:progress_group/features/saleskit/domain/usecase/get_commercials_usecase.dart';
 import 'saleskit_detail_event.dart';
@@ -21,7 +22,7 @@ class SalesKitDetailBloc extends Bloc<SalesKitDetailEvent, SalesKitDetailState> 
         final commercials = await commercialFuture;
         emit(SalesKitDetailLoaded(clusters: clusters, commercials: commercials));
       } catch (e) {
-        emit(SalesKitDetailError(e.toString()));
+        emit(SalesKitDetailError(cleanErrorMessage(e)));
       }
     });
   }

@@ -126,7 +126,7 @@ class ActivityBloc extends Bloc<ActivityEvent, ActivityState> {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setStringList('seen_activity_ids', newSeen.map((id) => id.toString()).toList());
     } catch (e) {
-      print("Error saving seen activities: $e");
+      // ignore
     }
   }
 
@@ -137,7 +137,7 @@ class ActivityBloc extends Bloc<ActivityEvent, ActivityState> {
       final seenSet = seenList.map((id) => int.tryParse(id)).whereType<int>().toSet();
       emit(state.copyWith(seenActivityIds: seenSet));
     } catch (e) {
-      print("Error loading seen activities: $e");
+      // ignore
     }
   }
 }

@@ -1,4 +1,5 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:progress_group/core/utils/helpers/error_message.dart';
 import 'package:progress_group/features/inbox/domain/usecases/get_messages_usecase.dart';
 import 'package:progress_group/features/inbox/presentation/state/message/message_event.dart';
 import 'package:progress_group/features/inbox/presentation/state/message/message_state.dart';
@@ -45,7 +46,7 @@ class MessageBloc extends Bloc<MessageEvent, MessageState> {
         emit(MessageLoaded(chatHistory));
       }
     } catch (e) {
-      emit(MessageError(e.toString()));
+      emit(MessageError(cleanErrorMessage(e)));
     }
   }
 }

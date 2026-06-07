@@ -1,5 +1,5 @@
-import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:progress_group/core/utils/helpers/error_message.dart';
 import 'package:progress_group/features/attandance/domain/entities/location_entity.dart';
 import 'package:progress_group/features/attandance/domain/usecase/get_attendance.dart';
 import 'package:progress_group/features/attandance/domain/usecase/get_locations.dart';
@@ -48,7 +48,7 @@ class AttendanceBloc extends Bloc<AttendanceEvent, AttendanceState> {
           attendanceLastPage: result.lastPage,
         ));
       } catch (e) {
-        emit(AttendanceError(e.toString()));
+        emit(AttendanceError(cleanErrorMessage(e)));
       }
     });
 
@@ -127,7 +127,7 @@ class AttendanceBloc extends Bloc<AttendanceEvent, AttendanceState> {
           attendanceLastPage: attendanceResult.lastPage,
         ));
       } catch (e) {
-        emit(AttendanceError(e.toString()));
+        emit(AttendanceError(cleanErrorMessage(e)));
       }
     });
 
@@ -142,10 +142,9 @@ class AttendanceBloc extends Bloc<AttendanceEvent, AttendanceState> {
 
       try {
         final locations = await getLocationsUseCase();
-        debugPrint("DEBUG: Pameran Locations fetched: ${locations.length}");
         emit(AttendanceLoaded(data: currentData, locations: locations, officeLocations: officeLocations));
       } catch (e) {
-        emit(AttendanceError(e.toString()));
+        emit(AttendanceError(cleanErrorMessage(e)));
       }
     });
 
@@ -160,10 +159,9 @@ class AttendanceBloc extends Bloc<AttendanceEvent, AttendanceState> {
 
       try {
         final locations = await getOfficeLocationsUseCase();
-        debugPrint("DEBUG: Office Locations fetched: ${locations.length}");
         emit(AttendanceLoaded(data: currentData, locations: pameranLocations, officeLocations: locations));
       } catch (e) {
-        emit(AttendanceError(e.toString()));
+        emit(AttendanceError(cleanErrorMessage(e)));
       }
     });
 
@@ -184,7 +182,7 @@ class AttendanceBloc extends Bloc<AttendanceEvent, AttendanceState> {
         );
         emit(AttendanceSubmitSuccess());
       } catch (e) {
-        emit(AttendanceError(e.toString()));
+        emit(AttendanceError(cleanErrorMessage(e)));
       }
     });
 
@@ -205,7 +203,7 @@ class AttendanceBloc extends Bloc<AttendanceEvent, AttendanceState> {
         );
         emit(AttendanceSubmitSuccess());
       } catch (e) {
-        emit(AttendanceError(e.toString()));
+        emit(AttendanceError(cleanErrorMessage(e)));
       }
     });
   }

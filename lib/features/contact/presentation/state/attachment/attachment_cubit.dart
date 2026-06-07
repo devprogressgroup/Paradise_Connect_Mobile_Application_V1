@@ -1,4 +1,5 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:progress_group/core/utils/helpers/error_message.dart';
 import '../../../domain/usecases/attachment/get_attachments.dart';
 import 'attachment_state.dart';
 import '../../../domain/usecases/attachment/delete_attachment_usecase.dart';
@@ -24,7 +25,7 @@ class AttachmentCubit extends Cubit<AttachmentState> {
         (attachments) => emit(AttachmentLoaded(attachments)),
       );
     } catch (e) {
-      emit(AttachmentError(e.toString()));
+      emit(AttachmentError(cleanErrorMessage(e)));
     }
   }
 
@@ -33,7 +34,7 @@ class AttachmentCubit extends Cubit<AttachmentState> {
       await deleteAttachmentUseCase.call(contactId: contactId, attachmentId: attachmentId,);
       await fetch(contactId, dealId);
     } catch (e) {
-      emit(AttachmentError(e.toString()));
+      emit(AttachmentError(cleanErrorMessage(e)));
     }
   }
 }

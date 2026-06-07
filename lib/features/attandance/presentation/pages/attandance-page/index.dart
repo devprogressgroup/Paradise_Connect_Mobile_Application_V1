@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:typed_data';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:path_provider/path_provider.dart';
@@ -33,6 +34,7 @@ import 'package:progress_group/features/auth/presentation/state/profile/profile_
 import 'package:progress_group/features/contact/data/arguments/contact_dropdown_args.dart';
 import 'package:progress_group/features/contact/data/models/dropdown/date_filter.dart';
 import '../../../../../core/utils/helpers/date_helper.dart';
+import '../../../../../core/utils/helpers/error_message.dart';
 import 'package:progress_group/core/utils/web_download.dart';
 import '../../../../../core/utils/widget/custom_header.dart';
 import '../../../data/arguments/attandance_args.dart';
@@ -257,10 +259,9 @@ class _AttandancePageState extends State<AttandancePage> {
         );
         if (!mounted) return;
         _currentPosition = position;
-        debugPrint('[Location] Web init: ${position.latitude}, ${position.longitude}');
         await _getAddressFromLatLng(position);
       } catch (e) {
-        debugPrint('[Location] Web init error: $e');
+        // ignore
       }
       // Tetap pasang stream untuk update posisi berikutnya di web
       _positionStream = Geolocator.getPositionStream(
@@ -269,7 +270,6 @@ class _AttandancePageState extends State<AttandancePage> {
         ),
       ).listen((Position position) async {
         _currentPosition = position;
-        debugPrint('[Location] Web stream update: ${position.latitude}, ${position.longitude}');
         if (_isProcessing) return;
         _isProcessing = true;
         try {
@@ -280,7 +280,7 @@ class _AttandancePageState extends State<AttandancePage> {
             await _getAddressFromLatLng(position);
           }
         } catch (e) {
-          debugPrint('[Location] Web geocode error: $e');
+          // ignore
         } finally {
           _isProcessing = false;
         }
@@ -308,7 +308,7 @@ class _AttandancePageState extends State<AttandancePage> {
           await _getAddressFromLatLng(position);
         }
       } catch (e) {
-        debugPrint('[Location] Stream error: $e');
+        // ignore
       } finally {
         _isProcessing = false;
       }
@@ -369,7 +369,6 @@ class _AttandancePageState extends State<AttandancePage> {
           : const LocationSettings(accuracy: LocationAccuracy.high);
       return await Geolocator.getCurrentPosition(locationSettings: locationSettings);
     } catch (e) {
-      debugPrint('[Location] getCurrentPosition error: $e');
       return null;
     }
   }
@@ -416,14 +415,10 @@ class _AttandancePageState extends State<AttandancePage> {
 
       // Race condition fix: kalau data belum dimuat, tunggu sebentar
       if (officeLocations.isEmpty) {
-        debugPrint('[Attendance] Office locations belum ada, load ulang...');
         await officeLocationCubit.load();
         if (!mounted) return;
         officeLocations = officeLocationCubit.state;
       }
-
-      debugPrint('[Attendance] officeLocations count: ${officeLocations.length}');
-      debugPrint('[Attendance] device position: ${position.latitude}, ${position.longitude}');
 
       double? nearestDistance;
       double? activeRadius;
@@ -441,7 +436,6 @@ class _AttandancePageState extends State<AttandancePage> {
               lat, lng,
               position.latitude, position.longitude,
             );
-            debugPrint('[Attendance] Office "${office.name}" lat:$lat lng:$lng radius:${office.radius} → jarak: ${d.toStringAsFixed(1)}m');
             if (nearestDistance == null || d < nearestDistance) {
               nearestDistance = d;
               activeRadius = office.radius?.toDouble() ?? radiusMeter;
@@ -450,8 +444,6 @@ class _AttandancePageState extends State<AttandancePage> {
               nearestOfficeLat = office.latitude;
               nearestOfficeLng = office.longitude;
             }
-          } else {
-            debugPrint('[Attendance] Office "${office.name}" lat/lng invalid: ${office.latitude}, ${office.longitude}');
           }
         }
       }
@@ -459,8 +451,6 @@ class _AttandancePageState extends State<AttandancePage> {
       final effectiveDistance = nearestDistance ?? Geolocator.distanceBetween(officeLat, officeLng, position.latitude, position.longitude);
       final effectiveRadius = activeRadius ?? radiusMeter;
       final isInRadius = effectiveDistance <= effectiveRadius;
-
-      debugPrint('[Attendance] nearestOffice: $nearestOfficeName, distance: ${effectiveDistance.toStringAsFixed(1)}m, radius: ${effectiveRadius}m, inRadius: $isInRadius');
 
       if (mounted) ScaffoldMessenger.of(context).hideCurrentSnackBar();
 
@@ -474,7 +464,7 @@ class _AttandancePageState extends State<AttandancePage> {
         ScaffoldMessenger.of(context).hideCurrentSnackBar();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Gagal membuka kamera: ${e.toString().replaceAll("Exception: ", "")}. Coba lagi.'),
+            content: Text('Gagal membuka kamera: ${cleanErrorMessage(e)}. Coba lagi.'),
             backgroundColor: Colors.red,
           ),
         );
@@ -868,6 +858,57 @@ class _AttandancePageState extends State<AttandancePage> {
     );
   }
 
+  void _showPdfOptionsWeb(BuildContext context, Uint8List bytes, String fileName) {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 40,
+                height: 4,
+                margin: const EdgeInsets.only(bottom: 12),
+                decoration: BoxDecoration(
+                  color: Colors.grey[300],
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: Text(
+                  'PDF Kehadiran berhasil diunduh',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                ),
+              ),
+              ListTile(
+                leading: const Icon(Icons.download),
+                title: const Text('Download'),
+                onTap: () {
+                  Navigator.of(ctx).pop();
+                  downloadPdfOnWeb(bytes, fileName);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.open_in_new),
+                title: const Text('Buka di Tab Baru'),
+                onTap: () {
+                  Navigator.of(ctx).pop();
+                  openPdfOnWeb(bytes);
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   Future<void> _savePdfToStorage(String tempFilePath) async {
     try {
       final fileName = tempFilePath.split('/').last;
@@ -903,7 +944,7 @@ class _AttandancePageState extends State<AttandancePage> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Gagal menyimpan: ${e.toString()}')),
+          SnackBar(content: Text('Gagal menyimpan: ${cleanErrorMessage(e)}')),
         );
       }
     }
@@ -934,10 +975,9 @@ class _AttandancePageState extends State<AttandancePage> {
             context.read<AttendancePdfCubit>().reset();
           } else if (state is AttendancePdfWebSuccess) {
             ScaffoldMessenger.of(context).hideCurrentSnackBar();
-            downloadPdfOnWeb(state.bytes, state.fileName);
+            _showPdfOptionsWeb(context, state.bytes, state.fileName);
             context.read<AttendancePdfCubit>().reset();
           } else if (state is AttendancePdfError) {
-            print("Gagal download: ${state.message}");
             ScaffoldMessenger.of(context).hideCurrentSnackBar();
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(content: Text('Gagal download: ${state.message}')),

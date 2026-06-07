@@ -1,4 +1,5 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:progress_group/core/utils/helpers/error_message.dart';
 import 'package:progress_group/features/inbox/domain/usecases/inbox_contact_usecase.dart';
 import 'package:progress_group/features/inbox/presentation/state/inbox/inbox_event.dart';
 import 'package:progress_group/features/inbox/presentation/state/inbox/inbox_statte.dart';
@@ -49,7 +50,7 @@ class InboxContactBloc extends Bloc<InboxContactEvent, InboxContactState> {
         emit(InboxContactLoaded(contacts, groups));
       }
     } catch (e) {
-      emit(InboxContactError(e.toString()));
+      emit(InboxContactError(cleanErrorMessage(e)));
     }
   }
 }

@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:progress_group/core/utils/helpers/error_message.dart';
 import '../../../domain/repositories/attandance_repository.dart';
 import 'attendance_pdf_state.dart';
 
@@ -40,7 +41,7 @@ class AttendancePdfCubit extends Cubit<AttendancePdfState> {
         emit(AttendancePdfSuccess(filePath));
       }
     } catch (e) {
-      emit(AttendancePdfError(e.toString()));
+      emit(AttendancePdfError(cleanErrorMessage(e)));
     }
   }
 

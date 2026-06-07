@@ -1,4 +1,5 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:progress_group/core/utils/helpers/error_message.dart';
 import '../../domain/repositories/site_plan_repository.dart';
 import 'siteplan_event.dart';
 import 'siteplan_state.dart';
@@ -13,7 +14,7 @@ class SiteplanBloc extends Bloc<SiteplanEvent, SiteplanState> {
         final sites = await repository.getAvailableSites();
         emit(SiteplanLoaded(sites));
       } catch (e) {
-        emit(SiteplanError(e.toString()));
+        emit(SiteplanError(cleanErrorMessage(e)));
       }
     });
   }

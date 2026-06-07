@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../../../../core/utils/helpers/date_helper.dart';
+import '../../../../../core/utils/helpers/error_message.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:progress_group/features/attandance/presentation/state/attendance_approval/attendance_approval_cubit.dart';
@@ -386,7 +387,7 @@ class _ApprovalPageState extends State<ApprovalPage> {
                                                       await context.read<AttendanceApprovalCubit>().submitApproval(item.logId, 0);
                                                     } catch (e) {
                                                       if (context.mounted) {
-                                                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed: ${e.toString().replaceAll("Exception: ", "")}')));
+                                                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Gagal: ${cleanErrorMessage(e)}')));
                                                       }
                                                     }
                                                   },
@@ -413,7 +414,7 @@ class _ApprovalPageState extends State<ApprovalPage> {
                                                       await context.read<AttendanceApprovalCubit>().submitApproval(item.logId, 1);
                                                     } catch (e) {
                                                       if (context.mounted) {
-                                                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed: ${e.toString().replaceAll("Exception: ", "")}')));
+                                                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Gagal: ${cleanErrorMessage(e)}')));
                                                       }
                                                     }
                                                   },

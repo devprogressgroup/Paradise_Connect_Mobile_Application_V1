@@ -1,4 +1,5 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:progress_group/core/utils/helpers/error_message.dart';
 import 'package:progress_group/features/inbox/domain/entities/whatsapp_device_entity.dart';
 import 'package:progress_group/features/inbox/domain/usecases/get_whatsapp_devices_usecase.dart';
 
@@ -30,7 +31,7 @@ class WhatsappDeviceBloc extends Bloc<WhatsappDeviceEvent, WhatsappDeviceState> 
         final devices = await getDevices();
         emit(WhatsappDeviceLoaded(devices));
       } catch (e) {
-        emit(WhatsappDeviceError(e.toString()));
+        emit(WhatsappDeviceError(cleanErrorMessage(e)));
       }
     });
   }

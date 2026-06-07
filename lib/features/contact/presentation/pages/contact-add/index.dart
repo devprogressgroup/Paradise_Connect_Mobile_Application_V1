@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter/foundation.dart' show kIsWeb;
@@ -573,15 +572,6 @@ class _ContactAddPageState extends State<ContactAddPage> {
       fileName: selectedFileName,
     );
 
-    print('[submitAttachment] isEdit: $isEdit');
-    print('[submitAttachment] contactId: $contactId');
-    print('[submitAttachment] attachmentId: ${isEdit ? widget.args.dataAttachment?.contactAttachmentId : null}');
-    print('[submitAttachment] attachmentTypeId: ${params.attachmentTypeId}');
-    print('[submitAttachment] attachmentNote: ${params.attachmentNote}');
-    print('[submitAttachment] file: ${params.file?.path}');
-    print('[submitAttachment] fileBytes length: ${params.fileBytes?.length}');
-    print('[submitAttachment] fileName: ${params.fileName}');
-
     context.read<UploadAttachmentBloc>().add(
       SubmitAttachmentEvent(
         params: params,
@@ -618,7 +608,6 @@ class _ContactAddPageState extends State<ContactAddPage> {
     final firstLostDate =(contact?.firstLostDate == null && selectedDate != null)? DateFormat('yyyy-MM-dd').format(selectedDate!): null;
     final lostDate =(selectedStatusId == 43 ||selectedStatusId == 55 ||selectedStatusId == 56 ||selectedStatusId == 57 ||selectedStatusId == 58 ||selectedStatusId == 61 ||selectedStatusId == 62 ||selectedStatusId == 67 ||selectedStatusId == 68 ||selectedStatusId == 69 ||selectedStatusId == 73 ||selectedStatusId == 77 ||selectedStatusId == 78 ||selectedStatusId == 75) &&(selectedDate != null)? DateFormat('yyyy-MM-dd').format(selectedDate!): null;
 
-    print("print save update status");
     if (contact == null) return;
 
     final params = CreateContactParams(
@@ -674,10 +663,6 @@ class _ContactAddPageState extends State<ContactAddPage> {
       lastSPDate: lastSPDate,
       lastVisitDate: lastVisitDate,
       lostDate: lostDate,
-    );
-
-    print(
-      "data update Status Prospect: \n${const JsonEncoder.withIndent('  ').convert(params.toJson())}",
     );
 
     const visitStatusIds = [63, 64, 65, 66, 67, 68, 69];

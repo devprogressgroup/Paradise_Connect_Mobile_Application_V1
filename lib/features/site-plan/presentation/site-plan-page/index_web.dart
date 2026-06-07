@@ -73,6 +73,7 @@ class _SitePlanPageState extends State<SitePlanPage> {
     iframe.onLoad.listen((_) {
       _timeoutTimer?.cancel();
       if (mounted) setState(() => _isLoading = false);
+      _resetIframeZoom(iframe);
     });
 
     ui_web.platformViewRegistry.registerViewFactory(viewId, (_) => iframe);
@@ -88,6 +89,13 @@ class _SitePlanPageState extends State<SitePlanPage> {
       _isLoading           = true;
       _showFallbackBanner  = false;
     });
+  }
+
+  void _resetIframeZoom(html.IFrameElement iframe) {
+    try {
+      // postMessage — works if the site plan app listens for this message type
+      iframe.contentWindow?.postMessage({'type': 'resetZoom', 'scale': 1}, '*');
+    } catch (_) {}
   }
 
   void _openProjectList() async {

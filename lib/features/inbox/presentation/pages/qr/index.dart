@@ -25,7 +25,6 @@ class _QrScannerPageState extends State<QrScannerPage> {
     super.initState();
     initSocket();
     triggerLaravelQR();
-    print("Halaman QR dibuka untuk Session: ${widget.sessionId}");
   }
 
   void initSocket() {
@@ -34,15 +33,13 @@ class _QrScannerPageState extends State<QrScannerPage> {
       'autoConnect': true,
     });
 
-    socket.onConnect((_) => print('Connected to WA Socket Server: ${ApiConstants.waServerURL}'));
+    socket.onConnect((_) {});
 
     socket.on('qr', (data) {
-      print("Socket QR Event Received: $data");
       if (!mounted) return;
-      
+
       // Filter berdasarkan sessionId jika wa-server mengirimkannya
       if (data is Map && data['sessionId'] != null && data['sessionId'] != widget.sessionId) {
-        print("Session ID Mismatch: ${data['sessionId']} vs ${widget.sessionId}");
         return;
       }
 
@@ -70,7 +67,7 @@ class _QrScannerPageState extends State<QrScannerPage> {
       }
     });
 
-    socket.onDisconnect((_) => print('Disconnected from WA Socket Server'));
+    socket.onDisconnect((_) {});
   }
 
   Future<void> triggerLaravelQR() async {
@@ -96,9 +93,7 @@ class _QrScannerPageState extends State<QrScannerPage> {
         }),
       );
 
-      if (response.statusCode == 200) {
-        print("Laravel QR Session Success: ${response.data}");
-      } else {
+      if (response.statusCode != 200) {
         setState(() {
           errorMessage = "Server merespon dengan status: ${response.statusCode}";
           isTriggering = false;
@@ -109,7 +104,6 @@ class _QrScannerPageState extends State<QrScannerPage> {
         errorMessage = "Gagal menghubungi server utama";
         isTriggering = false;
       });
-      print("Error Triggering QR: $e");
     }
   }
 
