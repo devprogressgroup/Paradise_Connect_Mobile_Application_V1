@@ -23,11 +23,14 @@ import 'package:progress_group/features/contact/presentation/state/whatsapp_acti
 import 'package:progress_group/features/contact/presentation/state/whatsapp_activity/whatsapp_unread_summary_event.dart';
 import 'package:progress_group/features/contact/presentation/state/whatsapp_activity/whatsapp_unread_summary_state.dart';
 import 'package:progress_group/app/router.dart';
+import 'package:progress_group/core/services/push_notification_service.dart';
 import 'package:progress_group/features/auth/presentation/state/profile/profile_bloc.dart';
 import 'package:progress_group/features/auth/presentation/state/profile/profile_state.dart';
+import 'package:progress_group/features/notif/domain/entities/received_notif_entity.dart';
+import 'package:progress_group/features/notif/presentation/state/received_notif_cubit.dart';
 
 // ─── Unified item ─────────────────────────────────────────────────────────────
-enum _NotifType { activity, approval }
+enum _NotifType { activity, approval, push }
 
 class _NotifItem {
   final _NotifType type;
@@ -324,79 +327,90 @@ class _NotifPageState extends State<NotifPage> {
 
   // ── Mixed feed ─────────────────────────────────────────────────────────────
   Widget _buildMixedFeed() {
-    return BlocBuilder<NotifActivityBloc, ActivityState>(
-      builder: (context, activityState) {
-        return BlocBuilder<AttendanceApprovalCubit, AttendanceApprovalState>(
-          builder: (context, approvalState) {
-            // Loading
-            final loadingActivity = activityState.status == ActivityStatus.loading && activityState.activities.isEmpty;
-            final loadingApproval = approvalState is AttendanceApprovalLoading;
-            if ((_isApprovalFiltered && loadingApproval) || (_isActivityFiltered && loadingActivity) ||
-                (!_isActivityFiltered && !_isApprovalFiltered && (loadingActivity || loadingApproval))) {
-              return Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: buildNotifShimmer(),
-              );
-            }
+    return BlocBuilder<ReceivedNotifCubit, ReceivedNotifState>(
+      builder: (context, pushState) {
+        return BlocBuilder<NotifActivityBloc, ActivityState>(
+          builder: (context, activityState) {
+            return BlocBuilder<AttendanceApprovalCubit, AttendanceApprovalState>(
+              builder: (context, approvalState) {
+                // Loading
+                final loadingActivity = activityState.status == ActivityStatus.loading && activityState.activities.isEmpty;
+                final loadingApproval = approvalState is AttendanceApprovalLoading;
+                if ((_isApprovalFiltered && loadingApproval) || (_isActivityFiltered && loadingActivity) ||
+                    (!_isActivityFiltered && !_isApprovalFiltered && (loadingActivity || loadingApproval))) {
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: buildNotifShimmer(),
+                  );
+                }
 
-            final items = <_NotifItem>[];
+                final items = <_NotifItem>[];
 
-            // Include activity items only when approval is NOT filtered
-            if (!_isApprovalFiltered) {
-              for (final a in activityState.activities) {
-                final dt = DateTime.tryParse(a.activityDate) ?? DateTime.tryParse(a.createdAt) ?? DateTime(2000);
-                items.add(_NotifItem(type: _NotifType.activity, data: a, datetime: dt));
-              }
-            }
+                // Push notifications — selalu tampil terlepas dari filter
+                for (final n in pushState.items) {
+                  items.add(_NotifItem(type: _NotifType.push, data: n, datetime: n.receivedAt));
+                }
 
-            // Include approval items only when activity is NOT filtered AND user can manage
-            if (!_isActivityFiltered && _canManageApproval && approvalState is AttendanceApprovalLoaded) {
-              for (final a in approvalState.logs) {
-                final dt = DateTime.tryParse(a.attendanceDatetime ?? '') ?? DateTime(2000);
-                items.add(_NotifItem(type: _NotifType.approval, data: a, datetime: dt));
-              }
-            }
+                // Include activity items only when approval is NOT filtered
+                if (!_isApprovalFiltered) {
+                  for (final a in activityState.activities) {
+                    final dt = DateTime.tryParse(a.activityDate) ?? DateTime.tryParse(a.createdAt) ?? DateTime(2000);
+                    items.add(_NotifItem(type: _NotifType.activity, data: a, datetime: dt));
+                  }
+                }
 
-            items.sort((a, b) => b.datetime.compareTo(a.datetime));
+                // Include approval items only when activity is NOT filtered AND user can manage
+                if (!_isActivityFiltered && _canManageApproval && approvalState is AttendanceApprovalLoaded) {
+                  for (final a in approvalState.logs) {
+                    final dt = DateTime.tryParse(a.attendanceDatetime ?? '') ?? DateTime(2000);
+                    items.add(_NotifItem(type: _NotifType.approval, data: a, datetime: dt));
+                  }
+                }
 
-            final showAttendanceAlerts = !_isActivityFiltered && !_isApprovalFiltered;
-            final showWhatsapp = !_isApprovalFiltered &&
-                (!_isActivityFiltered || _selectedActivity.value == 'whatsapp');
+                items.sort((a, b) => b.datetime.compareTo(a.datetime));
 
-            return RefreshIndicator(
-              onRefresh: () async => _loadAll(),
-              child: ListView(
-                physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                children: [
-                  if (showAttendanceAlerts) const AttendanceAlertsWidget(),
-                  if (showWhatsapp)
-                    BlocBuilder<WhatsappActivityBloc, WhatsappActivityState>(
-                      builder: (_, ws) {
-                        if (ws.status == WhatsappUnreadSummaryStatus.loaded && ws.data.isNotEmpty) {
-                          return Column(children: ws.data.map(_whatsappItem).toList());
-                        }
-                        return const SizedBox();
-                      },
-                    ),
-                  if (items.isEmpty)
-                    Padding(
-                      padding: const EdgeInsets.all(32),
-                      child: Center(
-                        child: Column(
-                          children: [
-                            Icon(Icons.inbox_outlined, size: 48, color: Color(grey5Color)),
-                            const SizedBox(height: 8),
-                            Text('Tidak ada data', style: TextStyle(color: Color(grey5Color), fontSize: 14)),
-                          ],
+                final showAttendanceAlerts = !_isActivityFiltered && !_isApprovalFiltered;
+                final showWhatsapp = !_isApprovalFiltered &&
+                    (!_isActivityFiltered || _selectedActivity.value == 'whatsapp');
+
+                return RefreshIndicator(
+                  onRefresh: () async => _loadAll(),
+                  child: ListView(
+                    physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    children: [
+                      if (showAttendanceAlerts) const AttendanceAlertsWidget(),
+                      if (showWhatsapp)
+                        BlocBuilder<WhatsappActivityBloc, WhatsappActivityState>(
+                          builder: (_, ws) {
+                            if (ws.status == WhatsappUnreadSummaryStatus.loaded && ws.data.isNotEmpty) {
+                              return Column(children: ws.data.map(_whatsappItem).toList());
+                            }
+                            return const SizedBox();
+                          },
                         ),
-                      ),
-                    ),
-                  ...items.map((item) => item.type == _NotifType.activity
-                      ? _activityItem(context, item.data as ActivityEntity)
-                      : _approvalItem(item.data as AttendanceApprovalEntity)),
-                ],
-              ),
+                      if (items.isEmpty)
+                        Padding(
+                          padding: const EdgeInsets.all(32),
+                          child: Center(
+                            child: Column(
+                              children: [
+                                Icon(Icons.inbox_outlined, size: 48, color: Color(grey5Color)),
+                                const SizedBox(height: 8),
+                                Text('Tidak ada data', style: TextStyle(color: Color(grey5Color), fontSize: 14)),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ...items.map((item) {
+                        if (item.type == _NotifType.activity) return _activityItem(context, item.data as ActivityEntity);
+                        if (item.type == _NotifType.approval) return _approvalItem(item.data as AttendanceApprovalEntity);
+                        return _pushNotifItem(item.data as ReceivedNotifEntity);
+                      }),
+                    ],
+                  ),
+                );
+              },
             );
           },
         );
@@ -496,6 +510,39 @@ class _NotifPageState extends State<NotifPage> {
         child: Text(statusLabel, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: statusColor)),
       ),
     ])),
+    );
+  }
+
+  Widget _pushNotifItem(ReceivedNotifEntity notif) {
+    final type = notif.type;
+    final icon = type == 'upcoming_task'         ? Icons.event_note_outlined
+        : type == 'attendance'                   ? Icons.access_time_outlined
+        : type == 'approval_pending' ||
+          type == 'attendance_null_location'     ? Icons.how_to_reg_outlined
+        : type == 'app_update'                   ? Icons.system_update_outlined
+        : Icons.notifications_outlined;
+
+    return GestureDetector(
+      onTap: () => PushNotificationService.navigateFromData(notif.data),
+      child: _cardWrap(Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, color: Color(primaryColor), size: 36),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(notif.title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+                if (notif.body.isNotEmpty)
+                  Text(notif.body, style: TextStyle(fontSize: 12, color: Color(grey2Color))),
+                const SizedBox(height: 2),
+                Text(DateHelper.formatDate(notif.receivedAt), style: TextStyle(fontSize: 11, color: Color(grey4Color))),
+              ],
+            ),
+          ),
+        ],
+      )),
     );
   }
 

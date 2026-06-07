@@ -10,6 +10,7 @@ import 'package:progress_group/app/router.dart';
 import 'package:progress_group/features/contact/data/arguments/contact_detail_args.dart';
 import 'package:progress_group/features/contact/domain/entities/activity/activity_entity.dart';
 import 'package:progress_group/features/contact/domain/entities/contact/contact_entity.dart';
+import 'package:progress_group/features/notif/presentation/state/received_notif_cubit.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'web_notification_stub.dart'
     if (dart.library.js_interop) 'web_notification.dart';
@@ -51,6 +52,13 @@ class PushNotificationService {
       final currentVersion = info.version.trim();
 
       if (!_isNewer(serverVersion, currentVersion)) return;
+
+      ReceivedNotifCubit.receive(
+        title: 'Versi baru tersedia',
+        body: 'v$serverVersion tersedia untuk diunduh.',
+        type: 'app_update',
+        data: {'type': 'app_update', 'download_url': downloadUrl},
+      );
 
       scaffoldMessengerKey.currentState
         ?..hideCurrentMaterialBanner()
@@ -125,9 +133,22 @@ class PushNotificationService {
   /// Dipanggil dari initState() MyApp via addPostFrameCallback agar navigator sudah siap.
   static void processPendingMessage() {
     if (_pendingMessage != null) {
-      _navigateFromData(_pendingMessage!.data);
+      final msg = _pendingMessage!;
       _pendingMessage = null;
+      _saveToNotifList(msg);
+      _navigateFromData(msg.data);
     }
+  }
+
+  /// Public wrapper untuk navigasi dari tap item di NotifPage.
+  static void navigateFromData(Map<String, dynamic> data) => _navigateFromData(data);
+
+  static void _saveToNotifList(RemoteMessage message) {
+    final title = message.notification?.title ?? message.data['title'] as String? ?? '';
+    final body  = message.notification?.body  ?? message.data['body']  as String? ?? '';
+    final type  = message.data['type'] as String?;
+    if (title.isEmpty && body.isEmpty) return;
+    ReceivedNotifCubit.receive(title: title, body: body, type: type, data: message.data);
   }
 
   static Future<void> _requestPermission() async {
@@ -214,12 +235,13 @@ class PushNotificationService {
 
   // Tampilkan local notification saat app di foreground
   static void _handleForegroundMessage(RemoteMessage message) {
+    _saveToNotifList(message);
+
     final notification = message.notification;
 
     if (kIsWeb) {
       final title = notification?.title ?? message.data['title'] as String?;
       final body  = notification?.body  ?? message.data['body']  as String?;
-      // Tap banner → navigasi sesuai type notifikasi
       final onTap = () => _navigateFromData(message.data);
       _showWebBanner(title, body, onTap: onTap);
       showWebNotification(title, body);
@@ -247,8 +269,10 @@ class PushNotificationService {
     );
   }
 
-  static void _handleNotificationTap(RemoteMessage message) =>
-      _navigateFromData(message.data);
+  static void _handleNotificationTap(RemoteMessage message) {
+    _saveToNotifList(message);
+    _navigateFromData(message.data);
+  }
 
   static void _navigateFromData(Map<String, dynamic> data) {
     final context = AppRouter.rootNavigatorKey.currentContext;
