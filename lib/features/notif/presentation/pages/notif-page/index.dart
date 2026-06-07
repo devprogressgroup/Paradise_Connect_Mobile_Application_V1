@@ -229,7 +229,7 @@ class _NotifPageState extends State<NotifPage> {
               ),
             ),
 
-            const SizedBox(height: 4),
+            const SizedBox(height: 10),
             Expanded(child: _buildMixedFeed()),
           ],
         ),
@@ -333,7 +333,10 @@ class _NotifPageState extends State<NotifPage> {
             final loadingApproval = approvalState is AttendanceApprovalLoading;
             if ((_isApprovalFiltered && loadingApproval) || (_isActivityFiltered && loadingActivity) ||
                 (!_isActivityFiltered && !_isApprovalFiltered && (loadingActivity || loadingApproval))) {
-              return buildActivityPageShimmer();
+              return Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: buildNotifShimmer(),
+              );
             }
 
             final items = <_NotifItem>[];

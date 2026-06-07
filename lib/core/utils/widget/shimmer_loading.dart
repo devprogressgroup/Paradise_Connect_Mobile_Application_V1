@@ -968,23 +968,6 @@ Widget buildActivityPageShimmer() {
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Filter chips row
-        SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Row(
-            children: List.generate(6, (i) => Container(
-              margin: const EdgeInsets.only(right: 8),
-              width: 60 + (i % 3) * 16.0,
-              height: 34,
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(20),
-              ),
-            )),
-          ),
-        ),
-        const SizedBox(height: 12),
         // Card items
         ...List.generate(6, (_) => Container(
           margin: const EdgeInsets.only(bottom: 10, left: 16, right: 16),

@@ -62,8 +62,8 @@ class ApiConstants {
 
 
 
-  static AppEnvironment _currentEnv = AppEnvironment.production;
-  static final ValueNotifier<AppEnvironment> envNotifier = ValueNotifier(AppEnvironment.production);
+  static AppEnvironment _currentEnv = AppEnvironment.productionDomain;
+  static final ValueNotifier<AppEnvironment> envNotifier = ValueNotifier(AppEnvironment.productionDomain);
 
   static AppEnvironment get currentEnv => _currentEnv;
   static String get envLabel => _configs[_currentEnv]!.label;
@@ -74,7 +74,7 @@ class ApiConstants {
       'development' => AppEnvironment.development,
       'development2' => AppEnvironment.development2,
       'productionDomain' => AppEnvironment.productionDomain,
-      _ => AppEnvironment.production,
+      _ => AppEnvironment.productionDomain,
     };
     envNotifier.value = _currentEnv;
   }

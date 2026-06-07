@@ -29,6 +29,7 @@ class _MainLayoutState extends State<MainLayout> {
   String? _currentUri;
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   bool _pwaAvailable = false;
+  bool _isIosSafariDevice = false;
 
   @override
   void initState() {
@@ -40,6 +41,12 @@ class _MainLayoutState extends State<MainLayout> {
   void _setupPwa() {
     // Already running as installed PWA — no need to show install prompt
     if (isPwaRunningStandalone()) return;
+
+    // iOS Safari doesn't fire beforeinstallprompt — show manual instruction banner
+    if (isIosSafari()) {
+      setState(() => _isIosSafariDevice = true);
+      return;
+    }
 
     // Register callbacks: browser will call these the moment beforeinstallprompt fires,
     // even if it fires after Flutter is fully loaded (common on slow connections)
@@ -58,6 +65,64 @@ class _MainLayoutState extends State<MainLayout> {
         setState(() => _pwaAvailable = true);
       }
     });
+  }
+
+  void _showIosInstallInstructions() {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => Padding(
+        padding: const EdgeInsets.fromLTRB(24, 20, 24, 36),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 40, height: 4,
+              decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(2)),
+            ),
+            const SizedBox(height: 20),
+            const Text(
+              'Install Aplikasi',
+              style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Tambahkan ke Home Screen untuk pengalaman terbaik.',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 13, color: Colors.grey[600]),
+            ),
+            const SizedBox(height: 24),
+            _iosStep(
+              icon: Icons.ios_share,
+              text: 'Tap ikon Share (kotak dengan panah ke atas) di toolbar Safari',
+            ),
+            const SizedBox(height: 16),
+            _iosStep(
+              icon: Icons.add_box_outlined,
+              text: 'Scroll ke bawah dan pilih "Add to Home Screen"',
+            ),
+            const SizedBox(height: 16),
+            _iosStep(
+              icon: Icons.check_circle_outline,
+              text: 'Tap "Add" di pojok kanan atas',
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _iosStep({required IconData icon, required String text}) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, size: 26, color: Color(primaryColor)),
+        const SizedBox(width: 14),
+        Expanded(child: Text(text, style: const TextStyle(fontSize: 14))),
+      ],
+    );
   }
 
   int get _currentIndex {
@@ -333,15 +398,19 @@ class _MainLayoutState extends State<MainLayout> {
               //   ),
               // ),
               const Spacer(),
-              if (_pwaAvailable)
+              if (_pwaAvailable || _isIosSafariDevice)
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 20),
                   child: GestureDetector(
                     onTap: () {
                       Navigator.of(context).pop();
-                      showPwaInstallPrompt().then((_) {
-                        if (mounted) setState(() => _pwaAvailable = isPwaInstallAvailable());
-                      });
+                      if (_isIosSafariDevice) {
+                        _showIosInstallInstructions();
+                      } else {
+                        showPwaInstallPrompt().then((_) {
+                          if (mounted) setState(() => _pwaAvailable = isPwaInstallAvailable());
+                        });
+                      }
                     },
                     child: Row(
                       children: [
@@ -352,7 +421,7 @@ class _MainLayoutState extends State<MainLayout> {
                     ),
                   ),
                 ),
-              if (_pwaAvailable) const SizedBox(height: 16),
+              if (_pwaAvailable || _isIosSafariDevice) const SizedBox(height: 16),
               Padding(
                 padding: const EdgeInsets.symmetric( horizontal: 20),
                 child: GestureDetector(

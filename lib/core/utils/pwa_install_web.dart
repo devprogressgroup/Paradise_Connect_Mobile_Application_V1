@@ -9,6 +9,9 @@ external bool _showPwaInstallPrompt();
 @JS('isPwaRunningStandalone')
 external bool _isPwaRunningStandalone();
 
+@JS('isIosSafari')
+external bool _isIosSafari();
+
 @JS('registerPwaCallbacks')
 external void _registerPwaCallbacks(JSFunction onAvailable, JSFunction onInstalled);
 
@@ -18,6 +21,10 @@ bool isPwaInstallAvailable() {
 
 bool isPwaRunningStandalone() {
   try { return _isPwaRunningStandalone(); } catch (_) { return false; }
+}
+
+bool isIosSafari() {
+  try { return _isIosSafari(); } catch (_) { return false; }
 }
 
 Future<void> showPwaInstallPrompt() async {

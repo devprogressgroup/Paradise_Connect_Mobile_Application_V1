@@ -12,7 +12,8 @@ abstract class AttendanceRemoteDataSource {
   Future<void> postValidasiCheckIn({required int logId, required int statusValidasi, String? noteValidasi});
   Future<Map<String, dynamic>> getAttendanceApprovalToday({String? search, String? status, int? flag, int page = 1, int perPage = 10});
   Future<void> postAttendanceApproval({required int logId, required int approve});
-  Future<void> downloadAttendancePdf({required int nikNumber, required String startDate, required String endDate, required String savePath});
+  Future<void> downloadAttendancePdf({int? nikNumber, int? salesPersonId, required String startDate, required String endDate, required String savePath});
+  Future<Uint8List> downloadAttendancePdfBytes({int? nikNumber, int? salesPersonId, required String startDate, required String endDate});
 }
 
 class AttendanceRemoteDataSourceImpl implements AttendanceRemoteDataSource {
@@ -190,19 +191,43 @@ class AttendanceRemoteDataSourceImpl implements AttendanceRemoteDataSource {
     }
   }
 
+  Map<String, dynamic> _pdfQueryParams({int? nikNumber, int? salesPersonId, required String startDate, required String endDate}) {
+    final params = <String, dynamic>{
+      'start_date': startDate,
+      'end_date': endDate,
+    };
+    if (salesPersonId != null) {
+      params['sales_person_id'] = salesPersonId;
+    } else if (nikNumber != null) {
+      params['nik_number'] = nikNumber;
+    }
+    return params;
+  }
+
   @override
-  Future<void> downloadAttendancePdf({required int nikNumber, required String startDate, required String endDate, required String savePath}) async {
+  Future<void> downloadAttendancePdf({int? nikNumber, int? salesPersonId, required String startDate, required String endDate, required String savePath}) async {
     try {
       await dio.download(
         '/attendance/report/pdf',
         savePath,
-        queryParameters: {
-          'nik_number': nikNumber,
-          'start_date': startDate,
-          'end_date': endDate,
-        },
+        queryParameters: _pdfQueryParams(nikNumber: nikNumber, salesPersonId: salesPersonId, startDate: startDate, endDate: endDate),
         options: Options(receiveTimeout: const Duration(seconds: 60)),
       );
+    } on DioException catch (e) {
+      if (e.type == DioExceptionType.cancel && e.error == 'SESSION_EXPIRED') throw Exception('SESSION_EXPIRED');
+      throw Exception('Gagal mengunduh PDF');
+    }
+  }
+
+  @override
+  Future<Uint8List> downloadAttendancePdfBytes({int? nikNumber, int? salesPersonId, required String startDate, required String endDate}) async {
+    try {
+      final response = await dio.get<List<int>>(
+        '/attendance/report/pdf',
+        queryParameters: _pdfQueryParams(nikNumber: nikNumber, salesPersonId: salesPersonId, startDate: startDate, endDate: endDate),
+        options: Options(responseType: ResponseType.bytes, receiveTimeout: const Duration(seconds: 60)),
+      );
+      return Uint8List.fromList(response.data!);
     } on DioException catch (e) {
       if (e.type == DioExceptionType.cancel && e.error == 'SESSION_EXPIRED') throw Exception('SESSION_EXPIRED');
       throw Exception('Gagal mengunduh PDF');

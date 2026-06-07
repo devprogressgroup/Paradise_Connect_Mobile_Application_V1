@@ -20,7 +20,8 @@ abstract class AttendanceRepository {
   Future<void> validasiCheckIn({required int logId, required int statusValidasi, String? noteValidasi});
   Future<({List<AttendanceApprovalEntity> data, int lastPage})> getAttendanceApprovalToday({String? search, String? status, int? flag, int page = 1, int perPage = 10});
   Future<void> postAttendanceApproval({required int logId, required int approve});
-  Future<void> downloadAttendancePdf({required int nikNumber, required String startDate, required String endDate, required String savePath});
+  Future<void> downloadAttendancePdf({int? nikNumber, int? salesPersonId, required String startDate, required String endDate, required String savePath});
+  Future<Uint8List> downloadAttendancePdfBytes({int? nikNumber, int? salesPersonId, required String startDate, required String endDate});
 }
 
 class AttendanceRepositoryImpl implements AttendanceRepository {
@@ -261,7 +262,12 @@ class AttendanceRepositoryImpl implements AttendanceRepository {
   }
 
   @override
-  Future<void> downloadAttendancePdf({required int nikNumber, required String startDate, required String endDate, required String savePath}) async {
-    await remote.downloadAttendancePdf(nikNumber: nikNumber, startDate: startDate, endDate: endDate, savePath: savePath);
+  Future<void> downloadAttendancePdf({int? nikNumber, int? salesPersonId, required String startDate, required String endDate, required String savePath}) async {
+    await remote.downloadAttendancePdf(nikNumber: nikNumber, salesPersonId: salesPersonId, startDate: startDate, endDate: endDate, savePath: savePath);
+  }
+
+  @override
+  Future<Uint8List> downloadAttendancePdfBytes({int? nikNumber, int? salesPersonId, required String startDate, required String endDate}) async {
+    return remote.downloadAttendancePdfBytes(nikNumber: nikNumber, salesPersonId: salesPersonId, startDate: startDate, endDate: endDate);
   }
 }

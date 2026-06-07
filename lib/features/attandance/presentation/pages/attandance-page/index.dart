@@ -33,6 +33,7 @@ import 'package:progress_group/features/auth/presentation/state/profile/profile_
 import 'package:progress_group/features/contact/data/arguments/contact_dropdown_args.dart';
 import 'package:progress_group/features/contact/data/models/dropdown/date_filter.dart';
 import '../../../../../core/utils/helpers/date_helper.dart';
+import 'package:progress_group/core/utils/web_download.dart';
 import '../../../../../core/utils/widget/custom_header.dart';
 import '../../../data/arguments/attandance_args.dart';
 
@@ -565,77 +566,246 @@ class _AttandancePageState extends State<AttandancePage> {
   Future<void> _showPdfDatePickerDialog() async {
     final profileState = context.read<ProfileBloc>().state;
     if (profileState is! ProfileLoaded) return;
-    final nikNumber = profileState.profile.nikNumber;
-    if (nikNumber == null) {
+    final profile = profileState.profile;
+
+    if (profile.nikNumber == null && profile.salesPersonId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('NIK tidak ditemukan')),
+        const SnackBar(content: Text('Data profil tidak ditemukan')),
       );
       return;
     }
 
+    // Bangun daftar owner (sama persis seperti _filterOwner)
+    final List<OwnerDropdownItem> ownerItems = [];
+    ownerItems.add(OwnerDropdownItem(
+      id: profile.salesPersonId,
+      name: profile.fullName,
+      subtitle: profile.positionName,
+    ));
+    void addSubs(List<HierarchyNodeEntity> subs) {
+      for (final s in subs) {
+        ownerItems.add(OwnerDropdownItem(
+          id: s.salesPersonId,
+          name: s.fullName,
+          subtitle: s.positionName,
+        ));
+        if (s.subordinates.isNotEmpty) addSubs(s.subordinates);
+      }
+    }
+    addSubs(profile.subordinates);
+
     final now = DateTime.now();
     DateTime startDate = DateTime(now.year, now.month, 1);
     DateTime endDate = DateTime(now.year, now.month + 1, 0);
+    OwnerDropdownItem selectedOwner = ownerItems.first;
+    final searchController = TextEditingController();
+    String searchQuery = '';
+    bool dropdownOpen = false;
+
+    // Helper: compact date button
+    Widget dateButton({required String label, required DateTime date, required VoidCallback onTap}) {
+      return GestureDetector(
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 7),
+          decoration: BoxDecoration(
+            border: Border.all(color: Colors.grey.shade400),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(label, style: TextStyle(fontSize: 10, color: Colors.grey.shade500)),
+              const SizedBox(height: 2),
+              Text(DateFormat('dd MMM yy', 'id_ID').format(date), style: const TextStyle(fontSize: 12)),
+            ],
+          ),
+        ),
+      );
+    }
 
     final result = await showDialog<bool>(
       context: context,
       builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setStateDialog) => AlertDialog(
-          title: const Text('Download PDF Kehadiran'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                leading: const Icon(Icons.calendar_today),
-                title: const Text('Tanggal Mulai'),
-                subtitle: Text(DateFormat('dd MMMM yyyy', 'id_ID').format(startDate)),
-                onTap: () async {
-                  final picked = await showDatePicker(
-                    context: ctx,
-                    initialDate: startDate,
-                    firstDate: DateTime(2020),
-                    lastDate: DateTime(now.year + 1, 12, 31),
-                  );
-                  if (picked != null) setStateDialog(() => startDate = picked);
-                },
+        builder: (ctx, setStateDialog) {
+          final filteredItems = searchQuery.isEmpty
+              ? ownerItems
+              : ownerItems.where((i) => i.name.toLowerCase().contains(searchQuery)).toList();
+
+          return AlertDialog(
+            backgroundColor: const Color(whiteColor),
+            title: const Text('Download PDF Kehadiran'),
+            contentPadding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+            content: SizedBox(
+              width: double.maxFinite,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Baris atas: [filter] | [mulai] | [akhir]
+                  Row(
+                    children: [
+                      if (ownerItems.length > 1) ...[
+                        Expanded(
+                          flex: 3,
+                          child: GestureDetector(
+                            onTap: () => setStateDialog(() => dropdownOpen = !dropdownOpen),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 7),
+                              decoration: BoxDecoration(
+                                border: Border.all(color: Colors.grey.shade400),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Row(
+                                children: [
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text('Karyawan', style: TextStyle(fontSize: 10, color: Colors.grey.shade500)),
+                                        const SizedBox(height: 2),
+                                        Text(selectedOwner.name, style: const TextStyle(fontSize: 12), overflow: TextOverflow.ellipsis),
+                                      ],
+                                    ),
+                                  ),
+                                  Icon(
+                                    dropdownOpen ? Icons.expand_less : Icons.expand_more,
+                                    size: 16,
+                                    color: Colors.grey.shade600,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                      ],
+                      Expanded(
+                        flex: 2,
+                        child: dateButton(
+                          label: 'Mulai',
+                          date: startDate,
+                          onTap: () async {
+                            final picked = await showDatePicker(
+                              context: ctx,
+                              initialDate: startDate,
+                              firstDate: DateTime(2020),
+                              lastDate: DateTime(now.year + 1, 12, 31),
+                            );
+                            if (picked != null) setStateDialog(() => startDate = picked);
+                          },
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        flex: 2,
+                        child: dateButton(
+                          label: 'Akhir',
+                          date: endDate,
+                          onTap: () async {
+                            final picked = await showDatePicker(
+                              context: ctx,
+                              initialDate: endDate,
+                              firstDate: startDate,
+                              lastDate: DateTime(now.year + 1, 12, 31),
+                            );
+                            if (picked != null) setStateDialog(() => endDate = picked);
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  // Dropdown list karyawan (expand saat dropdownOpen == true)
+                  if (ownerItems.length > 1 && dropdownOpen) ...[
+                    const SizedBox(height: 6),
+                    TextField(
+                      controller: searchController,
+                      autofocus: true,
+                      decoration: InputDecoration(
+                        hintText: 'Cari karyawan...',
+                        isDense: true,
+                        prefixIcon: const Icon(Icons.search, size: 18),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                      ),
+                      onChanged: (v) => setStateDialog(() => searchQuery = v.toLowerCase()),
+                    ),
+                    const SizedBox(height: 4),
+                    SizedBox(
+                      height: 200,
+                      child: ListView.builder(
+                        itemCount: filteredItems.length,
+                        itemBuilder: (_, i) {
+                          final item = filteredItems[i];
+                          final isSelected = selectedOwner.id == item.id && selectedOwner.name == item.name;
+                          final color = Theme.of(ctx).colorScheme.primary;
+                          return InkWell(
+                            onTap: () => setStateDialog(() {
+                              selectedOwner = item;
+                              dropdownOpen = false;
+                              searchController.clear();
+                              searchQuery = '';
+                            }),
+                            child: Container(
+                              color: isSelected ? color.withAlpha(25) : null,
+                              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 10),
+                              child: Row(
+                                children: [
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(item.name, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
+                                        if (item.subtitle != null)
+                                          Text(item.subtitle!, style: TextStyle(fontSize: 11, color: Colors.grey.shade600)),
+                                      ],
+                                    ),
+                                  ),
+                                  if (isSelected) Icon(Icons.check, size: 16, color: color),
+                                ],
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 8),
+                ],
               ),
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                leading: const Icon(Icons.calendar_today),
-                title: const Text('Tanggal Akhir'),
-                subtitle: Text(DateFormat('dd MMMM yyyy', 'id_ID').format(endDate)),
-                onTap: () async {
-                  final picked = await showDatePicker(
-                    context: ctx,
-                    initialDate: endDate,
-                    firstDate: startDate,
-                    lastDate: DateTime(now.year + 1, 12, 31),
-                  );
-                  if (picked != null) setStateDialog(() => endDate = picked);
-                },
+            ),
+            actions: [
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(whiteColor),
+                  foregroundColor: const Color(primaryColor),
+                  side: const BorderSide(color: Color(primaryColor)),
+                ),
+                onPressed: () => Navigator.of(ctx).pop(false),
+                child: const Text('Batal'),
+              ),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(primaryColor),
+                  foregroundColor: const Color(whiteColor),
+                ),
+                onPressed: () => Navigator.of(ctx).pop(true),
+                child: const Text('Download'),
               ),
             ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(ctx).pop(false),
-              child: const Text('Batal'),
-            ),
-            ElevatedButton(
-              onPressed: () => Navigator.of(ctx).pop(true),
-              child: const Text('Download'),
-            ),
-          ],
-        ),
+          );
+        },
       ),
     );
+
+    searchController.dispose();
 
     if (result == true && mounted) {
       final start = DateFormat('yyyy-MM-dd').format(startDate);
       final end = DateFormat('yyyy-MM-dd').format(endDate);
       context.read<AttendancePdfCubit>().download(
-        nikNumber: nikNumber,
+        salesPersonId: selectedOwner.id,
+        nikNumber: selectedOwner.id == null ? profile.nikNumber : null,
         startDate: start,
         endDate: end,
       );
@@ -755,9 +925,11 @@ class _AttandancePageState extends State<AttandancePage> {
             );
           } else if (state is AttendancePdfSuccess) {
             ScaffoldMessenger.of(context).hideCurrentSnackBar();
-            if (!kIsWeb) {
-              _showPdfOptions(context, state.filePath);
-            }
+            _showPdfOptions(context, state.filePath);
+            context.read<AttendancePdfCubit>().reset();
+          } else if (state is AttendancePdfWebSuccess) {
+            ScaffoldMessenger.of(context).hideCurrentSnackBar();
+            downloadPdfOnWeb(state.bytes, state.fileName);
             context.read<AttendancePdfCubit>().reset();
           } else if (state is AttendancePdfError) {
             print("Gagal download: ${state.message}");

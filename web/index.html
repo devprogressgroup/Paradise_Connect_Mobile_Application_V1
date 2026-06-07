@@ -171,6 +171,15 @@
              window.navigator.standalone === true;
     };
 
+    // True if user is on iOS Safari (not already installed, not Chrome/Firefox on iOS)
+    window.isIosSafari = function () {
+      var ua = navigator.userAgent;
+      var isIos = /iphone|ipad|ipod/i.test(ua);
+      var isSafari = /safari/i.test(ua) && !/chrome|crios|fxios|android/i.test(ua);
+      var isStandalone = navigator.standalone === true;
+      return isIos && isSafari && !isStandalone;
+    };
+
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', function () {
         navigator.serviceWorker.register('flutter_service_worker.js')

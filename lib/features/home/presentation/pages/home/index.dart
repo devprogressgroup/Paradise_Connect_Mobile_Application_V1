@@ -475,7 +475,7 @@ class _HomePageState extends State<HomePage> {
                           children: [
                             Row(
                               children: [
-                                Icon(Icons.how_to_reg_outlined, color: Colors.orange, size: 40),
+                                Icon(Icons.how_to_reg_outlined, color: Color(primaryColor), size: 40),
                                 const SizedBox(width: 10),
                                 Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,

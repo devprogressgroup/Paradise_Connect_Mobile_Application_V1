@@ -286,7 +286,10 @@ class _TaskPageState extends State<TaskPage> {
             if ((_isApprovalFiltered && loadingApproval) ||
                 (_isActivityFiltered && loadingActivity) ||
                 (!_isActivityFiltered && !_isApprovalFiltered && (loadingActivity || loadingApproval))) {
-              return buildActivityPageShimmer();
+              return Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: buildNotifShimmer(),
+              );
             }
 
             final items = <_MixedItem>[];
