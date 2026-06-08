@@ -43,6 +43,10 @@ class _ContactPageState extends State<ContactPage> {
   late ScrollController _scrollController;
   Timer? _debounce;
   String? selectedDateLabel;
+  String? selectedApptDateLabel;
+  String? selectedVisitDateLabel;
+  String? selectedReserveDateLabel;
+  String? selectedSpDateLabel;
 
   List<ContactEntity> contactEntity = [];
 
@@ -104,7 +108,10 @@ class _ContactPageState extends State<ContactPage> {
   void _onScroll() {
     if (_scrollController.position.pixels >=
         _scrollController.position.maxScrollExtent - 200) {
-      context.read<ContactBloc>().add(const FetchContactsEvent());
+      final state = context.read<ContactBloc>().state;
+      if (state.status != ContactStatus.loading && !state.hasReachedMax) {
+        context.read<ContactBloc>().add(const FetchContactsEvent());
+      }
     }
   }
 
@@ -141,8 +148,7 @@ class _ContactPageState extends State<ContactPage> {
                     ),
                     Expanded(
                       child: BlocConsumer<ContactBloc, ContactState>(
-                        listenWhen: (prev, curr) =>
-                            curr.status == ContactStatus.error && prev.status != ContactStatus.error,
+                        listenWhen: (prev, curr) => curr.status == ContactStatus.error && prev.status != ContactStatus.error,
                         listener: (context, state) {
                           showErrorDialog(context, state.errorMessage ?? 'Gagal memuat data kontak');
                         },
@@ -157,7 +163,7 @@ class _ContactPageState extends State<ContactPage> {
                                 height: 50,
                                 child: ListView.separated(
                                   scrollDirection: Axis.horizontal,
-                                  itemCount: 3,
+                                  itemCount: 7,
                                   separatorBuilder: (_, __) => const SizedBox(width: 10),
                                   itemBuilder: (context, index) {
                                     if (index == 0) {
@@ -239,7 +245,7 @@ class _ContactPageState extends State<ContactPage> {
                                         },
                                       );
                                     }
-                                    if (index == 2) {
+                                    if (index == 1) {
                                       return BlocBuilder<ContactBloc, ContactState>(
                                         builder: (context, contactState) {
                                           return BlocBuilder<ProspectStatusBloc, ProspectStatusState>(
@@ -286,7 +292,7 @@ class _ContactPageState extends State<ContactPage> {
                                       );
                                     }
 
-                                    if (index == 1) {
+                                    if (index == 2) {
                                       return BlocBuilder<ContactBloc, ContactState>(
                                         builder: (context, contactState) {
                                           bool isSelected = contactState.startDate != null && contactState.endDate != null;
@@ -329,6 +335,138 @@ class _ContactPageState extends State<ContactPage> {
                                         },
                                       );
                                     }
+                                    if (index == 3) {
+                                      return BlocBuilder<ContactBloc, ContactState>(
+                                        builder: (context, contactState) {
+                                          final isSelected = contactState.apptStartDate != null && contactState.apptEndDate != null;
+                                          final label = isSelected ? (selectedApptDateLabel ?? 'Appt Date') : 'Appt Date';
+                                          return CustomFilterButton(
+                                            label: label,
+                                            isSelected: isSelected,
+                                            onTap: () async {
+                                              final result = await context.pushNamed<DateFilterResult>(
+                                                'dateFilter',
+                                                extra: {
+                                                  'label': selectedApptDateLabel,
+                                                  'startDate': contactState.apptStartDate,
+                                                  'endDate': contactState.apptEndDate,
+                                                  'isSingleSelect': true,
+                                                },
+                                              );
+                                              if (result != null) {
+                                                if (result.isClear) {
+                                                  context.read<ContactBloc>().add(const FetchContactsEvent(isRefresh: true, clearApptDates: true));
+                                                  setState(() => selectedApptDateLabel = null);
+                                                } else {
+                                                  context.read<ContactBloc>().add(FetchContactsEvent(apptStartDate: result.startDate, apptEndDate: result.endDate, isRefresh: true));
+                                                  setState(() => selectedApptDateLabel = result.label);
+                                                }
+                                              }
+                                            },
+                                          );
+                                        },
+                                      );
+                                    }
+
+                                    if (index == 4) {
+                                      return BlocBuilder<ContactBloc, ContactState>(
+                                        builder: (context, contactState) {
+                                          final isSelected = contactState.visitStartDate != null && contactState.visitEndDate != null;
+                                          final label = isSelected ? (selectedVisitDateLabel ?? 'Visit Date') : 'Visit Date';
+                                          return CustomFilterButton(
+                                            label: label,
+                                            isSelected: isSelected,
+                                            onTap: () async {
+                                              final result = await context.pushNamed<DateFilterResult>(
+                                                'dateFilter',
+                                                extra: {
+                                                  'label': selectedVisitDateLabel,
+                                                  'startDate': contactState.visitStartDate,
+                                                  'endDate': contactState.visitEndDate,
+                                                  'isSingleSelect': true,
+                                                },
+                                              );
+                                              if (result != null) {
+                                                if (result.isClear) {
+                                                  context.read<ContactBloc>().add(const FetchContactsEvent(isRefresh: true, clearVisitDates: true));
+                                                  setState(() => selectedVisitDateLabel = null);
+                                                } else {
+                                                  context.read<ContactBloc>().add(FetchContactsEvent(visitStartDate: result.startDate, visitEndDate: result.endDate, isRefresh: true));
+                                                  setState(() => selectedVisitDateLabel = result.label);
+                                                }
+                                              }
+                                            },
+                                          );
+                                        },
+                                      );
+                                    }
+
+                                    if (index == 5) {
+                                      return BlocBuilder<ContactBloc, ContactState>(
+                                        builder: (context, contactState) {
+                                          final isSelected = contactState.reserveStartDate != null && contactState.reserveEndDate != null;
+                                          final label = isSelected ? (selectedReserveDateLabel ?? 'Reserve Date') : 'Reserve Date';
+                                          return CustomFilterButton(
+                                            label: label,
+                                            isSelected: isSelected,
+                                            onTap: () async {
+                                              final result = await context.pushNamed<DateFilterResult>(
+                                                'dateFilter',
+                                                extra: {
+                                                  'label': selectedReserveDateLabel,
+                                                  'startDate': contactState.reserveStartDate,
+                                                  'endDate': contactState.reserveEndDate,
+                                                  'isSingleSelect': true,
+                                                },
+                                              );
+                                              if (result != null) {
+                                                if (result.isClear) {
+                                                  context.read<ContactBloc>().add(const FetchContactsEvent(isRefresh: true, clearReserveDates: true));
+                                                  setState(() => selectedReserveDateLabel = null);
+                                                } else {
+                                                  context.read<ContactBloc>().add(FetchContactsEvent(reserveStartDate: result.startDate, reserveEndDate: result.endDate, isRefresh: true));
+                                                  setState(() => selectedReserveDateLabel = result.label);
+                                                }
+                                              }
+                                            },
+                                          );
+                                        },
+                                      );
+                                    }
+
+                                    if (index == 6) {
+                                      return BlocBuilder<ContactBloc, ContactState>(
+                                        builder: (context, contactState) {
+                                          final isSelected = contactState.spStartDate != null && contactState.spEndDate != null;
+                                          final label = isSelected ? (selectedSpDateLabel ?? 'SP Date') : 'SP Date';
+                                          return CustomFilterButton(
+                                            label: label,
+                                            isSelected: isSelected,
+                                            onTap: () async {
+                                              final result = await context.pushNamed<DateFilterResult>(
+                                                'dateFilter',
+                                                extra: {
+                                                  'label': selectedSpDateLabel,
+                                                  'startDate': contactState.spStartDate,
+                                                  'endDate': contactState.spEndDate,
+                                                  'isSingleSelect': true,
+                                                },
+                                              );
+                                              if (result != null) {
+                                                if (result.isClear) {
+                                                  context.read<ContactBloc>().add(const FetchContactsEvent(isRefresh: true, clearSpDates: true));
+                                                  setState(() => selectedSpDateLabel = null);
+                                                } else {
+                                                  context.read<ContactBloc>().add(FetchContactsEvent(spStartDate: result.startDate, spEndDate: result.endDate, isRefresh: true));
+                                                  setState(() => selectedSpDateLabel = result.label);
+                                                }
+                                              }
+                                            },
+                                          );
+                                        },
+                                      );
+                                    }
+
                                     return null;
                                   },
                                 ),

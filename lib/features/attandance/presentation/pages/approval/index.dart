@@ -4,6 +4,8 @@ import '../../../../../core/utils/helpers/date_helper.dart';
 import '../../../../../core/utils/helpers/error_message.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:progress_group/core/utils/widget/drive_image/drive_image.dart';
+import 'package:progress_group/features/attandance/domain/entities/attendance_approval_entity.dart';
 import 'package:progress_group/features/attandance/presentation/state/attendance_approval/attendance_approval_cubit.dart';
 import 'package:progress_group/features/attandance/presentation/state/attendance_approval/attendance_approval_state.dart';
 import 'package:progress_group/features/contact/data/arguments/contact_dropdown_args.dart';
@@ -377,22 +379,7 @@ class _ApprovalPageState extends State<ApprovalPage> {
                                         children: [
                                           Expanded(
                                             child: OutlinedButton(
-                                              onPressed: () {
-                                                _showConfirmationDialog(
-                                                  context,
-                                                  'Reject',
-                                                  'Are you sure you want to reject this attendance log?',
-                                                  () async {
-                                                    try {
-                                                      await context.read<AttendanceApprovalCubit>().submitApproval(item.logId, 0);
-                                                    } catch (e) {
-                                                      if (context.mounted) {
-                                                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Gagal: ${cleanErrorMessage(e)}')));
-                                                      }
-                                                    }
-                                                  },
-                                                );
-                                              },
+                                              onPressed: () => _showAttendanceDetailDialog(context, item),
                                               style: OutlinedButton.styleFrom(
                                                 foregroundColor: Colors.red,
                                                 side: const BorderSide(color: Colors.red),
@@ -404,22 +391,7 @@ class _ApprovalPageState extends State<ApprovalPage> {
                                           const SizedBox(width: 12),
                                           Expanded(
                                             child: ElevatedButton(
-                                              onPressed: () {
-                                                _showConfirmationDialog(
-                                                  context,
-                                                  'Approve',
-                                                  'Are you sure you want to approve this attendance log?',
-                                                  () async {
-                                                    try {
-                                                      await context.read<AttendanceApprovalCubit>().submitApproval(item.logId, 1);
-                                                    } catch (e) {
-                                                      if (context.mounted) {
-                                                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Gagal: ${cleanErrorMessage(e)}')));
-                                                      }
-                                                    }
-                                                  },
-                                                );
-                                              },
+                                              onPressed: () => _showAttendanceDetailDialog(context, item),
                                               style: ElevatedButton.styleFrom(
                                                 backgroundColor: Colors.green,
                                                 foregroundColor: Colors.white,
@@ -450,31 +422,209 @@ class _ApprovalPageState extends State<ApprovalPage> {
     );
   }
 
-  void _showConfirmationDialog(BuildContext context, String title, String content, VoidCallback onConfirm) {
+  void _showAttendanceDetailDialog(BuildContext context, AttendanceApprovalEntity item) {
+    final String? displayImage = (item.fileAttachment != null && item.fileAttachment!.isNotEmpty)
+        ? item.fileAttachment!.first
+        : null;
+    final String displayTime = item.attendanceDatetime != null
+        ? DateHelper.formatTime(DateTime.parse(item.attendanceDatetime!))
+        : '-';
+    final String displayDate = item.attendanceDatetime != null
+        ? DateHelper.formatDate(DateTime.parse(item.attendanceDatetime!))
+        : '-';
+
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(title),
-        content: Text(content),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(ctx);
-              onConfirm();
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: title == 'Approve' ? Colors.green : Colors.red,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      barrierColor: Colors.black54,
+      builder: (ctx) {
+        return Dialog(
+          backgroundColor: Colors.white,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          child: SizedBox(
+            width: MediaQuery.of(context).size.width * 0.9,
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Stack(
+                    children: [
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(16),
+                        child: displayImage != null
+                            ? DriveImage(
+                                url: displayImage,
+                                width: double.infinity,
+                                height: 180,
+                                fit: BoxFit.cover,
+                                onTap: () => _showImagePreview(displayImage),
+                              )
+                            : Container(
+                                height: 180,
+                                color: Colors.grey.shade200,
+                                child: const Center(child: Icon(Icons.image, size: 50, color: Colors.grey)),
+                              ),
+                      ),
+                      if (displayImage != null)
+                        Positioned(
+                          top: 8,
+                          right: 8,
+                          child: GestureDetector(
+                            onTap: () => _showImagePreview(displayImage),
+                            child: Container(
+                              padding: const EdgeInsets.all(4),
+                              decoration: BoxDecoration(
+                                color: Colors.black.withValues(alpha: 0.45),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: const Icon(Icons.fullscreen, color: Colors.white, size: 18),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  _buildInfoRow(
+                    Icons.access_time_filled,
+                    displayTime,
+                    Color(item.flag == 0 ? greenPercentColor : redPeriodColor),
+                  ),
+                  const SizedBox(height: 8),
+                  _buildInfoRow(Icons.calendar_today, displayDate, const Color(primaryColor)),
+                  const SizedBox(height: 8),
+                  _buildInfoRow(Icons.map, item.locationName ?? '-', const Color(primaryColor)),
+                  if (item.note != null && item.note!.isNotEmpty) ...[
+                    const SizedBox(height: 8),
+                    _buildInfoRow(Icons.notes, item.note!, const Color(primaryColor)),
+                  ],
+                  if (item.isApprove == 1 || item.isReject == 1) ...[
+                    const SizedBox(height: 8),
+                    _buildInfoRow(
+                      item.isApprove == 1 ? Icons.check_circle : Icons.cancel,
+                      item.isApprove == 1
+                          ? 'Approved${item.approveName != null ? ' by ${item.approveName}' : ''}'
+                          : 'Rejected${item.rejectName != null ? ' by ${item.rejectName}' : ''}',
+                      item.isApprove == 1 ? const Color(0xFF27AE60) : const Color(0xFFE74C3C),
+                    ),
+                  ],
+                  const SizedBox(height: 20),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () async {
+                            Navigator.pop(ctx);
+                            try {
+                              await context.read<AttendanceApprovalCubit>().submitApproval(item.logId, 0);
+                            } catch (e) {
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Gagal: ${cleanErrorMessage(e)}')));
+                              }
+                            }
+                          },
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: Colors.red,
+                            side: const BorderSide(color: Colors.red),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          ),
+                          child: const Text('Reject'),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: () async {
+                            Navigator.pop(ctx);
+                            try {
+                              await context.read<AttendanceApprovalCubit>().submitApproval(item.logId, 1);
+                            } catch (e) {
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Gagal: ${cleanErrorMessage(e)}')));
+                              }
+                            }
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.green,
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          ),
+                          child: const Text('Approve'),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
-            child: Text('Yes, $title', style: const TextStyle(color: Colors.white)),
           ),
-        ],
+        );
+      },
+    );
+  }
+
+  void _showImagePreview(String url) {
+    final screen = MediaQuery.of(context).size;
+    final imgW = screen.width - 20;
+    final imgH = screen.height - 120;
+
+    showDialog(
+      context: context,
+      barrierColor: Colors.black87,
+      builder: (ctx) => Dialog(
+        backgroundColor: Colors.transparent,
+        insetPadding: const EdgeInsets.all(10),
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            GestureDetector(
+              onTap: () => Navigator.pop(ctx),
+              child: const SizedBox.expand(),
+            ),
+            Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Align(
+                  alignment: Alignment.topRight,
+                  child: IconButton(
+                    icon: const Icon(Icons.close, color: Colors.white, size: 30),
+                    onPressed: () => Navigator.pop(ctx),
+                  ),
+                ),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(16),
+                  child: InteractiveViewer(
+                    panEnabled: true,
+                    minScale: 0.5,
+                    maxScale: 4,
+                    child: DriveImage(
+                      url: url,
+                      width: imgW,
+                      height: imgH,
+                      fit: BoxFit.contain,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
+    );
+  }
+
+  Widget _buildInfoRow(IconData icon, String text, Color color) {
+    return Row(
+      children: [
+        Icon(icon, color: color, size: 18),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Text(
+            text,
+            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+      ],
     );
   }
 }

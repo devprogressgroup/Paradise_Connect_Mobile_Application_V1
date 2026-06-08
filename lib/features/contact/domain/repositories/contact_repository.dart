@@ -19,7 +19,7 @@ import '../entities/attachment/attachment_type.dart';
 
 abstract class ContactRepository {
   Future<Either<String, List<AttachmentType>>> getAttachmentTypes();
-  Future<Either<String, ContactResponse>> getContacts({  int page = 1,  int perPage = 10,  String? search,  String? startDate,  String? endDate,  List<int>? ownerIds,  List<int>? statusProspectIds,});
+  Future<Either<String, ContactResponse>> getContacts({int page = 1, int perPage = 10, String? search, String? startDate, String? endDate, List<int>? ownerIds, List<int>? statusProspectIds, String? apptStartDate, String? apptEndDate, String? visitStartDate, String? visitEndDate, String? reserveStartDate, String? reserveEndDate, String? spStartDate, String? spEndDate});
   Future<Either<String, ContactEntity>> getContactDetail(int id);
     Future<Either<String, List<InfoSource>>> getInfoSources({int? type});
   Future<Either<String, List<ProspectStatusEntity>>> getProspectStatuses({String? type});

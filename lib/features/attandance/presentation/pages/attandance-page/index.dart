@@ -485,8 +485,8 @@ class _AttandancePageState extends State<AttandancePage> {
       startDate: _activityStartDate,
       endDate: _activityEndDate,
     ));
-    context.read<OfficeLocationCubit>().load();
-    context.read<PameranLocationCubit>().load();
+    context.read<OfficeLocationCubit>().load(force: true);
+    context.read<PameranLocationCubit>().load(force: true);
   }
 
   void _showImagePreview(String url) {

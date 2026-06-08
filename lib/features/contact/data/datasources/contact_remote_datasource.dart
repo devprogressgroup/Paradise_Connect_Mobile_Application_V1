@@ -21,7 +21,7 @@ import 'package:progress_group/features/contact/domain/entities/attachment/uploa
 import 'package:progress_group/features/contact/domain/entities/contact/create_contact_params.dart';
 
 abstract class ContactRemoteDataSource {
-  Future<ContactResponseModel> getContacts({int page = 1, int perPage = 10, String? search, String? startDate, String? endDate, List<int>? ownerIds, List<int>? statusProspectIds});
+  Future<ContactResponseModel> getContacts({int page = 1, int perPage = 10, String? search, String? startDate, String? endDate, List<int>? ownerIds, List<int>? statusProspectIds, String? apptStartDate, String? apptEndDate, String? visitStartDate, String? visitEndDate, String? reserveStartDate, String? reserveEndDate, String? spStartDate, String? spEndDate});
 
   Future<ContactModel> getContactDetail(int id);
 
@@ -74,7 +74,7 @@ class ContactRemoteDataSourceImpl implements ContactRemoteDataSource {
  
 
   @override
-  Future<ContactResponseModel> getContacts({int page = 1, int perPage = 10, String? search, String? startDate, String? endDate, List<int>? ownerIds, List<int>? statusProspectIds}) async {
+  Future<ContactResponseModel> getContacts({int page = 1, int perPage = 10, String? search, String? startDate, String? endDate, List<int>? ownerIds, List<int>? statusProspectIds, String? apptStartDate, String? apptEndDate, String? visitStartDate, String? visitEndDate, String? reserveStartDate, String? reserveEndDate, String? spStartDate, String? spEndDate}) async {
     try {
       final response = await dio.get(
         '/contacts',
@@ -86,6 +86,14 @@ class ContactRemoteDataSourceImpl implements ContactRemoteDataSource {
           if (endDate != null && endDate.isNotEmpty) 'end_date': endDate,
           if (ownerIds != null && ownerIds.isNotEmpty) 'owner_id': ownerIds.join(','),
           if (statusProspectIds != null && statusProspectIds.isNotEmpty) 'status_prospect_id': statusProspectIds.join(','),
+          if (apptStartDate != null && apptStartDate.isNotEmpty) 'appt_start_date': apptStartDate,
+          if (apptEndDate != null && apptEndDate.isNotEmpty) 'appt_end_date': apptEndDate,
+          if (visitStartDate != null && visitStartDate.isNotEmpty) 'visit_start_date': visitStartDate,
+          if (visitEndDate != null && visitEndDate.isNotEmpty) 'visit_end_date': visitEndDate,
+          if (reserveStartDate != null && reserveStartDate.isNotEmpty) 'reserve_start_date': reserveStartDate,
+          if (reserveEndDate != null && reserveEndDate.isNotEmpty) 'reserve_end_date': reserveEndDate,
+          if (spStartDate != null && spStartDate.isNotEmpty) 'sp_start_date': spStartDate,
+          if (spEndDate != null && spEndDate.isNotEmpty) 'sp_end_date': spEndDate,
         },
       );
 
@@ -575,4 +583,5 @@ class ContactRemoteDataSourceImpl implements ContactRemoteDataSource {
       throw Exception(getErrorMessage(e, 'Gagal memuat product types'));
     }
   }
+
 }

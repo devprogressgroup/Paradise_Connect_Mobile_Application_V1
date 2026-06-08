@@ -128,6 +128,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
 
   List<Map<String, dynamic>> salesInfoFields = [];
   final Map<int, TextEditingController> _propertyControllers = {};
+  final Map<int, FocusNode> _propertyFocusNodes = {};
   final Map<int, PickedFileResult?> _propertyFiles = {};
   bool _propertyFocusHandled = false;
   bool _isDialogShowing = false;
@@ -307,6 +308,10 @@ class _ContactFormPageState extends State<ContactFormPage> {
     return _propertyControllers[propertyId]!;
   }
 
+  FocusNode _getOrCreatePropertyFocusNode(int propertyId) {
+    return _propertyFocusNodes.putIfAbsent(propertyId, () => FocusNode());
+  }
+
   @override
   void initState() {
     super.initState();
@@ -359,12 +364,16 @@ class _ContactFormPageState extends State<ContactFormPage> {
 
     if (context.read<ProspectStatusBloc>().state.status !=
         ProspectStatusEnum.loaded) {
+      print('[ContactForm] fetching ProspectStatuses');
       context.read<ProspectStatusBloc>().add(FetchProspectStatusesEvent());
+    } else {
+      print('[ContactForm] ProspectStatuses already loaded');
     }
 
     // Load townships for project dropdown
     final townshipState = context.read<TownshipBloc>().state;
     if (townshipState is! TownshipLoaded) {
+      print('[ContactForm] fetching Townships');
       context.read<TownshipBloc>().add(GetTownshipsEvent());
     } else if (widget.args.page == 0 && selectFirstProject == null && townshipState.townships.isNotEmpty) {
       final first = townshipState.townships.first;
@@ -373,8 +382,14 @@ class _ContactFormPageState extends State<ContactFormPage> {
         selectFirstTownshipId = first.id;
       });
     }
-    context.read<ContactPropertiesBloc>().add(FetchContactPropertiesEvent());
+    if (context.read<ContactPropertiesBloc>().state.status != ContactPropertiesStatus.loaded) {
+      print('[ContactForm] fetching ContactProperties');
+      context.read<ContactPropertiesBloc>().add(FetchContactPropertiesEvent());
+    } else {
+      print('[ContactForm] ContactProperties already loaded');
+    }
     if (context.read<LostReasonBloc>().state.status != LostReasonStatus.loaded) {
+      print('[ContactForm] fetching LostReasons');
       context.read<LostReasonBloc>().add(FetchLostReasonsEvent());
     }
 
@@ -475,6 +490,8 @@ class _ContactFormPageState extends State<ContactFormPage> {
       selectedStatusId = contact.statusProspectId;
       selectedSalesExecutiveId = contact.salesExecutiveId;
       selectedSalesManagerId = contact.salesManagerId;
+      selectedSupervisorId = contact.salesSupervisorId;
+      selectedTeamId = contact.salesTeamId;
       selectedLostReasonId = contact.lostReasonId;
       if (contact.lostReasonId != null) {
         final lostState = context.read<LostReasonBloc>().state;
@@ -615,6 +632,20 @@ class _ContactFormPageState extends State<ContactFormPage> {
         selectedOwnerName = contact.ownerName ?? findNameByUserId(selectedOwnerId);
         selectedSalesExecutiveName = contact.salesExecutiveName ?? findName(selectedSalesExecutiveId);
         selectedSalesManagerName = contact.salesManagerName ?? findName(selectedSalesManagerId);
+
+        // For edit mode: build salesInfoFields directly from contact detail (don't use hierarchy auto-fill)
+        if (widget.args.page != 0) {
+          salesInfoFields.clear();
+          if (contact.salesExecutiveName != null || contact.salesExecutiveId != null) {
+            salesInfoFields.add({'label': 'Sales Executive', 'name': contact.salesExecutiveName ?? findName(contact.salesExecutiveId) ?? '', 'id': contact.salesExecutiveId});
+          }
+          if (contact.salesSupervisorName != null || contact.salesSupervisorId != null) {
+            salesInfoFields.add({'label': 'Sales Supervisor', 'name': contact.salesSupervisorName ?? findName(contact.salesSupervisorId) ?? '', 'id': contact.salesSupervisorId});
+          }
+          if (contact.salesManagerName != null || contact.salesManagerId != null) {
+            salesInfoFields.add({'label': 'Sales Manager', 'name': contact.salesManagerName ?? findName(contact.salesManagerId) ?? '', 'id': contact.salesManagerId});
+          }
+        }
       }
 
       final statusState = context.read<ProspectStatusBloc>().state;
@@ -689,13 +720,12 @@ class _ContactFormPageState extends State<ContactFormPage> {
         // ignore
       }
 
-      // Auto-fill sales information based on ownerId
-      if (selectedOwnerId != null) {
+      // Auto-fill sales information based on ownerId — only for new contacts
+      if (widget.args.page == 0 && selectedOwnerId != null) {
         final profileState = context.read<ProfileBloc>().state;
         if (profileState is ProfileLoaded) {
           _updateSalesInformation(selectedOwnerId!, profileState.profile);
         } else {
-          // If profile not loaded yet, schedule update after profile loads via listener
           WidgetsBinding.instance.addPostFrameCallback((_) {
             final ps = context.read<ProfileBloc>().state;
             if (ps is ProfileLoaded)
@@ -929,6 +959,9 @@ class _ContactFormPageState extends State<ContactFormPage> {
 
     for (final c in _propertyControllers.values) {
       c.dispose();
+    }
+    for (final fn in _propertyFocusNodes.values) {
+      fn.dispose();
     }
     _scrollController.dispose();
     super.dispose();
@@ -1254,8 +1287,12 @@ class _ContactFormPageState extends State<ContactFormPage> {
                 });
               },
               builder: (context, contactState) {
-                final statusLoading = context.watch<ProspectStatusBloc>().state.status != ProspectStatusEnum.loaded;
-                final propertiesLoading = context.watch<ContactPropertiesBloc>().state.status != ContactPropertiesStatus.loaded;
+                final statusState = context.watch<ProspectStatusBloc>().state.status;
+                final statusLoading = statusState == ProspectStatusEnum.initial || statusState == ProspectStatusEnum.loading;
+                final propertiesState = context.watch<ContactPropertiesBloc>().state.status;
+                final propertiesLoading = propertiesState == ContactPropertiesStatus.initial || propertiesState == ContactPropertiesStatus.loading;
+                if (propertiesState == ContactPropertiesStatus.error) print('[ContactForm] ContactProperties ERROR: ${context.watch<ContactPropertiesBloc>().state.errorMessage}');
+                if (statusState == ProspectStatusEnum.error) print('[ContactForm] ProspectStatus ERROR');
                 final detailLoading = contactState.status == ContactStatus.loadingDetail ||
                     contactState.status == ContactStatus.initial;
 
@@ -1919,7 +1956,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
                           return Padding(padding: const EdgeInsets.all(8.0), child: Text('Failed to load properties: ${state.errorMessage}'));
                         }
 
-                        // Auto-scroll + auto-open when arriving from view mode with a focusField
+                        // Auto-scroll + highlight when arriving from view mode with a focusField
                         if (state.status == ContactPropertiesStatus.loaded &&
                             widget.args.focusField != null &&
                             widget.args.page == 1 &&
@@ -1928,7 +1965,12 @@ class _ContactFormPageState extends State<ContactFormPage> {
                             if (!mounted || _propertyFocusHandled) return;
                             _propertyFocusHandled = true;
                             Future.delayed(const Duration(milliseconds: 200), () {
-                              if (mounted) _scrollToField(widget.args.focusField!);
+                              if (!mounted) return;
+                              _scrollToField(widget.args.focusField!);
+                              setState(() => _highlightedField = widget.args.focusField);
+                              Future.delayed(const Duration(seconds: 3), () {
+                                if (mounted) setState(() => _highlightedField = null);
+                              });
                             });
                           });
                         }
@@ -1942,12 +1984,13 @@ class _ContactFormPageState extends State<ContactFormPage> {
                               child: Column(
                                 children: group.properties.map((prop) {
                                   final propCtrl = _getOrCreatePropertyController(prop.propertyId);
+                                  final propFN = _getOrCreatePropertyFocusNode(prop.propertyId);
 
                                   if (prop.fieldType == 'date') {
                                     return _buildField(
                                       label: prop.label,
                                       controller: propCtrl,
-                                      focusNode: FocusNode(),
+                                      focusNode: propFN,
                                       fieldType: 'date',
                                     );
                                   }
@@ -1956,12 +1999,12 @@ class _ContactFormPageState extends State<ContactFormPage> {
                                     return _buildField(
                                       label: prop.label,
                                       controller: propCtrl,
-                                      focusNode: FocusNode(),
+                                      focusNode: propFN,
                                       fieldType: 'int',
                                     );
                                   }
 
-                                  if (prop.fieldType == 'select') {
+                                  if (prop.fieldType == 'select' || prop.fieldType == 'lookup') {
                                     return _buildPropertySelectField(prop, propCtrl);
                                   }
 
@@ -1969,11 +2012,20 @@ class _ContactFormPageState extends State<ContactFormPage> {
                                     return _buildPropertyFileField(prop.propertyId, prop.label);
                                   }
 
+                                  if (prop.fieldType == 'textarea') {
+                                    return _buildField(
+                                      label: prop.label,
+                                      controller: propCtrl,
+                                      focusNode: propFN,
+                                      minLines: 3,
+                                    );
+                                  }
+
                                   // default text
                                   return _buildField(
                                     label: prop.label,
                                     controller: propCtrl,
-                                    focusNode: FocusNode(),
+                                    focusNode: propFN,
                                   );
                                 }).toList(),
                               ),
@@ -2351,7 +2403,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
             padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
             constraints: const BoxConstraints(minHeight: 50),
             decoration: BoxDecoration(
-              color: isHighlighted ? Color(primaryColor).withOpacity(0.06) : Color(whiteColor),
+              color: isHighlighted ? Color(primaryColor).withValues(alpha: 0.06) : Color(whiteColor),
               border: Border(bottom: BorderSide(width: isHighlighted ? 2 : 1, color: isError ? Color(redColor) : isHighlighted ? Color(primaryColor) : Color(grey9Color))),
             ),
             child: Row(

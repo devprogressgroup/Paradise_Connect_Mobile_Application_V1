@@ -21,6 +21,18 @@ class FetchContactsEvent extends ContactEvent {
   final bool clearDates;
   final bool clearOwner;
   final bool clearStatus;
+  final String? apptStartDate;
+  final String? apptEndDate;
+  final String? visitStartDate;
+  final String? visitEndDate;
+  final String? reserveStartDate;
+  final String? reserveEndDate;
+  final String? spStartDate;
+  final String? spEndDate;
+  final bool clearApptDates;
+  final bool clearVisitDates;
+  final bool clearReserveDates;
+  final bool clearSpDates;
 
   const FetchContactsEvent({
     this.page = 1,
@@ -35,6 +47,18 @@ class FetchContactsEvent extends ContactEvent {
     this.clearDates = false,
     this.clearOwner = false,
     this.clearStatus = false,
+    this.apptStartDate,
+    this.apptEndDate,
+    this.visitStartDate,
+    this.visitEndDate,
+    this.reserveStartDate,
+    this.reserveEndDate,
+    this.spStartDate,
+    this.spEndDate,
+    this.clearApptDates = false,
+    this.clearVisitDates = false,
+    this.clearReserveDates = false,
+    this.clearSpDates = false,
   });
 
   @override
@@ -51,6 +75,18 @@ class FetchContactsEvent extends ContactEvent {
     clearDates,
     clearOwner,
     clearStatus,
+    apptStartDate,
+    apptEndDate,
+    visitStartDate,
+    visitEndDate,
+    reserveStartDate,
+    reserveEndDate,
+    spStartDate,
+    spEndDate,
+    clearApptDates,
+    clearVisitDates,
+    clearReserveDates,
+    clearSpDates,
   ];
 }
 

@@ -97,9 +97,11 @@ Widget buildContactPageShimmer() {
             children: [
               _ShimmerBox(width: 90, height: 36, borderRadius: 12),
               const SizedBox(width: 10),
+              _ShimmerBox(width: 90, height: 36, borderRadius: 12),
+                const SizedBox(width: 10),
               _ShimmerBox(width: 110, height: 36, borderRadius: 12),
               const SizedBox(width: 10),
-              _ShimmerBox(width: 90, height: 36, borderRadius: 12),
+              _ShimmerBox(width: 40, height: 36, borderRadius: 12),
             ],
           ),
         ),

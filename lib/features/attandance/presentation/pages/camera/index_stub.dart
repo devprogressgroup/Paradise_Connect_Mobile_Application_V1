@@ -799,7 +799,16 @@ class _WebSubmitPageState extends State<_WebSubmitPage> {
                               ),
                             ],
                             const SizedBox(height: 40),
-                            customButton(_handleSubmit, _showRealtimeLocationWarning ? "Request Approval" : "Submit"),
+                            BlocBuilder<ProfileBloc, ProfileState>(
+                              builder: (context, profileState) {
+                                final hasAtasan = profileState is ProfileLoaded &&
+                                    profileState.profile.salesRoles.any((r) => r.parent != null);
+                                final label = (_showRealtimeLocationWarning && hasAtasan)
+                                    ? "Request Approval"
+                                    : "Submit";
+                                return customButton(_handleSubmit, label);
+                              },
+                            ),
                             const SizedBox(height: 20),
                           ],
                         ),

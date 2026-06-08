@@ -27,6 +27,14 @@ class ContactState extends Equatable {
   final List<int>? ownerIds;
   final List<int>? statusProspectIds;
   final ContactEntity? contactDetail;
+  final String? apptStartDate;
+  final String? apptEndDate;
+  final String? visitStartDate;
+  final String? visitEndDate;
+  final String? reserveStartDate;
+  final String? reserveEndDate;
+  final String? spStartDate;
+  final String? spEndDate;
 
   const ContactState({
     this.status = ContactStatus.initial,
@@ -40,6 +48,14 @@ class ContactState extends Equatable {
     this.ownerIds,
     this.statusProspectIds,
     this.contactDetail,
+    this.apptStartDate,
+    this.apptEndDate,
+    this.visitStartDate,
+    this.visitEndDate,
+    this.reserveStartDate,
+    this.reserveEndDate,
+    this.spStartDate,
+    this.spEndDate,
   });
 
   ContactState copyWith({
@@ -58,6 +74,18 @@ class ContactState extends Equatable {
     bool clearOwner = false,
     bool clearStatus = false,
     ContactEntity? contactDetail,
+    String? apptStartDate,
+    String? apptEndDate,
+    String? visitStartDate,
+    String? visitEndDate,
+    String? reserveStartDate,
+    String? reserveEndDate,
+    String? spStartDate,
+    String? spEndDate,
+    bool clearApptDates = false,
+    bool clearVisitDates = false,
+    bool clearReserveDates = false,
+    bool clearSpDates = false,
   }) {
     return ContactState(
       status: status ?? this.status,
@@ -69,10 +97,16 @@ class ContactState extends Equatable {
       startDate: clearDates ? null : (startDate ?? this.startDate),
       endDate: clearDates ? null : (endDate ?? this.endDate),
       ownerIds: clearOwner ? null : (ownerIds ?? this.ownerIds),
-      statusProspectIds: clearStatus
-          ? null
-          : (statusProspectIds ?? this.statusProspectIds),
+      statusProspectIds: clearStatus ? null : (statusProspectIds ?? this.statusProspectIds),
       contactDetail: contactDetail ?? this.contactDetail,
+      apptStartDate: clearApptDates ? null : (apptStartDate ?? this.apptStartDate),
+      apptEndDate: clearApptDates ? null : (apptEndDate ?? this.apptEndDate),
+      visitStartDate: clearVisitDates ? null : (visitStartDate ?? this.visitStartDate),
+      visitEndDate: clearVisitDates ? null : (visitEndDate ?? this.visitEndDate),
+      reserveStartDate: clearReserveDates ? null : (reserveStartDate ?? this.reserveStartDate),
+      reserveEndDate: clearReserveDates ? null : (reserveEndDate ?? this.reserveEndDate),
+      spStartDate: clearSpDates ? null : (spStartDate ?? this.spStartDate),
+      spEndDate: clearSpDates ? null : (spEndDate ?? this.spEndDate),
     );
   }
 
@@ -89,5 +123,13 @@ class ContactState extends Equatable {
     ownerIds,
     statusProspectIds,
     contactDetail,
+    apptStartDate,
+    apptEndDate,
+    visitStartDate,
+    visitEndDate,
+    reserveStartDate,
+    reserveEndDate,
+    spStartDate,
+    spEndDate,
   ];
 }

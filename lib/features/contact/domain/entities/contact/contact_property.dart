@@ -6,6 +6,9 @@ class ContactProperty {
   final String label;
   final String fieldType;
   final List<Map<String, String>> options;
+  final String? sourceTable;
+  final String? sourceValueKey;
+  final String? sourceLabelKey;
 
   ContactProperty({
     required this.propertyId,
@@ -15,6 +18,9 @@ class ContactProperty {
     required this.label,
     required this.fieldType,
     this.options = const [],
+    this.sourceTable,
+    this.sourceValueKey,
+    this.sourceLabelKey,
   });
 }
 

@@ -1,3 +1,4 @@
+import 'package:bloc_concurrency/bloc_concurrency.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:progress_group/features/contact/domain/usecases/contact/update_contact_usecase.dart';
 import 'package:progress_group/features/contact/domain/usecases/contact/delete_contact_usecase.dart';
@@ -22,7 +23,7 @@ class ContactBloc extends Bloc<ContactEvent, ContactState> {
     required this.deleteContactUseCase,
     required this.getContactDetailUseCase,
   }) : super(const ContactState()) {
-    on<FetchContactsEvent>(_onFetchContacts);
+    on<FetchContactsEvent>(_onFetchContacts, transformer: droppable());
     on<CreateContactEvent>(_onCreateContact);
     on<FetchContactDetailEvent>(_onFetchContactDetail);
     on<UpdateContactEvent>(_onUpdateContact);
@@ -36,6 +37,10 @@ class ContactBloc extends Bloc<ContactEvent, ContactState> {
           clearDates: true,
           clearOwner: true,
           clearStatus: true,
+          clearApptDates: true,
+          clearVisitDates: true,
+          clearReserveDates: true,
+          clearSpDates: true,
         )));
   }
 
@@ -61,22 +66,24 @@ class ContactBloc extends Bloc<ContactEvent, ContactState> {
           clearDates: event.clearDates,
           clearOwner: event.clearOwner,
           clearStatus: event.clearStatus,
+          apptStartDate: event.apptStartDate,
+          apptEndDate: event.apptEndDate,
+          visitStartDate: event.visitStartDate,
+          visitEndDate: event.visitEndDate,
+          reserveStartDate: event.reserveStartDate,
+          reserveEndDate: event.reserveEndDate,
+          spStartDate: event.spStartDate,
+          spEndDate: event.spEndDate,
+          clearApptDates: event.clearApptDates,
+          clearVisitDates: event.clearVisitDates,
+          clearReserveDates: event.clearReserveDates,
+          clearSpDates: event.clearSpDates,
         ),
       );
     } else {
-      if (state.hasReachedMax && state.status == ContactStatus.loaded) return;
-      if (state.status == ContactStatus.initial) {
-        emit(
-          state.copyWith(
-            status: ContactStatus.loading,
-            search: event.search,
-            startDate: event.startDate,
-            endDate: event.endDate,
-            ownerIds: event.ownerIds,
-            statusProspectIds: event.statusProspectIds,
-          ),
-        );
-      }
+      if (state.hasReachedMax) return;
+      if (state.status == ContactStatus.loading) return;
+      emit(state.copyWith(status: ContactStatus.loading));
     }
 
     final currentPage = event.isRefresh ? 1 : state.currentPage;
@@ -89,6 +96,14 @@ class ContactBloc extends Bloc<ContactEvent, ContactState> {
       endDate: event.clearDates ? null : (event.endDate ?? state.endDate),
       ownerIds: event.clearOwner ? null : (event.ownerIds ?? state.ownerIds),
       statusProspectIds: event.clearStatus ? null : (event.statusProspectIds ?? state.statusProspectIds),
+      apptStartDate: event.clearApptDates ? null : (event.apptStartDate ?? state.apptStartDate),
+      apptEndDate: event.clearApptDates ? null : (event.apptEndDate ?? state.apptEndDate),
+      visitStartDate: event.clearVisitDates ? null : (event.visitStartDate ?? state.visitStartDate),
+      visitEndDate: event.clearVisitDates ? null : (event.visitEndDate ?? state.visitEndDate),
+      reserveStartDate: event.clearReserveDates ? null : (event.reserveStartDate ?? state.reserveStartDate),
+      reserveEndDate: event.clearReserveDates ? null : (event.reserveEndDate ?? state.reserveEndDate),
+      spStartDate: event.clearSpDates ? null : (event.spStartDate ?? state.spStartDate),
+      spEndDate: event.clearSpDates ? null : (event.spEndDate ?? state.spEndDate),
     );
 
     result.fold(

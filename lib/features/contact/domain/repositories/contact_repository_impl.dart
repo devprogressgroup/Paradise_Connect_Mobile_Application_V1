@@ -25,7 +25,7 @@ class ContactRepositoryImpl implements ContactRepository {
   ContactRepositoryImpl(this.remoteDataSource);
 
   @override
-  Future<Either<String, ContactResponse>> getContacts({  int page = 1,  int perPage = 10,  String? search,  String? startDate,  String? endDate,  List<int>? ownerIds,  List<int>? statusProspectIds,}) async {
+  Future<Either<String, ContactResponse>> getContacts({int page = 1, int perPage = 10, String? search, String? startDate, String? endDate, List<int>? ownerIds, List<int>? statusProspectIds, String? apptStartDate, String? apptEndDate, String? visitStartDate, String? visitEndDate, String? reserveStartDate, String? reserveEndDate, String? spStartDate, String? spEndDate}) async {
     try {
       final result = await remoteDataSource.getContacts(
         page: page,
@@ -35,6 +35,14 @@ class ContactRepositoryImpl implements ContactRepository {
         endDate: endDate,
         ownerIds: ownerIds,
         statusProspectIds: statusProspectIds,
+        apptStartDate: apptStartDate,
+        apptEndDate: apptEndDate,
+        visitStartDate: visitStartDate,
+        visitEndDate: visitEndDate,
+        reserveStartDate: reserveStartDate,
+        reserveEndDate: reserveEndDate,
+        spStartDate: spStartDate,
+        spEndDate: spEndDate,
       );
       return Right(result);
     } catch (e) {
@@ -288,4 +296,5 @@ class ContactRepositoryImpl implements ContactRepository {
       return Left(e.toString());
     }
   }
+
 }

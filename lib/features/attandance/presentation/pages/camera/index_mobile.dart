@@ -43,6 +43,7 @@ class _CameraPageState extends State<CameraPage> {
   bool _isSwitching = false;
   bool _isAddingMore = false;
   AttendanceLocation? _selectedPameranLocation;
+  String? _cameraError;
 
   bool get _showRealtimeLocationWarning {
     final flag = widget.args.flag;
@@ -111,9 +112,7 @@ class _CameraPageState extends State<CameraPage> {
     } catch (e) {
       debugPrint("ERROR CAMERA: $e");
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Failed to open camera: $e")),
-        );
+        setState(() => _cameraError = "Gagal membuka kamera: $e");
       }
     }
   }
@@ -268,8 +267,36 @@ class _CameraPageState extends State<CameraPage> {
   }
 
   Widget _buildBody() {
+    if (_cameraError != null) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.camera_alt_outlined, size: 60, color: Colors.grey),
+              const SizedBox(height: 16),
+              Text(
+                _cameraError!,
+                textAlign: TextAlign.center,
+                style: const TextStyle(color: Colors.grey, fontSize: 14),
+              ),
+              const SizedBox(height: 24),
+              ElevatedButton.icon(
+                onPressed: () {
+                  setState(() => _cameraError = null);
+                  _initCamera();
+                },
+                icon: const Icon(Icons.refresh),
+                label: const Text('Coba Lagi'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
     if (!_isCameraReady || _isSwitching) {
-      return Center(child: CircularProgressIndicator());
+      return const Center(child: CircularProgressIndicator());
     }
     if (_imageFiles.isNotEmpty && !_isAddingMore) {
       return _buildPreview();
@@ -369,7 +396,7 @@ class _CameraPageState extends State<CameraPage> {
                             left: 0,
                             right: 0,
                             child: Container(
-                              color: Color(blue2Color).withOpacity(0.5),
+                              color: Color(blue2Color).withValues(alpha: 0.5),
                               padding: EdgeInsets.all(16),
                               child: Column(
                                 children: [
@@ -582,7 +609,16 @@ class _CameraPageState extends State<CameraPage> {
                               ),
                             ],
                             SizedBox(height: 20),
-                            customButton(_handleSubmit,_showRealtimeLocationWarning?"Request Approval": "Submit"),
+                            BlocBuilder<ProfileBloc, ProfileState>(
+                              builder: (context, profileState) {
+                                final hasAtasan = profileState is ProfileLoaded &&
+                                    profileState.profile.salesRoles.any((r) => r.parent != null);
+                                final label = (_showRealtimeLocationWarning && hasAtasan)
+                                    ? "Request Approval"
+                                    : "Submit";
+                                return customButton(_handleSubmit, label);
+                              },
+                            ),
                             SizedBox(height: 20),
                           ],
                         ),

@@ -9,6 +9,9 @@ class ContactPropertyModel extends ContactProperty {
     required super.label,
     required super.fieldType,
     super.options = const [],
+    super.sourceTable,
+    super.sourceValueKey,
+    super.sourceLabelKey,
   });
 
   factory ContactPropertyModel.fromJson(Map<String, dynamic> json) {
@@ -20,9 +23,15 @@ class ContactPropertyModel extends ContactProperty {
       label: json['label'],
       fieldType: json['field_type'],
       options: (json['options'] as List<dynamic>?)
-              ?.map((o) => {'label': o['label'] as String, 'value': o['value'] as String})
+              ?.map((o) => {
+                    'label': o['label']?.toString() ?? '',
+                    'value': o['value']?.toString() ?? '',
+                  })
               .toList() ??
           [],
+      sourceTable: json['source_table'] as String?,
+      sourceValueKey: json['source_value_key'] as String?,
+      sourceLabelKey: json['source_label_key'] as String?,
     );
   }
 }
