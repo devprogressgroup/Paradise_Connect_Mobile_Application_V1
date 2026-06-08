@@ -1165,7 +1165,7 @@ class _ContactDetailPageState extends State<ContactDetailPage>with TickerProvide
 
                                   Spacer(),
                                   PopupMenuButton<String>(
-                                    enabled: item.attachmentTypeId != 0,
+                                    enabled: item.attachmentTypeId != 12,
                                     icon: Container(
                                       height: 44,
                                       width: 44,

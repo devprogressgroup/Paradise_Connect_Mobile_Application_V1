@@ -1692,8 +1692,14 @@ class _ContactFormPageState extends State<ContactFormPage> {
                             Builder(builder: (context) {
                               final ps = context.watch<PameranAktifCubit>().state;
                               final list = ps is PameranAktifLoaded ? ps.data : [];
+                              if (list.isNotEmpty) {
+                                for (final e in list) {
+                                  print('PameranAktif startDate: ${e.startDate}, endDate: ${e.endDate}');
+                                }
+                              }
                               final firstDate = list.isNotEmpty ? list.map((e) => e.startDate).reduce((a, b) => a.isBefore(b) ? a : b) : null;
                               final lastDate = list.isNotEmpty ? list.map((e) => e.endDate).reduce((a, b) => a.isAfter(b) ? a : b) : null;
+                              print('firstDate: $firstDate, lastDate: $lastDate');
                               return _buildField(
                                 label: "Periode Pameran Date",
                                 controller: periodePameranDateTC,

@@ -35,10 +35,10 @@ class ApiConstants {
     
     AppEnvironment.development: _EnvConfig(
       label: 'Development',
-      baseUrl: 'http://192.168.8.49:8000/api',
-      storageUrl: 'http://192.168.8.49:8000/storage',
-      waServerURL: 'http://192.168.8.49:3000',
-      serverUrl: 'http://192.168.8.49:8000',
+      baseUrl: 'http://192.168.8.36:8000/api',
+      storageUrl: 'http://192.168.8.36:8000/storage',
+      waServerURL: 'http://192.168.8.36:3000',
+      serverUrl: 'http://192.168.8.36:8000',
     ),
     AppEnvironment.development2: _EnvConfig(
       label: 'Development 2',
