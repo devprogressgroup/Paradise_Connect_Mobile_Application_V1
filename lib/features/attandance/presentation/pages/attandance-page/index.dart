@@ -104,9 +104,6 @@ class _AttandancePageState extends State<AttandancePage> {
         }
       }
       _getLog();
-
-      context.read<OfficeLocationCubit>().load();
-      context.read<PameranLocationCubit>().load();
     });
   }
 
@@ -411,14 +408,9 @@ class _AttandancePageState extends State<AttandancePage> {
       }
 
       final officeLocationCubit = context.read<OfficeLocationCubit>();
+      await officeLocationCubit.load(force: true);
+      if (!mounted) return;
       var officeLocations = officeLocationCubit.state;
-
-      // Race condition fix: kalau data belum dimuat, tunggu sebentar
-      if (officeLocations.isEmpty) {
-        await officeLocationCubit.load();
-        if (!mounted) return;
-        officeLocations = officeLocationCubit.state;
-      }
 
       double? nearestDistance;
       double? activeRadius;

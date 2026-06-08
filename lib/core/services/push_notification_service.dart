@@ -297,6 +297,11 @@ class PushNotificationService {
       return;
     }
 
+    if (type == 'attendance_approved' || type == 'attendance_rejected') {
+      AppRouter.router.go('/attandance');
+      return;
+    }
+
     if (type == 'app_update') {
       final url = data['download_url'] as String?;
       if (url != null && url.isNotEmpty) {
