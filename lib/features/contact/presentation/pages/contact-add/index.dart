@@ -43,6 +43,7 @@ import 'package:progress_group/features/contact/presentation/state/contact/conta
 
 import '../../../../../core/constants/colors.dart';
 import '../../../../../core/utils/helpers/date_helper.dart';
+import '../../../../../core/utils/helpers/image_compress_helper.dart';
 import '../../../../../core/utils/widget/custom_header.dart';
 import '../../../data/arguments/contact_detail_args.dart';
 import 'package:progress_group/features/saleskit/presentation/state/township/township_bloc.dart';
@@ -75,6 +76,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
   FocusNode spNameFN = FocusNode();
 
   bool isFollowUp = false;
+  bool _noteError = false;
   DateTime? selectedDate;
 
   File? selectedImage;
@@ -545,7 +547,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
     context.read<ActivityBloc>().add(CreateActivityEvent(params));
   }
 
-  void _submitAttachment() {
+  Future<void> _submitAttachment() async {
     final contactId = widget.args.dataContact?.contactId;
     if (contactId == null) return;
 
@@ -562,13 +564,26 @@ class _ContactAddPageState extends State<ContactAddPage> {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Pilih file')));
       return;
     }
-    final fileToUpload = selectedFile ?? selectedImage;
+
+    File? finalFile = selectedFile ?? selectedImage;
+    Uint8List? finalBytes = selectedFileBytes;
+
+    if (!isPdf) {
+      if (!kIsWeb && finalFile != null) {
+        finalBytes = await compressImageFile(finalFile.path);
+        finalFile = null;
+      } else if (kIsWeb && finalBytes != null) {
+        finalBytes = await compressImageBytes(finalBytes);
+      }
+    }
+    if (!mounted) return;
+
     final params = UploadAttachmentParams(
       contactId: contactId,
       attachmentTypeId: selectedTypeId!,
       attachmentNote: descTC.text.isEmpty ? null : descTC.text,
-      file: fileToUpload,
-      fileBytes: selectedFileBytes,
+      file: finalFile,
+      fileBytes: finalBytes,
       fileName: selectedFileName,
     );
 
@@ -582,7 +597,27 @@ class _ContactAddPageState extends State<ContactAddPage> {
     );
   }
 
-  void _submitUpdateStatus(BuildContext context) {
+  Future<({List<File>? files, List<Uint8List>? bytesData})> _compressVisitImages() async {
+    if (!kIsWeb && selectedImages.isNotEmpty) {
+      final compressed = <Uint8List>[];
+      for (final f in selectedImages) {
+        compressed.add(await compressImageFile(f.path));
+      }
+      return (files: null, bytesData: compressed);
+    } else if (kIsWeb && selectedImageBytes.isNotEmpty) {
+      final compressed = <Uint8List>[];
+      for (final b in selectedImageBytes) {
+        compressed.add(await compressImageBytes(b));
+      }
+      return (files: null, bytesData: compressed);
+    }
+    return (
+      files: selectedImages.isEmpty ? null : selectedImages,
+      bytesData: selectedImageBytes.isEmpty ? null : selectedImageBytes,
+    );
+  }
+
+  Future<void> _submitUpdateStatus(BuildContext context) async {
 
     final contact = widget.args.dataContact;
     // Field dari edit form yang tidak tampil di UI halaman ini
@@ -669,14 +704,16 @@ class _ContactAddPageState extends State<ContactAddPage> {
     final isVisitStatus = visitStatusIds.contains(selectedStatusId);
 
     if (isVisitStatus) {
+      final visitImages = await _compressVisitImages();
+      if (!mounted) return;
       final paramsVisit = CreateVisitParams(
         contactId: widget.args.dataContact!.contactId!,
         statusProspectId: selectedStatusId!,
         visitCount: int.parse(jmlDatang),
         activityDate: DateFormat('yyyy-MM-dd HH:mm:ss').format(selectedDate!),
         notes: descTC.text,
-        files: selectedImages.isEmpty ? null : selectedImages,
-        filesBytesData: selectedImageBytes.isEmpty ? null : selectedImageBytes,
+        files: visitImages.files,
+        filesBytesData: visitImages.bytesData,
       );
       context.read<ActivityVisitBloc>().add(CreateVisitEvent(paramsVisit));
       // Also update contact-level fields (project, category, notes) that CreateVisitEvent doesn't save
@@ -686,7 +723,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
     }
   }
 
-  void _submitVisit(BuildContext context) {
+  Future<void> _submitVisit(BuildContext context) async {
     if (selectedStatusId == null) {
       ScaffoldMessenger.of(
         context,
@@ -706,14 +743,17 @@ class _ContactAddPageState extends State<ContactAddPage> {
         ? DateFormat('yyyy-MM-dd').format(selectedDate!)
         : null;
 
+    final visitImages = await _compressVisitImages();
+    if (!mounted) return;
+
     final paramsVisit = CreateVisitParams(
       contactId: contact.contactId!,
       statusProspectId: selectedStatusId!,
       visitCount: int.parse(jmlDatang),
       activityDate: DateFormat('yyyy-MM-dd HH:mm:ss').format(selectedDate!),
       notes: descTC.text,
-      files: selectedImages.isEmpty ? null : selectedImages,
-      filesBytesData: selectedImageBytes.isEmpty ? null : selectedImageBytes,
+      files: visitImages.files,
+      filesBytesData: visitImages.bytesData,
     );
 
     final paramsContact = CreateContactParams(
@@ -2286,9 +2326,13 @@ class _ContactAddPageState extends State<ContactAddPage> {
             focusNode: descFormActivityFN,
             onTapOutside: (event) => descFormActivityFN.unfocus(),
             textInputAction: TextInputAction.newline,
+            onChanged: (_) {
+              if (_noteError) setState(() => _noteError = false);
+            },
             decoration: InputDecoration(
               hintText: "Describe the ${widget.args.page == 0? "call": widget.args.page == 1? "whatsapp": widget.args.page == 2? "meeting": widget.args.page == 3? "reminder": widget.args.page == 4? "visit": widget.args.page == 5? "attachment": "update status prospect"}...",
               hintStyle: TextStyle(color: Color(grey2Color), fontSize: 14),
+              errorText: _noteError ? 'Note tidak boleh kosong' : null,
               contentPadding: EdgeInsets.symmetric(
                 horizontal: 16,
                 vertical: 12,
@@ -2299,11 +2343,19 @@ class _ContactAddPageState extends State<ContactAddPage> {
               ),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(color: Color(grey7Color)),
+                borderSide: BorderSide(color: _noteError ? Colors.red : Color(grey7Color)),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(color: Color(primaryColor)),
+                borderSide: BorderSide(color: _noteError ? Colors.red : Color(primaryColor)),
+              ),
+              errorBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: Colors.red),
+              ),
+              focusedErrorBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: Colors.red),
               ),
             ),
           ),
@@ -2411,6 +2463,10 @@ class _ContactAddPageState extends State<ContactAddPage> {
                       if (isFollowUpFlow && widget.args.dataActivity != null) {
                         context.read<ActivityBloc>().add(PostStatusFollowEvent([widget.args.dataActivity!.activityId]), );
                       } else {
+                        if (descFormActivityTC.text.trim().isEmpty) {
+                          setState(() => _noteError = true);
+                          return;
+                        }
                         _submitActivity(activityType: widget.args.namePage ?? '',activityDate: DateTime.now(),notesTC: descFormActivityTC,isFollowUp: isFollowUp,followUpDate: selectedDate,);
                       }
                     },
@@ -2492,9 +2548,13 @@ class _ContactAddPageState extends State<ContactAddPage> {
             focusNode: descFormActivityFN,
             onTapOutside: (event) => descFormActivityFN.unfocus(),
             textInputAction: TextInputAction.newline,
+            onChanged: (_) {
+              if (_noteError) setState(() => _noteError = false);
+            },
             decoration: InputDecoration(
               hintText: "Describe the ${widget.args.page == 0? "call": widget.args.page == 1? "whatsapp": widget.args.page == 2? "meeting": widget.args.page == 3? "reminder": widget.args.page == 4? "visit": widget.args.page == 5? "attachment": "update status prospect"}...",
               hintStyle: TextStyle(color: Color(grey2Color), fontSize: 14),
+              errorText: _noteError ? 'Note tidak boleh kosong' : null,
               contentPadding: EdgeInsets.symmetric(
                 horizontal: 16,
                 vertical: 12,
@@ -2505,11 +2565,19 @@ class _ContactAddPageState extends State<ContactAddPage> {
               ),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(color: Color(grey7Color)),
+                borderSide: BorderSide(color: _noteError ? Colors.red : Color(grey7Color)),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(color: Color(primaryColor)),
+                borderSide: BorderSide(color: _noteError ? Colors.red : Color(primaryColor)),
+              ),
+              errorBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: Colors.red),
+              ),
+              focusedErrorBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: Colors.red),
               ),
             ),
           ),
@@ -2528,6 +2596,10 @@ class _ContactAddPageState extends State<ContactAddPage> {
                           PostStatusFollowEvent([widget.args.dataActivity!.activityId]),
                         );
                       } else {
+                        if (descFormActivityTC.text.trim().isEmpty) {
+                          setState(() => _noteError = true);
+                          return;
+                        }
                         _submitActivity(activityType: widget.args.namePage ?? '',activityDate: DateTime.now(),notesTC: descFormActivityTC,isFollowUp: true,followUpDate: selectedDate ?? DateTime.now(),);
                       }
                     },

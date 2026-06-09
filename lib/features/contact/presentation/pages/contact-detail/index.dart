@@ -1324,59 +1324,116 @@ class _ContactDetailPageState extends State<ContactDetailPage>with TickerProvide
     );
   }
 
-  void _showImagePreview(BuildContext context, String imageUrl) {
-    final screenSize = MediaQuery.of(context).size;
-    showDialog(
-      context: context,
-      barrierColor: Colors.black87,
-      builder: (dialogContext) => Dialog(
-        backgroundColor: Colors.transparent,
-        insetPadding: const EdgeInsets.all(10),
-        child: Stack(
-          alignment: Alignment.center,
-          children: [
-            GestureDetector(
-              onTap: () => Navigator.pop(dialogContext),
-              child: ConstrainedBox(
-                constraints: BoxConstraints(
-                  maxWidth: screenSize.width - 20,
-                  maxHeight: screenSize.height - 80,
-                ),
-                child: InteractiveViewer(
-                  child: DriveImage(
-                    url: imageUrl,
-                    width: screenSize.width - 20,
-                    height: screenSize.height - 80,
-                    fit: BoxFit.contain,
-                    errorWidget: SizedBox(
+ void _showImagePreview(
+  BuildContext context,
+  List<String> imageUrls,
+  int initialIndex,
+) {
+  final screenSize = MediaQuery.of(context).size;
+
+  showDialog(
+    context: context,
+    barrierColor: Colors.black87,
+    builder: (dialogContext) {
+      int currentIndex = initialIndex;
+
+      return StatefulBuilder(
+        builder: (context, setState) {
+          return Dialog(
+            backgroundColor: Colors.transparent,
+            insetPadding: const EdgeInsets.all(10),
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                ConstrainedBox(
+                  constraints: BoxConstraints(
+                    maxWidth: screenSize.width - 20,
+                    maxHeight: screenSize.height - 80,
+                  ),
+                  child: InteractiveViewer(
+                    child: DriveImage(
+                      url: imageUrls[currentIndex],
                       width: screenSize.width - 20,
-                      height: 300,
-                      child: const Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.broken_image, size: 80, color: Colors.white54),
-                          SizedBox(height: 12),
-                          Text('Gambar tidak dapat dimuat', style: TextStyle(color: Colors.white54)),
-                        ],
+                      height: screenSize.height - 80,
+                      fit: BoxFit.contain,
+                    ),
+                  ),
+                ),
+
+                /// Tombol kiri
+                if (currentIndex > 0)
+                  Positioned(
+                    left: 10,
+                    child: IconButton(
+                      iconSize: 40,
+                      color: Colors.white,
+                      icon: const Icon(Icons.arrow_back_ios),
+                      onPressed: () {
+                        setState(() {
+                          currentIndex--;
+                        });
+                      },
+                    ),
+                  ),
+
+                /// Tombol kanan
+                if (currentIndex < imageUrls.length - 1)
+                  Positioned(
+                    right: 10,
+                    child: IconButton(
+                      iconSize: 40,
+                      color: Colors.white,
+                      icon: const Icon(Icons.arrow_forward_ios),
+                      onPressed: () {
+                        setState(() {
+                          currentIndex++;
+                        });
+                      },
+                    ),
+                  ),
+
+                /// Close
+                Positioned(
+                  top: 0,
+                  right: 0,
+                  child: IconButton(
+                    icon: const Icon(
+                      Icons.close,
+                      color: Colors.white,
+                      size: 30,
+                    ),
+                    onPressed: () => Navigator.pop(dialogContext),
+                  ),
+                ),
+
+                /// Indicator
+                Positioned(
+                  bottom: 10,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.black54,
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(
+                      '${currentIndex + 1} / ${imageUrls.length}',
+                      style: const TextStyle(
+                        color: Colors.white,
                       ),
                     ),
                   ),
                 ),
-              ),
+              ],
             ),
-            Positioned(
-              top: 0,
-              right: 0,
-              child: IconButton(
-                icon: const Icon(Icons.close, color: Colors.white, size: 30),
-                onPressed: () => Navigator.pop(dialogContext),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+          );
+        },
+      );
+    },
+  );
+}
 
   void _showDeleteDialog(BuildContext context, item) {
     showDialog(
@@ -1648,14 +1705,12 @@ class _ActivityItemState extends State<ActivityItem> {
                               height: 180,
                               fit: BoxFit.cover,
                               onTap: () {
-                                final parentState = context
-                                    .findAncestorStateOfType<
-                                      _ContactDetailPageState
-                                    >();
+                                final parentState = context .findAncestorStateOfType<   _ContactDetailPageState >();
                                 if (parentState != null) {
                                   parentState._showImagePreview(
                                     context,
-                                    item.imagePaths![index],
+                                    item.imagePaths!,
+                                    index,
                                   );
                                 }
                               },

@@ -204,11 +204,12 @@ class _ContactFormPageState extends State<ContactFormPage> {
         (fileNames ??= {})[id] = file.name;
       }
     });
+    final _normalizedPhone = waTC.text.isNotEmpty ? _normalizePhone(waTC.text) : null;
     return CreateContactParams(
       salutation: selectedSalutation,
       fullName: fullNameTC.text.isNotEmpty ? fullNameTC.text : null,
-      primaryPhone: waTC.text.isNotEmpty ? waTC.text : null,
-      whatsappNumber: waTC.text.isNotEmpty ? waTC.text : null,
+      primaryPhone: _normalizedPhone,
+      whatsappNumber: _normalizedPhone,
       primaryEmail: emailTC.text.isNotEmpty ? emailTC.text : null,
       ownerId: selectedOwnerId,
       salesExecutiveId: selectedSalesExecutiveId,
@@ -975,6 +976,13 @@ class _ContactFormPageState extends State<ContactFormPage> {
     super.dispose();
   }
 
+  String _normalizePhone(String phone) {
+    final cleaned = phone.replaceAll(RegExp(r'[\s\-\(\)]'), '');
+    if (cleaned.startsWith('+62')) return '62${cleaned.substring(3)}';
+    if (cleaned.startsWith('08')) return '628${cleaned.substring(2)}';
+    return cleaned;
+  }
+
   bool _validateEmail() {
     final email = emailTC.text.trim();
     if (email.isEmpty) return true;
@@ -1075,8 +1083,8 @@ class _ContactFormPageState extends State<ContactFormPage> {
     final params = CreateContactParams(
       salutation: selectedSalutation ?? '',
       fullName: fullNameTC.text.isNotEmpty ? fullNameTC.text : null,
-      primaryPhone: waTC.text.isNotEmpty ? waTC.text : null,
-      whatsappNumber: waTC.text.isNotEmpty ? waTC.text : null,
+      primaryPhone: waTC.text.isNotEmpty ? _normalizePhone(waTC.text) : null,
+      whatsappNumber: waTC.text.isNotEmpty ? _normalizePhone(waTC.text) : null,
       primaryEmail: emailTC.text.isNotEmpty ? emailTC.text : null,
 
       ownerId: selectedOwnerId,

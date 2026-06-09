@@ -115,6 +115,13 @@ class _ContactPageState extends State<ContactPage> {
     }
   }
 
+  String _normalizeSearch(String value) {
+    final trimmed = value.trim();
+    if (RegExp(r'^08\d+$').hasMatch(trimmed)) return '628${trimmed.substring(2)}';
+    if (trimmed.startsWith('+62')) return '62${trimmed.substring(3)}';
+    return trimmed;
+  }
+
   Future<void> _onRefresh() async {
     context.read<ContactBloc>().add(const FetchContactsEvent(isRefresh: true));
   }
@@ -141,7 +148,7 @@ class _ContactPageState extends State<ContactPage> {
                         _debounce = Timer(const Duration(milliseconds: 500), () {
                           contactEntity.clear();
                           context.read<ContactBloc>().add(
-                            FetchContactsEvent(search: value, isRefresh: true),
+                            FetchContactsEvent(search: _normalizeSearch(value), isRefresh: true),
                           );
                         });
                       },
@@ -523,6 +530,13 @@ class _ContactPageState extends State<ContactPage> {
   }
 }
 
+String _normalizePhone(String phone) {
+  final cleaned = phone.replaceAll(RegExp(r'[\s\-\(\)]'), '');
+  if (cleaned.startsWith('+62')) return '62${cleaned.substring(3)}';
+  if (cleaned.startsWith('08')) return '628${cleaned.substring(2)}';
+  return cleaned;
+}
+
 Widget _buildListContacts(BuildContext context, ContactEntity contact) {
   return GestureDetector(
     onTap: () {
@@ -561,7 +575,7 @@ Widget _buildListContacts(BuildContext context, ContactEntity contact) {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Text(contact.fullName ?? 'No Name',style: TextStyle(fontSize: 16, color: Color(blue2Color), fontWeight: FontWeight.bold),overflow: TextOverflow.ellipsis),
-                      Text(contact.whatsappNumber ?? 'No Phone',style: TextStyle(fontSize: 14, color: Color(grey5Color)),overflow: TextOverflow.ellipsis),
+                      Text(contact.whatsappNumber != null ? _normalizePhone(contact.whatsappNumber!) : 'No Phone',style: TextStyle(fontSize: 14, color: Color(grey5Color)),overflow: TextOverflow.ellipsis),
                       Text(contact.ownerName ??'-',style: TextStyle(fontSize: 12, color: Color(grey5Color)),overflow: TextOverflow.ellipsis),
                     ],
                   ),
