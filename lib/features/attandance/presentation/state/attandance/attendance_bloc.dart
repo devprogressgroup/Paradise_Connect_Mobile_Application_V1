@@ -131,6 +131,32 @@ class AttendanceBloc extends Bloc<AttendanceEvent, AttendanceState> {
       }
     });
 
+    on<LoadTodayAttendanceEvent>((event, emit) async {
+      final currentState = state;
+      final currentData = currentState is AttendanceLoaded ? currentState.data : <AttendanceEntity>[];
+      final currentLocations = currentState is AttendanceLoaded ? currentState.locations : null;
+      final currentPage = currentState is AttendanceLoaded ? currentState.attendancePage : 1;
+      final currentLastPage = currentState is AttendanceLoaded ? currentState.attendanceLastPage : 1;
+
+      emit(AttendanceLoading());
+      try {
+        final results = await Future.wait([
+          getOfficeLocationsUseCase(),
+          getTodayAttendanceUseCase().catchError((_) => null),
+        ]);
+        emit(AttendanceLoaded(
+          data: currentData,
+          officeLocations: results[0] as List<AttendanceLocation>,
+          locations: currentLocations,
+          todayData: results[1] as AttendanceEntity?,
+          attendancePage: currentPage,
+          attendanceLastPage: currentLastPage,
+        ));
+      } catch (e) {
+        emit(AttendanceError(cleanErrorMessage(e)));
+      }
+    });
+
     on<GetLocationsEvent>((event, emit) async {
       final currentState = state;
       List<AttendanceEntity> currentData = [];

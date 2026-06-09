@@ -21,7 +21,6 @@ import 'package:progress_group/features/attandance/presentation/state/attandance
 import 'package:progress_group/features/attandance/presentation/state/attandance/attendance_event.dart';
 import 'package:progress_group/features/attandance/presentation/state/attandance/attendance_state.dart';
 import 'package:progress_group/features/attandance/presentation/state/attendance_activity/attendance_activity_bloc.dart';
-import 'package:progress_group/features/attandance/presentation/state/pameran_location/pameran_location_cubit.dart';
 import 'package:progress_group/features/attandance/presentation/state/office_location/office_location_cubit.dart';
 import 'package:progress_group/features/attandance/presentation/state/attendance_activity/attendance_activity_event.dart';
 import 'package:progress_group/features/attandance/presentation/state/attendance_activity/attendance_activity_state.dart';
@@ -62,6 +61,7 @@ class _AttandancePageState extends State<AttandancePage> {
   String? _address;
   bool _isProcessing = false;
   bool _isCameraOpening = false;
+  bool _attendanceLogLoaded = false;
   DateTime? _lastGeocodeTime;
   bool _hasSetInitialTab = false;
   bool _isButtonPinned = false;
@@ -483,18 +483,20 @@ class _AttandancePageState extends State<AttandancePage> {
   }
 
   Future<void> _getLog() async {
-    context.read<AttendanceBloc>().add(FetchAttendanceDataEvent(
-      salesPersonIds: _attendanceOwnerIds,
-      startDate: _attendanceStartDate,
-      endDate: _attendanceEndDate,
-    ));
+    if (_attendanceLogLoaded) {
+      context.read<AttendanceBloc>().add(FetchAttendanceDataEvent(
+        salesPersonIds: _attendanceOwnerIds,
+        startDate: _attendanceStartDate,
+        endDate: _attendanceEndDate,
+      ));
+    } else {
+      context.read<AttendanceBloc>().add(LoadTodayAttendanceEvent());
+    }
     context.read<AttendanceActivityBloc>().add(GetAttendanceActivityEvent(
       salesPersonIds: _activityOwnerIds,
       startDate: _activityStartDate,
       endDate: _activityEndDate,
     ));
-    context.read<OfficeLocationCubit>().load(force: true);
-    context.read<PameranLocationCubit>().load(force: true);
   }
 
   void _showImagePreview(String url) {
@@ -1163,9 +1165,15 @@ class _AttandancePageState extends State<AttandancePage> {
             Expanded(
               child: GestureDetector(
                 onTap: () {
-                  setState(() {
-                    selectedMenu = 'attendance';
-                  });
+                  setState(() => selectedMenu = 'attendance');
+                  if (!_attendanceLogLoaded) {
+                    _attendanceLogLoaded = true;
+                    context.read<AttendanceBloc>().add(FetchAttendanceDataEvent(
+                      salesPersonIds: _attendanceOwnerIds,
+                      startDate: _attendanceStartDate,
+                      endDate: _attendanceEndDate,
+                    ));
+                  }
                 },
                 child: Container(
                   height: 30,
@@ -1293,6 +1301,7 @@ class _AttandancePageState extends State<AttandancePage> {
                 });
 
                 if (isAttendance) {
+                  _attendanceLogLoaded = true;
                   context.read<AttendanceBloc>().add(FetchAttendanceDataEvent(
                     salesPersonIds: _attendanceOwnerIds,
                     startDate: _attendanceStartDate,
@@ -1373,6 +1382,7 @@ class _AttandancePageState extends State<AttandancePage> {
             });
           }
           if (isAttendance) {
+            _attendanceLogLoaded = true;
             context.read<AttendanceBloc>().add(FetchAttendanceDataEvent(
               salesPersonIds: _attendanceOwnerIds,
               startDate: _attendanceStartDate,

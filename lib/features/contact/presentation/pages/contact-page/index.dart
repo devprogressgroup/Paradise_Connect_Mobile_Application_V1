@@ -532,10 +532,9 @@ Widget _buildListContacts(BuildContext context, ContactEntity contact) {
       );
     },
     child: Container(
-      height: 70,
       decoration: BoxDecoration(
         color: Color(whiteColor),
-        borderRadius: const BorderRadius.all(Radius.circular(5)),
+        borderRadius: const BorderRadius.all(Radius.circular(12)),
         boxShadow: [
           BoxShadow(
             color: Color(shadowColor).withValues(alpha: 0.08),
@@ -563,6 +562,7 @@ Widget _buildListContacts(BuildContext context, ContactEntity contact) {
                     children: [
                       Text(contact.fullName ?? 'No Name',style: TextStyle(fontSize: 16, color: Color(blue2Color), fontWeight: FontWeight.bold),overflow: TextOverflow.ellipsis),
                       Text(contact.whatsappNumber ?? 'No Phone',style: TextStyle(fontSize: 14, color: Color(grey5Color)),overflow: TextOverflow.ellipsis),
+                      Text(contact.ownerName ??'-',style: TextStyle(fontSize: 12, color: Color(grey5Color)),overflow: TextOverflow.ellipsis),
                     ],
                   ),
                 ),

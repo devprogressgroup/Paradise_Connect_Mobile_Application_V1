@@ -16,6 +16,8 @@ class FetchAttendanceDataEvent extends AttendanceEvent {
   FetchAttendanceDataEvent({this.salesPersonIds, this.startDate, this.endDate, this.page = 1, this.isLoadMore = false});
 }
 
+class LoadTodayAttendanceEvent extends AttendanceEvent {}
+
 class GetLocationsEvent extends AttendanceEvent {}
 
 class GetOfficeLocationsEvent extends AttendanceEvent {}

@@ -1,5 +1,8 @@
+import 'dart:async';
 import 'dart:io';
+import 'dart:typed_data';
 import 'package:camera/camera.dart';
+import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
@@ -80,7 +83,7 @@ class _CameraPageState extends State<CameraPage> {
 
   Future<void> _initCamera() async {
     try {
-      _cameras = await availableCameras();
+      _cameras = await availableCameras().timeout(const Duration(seconds: 10));
 
       if (_cameras == null || _cameras!.isEmpty) {
         if (mounted) {
@@ -101,14 +104,18 @@ class _CameraPageState extends State<CameraPage> {
 
       _controller = CameraController(
         _cameras![_cameraIndex],
-        ResolutionPreset.high,
+        ResolutionPreset.medium,
         enableAudio: false,
       );
 
-      await _controller!.initialize();
+      await _controller!.initialize().timeout(const Duration(seconds: 15));
 
       if (!mounted) return;
       setState(() {});
+    } on TimeoutException catch (_) {
+      if (mounted) {
+        setState(() => _cameraError = "Kamera timeout, coba lagi.");
+      }
     } catch (e) {
       debugPrint("ERROR CAMERA: $e");
       if (mounted) {
@@ -146,13 +153,31 @@ class _CameraPageState extends State<CameraPage> {
 
 
 
-  void _handleSubmit() {
+  Future<Uint8List> _compressImage(String filePath) async {
+    try {
+      int quality = 80;
+      Uint8List? result;
+      do {
+        result = await FlutterImageCompress.compressWithFile(filePath, quality: quality, minWidth: 1280, minHeight: 720);
+        if (result == null) break;
+        quality -= 10;
+      } while (result.lengthInBytes > 300 * 1024 && quality > 10);
+      if (result != null) return result;
+    } catch (_) {}
+    return File(filePath).readAsBytes();
+  }
+
+  Future<void> _handleSubmit() async {
+    print("cekkkk");
     if (_imageFiles.isEmpty) return;
+    print("cekkkk2");
 
     if (widget.args.isReturnImage == true) {
       context.pop(_imageFiles.first.path);
       return;
     }
+    print("cekkkk3");
+
 
     final flag = widget.args.flag;
     final datetime = DateFormat('yyyy-MM-dd HH:mm:ss').format(DateTime.now());
@@ -169,9 +194,13 @@ class _CameraPageState extends State<CameraPage> {
     final activeLng = _selectedPameranLocation?.longitude ?? widget.args.longitude;
 
     if (_isMultiplePhotosSupported) {
-      context.read<AttendanceBloc>().add(SubmitAttendanceActivityEvent(datetime: datetime, flag: flag!, location: location, note: notesTC.text, filePaths: _imageFiles.map((e) => e.path).toList(), nikNumber: nikNumber, locationId: activeLocationId, latitude: activeLat, longitude: activeLng,));
+      final compressedList = await Future.wait(_imageFiles.map((e) => _compressImage(e.path)));
+      if (!mounted) return;
+      context.read<AttendanceBloc>().add(SubmitAttendanceActivityEvent(datetime: datetime, flag: flag!, location: location, note: notesTC.text, filePaths: const [], fileBytesData: compressedList, nikNumber: nikNumber, locationId: activeLocationId, latitude: activeLat, longitude: activeLng,));
     } else {
-      context.read<AttendanceBloc>().add(SubmitAttendanceEvent(datetime: datetime, flag: flag!, location: location, note: notesTC.text, filePath: _imageFiles.first.path, nikNumber: nikNumber, locationId: activeLocationId, latitude: activeLat, longitude: activeLng,));
+      final compressed = await _compressImage(_imageFiles.first.path);
+      if (!mounted) return;
+      context.read<AttendanceBloc>().add(SubmitAttendanceEvent(datetime: datetime, flag: flag!, location: location, note: notesTC.text, fileBytes: compressed, nikNumber: nikNumber, locationId: activeLocationId, latitude: activeLat, longitude: activeLng,));
     }
   }
 
@@ -181,6 +210,10 @@ class _CameraPageState extends State<CameraPage> {
   @override
   void dispose() {
     _controller?.dispose();
+    notesTC.dispose();
+    pameranTC.dispose();
+    notesFN.dispose();
+    pameranFN.dispose();
     super.dispose();
   }
 
@@ -603,7 +636,7 @@ class _CameraPageState extends State<CameraPage> {
                                   return profile.salesRoles.isNotEmpty;
                                 }();
                                 final showWarning = _showRealtimeLocationWarning && hasAtasan;
-                                final label = showWarning ? "Request Approval" : "Submit";
+                                final label = showWarning ? "Request Approval" : "Submit2";
                                 return Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [

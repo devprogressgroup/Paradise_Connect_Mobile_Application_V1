@@ -164,6 +164,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
 
   String? _periodePameranDateBackend;
   static const List<int> _pameranIds = [29, 30, 31, 32];
+  static const Set<String> _requiredLabels = {'Salutation', 'Full Name', 'Hp/Whatsapp', 'Owner', 'Project', 'Sales Channel', 'Sales Channel Detail', 'Note'};
 
   bool _showValidation = false;
   bool _isSaving = false;
@@ -491,6 +492,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
       selectedSalesExecutiveId = contact.salesExecutiveId;
       selectedSalesManagerId = contact.salesManagerId;
       selectedSupervisorId = contact.salesSupervisorId;
+      selectedGeneralManagerId = contact.salesGeneralManagerId;
       selectedTeamId = contact.salesTeamId;
       selectedLostReasonId = contact.lostReasonId;
       if (contact.lostReasonId != null) {
@@ -636,6 +638,9 @@ class _ContactFormPageState extends State<ContactFormPage> {
         // For edit mode: build salesInfoFields directly from contact detail (don't use hierarchy auto-fill)
         if (widget.args.page != 0) {
           salesInfoFields.clear();
+          if (contact.salesTeamName != null) {
+            salesInfoFields.add({'label': 'Sales Team', 'name': contact.salesTeamName!, 'id': contact.salesTeamId});
+          }
           if (contact.salesExecutiveName != null || contact.salesExecutiveId != null) {
             salesInfoFields.add({'label': 'Sales Executive', 'name': contact.salesExecutiveName ?? findName(contact.salesExecutiveId) ?? '', 'id': contact.salesExecutiveId});
           }
@@ -644,6 +649,9 @@ class _ContactFormPageState extends State<ContactFormPage> {
           }
           if (contact.salesManagerName != null || contact.salesManagerId != null) {
             salesInfoFields.add({'label': 'Sales Manager', 'name': contact.salesManagerName ?? findName(contact.salesManagerId) ?? '', 'id': contact.salesManagerId});
+          }
+          if (contact.salesGeneralManagerName != null || contact.salesGeneralManagerId != null) {
+            salesInfoFields.add({'label': 'General Manager', 'name': contact.salesGeneralManagerName ?? findName(contact.salesGeneralManagerId) ?? '', 'id': contact.salesGeneralManagerId});
           }
         }
       }
@@ -2383,6 +2391,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
     VoidCallback? onTap,
     bool? readOnly,
   }) {
+    final bool isRequired = _requiredLabels.contains(label);
     final isEmpty = value == null || value.isEmpty;
     final bool isReadOnly = readOnly == true || widget.args.page == 2;
     final bool isDisplayGrey = widget.args.page == 2;
@@ -2413,8 +2422,10 @@ class _ContactFormPageState extends State<ContactFormPage> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      if (!isEmpty) Text(label,style: TextStyle(color: isError ? Color(redColor) : isHighlighted ? Color(primaryColor) : Color(grey2Color),fontSize: 10,fontWeight: FontWeight.w700)),
-                      Text(isEmpty ? label : value,style: TextStyle(fontSize: 12,fontWeight: FontWeight.w700,color: isError ? Color(redColor) : isHighlighted ? Color(primaryColor) : isEmpty ? Color(grey2Color) : isDisplayGrey ? Color(blackColor) : (readOnly == true ? Color(grey2Color) : Color(blackColor)))),
+                      if (!isEmpty) RichText(text: TextSpan(style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700), children: [TextSpan(text: label, style: TextStyle(color: isError ? Color(redColor) : isHighlighted ? Color(primaryColor) : Color(grey2Color))), if (isRequired) TextSpan(text: ' *', style: TextStyle(color: Color(redColor), fontSize: 10, fontWeight: FontWeight.w700))])),
+                      isEmpty
+                        ? RichText(text: TextSpan(style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700), children: [TextSpan(text: label, style: TextStyle(color: isError ? Color(redColor) : isHighlighted ? Color(primaryColor) : Color(grey2Color))), if (isRequired) TextSpan(text: ' *', style: TextStyle(color: Color(redColor), fontSize: 12, fontWeight: FontWeight.w700))]))
+                        : Text(value, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: isError ? Color(redColor) : isHighlighted ? Color(primaryColor) : isDisplayGrey ? Color(blackColor) : (readOnly == true ? Color(grey2Color) : Color(blackColor)))),
                     ],
                   ),
                 ),
@@ -2673,6 +2684,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
   
 
   Widget _buildField({required String label,required TextEditingController controller,required FocusNode focusNode,String fieldType = 'text',bool isError = false,String? errorText,bool? readOnly, int? minLines, DateTime? dateFirstDate, DateTime? dateLastDate,}) {
+    final bool isRequired = _requiredLabels.contains(label);
     final bool isReadOnly = readOnly == true || widget.args.page == 2;
     final bool isDisplayGrey = widget.args.page == 2;
     final bool canNavigate = widget.args.page == 2 && label != "Create Date";
@@ -2729,7 +2741,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
                                   style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700,color: isError ? Color(redColor) : isHighlighted ? Color(primaryColor) : isDisplayGrey ? Color(blackColor) : (readOnly == true ? Color(grey2Color) : Color(blackColor))),
                                   decoration: InputDecoration(
                                     isDense: true,
-                                    label: Text(label, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700,color: isError ? Color(redColor) : isHighlighted ? Color(primaryColor) : Color(grey2Color))),
+                                    label: RichText(text: TextSpan(style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700), children: [TextSpan(text: label, style: TextStyle(color: isError ? Color(redColor) : isHighlighted ? Color(primaryColor) : Color(grey2Color))), if (isRequired) TextSpan(text: ' *', style: TextStyle(color: Color(redColor), fontSize: 12, fontWeight: FontWeight.w700))])),
                                     floatingLabelStyle: TextStyle(fontSize: 12, fontWeight: FontWeight.w700,color: isError ? Color(redColor) : isHighlighted ? Color(primaryColor) : Color(grey2Color)),
                                     border: InputBorder.none,
                                     enabledBorder: InputBorder.none,
@@ -2759,10 +2771,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
                               style: TextStyle(fontSize: 12, color: isHighlighted ? Color(primaryColor) : isDisplayGrey ? Color(grey2Color) : Color(blackColor), fontWeight: FontWeight.w700),
                               decoration: InputDecoration(
                                 isDense: true,
-                                label: Text(label,
-                                    style: TextStyle(
-                                        fontSize: 12, fontWeight: FontWeight.w700,
-                                        color: isError ? Color(redColor) : isHighlighted ? Color(primaryColor) : Color(grey2Color))),
+                                label: RichText(text: TextSpan(style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700), children: [TextSpan(text: label, style: TextStyle(color: isError ? Color(redColor) : isHighlighted ? Color(primaryColor) : Color(grey2Color))), if (isRequired) TextSpan(text: ' *', style: TextStyle(color: Color(redColor), fontSize: 12, fontWeight: FontWeight.w700))])),
                                 floatingLabelStyle: TextStyle(
                                     fontSize: 12, fontWeight: FontWeight.w700,
                                     color: isError ? Color(redColor) : isHighlighted ? Color(primaryColor) : Color(grey2Color)),
@@ -2787,10 +2796,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
                             style: TextStyle(fontSize: 12, color: isHighlighted ? Color(primaryColor) : (readOnly == true ? Color(grey2Color) : Color(blackColor)), fontWeight: FontWeight.w700),
                             decoration: InputDecoration(
                               isDense: true,
-                              label: Text(label,
-                                  style: TextStyle(
-                                      fontSize: 12, fontWeight: FontWeight.w700,
-                                      color: isError ? Color(redColor) : isHighlighted ? Color(primaryColor) : Color(grey2Color))),
+                              label: RichText(text: TextSpan(style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700), children: [TextSpan(text: label, style: TextStyle(color: isError ? Color(redColor) : isHighlighted ? Color(primaryColor) : Color(grey2Color))), if (isRequired) TextSpan(text: ' *', style: TextStyle(color: Color(redColor), fontSize: 12, fontWeight: FontWeight.w700))])),
                               floatingLabelStyle: TextStyle(
                                   fontSize: 12, fontWeight: FontWeight.w700,
                                   color: isError ? Color(redColor) : isHighlighted ? Color(primaryColor) : Color(grey2Color)),

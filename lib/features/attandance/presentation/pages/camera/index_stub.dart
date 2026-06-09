@@ -1,6 +1,7 @@
 // Web-only camera implementation using browser getUserMedia API.
 // Loaded via conditional export in index.dart when dart.library.io is false.
 // ignore: avoid_web_libraries_in_flutter, deprecated_member_use
+import 'dart:async';
 import 'dart:html' as html;
 import 'dart:ui_web' as ui_web;
 import 'dart:convert';
@@ -167,11 +168,18 @@ class _WebCameraPageState extends State<_WebCameraPage> {
       final stream = await html.window.navigator.mediaDevices!.getUserMedia({
         'video': {'facingMode': 'user'},
         'audio': false,
-      });
+      }).timeout(const Duration(seconds: 15));
       _video!.srcObject = stream;
-      await _video!.play();
       _stream = stream;
+      // Don't await play() — browser can interrupt it when widget rebuilds
+      _video!.play().catchError((_) {});
+      await _video!.onCanPlay.first.timeout(const Duration(seconds: 10));
       if (mounted) setState(() => _status = _CameraStatus.ready);
+    } on TimeoutException catch (_) {
+      if (mounted) setState(() {
+        _status = _CameraStatus.error;
+        _error = _CameraError.unknown;
+      });
     } catch (e) {
       if (mounted) setState(() {
         _status = _CameraStatus.error;
@@ -203,8 +211,14 @@ class _WebCameraPageState extends State<_WebCameraPage> {
 
     final canvas = html.CanvasElement(width: video.videoWidth, height: video.videoHeight);
     canvas.context2D.drawImage(video, 0, 0);
-    final dataUrl = canvas.toDataUrl('image/jpeg', 0.85);
-    final bytes = Uint8List.fromList(base64Decode(dataUrl.split(',')[1]));
+    double quality = 0.8;
+    String dataUrl;
+    Uint8List bytes;
+    do {
+      dataUrl = canvas.toDataUrl('image/jpeg', quality);
+      bytes = Uint8List.fromList(base64Decode(dataUrl.split(',')[1]));
+      quality -= 0.1;
+    } while (bytes.lengthInBytes > 300 * 1024 && quality > 0.1);
 
     if (widget.args.skipPreview == true) {
       if (mounted) context.pop(bytes);
@@ -224,6 +238,7 @@ class _WebCameraPageState extends State<_WebCameraPage> {
   @override
   void dispose() {
     _stream?.getTracks().forEach((t) => t.stop());
+    _video?.srcObject = null;
     super.dispose();
   }
 

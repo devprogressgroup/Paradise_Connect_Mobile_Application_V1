@@ -26,7 +26,9 @@ class ContactEntity extends Equatable {
   final int? salesExecutiveId;
   final int? salesSupervisorId;
   final int? salesManagerId;
+  final int? salesGeneralManagerId;
   final int? salesTeamId;
+  final String? salesTeamName;
   final int? statusProspectId;
   final String? volumePlan;
   final int? visitCount;
@@ -57,6 +59,7 @@ class ContactEntity extends Equatable {
   final String? salesExecutiveName;
   final String? salesSupervisorName;
   final String? salesManagerName;
+  final String? salesGeneralManagerName;
   final String? createdAt;
   final String? updatedAt;
   final String? deletedAt;
@@ -99,7 +102,9 @@ class ContactEntity extends Equatable {
     this.salesExecutiveId,
     this.salesSupervisorId,
     this.salesManagerId,
+    this.salesGeneralManagerId,
     this.salesTeamId,
+    this.salesTeamName,
     this.statusProspectId,
     this.volumePlan,
     this.visitCount,
@@ -130,6 +135,7 @@ class ContactEntity extends Equatable {
     this.salesExecutiveName,
     this.salesSupervisorName,
     this.salesManagerName,
+    this.salesGeneralManagerName,
     this.createdAt,
     this.updatedAt,
     this.deletedAt,
@@ -172,7 +178,9 @@ class ContactEntity extends Equatable {
     int? salesExecutiveId,
     int? salesSupervisorId,
     int? salesManagerId,
+    int? salesGeneralManagerId,
     int? salesTeamId,
+    String? salesTeamName,
     int? statusProspectId,
     String? volumePlan,
     int? visitCount,
@@ -203,6 +211,7 @@ class ContactEntity extends Equatable {
     String? salesExecutiveName,
     String? salesSupervisorName,
     String? salesManagerName,
+    String? salesGeneralManagerName,
     String? createdAt,
     String? updatedAt,
     String? deletedAt,
@@ -245,7 +254,9 @@ class ContactEntity extends Equatable {
       salesExecutiveId: salesExecutiveId ?? this.salesExecutiveId,
       salesSupervisorId: salesSupervisorId ?? this.salesSupervisorId,
       salesManagerId: salesManagerId ?? this.salesManagerId,
+      salesGeneralManagerId: salesGeneralManagerId ?? this.salesGeneralManagerId,
       salesTeamId: salesTeamId ?? this.salesTeamId,
+      salesTeamName: salesTeamName ?? this.salesTeamName,
       statusProspectId: statusProspectId ?? this.statusProspectId,
       volumePlan: volumePlan ?? this.volumePlan,
       visitCount: visitCount ?? this.visitCount,
@@ -276,6 +287,7 @@ class ContactEntity extends Equatable {
       salesExecutiveName: salesExecutiveName ?? this.salesExecutiveName,
       salesSupervisorName: salesSupervisorName ?? this.salesSupervisorName,
       salesManagerName: salesManagerName ?? this.salesManagerName,
+      salesGeneralManagerName: salesGeneralManagerName ?? this.salesGeneralManagerName,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       deletedAt: deletedAt ?? this.deletedAt,
@@ -322,7 +334,9 @@ class ContactEntity extends Equatable {
     salesExecutiveId,
     salesSupervisorId,
     salesManagerId,
+    salesGeneralManagerId,
     salesTeamId,
+    salesTeamName,
     statusProspectId,
     volumePlan,
     visitCount,
@@ -353,6 +367,7 @@ class ContactEntity extends Equatable {
     salesExecutiveName,
     salesSupervisorName,
     salesManagerName,
+    salesGeneralManagerName,
     createdAt,
     updatedAt,
     deletedAt,
