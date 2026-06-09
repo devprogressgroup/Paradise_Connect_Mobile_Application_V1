@@ -18,7 +18,7 @@ class AttendancePdfCubit extends Cubit<AttendancePdfState> {
   }) async {
     emit(AttendancePdfLoading());
     final id = salesPersonId ?? nikNumber;
-    final fileName = 'kehadiran_${id}_${startDate}_sd_$endDate.pdf';
+    final fileName = 'kehadiran_${id}_${startDate}_sd_$endDate.xlsx';
     try {
       if (kIsWeb) {
         final bytes = await repository.downloadAttendancePdfBytes(

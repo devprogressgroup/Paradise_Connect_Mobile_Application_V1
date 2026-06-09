@@ -73,7 +73,7 @@ class AttendanceApprovalCubit extends Cubit<AttendanceApprovalState> {
     }
   }
 
-  Future<void> submitApproval(int logId, int approve) async {
+  Future<void> submitApproval(int logId, int approve, {String? note}) async {
     final currentState = state;
     String? search, status;
     int? flag;
@@ -84,7 +84,7 @@ class AttendanceApprovalCubit extends Cubit<AttendanceApprovalState> {
     }
     emit(AttendanceApprovalLoading());
     try {
-      await postAttendanceApprovalUseCase(logId: logId, approve: approve);
+      await postAttendanceApprovalUseCase(logId: logId, approve: approve, note: note);
       await load(search: search, status: status, flag: flag);
       await loadBadge();
     } catch (e) {

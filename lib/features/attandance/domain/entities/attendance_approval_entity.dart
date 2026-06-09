@@ -7,7 +7,7 @@ class AttendanceApprovalEntity extends Equatable {
   final int? flag;
   final String? flagLabel;
   final String? locationName;
-  final String? note;
+  final String? noteValidasi;
   final List<String>? fileAttachment;
   final String? fullName;
   final int? isApprove;
@@ -28,7 +28,7 @@ class AttendanceApprovalEntity extends Equatable {
     this.flag,
     this.flagLabel,
     this.locationName,
-    this.note,
+    this.noteValidasi,
     this.fileAttachment,
     this.fullName,
     this.isApprove,
@@ -51,7 +51,7 @@ class AttendanceApprovalEntity extends Equatable {
         flag,
         flagLabel,
         locationName,
-        note,
+        noteValidasi,
         fileAttachment,
         fullName,
         isApprove,

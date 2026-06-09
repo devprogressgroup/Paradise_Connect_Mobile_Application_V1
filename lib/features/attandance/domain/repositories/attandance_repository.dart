@@ -19,7 +19,7 @@ abstract class AttendanceRepository {
   Future<({List<AttendanceActivityEntity> data, int lastPage})> getAttendanceActivity({List<int>? salesPersonIds, String? startDate, String? endDate, String? location, int page, int perPage});
   Future<void> validasiCheckIn({required int logId, required int statusValidasi, String? noteValidasi});
   Future<({List<AttendanceApprovalEntity> data, int lastPage})> getAttendanceApprovalToday({String? search, String? status, int? flag, int page = 1, int perPage = 10});
-  Future<void> postAttendanceApproval({required int logId, required int approve});
+  Future<void> postAttendanceApproval({required int logId, required int approve, String? note});
   Future<void> downloadAttendancePdf({int? nikNumber, int? salesPersonId, required String startDate, required String endDate, required String savePath});
   Future<Uint8List> downloadAttendancePdfBytes({int? nikNumber, int? salesPersonId, required String startDate, required String endDate});
 }
@@ -257,8 +257,8 @@ class AttendanceRepositoryImpl implements AttendanceRepository {
   }
 
   @override
-  Future<void> postAttendanceApproval({required int logId, required int approve}) async {
-    await remote.postAttendanceApproval(logId: logId, approve: approve);
+  Future<void> postAttendanceApproval({required int logId, required int approve, String? note}) async {
+    await remote.postAttendanceApproval(logId: logId, approve: approve, note: note);
   }
 
   @override

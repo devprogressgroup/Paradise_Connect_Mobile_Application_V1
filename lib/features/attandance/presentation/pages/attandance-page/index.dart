@@ -164,13 +164,29 @@ class _AttandancePageState extends State<AttandancePage> {
     );
   }
 
+  bool _isApprover(UserProfileEntity profile) {
+    if (const ['General Manager', 'Sales Manager'].contains(profile.positionName)) return true;
+    if (profile.positionName == 'Sales Supervisor') {
+      return !profile.salesRoles.any((r) => const ['General Manager', 'Sales Manager'].contains(r.parent?.positionName));
+    }
+    return false;
+  }
+
   Future<bool> _handleLocationPermission({bool fromUserGesture = false}) async {
     // Di web, isLocationServiceEnabled hanya cek apakah browser support geolocation
     final serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Browser tidak mendukung geolocation')),
+          SnackBar(
+            content: const Text('GPS tidak aktif. Aktifkan GPS untuk melanjutkan.'),
+            backgroundColor: Colors.orange,
+            action: SnackBarAction(
+              label: 'Aktifkan',
+              textColor: Colors.white,
+              onPressed: () => Geolocator.openLocationSettings(),
+            ),
+          ),
         );
       }
       return false;
@@ -581,6 +597,10 @@ class _AttandancePageState extends State<AttandancePage> {
       return;
     }
 
+    if (ownerItems.length > 1) {
+      ownerItems.insert(0, OwnerDropdownItem(id: null, name: 'Semua Karyawan', typeData: 'all'));
+    }
+
     final now = DateTime.now();
     DateTime startDate = DateTime(now.year, now.month, 1);
     DateTime endDate = DateTime(now.year, now.month + 1, 0);
@@ -621,7 +641,7 @@ class _AttandancePageState extends State<AttandancePage> {
 
           return AlertDialog(
             backgroundColor: const Color(whiteColor),
-            title: const Text('Download PDF Kehadiran'),
+            title: const Text('Download Excel Kehadiran'),
             contentPadding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
             content: SizedBox(
               width: double.maxFinite,
@@ -790,9 +810,10 @@ class _AttandancePageState extends State<AttandancePage> {
     if (result == true && mounted) {
       final start = DateFormat('yyyy-MM-dd').format(startDate);
       final end = DateFormat('yyyy-MM-dd').format(endDate);
+      final isAll = selectedOwner.typeData == 'all';
       context.read<AttendancePdfCubit>().download(
-        salesPersonId: selectedOwner.id,
-        nikNumber: selectedOwner.id == null ? profile.nikNumber : null,
+        salesPersonId: isAll ? null : selectedOwner.id,
+        nikNumber: isAll ? null : (selectedOwner.id == null ? profile.nikNumber : null),
         startDate: start,
         endDate: end,
       );
@@ -823,7 +844,7 @@ class _AttandancePageState extends State<AttandancePage> {
               const Padding(
                 padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 child: Text(
-                  'PDF Kehadiran berhasil diunduh',
+                  'Excel Kehadiran berhasil diunduh',
                   style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                 ),
               ),
@@ -874,7 +895,7 @@ class _AttandancePageState extends State<AttandancePage> {
               const Padding(
                 padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 child: Text(
-                  'PDF Kehadiran berhasil diunduh',
+                  'Excel Kehadiran berhasil diunduh',
                   style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                 ),
               ),
@@ -928,7 +949,7 @@ class _AttandancePageState extends State<AttandancePage> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('PDF disimpan di: $savedPath'),
+            content: Text('Excel disimpan di: $savedPath'),
             duration: const Duration(seconds: 4),
           ),
         );
@@ -955,7 +976,7 @@ class _AttandancePageState extends State<AttandancePage> {
                   children: [
                     SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)),
                     SizedBox(width: 12),
-                    Text('Mengunduh PDF...'),
+                    Text('Mengunduh Excel...'),
                   ],
                 ),
                 duration: Duration(seconds: 30),
@@ -1003,9 +1024,7 @@ class _AttandancePageState extends State<AttandancePage> {
             children: [
               BlocBuilder<ProfileBloc, ProfileState>(
                 builder: (context, profileState) {
-                  final isAtasan = profileState is ProfileLoaded &&
-                      const ['General Manager', 'Sales Manager']
-                          .contains(profileState.profile.positionName);
+                  final isAtasan = profileState is ProfileLoaded && _isApprover(profileState.profile);
                   return ValueListenableBuilder<bool>(
                     valueListenable: context.read<AttendanceApprovalCubit>().hasPendingApproval,
                     builder: (context, hasPending, _) {
@@ -1022,7 +1041,7 @@ class _AttandancePageState extends State<AttandancePage> {
                         colorIconLeft: Color(whiteColor),
                         iconLeftOnTap: isAtasan ? () => context.pushNamed('approval') : null,
                         showBadgeLeft: isAtasan && hasPending,
-                        iconLeft2: Icons.picture_as_pdf,
+                        iconLeft2: Icons.download,
                         colorIconLeft2: Color(whiteColor),
                         iconLeft2OnTap: _showPdfDatePickerDialog,
                       );
@@ -1188,7 +1207,7 @@ class _AttandancePageState extends State<AttandancePage> {
     return BlocBuilder<ProfileBloc, ProfileState>(
       builder: (context, profileState) {
         final currentIds = isAttendance ? _attendanceOwnerIds : _activityOwnerIds;
-        String label = 'Owner';
+        String label = 'Sales';
         final isSelected = currentIds != null && currentIds.isNotEmpty;
 
         if (isSelected && profileState is ProfileLoaded) {
@@ -1478,27 +1497,26 @@ class _AttandancePageState extends State<AttandancePage> {
               if (state is AttendanceActivityLoaded) {
                 // Flatten each ActivityEntity into one entry per type
                 final profileState = context.read<ProfileBloc>().state;
-                final isAtasan = profileState is ProfileLoaded &&
-                    const ['General Manager', 'Sales Manager']
-                        .contains(profileState.profile.positionName);
+                final isAtasan = profileState is ProfileLoaded && _isApprover(profileState.profile);
+                final currentSalesPersonId = profileState is ProfileLoaded ? profileState.profile.salesPersonId : null;
 
-                final List<({String fullName, String? photoUrl, String date, String type, Color typeColor, String? datetime, String? location, String? contactName, String? note, List<String> images, int? statusValidasi, String? noteValidasi, int? logId})> entries = [];
+                final List<({String fullName, String? photoUrl, String date, String type, Color typeColor, String? datetime, String? location, String? contactName, String? note, List<String> images, int? statusValidasi, String? noteValidasi, int? logId, int salesPersonId})> entries = [];
 
                 for (final item in state.activityLogs) {
                   if (item.clockInDate != null) {
-                    entries.add((fullName: item.fullName, photoUrl: item.photoUrl, date: item.date, type: 'Clock In', typeColor: const Color(0xFF27AE60), datetime: item.clockInDate, location: item.clockInLocation, contactName: null, note: item.clockInNote, images: item.clockInAttachment ?? [], statusValidasi: null, noteValidasi: null, logId: null));
+                    entries.add((fullName: item.fullName, photoUrl: item.photoUrl, date: item.date, type: 'Clock In', typeColor: const Color(0xFF27AE60), datetime: item.clockInDate, location: item.clockInLocation, contactName: null, note: item.clockInNote, images: item.clockInAttachment ?? [], statusValidasi: null, noteValidasi: null, logId: null, salesPersonId: item.salesPersonId));
                   }
                   if (item.clockOutDate != null) {
-                    entries.add((fullName: item.fullName, photoUrl: item.photoUrl, date: item.date, type: 'Clock Out', typeColor: const Color(0xFFE74C3C), datetime: item.clockOutDate, location: item.clockOutLocation, contactName: null, note: item.clockOutNote, images: item.clockOutAttachment ?? [], statusValidasi: null, noteValidasi: null, logId: null));
+                    entries.add((fullName: item.fullName, photoUrl: item.photoUrl, date: item.date, type: 'Clock Out', typeColor: const Color(0xFFE74C3C), datetime: item.clockOutDate, location: item.clockOutLocation, contactName: null, note: item.clockOutNote, images: item.clockOutAttachment ?? [], statusValidasi: null, noteValidasi: null, logId: null, salesPersonId: item.salesPersonId));
                   }
                   for (final c in item.checkIns) {
                     if (c.checkInDate != null) {
-                      entries.add((fullName: item.fullName, photoUrl: item.photoUrl, date: item.date, type: 'Check In', typeColor: const Color(0xFF2980B9), datetime: c.checkInDate, location: c.checkInLocation, contactName: null, note: c.checkInNote, images: c.checkInAttachment ?? [], statusValidasi: c.statusValidasi, noteValidasi: c.noteValidasi, logId: c.logId));
+                      entries.add((fullName: item.fullName, photoUrl: item.photoUrl, date: item.date, type: 'Check In', typeColor: const Color(0xFF2980B9), datetime: c.checkInDate, location: c.checkInLocation, contactName: null, note: c.checkInNote, images: c.checkInAttachment ?? [], statusValidasi: c.statusValidasi, noteValidasi: c.noteValidasi, logId: c.logId, salesPersonId: item.salesPersonId));
                     }
                   }
                   for (final v in item.visits) {
                     if (v.datetime != null) {
-                      entries.add((fullName: item.fullName, photoUrl: item.photoUrl, date: item.date, type: 'Visit', typeColor: const Color(0xFFE67E22), datetime: v.datetime, location: v.lastProject, contactName: v.contactName, note: v.note, images: v.attachment ?? [], statusValidasi: null, noteValidasi: null, logId: null));
+                      entries.add((fullName: item.fullName, photoUrl: item.photoUrl, date: item.date, type: 'Visit', typeColor: const Color(0xFFE67E22), datetime: v.datetime, location: v.lastProject, contactName: v.contactName, note: v.note, images: v.attachment ?? [], statusValidasi: null, noteValidasi: null, logId: null, salesPersonId: item.salesPersonId));
                     }
                   }
                 }
@@ -1521,7 +1539,7 @@ class _AttandancePageState extends State<AttandancePage> {
                   );
                 } else {
                   // Group by date
-                  final Map<String, List<({String fullName, String? photoUrl, String date, String type, Color typeColor, String? datetime, String? location, String? contactName, String? note, List<String> images, int? statusValidasi, String? noteValidasi, int? logId})>> grouped = {};
+                  final Map<String, List<({String fullName, String? photoUrl, String date, String type, Color typeColor, String? datetime, String? location, String? contactName, String? note, List<String> images, int? statusValidasi, String? noteValidasi, int? logId, int salesPersonId})>> grouped = {};
                   for (final e in entries) {
                     grouped.putIfAbsent(e.date, () => []).add(e);
                   }
@@ -1564,6 +1582,7 @@ class _AttandancePageState extends State<AttandancePage> {
                               noteValidasi: e.noteValidasi,
                               logId: e.logId,
                               isAtasan: isAtasan,
+                              isSelf: currentSalesPersonId != null && e.salesPersonId == currentSalesPersonId,
                             )),
                           ],
                         ),
@@ -1623,6 +1642,7 @@ class _AttandancePageState extends State<AttandancePage> {
     String? noteValidasi,
     int? logId,
     bool isAtasan = false,
+    bool isSelf = false,
   }) {
     return _ActivityCard(
       fullName: fullName,
@@ -1638,6 +1658,7 @@ class _AttandancePageState extends State<AttandancePage> {
       noteValidasi: noteValidasi,
       logId: logId,
       isAtasan: isAtasan,
+      isSelf: isSelf,
       onValidated: _getLog,
       onImageTap: (url) => _showActivityDetailDialog(
         tappedUrl: url,
@@ -2377,6 +2398,19 @@ class _AttandancePageState extends State<AttandancePage> {
                   ),
                   if (statusBadge != null)
                     Positioned(top: 8, left: 8, child: statusBadge),
+                   if (isReject == 1) ...[
+                       Positioned(top: 8, right: 8, child: GestureDetector(
+                          onTap: _isCameraOpening ? null : () => _handleMoveCamera(title, flagParam),
+                         child: Container(
+                          padding: EdgeInsets.all(4),
+                          decoration: BoxDecoration(
+                            color: Color(primaryColor),
+                            borderRadius: BorderRadius.circular(8)
+                          ),
+                          child: const Icon(Icons.refresh, size: 18, color: Colors.white),
+                         ),
+                       )),
+                      ],
                 ],
               ),
             ),
@@ -2607,6 +2641,7 @@ class _ActivityCard extends StatefulWidget {
   final String? noteValidasi;
   final int? logId;
   final bool isAtasan;
+  final bool isSelf;
   final VoidCallback? onValidated;
 
   const _ActivityCard({
@@ -2624,6 +2659,7 @@ class _ActivityCard extends StatefulWidget {
     this.noteValidasi,
     this.logId,
     this.isAtasan = false,
+    this.isSelf = false,
     this.onValidated,
   });
 
@@ -2725,7 +2761,8 @@ class _ActivityCardState extends State<_ActivityCard> {
         ],
       );
     } else {
-      if (!widget.isAtasan || widget.logId == null) {
+      if (widget.isSelf || widget.logId == null) return const SizedBox();
+      if (!widget.isAtasan) {
         return const Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [

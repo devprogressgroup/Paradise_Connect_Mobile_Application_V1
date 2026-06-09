@@ -5,7 +5,6 @@ import 'package:go_router/go_router.dart';
 import 'package:progress_group/core/constants/colors.dart';
 import 'package:progress_group/core/network/api_constants.dart';
 import 'package:local_auth/local_auth.dart';
-import '../../../../../core/utils/widget/custom_loading.dart';
 import '../../../../../core/utils/widget/custom_snackbar.dart';
 import '../../state/auth/auth_bloc.dart';
 import '../../state/auth/auth_event.dart';
@@ -242,11 +241,23 @@ class _LoginPageState extends State<LoginPage> {
     return BlocListener<AuthBloc, AuthState>(
       listener: (context, state) {
         if (state is AuthLoading) {
-          showLoadingDialog(_loadingDialogShown, context);
+          if (!_loadingDialogShown) {
+            _loadingDialogShown = true;
+            showDialog(
+              context: context,
+              barrierDismissible: false,
+              builder: (_) => const Center(child: CircularProgressIndicator()),
+            );
+          }
           return;
         }
 
-        hideLoadingDialog(_loadingDialogShown, context);
+        if (_loadingDialogShown) {
+          _loadingDialogShown = false;
+          if (context.mounted && Navigator.of(context, rootNavigator: true).canPop()) {
+            Navigator.of(context, rootNavigator: true).pop();
+          }
+        }
 
         if (state is BiometricEnabledLoaded) {
           setState(() => _biometricEnabled = state.enabled);
@@ -257,8 +268,6 @@ class _LoginPageState extends State<LoginPage> {
         } else if (state is AuthFailure) {
           showSnackbar(context, state.error, isError: true);
         }
-        // AuthSuccess: GoRouter redirect otomatis handle navigasi ke '/'
-        // via AppRouter.authNotifier yang di-set di main.dart BlocListener
       },
       child: Scaffold(
         body: Container(

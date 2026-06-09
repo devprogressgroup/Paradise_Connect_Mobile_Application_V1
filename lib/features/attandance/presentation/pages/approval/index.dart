@@ -260,151 +260,154 @@ class _ApprovalPageState extends State<ApprovalPage> {
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
-                          child: Padding(
-                            padding: const EdgeInsets.all(16),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Text(
-                                      item.fullName ?? 'Unknown',
-                                      style: const TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 16,
-                                      ),
-                                    ),
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(
-                                          horizontal: 8, vertical: 4),
-                                      decoration: BoxDecoration(
-                                        color: item.flag == 0
-                                            ? Colors.green.withOpacity(0.1)
-                                            : Colors.orange.withOpacity(0.1),
-                                        borderRadius: BorderRadius.circular(8),
-                                      ),
-                                      child: Text(
-                                        item.flagLabel ?? '',
-                                        style: TextStyle(
-                                          fontSize: 12,
-                                          color: item.flag == 0
-                                              ? Colors.green
-                                              : Colors.orange,
-                                          fontWeight: FontWeight.w600,
+                          child: GestureDetector(
+                            onTap: () => _showAttendanceDetailDialog(context, item, button: 0),
+                            child: Padding(
+                              padding: const EdgeInsets.all(16),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Text(
+                                        item.fullName ?? 'Unknown',
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 16,
                                         ),
                                       ),
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 8),
-                                Row(
-                                  children: [
-                                    const Icon(Icons.access_time, size: 16, color: Colors.grey),
-                                    const SizedBox(width: 4),
-                                    Text(
-                                      item.attendanceDatetime != null ? DateHelper.formatTime(DateTime.parse(item.attendanceDatetime!)) : '-',
-                                      style: const TextStyle(color: Colors.grey),
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 8),
-                                Row(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    const Icon(Icons.location_on, size: 16, color: Colors.grey),
-                                    const SizedBox(width: 4),
-                                    Expanded(
-                                      child: Text(
-                                        item.locationName ?? '-',
-                                        style: const TextStyle(color: Colors.grey),
-                                        maxLines: 2,
-                                        overflow: TextOverflow.ellipsis,
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 8, vertical: 4),
+                                        decoration: BoxDecoration(
+                                          color: item.flag == 0
+                                              ? Colors.green.withOpacity(0.1)
+                                              : Colors.orange.withOpacity(0.1),
+                                          borderRadius: BorderRadius.circular(8),
+                                        ),
+                                        child: Text(
+                                          item.flagLabel ?? '',
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            color: item.flag == 0
+                                                ? Colors.green
+                                                : Colors.orange,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
                                       ),
-                                    ),
-                                  ],
-                                ),
-                                if (item.note != null && item.note!.isNotEmpty) ...[
+                                    ],
+                                  ),
                                   const SizedBox(height: 8),
                                   Row(
                                     children: [
-                                      const Icon(Icons.note, size: 16, color: Colors.grey),
+                                      const Icon(Icons.access_time, size: 16, color: Colors.grey),
                                       const SizedBox(width: 4),
                                       Text(
-                                        item.note ?? '-',
+                                        item.attendanceDatetime != null ? DateHelper.formatTime(DateTime.parse(item.attendanceDatetime!)) : '-',
                                         style: const TextStyle(color: Colors.grey),
                                       ),
                                     ],
                                   ),
-                                ],
-                                const SizedBox(height: 8),
-                                const Divider(),
-                                if (item.isApprove == 1)
+                                  const SizedBox(height: 8),
                                   Row(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
-                                      const Icon(Icons.check_circle, size: 16, color: Colors.green),
+                                      const Icon(Icons.location_on, size: 16, color: Colors.grey),
                                       const SizedBox(width: 4),
-                                      Text(
-                                        'Approved by ${item.approveName ?? 'Unknown'}',
-                                        style: const TextStyle(color: Colors.green, fontWeight: FontWeight.w600),
-                                      ),
-                                    ],
-                                  )
-                                else if (item.isReject == 1)
-                                  Row(
-                                    children: [
-                                      const Icon(Icons.cancel, size: 16, color: Colors.red),
-                                      const SizedBox(width: 4),
-                                      Text(
-                                        'Rejected by ${item.rejectName ?? 'Unknown'}',
-                                        style: const TextStyle(color: Colors.red, fontWeight: FontWeight.w600),
-                                      ),
-                                    ],
-                                  )
-                                else
-                                  Column(
-                                    children: [
-                                      const Row(
-                                        children: [
-                                          Icon(Icons.pending, size: 16, color: Colors.orange),
-                                          SizedBox(width: 4),
-                                          Text(
-                                            'Pending Approval',
-                                            style: TextStyle(color: Colors.orange, fontWeight: FontWeight.w600),
-                                          ),
-                                        ],
-                                      ),
-                                      const SizedBox(height: 12),
-                                      Row(
-                                        children: [
-                                          Expanded(
-                                            child: OutlinedButton(
-                                              onPressed: () => _showAttendanceDetailDialog(context, item),
-                                              style: OutlinedButton.styleFrom(
-                                                foregroundColor: Colors.red,
-                                                side: const BorderSide(color: Colors.red),
-                                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                                              ),
-                                              child: const Text('Reject'),
-                                            ),
-                                          ),
-                                          const SizedBox(width: 12),
-                                          Expanded(
-                                            child: ElevatedButton(
-                                              onPressed: () => _showAttendanceDetailDialog(context, item),
-                                              style: ElevatedButton.styleFrom(
-                                                backgroundColor: Colors.green,
-                                                foregroundColor: Colors.white,
-                                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                                              ),
-                                              child: const Text('Approve'),
-                                            ),
-                                          ),
-                                        ],
+                                      Expanded(
+                                        child: Text(
+                                          item.locationName ?? '-',
+                                          style: const TextStyle(color: Colors.grey),
+                                          maxLines: 2,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
                                       ),
                                     ],
                                   ),
-                              ],
+                                  if (item.noteValidasi != null && item.noteValidasi!.isNotEmpty) ...[
+                                    const SizedBox(height: 8),
+                                    Row(
+                                      children: [
+                                        const Icon(Icons.note, size: 16, color: Colors.grey),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          item.noteValidasi ?? '-',
+                                          style: const TextStyle(color: Colors.grey),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                  const SizedBox(height: 8),
+                                  const Divider(),
+                                  if (item.isApprove == 1)
+                                    Row(
+                                      children: [
+                                        const Icon(Icons.check_circle, size: 16, color: Colors.green),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          'Approved by ${item.approveName ?? 'Unknown'}',
+                                          style: const TextStyle(color: Colors.green, fontWeight: FontWeight.w600),
+                                        ),
+                                      ],
+                                    )
+                                  else if (item.isReject == 1)
+                                    Row(
+                                      children: [
+                                        const Icon(Icons.cancel, size: 16, color: Colors.red),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          'Rejected by ${item.rejectName ?? 'Unknown'}',
+                                          style: const TextStyle(color: Colors.red, fontWeight: FontWeight.w600),
+                                        ),
+                                      ],
+                                    )
+                                  else
+                                    Column(
+                                      children: [
+                                        const Row(
+                                          children: [
+                                            Icon(Icons.pending, size: 16, color: Colors.orange),
+                                            SizedBox(width: 4),
+                                            Text(
+                                              'Pending Approval',
+                                              style: TextStyle(color: Colors.orange, fontWeight: FontWeight.w600),
+                                            ),
+                                          ],
+                                        ),
+                                        const SizedBox(height: 12),
+                                        Row(
+                                          children: [
+                                            Expanded(
+                                              child: OutlinedButton(
+                                                onPressed: () => _showAttendanceDetailDialog(context, item),
+                                                style: OutlinedButton.styleFrom(
+                                                  foregroundColor: Colors.red,
+                                                  side: const BorderSide(color: Colors.red),
+                                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                                ),
+                                                child: const Text('Reject'),
+                                              ),
+                                            ),
+                                            const SizedBox(width: 12),
+                                            Expanded(
+                                              child: ElevatedButton(
+                                                onPressed: () => _showAttendanceDetailDialog(context, item),
+                                                style: ElevatedButton.styleFrom(
+                                                  backgroundColor: Colors.green,
+                                                  foregroundColor: Colors.white,
+                                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                                ),
+                                                child: const Text('Approve'),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ],
+                                    ),
+                                ],
+                              ),
                             ),
                           ),
                         );
@@ -422,7 +425,55 @@ class _ApprovalPageState extends State<ApprovalPage> {
     );
   }
 
-  void _showAttendanceDetailDialog(BuildContext context, AttendanceApprovalEntity item) {
+  Future<void> _showApprovalNoteDialog(BuildContext context, int logId, int approve) async {
+    final isReject = approve == 0;
+    final noteController = TextEditingController();
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(isReject ? 'Alasan Penolakan' : 'Catatan Persetujuan'),
+        content: TextField(
+          controller: noteController,
+          autofocus: true,
+          maxLines: 3,
+          decoration: InputDecoration(
+            hintText: isReject ? 'Tulis alasan penolakan...' : 'Tulis catatan (opsional)...',
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Batal'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: isReject ? Colors.red : Colors.green,
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(isReject ? 'Reject' : 'Approve'),
+          ),
+        ],
+      ),
+    );
+    noteController.dispose();
+    if (confirmed == true && context.mounted) {
+      try {
+        await context.read<AttendanceApprovalCubit>().submitApproval(
+          logId, approve,
+          note: noteController.text.trim().isEmpty ? null : noteController.text.trim(),
+        );
+      } catch (e) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Gagal: ${cleanErrorMessage(e)}')));
+        }
+      }
+    }
+  }
+
+  void _showAttendanceDetailDialog(BuildContext context, AttendanceApprovalEntity item, {int? button}) {
     final String? displayImage = (item.fileAttachment != null && item.fileAttachment!.isNotEmpty)
         ? item.fileAttachment!.first
         : null;
@@ -493,9 +544,9 @@ class _ApprovalPageState extends State<ApprovalPage> {
                   _buildInfoRow(Icons.calendar_today, displayDate, const Color(primaryColor)),
                   const SizedBox(height: 8),
                   _buildInfoRow(Icons.map, item.locationName ?? '-', const Color(primaryColor)),
-                  if (item.note != null && item.note!.isNotEmpty) ...[
+                  if (item.noteValidasi != null && item.noteValidasi!.isNotEmpty) ...[
                     const SizedBox(height: 8),
-                    _buildInfoRow(Icons.notes, item.note!, const Color(primaryColor)),
+                    _buildInfoRow(Icons.notes, item.noteValidasi!, const Color(primaryColor)),
                   ],
                   if (item.isApprove == 1 || item.isReject == 1) ...[
                     const SizedBox(height: 8),
@@ -508,19 +559,13 @@ class _ApprovalPageState extends State<ApprovalPage> {
                     ),
                   ],
                   const SizedBox(height: 20),
-                  Row(
+                  if(button != 0)Row(
                     children: [
                       Expanded(
                         child: OutlinedButton(
-                          onPressed: () async {
+                          onPressed: () {
                             Navigator.pop(ctx);
-                            try {
-                              await context.read<AttendanceApprovalCubit>().submitApproval(item.logId, 0);
-                            } catch (e) {
-                              if (context.mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Gagal: ${cleanErrorMessage(e)}')));
-                              }
-                            }
+                            _showApprovalNoteDialog(context, item.logId, 0);
                           },
                           style: OutlinedButton.styleFrom(
                             foregroundColor: Colors.red,
@@ -533,15 +578,9 @@ class _ApprovalPageState extends State<ApprovalPage> {
                       const SizedBox(width: 12),
                       Expanded(
                         child: ElevatedButton(
-                          onPressed: () async {
+                          onPressed: () {
                             Navigator.pop(ctx);
-                            try {
-                              await context.read<AttendanceApprovalCubit>().submitApproval(item.logId, 1);
-                            } catch (e) {
-                              if (context.mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Gagal: ${cleanErrorMessage(e)}')));
-                              }
-                            }
+                            _showApprovalNoteDialog(context, item.logId, 1);
                           },
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.green,

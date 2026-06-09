@@ -5,7 +5,7 @@ class PostAttendanceApprovalUseCase {
 
   PostAttendanceApprovalUseCase(this.repository);
 
-  Future<void> call({required int logId, required int approve}) async {
-    return await repository.postAttendanceApproval(logId: logId, approve: approve);
+  Future<void> call({required int logId, required int approve, String? note}) async {
+    return await repository.postAttendanceApproval(logId: logId, approve: approve, note: note);
   }
 }

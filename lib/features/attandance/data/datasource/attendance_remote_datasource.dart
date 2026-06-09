@@ -11,7 +11,7 @@ abstract class AttendanceRemoteDataSource {
   Future<Map<String, dynamic>> getAttendanceActivity({List<int>? salesPersonIds, String? startDate, String? endDate, String? location, int page, int perPage});
   Future<void> postValidasiCheckIn({required int logId, required int statusValidasi, String? noteValidasi});
   Future<Map<String, dynamic>> getAttendanceApprovalToday({String? search, String? status, int? flag, int page = 1, int perPage = 10});
-  Future<void> postAttendanceApproval({required int logId, required int approve});
+  Future<void> postAttendanceApproval({required int logId, required int approve, String? note});
   Future<void> downloadAttendancePdf({int? nikNumber, int? salesPersonId, required String startDate, required String endDate, required String savePath});
   Future<Uint8List> downloadAttendancePdfBytes({int? nikNumber, int? salesPersonId, required String startDate, required String endDate});
 }
@@ -178,11 +178,12 @@ class AttendanceRemoteDataSourceImpl implements AttendanceRemoteDataSource {
   }
 
   @override
-  Future<void> postAttendanceApproval({required int logId, required int approve}) async {
+  Future<void> postAttendanceApproval({required int logId, required int approve, String? note}) async {
     try {
       final body = {
         'log_id': logId,
         'approve': approve,
+        if (note != null && note.isNotEmpty) 'note_validasi': note,
       };
       await dio.post('/attendance/approval', data: body);
     } on DioException catch (e) {
@@ -207,10 +208,12 @@ class AttendanceRemoteDataSourceImpl implements AttendanceRemoteDataSource {
   @override
   Future<void> downloadAttendancePdf({int? nikNumber, int? salesPersonId, required String startDate, required String endDate, required String savePath}) async {
     try {
+      final params = _pdfQueryParams(nikNumber: nikNumber, salesPersonId: salesPersonId, startDate: startDate, endDate: endDate);
+      print('[downloadAttendancePdf MOBILE] endpoint: /attendance/report/excel | params: $params');
       await dio.download(
-        '/attendance/report/pdf',
+        '/attendance/report/excel',
         savePath,
-        queryParameters: _pdfQueryParams(nikNumber: nikNumber, salesPersonId: salesPersonId, startDate: startDate, endDate: endDate),
+        queryParameters: params,
         options: Options(receiveTimeout: const Duration(seconds: 60)),
       );
     } on DioException catch (e) {
@@ -222,9 +225,11 @@ class AttendanceRemoteDataSourceImpl implements AttendanceRemoteDataSource {
   @override
   Future<Uint8List> downloadAttendancePdfBytes({int? nikNumber, int? salesPersonId, required String startDate, required String endDate}) async {
     try {
+      final params = _pdfQueryParams(nikNumber: nikNumber, salesPersonId: salesPersonId, startDate: startDate, endDate: endDate);
+      print('[downloadAttendancePdfBytes WEB] endpoint: /attendance/report/excel | params: $params');
       final response = await dio.get<List<int>>(
-        '/attendance/report/pdf',
-        queryParameters: _pdfQueryParams(nikNumber: nikNumber, salesPersonId: salesPersonId, startDate: startDate, endDate: endDate),
+        '/attendance/report/excel',
+        queryParameters: params,
         options: Options(responseType: ResponseType.bytes, receiveTimeout: const Duration(seconds: 60)),
       );
       return Uint8List.fromList(response.data!);

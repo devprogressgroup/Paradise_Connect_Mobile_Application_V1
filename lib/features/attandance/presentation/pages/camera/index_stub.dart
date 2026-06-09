@@ -783,30 +783,39 @@ class _WebSubmitPageState extends State<_WebSubmitPage> {
                                 ),
                               ),
                             ),
-                            if (_showRealtimeLocationWarning) ...[
-                              const SizedBox(height: 8),
-                              Row(
-                                children: const [
-                                  Icon(Icons.warning_amber_rounded, color: Colors.orange, size: 16),
-                                  SizedBox(width: 6),
-                                  Expanded(
-                                    child: Text(
-                                      'Absensi diluar lokasi kerja memerlukan approval atasan',
-                                      style: TextStyle(color: Colors.orange, fontSize: 12),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ],
-                            const SizedBox(height: 40),
                             BlocBuilder<ProfileBloc, ProfileState>(
                               builder: (context, profileState) {
-                                final hasAtasan = profileState is ProfileLoaded &&
-                                    profileState.profile.salesRoles.any((r) => r.parent != null);
-                                final label = (_showRealtimeLocationWarning && hasAtasan)
-                                    ? "Request Approval"
-                                    : "Submit";
-                                return customButton(_handleSubmit, label);
+                                final hasAtasan = profileState is ProfileLoaded && () {
+                                  final profile = profileState.profile;
+                                  final myPos = profile.positionName ?? '';
+                                  if (const ['General Manager', 'Sales Manager'].contains(myPos)) return false;
+                                  if (myPos == 'Sales Supervisor') return profile.salesRoles.any((r) => const ['General Manager', 'Sales Manager'].contains(r.positionName));
+                                  return profile.salesRoles.isNotEmpty;
+                                }();
+                                final showWarning = _showRealtimeLocationWarning && hasAtasan;
+                                final label = showWarning ? "Request Approval" : "Submit";
+                                return Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    if (showWarning) ...[
+                                      const SizedBox(height: 8),
+                                      Row(
+                                        children: const [
+                                          Icon(Icons.warning_amber_rounded, color: Colors.orange, size: 16),
+                                          SizedBox(width: 6),
+                                          Expanded(
+                                            child: Text(
+                                              'Absensi diluar lokasi kerja memerlukan approval atasan',
+                                              style: TextStyle(color: Colors.orange, fontSize: 12),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                    SizedBox(height: 20),
+                                    customButton(_handleSubmit, label),
+                                  ],
+                                );
                               },
                             ),
                             const SizedBox(height: 20),
