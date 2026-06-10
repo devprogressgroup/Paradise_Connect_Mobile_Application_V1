@@ -617,7 +617,7 @@ class _HomePageState extends State<HomePage> {
                       return visibleStatuses.asMap().entries.map((entry) {
                         final index = entry.key;
                         final item = entry.value;
-                        final hasActivity = item.totalContacts > 0 || item.totalDeals > 0;
+                        final hasActivity = item.totalContacts > 0 ;
                         final isLastVisible = index == visibleStatuses.length - 1;
                         final showBottomBorder = !isLastVisible || allStatuses.length > _prospectStatusCollapsedCount;
                         return GestureDetector(

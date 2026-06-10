@@ -801,8 +801,22 @@ class _ContactFormPageState extends State<ContactFormPage> {
       final superiors = <HierarchyNodeEntity>[];
       if (user.salesRoles.isNotEmpty) {
         HierarchyNodeEntity? current = user.salesRoles.first;
+        bool isRoot = true;
         while (current != null) {
-          superiors.add(current);
+          // Root sales_roles node: salesPersonId is the subordinate's own ID,
+          // salesPersonParentId is the actual supervisor's ID.
+          if (isRoot && current.salesPersonParentId != null) {
+            superiors.add(HierarchyNodeEntity(
+              salesPersonId: current.salesPersonParentId!,
+              fullName: current.fullName,
+              positionName: current.positionName,
+              salesTeamId: current.salesTeamId,
+              salesTeamName: current.salesTeamName,
+            ));
+          } else {
+            superiors.add(current);
+          }
+          isRoot = false;
           current = current.parent;
         }
       }
@@ -832,8 +846,20 @@ class _ContactFormPageState extends State<ContactFormPage> {
 
       if (user.salesRoles.isNotEmpty) {
         HierarchyNodeEntity? current = user.salesRoles.first;
+        bool isRoot = true;
         while (current != null) {
-          chain.add(current);
+          if (isRoot && current.salesPersonParentId != null) {
+            chain.add(HierarchyNodeEntity(
+              salesPersonId: current.salesPersonParentId!,
+              fullName: current.fullName,
+              positionName: current.positionName,
+              salesTeamId: current.salesTeamId,
+              salesTeamName: current.salesTeamName,
+            ));
+          } else {
+            chain.add(current);
+          }
+          isRoot = false;
           current = current.parent;
         }
       }
@@ -1159,6 +1185,15 @@ class _ContactFormPageState extends State<ContactFormPage> {
       propertiesJson: propertiesJson.isNotEmpty ? propertiesJson : null,
       periodePameranDate: _pameranIds.contains(selectedSource1Id) ? _periodePameranDateBackend : null,
     );
+    print('=== SAVE PARAMS ===');
+    print('ownerId: ${params.ownerId}');
+    print('salesExecutiveId: ${params.salesExecutiveId}');
+    print('salesManagerId: ${params.salesManagerId}');
+    print('salesSupervisorId: ${params.salesSupervisorId}');
+    print('salesGeneralManagerId: ${params.salesGeneralManagerId}');
+    print('salesTeamId: ${params.salesTeamId}');
+    print('===================');
+
     setState(() => _isSaving = true);
     if (isUpdate) {
       context.read<ContactBloc>().add(UpdateContactEvent(widget.args.dataContact!.contactId!, params));
