@@ -28,13 +28,9 @@ import 'package:progress_group/features/attandance/presentation/state/attendance
 import 'package:progress_group/features/attandance/presentation/state/attendance_pdf/attendance_pdf_cubit.dart';
 import 'package:progress_group/features/attandance/presentation/state/attendance_pdf/attendance_pdf_state.dart';
 import 'package:progress_group/features/auth/domain/entities/user_profile.dart';
-import 'package:progress_group/features/auth/data/models/permissions_model.dart';
-import 'package:progress_group/features/auth/presentation/state/auth/auth_bloc.dart';
-import 'package:progress_group/features/auth/presentation/state/auth/auth_state.dart';
 import 'package:progress_group/features/auth/presentation/state/profile/profile_bloc.dart';
 import 'package:progress_group/features/auth/presentation/state/profile/profile_state.dart';
 import 'package:progress_group/features/contact/data/arguments/contact_dropdown_args.dart';
-import 'package:progress_group/features/contact/data/models/dropdown/date_filter.dart';
 import '../../../../../core/utils/helpers/date_helper.dart';
 import '../../../../../core/utils/helpers/error_message.dart';
 import 'package:progress_group/core/utils/web_download.dart';
@@ -72,13 +68,11 @@ class _AttandancePageState extends State<AttandancePage> {
   List<int>? _attendanceOwnerIds;
   String? _attendanceStartDate;
   String? _attendanceEndDate;
-  String? _attendanceDateLabel;
 
   // Activity Log filter
   List<int>? _activityOwnerIds;
   String? _activityStartDate;
   String? _activityEndDate;
-  String? _activityDateLabel;
 
 
   @override
@@ -1371,85 +1365,6 @@ class _AttandancePageState extends State<AttandancePage> {
       },
     );
   }
-
-  Widget _filterDate({String section = 'activity'}) {
-    final isAttendance = section == 'attendance';
-    final startDate = isAttendance ? _attendanceStartDate : _activityStartDate;
-    final endDate = isAttendance ? _attendanceEndDate : _activityEndDate;
-    final dateLabel = isAttendance ? _attendanceDateLabel : _activityDateLabel;
-
-    final isSelected = startDate != null && endDate != null;
-    String label = 'Date';
-    if (isSelected) {
-      if (dateLabel != null) {
-        label = dateLabel;
-      } else {
-        final start = DateTime.tryParse(startDate);
-        final end = DateTime.tryParse(endDate);
-        if (start != null && end != null) {
-          label = '${DateFormat('d MMM').format(start)} - ${DateFormat('d MMM').format(end)}';
-        }
-      }
-    }
-
-    return CustomFilterButton(
-      label: label,
-      isSelected: isSelected,
-      onTap: () async {
-        final result = await context.pushNamed<DateFilterResult>(
-          'dateFilter',
-          extra: {
-            'label': dateLabel,
-            'startDate': startDate,
-            'endDate': endDate,
-          },
-        );
-
-        if (result != null) {
-          if (result.isClear) {
-            setState(() {
-              if (isAttendance) {
-                _attendanceStartDate = null;
-                _attendanceEndDate = null;
-                _attendanceDateLabel = null;
-              } else {
-                _activityStartDate = null;
-                _activityEndDate = null;
-                _activityDateLabel = null;
-              }
-            });
-          } else {
-            setState(() {
-              if (isAttendance) {
-                _attendanceStartDate = result.startDate;
-                _attendanceEndDate = result.endDate;
-                _attendanceDateLabel = result.label;
-              } else {
-                _activityStartDate = result.startDate;
-                _activityEndDate = result.endDate;
-                _activityDateLabel = result.label;
-              }
-            });
-          }
-          if (isAttendance) {
-            _attendanceLogLoaded = true;
-            context.read<AttendanceBloc>().add(FetchAttendanceDataEvent(
-              salesPersonIds: _attendanceOwnerIds,
-              startDate: _attendanceStartDate,
-              endDate: _attendanceEndDate,
-            ));
-          } else {
-            context.read<AttendanceActivityBloc>().add(GetAttendanceActivityEvent(
-              salesPersonIds: _activityOwnerIds,
-              startDate: _activityStartDate,
-              endDate: _activityEndDate,
-            ));
-          }
-        }
-      },
-    );
-  }
-
   Widget _buildAttendanceLog() {
     return Container(
       width: double.infinity,
@@ -1982,206 +1897,6 @@ class _AttandancePageState extends State<AttandancePage> {
       ),
     );
   }
-
-  Widget _buildCardAktivity(AttendanceEntity item) {
-    final images = item.fileAttchment6 ?? [];
-
-    return StatefulBuilder(
-      builder: (context, setStateSB) {
-        final ScrollController scrollController = ScrollController();
-
-        bool isAtStart = true;
-        bool isAtEnd = false;
-
-        void updateScrollState() {
-          if (!scrollController.hasClients) return;
-
-          final maxScroll = scrollController.position.maxScrollExtent;
-          final offset = scrollController.offset;
-
-          setStateSB(() {
-            isAtStart = offset <= 0;
-            isAtEnd = offset >= maxScroll;
-          });
-        }
-
-        scrollController.addListener(updateScrollState);
-
-        return Container(
-          margin: const EdgeInsets.only(bottom: 30),
-          decoration: BoxDecoration(
-            color: const Color(whiteColor),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              /// ================= HEADER =================
-              Container(
-                padding: const EdgeInsets.only(left: 12),
-                decoration: BoxDecoration(
-                  border: Border(
-                    left: BorderSide(
-                      color: Color(purpleColor),
-                      width: 5,
-                    ),
-                  ),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Row(
-                      children: [
-                      Container(
-                          width: 40,
-                          height: 40,
-                          decoration: BoxDecoration(
-                            color: Color(primaryColor),
-                            shape: BoxShape.circle
-                          ),
-                          child: Center(
-                            child: Text(
-                              getInitials(item.fullName??''),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.bold,
-                                color: Color(whiteColor)
-                              ),
-                            ),
-                          ),
-                        ),
-                        SizedBox(width: 5),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              item.fullName??'',
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                fontSize: 15,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            Container(
-                              width: 180,
-                              child: Text(item.location6 ?? '',maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 11),)),
-                          ],
-                        ),
-                      ],
-                    ),
-                    
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      // Text(item.checkInActivity != null && item.checkInActivity!.isNotEmpty? DateFormat('dd/MM/yyyy').format(DateTime.parse(item.checkInActivity!)): '-',style: const TextStyle(fontSize: 11)),
-                      Text(item.checkInActivity != null && item.checkInActivity!.isNotEmpty? DateFormat('hh:mm').format(DateTime.parse(item.checkInActivity!)): '-',style: const TextStyle(fontSize: 11)),
-                    ],
-                  ),
-                  ],
-                ),
-              ),
-
-              const SizedBox(height: 5),
-              Text(
-                item.note6 ?? '',
-                style: TextStyle(fontWeight: FontWeight.w100),
-              ),
-              const SizedBox(height: 10),
-              /// ================= IMAGES =================
-              if (images.isNotEmpty)
-                SizedBox(
-                  height: 200,
-                  child: Stack(
-                    children: [
-                      ListView.builder(
-                        controller: scrollController,
-                        scrollDirection: Axis.horizontal,
-                        itemCount: images.length,
-                        itemBuilder: (context, index) {
-                          return Container(
-                            margin: const EdgeInsets.only(right: 10),
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(8),
-                              child: DriveImage(
-                                url: images[index],
-                                width: 200,
-                                height: 200,
-                                fit: BoxFit.cover,
-                                onTap: () => _showImagePreview(context, images, index),
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-
-                      /// ================= LEFT ARROW =================
-                      if (images.length > 1 && !isAtStart)
-                        Positioned(
-                          left: 5,
-                          top: 0,
-                          bottom: 0,
-                          child: Center(
-                            child: GestureDetector(
-                              onTap: () {
-                                final newOffset =(scrollController.offset - 250).clamp(0.0,scrollController.position.maxScrollExtent,);
-                                scrollController.animateTo(newOffset,duration: const Duration(milliseconds: 250),curve: Curves.easeInOut,);
-                              },
-                              child: Container(
-                                padding: const EdgeInsets.all(8),
-                                decoration: BoxDecoration(
-                                  color: Colors.black.withOpacity(0.4),
-                                  shape: BoxShape.circle,
-                                ),
-                                child: const Icon(
-                                  Icons.arrow_back_ios,
-                                  color: Colors.white,
-                                  size: 16,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      /// ================= RIGHT ARROW =================
-                      if (images.length > 1 && !isAtEnd)
-                        Positioned(
-                          right: 5,
-                          top: 0,
-                          bottom: 0,
-                          child: Center(
-                            child: GestureDetector(
-                              onTap: () {
-                                final newOffset = (scrollController.offset + 250).clamp(0.0,scrollController.position.maxScrollExtent,);
-                                scrollController.animateTo(newOffset,duration: const Duration(milliseconds: 250),curve: Curves.easeInOut,);
-                              },
-                              child: Container(
-                                padding: const EdgeInsets.all(8),
-                                decoration: BoxDecoration(
-                                  color: Colors.black.withOpacity(0.4),
-                                  shape: BoxShape.circle,
-                                ),
-                                child: const Icon(
-                                  Icons.arrow_forward_ios,
-                                  color: Colors.white,
-                                  size: 16,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-            
-            ],
-          ),
-        );
-      },
-    );
-  }
-
   Widget _buildHeaderProfile() {
     return Container(
       height: 160,
@@ -2334,31 +2049,6 @@ class _AttandancePageState extends State<AttandancePage> {
   }
 
 
-  bool _hasAttendancePermission(int flagParam) {
-    final authState = context.read<AuthBloc>().state;
-    if (authState is! PermissionsLoaded) return true;
-    final permissions = authState.data as PermissionsModel;
-
-    String? featureName;
-    if (flagParam == 0) featureName = 'ClockInOffice';
-    else if (flagParam == 1) featureName = 'ClockOutOffice';
-    else if (flagParam == 6) featureName = 'ClockInPameran';
-    if (featureName == null) return true;
-
-    for (final software in permissions.permissions) {
-      for (final module in software.modules) {
-        for (final form in module.forms) {
-          if (form.formName == 'Attendance') {
-            for (final feature in form.features) {
-              if (feature.featureName == featureName) return feature.active;
-            }
-          }
-        }
-      }
-    }
-    return true;
-  }
-
   Widget _buildCheckInActivity(AttendanceEntity? today) {
     return Column(
       children: [
@@ -2383,7 +2073,6 @@ class _AttandancePageState extends State<AttandancePage> {
     String? approveName,
     String? rejectName,
   }) {
-    final bool hasPermission = _hasAttendancePermission(flagParam);
     // Build status badge based on new logic
     Widget? statusBadge;
     if (needsApproval) {
@@ -2486,18 +2175,7 @@ class _AttandancePageState extends State<AttandancePage> {
                     Positioned(top: 8, left: 8, child: statusBadge),
                    if (isReject == 1) ...[
                        Positioned(top: 8, right: 8, child: GestureDetector(
-                          onTap: () {
-                            if (_isCameraOpening) return;
-                            if (!hasPermission) {
-                              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                                content: Text('Anda tidak punya akses untuk fitur ini'),
-                                backgroundColor: Colors.red,
-                                duration: Duration(seconds: 2),
-                              ));
-                              return;
-                            }
-                            _handleMoveCamera(title, flagParam);
-                          },
+                          onTap: _isCameraOpening ? null : () => _handleMoveCamera(title, flagParam),
                          child: Container(
                           padding: EdgeInsets.all(4),
                           decoration: BoxDecoration(
@@ -2524,18 +2202,7 @@ class _AttandancePageState extends State<AttandancePage> {
                     color: Colors.transparent,
                     child: InkWell(
                       borderRadius: BorderRadius.circular(100),
-                      onTap: () {
-                    if (_isCameraOpening) return;
-                    if (!hasPermission) {
-                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                        content: Text('Anda tidak punya akses untuk fitur ini'),
-                        backgroundColor: Colors.red,
-                        duration: Duration(seconds: 2),
-                      ));
-                      return;
-                    }
-                    _handleMoveCamera(title, flagParam);
-                  },
+                      onTap: _isCameraOpening ? null : () { _handleMoveCamera(title, flagParam); },
                       child: Container(
                         height: 90, width: 90,
                         alignment: Alignment.center,
@@ -2547,7 +2214,7 @@ class _AttandancePageState extends State<AttandancePage> {
                           child: Container(
                             height: 70, width: 70,
                             alignment: Alignment.center,
-                            decoration: BoxDecoration(shape: BoxShape.circle, color: Color((_isCameraOpening || !hasPermission) ? grey6Color : primaryColor)),
+                            decoration: BoxDecoration(shape: BoxShape.circle, color: Color(_isCameraOpening ? grey6Color : primaryColor)),
                             child: _isCameraOpening
                                 ? const SizedBox(width: 28, height: 28, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5))
                                 : Text(title, textAlign: TextAlign.center, style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Color(whiteColor))),
@@ -3105,32 +2772,4 @@ class _ActivityCardState extends State<_ActivityCard> {
       ),
     );
   }
-}
-
-class _ButtonLogDelegate extends SliverPersistentHeaderDelegate {
-  final Widget child;
-  final bool isPinned;
-  static const double _height = 76.0;
-
-  _ButtonLogDelegate(this.child, {this.isPinned = false});
-
-  @override
-  Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 1),
-      color:  Colors.transparent,
-      alignment: Alignment.center,
-      child: child,
-    );
-  }
-
-  @override
-  double get maxExtent => _height;
-
-  @override
-  double get minExtent => _height;
-
-  @override
-  bool shouldRebuild(_ButtonLogDelegate oldDelegate) =>
-      oldDelegate.isPinned != isPinned || oldDelegate.child != child;
 }
