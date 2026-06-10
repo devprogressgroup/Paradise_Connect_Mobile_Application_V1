@@ -524,11 +524,10 @@ class _HomePageState extends State<HomePage> {
 
   Widget _buildProspectStatusSection() {
     return BlocConsumer<ProspectStatusSummaryBloc, ProspectStatusSummaryState>(
-      listenWhen: (prev, curr) =>
-          curr.status == ProspectStatusSummaryStatus.error &&
-          prev.status != ProspectStatusSummaryStatus.error,
+      listenWhen: (prev, curr) => curr.status == ProspectStatusSummaryStatus.error && prev.status != ProspectStatusSummaryStatus.error,
       listener: (context, state) {
-        showErrorDialog(context, state.errorMessage ?? 'Gagal memuat prospect status');
+        debugPrint('ProspectStatusSummaryError: ${state.errorMessage}');
+        showErrorDialog(context, 'Gagal memuat prospect status');
       },
       builder: (context, state) {
         return Column(
@@ -785,10 +784,11 @@ class _HomePageState extends State<HomePage> {
                 return buildHomeChartShimmer();
               }
               if (state is ReportError) {
-                return SizedBox(
+                debugPrint('ReportError: ${state.message}');
+                return const SizedBox(
                   height: 150,
                   child: Center(
-                      child: Text(state.message, style: const TextStyle(color: Colors.red))),
+                      child: Text('Gagal memuat data laporan', style: TextStyle(color: Colors.red))),
                 );
               }
               if (state is ReportLoaded) {

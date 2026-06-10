@@ -329,9 +329,19 @@ class _NotifPageState extends State<NotifPage> {
   Widget _buildMixedFeed() {
     return BlocBuilder<ReceivedNotifCubit, ReceivedNotifState>(
       builder: (context, pushState) {
-        return BlocBuilder<NotifActivityBloc, ActivityState>(
+        return BlocConsumer<NotifActivityBloc, ActivityState>(
+          listenWhen: (prev, curr) => curr.status == ActivityStatus.error && prev.status != ActivityStatus.error,
+          listener: (context, activityState) {
+            debugPrint('NotifActivityError: ${activityState.errorMessage}');
+          },
           builder: (context, activityState) {
-            return BlocBuilder<AttendanceApprovalCubit, AttendanceApprovalState>(
+            return BlocConsumer<AttendanceApprovalCubit, AttendanceApprovalState>(
+              listenWhen: (prev, curr) => curr is AttendanceApprovalError && prev is! AttendanceApprovalError,
+              listener: (context, approvalState) {
+                if (approvalState is AttendanceApprovalError) {
+                  debugPrint('AttendanceApprovalError: ${approvalState.message}');
+                }
+              },
               builder: (context, approvalState) {
                 // Loading
                 final loadingActivity = activityState.status == ActivityStatus.loading && activityState.activities.isEmpty;
@@ -431,6 +441,7 @@ class _NotifPageState extends State<NotifPage> {
       },
     );
   }
+
 
   // ── Item builders ──────────────────────────────────────────────────────────
   Widget _activityItem(BuildContext context, ActivityEntity activity) {

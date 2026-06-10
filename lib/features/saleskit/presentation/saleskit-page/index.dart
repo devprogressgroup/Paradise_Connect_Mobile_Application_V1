@@ -232,6 +232,9 @@ class _SalesKitPageState extends State<SalesKitPage> {
             );
           }
         }
+        if (state is SalesKitDetailError) {
+          debugPrint('SalesKitDetailError: ${state.message}');
+        }
       },
       builder: (context, state) {
         return Column(
@@ -264,7 +267,7 @@ class _SalesKitPageState extends State<SalesKitPage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text(state.message, textAlign: TextAlign.center),
+            const Text('Gagal memuat data saleskit', textAlign: TextAlign.center),
             SizedBox(height: 12),
             ElevatedButton(
               onPressed: _onRefresh,
@@ -400,7 +403,12 @@ class _SalesKitPageState extends State<SalesKitPage> {
   }
 
   Widget _builSalsesKitScreen() {
-    return BlocBuilder<TownshipBloc, TownshipState>(
+    return BlocConsumer<TownshipBloc, TownshipState>(
+      listener: (context, state) {
+        if (state is TownshipError) {
+          debugPrint('TownshipError: ${state.message}');
+        }
+      },
       builder: (context, state) {
         return Column(
           children: [
@@ -437,7 +445,7 @@ class _SalesKitPageState extends State<SalesKitPage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text(state.message, textAlign: TextAlign.center),
+            const Text('Gagal memuat data project', textAlign: TextAlign.center),
             SizedBox(height: 12),
             ElevatedButton(
               onPressed: () =>

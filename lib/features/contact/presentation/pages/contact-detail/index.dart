@@ -1019,9 +1019,10 @@ class _ContactDetailPageState extends State<ContactDetailPage>with TickerProvide
                 }
 
                 if (state is UploadAttachmentError) {
-                  ScaffoldMessenger.of(
-                    context,
-                  ).showSnackBar(SnackBar(content: Text(state.message)));
+                  debugPrint('UploadAttachmentError: ${state.message}');
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Gagal mengunggah lampiran')),
+                  );
                 }
               },
               child: RefreshIndicator(
@@ -1030,7 +1031,8 @@ class _ContactDetailPageState extends State<ContactDetailPage>with TickerProvide
                   listenWhen: (prev, curr) => curr is AttachmentError && prev is! AttachmentError,
                   listener: (context, state) {
                     if (state is AttachmentError) {
-                      showErrorDialog(context, state.message);
+                      debugPrint('AttachmentError: ${state.message}');
+                      showErrorDialog(context, 'Gagal memuat lampiran');
                     }
                   },
                   builder: (context, state) {

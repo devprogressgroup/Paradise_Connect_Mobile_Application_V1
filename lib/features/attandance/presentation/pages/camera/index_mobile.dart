@@ -245,15 +245,13 @@ class _CameraPageState extends State<CameraPage> {
                 context.go('/attandance');
               }
             } else if (state is AttendanceError) {
-              final msg = state.message.startsWith('  ')
-                  ? state.message.replaceFirst('  ', '')
-                  : state.message;
-              if (msg == 'SESSION_EXPIRED' || msg.contains('[cancel]')) return;
+              debugPrint('AttendanceError: ${state.message}');
+              if (state.message == 'SESSION_EXPIRED' || state.message.contains('[cancel]')) return;
               showDialog(
                 context: context,
                 builder: (ctx) => AlertDialog(
                   title: const Text('Gagal'),
-                  content: Text(msg),
+                  content: const Text('Gagal menyimpan data kehadiran'),
                   actions: [
                     TextButton(
                       onPressed: () => Navigator.of(ctx).pop(),

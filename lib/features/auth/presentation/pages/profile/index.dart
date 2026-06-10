@@ -1,7 +1,6 @@
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:local_auth/local_auth.dart';
 import 'package:progress_group/core/utils/widget/shimmer_loading.dart';
@@ -201,10 +200,12 @@ class _ProfilePageState extends State<ProfilePage> {
           passwordTC.clear();
           confirmPasswordTC.clear();
           setState(() { _selectedPhoto = null; _selectedPhotoBytes = null; });
-          showSnackbar(context, state.message, isError: false);
+          debugPrint('AuthSuccess: ${state.message}');
+          showSnackbar(context, 'Profil berhasil diperbarui', isError: false);
           context.read<ProfileBloc>().add(GetProfileEvent(forceRefresh: true));
         } else if (state is AuthFailure) {
-          showSnackbar(context, state.error, isError: true);
+          debugPrint('AuthFailure: ${state.error}');
+          showSnackbar(context, 'Gagal menyimpan perubahan profil', isError: true);
         }
       },
       child: Scaffold(
@@ -227,6 +228,8 @@ class _ProfilePageState extends State<ProfilePage> {
         if (state is ProfileLoaded) {
           emailTC.text = state.profile.email;
           phoneTC.text = state.profile.phoneNumber;
+        } else if (state is ProfileFailure) {
+          debugPrint('ProfileFailure: ${state.message}');
         }
       },
       builder: (context, state) {
@@ -239,7 +242,7 @@ class _ProfilePageState extends State<ProfilePage> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Text(state.message),
+                const Text('Gagal memuat profil'),
                 const SizedBox(height: 10),
                 customButton(() {
                   context.read<ProfileBloc>().add(GetProfileEvent());

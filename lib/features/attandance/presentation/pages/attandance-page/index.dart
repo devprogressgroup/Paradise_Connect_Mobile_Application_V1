@@ -1040,8 +1040,9 @@ class _AttandancePageState extends State<AttandancePage> {
             context.read<AttendancePdfCubit>().reset();
           } else if (state is AttendancePdfError) {
             ScaffoldMessenger.of(context).hideCurrentSnackBar();
+            debugPrint('AttendancePdfError: ${state.message}');
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('Gagal download: ${state.message}')),
+              const SnackBar(content: Text('Gagal mengunduh data kehadiran')),
             );
             context.read<AttendancePdfCubit>().reset();
           }

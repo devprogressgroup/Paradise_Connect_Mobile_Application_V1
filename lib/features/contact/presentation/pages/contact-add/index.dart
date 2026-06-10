@@ -839,11 +839,10 @@ class _ContactAddPageState extends State<ContactAddPage> {
                 context.pop();
               }
             } else if (state.status == ActivityStatus.error) {
+              debugPrint('ActivityError: ${state.errorMessage}');
               ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(
-                    state.errorMessage ?? 'Gagal menambahkan activity',
-                  ),
+                const SnackBar(
+                  content: Text('Gagal menambahkan activity'),
                   backgroundColor: Colors.red,
                 ),
               );
@@ -855,9 +854,10 @@ class _ContactAddPageState extends State<ContactAddPage> {
             if (state is UploadAttachmentSuccess) {
               context.pop(2);
             } else if (state is UploadAttachmentError) {
+              debugPrint('UploadAttachmentError: ${state.message}');
               ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(state.message),
+                const SnackBar(
+                  content: Text('Gagal mengunggah lampiran'),
                   backgroundColor: Colors.red,
                 ),
               );
@@ -920,9 +920,10 @@ class _ContactAddPageState extends State<ContactAddPage> {
               });
               if (selectedProject != null) _loadTownshipClusters(selectedProject!);
             } else if (state.status == ContactStatus.error) {
+              debugPrint('ContactStatusError: ${state.errorMessage}');
               ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(state.errorMessage ?? 'An error occurred'),
+                const SnackBar(
+                  content: Text('Gagal memperbarui data kontak'),
                   backgroundColor: Colors.red,
                 ),
               );
@@ -934,9 +935,10 @@ class _ContactAddPageState extends State<ContactAddPage> {
             if (state is VisitSuccess) {
               context.pop(0); // 0 = Activity tab
             } else if (state is VisitError) {
+              debugPrint('VisitError: ${state.message}');
               ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(state.message),
+                const SnackBar(
+                  content: Text('Gagal menyimpan data kunjungan'),
                   backgroundColor: Colors.red,
                 ),
               );

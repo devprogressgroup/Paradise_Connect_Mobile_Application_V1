@@ -128,6 +128,9 @@ class _SitePlanPageState extends State<SitePlanPage> {
             _selectedSite == null) {
           _initFromSites(state.sites);
         }
+        if (state is SiteplanError) {
+          debugPrint('SiteplanError: ${state.message}');
+        }
       },
       builder: (context, state) {
         return Scaffold(
@@ -147,8 +150,9 @@ class _SitePlanPageState extends State<SitePlanPage> {
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Text(state.message, textAlign: TextAlign.center,
-                                style: const TextStyle(color: Colors.red)),
+                            const Text('Gagal memuat data site plan',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(color: Colors.red)),
                             const SizedBox(height: 16),
                             ElevatedButton(
                               onPressed: () =>

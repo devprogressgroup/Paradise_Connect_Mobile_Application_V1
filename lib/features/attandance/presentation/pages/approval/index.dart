@@ -225,12 +225,18 @@ class _ApprovalPageState extends State<ApprovalPage> {
               ),
             ),
             Expanded(
-              child: BlocBuilder<AttendanceApprovalCubit, AttendanceApprovalState>(
+              child: BlocConsumer<AttendanceApprovalCubit, AttendanceApprovalState>(
+                listenWhen: (prev, curr) => curr is AttendanceApprovalError && prev is! AttendanceApprovalError,
+                listener: (context, state) {
+                  if (state is AttendanceApprovalError) {
+                    debugPrint('AttendanceApprovalError: ${state.message}');
+                  }
+                },
                 builder: (context, state) {
                   if (state is AttendanceApprovalLoading) {
                     return SingleChildScrollView(child: buildApprovalShimmer());
                   } else if (state is AttendanceApprovalError) {
-                    return Center(child: Text('Error: ${state.message}'));
+                    return const Center(child: Text('Gagal memuat data approval'));
                   } else if (state is AttendanceApprovalLoaded) {
                     final logs = state.logs;
                     if (logs.isEmpty) {

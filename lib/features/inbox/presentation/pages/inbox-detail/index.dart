@@ -91,7 +91,8 @@ class _InboxDetailPageState extends State<InboxDetailPage> {
                   listener: (context, state) {
                     if (state is MessageError) {
                       _isFetchingMore = false;
-                      showErrorDialog(context, state.message);
+                      debugPrint('MessageError: ${state.message}');
+                      showErrorDialog(context, 'Gagal memuat pesan');
                     }
                   },
                   builder: (context, state) {
@@ -410,7 +411,8 @@ class _VideoPlayerWidgetState extends State<_VideoPlayerWidget> {
       looping: false,
       aspectRatio: _videoPlayerController.value.aspectRatio,
       errorBuilder: (context, errorMessage) {
-        return Center(child: Text(errorMessage, style: const TextStyle(color: Colors.white)));
+        debugPrint('VideoPlayerError: $errorMessage');
+        return const Center(child: Text('Gagal memuat video', style: TextStyle(color: Colors.white)));
       },
     );
     setState(() {});

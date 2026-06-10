@@ -59,14 +59,12 @@ class _CameraPageState extends State<CameraPage> {
             context.go('/attandance');
           }
         } else if (state is AttendanceError) {
-          final msg = state.message.startsWith('  ')
-              ? state.message.replaceFirst('  ', '')
-              : state.message;
+          debugPrint('AttendanceError: ${state.message}');
           showDialog(
             context: context,
             builder: (ctx) => AlertDialog(
               title: const Text('Gagal'),
-              content: Text(msg),
+              content: const Text('Gagal menyimpan data kehadiran'),
               actions: [
                 TextButton(onPressed: () => Navigator.of(ctx).pop(), child: const Text('OK')),
               ],

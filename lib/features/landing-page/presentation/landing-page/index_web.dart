@@ -72,7 +72,13 @@ class _LandingPageState extends State<LandingPage> {
   Widget build(BuildContext context) {
     return SafeArea(
       bottom: false,
-      child: BlocBuilder<LandingPageCubit, LandingPageState>(
+      child: BlocConsumer<LandingPageCubit, LandingPageState>(
+        listenWhen: (prev, curr) => curr is LandingPageError && prev is! LandingPageError,
+        listener: (context, state) {
+          if (state is LandingPageError) {
+            debugPrint('LandingPageError: ${state.message}');
+          }
+        },
         builder: (context, state) {
           if (state is LandingPageLoading || state is LandingPageInitial) {
             return const Center(child: CircularProgressIndicator());
@@ -85,7 +91,7 @@ class _LandingPageState extends State<LandingPage> {
                 children: [
                   const Icon(Icons.error_outline, size: 48, color: Colors.red),
                   const SizedBox(height: 12),
-                  Text(state.message, textAlign: TextAlign.center),
+                  const Text('Gagal memuat halaman', textAlign: TextAlign.center),
                   const SizedBox(height: 12),
                   ElevatedButton(
                     onPressed: () => context.read<LandingPageCubit>().fetchUrl(),

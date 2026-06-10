@@ -266,7 +266,8 @@ class _LoginPageState extends State<LoginPage> {
           _passwordController.text = state.password;
           setState(() => _rememberMe = true);
         } else if (state is AuthFailure) {
-          showSnackbar(context, state.error, isError: true);
+          debugPrint('AuthFailure: ${state.error}');
+          showSnackbar(context, 'Email atau password salah', isError: true);
         }
       },
       child: Scaffold(
@@ -326,6 +327,12 @@ class _LoginPageState extends State<LoginPage> {
                         controller: _emailController,
                         focusNode: _emailFN,
                         onTapOutside: (event) => _emailFN.unfocus(),
+                        onChanged: (_) {
+                          if (_rememberMe) {
+                            setState(() => _rememberMe = false);
+                            context.read<AuthBloc>().add(ClearRememberMeEvent());
+                          }
+                        },
                         decoration: InputDecoration(
                           hintText: 'youremail@gmail.com',
                           hintStyle: TextStyle(
@@ -394,6 +401,12 @@ class _LoginPageState extends State<LoginPage> {
                         focusNode: _passwordFN,
                         onTapOutside: (event) => _passwordFN.unfocus(),
                         obscureText: _isObscure,
+                        onChanged: (_) {
+                          if (_rememberMe) {
+                            setState(() => _rememberMe = false);
+                            context.read<AuthBloc>().add(ClearRememberMeEvent());
+                          }
+                        },
                         decoration: InputDecoration(
                           hintText: '••••••••',
                           filled: true,

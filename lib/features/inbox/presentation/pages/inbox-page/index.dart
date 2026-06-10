@@ -189,7 +189,8 @@ class _InboxPageState extends State<InboxPage> {
                         listenWhen: (prev, curr) => curr is WhatsappDeviceError && prev is! WhatsappDeviceError,
                         listener: (context, state) {
                           if (state is WhatsappDeviceError) {
-                            showErrorDialog(context, state.message);
+                            debugPrint('WhatsappDeviceError: ${state.message}');
+                            showErrorDialog(context, 'Gagal memuat perangkat WhatsApp');
                           }
                         },
                         builder: (context, state) {
@@ -538,7 +539,8 @@ class _InboxPageState extends State<InboxPage> {
       listener: (context, state) {
         if (state is InboxContactError) {
           _isFetchingMore = false;
-          showErrorDialog(context, state.message);
+          debugPrint('InboxContactError: ${state.message}');
+          showErrorDialog(context, 'Gagal memuat data inbox');
         }
       },
       builder: (context, state) {
@@ -752,11 +754,12 @@ class _InboxPageState extends State<InboxPage> {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(content: Text('WhatsApp Terhubung!'), backgroundColor: Colors.green),
                     );
-                    Navigator.pop(dialogContext); // Tutup dialog
-                    
-                    // Refresh data setelah terhubung
+                    Navigator.pop(dialogContext);
                     this.context.read<WhatsappDeviceBloc>().add(GetWhatsappDevicesEvent());
                     _fetchInbox();
+                  }
+                  if (state is WhatsappQrError) {
+                    debugPrint('WhatsappQrError: ${state.message}');
                   }
                 },
                 builder: (context, state) {
@@ -780,10 +783,10 @@ class _InboxPageState extends State<InboxPage> {
                       Text("Buka WhatsApp > Perangkat Tertaut > Tautkan Perangkat",textAlign: TextAlign.center, style: TextStyle(fontSize: 12, color: Colors.grey)),
                       SizedBox(height: 16),
                       if (state is WhatsappQrError)
-                         Padding(
-                           padding: const EdgeInsets.only(bottom: 8.0),
-                           child: Text(state.message, style: TextStyle(color: Colors.red, fontSize: 10), textAlign: TextAlign.center),
-                         ),
+                        const Padding(
+                          padding: EdgeInsets.only(bottom: 8.0),
+                          child: Text('Gagal memuat QR code', style: TextStyle(color: Colors.red, fontSize: 10), textAlign: TextAlign.center),
+                        ),
                       customButton((){ Navigator.pop(context); }, "Tutup", colorBg: Color(primaryColor), colorText: Color(whiteColor)),
                       SizedBox(height: 10),
                       customButton((){ 

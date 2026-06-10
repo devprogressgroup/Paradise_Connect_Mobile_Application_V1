@@ -1264,8 +1264,9 @@ class _ContactFormPageState extends State<ContactFormPage> {
             _isDialogShowing = false;
             Navigator.of(this.context).pop();
           }
+          debugPrint('ContactFormError: ${state.errorMessage}');
           ScaffoldMessenger.of(this.context).showSnackBar(
-            SnackBar(content: Text(state.errorMessage ?? 'Error creating contact')),
+            const SnackBar(content: Text('Gagal menyimpan data kontak')),
           );
         }
       },
@@ -1328,12 +1329,12 @@ class _ContactFormPageState extends State<ContactFormPage> {
             }
             return BlocConsumer<ContactBloc, ContactState>(
               listenWhen: (prev, curr) =>
-                  curr.status == ContactStatus.error && prev.status != ContactStatus.error,
+                  widget.args.page == 2 &&
+                  curr.status == ContactStatus.error &&
+                  prev.status != ContactStatus.error,
               listener: (context, contactState) {
-                showErrorDialog(
-                  context,
-                  contactState.errorMessage ?? 'Gagal memuat data kontak',
-                ).then((_) {
+                debugPrint('ContactFormDetailError: ${contactState.errorMessage}');
+                showErrorDialog(context, 'Gagal memuat data kontak').then((_) {
                   if (context.mounted) context.pop();
                 });
               },
@@ -1342,7 +1343,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
                 final statusLoading = statusState == ProspectStatusEnum.initial || statusState == ProspectStatusEnum.loading;
                 final propertiesState = context.watch<ContactPropertiesBloc>().state.status;
                 final propertiesLoading = propertiesState == ContactPropertiesStatus.initial || propertiesState == ContactPropertiesStatus.loading;
-                if (propertiesState == ContactPropertiesStatus.error) print('[ContactForm] ContactProperties ERROR: ${context.watch<ContactPropertiesBloc>().state.errorMessage}');
+                if (propertiesState == ContactPropertiesStatus.error) debugPrint('[ContactForm] ContactProperties ERROR: ${context.watch<ContactPropertiesBloc>().state.errorMessage}');
                 if (statusState == ProspectStatusEnum.error) print('[ContactForm] ProspectStatus ERROR');
                 final detailLoading = contactState.status == ContactStatus.loadingDetail ||
                     contactState.status == ContactStatus.initial;
@@ -2004,7 +2005,8 @@ class _ContactFormPageState extends State<ContactFormPage> {
                           return const SizedBox.shrink();
                         }
                         if (state.status == ContactPropertiesStatus.error) {
-                          return Padding(padding: const EdgeInsets.all(8.0), child: Text('Failed to load properties: ${state.errorMessage}'));
+                          debugPrint('ContactPropertiesError: ${state.errorMessage}');
+                          return const Padding(padding: EdgeInsets.all(8.0), child: Text('Gagal memuat properties'));
                         }
 
                         // Auto-scroll + highlight when arriving from view mode with a focusField

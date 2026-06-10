@@ -157,7 +157,8 @@ class _ContactPageState extends State<ContactPage> {
                       child: BlocConsumer<ContactBloc, ContactState>(
                         listenWhen: (prev, curr) => curr.status == ContactStatus.error && prev.status != ContactStatus.error,
                         listener: (context, state) {
-                          showErrorDialog(context, state.errorMessage ?? 'Gagal memuat data kontak');
+                          debugPrint('ContactError: ${state.errorMessage}');
+                          showErrorDialog(context, 'Gagal memuat data kontak');
                         },
                         builder: (context, state) {
                           contactEntity = state.contacts;
