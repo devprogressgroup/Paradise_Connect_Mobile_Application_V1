@@ -4,6 +4,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:progress_group/core/utils/helpers/error_message.dart';
+import 'package:progress_group/core/utils/helpers/permissions_helper.dart';
 import 'package:progress_group/features/auth/domain/usecase/clear_remember_me_usecase.dart';
 import 'package:progress_group/features/auth/domain/usecase/forgot_password_usecase.dart';
 import 'package:progress_group/features/auth/domain/usecase/get_biometric_enabled_usecase.dart';
@@ -164,8 +165,10 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   Future<void> _onLogout(LogoutEvent event, Emitter<AuthState> emit) async {
     try {
       await logoutUseCase();
+      PermissionsHelper.clear();
       emit(AuthLoggedOut());
     } catch (e) {
+      PermissionsHelper.clear();
       emit(AuthLoggedOut());
     }
   }
@@ -188,6 +191,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         }
       }
       debugPrint('=== END PERMISSIONS ===');
+      PermissionsHelper.init(data);
       emit(PermissionsLoaded(data));
     } catch (e) {
       debugPrint('FetchPermissionsError: $e');

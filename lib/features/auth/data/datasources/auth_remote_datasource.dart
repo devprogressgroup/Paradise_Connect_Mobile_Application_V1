@@ -100,7 +100,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   @override
   Future<Map<String, dynamic>> getPermissions() async {
     try {
-      final response = await dio.get('/permissions/me');
+      final response = await dio.get('/permissions/me?software_id=1');
       return response.data;
     } on DioException catch (e) {
       if (e.response != null) {

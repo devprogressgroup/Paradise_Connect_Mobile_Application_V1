@@ -3,20 +3,27 @@ class PermissionFeatureModel {
   final String featureName;
   final String? featureDescription;
   final bool active;
+  final int? activeRaw;
 
   PermissionFeatureModel({
     required this.formFeatureId,
     required this.featureName,
     this.featureDescription,
     required this.active,
+    this.activeRaw,
   });
 
-  factory PermissionFeatureModel.fromJson(Map<String, dynamic> json) => PermissionFeatureModel(
-    formFeatureId: json['form_feature_id'] ?? 0,
-    featureName: json['feature_name'] ?? '',
-    featureDescription: json['feature_description'],
-    active: (json['active'] ?? 0) == 1,
-  );
+  factory PermissionFeatureModel.fromJson(Map<String, dynamic> json) {
+    final raw = json['active'] as int?;
+    return PermissionFeatureModel(
+      formFeatureId: json['form_feature_id'] ?? 0,
+      featureName: json['feature_name'] ?? '',
+      featureDescription: json['feature_description'],
+      active: (raw ?? 0) == 1,
+      activeRaw: raw,
+    );
+  }
+
 }
 
 class PermissionFormModel {

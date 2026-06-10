@@ -5,6 +5,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:path_provider/path_provider.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:progress_group/core/utils/widget/custom_snackbar.dart';
 import 'package:progress_group/core/utils/widget/shimmer_loading.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:flutter/material.dart';
@@ -13,6 +14,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:progress_group/core/constants/colors.dart';
+import 'package:progress_group/core/utils/helpers/permissions_helper.dart';
 import 'package:progress_group/core/utils/widget/drive_image/drive_image.dart';
 import 'package:progress_group/core/utils/helpers/initial_name_helper.dart';
 import 'package:progress_group/core/utils/widget/custom_filter_button.dart';
@@ -31,6 +33,7 @@ import 'package:progress_group/features/auth/domain/entities/user_profile.dart';
 import 'package:progress_group/features/auth/presentation/state/profile/profile_bloc.dart';
 import 'package:progress_group/features/auth/presentation/state/profile/profile_state.dart';
 import 'package:progress_group/features/contact/data/arguments/contact_dropdown_args.dart';
+import 'package:progress_group/features/contact/data/models/dropdown/date_filter.dart';
 import '../../../../../core/utils/helpers/date_helper.dart';
 import '../../../../../core/utils/helpers/error_message.dart';
 import 'package:progress_group/core/utils/web_download.dart';
@@ -68,11 +71,13 @@ class _AttandancePageState extends State<AttandancePage> {
   List<int>? _attendanceOwnerIds;
   String? _attendanceStartDate;
   String? _attendanceEndDate;
+  String? _attendanceDateLabel;
 
   // Activity Log filter
   List<int>? _activityOwnerIds;
   String? _activityStartDate;
   String? _activityEndDate;
+  String? _activityDateLabel;
 
 
   @override
@@ -1095,6 +1100,13 @@ class _AttandancePageState extends State<AttandancePage> {
                   );
                 },
               ),
+             Text('ReadOnly ${PermissionsHelper.rawReadAttendance}'),
+             Text('ClockInOffice ${PermissionsHelper.rawClockInOffice}'),
+             Text('ClockInPameran ${PermissionsHelper.rawClockInPameran}'),
+             Text('ClockOutOffice ${PermissionsHelper.rawClockOutOffice}'),
+             Text('ClockOutPameran ${PermissionsHelper.rawClockOutPameran}'),
+             Text('ApproveReject ${PermissionsHelper.rawApproveAttendance}'),
+             Text('RequestApproval ${PermissionsHelper.rawRequestApproval}'),
               Expanded(
                 child: Stack(
                   children: [
@@ -1136,12 +1148,7 @@ class _AttandancePageState extends State<AttandancePage> {
                               },
                             ),
                           ),
-                          // SliverPersistentHeader(
-                          //   key: const ValueKey('button_log'),
-                          //   pinned: true,
-                          //   delegate: _ButtonLogDelegate(_buildButtonLog(), isPinned: _isButtonPinned),
-                          // ),
-                          /// CONTENT
+                          
                           SliverToBoxAdapter(
                             child: selectedMenu == 'activity'
                                 ? _buildActivityLog()
@@ -1365,6 +1372,85 @@ class _AttandancePageState extends State<AttandancePage> {
       },
     );
   }
+
+  Widget _filterDate({String section = 'activity'}) {
+    final isAttendance = section == 'attendance';
+    final startDate = isAttendance ? _attendanceStartDate : _activityStartDate;
+    final endDate = isAttendance ? _attendanceEndDate : _activityEndDate;
+    final dateLabel = isAttendance ? _attendanceDateLabel : _activityDateLabel;
+
+    final isSelected = startDate != null && endDate != null;
+    String label = 'Date';
+    if (isSelected) {
+      if (dateLabel != null) {
+        label = dateLabel;
+      } else {
+        final start = DateTime.tryParse(startDate);
+        final end = DateTime.tryParse(endDate);
+        if (start != null && end != null) {
+          label = '${DateFormat('d MMM').format(start)} - ${DateFormat('d MMM').format(end)}';
+        }
+      }
+    }
+
+    return CustomFilterButton(
+      label: label,
+      isSelected: isSelected,
+      onTap: () async {
+        final result = await context.pushNamed<DateFilterResult>(
+          'dateFilter',
+          extra: {
+            'label': dateLabel,
+            'startDate': startDate,
+            'endDate': endDate,
+          },
+        );
+
+        if (result != null) {
+          if (result.isClear) {
+            setState(() {
+              if (isAttendance) {
+                _attendanceStartDate = null;
+                _attendanceEndDate = null;
+                _attendanceDateLabel = null;
+              } else {
+                _activityStartDate = null;
+                _activityEndDate = null;
+                _activityDateLabel = null;
+              }
+            });
+          } else {
+            setState(() {
+              if (isAttendance) {
+                _attendanceStartDate = result.startDate;
+                _attendanceEndDate = result.endDate;
+                _attendanceDateLabel = result.label;
+              } else {
+                _activityStartDate = result.startDate;
+                _activityEndDate = result.endDate;
+                _activityDateLabel = result.label;
+              }
+            });
+          }
+          if (isAttendance) {
+            _attendanceLogLoaded = true;
+            context.read<AttendanceBloc>().add(FetchAttendanceDataEvent(
+              salesPersonIds: _attendanceOwnerIds,
+              startDate: _attendanceStartDate,
+              endDate: _attendanceEndDate,
+            ));
+          } else {
+            context.read<AttendanceActivityBloc>().add(GetAttendanceActivityEvent(
+              salesPersonIds: _activityOwnerIds,
+              startDate: _activityStartDate,
+              endDate: _activityEndDate,
+            ));
+          }
+        }
+      },
+    );
+  }
+
   Widget _buildAttendanceLog() {
     return Container(
       width: double.infinity,
@@ -1897,6 +1983,206 @@ class _AttandancePageState extends State<AttandancePage> {
       ),
     );
   }
+
+  Widget _buildCardAktivity(AttendanceEntity item) {
+    final images = item.fileAttchment6 ?? [];
+
+    return StatefulBuilder(
+      builder: (context, setStateSB) {
+        final ScrollController scrollController = ScrollController();
+
+        bool isAtStart = true;
+        bool isAtEnd = false;
+
+        void updateScrollState() {
+          if (!scrollController.hasClients) return;
+
+          final maxScroll = scrollController.position.maxScrollExtent;
+          final offset = scrollController.offset;
+
+          setStateSB(() {
+            isAtStart = offset <= 0;
+            isAtEnd = offset >= maxScroll;
+          });
+        }
+
+        scrollController.addListener(updateScrollState);
+
+        return Container(
+          margin: const EdgeInsets.only(bottom: 30),
+          decoration: BoxDecoration(
+            color: const Color(whiteColor),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              /// ================= HEADER =================
+              Container(
+                padding: const EdgeInsets.only(left: 12),
+                decoration: BoxDecoration(
+                  border: Border(
+                    left: BorderSide(
+                      color: Color(purpleColor),
+                      width: 5,
+                    ),
+                  ),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      children: [
+                      Container(
+                          width: 40,
+                          height: 40,
+                          decoration: BoxDecoration(
+                            color: Color(primaryColor),
+                            shape: BoxShape.circle
+                          ),
+                          child: Center(
+                            child: Text(
+                              getInitials(item.fullName??''),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                                color: Color(whiteColor)
+                              ),
+                            ),
+                          ),
+                        ),
+                        SizedBox(width: 5),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              item.fullName??'',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            Container(
+                              width: 180,
+                              child: Text(item.location6 ?? '',maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 11),)),
+                          ],
+                        ),
+                      ],
+                    ),
+                    
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      // Text(item.checkInActivity != null && item.checkInActivity!.isNotEmpty? DateFormat('dd/MM/yyyy').format(DateTime.parse(item.checkInActivity!)): '-',style: const TextStyle(fontSize: 11)),
+                      Text(item.checkInActivity != null && item.checkInActivity!.isNotEmpty? DateFormat('hh:mm').format(DateTime.parse(item.checkInActivity!)): '-',style: const TextStyle(fontSize: 11)),
+                    ],
+                  ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 5),
+              Text(
+                item.note6 ?? '',
+                style: TextStyle(fontWeight: FontWeight.w100),
+              ),
+              const SizedBox(height: 10),
+              /// ================= IMAGES =================
+              if (images.isNotEmpty)
+                SizedBox(
+                  height: 200,
+                  child: Stack(
+                    children: [
+                      ListView.builder(
+                        controller: scrollController,
+                        scrollDirection: Axis.horizontal,
+                        itemCount: images.length,
+                        itemBuilder: (context, index) {
+                          return Container(
+                            margin: const EdgeInsets.only(right: 10),
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(8),
+                              child: DriveImage(
+                                url: images[index],
+                                width: 200,
+                                height: 200,
+                                fit: BoxFit.cover,
+                                onTap: () => _showImagePreview(context, images, index),
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+
+                      /// ================= LEFT ARROW =================
+                      if (images.length > 1 && !isAtStart)
+                        Positioned(
+                          left: 5,
+                          top: 0,
+                          bottom: 0,
+                          child: Center(
+                            child: GestureDetector(
+                              onTap: () {
+                                final newOffset =(scrollController.offset - 250).clamp(0.0,scrollController.position.maxScrollExtent,);
+                                scrollController.animateTo(newOffset,duration: const Duration(milliseconds: 250),curve: Curves.easeInOut,);
+                              },
+                              child: Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: Colors.black.withOpacity(0.4),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(
+                                  Icons.arrow_back_ios,
+                                  color: Colors.white,
+                                  size: 16,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      /// ================= RIGHT ARROW =================
+                      if (images.length > 1 && !isAtEnd)
+                        Positioned(
+                          right: 5,
+                          top: 0,
+                          bottom: 0,
+                          child: Center(
+                            child: GestureDetector(
+                              onTap: () {
+                                final newOffset = (scrollController.offset + 250).clamp(0.0,scrollController.position.maxScrollExtent,);
+                                scrollController.animateTo(newOffset,duration: const Duration(milliseconds: 250),curve: Curves.easeInOut,);
+                              },
+                              child: Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: Colors.black.withOpacity(0.4),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(
+                                  Icons.arrow_forward_ios,
+                                  color: Colors.white,
+                                  size: 16,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+            
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   Widget _buildHeaderProfile() {
     return Container(
       height: 160,
@@ -2202,7 +2488,13 @@ class _AttandancePageState extends State<AttandancePage> {
                     color: Colors.transparent,
                     child: InkWell(
                       borderRadius: BorderRadius.circular(100),
-                      onTap: _isCameraOpening ? null : () { _handleMoveCamera(title, flagParam); },
+                      onTap: _isCameraOpening ? null : () { 
+                        if (PermissionsHelper.canReadAttendance == 1) {
+                          showSnackbar(context, 'Anda tidak punya akses', isError: true);
+                          return;
+                        }
+                        _handleMoveCamera(title, flagParam); 
+                        },
                       child: Container(
                         height: 90, width: 90,
                         alignment: Alignment.center,
@@ -2772,4 +3064,32 @@ class _ActivityCardState extends State<_ActivityCard> {
       ),
     );
   }
+}
+
+class _ButtonLogDelegate extends SliverPersistentHeaderDelegate {
+  final Widget child;
+  final bool isPinned;
+  static const double _height = 76.0;
+
+  _ButtonLogDelegate(this.child, {this.isPinned = false});
+
+  @override
+  Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 1),
+      color:  Colors.transparent,
+      alignment: Alignment.center,
+      child: child,
+    );
+  }
+
+  @override
+  double get maxExtent => _height;
+
+  @override
+  double get minExtent => _height;
+
+  @override
+  bool shouldRebuild(_ButtonLogDelegate oldDelegate) =>
+      oldDelegate.isPinned != isPinned || oldDelegate.child != child;
 }
