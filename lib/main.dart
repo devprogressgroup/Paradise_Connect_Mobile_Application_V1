@@ -41,8 +41,10 @@ import 'package:progress_group/features/auth/domain/usecase/update_profile_useca
 import 'package:progress_group/features/auth/domain/usecase/login_usecase.dart';
 import 'package:progress_group/features/auth/domain/usecase/get_profile_usecase.dart';
 import 'package:progress_group/features/auth/domain/usecase/logout_usecase.dart';
+import 'package:progress_group/features/auth/domain/usecase/get_permissions_usecase.dart';
 import 'package:progress_group/features/auth/domain/usecase/reset_password_usecase.dart';
 import 'package:progress_group/features/auth/presentation/state/auth/auth_bloc.dart';
+import 'package:progress_group/features/auth/presentation/state/auth/auth_event.dart';
 import 'package:progress_group/features/auth/presentation/state/auth/auth_state.dart';
 import 'package:progress_group/features/auth/presentation/state/profile/profile_bloc.dart';
 import 'package:progress_group/features/auth/presentation/state/profile/profile_event.dart';
@@ -256,6 +258,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     final resetPasswordUsecase = ResetPasswordUsecase(repository);
     final logoutUseCase = LogoutUseCase(repository);
     final getProfileUseCase = GetProfileUseCase(repository);
+    final getPermissionsUseCase = GetPermissionsUseCase(repository);
 
     // Inbox & Messages
     final inboxRemoteDataSource = InboxContactRemoteDataSourceImpl(dioClient.dio);
@@ -339,7 +342,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
         return MultiBlocProvider(
           key: _blocKey,
           providers: [
-            BlocProvider(create: (_) => AuthBloc(loginUseCase: loginUseCase, forgotPasswordUseCase: forgotPasswordUseCase, getRememberMeUseCase: getRememberMeUseCase, clearRememberMeUseCase: clearRememberMeUseCase, getBiometricEnabledUseCase: getBiometricEnabledUseCase, saveBiometricEnabledUseCase: saveBiometricEnabledUseCase, saveCredentialsUseCase: saveCredentialsUseCase, updateProfileUseCase: updateProfileUseCase, resetPasswordUsecase: resetPasswordUsecase, logoutUseCase: logoutUseCase)),
+            BlocProvider(create: (_) => AuthBloc(loginUseCase: loginUseCase, forgotPasswordUseCase: forgotPasswordUseCase, getRememberMeUseCase: getRememberMeUseCase, clearRememberMeUseCase: clearRememberMeUseCase, getBiometricEnabledUseCase: getBiometricEnabledUseCase, saveBiometricEnabledUseCase: saveBiometricEnabledUseCase, saveCredentialsUseCase: saveCredentialsUseCase, updateProfileUseCase: updateProfileUseCase, resetPasswordUsecase: resetPasswordUsecase, logoutUseCase: logoutUseCase, getPermissionsUseCase: getPermissionsUseCase)),
             BlocProvider(create: (_) => InboxContactBloc(getInboxContactsUsecase)),
             BlocProvider(create: (_) => WhatsappDeviceBloc(getWhatsappDevicesUsecase)),
             BlocProvider(create: (_) => WhatsappQrBloc(getQrSessionUsecase)),
@@ -380,6 +383,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
             listener: (context, state) {
               if (state is LoginSuccess) {
                 context.read<ProfileBloc>().add(GetProfileEvent());
+                context.read<AuthBloc>().add(FetchPermissionsEvent());
                 AppRouter.authNotifier.value = true;
                 // Kirim FCM token setelah login berhasil (auth token sudah ada)
                 PushNotificationService.setDio(dioClient.dio);

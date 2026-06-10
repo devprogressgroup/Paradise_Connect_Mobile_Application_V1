@@ -2,6 +2,7 @@ import '../../domain/entities/reset_password.dart';
 import '../../domain/entities/user_entity.dart';
 import '../../domain/entities/user_profile.dart';
 import '../models/forgot_password_data_model.dart';
+import '../models/permissions_model.dart';
 
 abstract class AuthRepository {
   Future<(UserEntity, String)> login(String username, String password, {bool rememberMe = false});
@@ -15,4 +16,5 @@ abstract class AuthRepository {
   Future<String> updateProfile({String? email, String? phoneNumber, String? password, String? passwordConfirmation, String? photoPath, List<int>? photoBytes, String? photoFilename});
   Future<void> logout();
   Future<UserProfileEntity> getProfile();
+  Future<PermissionsModel> fetchPermissions();
 }

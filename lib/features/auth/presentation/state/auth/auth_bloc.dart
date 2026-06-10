@@ -1,11 +1,13 @@
 
 
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:progress_group/core/utils/helpers/error_message.dart';
 import 'package:progress_group/features/auth/domain/usecase/clear_remember_me_usecase.dart';
 import 'package:progress_group/features/auth/domain/usecase/forgot_password_usecase.dart';
 import 'package:progress_group/features/auth/domain/usecase/get_biometric_enabled_usecase.dart';
+import 'package:progress_group/features/auth/domain/usecase/get_permissions_usecase.dart';
 import 'package:progress_group/features/auth/domain/usecase/get_remember_me_usecase.dart';
 import 'package:progress_group/features/auth/domain/usecase/login_usecase.dart';
 import 'package:progress_group/features/auth/domain/usecase/logout_usecase.dart';
@@ -28,6 +30,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   final SaveCredentialsUseCase saveCredentialsUseCase;
   final UpdateProfileUseCase updateProfileUseCase;
   final LogoutUseCase logoutUseCase;
+  final GetPermissionsUseCase getPermissionsUseCase;
 
   AuthBloc({
     required this.loginUseCase,
@@ -40,6 +43,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     required this.saveCredentialsUseCase,
     required this.updateProfileUseCase,
     required this.logoutUseCase,
+    required this.getPermissionsUseCase,
   }) : super(AuthInitial()) {
     on<LoginEvent>(_onLogin);
     on<ForgotPasswordEvent>(_onForgotPassword);
@@ -51,6 +55,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     on<SaveCredentialsForBiometricEvent>(_onSaveCredentialsForBiometric);
     on<UpdateProfileEvent>(_onUpdateProfile);
     on<LogoutEvent>(_onLogout);
+    on<FetchPermissionsEvent>(_onFetchPermissions);
   }
 
   Future<void> _onLogin(LoginEvent event, Emitter<AuthState> emit,) async {
@@ -161,8 +166,31 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       await logoutUseCase();
       emit(AuthLoggedOut());
     } catch (e) {
-      // Tetap logout meski ada error
       emit(AuthLoggedOut());
+    }
+  }
+
+  Future<void> _onFetchPermissions(FetchPermissionsEvent event, Emitter<AuthState> emit) async {
+    try {
+      final data = await getPermissionsUseCase();
+      debugPrint('=== PERMISSIONS ===');
+      debugPrint('user_id: ${data.userId} | full_name: ${data.fullName} | is_superadmin: ${data.isSuperadmin}');
+      for (final software in data.permissions) {
+        debugPrint('  [software] ${software.softwareName} (id: ${software.softwareId})');
+        for (final module in software.modules) {
+          debugPrint('    [module] ${module.moduleName} (id: ${module.moduleId})');
+          for (final form in module.forms) {
+            debugPrint('      [form] ${form.formName} (id: ${form.formId})');
+            for (final feature in form.features) {
+              debugPrint('        [feature] ${feature.featureName} | active: ${feature.active}');
+            }
+          }
+        }
+      }
+      debugPrint('=== END PERMISSIONS ===');
+      emit(PermissionsLoaded(data));
+    } catch (e) {
+      debugPrint('FetchPermissionsError: $e');
     }
   }
 }

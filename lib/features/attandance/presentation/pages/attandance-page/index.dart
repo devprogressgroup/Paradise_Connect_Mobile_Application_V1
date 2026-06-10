@@ -28,6 +28,9 @@ import 'package:progress_group/features/attandance/presentation/state/attendance
 import 'package:progress_group/features/attandance/presentation/state/attendance_pdf/attendance_pdf_cubit.dart';
 import 'package:progress_group/features/attandance/presentation/state/attendance_pdf/attendance_pdf_state.dart';
 import 'package:progress_group/features/auth/domain/entities/user_profile.dart';
+import 'package:progress_group/features/auth/data/models/permissions_model.dart';
+import 'package:progress_group/features/auth/presentation/state/auth/auth_bloc.dart';
+import 'package:progress_group/features/auth/presentation/state/auth/auth_state.dart';
 import 'package:progress_group/features/auth/presentation/state/profile/profile_bloc.dart';
 import 'package:progress_group/features/auth/presentation/state/profile/profile_state.dart';
 import 'package:progress_group/features/contact/data/arguments/contact_dropdown_args.dart';
@@ -2331,6 +2334,31 @@ class _AttandancePageState extends State<AttandancePage> {
   }
 
 
+  bool _hasAttendancePermission(int flagParam) {
+    final authState = context.read<AuthBloc>().state;
+    if (authState is! PermissionsLoaded) return true;
+    final permissions = authState.data as PermissionsModel;
+
+    String? featureName;
+    if (flagParam == 0) featureName = 'ClockInOffice';
+    else if (flagParam == 1) featureName = 'ClockOutOffice';
+    else if (flagParam == 6) featureName = 'ClockInPameran';
+    if (featureName == null) return true;
+
+    for (final software in permissions.permissions) {
+      for (final module in software.modules) {
+        for (final form in module.forms) {
+          if (form.formName == 'Attendance') {
+            for (final feature in form.features) {
+              if (feature.featureName == featureName) return feature.active;
+            }
+          }
+        }
+      }
+    }
+    return true;
+  }
+
   Widget _buildCheckInActivity(AttendanceEntity? today) {
     return Column(
       children: [
@@ -2355,6 +2383,7 @@ class _AttandancePageState extends State<AttandancePage> {
     String? approveName,
     String? rejectName,
   }) {
+    final bool hasPermission = _hasAttendancePermission(flagParam);
     // Build status badge based on new logic
     Widget? statusBadge;
     if (needsApproval) {
@@ -2457,7 +2486,18 @@ class _AttandancePageState extends State<AttandancePage> {
                     Positioned(top: 8, left: 8, child: statusBadge),
                    if (isReject == 1) ...[
                        Positioned(top: 8, right: 8, child: GestureDetector(
-                          onTap: _isCameraOpening ? null : () => _handleMoveCamera(title, flagParam),
+                          onTap: () {
+                            if (_isCameraOpening) return;
+                            if (!hasPermission) {
+                              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                                content: Text('Anda tidak punya akses untuk fitur ini'),
+                                backgroundColor: Colors.red,
+                                duration: Duration(seconds: 2),
+                              ));
+                              return;
+                            }
+                            _handleMoveCamera(title, flagParam);
+                          },
                          child: Container(
                           padding: EdgeInsets.all(4),
                           decoration: BoxDecoration(
@@ -2484,7 +2524,18 @@ class _AttandancePageState extends State<AttandancePage> {
                     color: Colors.transparent,
                     child: InkWell(
                       borderRadius: BorderRadius.circular(100),
-                      onTap: _isCameraOpening ? null : () { _handleMoveCamera(title, flagParam); },
+                      onTap: () {
+                    if (_isCameraOpening) return;
+                    if (!hasPermission) {
+                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                        content: Text('Anda tidak punya akses untuk fitur ini'),
+                        backgroundColor: Colors.red,
+                        duration: Duration(seconds: 2),
+                      ));
+                      return;
+                    }
+                    _handleMoveCamera(title, flagParam);
+                  },
                       child: Container(
                         height: 90, width: 90,
                         alignment: Alignment.center,
@@ -2496,7 +2547,7 @@ class _AttandancePageState extends State<AttandancePage> {
                           child: Container(
                             height: 70, width: 70,
                             alignment: Alignment.center,
-                            decoration: BoxDecoration(shape: BoxShape.circle, color: Color(_isCameraOpening ? grey6Color : primaryColor)),
+                            decoration: BoxDecoration(shape: BoxShape.circle, color: Color((_isCameraOpening || !hasPermission) ? grey6Color : primaryColor)),
                             child: _isCameraOpening
                                 ? const SizedBox(width: 28, height: 28, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5))
                                 : Text(title, textAlign: TextAlign.center, style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Color(whiteColor))),

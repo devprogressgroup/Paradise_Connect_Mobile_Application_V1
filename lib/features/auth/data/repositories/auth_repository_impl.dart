@@ -7,6 +7,7 @@ import '../../domain/entities/user_entity.dart';
 import '../datasources/auth_remote_datasource.dart';
 import '../models/forgot_password_data_model.dart';
 import '../models/login_data_model.dart';
+import '../models/permissions_model.dart';
 import '../../domain/entities/user_profile.dart';
 import '../models/user_profile_model.dart';
 import 'auth_repository.dart';
@@ -138,6 +139,19 @@ class AuthRepositoryImpl implements AuthRepository {
   @override
   Future<bool> getBiometricEnabled() {
     return localDataSource.getBiometricEnabled();
+  }
+
+  @override
+  Future<PermissionsModel> fetchPermissions() async {
+    final result = await remoteDataSource.getPermissions();
+    final response = BaseResponse<PermissionsModel>.fromJson(
+      result,
+      (data) => PermissionsModel.fromJson(data),
+    );
+    if (!response.status) {
+      throw Exception(response.message);
+    }
+    return response.data!;
   }
 
   @override

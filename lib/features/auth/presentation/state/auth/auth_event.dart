@@ -52,3 +52,5 @@ class ResetPasswordEvent extends AuthEvent {
   final ResetPasswordEntity entity;
   ResetPasswordEvent(this.entity);
 }
+
+class FetchPermissionsEvent extends AuthEvent {}

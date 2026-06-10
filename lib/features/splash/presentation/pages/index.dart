@@ -5,6 +5,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:progress_group/app/router.dart';
 import 'package:progress_group/core/constants/assets.dart';
+import 'package:progress_group/features/auth/presentation/state/auth/auth_bloc.dart';
+import 'package:progress_group/features/auth/presentation/state/auth/auth_event.dart';
 import 'package:progress_group/features/auth/presentation/state/profile/profile_bloc.dart';
 import 'package:progress_group/features/auth/presentation/state/profile/profile_event.dart';
 import 'package:progress_group/features/auth/presentation/state/profile/profile_state.dart';
@@ -56,6 +58,7 @@ class _SplashPageState extends State<SplashPage> {
     return BlocListener<ProfileBloc, ProfileState>(
       listener: (context, state) async {
         if (state is ProfileLoaded) {
+          context.read<AuthBloc>().add(FetchPermissionsEvent());
           AppRouter.authNotifier.value = true;
           context.go('/');
         } else if (state is ProfileFailure) {

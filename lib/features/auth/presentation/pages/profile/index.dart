@@ -482,6 +482,24 @@ class _ProfilePageState extends State<ProfilePage> {
                       ],
                     ),
                     const SizedBox(height: 12),
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        onPressed: () {
+                          context.read<AuthBloc>().add(FetchPermissionsEvent());
+                          showSnackbar(context, 'Permissions dicetak di debug console', isError: false);
+                        },
+                        icon: const Icon(Icons.terminal, size: 16),
+                        label: const Text('Print Permissions'),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: Color(primaryColor),
+                          side: BorderSide(color: Color(primaryColor)),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
                     // SizedBox(
                     //   width: double.infinity,
                     //   child: OutlinedButton.icon(

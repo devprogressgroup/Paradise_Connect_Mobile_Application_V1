@@ -43,3 +43,8 @@ class RememberMeLoaded extends AuthState {
 class RememberMeEmpty extends AuthState {}
 
 class AuthLoggedOut extends AuthState {}
+
+class PermissionsLoaded extends AuthState {
+  final dynamic data;
+  PermissionsLoaded(this.data);
+}
