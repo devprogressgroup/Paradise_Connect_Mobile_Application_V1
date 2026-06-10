@@ -1147,27 +1147,98 @@ Widget buildApprovalShimmer() {
 }
 
 // ─── Form / Detail Loading ────────────────────────────────────────────────────
-Widget buildFormShimmer() {
-  return _shimmerWrap(
-    child: Padding(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: List.generate(
-          8,
-          (_) => Padding(
-            padding: const EdgeInsets.only(bottom: 16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+Widget buildFormShimmer({bool showHeader = true}) {
+  Widget _fieldRow({double labelWidth = 100}) => Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _ShimmerBox(width: labelWidth, height: 10),
+            const SizedBox(height: 6),
+            _ShimmerBox(width: double.infinity, height: 44),
+          ],
+        ),
+      );
+
+  Widget _groupHeader(double labelWidth) => Container(
+        height: 50,
+        color: Colors.white,
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            _ShimmerBox(width: labelWidth, height: 14),
+            const _ShimmerBox(width: 28, height: 28, borderRadius: 6),
+          ],
+        ),
+      );
+
+  Widget _group({required double labelWidth, required int fieldCount, List<double>? labelWidths}) =>
+      Column(
+        children: [
+          _groupHeader(labelWidth),
+          ...List.generate(
+            fieldCount,
+            (i) => _fieldRow(labelWidth: labelWidths != null && i < labelWidths.length ? labelWidths[i] : 100),
+          ),
+          const SizedBox(height: 10),
+        ],
+      );
+
+  return SafeArea(
+    child: Column(
+      children: [
+        if (showHeader)
+          // Header bar
+          Container(
+            height: 64,
+            color: Colors.white,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                _ShimmerBox(width: 100, height: 10),
-                const SizedBox(height: 6),
-                _ShimmerBox(width: double.infinity, height: 44, borderRadius: 8),
+                Row(
+                  children: [
+                    const _ShimmerBox(width: 27, height: 27, borderRadius: 14),
+                    const SizedBox(width: 10),
+                    const _ShimmerBox(width: 130, height: 18),
+                  ],
+                ),
+                const _ShimmerBox(width: 100, height: 36, borderRadius: 14),
               ],
             ),
           ),
+        Expanded(
+          child: _shimmerWrap(
+            child: SingleChildScrollView(
+              physics: const NeverScrollableScrollPhysics(),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Contact Information group
+                  _group(
+                    labelWidth: 160,
+                    fieldCount: 5,
+                    labelWidths: [90, 80, 110, 80, 120],
+                  ),
+                  // Sales Information group
+                  _group(
+                    labelWidth: 140,
+                    fieldCount: 4,
+                    labelWidths: [60, 120, 110, 80],
+                  ),
+                  // Extra group (dynamic properties / status)
+                  _group(
+                    labelWidth: 120,
+                    fieldCount: 3,
+                    labelWidths: [100, 80, 110],
+                  ),
+                ],
+              ),
+            ),
+          ),
         ),
-      ),
+      ],
     ),
   );
 }

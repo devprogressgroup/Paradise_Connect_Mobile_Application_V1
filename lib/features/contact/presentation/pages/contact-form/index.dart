@@ -183,6 +183,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
   final ScrollController _scrollController = ScrollController();
   bool _hideWhatsappField = false;
   bool _formInitialized = false;
+  bool _needsFullDetailRefill = false;
   double _lastOffset = 0;
   final Map<String, GlobalKey> _fieldKeys = {};
 
@@ -338,6 +339,13 @@ class _ContactFormPageState extends State<ContactFormPage> {
         await _fillForm(currentDetail);
       } else if (widget.args.dataContact != null) {
         await _fillForm(widget.args.dataContact!);
+        // Data from list item may be incomplete — fetch full detail to refill
+        if (contactId != null) {
+          _needsFullDetailRefill = true;
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) context.read<ContactBloc>().add(FetchContactDetailEvent(contactId));
+          });
+        }
       }
       _formInitialized = true;
       if (widget.args.focusField != null) {
@@ -1256,7 +1264,8 @@ class _ContactFormPageState extends State<ContactFormPage> {
           });
         } else if (state.status == ContactStatus.detailLoaded &&
             state.contactDetail != null &&
-            !_formInitialized) {
+            (!_formInitialized || _needsFullDetailRefill)) {
+          _needsFullDetailRefill = false;
           _fillForm(state.contactDetail!);
         } else if (state.status == ContactStatus.error && widget.args.page != 2) {
           setState(() => _isSaving = false);
@@ -1348,20 +1357,21 @@ class _ContactFormPageState extends State<ContactFormPage> {
                 final detailLoading = contactState.status == ContactStatus.loadingDetail ||
                     contactState.status == ContactStatus.initial;
 
-                // page 2 needs detailLoading (fetches fresh); page 1 always has data from args
-                final showDetailLoading = widget.args.page == 2 && detailLoading;
+                // page 2 fetches fresh; page 1 also fetches when navigating from list (not detail)
+                final showDetailLoading = (widget.args.page == 2 && detailLoading) ||
+                    (widget.args.page == 1 && _needsFullDetailRefill && detailLoading);
 
                 if ((widget.args.page == 1 || widget.args.page == 2) &&
                     (showDetailLoading || statusLoading || propertiesLoading)) {
                   return Scaffold(
-                    body: buildFormShimmer(),
+                    body: buildFormShimmer(showHeader: widget.args.page != 2),
                   );
                 }
 
                 return Scaffold(
                   body: (showDetailLoading || statusLoading || propertiesLoading)
                       ? buildFormShimmer()
-                      : SafeArea(child: widget.args.page == 0?_createContact(profileState): _editContact(profileState)),
+                      : SafeArea(child: widget.args.page == 0 ? _createContact(profileState) : _editContact(profileState)),
                 );
               },
             );
