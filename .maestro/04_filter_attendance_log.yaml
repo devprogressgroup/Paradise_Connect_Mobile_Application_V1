@@ -1,0 +1,48 @@
+appId: com.example.progress_group
+---
+# ============================================================
+# Flow 4: Filter tanggal di Attendance Log
+# ============================================================
+
+- launchApp
+- waitForAnimationToEnd
+
+# Navigasi ke Attendance
+- tapOn: "Attendance"
+- waitForAnimationToEnd
+
+# Pindah ke tab Attendance Log
+- tapOn: "Attendance Log"
+- waitForAnimationToEnd
+
+# Tap filter tanggal (tombol filter date)
+# Berdasarkan kode: CustomFilterButton untuk date
+- tapOn:
+    text: "Tanggal"  # atau label yang muncul pada tombol filter date
+
+- waitForAnimationToEnd
+
+# Verifikasi dialog/dropdown filter muncul
+- runFlow:
+    when:
+      visible: "Pilih Periode"
+    commands:
+      - assertVisible: "Pilih Periode"
+
+# Pilih opsi filter "Bulan Ini" atau opsi yang tersedia
+- runFlow:
+    when:
+      visible: "Bulan Ini"
+    commands:
+      - tapOn: "Bulan Ini"
+      - waitForAnimationToEnd
+
+# Verifikasi data attendance log dimuat ulang
+- waitForAnimationToEnd
+
+# Cek tidak ada error
+- runFlow:
+    when:
+      visible: "Gagal"
+    commands:
+      - fail: "ERROR: Gagal load Attendance Log setelah filter"

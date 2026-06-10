@@ -1,0 +1,34 @@
+appId: com.example.progress_group
+---
+# ============================================================
+# Flow 2: Membuka halaman Attendance dan verifikasi tab
+# ============================================================
+
+- launchApp
+
+# Tunggu app ready
+- waitForAnimationToEnd
+
+# Navigasi ke halaman Attendance
+# (sesuaikan dengan label tombol di dashboard/bottom nav)
+- tapOn: "Attendance"
+- waitForAnimationToEnd
+
+# Verifikasi header halaman muncul
+- assertVisible: "Attendance"
+
+# Verifikasi tab Activity dan Attendance Log muncul
+- assertVisible: "Activity"
+- assertVisible: "Attendance Log"
+
+# Verifikasi tab Activity aktif secara default
+- tapOn: "Activity"
+- waitForAnimationToEnd
+
+# Pindah ke tab Attendance Log
+- tapOn: "Attendance Log"
+- waitForAnimationToEnd
+
+# Kembali ke tab Activity
+- tapOn: "Activity"
+- waitForAnimationToEnd

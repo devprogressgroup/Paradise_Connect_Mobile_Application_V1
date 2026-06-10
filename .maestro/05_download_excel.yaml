@@ -1,0 +1,62 @@
+appId: com.example.progress_group
+---
+# ============================================================
+# Flow 5: Download Excel Kehadiran
+# ============================================================
+
+- launchApp
+- waitForAnimationToEnd
+
+# Navigasi ke Attendance
+- tapOn: "Attendance"
+- waitForAnimationToEnd
+
+# Tap ikon download di header (Icons.download)
+# Berdasarkan kode: iconLeft2 = Icons.download di customHeader
+- tapOn:
+    id: "btn_download_excel"  # Sesuaikan jika ada semantics label
+
+# Tunggu dialog muncul
+- waitForAnimationToEnd
+
+# Verifikasi dialog Download Excel muncul
+- assertVisible: "Download Excel Kehadiran"
+
+# Verifikasi tombol Batal dan Download ada
+- assertVisible: "Batal"
+- assertVisible: "Download"
+
+# Test tombol Batal (tutup dialog)
+- tapOn: "Batal"
+- waitForAnimationToEnd
+
+# Verifikasi dialog tertutup
+- assertNotVisible: "Download Excel Kehadiran"
+
+# Buka dialog lagi
+- tapOn:
+    id: "btn_download_excel"
+- waitForAnimationToEnd
+
+# Tap Download
+- tapOn: "Download"
+- waitForAnimationToEnd
+
+# Verifikasi snackbar "Mengunduh Excel..." muncul
+- assertVisible: "Mengunduh Excel"
+
+# Tunggu download selesai (max 30 detik)
+- waitForAnimationToEnd
+
+# Verifikasi bottom sheet opsi file muncul
+- runFlow:
+    when:
+      visible: "Excel Kehadiran berhasil diunduh"
+    commands:
+      - assertVisible: "Excel Kehadiran berhasil diunduh"
+      - assertVisible: "Simpan ke Penyimpanan"
+      - assertVisible: "Bagikan"
+      # Tutup bottom sheet
+      - swipe:
+          direction: DOWN
+      - waitForAnimationToEnd

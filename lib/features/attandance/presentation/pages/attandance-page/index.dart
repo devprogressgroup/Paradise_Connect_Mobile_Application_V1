@@ -499,67 +499,113 @@ class _AttandancePageState extends State<AttandancePage> {
     ));
   }
 
-  void _showImagePreview(String url) {
-    final screen = MediaQuery.of(context).size;
-    final imgW = screen.width - 20;
-    final imgH = screen.height - 120;
+  void _showImagePreview(
+    BuildContext context,
+    List<String> imageUrls,
+    int initialIndex,
+  ) {
+    final screenSize = MediaQuery.of(context).size;
 
     showDialog(
       context: context,
       barrierColor: Colors.black87,
-      builder: (ctx) => Dialog(
-        backgroundColor: Colors.transparent,
-        insetPadding: const EdgeInsets.all(10),
-        child: Stack(
-          alignment: Alignment.center,
-          children: [
-            GestureDetector(
-              onTap: () => Navigator.pop(ctx),
-              child: const SizedBox.expand(),
-            ),
-            Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Align(
-                  alignment: Alignment.topRight,
-                  child: IconButton(
-                    icon: const Icon(Icons.close, color: Colors.white, size: 30),
-                    onPressed: () => Navigator.pop(ctx),
-                  ),
-                ),
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(16),
-                  child: InteractiveViewer(
-                    panEnabled: true,
-                    minScale: 0.5,
-                    maxScale: 4,
-                    child: DriveImage(
-                      url: url,
-                      width: imgW,
-                      height: imgH,
-                      fit: BoxFit.contain,
-                      errorWidget: Container(
-                        width: imgW,
-                        height: 300,
-                        color: Colors.white,
-                        alignment: Alignment.center,
-                        child: const Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(Icons.broken_image, size: 60, color: Colors.grey),
-                            SizedBox(height: 12),
-                            Text('Gambar tidak dapat dimuat', style: TextStyle(color: Colors.grey)),
-                          ],
-                        ),
+      builder: (dialogContext) {
+        int currentIndex = initialIndex;
+
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return Dialog(
+              backgroundColor: Colors.transparent,
+              insetPadding: const EdgeInsets.all(10),
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  ConstrainedBox(
+                    constraints: BoxConstraints(
+                      maxWidth: screenSize.width - 20,
+                      maxHeight: screenSize.height - 80,
+                    ),
+                    child: InteractiveViewer(
+                      child: DriveImage(
+                        url: imageUrls[currentIndex],
+                        width: screenSize.width - 20,
+                        height: screenSize.height - 80,
+                        fit: BoxFit.contain,
                       ),
                     ),
                   ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
+
+                  /// Tombol kiri
+                  if (currentIndex > 0)
+                    Positioned(
+                      left: 10,
+                      child: IconButton(
+                        iconSize: 40,
+                        color: Colors.white,
+                        icon: const Icon(Icons.arrow_back_ios),
+                        onPressed: () {
+                          setState(() {
+                            currentIndex--;
+                          });
+                        },
+                      ),
+                    ),
+
+                  /// Tombol kanan
+                  if (currentIndex < imageUrls.length - 1)
+                    Positioned(
+                      right: 10,
+                      child: IconButton(
+                        iconSize: 40,
+                        color: Colors.white,
+                        icon: const Icon(Icons.arrow_forward_ios),
+                        onPressed: () {
+                          setState(() {
+                            currentIndex++;
+                          });
+                        },
+                      ),
+                    ),
+
+                  /// Close
+                  Positioned(
+                    top: 0,
+                    right: 0,
+                    child: IconButton(
+                      icon: const Icon(
+                        Icons.close,
+                        color: Colors.white,
+                        size: 30,
+                      ),
+                      onPressed: () => Navigator.pop(dialogContext),
+                    ),
+                  ),
+
+                  /// Indicator
+                  if (imageUrls.length > 1)
+                    Positioned(
+                      bottom: 10,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.black54,
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text(
+                          '${currentIndex + 1} / ${imageUrls.length}',
+                          style: const TextStyle(color: Colors.white),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            );
+          },
+        );
+      },
     );
   }
 
@@ -1726,14 +1772,14 @@ class _AttandancePageState extends State<AttandancePage> {
                               width: double.infinity,
                               height: 200,
                               fit: BoxFit.cover,
-                              onTap: () => _showImagePreview(currentUrl),
+                              onTap: () => _showImagePreview(context, allImages, selectedIndex),
                             ),
                           ),
                           Positioned(
                             top: 8,
                             right: 8,
                             child: GestureDetector(
-                              onTap: () => _showImagePreview(currentUrl),
+                              onTap: () => _showImagePreview(context, allImages, selectedIndex),
                               child: Container(
                                 padding: const EdgeInsets.all(4),
                                 decoration: BoxDecoration(
@@ -2060,7 +2106,7 @@ class _AttandancePageState extends State<AttandancePage> {
                                 width: 200,
                                 height: 200,
                                 fit: BoxFit.cover,
-                                onTap: () => _showImagePreview(images[index]),
+                                onTap: () => _showImagePreview(context, images, index),
                               ),
                             ),
                           );
@@ -2545,7 +2591,7 @@ class _AttandancePageState extends State<AttandancePage> {
                                 width: double.infinity,
                                 height: 180,
                                 fit: BoxFit.cover,
-                                onTap: () => _showImagePreview(displayImage),
+                                onTap: () => _showImagePreview(context, images!, flag == 0 ? 0 : images.length - 1),
                               )
                             : Container(
                                 height: 180,
@@ -2558,7 +2604,7 @@ class _AttandancePageState extends State<AttandancePage> {
                           top: 8,
                           right: 8,
                           child: GestureDetector(
-                            onTap: () => _showImagePreview(displayImage),
+                            onTap: () => _showImagePreview(context, images!, flag == 0 ? 0 : images.length - 1),
                             child: Container(
                               padding: const EdgeInsets.all(4),
                               decoration: BoxDecoration(

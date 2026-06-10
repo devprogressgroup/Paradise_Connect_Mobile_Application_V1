@@ -375,7 +375,7 @@ class _MainLayoutState extends State<MainLayout> {
               _buildDrawerItem(context, icSidebarInbox, 'Inbox', path: '/inbox', index: 2),
               _buildDrawerItem(context, icSidebarSitePlan, 'Site Plan', path: '/site-plan', index: 4),
               _buildDrawerItem(context, icSidebarSalesKit, 'Sales Kit', path: '/sales-kit', index: 5),
-              _buildDrawerItem(context, '', 'Landing Page', path: '/landing-page', index: 8, iconData: Icons.language_outlined),
+              _buildDrawerItem(context, '', 'Info & Panduan', path: '/landing-page', index: 8, iconData: Icons.language_outlined),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: Divider(),
