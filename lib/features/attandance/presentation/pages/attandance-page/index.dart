@@ -5,7 +5,6 @@ import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:path_provider/path_provider.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:progress_group/core/utils/widget/custom_snackbar.dart';
 import 'package:progress_group/core/utils/widget/shimmer_loading.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:flutter/material.dart';
@@ -15,6 +14,7 @@ import 'package:intl/intl.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:progress_group/core/constants/colors.dart';
 import 'package:progress_group/core/utils/helpers/permissions_helper.dart';
+import 'package:progress_group/core/utils/widget/custom_snackbar.dart';
 import 'package:progress_group/core/utils/widget/drive_image/drive_image.dart';
 import 'package:progress_group/core/utils/helpers/initial_name_helper.dart';
 import 'package:progress_group/core/utils/widget/custom_filter_button.dart';
@@ -32,6 +32,9 @@ import 'package:progress_group/features/attandance/presentation/state/attendance
 import 'package:progress_group/features/auth/domain/entities/user_profile.dart';
 import 'package:progress_group/features/auth/presentation/state/profile/profile_bloc.dart';
 import 'package:progress_group/features/auth/presentation/state/profile/profile_state.dart';
+import 'package:progress_group/features/auth/presentation/state/auth/auth_bloc.dart';
+import 'package:progress_group/features/auth/presentation/state/auth/auth_event.dart';
+import 'package:progress_group/features/auth/presentation/state/auth/auth_state.dart';
 import 'package:progress_group/features/contact/data/arguments/contact_dropdown_args.dart';
 import 'package:progress_group/features/contact/data/models/dropdown/date_filter.dart';
 import '../../../../../core/utils/helpers/date_helper.dart';
@@ -64,9 +67,14 @@ class _AttandancePageState extends State<AttandancePage> {
   bool _isProcessing = false;
   bool _isCameraOpening = false;
   bool _attendanceLogLoaded = false;
+  int? _nearestTypeLocationId;
+  bool _nearestIsInRadius = false;
+  bool _locationResolved = false;
   DateTime? _lastGeocodeTime;
   bool _hasSetInitialTab = false;
   bool _isButtonPinned = false;
+  bool _permissionsReady = false;
+  AttendanceLoaded? _pendingInitialTabState;
   // Attendance Log filter
   List<int>? _attendanceOwnerIds;
   String? _attendanceStartDate;
@@ -95,6 +103,9 @@ class _AttandancePageState extends State<AttandancePage> {
 
     Future.microtask(() {
       _initLocation();
+      context.read<OfficeLocationCubit>().load(force: true).then((_) {
+        if (_currentPosition != null) _computeNearestLocation(_currentPosition!);
+      });
 
       final profileState = context.read<ProfileBloc>().state;
       if (profileState is ProfileLoaded) {
@@ -256,11 +267,85 @@ class _AttandancePageState extends State<AttandancePage> {
     return true;
   }
 
+  void _computeNearestLocation(Position position) {
+    if (!mounted) return;
+    final officeLocations = context.read<OfficeLocationCubit>().state;
+    if (officeLocations.isEmpty) {
+      print('[_computeNearestLocation] no office locations from API → luar lokasi, canClockIn=${PermissionsHelper.canClockInLuarLokasi || PermissionsHelper.canClockInLuarLokasiRequestApprove}, canClockOut=${PermissionsHelper.canClockOutLuarLokasi || PermissionsHelper.canClockOutLuarLokasiRequestApprove}');
+      if (mounted) {
+        setState(() { _nearestTypeLocationId = null; _nearestIsInRadius = false; _locationResolved = true; });
+        _trySetInitialTab();
+      }
+      return;
+    }
+
+    double? nearestDistance;
+    int? typeId;
+    bool inRadius = false;
+
+    for (var office in officeLocations) {
+      final lat = double.tryParse(office.latitude ?? '');
+      final lng = double.tryParse(office.longitude ?? '');
+      if (lat == null || lng == null) continue;
+      final d = Geolocator.distanceBetween(lat, lng, position.latitude, position.longitude);
+      if (nearestDistance == null || d < nearestDistance) {
+        nearestDistance = d;
+        typeId = office.typeLocationId;
+        final radius = office.radius?.toDouble() ?? radiusMeter;
+        inRadius = d <= radius;
+      }
+    }
+
+    final resolvedTypeId = inRadius ? typeId : null;
+    debugPrint('[PermissionsHelper] canClockInOffice                    : ${PermissionsHelper.canClockInOffice}');
+    debugPrint('[PermissionsHelper] canClockInPameran                   : ${PermissionsHelper.canClockInPameran}');
+    debugPrint('[PermissionsHelper] canClockInLuarLokasi                : ${PermissionsHelper.canClockInLuarLokasi}');
+    debugPrint('[PermissionsHelper] canClockInLuarLokasiRequestApprove  : ${PermissionsHelper.canClockInLuarLokasiRequestApprove}');
+    debugPrint('[PermissionsHelper] canClockOutOffice                   : ${PermissionsHelper.canClockOutOffice}');
+    debugPrint('[PermissionsHelper] canClockOutPameran                  : ${PermissionsHelper.canClockOutPameran}');
+    debugPrint('[PermissionsHelper] canClockOutLuarLokasi               : ${PermissionsHelper.canClockOutLuarLokasi}');
+    debugPrint('[PermissionsHelper] canClockOutLuarLokasiRequestApprove : ${PermissionsHelper.canClockOutLuarLokasiRequestApprove}');
+    debugPrint('[_computeNearestLocation] typeLocationId=$resolvedTypeId, isInRadius=$inRadius');
+
+    if (mounted) {
+      setState(() {
+        _nearestTypeLocationId = inRadius ? typeId : null;
+        _nearestIsInRadius = inRadius;
+        _locationResolved = true;
+      });
+      _trySetInitialTab();
+    }
+  }
+
+  bool _isClockButtonDisabled(int flagParam) {
+    if (flagParam != 0 && flagParam != 1) return false;
+    if (!_locationResolved) return false;
+    if (!_nearestIsInRadius) {
+      return flagParam == 0
+          ? !(PermissionsHelper.canClockInLuarLokasi || PermissionsHelper.canClockInLuarLokasiRequestApprove)
+          : !(PermissionsHelper.canClockOutLuarLokasi || PermissionsHelper.canClockOutLuarLokasiRequestApprove);
+    }
+    if (_nearestTypeLocationId == 2) {
+      return flagParam == 0
+          ? !PermissionsHelper.canClockInPameran
+          : !PermissionsHelper.canClockOutPameran;
+    }
+    return flagParam == 0
+        ? !PermissionsHelper.canClockInOffice
+        : !PermissionsHelper.canClockOutOffice;
+  }
+
   Future<void> _initLocation() async {
     // fromUserGesture: false — saat init, di web kita hanya cek kalau sudah granted
     // Chrome tidak akan munculkan dialog izin kecuali dipicu user gesture
     final hasPermission = await _handleLocationPermission(fromUserGesture: false);
-    if (!hasPermission) return;
+    if (!hasPermission) {
+      if (mounted) {
+        setState(() => _locationResolved = true);
+        _trySetInitialTab();
+      }
+      return;
+    }
 
     if (kIsWeb) {
       // Web: browser geolocation API tidak mendukung distanceFilter via stream dengan baik,
@@ -274,6 +359,7 @@ class _AttandancePageState extends State<AttandancePage> {
         );
         if (!mounted) return;
         _currentPosition = position;
+        _computeNearestLocation(position);
         await _getAddressFromLatLng(position);
       } catch (e) {
         // ignore
@@ -285,6 +371,7 @@ class _AttandancePageState extends State<AttandancePage> {
         ),
       ).listen((Position position) async {
         _currentPosition = position;
+        _computeNearestLocation(position);
         if (_isProcessing) return;
         _isProcessing = true;
         try {
@@ -310,6 +397,7 @@ class _AttandancePageState extends State<AttandancePage> {
       ),
     ).listen((Position position) async {
       _currentPosition = position;
+      _computeNearestLocation(position);
 
       if (_isProcessing) return;
       _isProcessing = true;
@@ -436,9 +524,11 @@ class _AttandancePageState extends State<AttandancePage> {
       int? nearestOfficeId;
       String? nearestOfficeLat;
       String? nearestOfficeLng;
+      int? nearestOfficeTypeId;
 
       if (officeLocations.isNotEmpty) {
         for (var office in officeLocations) {
+          print('[office] id=${office.id}, name=${office.name}, typeLocationId=${office.typeLocationId}, lat=${office.latitude}, lng=${office.longitude}');
           final lat = double.tryParse(office.latitude ?? '');
           final lng = double.tryParse(office.longitude ?? '');
           if (lat != null && lng != null) {
@@ -453,6 +543,7 @@ class _AttandancePageState extends State<AttandancePage> {
               nearestOfficeId = office.id;
               nearestOfficeLat = office.latitude;
               nearestOfficeLng = office.longitude;
+              nearestOfficeTypeId = office.typeLocationId;
             }
           }
         }
@@ -461,6 +552,48 @@ class _AttandancePageState extends State<AttandancePage> {
       final effectiveDistance = nearestDistance ?? Geolocator.distanceBetween(officeLat, officeLng, position.latitude, position.longitude);
       final effectiveRadius = activeRadius ?? radiusMeter;
       final isInRadius = effectiveDistance <= effectiveRadius;
+
+      print('[_handleMoveCamera] selected location:');
+      print('  id             : $nearestOfficeId');
+      print('  name           : $nearestOfficeName');
+      print('  latitude       : $nearestOfficeLat');
+      print('  longitude      : $nearestOfficeLng');
+      print('  radius         : $activeRadius');
+      print('  typeLocationId : $nearestOfficeTypeId');
+      print('ClockIn Permision pameran ${PermissionsHelper.canClockInPameran}');
+      print('ClockIn Permision office ${PermissionsHelper.canClockInOffice}');
+      print('ClockIn Permision luar lokasi ${PermissionsHelper.canClockInLuarLokasi}');
+      print('ClockOut Permision pameran ${PermissionsHelper.canClockOutPameran}');
+      print('ClockOut Permision office ${PermissionsHelper.canClockOutOffice}');
+      print('ClockOut Permision luar lokasi ${PermissionsHelper.canClockOutLuarLokasi}');
+      print('  distance       : ${effectiveDistance.toStringAsFixed(2)} m');
+      print('  isInRadius     : $isInRadius');
+
+      // Cek permission berdasarkan tipe lokasi yang terselect
+      final bool canProceed;
+      if (!isInRadius || nearestOfficeId == null) {
+        canProceed = flagParam == 0
+            ? PermissionsHelper.canClockInLuarLokasi
+            : PermissionsHelper.canClockOutLuarLokasi;
+      } else if (nearestOfficeTypeId == 2) {
+        canProceed = flagParam == 0
+            ? PermissionsHelper.canClockInPameran
+            : PermissionsHelper.canClockOutPameran;
+      } else {
+        canProceed = flagParam == 0
+            ? PermissionsHelper.canClockInOffice
+            : PermissionsHelper.canClockOutOffice;
+      }
+
+      print('[_handleMoveCamera] canProceed: $canProceed');
+
+      if (!canProceed) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).hideCurrentSnackBar();
+          showSnackbar(context, 'Anda tidak punya akses', isError: true);
+        }
+        return;
+      }
 
       if (mounted) ScaffoldMessenger.of(context).hideCurrentSnackBar();
 
@@ -485,6 +618,7 @@ class _AttandancePageState extends State<AttandancePage> {
   }
 
   Future<void> _getLog() async {
+    context.read<AuthBloc>().add(FetchPermissionsEvent());
     if (_attendanceLogLoaded) {
       context.read<AttendanceBloc>().add(FetchAttendanceDataEvent(
         salesPersonIds: _attendanceOwnerIds,
@@ -1013,11 +1147,46 @@ class _AttandancePageState extends State<AttandancePage> {
     }
   }
 
+
+
+  void _trySetInitialTab() {
+    if (_hasSetInitialTab || !_permissionsReady || !_locationResolved || _pendingInitialTabState == null) return;
+    final today = _pendingInitialTabState!.todayData;
+    final now = DateTime.now();
+    final noClockAccess = _isClockButtonDisabled(0) && _isClockButtonDisabled(1);
+
+    int targetIndex;
+    if (noClockAccess) {
+      targetIndex = 1;
+    } else if (now.hour >= 17) {
+      targetIndex = 2;
+    } else if (today == null || today.clockIn == null) {
+      targetIndex = 0;
+    } else {
+      targetIndex = 1;
+    }
+
+    setState(() => _hasSetInitialTab = true);
+    _onTabChanged(targetIndex);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Color(grey11Color),
-      body: BlocListener<AttendancePdfCubit, AttendancePdfState>(
+      body: BlocListener<AuthBloc, AuthState>(
+        listener: (context, state) {
+          if (state is PermissionsLoaded) {
+            _permissionsReady = true;
+            _trySetInitialTab();
+            if (_currentPosition != null) _computeNearestLocation(_currentPosition!);
+            // Refresh: jika sudah di-set tab awal dan user sedang di Clock In tapi disabled → pindah ke Check In
+            if (_hasSetInitialTab && selectedIndex == 0 && _isClockButtonDisabled(0)) {
+              _onTabChanged(1);
+            }
+          }
+        },
+        child: BlocListener<AttendancePdfCubit, AttendancePdfState>(
         listener: (context, state) async {
           if (state is AttendancePdfLoading) {
             ScaffoldMessenger.of(context).showSnackBar(
@@ -1052,22 +1221,8 @@ class _AttandancePageState extends State<AttandancePage> {
         child: BlocListener<AttendanceBloc, AttendanceState>(
         listener: (context, state) {
           if (state is AttendanceLoaded && !_hasSetInitialTab) {
-            final now = DateTime.now();
-            final today = state.todayData;
-
-            int targetIndex = 0;
-            if (now.hour >= 17) {
-              targetIndex = 2; // Clock Out
-            } else if (today == null || today.clockIn == null) {
-              targetIndex = 0; // Clock In
-            } else {
-              targetIndex = 1; // Check In (Activity)
-            }
-
-            setState(() {
-              _hasSetInitialTab = true;
-            });
-            _onTabChanged(targetIndex);
+            _pendingInitialTabState = state;
+            _trySetInitialTab();
           }
         },
         child: SafeArea(
@@ -1088,9 +1243,11 @@ class _AttandancePageState extends State<AttandancePage> {
                         iconRight: Icons.arrow_back,
                         iconRightOnTap: () => context.go('/'),
                         colorIconRight: Color(whiteColor),
-                        iconLeft: isAtasan ? Icons.checklist : null,
+                        iconLeft: isAtasan && PermissionsHelper.canApproveRejectAttendance ? Icons.checklist : null,
                         colorIconLeft: Color(whiteColor),
-                        iconLeftOnTap: isAtasan ? () => context.pushNamed('approval') : null,
+                        iconLeftOnTap: isAtasan && PermissionsHelper.canApproveRejectAttendance ? () {
+                          context.pushNamed('approval');
+                        } : null,
                         showBadgeLeft: isAtasan && hasPending,
                         iconLeft2: Icons.download,
                         colorIconLeft2: Color(whiteColor),
@@ -1100,13 +1257,6 @@ class _AttandancePageState extends State<AttandancePage> {
                   );
                 },
               ),
-             Text('ReadOnly ${PermissionsHelper.rawReadAttendance}'),
-             Text('ClockInOffice ${PermissionsHelper.rawClockInOffice}'),
-             Text('ClockInPameran ${PermissionsHelper.rawClockInPameran}'),
-             Text('ClockOutOffice ${PermissionsHelper.rawClockOutOffice}'),
-             Text('ClockOutPameran ${PermissionsHelper.rawClockOutPameran}'),
-             Text('ApproveReject ${PermissionsHelper.rawApproveAttendance}'),
-             Text('RequestApproval ${PermissionsHelper.rawRequestApproval}'),
               Expanded(
                 child: Stack(
                   children: [
@@ -1163,7 +1313,7 @@ class _AttandancePageState extends State<AttandancePage> {
             ],
           ),
         ),
-    )));
+    ))));
   }
 
   Widget _buildButtonLog(){
@@ -2488,13 +2638,14 @@ class _AttandancePageState extends State<AttandancePage> {
                     color: Colors.transparent,
                     child: InkWell(
                       borderRadius: BorderRadius.circular(100),
-                      onTap: _isCameraOpening ? null : () { 
-                        if (PermissionsHelper.canReadAttendance == 1) {
+                      onTap: () {
+                        if (_isClockButtonDisabled(flagParam)) {
                           showSnackbar(context, 'Anda tidak punya akses', isError: true);
                           return;
                         }
-                        _handleMoveCamera(title, flagParam); 
-                        },
+                        if (_isCameraOpening) return;
+                        _handleMoveCamera(title, flagParam);
+                      },
                       child: Container(
                         height: 90, width: 90,
                         alignment: Alignment.center,
@@ -2506,7 +2657,7 @@ class _AttandancePageState extends State<AttandancePage> {
                           child: Container(
                             height: 70, width: 70,
                             alignment: Alignment.center,
-                            decoration: BoxDecoration(shape: BoxShape.circle, color: Color(_isCameraOpening ? grey6Color : primaryColor)),
+                            decoration: BoxDecoration(shape: BoxShape.circle, color: Color(_isCameraOpening || _isClockButtonDisabled(flagParam) ? grey6Color : primaryColor)),
                             child: _isCameraOpening
                                 ? const SizedBox(width: 28, height: 28, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5))
                                 : Text(title, textAlign: TextAlign.center, style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Color(whiteColor))),

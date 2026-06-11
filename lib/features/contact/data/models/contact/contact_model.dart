@@ -77,6 +77,7 @@ class ContactModel extends ContactEntity {
     super.firstProductId,
     super.lastProductId,
     super.productType,
+    super.nameSP,
   });
 
   factory ContactModel.fromJson(Map<String, dynamic> json) {
@@ -157,6 +158,7 @@ class ContactModel extends ContactEntity {
       firstProductId: json['first_product_id'],
       lastProductId: json['last_product_id'],
       productType: json['product_type']?.toString(),
+      nameSP: json['name_sp']?.toString(),
       createdAt: json['created_at'],
       updatedAt: json['updated_at'],
       deletedAt: json['deleted_at'],

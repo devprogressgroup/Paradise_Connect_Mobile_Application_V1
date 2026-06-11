@@ -75,6 +75,7 @@ class ContactEntity extends Equatable {
   final int? firstProductId;
   final int? lastProductId;
   final String? productType;
+  final String? nameSP;
 
   const ContactEntity({
     this.contactId,
@@ -151,6 +152,7 @@ class ContactEntity extends Equatable {
     this.firstProductId,
     this.lastProductId,
     this.productType,
+    this.nameSP,
   });
 
   ContactEntity copyWith({
@@ -227,6 +229,7 @@ class ContactEntity extends Equatable {
     int? firstProductId,
     int? lastProductId,
     String? productType,
+    String? nameSP,
   }) {
     return ContactEntity(
       contactId: contactId ?? this.contactId,
@@ -303,6 +306,7 @@ class ContactEntity extends Equatable {
       firstProductId: firstProductId ?? this.firstProductId,
       lastProductId: lastProductId ?? this.lastProductId,
       productType: productType ?? this.productType,
+      nameSP: nameSP ?? this.nameSP,
     );
   }
 
@@ -383,6 +387,7 @@ class ContactEntity extends Equatable {
     firstProductId,
     lastProductId,
     productType,
+    nameSP,
   ];
 }
 

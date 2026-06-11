@@ -17,6 +17,8 @@ import 'package:progress_group/features/home/presentation/state/report-whatsapp/
 import 'package:progress_group/features/home/presentation/state/prospect-status-summary/prospect_status_summary_bloc.dart';
 import 'package:progress_group/features/home/presentation/state/prospect-status-summary/prospect_status_summary_event.dart';
 import 'package:progress_group/features/home/presentation/state/prospect-status-summary/prospect_status_summary_state.dart';
+import 'package:progress_group/features/auth/presentation/state/auth/auth_bloc.dart';
+import 'package:progress_group/features/auth/presentation/state/auth/auth_event.dart';
 import 'package:progress_group/features/auth/presentation/state/profile/profile_bloc.dart';
 import 'package:progress_group/features/auth/presentation/state/profile/profile_event.dart';
 import 'package:progress_group/features/auth/presentation/state/profile/profile_state.dart';
@@ -122,6 +124,7 @@ class _HomePageState extends State<HomePage> {
     final now = DateTime.now();
     if (!force && _lastLoadTime != null && now.difference(_lastLoadTime!).inSeconds < 10) return;
     _lastLoadTime = now;
+    context.read<AuthBloc>().add(FetchPermissionsEvent());
 
     final todayStr = DateFormat('yyyy-MM-dd').format(now);
 

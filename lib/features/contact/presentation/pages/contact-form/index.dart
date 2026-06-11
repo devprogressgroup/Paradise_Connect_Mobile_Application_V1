@@ -85,6 +85,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
   TextEditingController lastLostDateTC = TextEditingController();
   TextEditingController lostDateTC = TextEditingController();
   TextEditingController periodePameranDateTC = TextEditingController();
+  TextEditingController nameSPTC = TextEditingController();
 
   String? selectedSalutation;
   int? selectedOwnerId;
@@ -161,6 +162,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
   FocusNode createAdFN = FocusNode();
   FocusNode lastLostDateFN = FocusNode();
   FocusNode periodePameranDateFN = FocusNode();
+  FocusNode nameSPFN = FocusNode();
 
   String? _periodePameranDateBackend;
   static const List<int> _pameranIds = [29, 30, 31, 32];
@@ -173,6 +175,22 @@ class _ContactFormPageState extends State<ContactFormPage> {
   final List<OwnerDropdownItem> itemsProjectCategory = [
     OwnerDropdownItem(name: "Residential"),
     OwnerDropdownItem(name: "Commercial"),
+  ];
+
+  final List<OwnerDropdownItem> itemsJmlDatang = [
+    OwnerDropdownItem(name: "1"),
+    OwnerDropdownItem(name: "2"),
+    OwnerDropdownItem(name: "3"),
+    OwnerDropdownItem(name: "4"),
+    OwnerDropdownItem(name: ">5"),
+  ];
+
+  final List<OwnerDropdownItem> itemsVolume = [
+    OwnerDropdownItem(name: "1"),
+    OwnerDropdownItem(name: "2"),
+    OwnerDropdownItem(name: "3"),
+    OwnerDropdownItem(name: "4"),
+    OwnerDropdownItem(name: ">5"),
   ];
 
   final List<OwnerDropdownItem> itemsLastProjectCategory = [
@@ -256,6 +274,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
       dealValue: dealValueTC.text.isNotEmpty ? dealValueTC.text : null,
       visitCount: vCountTC.text.isNotEmpty ? int.tryParse(vCountTC.text) : null,
       volumePlan: volumePlanTC.text.isNotEmpty ? volumePlanTC.text : null,
+      nameSP: nameSPTC.text.isNotEmpty ? nameSPTC.text : null,
       noKtp: noKTPTC.text.isNotEmpty ? noKTPTC.text : null,
       ktpAddress: ktpAddressTC.text.isNotEmpty ? ktpAddressTC.text : null,
       propertiesJson: propertiesJson.isNotEmpty ? propertiesJson : null,
@@ -283,7 +302,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
       firstVisitorDateTC, lastVisitorDateTC, firstApptDateTC, lastApptDateTC,
       dealValueTC, reserveDateTC, firstReserveDateTC, lossReasonNoteTC,
       fspTC, lspTC, fakadTC, lakadTC, createAdTC, lastLostDateTC, lostDateTC,
-      periodePameranDateTC,
+      periodePameranDateTC, nameSPTC,
     ]) {
       tc.addListener(_syncParams);
     }
@@ -468,6 +487,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
     }
     volumePlanTC.text = contact.volumePlan?.toString() ?? '';
     vCountTC.text = contact.visitCount?.toString() ?? '';
+    nameSPTC.text = contact.nameSP ?? '';
     
     firstVisitorDateTC.text = contact.firstVisitDate != null ? DateHelper.formatDate(DateTime.parse(contact.firstVisitDate!)) : '';
     lastVisitorDateTC.text = contact.lastVisitDate != null ? DateHelper.formatDate(DateTime.parse(contact.lastVisitDate!)) : '';
@@ -980,6 +1000,8 @@ class _ContactFormPageState extends State<ContactFormPage> {
     lastLostDateTC.dispose();
     periodePameranDateTC.dispose();
     periodePameranDateFN.dispose();
+    nameSPTC.dispose();
+    nameSPFN.dispose();
 
     selectFirstProject = null;
     selectLastProject = null;
@@ -1180,6 +1202,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
       dealValue: dealValueTC.text.isNotEmpty ? dealValueTC.text : null,
       visitCount: vCountTC.text.isNotEmpty ? int.tryParse(vCountTC.text) : null,
       volumePlan: volumePlanTC.text.isNotEmpty ? volumePlanTC.text : null,
+      nameSP: nameSPTC.text.isNotEmpty ? nameSPTC.text : null,
       noKtp: noKTPTC.text.isNotEmpty ? noKTPTC.text : null,
       ktpAddress: ktpAddressTC.text.isNotEmpty ? ktpAddressTC.text : null,
       propertiesJson: propertiesJson.isNotEmpty ? propertiesJson : null,
@@ -1706,6 +1729,54 @@ class _ContactFormPageState extends State<ContactFormPage> {
                             controller: lBlockNoTC,
                             focusNode: lBlockNoFN,
                           ),
+                          if (const [63, 64, 65, 66, 67, 68, 69].contains(selectedStatusId))
+                            _buildFieldDown(
+                              label: "Jumlah Datang",
+                              value: vCountTC.text.isEmpty ? null : (vCountTC.text == '5' ? '>5' : vCountTC.text),
+                              onTap: () async {
+                                final result = await context.pushNamed(
+                                  'detailContactDropdown',
+                                  extra: ContactDropdownArgs(
+                                    title: 'Jumlah Datang',
+                                    items: itemsJmlDatang,
+                                    selectedId: null,
+                                  ),
+                                );
+                                if (result != null) {
+                                  final selected = result as OwnerDropdownItem;
+                                  setState(() {
+                                    vCountTC.text = selected.name == '>5' ? '5' : selected.name;
+                                  });
+                                }
+                              },
+                            ),
+                          if (const [53, 54, 60, 61, 62, 76].contains(selectedStatusId))
+                            _buildFieldDown(
+                              label: "Appt Volume",
+                              value: volumePlanTC.text.isEmpty ? null : (volumePlanTC.text == '5' ? '>5' : volumePlanTC.text),
+                              onTap: () async {
+                                final result = await context.pushNamed(
+                                  'detailContactDropdown',
+                                  extra: ContactDropdownArgs(
+                                    title: 'Appt Volume',
+                                    items: itemsVolume,
+                                    selectedId: null,
+                                  ),
+                                );
+                                if (result != null) {
+                                  final selected = result as OwnerDropdownItem;
+                                  setState(() {
+                                    volumePlanTC.text = selected.name == '>5' ? '5' : selected.name;
+                                  });
+                                }
+                              },
+                            ),
+                          if (const [74, 75].contains(selectedStatusId))
+                            _buildField(
+                              label: "Name SP",
+                              controller: nameSPTC,
+                              focusNode: nameSPFN,
+                            ),
 
                            _buildFieldDown(
                             label: "Sales Channel",

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:progress_group/features/auth/presentation/state/auth/auth_bloc.dart';
+import 'package:progress_group/features/auth/presentation/state/auth/auth_event.dart';
 import 'package:progress_group/core/utils/widget/shimmer_loading.dart';
 import 'package:go_router/go_router.dart';
 import 'package:progress_group/features/inbox/data/arguments/inbox_detail_args.dart';
@@ -188,6 +190,7 @@ class _NotifPageState extends State<NotifPage> {
   }
 
   void _loadAll() {
+    context.read<AuthBloc>().add(FetchPermissionsEvent());
     context.read<NotifActivityBloc>().add(FetchActivitiesEvent(
       activityType: _selectedActivity.value,
       isRefresh: true,

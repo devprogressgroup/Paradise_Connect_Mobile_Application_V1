@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:progress_group/features/auth/presentation/state/auth/auth_bloc.dart';
+import 'package:progress_group/features/auth/presentation/state/auth/auth_event.dart';
 import 'package:progress_group/core/utils/widget/drive_image/drive_image.dart';
 import 'package:go_router/go_router.dart';
 import 'package:progress_group/core/network/api_constants.dart';
@@ -44,6 +46,7 @@ class _SalesKitPageState extends State<SalesKitPage> {
   }
 
   Future<void> _onRefresh() async {
+    context.read<AuthBloc>().add(FetchPermissionsEvent());
     if (widget.args.page == 1 && widget.args.townshipId != null) {
       context.read<SalesKitDetailBloc>().add(
         LoadSalesKitDetailEvent(widget.args.townshipId!),
@@ -109,7 +112,9 @@ class _SalesKitPageState extends State<SalesKitPage> {
         SizedBox(height: 16),
         Expanded(
           child: RefreshIndicator(
-            onRefresh: () async {},
+            onRefresh: () async {
+              context.read<AuthBloc>().add(FetchPermissionsEvent());
+            },
             child: SingleChildScrollView(
               physics: const AlwaysScrollableScrollPhysics(),
               padding: const EdgeInsets.symmetric(horizontal: 16.0),
@@ -417,6 +422,7 @@ class _SalesKitPageState extends State<SalesKitPage> {
             Expanded(
               child: RefreshIndicator(
                 onRefresh: () async {
+                  context.read<AuthBloc>().add(FetchPermissionsEvent());
                   context.read<TownshipBloc>().add(GetTownshipsEvent());
                 },
                 child: _buildTownshipContent(state),

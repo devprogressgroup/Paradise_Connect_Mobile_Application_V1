@@ -4,6 +4,8 @@ import '../../../../../core/utils/helpers/date_helper.dart';
 import '../../../../../core/utils/helpers/error_message.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:progress_group/features/auth/presentation/state/auth/auth_bloc.dart';
+import 'package:progress_group/features/auth/presentation/state/auth/auth_event.dart';
 import 'package:progress_group/core/utils/widget/drive_image/drive_image.dart';
 import 'package:progress_group/features/attandance/domain/entities/attendance_approval_entity.dart';
 import 'package:progress_group/features/attandance/presentation/state/attendance_approval/attendance_approval_cubit.dart';
@@ -25,6 +27,7 @@ class ApprovalPage extends StatefulWidget {
 class _ApprovalPageState extends State<ApprovalPage> {
   final ScrollController _scrollController = ScrollController();
   final TextEditingController _searchController = TextEditingController();
+  final noteController = TextEditingController();
   final FocusNode _searchFN = FocusNode();
   Timer? _debounce;
   String? _selectedStatus;
@@ -166,6 +169,7 @@ class _ApprovalPageState extends State<ApprovalPage> {
     _scrollController.dispose();
     _searchController.dispose();
     _searchFN.dispose();
+    noteController.dispose();
     super.dispose();
   }
 
@@ -243,7 +247,10 @@ class _ApprovalPageState extends State<ApprovalPage> {
                       return const Center(child: Text('No approval data found.'));
                     }
                     return RefreshIndicator(
-                      onRefresh: () async => context.read<AttendanceApprovalCubit>().load(),
+                      onRefresh: () async {
+                        context.read<AuthBloc>().add(FetchPermissionsEvent());
+                        context.read<AttendanceApprovalCubit>().load();
+                      },
                       child: ListView.builder(
                       controller: _scrollController,
                       physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
@@ -267,7 +274,7 @@ class _ApprovalPageState extends State<ApprovalPage> {
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: GestureDetector(
-                            onTap: () => _showAttendanceDetailDialog(context, item, button: 0),
+                            onTap: () => _showAttendanceDetailDialog(item, button: 0),
                             child: Padding(
                               padding: const EdgeInsets.all(16),
                               child: Column(
@@ -387,7 +394,7 @@ class _ApprovalPageState extends State<ApprovalPage> {
                                           children: [
                                             Expanded(
                                               child: OutlinedButton(
-                                                onPressed: () => _showAttendanceDetailDialog(context, item),
+                                                onPressed: () => _showAttendanceDetailDialog(item),
                                                 style: OutlinedButton.styleFrom(
                                                   foregroundColor: Colors.red,
                                                   side: const BorderSide(color: Colors.red),
@@ -399,7 +406,7 @@ class _ApprovalPageState extends State<ApprovalPage> {
                                             const SizedBox(width: 12),
                                             Expanded(
                                               child: ElevatedButton(
-                                                onPressed: () => _showAttendanceDetailDialog(context, item),
+                                                onPressed: () => _showAttendanceDetailDialog(item),
                                                 style: ElevatedButton.styleFrom(
                                                   backgroundColor: Colors.green,
                                                   foregroundColor: Colors.white,
@@ -431,9 +438,9 @@ class _ApprovalPageState extends State<ApprovalPage> {
     );
   }
 
-  Future<void> _showApprovalNoteDialog(BuildContext context, int logId, int approve) async {
+  Future<void> _showApprovalNoteDialog(int logId, int approve) async {
     final isReject = approve == 0;
-    final noteController = TextEditingController();
+    noteController.clear();
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -464,22 +471,22 @@ class _ApprovalPageState extends State<ApprovalPage> {
         ],
       ),
     );
-    noteController.dispose();
-    if (confirmed == true && context.mounted) {
+    if (confirmed == true && mounted) {
+      final noteText = noteController.text.trim();
       try {
         await context.read<AttendanceApprovalCubit>().submitApproval(
           logId, approve,
-          note: noteController.text.trim().isEmpty ? null : noteController.text.trim(),
+          note: noteText.isEmpty ? null : noteText,
         );
       } catch (e) {
-        if (context.mounted) {
+        if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Gagal: ${cleanErrorMessage(e)}')));
         }
       }
     }
   }
 
-  void _showAttendanceDetailDialog(BuildContext context, AttendanceApprovalEntity item, {int? button}) {
+  void _showAttendanceDetailDialog(AttendanceApprovalEntity item, {int? button}) {
     final String? displayImage = (item.fileAttachment != null && item.fileAttachment!.isNotEmpty)
         ? item.fileAttachment!.first
         : null;
@@ -571,7 +578,7 @@ class _ApprovalPageState extends State<ApprovalPage> {
                         child: OutlinedButton(
                           onPressed: () {
                             Navigator.pop(ctx);
-                            _showApprovalNoteDialog(context, item.logId, 0);
+                            _showApprovalNoteDialog(item.logId, 0);
                           },
                           style: OutlinedButton.styleFrom(
                             foregroundColor: Colors.red,
@@ -586,7 +593,7 @@ class _ApprovalPageState extends State<ApprovalPage> {
                         child: ElevatedButton(
                           onPressed: () {
                             Navigator.pop(ctx);
-                            _showApprovalNoteDialog(context, item.logId, 1);
+                            _showApprovalNoteDialog(item.logId, 1);
                           },
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.green,

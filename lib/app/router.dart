@@ -10,7 +10,6 @@ import 'package:progress_group/features/inbox/presentation/pages/qr/index.dart';
 
 import '../features/attandance/data/arguments/attandance_args.dart';
 import '../features/attandance/presentation/pages/attandance-page/index.dart';
-import '../features/attandance/presentation/pages/approval/index.dart';
 import '../features/attandance/presentation/pages/camera/index.dart';
 import '../features/auth/presentation/pages/forgot-password/index.dart';
 import '../features/auth/presentation/pages/login/index.dart';
@@ -34,6 +33,7 @@ import '../features/site-plan/presentation/site-plan-page/index.dart';
 import '../features/landing-page/presentation/landing-page/index.dart';
 import '../features/splash/presentation/pages/index.dart';
 import 'main_layout.dart';
+import '../core/utils/helpers/permissions_helper.dart';
 
 class AppRouter {
   static GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>();
@@ -100,6 +100,8 @@ class AppRouter {
           ),
           GoRoute(
             path: '/contact',
+            redirect: (context, state) =>
+                PermissionsHelper.canAccessContacts ? null : '/',
             builder: (context, state) {
               final initialStatusIds = state.extra is List<int> ? state.extra as List<int> : null;
               return ContactPage(initialStatusIds: initialStatusIds);
@@ -163,6 +165,8 @@ class AppRouter {
           ),
           GoRoute(
             path: '/inbox',
+            redirect: (context, state) =>
+                PermissionsHelper.canAccessInbox ? null : '/',
             builder: (context, state) => const InboxPage(),
             routes: [
               GoRoute(
@@ -185,6 +189,8 @@ class AppRouter {
           ),
           GoRoute(
             path: '/site-plan',
+            redirect: (context, state) =>
+                PermissionsHelper.canAccessSitePlan ? null : '/',
             builder: (context, state) => const SitePlanPage(),
             routes: [
               GoRoute(
@@ -202,6 +208,8 @@ class AppRouter {
           GoRoute(
             path: '/sales-kit',
             name: "salesKit",
+            redirect: (context, state) =>
+                PermissionsHelper.canAccessSalesKit ? null : '/',
             builder: (context, state) {
               final args = (state.extra as SalesKitDetailArgs?) ?? SalesKitDetailArgs();
               return SalesKitPage(args: args);
@@ -209,6 +217,8 @@ class AppRouter {
           ),
           GoRoute(
             path: '/attandance',
+            redirect: (context, state) =>
+                PermissionsHelper.canAccessAttendance ? null : '/',
             builder: (context, state) {
               final tabParam = state.uri.queryParameters['initialTab'];
               final initialTab = tabParam != null ? int.tryParse(tabParam) : null;

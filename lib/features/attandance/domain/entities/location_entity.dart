@@ -4,6 +4,7 @@ class AttendanceLocation {
   final String? latitude;
   final String? longitude;
   final int? radius;
+  final int? typeLocationId;
 
   AttendanceLocation({
     required this.id,
@@ -11,5 +12,6 @@ class AttendanceLocation {
     this.latitude,
     this.longitude,
     this.radius,
+    this.typeLocationId,
   });
 }

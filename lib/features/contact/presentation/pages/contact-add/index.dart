@@ -115,6 +115,14 @@ class _ContactAddPageState extends State<ContactAddPage> {
     OwnerDropdownItem(name: ">5"),
   ];
 
+  final List<OwnerDropdownItem> itemsVolume = [
+    OwnerDropdownItem(name: "1"),
+    OwnerDropdownItem(name: "2"),
+    OwnerDropdownItem(name: "3"),
+    OwnerDropdownItem(name: "4"),
+    OwnerDropdownItem(name: ">5"),
+  ];
+
   final List<OwnerDropdownItem> itemsProjectCategory = [
     OwnerDropdownItem(id: 1, name: "Residential"),
     OwnerDropdownItem(id: 2, name: "Commercial"),
@@ -251,6 +259,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
         selectedProductType = params?.productType ?? data.productType;
         lBlockNoTC.text = params?.lastBlokNo ?? data.lastBlokNo ?? '';
         jmlDatang = (params?.visitCount ?? data.visitCount)?.toString() ?? "1";
+        nameSPTC.text = params?.nameSP ?? data.nameSP ?? '';
         descTC.text = params?.generalNotes ?? data.generalNotes ?? "";
         volumeTC.text = params?.volumePlan ?? (data.volumePlan != null ? data.volumePlan.toString() : '0');
         selectedLostReasonId = params?.lostReasonId ?? data.lostReasonId;
@@ -681,7 +690,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
       lastProjectCategory: selectedProjectCategory,
       productType: selectedProductType,
       volumePlan: volumeTC.text.isNotEmpty ? volumeTC.text : null,
-      visitCount: int.tryParse(jmlDatang),
+      visitCount: _parseVisitCount(jmlDatang),
       lostReasonId: selectedLostReasonId,
       nameSP: nameSPTC.text.isNotEmpty ? nameSPTC.text : null,
       lostReasonNote: lostReasonNoteTC.text.isNotEmpty ? lostReasonNoteTC.text : null,
@@ -709,7 +718,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
       final paramsVisit = CreateVisitParams(
         contactId: widget.args.dataContact!.contactId!,
         statusProspectId: selectedStatusId!,
-        visitCount: int.parse(jmlDatang),
+        visitCount: _parseVisitCount(jmlDatang),
         activityDate: DateFormat('yyyy-MM-dd HH:mm:ss').format(selectedDate!),
         notes: descTC.text,
         files: visitImages.files,
@@ -749,7 +758,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
     final paramsVisit = CreateVisitParams(
       contactId: contact.contactId!,
       statusProspectId: selectedStatusId!,
-      visitCount: int.parse(jmlDatang),
+      visitCount: _parseVisitCount(jmlDatang),
       activityDate: DateFormat('yyyy-MM-dd HH:mm:ss').format(selectedDate!),
       notes: descTC.text,
       files: visitImages.files,
@@ -789,7 +798,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
       lastProjectCategory: selectedProjectCategory,
       productType: selectedProductType,
       volumePlan: volumeTC.text.isNotEmpty ? volumeTC.text : null,
-      visitCount: int.tryParse(jmlDatang),
+      visitCount: _parseVisitCount(jmlDatang),
       firstVisitDate: firstVisitDate,
       lastVisitDate: lastVisitDate,
     );
@@ -911,6 +920,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
                 selectedProductType = data.productType?.isNotEmpty == true ? data.productType : null;
                 lBlockNoTC.text = data.lastBlokNo ?? '';
                 jmlDatang = data.visitCount?.toString() ?? "1";
+                nameSPTC.text = data.nameSP ?? '';
                 volumeTC.text = data.volumePlan?.toString() ?? "0";
                 descTC.text = data.generalNotes ?? "";
                 final autoDate = _getSelectedDateByStatus(data);
@@ -1217,7 +1227,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
                   (selectedStatusId == 74 || selectedStatusId == 75)? _buildFormSP() :
                   (selectedStatusId == 63 ||selectedStatusId == 64 ||selectedStatusId == 65 ||selectedStatusId == 66 ||selectedStatusId == 67 ||selectedStatusId == 68 ||selectedStatusId == 69)? _buildFormVisit2() :
                   selectedStatusId == null ?
-                  buildFormShimmer() :
+                  buildFormShimmer(showHeader: false) :
                   Container(child: Text("not found ${selectedStatusId} ${selectedStatusName} form",),),
             ),
           ],
@@ -1239,29 +1249,51 @@ class _ContactAddPageState extends State<ContactAddPage> {
           ),
         ),
         SizedBox(height: 6),
-        TextField(
-          maxLines: 1,
-          minLines: 1,
-          controller: volumeTC,
-          focusNode: volumeFN,
-          onTapOutside: (event) => volumeFN.unfocus(),
-          textInputAction: TextInputAction.newline,
-          keyboardType: TextInputType.number,
-          decoration: InputDecoration(
-            hintText: "Volume...",
-            hintStyle: TextStyle(color: Color(grey2Color), fontSize: 14),
-            contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: Color(grey7Color)),
+        GestureDetector(
+          onTap: () async {
+            final selectedItem = itemsVolume.firstWhere(
+              (e) => e.name == volumeTC.text,
+              orElse: () => OwnerDropdownItem(id: 0, name: ''),
+            );
+            final result = await context.pushNamed(
+              'detailContactDropdown',
+              extra: ContactDropdownArgs(
+                title: 'Pilih Appt Volume',
+                items: itemsVolume,
+                selectedId: selectedItem.id,
+              ),
+            );
+            if (result != null) {
+              final selected = result as OwnerDropdownItem;
+              setState(() {
+                volumeTC.text = selected.name;
+              });
+            }
+          },
+          child: Container(
+            width: double.infinity,
+            height: 40,
+            decoration: BoxDecoration(
+              border: Border.all(color: Color(grey8Color)),
+              borderRadius: BorderRadius.circular(8),
             ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: Color(grey7Color)),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: Color(primaryColor)),
+            padding: EdgeInsets.symmetric(horizontal: 16),
+            alignment: Alignment.centerLeft,
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    volumeTC.text.isEmpty ? "Select volume" : volumeTC.text,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: volumeTC.text.isEmpty ? Color(grey2Color) : Colors.black,
+                    ),
+                  ),
+                ),
+                const Icon(Icons.arrow_drop_down, size: 28),
+              ],
             ),
           ),
         ),
@@ -1636,6 +1668,10 @@ class _ContactAddPageState extends State<ContactAddPage> {
         ),
       ],
     );
+  }
+
+  int _parseVisitCount(String val) {
+    return int.tryParse(val) ?? 5;
   }
 
   void _loadTownshipClusters(String projectName) {
@@ -2026,7 +2062,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
         ),
         SizedBox(height: 12),
         Text(
-          "Block No",
+          "Blok No",
           style: TextStyle(
             fontSize: 12,
             fontWeight: FontWeight.bold,

@@ -7,6 +7,7 @@ class AttendanceLocationModel extends AttendanceLocation {
     super.latitude,
     super.longitude,
     super.radius,
+    super.typeLocationId,
   });
 
   factory AttendanceLocationModel.fromJson(Map<String, dynamic> json) {
@@ -16,6 +17,7 @@ class AttendanceLocationModel extends AttendanceLocation {
       latitude: json['latitude']?.toString(),
       longitude: json['longitude']?.toString(),
       radius: json['radius_meter'],
+      typeLocationId: json['type_location_id'],
     );
   }
 }

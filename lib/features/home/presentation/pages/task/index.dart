@@ -17,6 +17,8 @@ import 'package:progress_group/features/contact/domain/entities/contact/contact_
 import 'package:progress_group/features/contact/presentation/state/activity/activity_bloc.dart';
 import 'package:progress_group/features/contact/presentation/state/activity/activity_event.dart';
 import 'package:progress_group/features/contact/presentation/state/activity/activity_state.dart';
+import 'package:progress_group/features/auth/presentation/state/auth/auth_bloc.dart';
+import 'package:progress_group/features/auth/presentation/state/auth/auth_event.dart';
 import 'package:progress_group/features/auth/presentation/state/profile/profile_bloc.dart';
 import 'package:progress_group/features/auth/presentation/state/profile/profile_state.dart';
 import 'package:progress_group/features/contact/domain/entities/activity/activity_entity.dart';
@@ -166,6 +168,7 @@ class _TaskPageState extends State<TaskPage> {
   }
 
   void _loadAll() {
+    context.read<AuthBloc>().add(FetchPermissionsEvent());
     final todayStr = DateFormat('yyyy-MM-dd').format(DateTime.now());
     context.read<ActivityBloc>().add(FetchActivitiesEvent(
       followUpStartDate: todayStr,

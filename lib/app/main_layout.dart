@@ -14,6 +14,9 @@ import 'package:progress_group/features/contact/presentation/state/contact/conta
 import 'package:progress_group/features/contact/presentation/state/whatsapp_activity/whatsapp_unread_summary_bloc.dart';
 import 'package:progress_group/features/contact/presentation/state/whatsapp_activity/whatsapp_unread_summary_state.dart';
 import 'package:progress_group/features/contact/presentation/state/whatsapp_activity/whatsapp_unread_summary_event.dart';
+import 'package:progress_group/core/utils/helpers/permissions_helper.dart';
+import 'package:progress_group/features/auth/presentation/state/auth/auth_state.dart';
+import 'package:shimmer/shimmer.dart';
 
 class MainLayout extends StatefulWidget {
   final Widget child;
@@ -148,6 +151,7 @@ class _MainLayoutState extends State<MainLayout> {
       _currentUri = newUri;
       _lastPressedAt = null;
       ScaffoldMessenger.of(context).hideCurrentSnackBar();
+      context.read<AuthBloc>().add(FetchPermissionsEvent());
 
       final wasInSection = oldUri.startsWith('/contact') || oldUri.startsWith('/inbox');
       final isNowInSection = newUri.startsWith('/contact') || newUri.startsWith('/inbox');
@@ -245,51 +249,59 @@ class _MainLayoutState extends State<MainLayout> {
           ],
         ),
         padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 6),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: [
-            _buildNavItem(
-              context,
-              path: '/',
-              icon: icNavHome,
-              label: 'Home',
-              isActive: currentIndex == 0,
-            ),
-            _buildNavItem(
-              context,
-              path: '/contact',
-              icon: icSidebarContacts,
-              label: 'Contact',
-              isActive: currentIndex == 1,
-            ),
-            _buildNavItem(
-              context,
-              path: '/attandance',
-              icon: icNavActivity,
-              label: 'Attendance',
-              isActive: currentIndex == 6,
-            ),
-            BlocBuilder<WhatsappActivityBloc, WhatsappActivityState>(
-              builder: (context, state) {
-                final totalUnread = state.data.fold<int>(0, (sum, item) => sum + item.unreadCount);
-                return _buildNavItem(
-                  context,
-                  path: '/inbox',
-                  icon: icSidebarInbox,
-                  label: 'Inbox',
-                  isActive: currentIndex == 2,
-                  badgeCount: totalUnread,
-                );
-              },
-            ),
-            _buildNavItem(
-              context,
-              path: '/site-plan',
-              icon: icSidebarSitePlan,
-              label: 'Site Plan',
-              isActive: currentIndex == 4,
-            ),
-          ],
+        child: BlocBuilder<AuthBloc, AuthState>(
+          buildWhen: (prev, curr) => curr is PermissionsLoading || curr is PermissionsLoaded || curr is PermissionsError,
+          builder: (context, state) {
+            if (state is PermissionsLoading) {
+              return Shimmer.fromColors(
+                baseColor: Colors.grey[300]!,
+                highlightColor: Colors.grey[100]!,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  children: List.generate(4, (_) => Container(
+                    width: 40, height: 40,
+                    decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8)),
+                  )),
+                ),
+              );
+            }
+
+            if (state is PermissionsError) {
+              return Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.wifi_off_rounded, size: 18, color: Colors.grey[400]),
+                  const SizedBox(width: 8),
+                  Text('Gagal memuat', style: TextStyle(fontSize: 12, color: Colors.grey[400])),
+                  const SizedBox(width: 8),
+                  GestureDetector(
+                    onTap: () => context.read<AuthBloc>().add(FetchPermissionsEvent()),
+                    child: Text('Coba lagi', style: TextStyle(fontSize: 12, color: Color(primaryColor), fontWeight: FontWeight.w600)),
+                  ),
+                ],
+              );
+            }
+
+            return Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                _buildNavItem(context, path: '/', icon: icNavHome, label: 'Home', isActive: currentIndex == 0),
+                if (PermissionsHelper.canAccessContacts)
+                  _buildNavItem(context, path: '/contact', icon: icSidebarContacts, label: 'Contact', isActive: currentIndex == 1),
+                if (PermissionsHelper.canAccessAttendance)
+                  _buildNavItem(context, path: '/attandance', icon: icNavActivity, label: 'Attendance', isActive: currentIndex == 6),
+                if (PermissionsHelper.canAccessInbox)
+                  BlocBuilder<WhatsappActivityBloc, WhatsappActivityState>(
+                    builder: (context, state) {
+                      final totalUnread = state.data.fold<int>(0, (sum, item) => sum + item.unreadCount);
+                      return _buildNavItem(context, path: '/inbox', icon: icSidebarInbox, label: 'Inbox', isActive: currentIndex == 2, badgeCount: totalUnread);
+                    },
+                  ),
+                if (PermissionsHelper.canAccessSitePlan)
+                  _buildNavItem(context, path: '/site-plan', icon: icSidebarSitePlan, label: 'Site Plan', isActive: currentIndex == 4),
+              ],
+            );
+          },
         ),
       ),
     )));
@@ -371,16 +383,21 @@ class _MainLayoutState extends State<MainLayout> {
               ),
               SizedBox(height: 10),
               _buildDrawerItem(context, icSidebarDashboard, 'Dashboard', path: '/', index: 0),
-              _buildDrawerItem(context, icSidebarContacts, 'Contacts', path: '/contact', index: 1),
-              _buildDrawerItem(context, icSidebarInbox, 'Inbox', path: '/inbox', index: 2),
-              _buildDrawerItem(context, icSidebarSitePlan, 'Site Plan', path: '/site-plan', index: 4),
-              _buildDrawerItem(context, icSidebarSalesKit, 'Sales Kit', path: '/sales-kit', index: 5),
+              if (PermissionsHelper.canAccessContacts)
+                _buildDrawerItem(context, icSidebarContacts, 'Contacts', path: '/contact', index: 1),
+              if (PermissionsHelper.canAccessInbox)
+                _buildDrawerItem(context, icSidebarInbox, 'Inbox', path: '/inbox', index: 2),
+              if (PermissionsHelper.canAccessSitePlan)
+                _buildDrawerItem(context, icSidebarSitePlan, 'Site Plan', path: '/site-plan', index: 4),
+              if (PermissionsHelper.canAccessSalesKit)
+                _buildDrawerItem(context, icSidebarSalesKit, 'Sales Kit', path: '/sales-kit', index: 5),
               _buildDrawerItem(context, '', 'Info & Panduan', path: '/landing-page', index: 8, iconData: Icons.language_outlined),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: Divider(),
               ),
-               _buildDrawerItem(context, icSidebarAttandance, 'Attandance', path: '/attandance', index: 6),
+              if (PermissionsHelper.canAccessAttendance)
+                _buildDrawerItem(context, icSidebarAttandance, 'Attandance', path: '/attandance', index: 6),
               const Spacer(),
               // Padding(
               //   padding: const EdgeInsets.symmetric(horizontal: 40.0),
@@ -503,7 +520,9 @@ class _MainLayoutState extends State<MainLayout> {
 
   Widget _buildNavItem(BuildContext context, {required String path, required String icon, required String label, required bool isActive, int badgeCount = 0}) {
     return GestureDetector(
-      onTap: () => context.go(path),
+      onTap: () {
+        context.go(path);
+      },
       child: Stack(
         clipBehavior: Clip.none,
         children: [

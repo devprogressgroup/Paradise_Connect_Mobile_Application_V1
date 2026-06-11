@@ -174,6 +174,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   }
 
   Future<void> _onFetchPermissions(FetchPermissionsEvent event, Emitter<AuthState> emit) async {
+    emit(PermissionsLoading());
     try {
       final data = await getPermissionsUseCase();
       debugPrint('=== PERMISSIONS ===');
@@ -195,6 +196,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       emit(PermissionsLoaded(data));
     } catch (e) {
       debugPrint('FetchPermissionsError: $e');
+      emit(PermissionsError());
     }
   }
 }

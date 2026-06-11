@@ -1,5 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:progress_group/core/utils/helpers/permissions_helper.dart';
+import 'package:progress_group/core/utils/widget/custom_snackbar.dart';
 import 'package:progress_group/core/utils/widget/shimmer_loading.dart';
 import 'package:go_router/go_router.dart';
 import 'package:progress_group/core/constants/assets.dart';
@@ -11,6 +13,8 @@ import 'package:progress_group/core/utils/helpers/initial_name_helper.dart';
 import 'package:progress_group/core/utils/widget/custom_header.dart';
 import 'package:progress_group/core/utils/widget/custom_search_field.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:progress_group/features/auth/presentation/state/auth/auth_bloc.dart';
+import 'package:progress_group/features/auth/presentation/state/auth/auth_event.dart';
 import 'package:progress_group/features/contact/data/arguments/contact_detail_args.dart';
 import 'package:progress_group/features/contact/data/models/dropdown/date_filter.dart';
 import 'package:progress_group/features/contact/domain/entities/contact/contact_entity.dart';
@@ -123,6 +127,7 @@ class _ContactPageState extends State<ContactPage> {
   }
 
   Future<void> _onRefresh() async {
+    context.read<AuthBloc>().add(FetchPermissionsEvent());
     context.read<ContactBloc>().add(const FetchContactsEvent(isRefresh: true));
   }
 
@@ -520,6 +525,10 @@ class _ContactPageState extends State<ContactPage> {
         padding: const EdgeInsets.only(bottom: 10),
         child: FloatingActionButton(
           onPressed: () {
+            if (!PermissionsHelper.canModifyContacts) {
+              showSnackbar(context, 'Anda tidak punya akses', isError: true);
+              return;
+            }
             context.pushNamed('formContact', extra: ContactDetailArgs(page: 0));
           },
           backgroundColor: Color(primaryColor),
@@ -603,7 +612,11 @@ Widget _buildContactOptions(BuildContext context, ContactEntity contact) {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _buildIconLink(context, icEdit, "Edit Contact", () {
-          context.pushNamed('formContact',extra: ContactDetailArgs(dataContact: contact, page: 1),);
+          if (!PermissionsHelper.canModifyContacts) {
+            showSnackbar(context, 'Anda tidak punya akses', isError: true);
+            return;
+          }
+          context.pushNamed('formContact', extra: ContactDetailArgs(dataContact: contact, page: 1));
         }),
         _buildIconLink(context, icDelete, "Delete Contact", () {
           showDialog(
@@ -612,8 +625,9 @@ Widget _buildContactOptions(BuildContext context, ContactEntity contact) {
               title: Text('Confirm'),
               content: Text('Delete this contact?'),
               actions: [
-                TextButton(onPressed: () => Navigator.pop(ctx),child: Text('Cancel'),),
-                TextButton(onPressed: () {
+                TextButton(onPressed: () => Navigator.pop(ctx), child: Text('Cancel')),
+                TextButton(
+                  onPressed: () {
                     Navigator.pop(ctx);
                     context.read<ContactBloc>().add(DeleteContactEvent(contact.contactId!));
                   },
@@ -622,7 +636,7 @@ Widget _buildContactOptions(BuildContext context, ContactEntity contact) {
               ],
             ),
           );
-        }),
+        }, disabled: !PermissionsHelper.canDeleteContacts),
         _buildIconLink(context, icShare, "Share Contact", () {
           ShareHelper.shareContact(contact);
         }),
@@ -631,9 +645,9 @@ Widget _buildContactOptions(BuildContext context, ContactEntity contact) {
   );
 }
 
-Widget _buildIconLink(BuildContext context, String asset, String label, VoidCallback onTap, {Color? color,}) {
+Widget _buildIconLink(BuildContext context, String asset, String label, VoidCallback onTap, {Color? color, bool disabled = false}) {
   return InkWell(
-    onTap: () {
+    onTap: disabled ? null : () {
       Navigator.pop(context);
       onTap();
     },
@@ -641,9 +655,9 @@ Widget _buildIconLink(BuildContext context, String asset, String label, VoidCall
       padding: const EdgeInsets.symmetric(vertical: 10),
       child: Row(
         children: [
-          BgIcon(asset: asset, onTap: null, color: color),
+          BgIcon(asset: asset, onTap: null, color: disabled ? Colors.grey : color),
           const SizedBox(width: 10),
-          Text(label,style: TextStyle(fontSize: 16, color: Color(blue2Color), fontWeight: FontWeight.w400)),
+          Text(label, style: TextStyle(fontSize: 16, color: disabled ? Colors.grey : Color(blue2Color), fontWeight: FontWeight.w400)),
         ],
       ),
     ),

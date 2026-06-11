@@ -46,21 +46,35 @@ class PermissionsHelper {
 
   // Attendance
   static bool get canReadAttendance       => check('Attendance', 'ReadOnly');
-  static bool get canClockInOffice        => check('Attendance', 'ClockInOffice');
-  static bool get canClockInPameran       => check('Attendance', 'ClockInPameran');
-  static bool get canClockOutOffice       => check('Attendance', 'ClockOutOffice');
-  static bool get canClockOutPameran      => check('Attendance', 'ClockOutPameran');
-  static bool get canApproveAttendance    => check('Attendance', 'ApproveReject');
-  static bool get canRequestApproval      => check('Attendance', 'RequestApproval');
+  static bool get canClockInOffice                    => check('Attendance', 'ClockInOffice');
+  static bool get canClockInPameran                   => check('Attendance', 'ClockInPameran');
+  static bool get canClockOutOffice                   => check('Attendance', 'ClockOutOffice');
+  static bool get canClockOutPameran                  => check('Attendance', 'ClockOutPameran');
+  static bool get canApproveRejectAttendance          => check('Attendance', 'ApproveReject');
+  static bool get canRequestApproval                  => check('Attendance', 'RequestApproval');
+  static bool get canClockInLuarLokasi                => check('Attendance', 'ClockInLuarLokasi');
+  static bool get canClockOutLuarLokasi               => check('Attendance', 'ClockOutLuarLokasi');
+  static bool get canClockInLuarLokasiRequestApprove  => check('Attendance', 'ClockInLuarLokasiRequestApprove');
+  static bool get canClockOutLuarLokasiRequestApprove => check('Attendance', 'ClockOuLuarLokasiRequestApprove');
+
+  // Composite attendance permissions
+  static bool get canClockIn  => canClockInOffice || canClockInPameran || canClockInLuarLokasi;
+  static bool get canClockOut => canClockOutOffice || canClockOutPameran || canClockOutLuarLokasi;
+
+  // true jika minimal satu fitur attendance aktif
+  static bool get canAccessAttendance => canReadAttendance || canClockInOffice || canClockInPameran || canClockOutOffice || canClockOutPameran || canApproveRejectAttendance || canRequestApproval || canClockInLuarLokasi || canClockOutLuarLokasi || canClockInLuarLokasiRequestApprove || canClockOutLuarLokasiRequestApprove;
 
   // Attendance raw values
-  static int? get rawReadAttendance       => checkRaw('Attendance', 'ReadOnly');
-  static int? get rawClockInOffice        => checkRaw('Attendance', 'ClockInOffice');
-  static int? get rawClockInPameran       => checkRaw('Attendance', 'ClockInPameran');
-  static int? get rawClockOutOffice       => checkRaw('Attendance', 'ClockOutOffice');
-  static int? get rawClockOutPameran      => checkRaw('Attendance', 'ClockOutPameran');
-  static int? get rawApproveAttendance    => checkRaw('Attendance', 'ApproveReject');
-  static int? get rawRequestApproval      => checkRaw('Attendance', 'RequestApproval');
+  static int? get rawReadAttendance                       => checkRaw('Attendance', 'ReadOnly');
+  static int? get rawClockInOffice                        => checkRaw('Attendance', 'ClockInOffice');
+  static int? get rawClockInPameran                       => checkRaw('Attendance', 'ClockInPameran');
+  static int? get rawClockOutOffice                       => checkRaw('Attendance', 'ClockOutOffice');
+  static int? get rawClockOutPameran                      => checkRaw('Attendance', 'ClockOutPameran');
+  static int? get rawApproveAttendance                    => checkRaw('Attendance', 'ApproveReject');
+  static int? get rawClockInLuarLokasi                    => checkRaw('Attendance', 'ClockInLuarLokasi');
+  static int? get rawClockOutLuarLokasi                   => checkRaw('Attendance', 'ClockOutLuarLokasi');
+  static int? get rawClockInLuarLokasiRequestApprove      => checkRaw('Attendance', 'ClockInLuarLokasiRequestApprove');
+  static int? get rawClockOutLuarLokasiRequestApprove     => checkRaw('Attendance', 'ClockOuLuarLokasiRequestApprove');
 
   // Contacts
   static bool get canModifyContacts       => check('Contacts', 'Modify');
@@ -69,13 +83,21 @@ class PermissionsHelper {
   static bool get canModifyAttachment     => check('Contacts', 'ModifyAttachment');
   static bool get canDeleteAttachment     => check('Contacts', 'DeleteAttachment');
 
+  // true jika minimal satu fitur contacts aktif
+  static bool get canAccessContacts => canReadContacts || canModifyContacts || canDeleteContacts || canModifyAttachment || canDeleteAttachment;
+
   // Sales Kit
   static bool get canModifySalesKit       => check('Sales Kit', 'Modify');
   static bool get canReadSalesKit         => check('Sales Kit', 'ReadOnly');
 
+  // true jika minimal satu fitur sales kit aktif
+  static bool get canAccessSalesKit => canReadSalesKit || canModifySalesKit;
+
   // Site Plan
   static bool get canReadSitePlan         => check('Site Plan', 'ReadOnly');
+  static bool get canAccessSitePlan       => canReadSitePlan;
 
   // Inbox
   static bool get canReadInbox            => check('Inbox', 'ReadOnly');
+  static bool get canAccessInbox          => canReadInbox;
 }

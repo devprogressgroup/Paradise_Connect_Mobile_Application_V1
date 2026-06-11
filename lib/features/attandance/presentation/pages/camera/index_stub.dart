@@ -12,6 +12,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:progress_group/core/utils/helpers/date_helper.dart';
+import 'package:progress_group/core/utils/helpers/permissions_helper.dart';
+import 'package:progress_group/core/utils/widget/custom_snackbar.dart';
 import 'package:progress_group/core/utils/widget/custom_button.dart';
 import 'package:progress_group/features/attandance/data/arguments/attandance_args.dart';
 import 'package:progress_group/features/attandance/domain/entities/location_entity.dart';
@@ -495,6 +497,22 @@ class _WebSubmitPageState extends State<_WebSubmitPage> {
   void _handleSubmit() {
     if (_imageBytesList.isEmpty) return;
 
+    if (_showRealtimeLocationWarning) {
+      final profileState = context.read<ProfileBloc>().state;
+      final hasAtasan = profileState is ProfileLoaded && () {
+        final profile = profileState.profile;
+        final myPos = profile.positionName ?? '';
+        if (myPos == 'General Manager') return false;
+        if (myPos == 'Sales Manager') return profile.salesRoles.isNotEmpty;
+        if (myPos == 'Sales Supervisor') return profile.salesRoles.any((r) => const ['General Manager', 'Sales Manager'].contains(r.positionName));
+        return profile.salesRoles.isNotEmpty;
+      }();
+      if (hasAtasan && !PermissionsHelper.canRequestApproval) {
+        showSnackbar(context, 'Anda tidak punya akses Request Approval', isError: true);
+        return;
+      }
+    }
+
     if (widget.args.isReturnImage == true) {
       context.pop(_imageBytesList.first);
       return;
@@ -801,7 +819,8 @@ class _WebSubmitPageState extends State<_WebSubmitPage> {
                                 final hasAtasan = profileState is ProfileLoaded && () {
                                   final profile = profileState.profile;
                                   final myPos = profile.positionName ?? '';
-                                  if (const ['General Manager', 'Sales Manager'].contains(myPos)) return false;
+                                  if (myPos == 'General Manager') return false;
+                                  if (myPos == 'Sales Manager') return profile.salesRoles.isNotEmpty;
                                   if (myPos == 'Sales Supervisor') return profile.salesRoles.any((r) => const ['General Manager', 'Sales Manager'].contains(r.positionName));
                                   return profile.salesRoles.isNotEmpty;
                                 }();

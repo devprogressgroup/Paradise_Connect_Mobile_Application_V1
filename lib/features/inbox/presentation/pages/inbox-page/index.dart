@@ -11,6 +11,8 @@ import 'package:progress_group/core/utils/widget/custom_filter_button.dart';
 import 'package:progress_group/core/utils/widget/custom_header.dart';
 import 'package:progress_group/core/utils/widget/custom_search_field.dart';
 import 'package:progress_group/features/auth/domain/entities/user_profile.dart';
+import 'package:progress_group/features/auth/presentation/state/auth/auth_bloc.dart';
+import 'package:progress_group/features/auth/presentation/state/auth/auth_event.dart';
 import 'package:progress_group/features/auth/presentation/state/profile/profile_bloc.dart';
 import 'package:progress_group/features/auth/presentation/state/profile/profile_state.dart';
 import 'package:progress_group/features/contact/data/arguments/contact_dropdown_args.dart';
@@ -101,6 +103,7 @@ class _InboxPageState extends State<InboxPage> {
     if (!isLoadMore) {
       _cPage = 1;
       _gPage = 1;
+      context.read<AuthBloc>().add(FetchPermissionsEvent());
     }
 
     final contactState = context.read<ContactBloc>().state;

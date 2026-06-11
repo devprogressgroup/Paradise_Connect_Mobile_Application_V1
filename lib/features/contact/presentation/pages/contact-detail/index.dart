@@ -34,6 +34,10 @@ import 'package:progress_group/features/inbox/presentation/state/inbox/inbox_eve
 import 'package:progress_group/features/inbox/presentation/state/inbox/inbox_statte.dart';
 
 import 'package:url_launcher/url_launcher.dart';
+import 'package:progress_group/core/utils/helpers/permissions_helper.dart';
+import 'package:progress_group/core/utils/widget/custom_snackbar.dart';
+import 'package:progress_group/features/auth/presentation/state/auth/auth_bloc.dart';
+import 'package:progress_group/features/auth/presentation/state/auth/auth_event.dart';
 import '../../../../../core/utils/widget/custom_bg_icon.dart';
 import '../../../../../core/utils/widget/custom_buttomsheet.dart';
 import '../../../../../core/utils/widget/error_dialog.dart';
@@ -167,6 +171,7 @@ class _ContactDetailPageState extends State<ContactDetailPage>with TickerProvide
   }
 
   Future<void> _getContactDetail() async {
+    context.read<AuthBloc>().add(FetchPermissionsEvent());
     final contactId = widget.args.dataContact?.contactId;
     if (contactId != null) {
       context.read<ContactBloc>().add(FetchContactDetailEvent(contactId));
@@ -174,6 +179,7 @@ class _ContactDetailPageState extends State<ContactDetailPage>with TickerProvide
   }
 
   Future<void> _getActivity() async {
+    context.read<AuthBloc>().add(FetchPermissionsEvent());
     final contactId = widget.args.dataContact?.contactId;
     if (contactId != null) {
       context.read<ContactDetailActivityBloc>().add(
@@ -186,6 +192,7 @@ class _ContactDetailPageState extends State<ContactDetailPage>with TickerProvide
   }
 
   Future<void> _getAttachment() async {
+    context.read<AuthBloc>().add(FetchPermissionsEvent());
     final contactId = widget.args.dataContact?.contactId;
     if (contactId != null) {
       context.read<AttachmentCubit>().fetch(contactId, null);
@@ -229,6 +236,10 @@ class _ContactDetailPageState extends State<ContactDetailPage>with TickerProvide
         padding: const EdgeInsets.only(bottom: 10),
         child: FloatingActionButton(
           onPressed: () {
+            if (!PermissionsHelper.canModifyContacts) {
+              showSnackbar(context, 'Anda tidak punya akses', isError: true);
+              return;
+            }
             showCustomBottomSheet(
               context: context,
               child: _buildContentBSAdd(),
@@ -726,6 +737,35 @@ class _ContactDetailPageState extends State<ContactDetailPage>with TickerProvide
                         }
 
                         // =========================
+                        // CONTACT DATES
+                        // =========================
+                        final contact = context.read<ContactBloc>().state.contactDetail
+                            ?? widget.args.dataContact;
+                        if (contact != null) {
+                          final dateMappings = <Map<String, dynamic>>[
+                            {'label': 'Appt', 'date': contact.lastApptDate},
+                            {'label': 'Reserve', 'date': contact.lastReserveDate},
+                            {'label': 'SP', 'date': contact.lastSpDate},
+                            {'label': 'Akad', 'date': contact.lastAkadDate},
+                            {'label': 'Lost', 'date': contact.lastLostDate},
+                          ];
+                          for (final map in dateMappings) {
+                            final dateStr = map['date'] as String?;
+                            final label = map['label'] as String;
+                            if (dateStr != null && dateStr.isNotEmpty) {
+                              final date = DateTime.tryParse(dateStr);
+                              if (date != null) {
+                                timeline.add(ActivityTimelineItem(
+                                  date: date,
+                                  type: 'contact_date',
+                                  data: {'label': label, 'date': date},
+                                ));
+                              }
+                            }
+                          }
+                        }
+
+                        // =========================
                         // SORT DESC
                         // =========================
                         timeline.sort((a, b) => b.date.compareTo(a.date));
@@ -810,6 +850,11 @@ class _ContactDetailPageState extends State<ContactDetailPage>with TickerProvide
                                         return _prospectItem(item.data);
                                       } else if (item.type == 'inbox_contact') {
                                         return _inboxContactItem(item.data);
+                                      } else if (item.type == 'contact_date') {
+                                        return _contactDateItem(
+                                          item.data['label'] as String,
+                                          item.date,
+                                        );
                                       }
                                       return const SizedBox();
                                     }).toList(),
@@ -948,6 +993,56 @@ class _ContactDetailPageState extends State<ContactDetailPage>with TickerProvide
     );
   }
 
+  Widget _contactDateItem(String label, DateTime date) {
+    final typeColors = <String, int>{
+      'Appt': purpleColor,
+      'Reserve': purpleColor,
+      'SP': purpleColor,
+      'Akad': purpleColor,
+      'Lost': purpleColor,
+    };
+    final color = typeColors[label] ?? infoColor;
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Color(whiteColor),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: Container(
+              padding: const EdgeInsets.only(left: 12),
+              decoration: BoxDecoration(
+                border: Border(
+                  left: BorderSide(color: Color(color), width: 5),
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    label,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12,
+                    ),
+                  ),
+                  Text(
+                    DateFormat('HH:mm').format(date),
+                    style: const TextStyle(fontSize: 11),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildAttachmentContent() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16.0),
@@ -973,7 +1068,7 @@ class _ContactDetailPageState extends State<ContactDetailPage>with TickerProvide
               children: [
                 BgIcon(
                   asset: icUpload,
-                  onTap: () {
+                  onTap: PermissionsHelper.canModifyAttachment ? () {
                     _navigateToAddContact(
                       ContactDetailArgs(
                         dataContact: widget.args.dataContact,
@@ -981,8 +1076,8 @@ class _ContactDetailPageState extends State<ContactDetailPage>with TickerProvide
                         namePage: "Attachment",
                       ),
                     );
-                  },
-                  color: Color(primaryColor),
+                  } : null,
+                  color: PermissionsHelper.canModifyAttachment ? Color(primaryColor) : Colors.grey,
                 ),
                 SizedBox(width: 10),
                 Column(
@@ -992,7 +1087,7 @@ class _ContactDetailPageState extends State<ContactDetailPage>with TickerProvide
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w700,
-                        color: Color(primaryColor),
+                        color: PermissionsHelper.canModifyAttachment ? Color(primaryColor) : Colors.grey,
                       ),
                     ),
                     Text(
@@ -1000,7 +1095,7 @@ class _ContactDetailPageState extends State<ContactDetailPage>with TickerProvide
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w400,
-                        color: Color(grey5Color),
+                        color: PermissionsHelper.canModifyAttachment ? Color(grey5Color) : Colors.grey,
                       ),
                     ),
                   ],
@@ -1178,13 +1273,11 @@ class _ContactDetailPageState extends State<ContactDetailPage>with TickerProvide
                                       ),
                                       child: Icon(Icons.more_vert, size: 30),
                                     ),
-
                                     onSelected: (value) {
                                       if (value == 'edit') {
                                         _navigateToAddContact(
                                           ContactDetailArgs(
-                                            dataContact:
-                                                widget.args.dataContact,
+                                            dataContact: widget.args.dataContact,
                                             dataAttachment: item,
                                             page: 7,
                                             namePage: "Attachment",
@@ -1197,25 +1290,23 @@ class _ContactDetailPageState extends State<ContactDetailPage>with TickerProvide
                                     itemBuilder: (context) => [
                                       PopupMenuItem(
                                         value: 'edit',
+                                        enabled: PermissionsHelper.canModifyAttachment,
                                         child: Row(
                                           children: [
-                                            Icon(Icons.edit, size: 18),
+                                            Icon(Icons.edit, size: 18, color: PermissionsHelper.canModifyAttachment ? null : Colors.grey),
                                             SizedBox(width: 8),
-                                            Text('Edit'),
+                                            Text('Edit', style: TextStyle(color: PermissionsHelper.canModifyAttachment ? null : Colors.grey)),
                                           ],
                                         ),
                                       ),
                                       PopupMenuItem(
                                         value: 'delete',
+                                        enabled: PermissionsHelper.canModifyAttachment || PermissionsHelper.canDeleteAttachment,
                                         child: Row(
                                           children: [
-                                            Icon(
-                                              Icons.delete,
-                                              size: 18,
-                                              color: Colors.red,
-                                            ),
+                                            Icon(Icons.delete, size: 18, color: (PermissionsHelper.canModifyAttachment || PermissionsHelper.canDeleteAttachment) ? Colors.red : Colors.grey),
                                             SizedBox(width: 8),
-                                            Text('Delete'),
+                                            Text('Delete', style: TextStyle(color: (PermissionsHelper.canModifyAttachment || PermissionsHelper.canDeleteAttachment) ? null : Colors.grey)),
                                           ],
                                         ),
                                       ),
@@ -1246,6 +1337,10 @@ class _ContactDetailPageState extends State<ContactDetailPage>with TickerProvide
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _buildIconLink(context, icEdit, "Edit Contact", () async {
+            if (!PermissionsHelper.canModifyContacts) {
+              showSnackbar(context, 'Anda tidak punya akses', isError: true);
+              return;
+            }
             final result = await context.pushNamed(
               'formContact',
               extra: ContactDetailArgs(
@@ -1285,7 +1380,7 @@ class _ContactDetailPageState extends State<ContactDetailPage>with TickerProvide
                 ],
               ),
             );
-          }),
+          }, disabled: !PermissionsHelper.canDeleteContacts),
           _buildIconLink(context, icShare, "Share Contact", () {
             ShareHelper.shareContact(contact);
           }),
@@ -1300,9 +1395,10 @@ class _ContactDetailPageState extends State<ContactDetailPage>with TickerProvide
     String label,
     VoidCallback onTap, {
     Color? color,
+    bool disabled = false,
   }) {
     return InkWell(
-      onTap: () {
+      onTap: disabled ? null : () {
         Navigator.pop(context);
         onTap();
       },
@@ -1310,13 +1406,13 @@ class _ContactDetailPageState extends State<ContactDetailPage>with TickerProvide
         padding: const EdgeInsets.symmetric(vertical: 10),
         child: Row(
           children: [
-            BgIcon(asset: asset, onTap: null, color: color),
+            BgIcon(asset: asset, onTap: null, color: disabled ? Colors.grey : color),
             const SizedBox(width: 10),
             Text(
               label,
               style: TextStyle(
                 fontSize: 16,
-                color: Color(blue2Color),
+                color: disabled ? Colors.grey : Color(blue2Color),
                 fontWeight: FontWeight.w400,
               ),
             ),

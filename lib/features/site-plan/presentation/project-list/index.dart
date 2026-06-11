@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:progress_group/features/auth/presentation/state/auth/auth_bloc.dart';
+import 'package:progress_group/features/auth/presentation/state/auth/auth_event.dart';
 
 import '../../../../core/utils/widget/custom_header.dart';
 import '../../domain/entities/project_site.dart';
@@ -29,6 +31,7 @@ class ProjectListPage extends StatelessWidget {
                 Expanded(
                   child: RefreshIndicator(
                     onRefresh: () async {
+                      context.read<AuthBloc>().add(FetchPermissionsEvent());
                       context.read<SiteplanBloc>().add(LoadSiteplanEvent());
                       await context.read<SiteplanBloc>().stream
                           .firstWhere((s) => s is SiteplanLoaded || s is SiteplanError);
