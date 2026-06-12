@@ -10,8 +10,7 @@ class SitePlanRepositoryImpl implements SitePlanRepository {
 
   SitePlanRepositoryImpl(this.dataSource);
 
-  static const String _baseUrl =
-      'http://dynamics.paradise.id/paradise_api/siteplan_mobile';
+  static const String _baseUrl = 'http://dynamics.paradise.id/paradise_api/siteplan_mobile';
   static const Map<String, String> _webviewHeaders = {
     'X-App-Token': 'd9f82b7a4c6e11ec94660242ac120002XSitePlan',
   };

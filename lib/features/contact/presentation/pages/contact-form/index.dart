@@ -1931,25 +1931,29 @@ class _ContactFormPageState extends State<ContactFormPage> {
                             controller: lastApptDateTC,
                             focusNode: lastApptDateFN,
                             fieldType: 'date',
+                            onViewTap: () => _goEditStatus(statusIds: [53, 60, 76]),
                           ),
                            _buildField(
                             label: "Visitor/WI Date",
                             controller: lastVisitorDateTC,
                             focusNode: lastVisitorDateFN,
                             fieldType: 'date',
+                            onViewTap: () => _goEditStatus(statusIds: [63, 64, 65, 66, 67, 68, 69]),
                           ),
                            _buildField(
                             label: "Reserve Date",
                             controller: reserveDateTC,
                             focusNode: reserveDateFN,
                             fieldType: 'date',
+                            onViewTap: () => _goEditStatus(statusIds: [54, 70, 71, 72]),
                           ),
-                         
+
                            _buildField(
                             label: "SP Date",
                             controller: lspTC,
                             focusNode: lspFN,
                             fieldType: 'date',
+                            onViewTap: () => _goEditStatus(statusIds: [74]),
                           ),
                           //  _buildField(
                           //   label: "Akad Date",
@@ -1962,6 +1966,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
                             controller: lastLostDateTC,
                             focusNode: lastLostDateFN,
                             fieldType: 'date',
+                            onViewTap: () => _goEditStatus(statusIds: [43, 55, 56, 57, 58, 61, 62, 67, 68, 69, 73, 75, 77, 78]),
                           ),
                          
 
@@ -2653,15 +2658,20 @@ class _ContactFormPageState extends State<ContactFormPage> {
     }
   }
 
-  void _goEditStatus() async {
+  void _goEditStatus({List<int>? statusIds}) async {
     if (!PermissionsHelper.canEditContact) return;
     final contact = widget.args.dataContact;
     if (contact == null) return;
 
+    // Jika statusIds diberikan, pakai status saat ini kalau cocok, otherwise pakai yang pertama
+    final int? resolvedStatusId = statusIds != null && statusIds.isNotEmpty
+        ? (statusIds.contains(selectedStatusId) ? selectedStatusId : statusIds.first)
+        : selectedStatusId;
+
     await context.pushNamed(
       'addContact',
       extra: ContactDetailArgs(
-        dataContact: contact.copyWith(statusProspectId: selectedStatusId),
+        dataContact: contact.copyWith(statusProspectId: resolvedStatusId),
         page: 6,
         sourceRoute: 'editContact',
         createContactParams: createContactParams,
@@ -2812,7 +2822,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
 
   
 
-  Widget _buildField({required String label,required TextEditingController controller,required FocusNode focusNode,String fieldType = 'text',bool isError = false,String? errorText,bool? readOnly, int? minLines, DateTime? dateFirstDate, DateTime? dateLastDate,}) {
+  Widget _buildField({required String label,required TextEditingController controller,required FocusNode focusNode,String fieldType = 'text',bool isError = false,String? errorText,bool? readOnly, int? minLines, DateTime? dateFirstDate, DateTime? dateLastDate, VoidCallback? onViewTap,}) {
     final bool isRequired = _requiredLabels.contains(label);
     final bool isReadOnly = readOnly == true || widget.args.page == 2;
     final bool isDisplayGrey = widget.args.page == 2;
@@ -2821,7 +2831,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
     final fieldKey = _fieldKeys.putIfAbsent(label, () => GlobalKey());
 
     return GestureDetector(
-      onTap: canNavigate ? () => _goToEdit(focusField: label) : null,
+      onTap: canNavigate ? (onViewTap ?? () => _goToEdit(focusField: label)) : null,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

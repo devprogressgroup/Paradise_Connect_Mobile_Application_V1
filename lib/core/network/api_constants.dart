@@ -110,4 +110,5 @@ class ApiConstants {
   static String clusterImageUrl(String townshipSlug, String fileName) =>'$paradiseUrl/bin/db/images/cluster/$townshipSlug/$fileName';
 
   static String commercialImageUrl(String filePath) => filePath.startsWith('bin/db/') ? '$paradiseUrl/$filePath' : '$paradiseUrl/bin/db/images/commercial/$filePath';
+
 }
