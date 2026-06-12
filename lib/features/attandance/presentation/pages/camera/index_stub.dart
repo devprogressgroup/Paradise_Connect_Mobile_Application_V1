@@ -497,21 +497,7 @@ class _WebSubmitPageState extends State<_WebSubmitPage> {
   void _handleSubmit() {
     if (_imageBytesList.isEmpty) return;
 
-    if (_showRealtimeLocationWarning) {
-      final profileState = context.read<ProfileBloc>().state;
-      final hasAtasan = profileState is ProfileLoaded && () {
-        final profile = profileState.profile;
-        final myPos = profile.positionName ?? '';
-        if (myPos == 'General Manager') return false;
-        if (myPos == 'Sales Manager') return profile.salesRoles.isNotEmpty;
-        if (myPos == 'Sales Supervisor') return profile.salesRoles.any((r) => const ['General Manager', 'Sales Manager'].contains(r.positionName));
-        return profile.salesRoles.isNotEmpty;
-      }();
-      if (hasAtasan && !PermissionsHelper.canRequestApproval) {
-        showSnackbar(context, 'Anda tidak punya akses Request Approval', isError: true);
-        return;
-      }
-    }
+    
 
     if (widget.args.isReturnImage == true) {
       context.pop(_imageBytesList.first);

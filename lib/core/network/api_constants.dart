@@ -99,6 +99,10 @@ class ApiConstants {
   static String get waServerURL => _config.waServerURL;
   static String get serverUrl => _config.serverUrl;
 
+  // Salesbook webhook — fixed URL, tidak ikut environment
+  static const String salesbookWebhookUrl = 'http://192.168.8.56/Paradise-Webhook/sync-salesbook';
+  static const String salesbookWebhookToken = 'd9f82b7a4c6e11ec94660242ac120002XSitePlan';
+
   static const String paradiseUrl = 'https://paradise.co.id';
 
   static String townshipImageUrl(String slug, String fileName) =>'$paradiseUrl/bin/db/images/township/$slug/$fileName';

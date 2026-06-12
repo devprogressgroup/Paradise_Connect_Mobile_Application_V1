@@ -573,8 +573,8 @@ class _AttandancePageState extends State<AttandancePage> {
       final bool canProceed;
       if (!isInRadius || nearestOfficeId == null) {
         canProceed = flagParam == 0
-            ? PermissionsHelper.canClockInLuarLokasi
-            : PermissionsHelper.canClockOutLuarLokasi;
+            ? (PermissionsHelper.canClockInLuarLokasi || PermissionsHelper.canClockInLuarLokasiRequestApprove)
+            : (PermissionsHelper.canClockOutLuarLokasi || PermissionsHelper.canClockOutLuarLokasiRequestApprove);
       } else if (nearestOfficeTypeId == 2) {
         canProceed = flagParam == 0
             ? PermissionsHelper.canClockInPameran

@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:progress_group/core/services/salesbook_sync_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_contacts/flutter_contacts.dart';
 import 'dart:convert';
@@ -1253,6 +1254,10 @@ class _ContactFormPageState extends State<ContactFormPage> {
       listener: (context, state) {
         if (state.status == ContactStatus.createSuccess && widget.args.page == 0) {
           setState(() => _isSaving = false);
+          debugPrint('[ContactForm] CREATE success — contact_id: ${state.contactDetail?.contactId} ${state.contactDetail?.fullName}');
+          if (state.contactDetail?.contactId != null) {
+            SalesbookSyncService.syncContact(state.contactDetail!.contactId!);
+          }
           this.context.read<ContactBloc>().add(const FetchContactsEvent(isRefresh: true));
           final newContact = state.contactDetail;
           WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -1268,6 +1273,10 @@ class _ContactFormPageState extends State<ContactFormPage> {
           });
         } else if (state.status == ContactStatus.updateSuccess && widget.args.page == 1) {
           setState(() => _isSaving = false);
+          print('[ContactForm] UPDATE success — contact_id: ${state.contactDetail?.contactId}');
+          if (state.contactDetail?.contactId != null) {
+            SalesbookSyncService.syncContact(state.contactDetail!.contactId!);
+          }
           this.context.read<ContactBloc>().add(const FetchContactsEvent(isRefresh: true));
           final newContact = state.contactDetail;
           WidgetsBinding.instance.addPostFrameCallback((_) {

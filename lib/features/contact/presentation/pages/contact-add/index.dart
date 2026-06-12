@@ -1224,7 +1224,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
                   (selectedStatusId == 48 ||selectedStatusId == 49 ||selectedStatusId == 50 ||selectedStatusId == 51 ||selectedStatusId == 52 ||selectedStatusId == 55 ||selectedStatusId == 56 ||selectedStatusId == 57 ||selectedStatusId == 58)? _buildFormDB():
                   (selectedStatusId == 54 ||selectedStatusId == 76 ||selectedStatusId == 53 ||selectedStatusId == 60 ||selectedStatusId == 61 ||selectedStatusId == 62)? _buildFormAppt() :
                   (selectedStatusId == 70 ||selectedStatusId == 71 ||selectedStatusId == 72 ||selectedStatusId == 73 ||selectedStatusId == 43)? _buildFormReserved() :
-                  (selectedStatusId == 74 || selectedStatusId == 75)? _buildFormSP() :
+                  (selectedStatusId == 74 || selectedStatusId == 75 ||selectedStatusId == 77 || selectedStatusId == 78)? _buildFormSP() :
                   (selectedStatusId == 63 ||selectedStatusId == 64 ||selectedStatusId == 65 ||selectedStatusId == 66 ||selectedStatusId == 67 ||selectedStatusId == 68 ||selectedStatusId == 69)? _buildFormVisit2() :
                   selectedStatusId == null ?
                   buildFormShimmer(showHeader: false) :

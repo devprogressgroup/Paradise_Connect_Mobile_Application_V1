@@ -51,7 +51,7 @@ class PermissionsHelper {
   static bool get canClockOutOffice                   => check('Attendance', 'ClockOutOffice');
   static bool get canClockOutPameran                  => check('Attendance', 'ClockOutPameran');
   static bool get canApproveRejectAttendance          => check('Attendance', 'ApproveReject');
-  static bool get canRequestApproval                  => check('Attendance', 'RequestApproval');
+
   static bool get canClockInLuarLokasi                => check('Attendance', 'ClockInLuarLokasi');
   static bool get canClockOutLuarLokasi               => check('Attendance', 'ClockOutLuarLokasi');
   static bool get canClockInLuarLokasiRequestApprove  => check('Attendance', 'ClockInLuarLokasiRequestApprove');
@@ -62,7 +62,7 @@ class PermissionsHelper {
   static bool get canClockOut => canClockOutOffice || canClockOutPameran || canClockOutLuarLokasi;
 
   // true jika minimal satu fitur attendance aktif
-  static bool get canAccessAttendance => canReadAttendance || canClockInOffice || canClockInPameran || canClockOutOffice || canClockOutPameran || canApproveRejectAttendance || canRequestApproval || canClockInLuarLokasi || canClockOutLuarLokasi || canClockInLuarLokasiRequestApprove || canClockOutLuarLokasiRequestApprove;
+  static bool get canAccessAttendance => canReadAttendance || canClockInOffice || canClockInPameran || canClockOutOffice || canClockOutPameran || canApproveRejectAttendance || canClockInLuarLokasi || canClockOutLuarLokasi || canClockInLuarLokasiRequestApprove || canClockOutLuarLokasiRequestApprove;
 
   // Attendance raw values
   static int? get rawReadAttendance                       => checkRaw('Attendance', 'ReadOnly');
