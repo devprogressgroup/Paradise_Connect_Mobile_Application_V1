@@ -80,15 +80,7 @@ class _UpdateDialogState extends State<UpdateDialog> {
                 ),
               ),
               const SizedBox(height: 8),
-              Text(
-                'v${widget.currentVersion}  →  v${widget.latestVersion}',
-                style: const TextStyle(
-                  fontSize: 13,
-                  color: Color(0xFF1565C0),
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              const SizedBox(height: 6),
+            
               const Text(
                 'Versi terbaru tersedia. Update sekarang untuk melanjutkan.',
                 style: TextStyle(fontSize: 13, color: Color(0xFF666666), height: 1.5),

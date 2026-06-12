@@ -7,14 +7,12 @@ class _EnvConfig {
   final String label;
   final String baseUrl;
   final String storageUrl;
-  final String waServerURL;
   final String serverUrl;
 
   const _EnvConfig({
     required this.label,
     required this.baseUrl,
     required this.storageUrl,
-    required this.waServerURL,
     required this.serverUrl,
   });
 }
@@ -27,7 +25,6 @@ class ApiConstants {
       label: 'Production',
       baseUrl: 'http://api.connect.paradise.id/api',
       storageUrl: 'http://api.connect.paradise.id/storage',
-      waServerURL: 'https://whatsapp.paradise.id',
       serverUrl: 'http://api.connect.paradise.id',
     ),
 
@@ -37,14 +34,12 @@ class ApiConstants {
       label: 'Development',
       baseUrl: 'http://192.168.8.36:8000/api',
       storageUrl: 'http://192.168.8.36:8000/storage',
-      waServerURL: 'http://192.168.8.36:3000',
       serverUrl: 'http://192.168.8.36:8000',
     ),
     AppEnvironment.development2: _EnvConfig(
       label: 'Development 2',
       baseUrl: 'http://192.168.18.150:8000/api',
       storageUrl: 'http://192.168.18.150:8000/storage',
-      waServerURL: 'http://192.168.18.150:3000',
       serverUrl: 'http://192.168.18.150:8000',
     ),
 
@@ -53,9 +48,7 @@ class ApiConstants {
       label: 'Production Domain',
       baseUrl: 'https://apidevconnect.paradise.id/api',
       storageUrl: 'https://apidevconnect.paradise.id/storage',
-      waServerURL: 'https://whatsapp.paradise.id',
       serverUrl: 'https://apidevconnect.paradise.id',
-   
     ),
   };
 
@@ -96,19 +89,61 @@ class ApiConstants {
 
   static String get baseUrl => _config.baseUrl;
   static String get storageUrl => _config.storageUrl;
-  static String get waServerURL => _config.waServerURL;
   static String get serverUrl => _config.serverUrl;
 
-  // Salesbook webhook — fixed URL, tidak ikut environment
-  static const String salesbookWebhookUrl = 'http://192.168.8.56/Paradise-Webhook/sync-salesbook';
-  static const String salesbookWebhookToken = 'd9f82b7a4c6e11ec94660242ac120002XSitePlan';
+  // Dynamic settings — loaded from /api/settings on startup, fallback to hardcoded defaults
+  static String _waServerUrl = '';
+  static String _salesbookWebhookUrl = '';
+  static String _salesbookWebhookToken = '';
+  static String _siteplanBaseUrl = '';
+  static String _siteplanToken = '';
+  static String _landingPageUrl = '';
+  static String _lastVersion = '';
+  static String _appDownloadUrl = '';
+  static String _saleskitUrl = '';
 
-  static const String paradiseUrl = 'https://paradise.co.id';
+  static String get waServerURL => _waServerUrl;
+  static String get salesbookWebhookUrl => _salesbookWebhookUrl;
+  static String get salesbookWebhookToken => _salesbookWebhookToken;
+  static String get siteplanBaseUrl => _siteplanBaseUrl;
+  static Map<String, String> get siteplanWebviewHeaders => {'X-App-Token': _siteplanToken};
+  static String get landingPageUrl => _landingPageUrl;
+  static String get lastVersion => _lastVersion;
+  static String get appDownloadUrl => _appDownloadUrl;
+  static String get saleskitUrl => _saleskitUrl;
 
-  static String townshipImageUrl(String slug, String fileName) =>'$paradiseUrl/bin/db/images/township/$slug/$fileName';
+  static void applySettings(List<Map<String, dynamic>> settings) {
+    for (final s in settings) {
+      final name = s['setting_name'] as String?;
+      final value = s['setting_value'] as String?;
+      if (name == null || value == null || value.isEmpty) continue;
+      switch (name) {
+        case 'WA_SERVER_URL':
+          _waServerUrl = value;
+        case 'SALESBOOK_URL':
+          _salesbookWebhookUrl = value;
+        case 'X-App-Token SalesBook':
+          _salesbookWebhookToken = value;
+        case 'SITEPLAN_MOBILE_URL':
+          _siteplanBaseUrl = value;
+        case 'X-App-Token SitePlan':
+          _siteplanToken = value;
+        case 'LANDING_PAGE_URL':
+          _landingPageUrl = value;
+        case 'LAST_VERSION':
+          _lastVersion = value;
+        case 'APP_DOWNLOAD_URL':
+          _appDownloadUrl = value;
+        case 'SALESKIT_URL':
+          _saleskitUrl = value;
+      }
+    }
+  }
 
-  static String clusterImageUrl(String townshipSlug, String fileName) =>'$paradiseUrl/bin/db/images/cluster/$townshipSlug/$fileName';
+  static String townshipImageUrl(String slug, String fileName) => '$_saleskitUrl/bin/db/images/township/$slug/$fileName';
 
-  static String commercialImageUrl(String filePath) => filePath.startsWith('bin/db/') ? '$paradiseUrl/$filePath' : '$paradiseUrl/bin/db/images/commercial/$filePath';
+  static String clusterImageUrl(String townshipSlug, String fileName) => '$_saleskitUrl/bin/db/images/cluster/$townshipSlug/$fileName';
+
+  static String commercialImageUrl(String filePath) => filePath.startsWith('bin/db/') ? '$_saleskitUrl/$filePath' : '$_saleskitUrl/bin/db/images/commercial/$filePath';
 
 }

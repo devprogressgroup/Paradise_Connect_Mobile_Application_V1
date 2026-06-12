@@ -48,6 +48,7 @@ import 'package:progress_group/features/auth/presentation/state/auth/auth_event.
 import 'package:progress_group/features/auth/presentation/state/auth/auth_state.dart';
 import 'package:progress_group/features/auth/presentation/state/profile/profile_bloc.dart';
 import 'package:progress_group/features/auth/presentation/state/profile/profile_event.dart';
+import 'package:progress_group/features/auth/presentation/state/profile/profile_state.dart';
 import 'package:progress_group/features/contact/domain/usecases/activity/create_activity_visit_usecase.dart';
 import 'package:progress_group/features/contact/domain/usecases/activity/get_activity_prospect_status_usecase.dart';
 import 'package:progress_group/features/contact/domain/usecases/activity/get_whatsapp_activity_usecase.dart';
@@ -86,6 +87,7 @@ import 'package:progress_group/features/inbox/presentation/state/message/message
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'app/router.dart';
+import 'core/network/settings_remote_datasource.dart';
 import 'core/screens/update_screen.dart';
 import 'core/services/version_check_service.dart';
 import 'features/saleskit/data/datasources/saleskit_remote_datasource.dart';
@@ -226,6 +228,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     // Infrastructure
     final localDataSource = AuthLocalDataSourceImpl(widget.prefs);
     final dioClient = DioClient(localDataSource);
+    final settingsDs = SettingsRemoteDataSource(dioClient.dio);
     PushNotificationService.setDio(dioClient.dio); // set dio saja, token dikirim setelah login
     
     // Auth
@@ -292,7 +295,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     final siteplanRepository = SitePlanRepositoryImpl(siteplanRemoteDataSource);
 
     // Landing Page
-    final landingPageRemoteDataSource = LandingPageRemoteDataSourceImpl(dioClient.dio);
+    final landingPageRemoteDataSource = LandingPageRemoteDataSourceImpl();
     final landingPageRepository = LandingPageRepositoryImpl(landingPageRemoteDataSource);
     final getLandingPageUrlUseCase = GetLandingPageUrlUseCase(landingPageRepository);
 
@@ -363,21 +366,34 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
             BlocProvider(create: (_) => TownshipBloc(getTownshipsUseCase)..add(GetTownshipsEvent())),
             BlocProvider(create: (_) => SalesKitDetailBloc(getClustersUseCase: getClustersUseCase, getCommercialsUseCase: getCommercialsUseCase)),
           ],
-          child: BlocListener<AuthBloc, AuthState>(
-            listener: (context, state) {
-              if (state is LoginSuccess) {
-                context.read<ProfileBloc>().add(GetProfileEvent());
-                context.read<AuthBloc>().add(FetchPermissionsEvent());
-                AppRouter.authNotifier.value = true;
-                // Kirim FCM token setelah login berhasil (auth token sudah ada)
-                PushNotificationService.setDio(dioClient.dio);
-                PushNotificationService.sendTokenAfterLogin();
-                PushNotificationService.checkAndShowUpdateBanner();
-              } else if (state is AuthLoggedOut) {
-                // Restart aplikasi total seolah-olah baru dibuka pertama kali
-                _resetApp();
-              }
-            },
+          child: MultiBlocListener(
+            listeners: [
+              BlocListener<AuthBloc, AuthState>(
+                listener: (context, state) {
+                  if (state is LoginSuccess) {
+                    context.read<ProfileBloc>().add(GetProfileEvent());
+                    context.read<AuthBloc>().add(FetchPermissionsEvent());
+                    AppRouter.authNotifier.value = true;
+                    // Kirim FCM token setelah login berhasil (auth token sudah ada)
+                    PushNotificationService.setDio(dioClient.dio);
+                    PushNotificationService.sendTokenAfterLogin();
+                    PushNotificationService.checkAndShowUpdateBanner();
+                  } else if (state is AuthLoggedOut) {
+                    // Restart aplikasi total seolah-olah baru dibuka pertama kali
+                    _resetApp();
+                  }
+                },
+              ),
+              BlocListener<ProfileBloc, ProfileState>(
+                listener: (context, state) {
+                  if (state is ProfileLoaded) {
+                    settingsDs.getSettings().then((s) {
+                      if (s.isNotEmpty) ApiConstants.applySettings(s);
+                    });
+                  }
+                },
+              ),
+            ],
             child: Stack(
               children: [
                 child!,

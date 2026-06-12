@@ -10,11 +10,6 @@ class SitePlanRepositoryImpl implements SitePlanRepository {
 
   SitePlanRepositoryImpl(this.dataSource);
 
-  static const String _baseUrl = 'http://dynamics.paradise.id/paradise_api/siteplan_mobile';
-  static const Map<String, String> _webviewHeaders = {
-    'X-App-Token': 'd9f82b7a4c6e11ec94660242ac120002XSitePlan',
-  };
-
   @override
   Future<List<ProjectSite>> getAvailableSites() async {
     final data = await dataSource.getSiteplanSettings();
@@ -42,8 +37,8 @@ class SitePlanRepositoryImpl implements SitePlanRepository {
             headers = const {};
           } else {
             // Mobile: URL asli, token dikirim via dart:io local proxy
-            url     = '$_baseUrl?$query&company_id=$companyId&siteplan_id=$siteplanId';
-            headers = _webviewHeaders;
+            url     = '${ApiConstants.siteplanBaseUrl}?$query&company_id=$companyId&siteplan_id=$siteplanId';
+            headers = ApiConstants.siteplanWebviewHeaders;
           }
 
           sites.add(

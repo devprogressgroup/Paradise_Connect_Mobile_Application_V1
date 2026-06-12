@@ -1,5 +1,4 @@
 import 'package:flutter/foundation.dart';
-import 'package:dio/dio.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:progress_group/core/network/api_constants.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -50,28 +49,19 @@ class VersionCheckService {
         await saveInstalledVersion(currentVersion);
       }
 
-      final dio = Dio(BaseOptions(
-        baseUrl: ApiConstants.baseUrl,
-        connectTimeout: const Duration(seconds: 10),
-        receiveTimeout: const Duration(seconds: 10),
-        headers: {"Accept": "application/json"},
-      ));
+      final latestVersion = ApiConstants.lastVersion;
+      final downloadUrl = ApiConstants.appDownloadUrl;
 
-      final response = await dio.get('/app-version');
-      final data = response.data;
-
-      if (data['status'] != true) {
+      if (latestVersion.isEmpty) {
         return VersionCheckResult(
           requiresUpdate: false,
           latestVersion: currentVersion,
           currentVersion: currentVersion,
-          downloadUrl: '',
+          downloadUrl: downloadUrl,
         );
       }
 
-      final latestVersion = data['data']['version'] as String;
-      final downloadUrl = (data['data']['download_url'] as String?) ?? '';
-      final requiresUpdate = _compareVersions(latestVersion, currentVersion) > 0;
+      final requiresUpdate = _compareVersions(latestVersion.split('+').first, currentVersion) > 0;
 
       return VersionCheckResult(
         requiresUpdate: requiresUpdate,

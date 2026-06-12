@@ -1,4 +1,4 @@
-const String logoParadiseConnect ='assets/img/logo-paradise-connect.png';
+const String logoParadiseConnect ='assets/img/LOGO-PARADISE-CONNECT-FIX.png';
 
 const String logoParadiseResort = 'assets/img/logo-paradise-resort.png';
 const String logoParadiseSerpong = 'assets/img/logo-paradise-serpong.png';

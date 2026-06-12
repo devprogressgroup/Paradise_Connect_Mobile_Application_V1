@@ -1,7 +1,7 @@
 name: progress_group
 description: "A new Flutter project."
 publish_to: 'none'
-version: 0.9.0+1
+version: 0.10.0+1
 
 environment:
   sdk: ^3.11.4
@@ -57,18 +57,16 @@ dev_dependencies:
 flutter_launcher_icons:
   android: true
   ios: true
-  image_path: "assets/img/logo-paradise-connect-padded.png"
+  image_path: "assets/img/LOGO-PARADISE-CONNECT-FIX.png"
   min_sdk_android: 21
-  adaptive_icon_background: "#FFFFFF"
-  adaptive_icon_foreground: "assets/img/logo-paradise-connect-padded.png"
 
 flutter_native_splash:
   color: "#FFFFFF"
-  image: assets/img/logo-paradise-connect-padded.png
+  image: assets/img/LOGO-FIX-PARADISE-CONNECT-Splashscreen.png
   android: true
   ios: true
   android_12:
-    image: assets/img/logo-paradise-connect-padded.png
+    image: assets/img/LOGO-FIX-PARADISE-CONNECT-Splashscreen.png
     color: "#FFFFFF"
 
 flutter:
