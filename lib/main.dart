@@ -1,6 +1,4 @@
 
-import 'dart:async';
-
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
@@ -88,8 +86,8 @@ import 'package:progress_group/features/inbox/presentation/state/message/message
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'app/router.dart';
+import 'core/screens/update_screen.dart';
 import 'core/services/version_check_service.dart';
-import 'core/widgets/update_dialog.dart';
 import 'features/saleskit/data/datasources/saleskit_remote_datasource.dart';
 import 'features/site-plan/data/datasources/siteplan_remote_datasource.dart';
 import 'features/site-plan/domain/repositories/site_plan_repository_impl.dart';
@@ -176,6 +174,7 @@ class MyApp extends StatefulWidget {
 
 class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   Key _blocKey = UniqueKey();
+  VersionCheckResult? _updateResult;
 
   @override
   void initState() {
@@ -190,7 +189,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) {
+    if (state == AppLifecycleState.resumed && _updateResult == null) {
       _checkVersion();
     }
   }
@@ -198,46 +197,8 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   Future<void> _checkVersion() async {
     try {
       final result = await VersionCheckService.check();
-      debugPrint('=== VERSION CHECK ===');
-      debugPrint('App version   : ${result.currentVersion}');
-      debugPrint('Backend version: ${result.latestVersion}');
-      debugPrint('Requires update: ${result.requiresUpdate}');
-      debugPrint('====================');
       if (!mounted || !result.requiresUpdate) return;
-
-      // Jika authNotifier masih false, kita mungkin sedang di tengah transisi
-      // splash → home (token ada, profile sedang loading). Dialog yang ditampilkan
-      // di atas route /splash akan ikut terhapus saat GoRouter mengganti splash
-      // dengan home. Tunggu hingga auth selesai (atau timeout 3.5 detik).
-      if (!AppRouter.authNotifier.value) {
-        final completer = Completer<void>();
-        void onAuthChanged() {
-          if (!completer.isCompleted) completer.complete();
-        }
-        AppRouter.authNotifier.addListener(onAuthChanged);
-        await Future.any([
-          completer.future,
-          Future.delayed(const Duration(milliseconds: 3500)),
-        ]);
-        AppRouter.authNotifier.removeListener(onAuthChanged);
-        if (!mounted) return;
-        // Beri satu jeda kecil agar GoRouter selesai memproses rebuild navigasi
-        await Future.delayed(const Duration(milliseconds: 150));
-        if (!mounted) return;
-      }
-
-      final context = AppRouter.rootNavigatorKey.currentContext;
-      if (context == null || !context.mounted) return;
-
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (_) => UpdateDialog(
-          currentVersion: result.currentVersion,
-          latestVersion: result.latestVersion,
-          downloadUrl: result.downloadUrl,
-        ),
-      );
+      setState(() => _updateResult = result);
     } catch (_) {}
   }
 
@@ -417,7 +378,17 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
                 _resetApp();
               }
             },
-            child: child!,
+            child: Stack(
+              children: [
+                child!,
+                if (_updateResult != null)
+                  UpdateScreen(
+                    downloadUrl: _updateResult!.downloadUrl,
+                    currentVersion: _updateResult!.currentVersion,
+                    latestVersion: _updateResult!.latestVersion,
+                  ),
+              ],
+            ),
           ),
         );
       },

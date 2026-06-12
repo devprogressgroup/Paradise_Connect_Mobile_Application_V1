@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:progress_group/core/constants/assets.dart';
-import 'package:url_launcher/url_launcher.dart';
+import 'package:progress_group/core/services/ota_update_service.dart';
 
-class UpdateDialog extends StatelessWidget {
+enum _UpdateState { idle, downloading, installing, error }
+
+class UpdateDialog extends StatefulWidget {
   final String currentVersion;
   final String latestVersion;
   final String downloadUrl;
@@ -13,6 +15,45 @@ class UpdateDialog extends StatelessWidget {
     required this.latestVersion,
     required this.downloadUrl,
   });
+
+  @override
+  State<UpdateDialog> createState() => _UpdateDialogState();
+}
+
+class _UpdateDialogState extends State<UpdateDialog> {
+  _UpdateState _state = _UpdateState.idle;
+  double _progress = 0;
+  String _errorMessage = '';
+
+  void _startDownload() {
+    if (widget.downloadUrl.isEmpty) return;
+    setState(() {
+      _state = _UpdateState.downloading;
+      _progress = 0;
+    });
+
+    OtaUpdateService.downloadAndInstall(
+      downloadUrl: widget.downloadUrl,
+      onProgress: (p) {
+        if (mounted) setState(() => _progress = p);
+      },
+      onError: (msg) {
+        if (mounted) setState(() {
+          _state = _UpdateState.error;
+          _errorMessage = msg;
+        });
+      },
+      onInstalling: () {
+        if (mounted) setState(() => _state = _UpdateState.installing);
+      },
+    );
+  }
+
+  @override
+  void dispose() {
+    if (_state == _UpdateState.downloading) OtaUpdateService.cancel();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -39,60 +80,114 @@ class UpdateDialog extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 8),
+              Text(
+                'v${widget.currentVersion}  →  v${widget.latestVersion}',
+                style: const TextStyle(
+                  fontSize: 13,
+                  color: Color(0xFF1565C0),
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 6),
               const Text(
-                'Versi terbaru aplikasi Paradise Connect tersedia. Update sekarang untuk melanjutkan.',
+                'Versi terbaru tersedia. Update sekarang untuk melanjutkan.',
                 style: TextStyle(fontSize: 13, color: Color(0xFF666666), height: 1.5),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 20),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  onPressed: downloadUrl.isNotEmpty
-                      ? () async {
-                          final uri = Uri.parse(downloadUrl);
-                          if (await canLaunchUrl(uri)) {
-                            await launchUrl(uri, mode: LaunchMode.externalApplication);
-                          }
-                        }
-                      : null,
-                  icon: const Icon(Icons.download_rounded),
-                  label: const Text('Download Sekarang', style: TextStyle(fontSize: 15)),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF1565C0),
-                    foregroundColor: Colors.white,
-                    disabledBackgroundColor: Colors.grey[300],
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  ),
-                ),
-              ),
+              _buildActionArea(),
             ],
           ),
         ),
       ),
     );
   }
-}
 
-class _VersionBadge extends StatelessWidget {
-  final String label;
-  final String version;
-  final Color color;
+  Widget _buildActionArea() {
+    switch (_state) {
+      case _UpdateState.idle:
+        return SizedBox(
+          width: double.infinity,
+          child: ElevatedButton.icon(
+            onPressed: widget.downloadUrl.isNotEmpty ? _startDownload : null,
+            icon: const Icon(Icons.download_rounded),
+            label: const Text('Download & Install', style: TextStyle(fontSize: 15)),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF1565C0),
+              foregroundColor: Colors.white,
+              disabledBackgroundColor: Colors.grey[300],
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+          ),
+        );
 
-  const _VersionBadge({required this.label, required this.version, required this.color});
+      case _UpdateState.downloading:
+        final percent = (_progress * 100).toInt();
+        return Column(
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text('Mengunduh...', style: TextStyle(fontSize: 13, color: Color(0xFF444444))),
+                Text('$percent%', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Color(0xFF1565C0))),
+              ],
+            ),
+            const SizedBox(height: 8),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: LinearProgressIndicator(
+                value: _progress,
+                minHeight: 10,
+                backgroundColor: const Color(0xFFE0E0E0),
+                valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF1565C0)),
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextButton(
+              onPressed: () {
+                OtaUpdateService.cancel();
+                setState(() => _state = _UpdateState.idle);
+              },
+              child: const Text('Batalkan', style: TextStyle(color: Colors.grey)),
+            ),
+          ],
+        );
 
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Text(label, style: const TextStyle(fontSize: 11, color: Colors.grey)),
-        const SizedBox(height: 3),
-        Text(
-          'v$version',
-          style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: color),
-        ),
-      ],
-    );
+      case _UpdateState.installing:
+        return Column(
+          children: const [
+            CircularProgressIndicator(color: Color(0xFF1565C0)),
+            SizedBox(height: 12),
+            Text('Membuka installer...', style: TextStyle(fontSize: 13, color: Color(0xFF444444))),
+          ],
+        );
+
+      case _UpdateState.error:
+        return Column(
+          children: [
+            Text(
+              _errorMessage,
+              style: const TextStyle(fontSize: 12, color: Colors.red),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: _startDownload,
+                icon: const Icon(Icons.refresh_rounded),
+                label: const Text('Coba Lagi', style: TextStyle(fontSize: 15)),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF1565C0),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+              ),
+            ),
+          ],
+        );
+    }
   }
 }
