@@ -3,6 +3,7 @@ import '../../../domain/entities/prospect/prospect_status.dart';
 class ProspectStatusModel extends ProspectStatusEntity {
   const ProspectStatusModel({
     required super.statusProspectId,
+    required super.statusValue,
     required super.statusProspectName,
     
   });
@@ -10,6 +11,7 @@ class ProspectStatusModel extends ProspectStatusEntity {
   factory ProspectStatusModel.fromJson(Map<String, dynamic> json) {
     return ProspectStatusModel(
       statusProspectId: json['status_prospect_id'] as int,
+      statusValue: json['status_value'] as String,
       statusProspectName: json['status_prospect_name'] as String,
     );
   }
@@ -17,6 +19,7 @@ class ProspectStatusModel extends ProspectStatusEntity {
   Map<String, dynamic> toJson() {
     return {
       'status_prospect_id': statusProspectId,
+      'status_value': statusValue,
       'status_prospect_name': statusProspectName,
     };
   }

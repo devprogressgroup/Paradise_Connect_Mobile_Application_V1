@@ -90,6 +90,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
   int? selectedLostReasonId;
   String? selectedLostReasonName;
   int? selectedStatusId;
+  String? selectedStatusValue;
   String? selectedStatusValueProspect;
 
   String? selectedProject;
@@ -171,9 +172,13 @@ class _ContactAddPageState extends State<ContactAddPage> {
       }
 
       // LOST
-      if ([  55,  56,  57,  58,  61,  62,  67,  68,  69,  73,  75,  77,  78,].contains(statusId)) {
-        if (data.lostDate != null && data.lostDate.isNotEmpty) {
-          return DateTime.parse(data.lostDate);
+      if ([4, 5, 6, 9, 11, 13, 50, 55, 56, 57, 58, 59, 61, 62, 67, 68, 69, 73, 75, 77, 78].contains(statusId)) {
+        if (data.lastLostDate != null && data.lastLostDate.isNotEmpty) {
+          final d = DateTime.parse(data.lastLostDate);
+          final n = DateTime.now();
+          return d.hour == 0 && d.minute == 0
+              ? DateTime(d.year, d.month, d.day, n.hour, n.minute, 0)
+              : d;
         }
       }
     } catch (_) {}
@@ -186,8 +191,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
 
     const allowedIds = [63, 64, 65];
 
-    final isValid =
-        selectedStatusId != null && allowedIds.contains(selectedStatusId);
+    final isValid = selectedStatusId != null && allowedIds.contains(selectedStatusId);
 
     if (!isValid && statuses.isNotEmpty) {
       final validStatuses = statuses
@@ -201,6 +205,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
         );
         setState(() {
           selectedStatusId = defaultStatus.statusProspectId;
+          selectedStatusValue = defaultStatus.statusValue;
           selectedStatusName = defaultStatus.statusProspectName;
         });
       }
@@ -649,8 +654,11 @@ class _ContactAddPageState extends State<ContactAddPage> {
     final lastSPDate = (selectedStatusId == 74) && (selectedDate != null) ? DateFormat('yyyy-MM-dd').format(selectedDate!) : null;
 
     // Lost: 43, 55-58, 61-62, 67-69, 73, 75, 77, 78
+    // final firstLostDate =(contact?.firstLostDate == null && selectedDate != null)? DateFormat('yyyy-MM-dd').format(selectedDate!): null;
+    // final lostDate =(selectedStatusId == 67 ||selectedStatusId == 68 ||selectedStatusId == 69  ) &&(selectedDate != null)? DateFormat('yyyy-MM-dd').format(selectedDate!): null;
     final firstLostDate =(contact?.firstLostDate == null && selectedDate != null)? DateFormat('yyyy-MM-dd').format(selectedDate!): null;
-    final lostDate =(selectedStatusId == 43 ||selectedStatusId == 55 ||selectedStatusId == 56 ||selectedStatusId == 57 ||selectedStatusId == 58 ||selectedStatusId == 61 ||selectedStatusId == 62 ||selectedStatusId == 67 ||selectedStatusId == 68 ||selectedStatusId == 69 ||selectedStatusId == 73 ||selectedStatusId == 77 ||selectedStatusId == 78 ||selectedStatusId == 75) &&(selectedDate != null)? DateFormat('yyyy-MM-dd').format(selectedDate!): null;
+    final lostDate =(selectedStatusId == 4 ||selectedStatusId == 5 ||selectedStatusId == 6 ||selectedStatusId == 9 ||selectedStatusId == 11 ||selectedStatusId == 13 ||selectedStatusId == 43 ||selectedStatusId == 50 ||selectedStatusId == 55 ||selectedStatusId == 56 ||selectedStatusId == 57 ||selectedStatusId == 58 ||selectedStatusId == 59 ||selectedStatusId == 61 ||selectedStatusId == 62 ||selectedStatusId == 67 ||selectedStatusId == 68 ||selectedStatusId == 69 ||selectedStatusId == 73 ||selectedStatusId == 75 ||selectedStatusId == 77 ||selectedStatusId == 78) &&(selectedDate != null)? DateFormat('yyyy-MM-dd').format(selectedDate!): null;
+
 
     if (contact == null) return;
 
@@ -1065,7 +1073,6 @@ class _ContactAddPageState extends State<ContactAddPage> {
         SizedBox(height: 12),
         _fieldNote(),
         SizedBox(height: 12),
-        Container(child:selectedStatusId == 77 ||selectedStatusId == 78 ||selectedStatusId == 75? _buildLostForm(): Container(),),
         _buildButtonSave(),
       ],
     );
@@ -1086,9 +1093,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
         SizedBox(height: 12),
         _fieldNote(),
         SizedBox(height: 12),
-        Container(
-          child:selectedStatusId == 77 ||selectedStatusId == 78 ||selectedStatusId == 75? _buildLostForm(): Container(),
-        ),
+
         _buildButtonSave(),
       ],
     );
@@ -1107,11 +1112,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
         SizedBox(height: 12),
         _fieldNote(),
         SizedBox(height: 12),
-        Container(
-          child: selectedStatusId == 73 || selectedStatusId == 43 
-              ? _buildLostForm()
-              : Container(),
-        ),
+
         _buildButtonSave(),
       ],
     );
@@ -1130,11 +1131,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
         SizedBox(height: 12),
         _fieldVolume(),
         SizedBox(height: 12),
-        Container(
-          child: selectedStatusId == 61 || selectedStatusId == 62
-              ? _buildLostForm()
-              : Container(),
-        ),
+
         _buildButtonSave(),
       ],
     );
@@ -1151,15 +1148,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
         SizedBox(height: 12),
         _fieldNote(),
         SizedBox(height: 12),
-        Container(
-          child:
-              selectedStatusId == 55 ||
-                  selectedStatusId == 56 ||
-                  selectedStatusId == 57 ||
-                  selectedStatusId == 58
-              ? _buildLostForm()
-              : Container(),
-        ),
+
         _buildButtonSave(),
       ],
     );
@@ -1221,12 +1210,12 @@ class _ContactAddPageState extends State<ContactAddPage> {
           children: [
             Container(
               child:
-                  (selectedStatusId == 48 ||selectedStatusId == 49 ||selectedStatusId == 50 ||selectedStatusId == 51 ||selectedStatusId == 52 ||selectedStatusId == 55 ||selectedStatusId == 56 ||selectedStatusId == 57 ||selectedStatusId == 58)? _buildFormDB():
-                  (selectedStatusId == 54 ||selectedStatusId == 76 ||selectedStatusId == 53 ||selectedStatusId == 60 ||selectedStatusId == 61 ||selectedStatusId == 62)? _buildFormAppt() :
-                  (selectedStatusId == 70 ||selectedStatusId == 71 ||selectedStatusId == 72 ||selectedStatusId == 73 ||selectedStatusId == 43)? _buildFormReserved() :
-                  (selectedStatusId == 74 || selectedStatusId == 75 ||selectedStatusId == 77 || selectedStatusId == 78)? _buildFormSP() :
-                  (selectedStatusId == 63 ||selectedStatusId == 64 ||selectedStatusId == 65 ||selectedStatusId == 66 ||selectedStatusId == 67 ||selectedStatusId == 68 ||selectedStatusId == 69)? _buildFormVisit2() :
-                  selectedStatusId == null ?
+                  (selectedStatusId == 48 ||selectedStatusId == 49 ||selectedStatusId == 51 ||selectedStatusId == 52   )? _buildFormDB():
+                  (selectedStatusId == 54 ||selectedStatusId == 76 ||selectedStatusId == 53 ||selectedStatusId == 60 )? _buildFormAppt() :
+                  (selectedStatusId == 70 ||selectedStatusId == 71 ||selectedStatusId == 72 ||selectedStatusId == 43)? _buildFormReserved() :
+                  (selectedStatusId == 74)? _buildFormSP() :
+                  (selectedStatusId == 63 ||selectedStatusId == 64 ||selectedStatusId == 65 ||selectedStatusId == 66)? _buildFormVisit2() :
+                  (selectedStatusId == 50 ||selectedStatusId == 55 ||selectedStatusId == 56 ||selectedStatusId == 57 ||selectedStatusId == 58 ||selectedStatusId == 59 ||selectedStatusId == 61 ||selectedStatusId == 62 ||selectedStatusId == 67 ||selectedStatusId == 68 ||selectedStatusId == 69 ||selectedStatusId == 73 ||selectedStatusId == 75 ||selectedStatusId == 77 ||selectedStatusId == 78 ||selectedStatusId == 5 ||selectedStatusId == 13 ||selectedStatusId == 6 ||selectedStatusId == 4 ||selectedStatusId == 11 ||selectedStatusId == 9)? _buildLostForm(): selectedStatusId == null ?
                   buildFormShimmer(showHeader: false) :
                   Container(child: Text("not found ${selectedStatusId} ${selectedStatusName} form",),),
             ),
@@ -1304,10 +1293,15 @@ class _ContactAddPageState extends State<ContactAddPage> {
   Widget _buildLostForm() {
     return Column(
       children: [
+        _fieldStatusProspect(),
+        SizedBox(height: 12),
+        _fieldDate(),
+        SizedBox(height: 12),
         _fieldLostReason(),
         SizedBox(height: 12),
         _fieldLostReasonNote(),
         SizedBox(height: 12),
+        _buildButtonSave(),
       ],
     );
   }

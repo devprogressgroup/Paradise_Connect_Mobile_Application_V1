@@ -86,6 +86,21 @@ class PermissionsHelper {
   // true jika minimal satu fitur contacts aktif
   static bool get canAccessContacts => canReadContacts || canModifyContacts || canDeleteContacts || canModifyAttachment || canDeleteAttachment;
 
+  // Contact action-level helpers
+  // canModify = true → semua aksi aktif, abaikan permission lain
+  static bool get canCreateContact => canModifyContacts;
+  static bool get canEditContact   => canModifyContacts;
+  static bool get canDeleteContact => canModifyContacts || canDeleteContacts;
+
+  // Attachment action-level helpers
+  // canModify = true → upload/edit/delete semua bisa
+  // canDeleteAttachment saja → hanya view + delete
+  // keduanya false tapi canRead = true → view only
+  static bool get canUploadAttachment     => canModifyContacts || canModifyAttachment;
+  static bool get canEditAttachmentItem   => canModifyContacts || canModifyAttachment;
+  static bool get canDeleteAttachmentItem => canModifyContacts || canModifyAttachment || canDeleteAttachment;
+  static bool get canViewAttachment       => canModifyContacts || canModifyAttachment || canDeleteAttachment || canReadContacts;
+
   // Sales Kit
   static bool get canModifySalesKit       => check('Sales Kit', 'Modify');
   static bool get canReadSalesKit         => check('Sales Kit', 'ReadOnly');

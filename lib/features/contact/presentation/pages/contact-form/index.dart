@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:progress_group/core/utils/helpers/permissions_helper.dart';
 import 'package:progress_group/core/services/salesbook_sync_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_contacts/flutter_contacts.dart';
@@ -2634,6 +2635,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
   }
 
   void _goEditForm({String? focusField}) async {
+    if (!PermissionsHelper.canEditContact) return;
     await context.pushNamed(
       'formContact',
       extra: ContactDetailArgs(
@@ -2651,6 +2653,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
   }
 
   void _goEditStatus() async {
+    if (!PermissionsHelper.canEditContact) return;
     final contact = widget.args.dataContact;
     if (contact == null) return;
 

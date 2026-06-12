@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:progress_group/core/utils/helpers/permissions_helper.dart';
-import 'package:progress_group/core/utils/widget/custom_snackbar.dart';
 import 'package:progress_group/core/utils/widget/shimmer_loading.dart';
 import 'package:go_router/go_router.dart';
 import 'package:progress_group/core/constants/assets.dart';
@@ -484,6 +483,7 @@ class _ContactPageState extends State<ContactPage> {
                                   },
                                 ),
                               ),
+
                               Expanded(
                                 child: Builder(
                                   builder: (context) {
@@ -521,21 +521,17 @@ class _ContactPageState extends State<ContactPage> {
           ],
         ),
       ),
-      floatingActionButton: Padding(
-        padding: const EdgeInsets.only(bottom: 10),
-        child: FloatingActionButton(
-          onPressed: () {
-            if (!PermissionsHelper.canModifyContacts) {
-              showSnackbar(context, 'Anda tidak punya akses', isError: true);
-              return;
-            }
-            context.pushNamed('formContact', extra: ContactDetailArgs(page: 0));
-          },
-          backgroundColor: Color(primaryColor),
-          shape: const CircleBorder(),
-          child: const Icon(Icons.add, color: Colors.white),
-        ),
-      ),
+      floatingActionButton: PermissionsHelper.canCreateContact
+          ? Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: FloatingActionButton(
+                onPressed: () => context.pushNamed('formContact', extra: ContactDetailArgs(page: 0)),
+                backgroundColor: Color(primaryColor),
+                shape: const CircleBorder(),
+                child: const Icon(Icons.add, color: Colors.white),
+              ),
+            )
+          : null,
     );
   }
 }
@@ -612,31 +608,27 @@ Widget _buildContactOptions(BuildContext context, ContactEntity contact) {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _buildIconLink(context, icEdit, "Edit Contact", () {
-          if (!PermissionsHelper.canModifyContacts) {
-            showSnackbar(context, 'Anda tidak punya akses', isError: true);
-            return;
-          }
-          context.pushNamed('formContact', extra: ContactDetailArgs(dataContact: contact, page: 1));
-        }),
+            context.pushNamed('formContact', extra: ContactDetailArgs(dataContact: contact, page: 1));
+          }, disabled: !PermissionsHelper.canEditContact),
         _buildIconLink(context, icDelete, "Delete Contact", () {
-          showDialog(
-            context: context,
-            builder: (ctx) => AlertDialog(
-              title: Text('Confirm'),
-              content: Text('Delete this contact?'),
-              actions: [
-                TextButton(onPressed: () => Navigator.pop(ctx), child: Text('Cancel')),
-                TextButton(
-                  onPressed: () {
-                    Navigator.pop(ctx);
-                    context.read<ContactBloc>().add(DeleteContactEvent(contact.contactId!));
-                  },
-                  child: Text('Delete'),
-                ),
-              ],
-            ),
-          );
-        }, disabled: !PermissionsHelper.canDeleteContacts),
+            showDialog(
+              context: context,
+              builder: (ctx) => AlertDialog(
+                title: Text('Confirm'),
+                content: Text('Delete this contact?'),
+                actions: [
+                  TextButton(onPressed: () => Navigator.pop(ctx), child: Text('Cancel')),
+                  TextButton(
+                    onPressed: () {
+                      Navigator.pop(ctx);
+                      context.read<ContactBloc>().add(DeleteContactEvent(contact.contactId!));
+                    },
+                    child: Text('Delete'),
+                  ),
+                ],
+              ),
+            );
+          }, disabled: !PermissionsHelper.canDeleteContact),
         _buildIconLink(context, icShare, "Share Contact", () {
           ShareHelper.shareContact(contact);
         }),

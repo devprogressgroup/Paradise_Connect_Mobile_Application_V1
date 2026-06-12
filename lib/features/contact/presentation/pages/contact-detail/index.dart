@@ -35,9 +35,9 @@ import 'package:progress_group/features/inbox/presentation/state/inbox/inbox_sta
 
 import 'package:url_launcher/url_launcher.dart';
 import 'package:progress_group/core/utils/helpers/permissions_helper.dart';
-import 'package:progress_group/core/utils/widget/custom_snackbar.dart';
 import 'package:progress_group/features/auth/presentation/state/auth/auth_bloc.dart';
 import 'package:progress_group/features/auth/presentation/state/auth/auth_event.dart';
+import 'package:progress_group/features/auth/presentation/state/auth/auth_state.dart';
 import '../../../../../core/utils/widget/custom_bg_icon.dart';
 import '../../../../../core/utils/widget/custom_buttomsheet.dart';
 import '../../../../../core/utils/widget/error_dialog.dart';
@@ -227,29 +227,27 @@ class _ContactDetailPageState extends State<ContactDetailPage>with TickerProvide
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(body: SafeArea(child: _selectContact()));
+    return BlocListener<AuthBloc, AuthState>(
+      listener: (context, state) {
+        if (state is PermissionsLoaded) setState(() {});
+      },
+      child: Scaffold(body: SafeArea(child: _selectContact())),
+    );
   }
 
   Widget _selectContact() {
     return Scaffold(
-      floatingActionButton: Padding(
-        padding: const EdgeInsets.only(bottom: 10),
-        child: FloatingActionButton(
-          onPressed: () {
-            if (!PermissionsHelper.canModifyContacts) {
-              showSnackbar(context, 'Anda tidak punya akses', isError: true);
-              return;
-            }
-            showCustomBottomSheet(
-              context: context,
-              child: _buildContentBSAdd(),
-            );
-          },
-          backgroundColor: Color(primaryColor),
-          shape: const CircleBorder(),
-          child: const Icon(Icons.add, color: Colors.white),
-        ),
-      ),
+      floatingActionButton: PermissionsHelper.canModifyContacts
+          ? Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: FloatingActionButton(
+                onPressed: () => showCustomBottomSheet(context: context, child: _buildContentBSAdd()),
+                backgroundColor: Color(primaryColor),
+                shape: const CircleBorder(),
+                child: const Icon(Icons.add, color: Colors.white),
+              ),
+            )
+          : null,
       body: SafeArea(
         child: DefaultTabController(
           length: tabs.length,
@@ -1337,10 +1335,6 @@ class _ContactDetailPageState extends State<ContactDetailPage>with TickerProvide
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _buildIconLink(context, icEdit, "Edit Contact", () async {
-            if (!PermissionsHelper.canModifyContacts) {
-              showSnackbar(context, 'Anda tidak punya akses', isError: true);
-              return;
-            }
             final result = await context.pushNamed(
               'formContact',
               extra: ContactDetailArgs(
@@ -1355,7 +1349,7 @@ class _ContactDetailPageState extends State<ContactDetailPage>with TickerProvide
                 _tabController.animateTo(result);
               });
             }
-          }),
+          }, disabled: !PermissionsHelper.canEditContact),
           _buildIconLink(context, icDelete, "Delete Contact", () {
             showDialog(
               context: context,
@@ -1380,7 +1374,7 @@ class _ContactDetailPageState extends State<ContactDetailPage>with TickerProvide
                 ],
               ),
             );
-          }, disabled: !PermissionsHelper.canDeleteContacts),
+          }, disabled: !PermissionsHelper.canDeleteContact),
           _buildIconLink(context, icShare, "Share Contact", () {
             ShareHelper.shareContact(contact);
           }),

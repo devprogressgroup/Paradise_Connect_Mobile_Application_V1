@@ -16,7 +16,7 @@ import 'package:progress_group/features/contact/presentation/state/whatsapp_acti
 import 'package:progress_group/features/contact/presentation/state/whatsapp_activity/whatsapp_unread_summary_event.dart';
 import 'package:progress_group/core/utils/helpers/permissions_helper.dart';
 import 'package:progress_group/features/auth/presentation/state/auth/auth_state.dart';
-import 'package:shimmer/shimmer.dart';
+import 'package:progress_group/core/utils/widget/shimmer_loading.dart';
 
 class MainLayout extends StatefulWidget {
   final Widget child;
@@ -253,17 +253,7 @@ class _MainLayoutState extends State<MainLayout> {
           buildWhen: (prev, curr) => curr is PermissionsLoading || curr is PermissionsLoaded || curr is PermissionsError,
           builder: (context, state) {
             if (state is PermissionsLoading) {
-              return Shimmer.fromColors(
-                baseColor: Colors.grey[300]!,
-                highlightColor: Colors.grey[100]!,
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceAround,
-                  children: List.generate(4, (_) => Container(
-                    width: 40, height: 40,
-                    decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8)),
-                  )),
-                ),
-              );
+              return const ShimmerBottomNav();
             }
 
             if (state is PermissionsError) {

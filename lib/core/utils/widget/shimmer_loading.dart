@@ -1146,6 +1146,27 @@ Widget buildApprovalShimmer() {
   );
 }
 
+// ─── Bottom Nav Loading ───────────────────────────────────────────────────────
+class ShimmerBottomNav extends StatelessWidget {
+  final int itemCount;
+  final double itemSize;
+
+  const ShimmerBottomNav({super.key, this.itemCount = 4, this.itemSize = 40});
+
+  @override
+  Widget build(BuildContext context) {
+    return _shimmerWrap(
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceAround,
+        children: List.generate(
+          itemCount,
+          (_) => _ShimmerBox(width: itemSize, height: itemSize, borderRadius: 8),
+        ),
+      ),
+    );
+  }
+}
+
 // ─── Form / Detail Loading ────────────────────────────────────────────────────
 Widget buildFormShimmer({bool showHeader = true}) {
   Widget fieldRow({double labelWidth = 100, double fieldHeight = 44}) => Padding(
