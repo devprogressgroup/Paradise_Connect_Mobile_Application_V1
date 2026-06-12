@@ -36,7 +36,6 @@ import 'package:progress_group/features/auth/presentation/state/auth/auth_bloc.d
 import 'package:progress_group/features/auth/presentation/state/auth/auth_event.dart';
 import 'package:progress_group/features/auth/presentation/state/auth/auth_state.dart';
 import 'package:progress_group/features/contact/data/arguments/contact_dropdown_args.dart';
-import 'package:progress_group/features/contact/data/models/dropdown/date_filter.dart';
 import '../../../../../core/utils/helpers/date_helper.dart';
 import '../../../../../core/utils/helpers/error_message.dart';
 import 'package:progress_group/core/utils/web_download.dart';
@@ -79,13 +78,11 @@ class _AttandancePageState extends State<AttandancePage> {
   List<int>? _attendanceOwnerIds;
   String? _attendanceStartDate;
   String? _attendanceEndDate;
-  String? _attendanceDateLabel;
 
   // Activity Log filter
   List<int>? _activityOwnerIds;
   String? _activityStartDate;
   String? _activityEndDate;
-  String? _activityDateLabel;
 
 
   @override
@@ -1523,91 +1520,12 @@ class _AttandancePageState extends State<AttandancePage> {
     );
   }
 
-  Widget _filterDate({String section = 'activity'}) {
-    final isAttendance = section == 'attendance';
-    final startDate = isAttendance ? _attendanceStartDate : _activityStartDate;
-    final endDate = isAttendance ? _attendanceEndDate : _activityEndDate;
-    final dateLabel = isAttendance ? _attendanceDateLabel : _activityDateLabel;
-
-    final isSelected = startDate != null && endDate != null;
-    String label = 'Date';
-    if (isSelected) {
-      if (dateLabel != null) {
-        label = dateLabel;
-      } else {
-        final start = DateTime.tryParse(startDate);
-        final end = DateTime.tryParse(endDate);
-        if (start != null && end != null) {
-          label = '${DateFormat('d MMM').format(start)} - ${DateFormat('d MMM').format(end)}';
-        }
-      }
-    }
-
-    return CustomFilterButton(
-      label: label,
-      isSelected: isSelected,
-      onTap: () async {
-        final result = await context.pushNamed<DateFilterResult>(
-          'dateFilter',
-          extra: {
-            'label': dateLabel,
-            'startDate': startDate,
-            'endDate': endDate,
-          },
-        );
-
-        if (result != null) {
-          if (result.isClear) {
-            setState(() {
-              if (isAttendance) {
-                _attendanceStartDate = null;
-                _attendanceEndDate = null;
-                _attendanceDateLabel = null;
-              } else {
-                _activityStartDate = null;
-                _activityEndDate = null;
-                _activityDateLabel = null;
-              }
-            });
-          } else {
-            setState(() {
-              if (isAttendance) {
-                _attendanceStartDate = result.startDate;
-                _attendanceEndDate = result.endDate;
-                _attendanceDateLabel = result.label;
-              } else {
-                _activityStartDate = result.startDate;
-                _activityEndDate = result.endDate;
-                _activityDateLabel = result.label;
-              }
-            });
-          }
-          if (isAttendance) {
-            _attendanceLogLoaded = true;
-            context.read<AttendanceBloc>().add(FetchAttendanceDataEvent(
-              salesPersonIds: _attendanceOwnerIds,
-              startDate: _attendanceStartDate,
-              endDate: _attendanceEndDate,
-            ));
-          } else {
-            context.read<AttendanceActivityBloc>().add(GetAttendanceActivityEvent(
-              salesPersonIds: _activityOwnerIds,
-              startDate: _activityStartDate,
-              endDate: _activityEndDate,
-            ));
-          }
-        }
-      },
-    );
-  }
-
   Widget _buildAttendanceLog() {
     return Container(
       width: double.infinity,
       margin: EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-      padding: EdgeInsets.symmetric(vertical: 14, horizontal: 16),
       decoration: BoxDecoration(
-        color: Color(whiteColor),
+      
         borderRadius: BorderRadius.circular(16),
       ),
       child: BlocBuilder<AttendanceBloc, AttendanceState>(
@@ -1637,15 +1555,25 @@ class _AttandancePageState extends State<AttandancePage> {
                 ),
               );
             } else {
+              // Group by person + ISO week (Monday start)
+              DateTime weekStartOf(DateTime d) => d.subtract(Duration(days: d.weekday - 1));
+
+              final Map<String, List<AttendanceEntity>> weekGroups = {};
+              for (final item in data) {
+                final d = DateTime.parse(item.date);
+                final ws = weekStartOf(d);
+                final key = '${item.fullName ?? ""}__${ws.year}-${ws.month.toString().padLeft(2, "0")}-${ws.day.toString().padLeft(2, "0")}';
+                weekGroups.putIfAbsent(key, () => []).add(item);
+              }
+
+              final sortedKeys = weekGroups.keys.toList()
+                ..sort((a, b) => b.split('__').last.compareTo(a.split('__').last));
+
               content = Column(
                 children: [
-                  ListView.builder(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    padding: EdgeInsets.zero,
-                    itemCount: data.length,
-                    itemBuilder: (_, i) => RepaintBoundary(child: _buildCardAttendance(data[i])),
-                  ),
+                  ...sortedKeys.map((key) => RepaintBoundary(
+                    child: _buildWeeklyAttendanceCard(weekGroups[key]!),
+                  )),
                   if (state.attendanceLoadingMore)
                     const Padding(
                       padding: EdgeInsets.symmetric(vertical: 16),
@@ -2017,6 +1945,52 @@ class _AttandancePageState extends State<AttandancePage> {
     );
   }
 
+  Widget _buildWeeklyAttendanceCard(List<AttendanceEntity> items) {
+    final firstDate = DateTime.parse(items.first.date);
+    final weekStart = firstDate.subtract(Duration(days: firstDate.weekday - 1));
+    final weekEnd = weekStart.add(const Duration(days: 6));
+    final name = items.first.fullName ?? '';
+
+    final sameMonth = weekStart.month == weekEnd.month;
+   
+    // Sort days oldest → newest
+    final sorted = [...items]..sort((a, b) => a.date.compareTo(b.date));
+
+    return Container(
+      width: double.infinity,
+      margin: EdgeInsets.only(bottom: 10),
+      padding: EdgeInsets.symmetric(vertical: 14, horizontal: 5),
+      decoration: BoxDecoration(
+        color: Color(whiteColor),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header: name + date range
+          Padding(
+            padding: const EdgeInsets.only(bottom: 6, left: 12, right: 12),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                if (name.isNotEmpty)
+                  Expanded(
+                    child: Text(
+                      name,
+                      style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          // Day rows using original card style
+          ...sorted.map((item) => _buildCardAttendance(item)),
+        ],
+      ),
+    );
+  }
+
   Widget _buildCardAttendance(AttendanceEntity item) {
     final date = DateTime.parse(item.date);
     final bool pendingIn = item.clockIn != null && (item.needsApproval0 ?? false) && item.isApprove0 == null && item.isReject0 == null;
@@ -2024,312 +1998,95 @@ class _AttandancePageState extends State<AttandancePage> {
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
-      child: Container(
-          color: Colors.transparent,
+      child: Row(
+        children: [
+          // DATE
+          Container(
+            width: 56,
+            height: 48,
+            decoration: BoxDecoration(
+              color: Color(grey10Color),
+              borderRadius: BorderRadius.circular(6),
+            ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text('${date.day}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                Text(DateFormat('EEE').format(date), style: const TextStyle(fontSize: 11)),
+              ],
+            ),
+          ),
 
-        child: Row(
-          children: [
+          const SizedBox(width: 8),
 
-            /// DATE
-            Container(
-              width: 56,
-              height: 48,
-              decoration: BoxDecoration(
-                color: Color(grey9Color),
-                borderRadius: BorderRadius.circular(6),
-              ),
+          // CLOCK IN
+          Expanded(
+            child: GestureDetector(
+              onTap: (!pendingIn && item.clockIn != null) ? () => _showAttendanceDialog(item, 0) : null,
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Text("${date.day}", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                  Text(DateFormat('EEE').format(date), style: TextStyle(fontSize: 11)),
+                  Icon(Icons.access_time_filled, size: 16, color: Color(greenPercentColor)),
+                  const SizedBox(height: 2),
+                  if (pendingIn) ...[
+                    const Text('-', textAlign: TextAlign.center, style: TextStyle(fontSize: 12)),
+                    _buildInlineBadge('Pending', Colors.orange),
+                  ] else ...[
+                    Text(
+                      item.clockIn != null ? DateHelper.formatTime(DateTime.parse(item.clockIn!)) : '-',
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(fontSize: 12),
+                    ),
+                    if (item.isApprove0 == 1)
+                      _buildInlineBadge('Approved', const Color(0xFF27AE60))
+                    else if (item.isReject0 == 1)
+                      _buildInlineBadge('Rejected', const Color(0xFFE74C3C)),
+                  ],
                 ],
               ),
             ),
+          ),
 
-            const SizedBox(width: 8),
+          Container(width: 1, height: 40, color: Color(grey9Color)),
 
-            /// CLOCK IN
-            Expanded(
-              child: GestureDetector(
-                onTap: (!pendingIn && item.clockIn != null) ? () => _showAttendanceDialog(item, 0) : null,
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.access_time_filled, size: 16, color: Color(greenPercentColor)),
-                    const SizedBox(height: 2),
-                    if (pendingIn) ...[
-                      const Text('-', textAlign: TextAlign.center, style: TextStyle(fontSize: 12)),
-                      _buildPendingLabel(),
-                    ] else ...[
-                      Text(item.clockIn != null ? DateHelper.formatTime(DateTime.parse(item.clockIn!)) : '-', textAlign: TextAlign.center, style: const TextStyle(fontSize: 12)),
-                      if (item.isApprove0 == 1)
-                        _buildStatusDot(true)
-                      else if (item.isReject0 == 1)
-                        _buildStatusDot(false),
-                    ],
+          // CLOCK OUT
+          Expanded(
+            child: GestureDetector(
+              onTap: (!pendingOut && item.clockOut != null) ? () => _showAttendanceDialog(item, 1) : null,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.access_time_filled, size: 16, color: Color(redPeriodColor)),
+                  const SizedBox(height: 2),
+                  if (pendingOut) ...[
+                    const Text('-', textAlign: TextAlign.center, style: TextStyle(fontSize: 12)),
+                    _buildInlineBadge('Pending', Colors.orange),
+                  ] else ...[
+                    Text(
+                      item.clockOut != null ? DateHelper.formatTime(DateTime.parse(item.clockOut!)) : '-',
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(fontSize: 12),
+                    ),
+                    if (item.isApprove1 == 1)
+                      _buildInlineBadge('Approved', const Color(0xFF27AE60))
+                    else if (item.isReject1 == 1)
+                      _buildInlineBadge('Rejected', const Color(0xFFE74C3C)),
                   ],
-                ),
+                ],
               ),
             ),
-
-            Container(width: 1, height: 40, color: Color(grey9Color)),
-
-            /// CLOCK OUT
-            Expanded(
-              child: GestureDetector(
-                onTap: (!pendingOut && item.clockOut != null) ? () => _showAttendanceDialog(item, 1) : null,
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.access_time_filled, size: 16, color: Color(redPeriodColor)),
-                    const SizedBox(height: 2),
-                    if (pendingOut) ...[
-                      const Text('-', textAlign: TextAlign.center, style: TextStyle(fontSize: 12)),
-                      _buildPendingLabel(),
-                    ] else ...[
-                      Text(item.clockOut != null ? DateHelper.formatTime(DateTime.parse(item.clockOut!)) : '-', textAlign: TextAlign.center, style: const TextStyle(fontSize: 12)),
-                      if (item.isApprove1 == 1)
-                        _buildStatusDot(true)
-                      else if (item.isReject1 == 1)
-                        _buildStatusDot(false),
-                    ],
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildPendingLabel() {
+  Widget _buildInlineBadge(String label, Color color) {
     return Container(
       margin: const EdgeInsets.only(top: 2),
       padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
-      decoration: BoxDecoration(
-        color: Colors.orange,
-        borderRadius: BorderRadius.circular(4),
-      ),
-      child: const Text(
-        'Pending',
-        style: TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold),
-      ),
-    );
-  }
-
-  Widget _buildStatusDot(bool isApproved) {
-    return Container(
-      margin: const EdgeInsets.only(top: 2),
-      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
-      decoration: BoxDecoration(
-        color: isApproved ? const Color(0xFF27AE60) : const Color(0xFFE74C3C),
-        borderRadius: BorderRadius.circular(4),
-      ),
-      child: Text(
-        isApproved ? 'Approved' : 'Rejected',
-        style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold),
-      ),
-    );
-  }
-
-  Widget _buildCardAktivity(AttendanceEntity item) {
-    final images = item.fileAttchment6 ?? [];
-
-    return StatefulBuilder(
-      builder: (context, setStateSB) {
-        final ScrollController scrollController = ScrollController();
-
-        bool isAtStart = true;
-        bool isAtEnd = false;
-
-        void updateScrollState() {
-          if (!scrollController.hasClients) return;
-
-          final maxScroll = scrollController.position.maxScrollExtent;
-          final offset = scrollController.offset;
-
-          setStateSB(() {
-            isAtStart = offset <= 0;
-            isAtEnd = offset >= maxScroll;
-          });
-        }
-
-        scrollController.addListener(updateScrollState);
-
-        return Container(
-          margin: const EdgeInsets.only(bottom: 30),
-          decoration: BoxDecoration(
-            color: const Color(whiteColor),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              /// ================= HEADER =================
-              Container(
-                padding: const EdgeInsets.only(left: 12),
-                decoration: BoxDecoration(
-                  border: Border(
-                    left: BorderSide(
-                      color: Color(purpleColor),
-                      width: 5,
-                    ),
-                  ),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Row(
-                      children: [
-                      Container(
-                          width: 40,
-                          height: 40,
-                          decoration: BoxDecoration(
-                            color: Color(primaryColor),
-                            shape: BoxShape.circle
-                          ),
-                          child: Center(
-                            child: Text(
-                              getInitials(item.fullName??''),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.bold,
-                                color: Color(whiteColor)
-                              ),
-                            ),
-                          ),
-                        ),
-                        SizedBox(width: 5),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              item.fullName??'',
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                fontSize: 15,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            Container(
-                              width: 180,
-                              child: Text(item.location6 ?? '',maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 11),)),
-                          ],
-                        ),
-                      ],
-                    ),
-                    
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      // Text(item.checkInActivity != null && item.checkInActivity!.isNotEmpty? DateFormat('dd/MM/yyyy').format(DateTime.parse(item.checkInActivity!)): '-',style: const TextStyle(fontSize: 11)),
-                      Text(item.checkInActivity != null && item.checkInActivity!.isNotEmpty? DateFormat('hh:mm').format(DateTime.parse(item.checkInActivity!)): '-',style: const TextStyle(fontSize: 11)),
-                    ],
-                  ),
-                  ],
-                ),
-              ),
-
-              const SizedBox(height: 5),
-              Text(
-                item.note6 ?? '',
-                style: TextStyle(fontWeight: FontWeight.w100),
-              ),
-              const SizedBox(height: 10),
-              /// ================= IMAGES =================
-              if (images.isNotEmpty)
-                SizedBox(
-                  height: 200,
-                  child: Stack(
-                    children: [
-                      ListView.builder(
-                        controller: scrollController,
-                        scrollDirection: Axis.horizontal,
-                        itemCount: images.length,
-                        itemBuilder: (context, index) {
-                          return Container(
-                            margin: const EdgeInsets.only(right: 10),
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(8),
-                              child: DriveImage(
-                                url: images[index],
-                                width: 200,
-                                height: 200,
-                                fit: BoxFit.cover,
-                                onTap: () => _showImagePreview(context, images, index),
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-
-                      /// ================= LEFT ARROW =================
-                      if (images.length > 1 && !isAtStart)
-                        Positioned(
-                          left: 5,
-                          top: 0,
-                          bottom: 0,
-                          child: Center(
-                            child: GestureDetector(
-                              onTap: () {
-                                final newOffset =(scrollController.offset - 250).clamp(0.0,scrollController.position.maxScrollExtent,);
-                                scrollController.animateTo(newOffset,duration: const Duration(milliseconds: 250),curve: Curves.easeInOut,);
-                              },
-                              child: Container(
-                                padding: const EdgeInsets.all(8),
-                                decoration: BoxDecoration(
-                                  color: Colors.black.withOpacity(0.4),
-                                  shape: BoxShape.circle,
-                                ),
-                                child: const Icon(
-                                  Icons.arrow_back_ios,
-                                  color: Colors.white,
-                                  size: 16,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      /// ================= RIGHT ARROW =================
-                      if (images.length > 1 && !isAtEnd)
-                        Positioned(
-                          right: 5,
-                          top: 0,
-                          bottom: 0,
-                          child: Center(
-                            child: GestureDetector(
-                              onTap: () {
-                                final newOffset = (scrollController.offset + 250).clamp(0.0,scrollController.position.maxScrollExtent,);
-                                scrollController.animateTo(newOffset,duration: const Duration(milliseconds: 250),curve: Curves.easeInOut,);
-                              },
-                              child: Container(
-                                padding: const EdgeInsets.all(8),
-                                decoration: BoxDecoration(
-                                  color: Colors.black.withOpacity(0.4),
-                                  shape: BoxShape.circle,
-                                ),
-                                child: const Icon(
-                                  Icons.arrow_forward_ios,
-                                  color: Colors.white,
-                                  size: 16,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-            
-            ],
-          ),
-        );
-      },
+      decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(4)),
+      child: Text(label, style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold)),
     );
   }
 
@@ -3217,30 +2974,282 @@ class _ActivityCardState extends State<_ActivityCard> {
   }
 }
 
-class _ButtonLogDelegate extends SliverPersistentHeaderDelegate {
-  final Widget child;
-  final bool isPinned;
-  static const double _height = 76.0;
+  // Widget _buildCardAktivity(AttendanceEntity item) {
+  //   final images = item.fileAttchment6 ?? [];
 
-  _ButtonLogDelegate(this.child, {this.isPinned = false});
+  //   return StatefulBuilder(
+  //     builder: (context, setStateSB) {
+  //       final ScrollController scrollController = ScrollController();
 
-  @override
-  Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 1),
-      color:  Colors.transparent,
-      alignment: Alignment.center,
-      child: child,
-    );
-  }
+  //       bool isAtStart = true;
+  //       bool isAtEnd = false;
 
-  @override
-  double get maxExtent => _height;
+  //       void updateScrollState() {
+  //         if (!scrollController.hasClients) return;
 
-  @override
-  double get minExtent => _height;
+  //         final maxScroll = scrollController.position.maxScrollExtent;
+  //         final offset = scrollController.offset;
 
-  @override
-  bool shouldRebuild(_ButtonLogDelegate oldDelegate) =>
-      oldDelegate.isPinned != isPinned || oldDelegate.child != child;
-}
+  //         setStateSB(() {
+  //           isAtStart = offset <= 0;
+  //           isAtEnd = offset >= maxScroll;
+  //         });
+  //       }
+
+  //       scrollController.addListener(updateScrollState);
+
+  //       return Container(
+  //         margin: const EdgeInsets.only(bottom: 30),
+  //         decoration: BoxDecoration(
+  //           color: const Color(whiteColor),
+  //           borderRadius: BorderRadius.circular(12),
+  //         ),
+  //         child: Column(
+  //           crossAxisAlignment: CrossAxisAlignment.start,
+  //           children: [
+  //             /// ================= HEADER =================
+  //             Container(
+  //               padding: const EdgeInsets.only(left: 12),
+  //               decoration: BoxDecoration(
+  //                 border: Border(
+  //                   left: BorderSide(
+  //                     color: Color(purpleColor),
+  //                     width: 5,
+  //                   ),
+  //                 ),
+  //               ),
+  //               child: Row(
+  //                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
+  //                 children: [
+  //                   Row(
+  //                     children: [
+  //                     Container(
+  //                         width: 40,
+  //                         height: 40,
+  //                         decoration: BoxDecoration(
+  //                           color: Color(primaryColor),
+  //                           shape: BoxShape.circle
+  //                         ),
+  //                         child: Center(
+  //                           child: Text(
+  //                             getInitials(item.fullName??''),
+  //                             maxLines: 1,
+  //                             overflow: TextOverflow.ellipsis,
+  //                             style: const TextStyle(
+  //                               fontSize: 12,
+  //                               fontWeight: FontWeight.bold,
+  //                               color: Color(whiteColor)
+  //                             ),
+  //                           ),
+  //                         ),
+  //                       ),
+  //                       SizedBox(width: 5),
+  //                       Column(
+  //                         crossAxisAlignment: CrossAxisAlignment.start,
+  //                         children: [
+  //                           Text(
+  //                             item.fullName??'',
+  //                             maxLines: 1,
+  //                             overflow: TextOverflow.ellipsis,
+  //                             style: const TextStyle(
+  //                               fontSize: 15,
+  //                               fontWeight: FontWeight.bold,
+  //                             ),
+  //                           ),
+  //                           Container(
+  //                             width: 180,
+  //                             child: Text(item.location6 ?? '',maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 11),)),
+  //                         ],
+  //                       ),
+  //                     ],
+  //                   ),
+                    
+  //                 Column(
+  //                   crossAxisAlignment: CrossAxisAlignment.end,
+  //                   children: [
+  //                     // Text(item.checkInActivity != null && item.checkInActivity!.isNotEmpty? DateFormat('dd/MM/yyyy').format(DateTime.parse(item.checkInActivity!)): '-',style: const TextStyle(fontSize: 11)),
+  //                     Text(item.checkInActivity != null && item.checkInActivity!.isNotEmpty? DateFormat('hh:mm').format(DateTime.parse(item.checkInActivity!)): '-',style: const TextStyle(fontSize: 11)),
+  //                   ],
+  //                 ),
+  //                 ],
+  //               ),
+  //             ),
+
+  //             const SizedBox(height: 5),
+  //             Text(
+  //               item.note6 ?? '',
+  //               style: TextStyle(fontWeight: FontWeight.w100),
+  //             ),
+  //             const SizedBox(height: 10),
+  //             /// ================= IMAGES =================
+  //             if (images.isNotEmpty)
+  //               SizedBox(
+  //                 height: 200,
+  //                 child: Stack(
+  //                   children: [
+  //                     ListView.builder(
+  //                       controller: scrollController,
+  //                       scrollDirection: Axis.horizontal,
+  //                       itemCount: images.length,
+  //                       itemBuilder: (context, index) {
+  //                         return Container(
+  //                           margin: const EdgeInsets.only(right: 10),
+  //                           child: ClipRRect(
+  //                             borderRadius: BorderRadius.circular(8),
+  //                             child: DriveImage(
+  //                               url: images[index],
+  //                               width: 200,
+  //                               height: 200,
+  //                               fit: BoxFit.cover,
+  //                               onTap: () => _showImagePreview(context, images, index),
+  //                             ),
+  //                           ),
+  //                         );
+  //                       },
+  //                     ),
+
+  //                     /// ================= LEFT ARROW =================
+  //                     if (images.length > 1 && !isAtStart)
+  //                       Positioned(
+  //                         left: 5,
+  //                         top: 0,
+  //                         bottom: 0,
+  //                         child: Center(
+  //                           child: GestureDetector(
+  //                             onTap: () {
+  //                               final newOffset =(scrollController.offset - 250).clamp(0.0,scrollController.position.maxScrollExtent,);
+  //                               scrollController.animateTo(newOffset,duration: const Duration(milliseconds: 250),curve: Curves.easeInOut,);
+  //                             },
+  //                             child: Container(
+  //                               padding: const EdgeInsets.all(8),
+  //                               decoration: BoxDecoration(
+  //                                 color: Colors.black.withOpacity(0.4),
+  //                                 shape: BoxShape.circle,
+  //                               ),
+  //                               child: const Icon(
+  //                                 Icons.arrow_back_ios,
+  //                                 color: Colors.white,
+  //                                 size: 16,
+  //                               ),
+  //                             ),
+  //                           ),
+  //                         ),
+  //                       ),
+  //                     /// ================= RIGHT ARROW =================
+  //                     if (images.length > 1 && !isAtEnd)
+  //                       Positioned(
+  //                         right: 5,
+  //                         top: 0,
+  //                         bottom: 0,
+  //                         child: Center(
+  //                           child: GestureDetector(
+  //                             onTap: () {
+  //                               final newOffset = (scrollController.offset + 250).clamp(0.0,scrollController.position.maxScrollExtent,);
+  //                               scrollController.animateTo(newOffset,duration: const Duration(milliseconds: 250),curve: Curves.easeInOut,);
+  //                             },
+  //                             child: Container(
+  //                               padding: const EdgeInsets.all(8),
+  //                               decoration: BoxDecoration(
+  //                                 color: Colors.black.withOpacity(0.4),
+  //                                 shape: BoxShape.circle,
+  //                               ),
+  //                               child: const Icon(
+  //                                 Icons.arrow_forward_ios,
+  //                                 color: Colors.white,
+  //                                 size: 16,
+  //                               ),
+  //                             ),
+  //                           ),
+  //                         ),
+  //                       ),
+  //                   ],
+  //                 ),
+  //               ),
+            
+  //           ],
+  //         ),
+  //       );
+  //     },
+  //   );
+  // }
+
+
+
+  // Widget _filterDate({String section = 'activity'}) {
+  //   final isAttendance = section == 'attendance';
+  //   final startDate = isAttendance ? _attendanceStartDate : _activityStartDate;
+  //   final endDate = isAttendance ? _attendanceEndDate : _activityEndDate;
+  //   final dateLabel = isAttendance ? _attendanceDateLabel : _activityDateLabel;
+
+  //   final isSelected = startDate != null && endDate != null;
+  //   String label = 'Date';
+  //   if (isSelected) {
+  //     if (dateLabel != null) {
+  //       label = dateLabel;
+  //     } else {
+  //       final start = DateTime.tryParse(startDate);
+  //       final end = DateTime.tryParse(endDate);
+  //       if (start != null && end != null) {
+  //         label = '${DateFormat('d MMM').format(start)} - ${DateFormat('d MMM').format(end)}';
+  //       }
+  //     }
+  //   }
+
+  //   return CustomFilterButton(
+  //     label: label,
+  //     isSelected: isSelected,
+  //     onTap: () async {
+  //       final result = await context.pushNamed<DateFilterResult>(
+  //         'dateFilter',
+  //         extra: {
+  //           'label': dateLabel,
+  //           'startDate': startDate,
+  //           'endDate': endDate,
+  //         },
+  //       );
+
+  //       if (result != null) {
+  //         if (result.isClear) {
+  //           setState(() {
+  //             if (isAttendance) {
+  //               _attendanceStartDate = null;
+  //               _attendanceEndDate = null;
+  //               _attendanceDateLabel = null;
+  //             } else {
+  //               _activityStartDate = null;
+  //               _activityEndDate = null;
+  //               _activityDateLabel = null;
+  //             }
+  //           });
+  //         } else {
+  //           setState(() {
+  //             if (isAttendance) {
+  //               _attendanceStartDate = result.startDate;
+  //               _attendanceEndDate = result.endDate;
+  //               _attendanceDateLabel = result.label;
+  //             } else {
+  //               _activityStartDate = result.startDate;
+  //               _activityEndDate = result.endDate;
+  //               _activityDateLabel = result.label;
+  //             }
+  //           });
+  //         }
+  //         if (isAttendance) {
+  //           _attendanceLogLoaded = true;
+  //           context.read<AttendanceBloc>().add(FetchAttendanceDataEvent(
+  //             salesPersonIds: _attendanceOwnerIds,
+  //             startDate: _attendanceStartDate,
+  //             endDate: _attendanceEndDate,
+  //           ));
+  //         } else {
+  //           context.read<AttendanceActivityBloc>().add(GetAttendanceActivityEvent(
+  //             salesPersonIds: _activityOwnerIds,
+  //             startDate: _activityStartDate,
+  //             endDate: _activityEndDate,
+  //           ));
+  //         }
+  //       }
+  //     },
+  //   );
+  // }
+

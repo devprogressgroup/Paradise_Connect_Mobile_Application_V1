@@ -1781,12 +1781,8 @@ class _ContactFormPageState extends State<ContactFormPage> {
                                 }
                               },
                             ),
-                          if (const [74, 75].contains(selectedStatusId))
-                            _buildField(
-                              label: "Name SP",
-                              controller: nameSPTC,
-                              focusNode: nameSPFN,
-                            ),
+                         
+                            
 
                            _buildFieldDown(
                             label: "Sales Channel",
@@ -1887,6 +1883,11 @@ class _ContactFormPageState extends State<ContactFormPage> {
                             errorText: (_showValidation && generalNotesTC.text.isEmpty) ? 'Wajib diisi' : null,
                             minLines: 3,
                           ),
+                          _buildField(
+                              label: "Name SP",
+                              controller: nameSPTC,
+                              focusNode: nameSPFN,
+                            ),
                          _buildFieldDown(
                             label: "Lost Reason",
                             value: selectedLostReasonName,
@@ -1950,12 +1951,12 @@ class _ContactFormPageState extends State<ContactFormPage> {
                             focusNode: lspFN,
                             fieldType: 'date',
                           ),
-                           _buildField(
-                            label: "Akad Date",
-                            controller: lakadTC,
-                            focusNode: lakadFN,
-                            fieldType: 'date',
-                          ),
+                          //  _buildField(
+                          //   label: "Akad Date",
+                          //   controller: lakadTC,
+                          //   focusNode: lakadFN,
+                          //   fieldType: 'date',
+                          // ),
                           _buildField(
                             label: "Lost Date",
                             controller: lastLostDateTC,

@@ -8,7 +8,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:progress_group/core/utils/helpers/date_helper.dart';
-import 'package:progress_group/core/utils/widget/custom_snackbar.dart';
 import 'package:progress_group/core/utils/widget/custom_button.dart';
 import 'package:progress_group/features/attandance/data/arguments/attandance_args.dart';
 import 'package:progress_group/features/attandance/presentation/state/attandance/attendance_bloc.dart';
@@ -59,6 +58,8 @@ class _CameraPageState extends State<CameraPage> {
   void initState() {
     super.initState();
     _initCamera();
+    context.read<OfficeLocationCubit>().load();
+    context.read<PameranLocationCubit>().load();
     WidgetsBinding.instance.addPostFrameCallback((_) => _tryAutoFillLocation());
   }
 
@@ -518,7 +519,7 @@ class _CameraPageState extends State<CameraPage> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             SizedBox(height: 10),
-                             Text("Pameran/ Open Table (optional)", style: TextStyle(fontSize: 14, color: Color(grey2Color))),
+                             Text("Office /Pameran/ Open Table (optional)", style: TextStyle(fontSize: 14, color: Color(grey2Color))),
                              SizedBox(height: 5),
 
                              if (widget.args.flag == 0 || widget.args.flag == 1)
