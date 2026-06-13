@@ -1,12 +1,5 @@
-const String logoParadiseConnect ='assets/img/LOGO-PARADISE-CONNECT-FIX.png';
+const String logoSplasShcreen ='assets/img/logo-splashscreen.png';
 
-const String logoParadiseResort = 'assets/img/logo-paradise-resort.png';
-const String logoParadiseSerpong = 'assets/img/logo-paradise-serpong.png';
-const String logoParadiseSerpong2 = 'assets/img/logo-paradise-serpong2.png';
-
-const String logoExVista = 'assets/img/logo-ex-vista.png';
-const String logoExSoho = 'assets/img/logo-ex-soho.png';
-const String logoExAdventures = 'assets/img/logo-ex-adventures.png';
 
 
 const String icHomeDashboard = "assets/img/ic-home-dashboard.png";
@@ -42,4 +35,3 @@ const String icPerson = 'assets/img/ic-person.png';
 const String icQR = 'assets/img/ic-qr.png';
 const String icNavActivity = 'assets/img/ic-nav-activiy.png';
 
-const String bannerSaleskitProyek = 'assets/img/banner-saleskit-proyek.png';

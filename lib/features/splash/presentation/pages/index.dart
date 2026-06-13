@@ -74,7 +74,7 @@ class _SplashPageState extends State<SplashPage> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Image.asset(logoParadiseConnect, width: 160),
+              Image.asset(logoSplasShcreen,width: 250, fit: BoxFit.contain),
             ],
           ),
         ),

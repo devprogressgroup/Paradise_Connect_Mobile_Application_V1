@@ -67,7 +67,7 @@ class _UpdateDialogState extends State<UpdateDialog> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Image.asset(logoParadiseConnect, width: 90),
+              Image.asset(logoSplasShcreen, width: 90),
               const SizedBox(height: 20),
               const Icon(Icons.system_update_rounded, size: 48, color: Color(0xFF1565C0)),
               const SizedBox(height: 16),

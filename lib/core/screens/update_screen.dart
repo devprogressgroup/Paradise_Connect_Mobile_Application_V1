@@ -111,7 +111,7 @@ class _UpdateScreenState extends State<UpdateScreen> with SingleTickerProviderSt
             children: [
               const Spacer(flex: 2),
               // Logo
-              Image.asset(logoParadiseConnect, width: 180),
+              Image.asset(logoSplasShcreen, width: 180),
               const Spacer(flex: 1),
               // Title
               const Text(
