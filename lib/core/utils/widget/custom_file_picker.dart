@@ -166,7 +166,7 @@ class _FilePickerSheet extends StatelessWidget {
         isPdf: false,
       );
     } catch (e) {
-      print('[CustomFilePicker] camera error: $e');
+      debugPrint('[CustomFilePicker] camera error: $e');
       return null;
     }
   }
@@ -204,7 +204,7 @@ class _FilePickerSheet extends StatelessWidget {
         );
       }
     } catch (e) {
-      print('[CustomFilePicker] gallery error: $e');
+      debugPrint('[CustomFilePicker] gallery error: $e');
       return null;
     }
   }
@@ -231,7 +231,7 @@ class _FilePickerSheet extends StatelessWidget {
         isPdf: isPdf,
       );
     } catch (e) {
-      print('[CustomFilePicker] document error: $e');
+      debugPrint('[CustomFilePicker] document error: $e');
       return null;
     }
   }

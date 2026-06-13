@@ -170,16 +170,16 @@ class _CameraPageState extends State<CameraPage> {
   }
 
   Future<void> _handleSubmit() async {
-    print("cekkkk");
+    debugPrint("cekkkk");
     if (_imageFiles.isEmpty) return;
-    print("cekkkk2");
+    debugPrint("cekkkk2");
 
 
     if (widget.args.isReturnImage == true) {
       context.pop(_imageFiles.first.path);
       return;
     }
-    print("cekkkk3");
+    debugPrint("cekkkk3");
 
 
     final flag = widget.args.flag;

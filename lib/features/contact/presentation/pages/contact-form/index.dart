@@ -387,16 +387,16 @@ class _ContactFormPageState extends State<ContactFormPage> {
 
     if (context.read<ProspectStatusBloc>().state.status !=
         ProspectStatusEnum.loaded) {
-      print('[ContactForm] fetching ProspectStatuses');
+      debugPrint('[ContactForm] fetching ProspectStatuses');
       context.read<ProspectStatusBloc>().add(FetchProspectStatusesEvent());
     } else {
-      print('[ContactForm] ProspectStatuses already loaded');
+      debugPrint('[ContactForm] ProspectStatuses already loaded');
     }
 
     // Load townships for project dropdown
     final townshipState = context.read<TownshipBloc>().state;
     if (townshipState is! TownshipLoaded) {
-      print('[ContactForm] fetching Townships');
+      debugPrint('[ContactForm] fetching Townships');
       context.read<TownshipBloc>().add(GetTownshipsEvent());
     } else if (widget.args.page == 0 && selectFirstProject == null && townshipState.townships.isNotEmpty) {
       final first = townshipState.townships.first;
@@ -406,13 +406,13 @@ class _ContactFormPageState extends State<ContactFormPage> {
       });
     }
     if (context.read<ContactPropertiesBloc>().state.status != ContactPropertiesStatus.loaded) {
-      print('[ContactForm] fetching ContactProperties');
+      debugPrint('[ContactForm] fetching ContactProperties');
       context.read<ContactPropertiesBloc>().add(FetchContactPropertiesEvent());
     } else {
-      print('[ContactForm] ContactProperties already loaded');
+      debugPrint('[ContactForm] ContactProperties already loaded');
     }
     if (context.read<LostReasonBloc>().state.status != LostReasonStatus.loaded) {
-      print('[ContactForm] fetching LostReasons');
+      debugPrint('[ContactForm] fetching LostReasons');
       context.read<LostReasonBloc>().add(FetchLostReasonsEvent());
     }
 
@@ -1210,14 +1210,14 @@ class _ContactFormPageState extends State<ContactFormPage> {
       propertiesJson: propertiesJson.isNotEmpty ? propertiesJson : null,
       periodePameranDate: _pameranIds.contains(selectedSource1Id) ? _periodePameranDateBackend : null,
     );
-    print('=== SAVE PARAMS ===');
-    print('ownerId: ${params.ownerId}');
-    print('salesExecutiveId: ${params.salesExecutiveId}');
-    print('salesManagerId: ${params.salesManagerId}');
-    print('salesSupervisorId: ${params.salesSupervisorId}');
-    print('salesGeneralManagerId: ${params.salesGeneralManagerId}');
-    print('salesTeamId: ${params.salesTeamId}');
-    print('===================');
+    debugPrint('=== SAVE PARAMS ===');
+    debugPrint('ownerId: ${params.ownerId}');
+    debugPrint('salesExecutiveId: ${params.salesExecutiveId}');
+    debugPrint('salesManagerId: ${params.salesManagerId}');
+    debugPrint('salesSupervisorId: ${params.salesSupervisorId}');
+    debugPrint('salesGeneralManagerId: ${params.salesGeneralManagerId}');
+    debugPrint('salesTeamId: ${params.salesTeamId}');
+    debugPrint('===================');
 
     setState(() => _isSaving = true);
     if (isUpdate) {
@@ -1274,7 +1274,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
           });
         } else if (state.status == ContactStatus.updateSuccess && widget.args.page == 1) {
           setState(() => _isSaving = false);
-          print('[ContactForm] UPDATE success — contact_id: ${state.contactDetail?.contactId}');
+          debugPrint('[ContactForm] UPDATE success — contact_id: ${state.contactDetail?.contactId}');
           if (state.contactDetail?.contactId != null) {
             SalesbookSyncService.syncContact(state.contactDetail!.contactId!);
           }
@@ -1377,7 +1377,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
                 final propertiesState = context.watch<ContactPropertiesBloc>().state.status;
                 final propertiesLoading = propertiesState == ContactPropertiesStatus.initial || propertiesState == ContactPropertiesStatus.loading;
                 if (propertiesState == ContactPropertiesStatus.error) debugPrint('[ContactForm] ContactProperties ERROR: ${context.watch<ContactPropertiesBloc>().state.errorMessage}');
-                if (statusState == ProspectStatusEnum.error) print('[ContactForm] ProspectStatus ERROR');
+                if (statusState == ProspectStatusEnum.error) debugPrint('[ContactForm] ProspectStatus ERROR');
                 final detailLoading = contactState.status == ContactStatus.loadingDetail ||
                     contactState.status == ContactStatus.initial;
 
@@ -1860,12 +1860,12 @@ class _ContactFormPageState extends State<ContactFormPage> {
                               final list = ps is PameranAktifLoaded ? ps.data : [];
                               if (list.isNotEmpty) {
                                 for (final e in list) {
-                                  print('PameranAktif startDate: ${e.startDate}, endDate: ${e.endDate}');
+                                  debugPrint('PameranAktif startDate: ${e.startDate}, endDate: ${e.endDate}');
                                 }
                               }
                               final firstDate = list.isNotEmpty ? list.map((e) => e.startDate).reduce((a, b) => a.isBefore(b) ? a : b) : null;
                               final lastDate = list.isNotEmpty ? list.map((e) => e.endDate).reduce((a, b) => a.isAfter(b) ? a : b) : null;
-                              print('firstDate: $firstDate, lastDate: $lastDate');
+                              debugPrint('firstDate: $firstDate, lastDate: $lastDate');
                               return _buildField(
                                 label: "Periode Pameran Date",
                                 controller: periodePameranDateTC,

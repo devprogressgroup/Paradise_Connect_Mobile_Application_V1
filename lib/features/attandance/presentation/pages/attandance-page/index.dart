@@ -268,7 +268,7 @@ class _AttandancePageState extends State<AttandancePage> {
     if (!mounted) return;
     final officeLocations = context.read<OfficeLocationCubit>().state;
     if (officeLocations.isEmpty) {
-      print('[_computeNearestLocation] no office locations from API → luar lokasi, canClockIn=${PermissionsHelper.canClockInLuarLokasi || PermissionsHelper.canClockInLuarLokasiRequestApprove}, canClockOut=${PermissionsHelper.canClockOutLuarLokasi || PermissionsHelper.canClockOutLuarLokasiRequestApprove}');
+      debugPrint('[_computeNearestLocation] no office locations from API → luar lokasi, canClockIn=${PermissionsHelper.canClockInLuarLokasi || PermissionsHelper.canClockInLuarLokasiRequestApprove}, canClockOut=${PermissionsHelper.canClockOutLuarLokasi || PermissionsHelper.canClockOutLuarLokasiRequestApprove}');
       if (mounted) {
         setState(() { _nearestTypeLocationId = null; _nearestIsInRadius = false; _locationResolved = true; });
         _trySetInitialTab();
@@ -525,7 +525,7 @@ class _AttandancePageState extends State<AttandancePage> {
 
       if (officeLocations.isNotEmpty) {
         for (var office in officeLocations) {
-          print('[office] id=${office.id}, name=${office.name}, typeLocationId=${office.typeLocationId}, lat=${office.latitude}, lng=${office.longitude}');
+          debugPrint('[office] id=${office.id}, name=${office.name}, typeLocationId=${office.typeLocationId}, lat=${office.latitude}, lng=${office.longitude}');
           final lat = double.tryParse(office.latitude ?? '');
           final lng = double.tryParse(office.longitude ?? '');
           if (lat != null && lng != null) {
@@ -550,21 +550,21 @@ class _AttandancePageState extends State<AttandancePage> {
       final effectiveRadius = activeRadius ?? radiusMeter;
       final isInRadius = effectiveDistance <= effectiveRadius;
 
-      print('[_handleMoveCamera] selected location:');
-      print('  id             : $nearestOfficeId');
-      print('  name           : $nearestOfficeName');
-      print('  latitude       : $nearestOfficeLat');
-      print('  longitude      : $nearestOfficeLng');
-      print('  radius         : $activeRadius');
-      print('  typeLocationId : $nearestOfficeTypeId');
-      print('ClockIn Permision pameran ${PermissionsHelper.canClockInPameran}');
-      print('ClockIn Permision office ${PermissionsHelper.canClockInOffice}');
-      print('ClockIn Permision luar lokasi ${PermissionsHelper.canClockInLuarLokasi}');
-      print('ClockOut Permision pameran ${PermissionsHelper.canClockOutPameran}');
-      print('ClockOut Permision office ${PermissionsHelper.canClockOutOffice}');
-      print('ClockOut Permision luar lokasi ${PermissionsHelper.canClockOutLuarLokasi}');
-      print('  distance       : ${effectiveDistance.toStringAsFixed(2)} m');
-      print('  isInRadius     : $isInRadius');
+      debugPrint('[_handleMoveCamera] selected location:');
+      debugPrint('  id             : $nearestOfficeId');
+      debugPrint('  name           : $nearestOfficeName');
+      debugPrint('  latitude       : $nearestOfficeLat');
+      debugPrint('  longitude      : $nearestOfficeLng');
+      debugPrint('  radius         : $activeRadius');
+      debugPrint('  typeLocationId : $nearestOfficeTypeId');
+      debugPrint('ClockIn Permision pameran ${PermissionsHelper.canClockInPameran}');
+      debugPrint('ClockIn Permision office ${PermissionsHelper.canClockInOffice}');
+      debugPrint('ClockIn Permision luar lokasi ${PermissionsHelper.canClockInLuarLokasi}');
+      debugPrint('ClockOut Permision pameran ${PermissionsHelper.canClockOutPameran}');
+      debugPrint('ClockOut Permision office ${PermissionsHelper.canClockOutOffice}');
+      debugPrint('ClockOut Permision luar lokasi ${PermissionsHelper.canClockOutLuarLokasi}');
+      debugPrint('  distance       : ${effectiveDistance.toStringAsFixed(2)} m');
+      debugPrint('  isInRadius     : $isInRadius');
 
       // Cek permission berdasarkan tipe lokasi yang terselect
       final bool canProceed;
@@ -582,7 +582,7 @@ class _AttandancePageState extends State<AttandancePage> {
             : PermissionsHelper.canClockOutOffice;
       }
 
-      print('[_handleMoveCamera] canProceed: $canProceed');
+      debugPrint('[_handleMoveCamera] canProceed: $canProceed');
 
       if (!canProceed) {
         if (mounted) {
@@ -1946,13 +1946,7 @@ class _AttandancePageState extends State<AttandancePage> {
   }
 
   Widget _buildWeeklyAttendanceCard(List<AttendanceEntity> items) {
-    final firstDate = DateTime.parse(items.first.date);
-    final weekStart = firstDate.subtract(Duration(days: firstDate.weekday - 1));
-    final weekEnd = weekStart.add(const Duration(days: 6));
     final name = items.first.fullName ?? '';
-
-    final sameMonth = weekStart.month == weekEnd.month;
-   
     // Sort days oldest → newest
     final sorted = [...items]..sort((a, b) => a.date.compareTo(b.date));
 

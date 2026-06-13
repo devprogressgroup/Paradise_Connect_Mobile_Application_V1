@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 import 'package:dio/dio.dart';
+import 'package:flutter/material.dart';
 
 abstract class AttendanceRemoteDataSource {
   Future<Map<String, dynamic>> getAttendance({List<int>? salesPersonIds, String? startDate, String? endDate, int page = 1, int perPage = 10});
@@ -209,7 +210,7 @@ class AttendanceRemoteDataSourceImpl implements AttendanceRemoteDataSource {
   Future<void> downloadAttendancePdf({int? nikNumber, int? salesPersonId, required String startDate, required String endDate, required String savePath}) async {
     try {
       final params = _pdfQueryParams(nikNumber: nikNumber, salesPersonId: salesPersonId, startDate: startDate, endDate: endDate);
-      print('[downloadAttendancePdf MOBILE] endpoint: /attendance/report/excel | params: $params');
+      debugPrint('[downloadAttendancePdf MOBILE] endpoint: /attendance/report/excel | params: $params');
       await dio.download(
         '/attendance/report/excel',
         savePath,
@@ -226,7 +227,7 @@ class AttendanceRemoteDataSourceImpl implements AttendanceRemoteDataSource {
   Future<Uint8List> downloadAttendancePdfBytes({int? nikNumber, int? salesPersonId, required String startDate, required String endDate}) async {
     try {
       final params = _pdfQueryParams(nikNumber: nikNumber, salesPersonId: salesPersonId, startDate: startDate, endDate: endDate);
-      print('[downloadAttendancePdfBytes WEB] endpoint: /attendance/report/excel | params: $params');
+      debugPrint('[downloadAttendancePdfBytes WEB] endpoint: /attendance/report/excel | params: $params');
       final response = await dio.get<List<int>>(
         '/attendance/report/excel',
         queryParameters: params,

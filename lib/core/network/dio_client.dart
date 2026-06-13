@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../app/router.dart';
@@ -6,6 +7,7 @@ import '../../features/auth/data/datasources/auth_local_datasource.dart';
 import '../../features/auth/presentation/state/auth/auth_bloc.dart';
 import '../../features/auth/presentation/state/auth/auth_event.dart';
 import 'api_constants.dart';
+import 'proxy_cipher.dart';
 
 class DioClient {
   final AuthLocalDataSource _authLocalDataSource;
@@ -53,10 +55,28 @@ class DioClient {
           if (token != null && token.isNotEmpty) {
             options.headers["Authorization"] = "Bearer $token";
           }
-          print(">>> [${options.method}] ${options.uri}");
+          if (kIsWeb) { // TODO: ganti ke: kIsWeb && ApiConstants.currentEnv == AppEnvironment.productionDomain
+            final payload = {
+              'method': options.method,
+              'path': options.path,
+              'query': Map<String, dynamic>.from(options.queryParameters),
+              'body': options.data is Map
+                  ? Map<String, dynamic>.from(options.data as Map)
+                  : options.data,
+              'ts': DateTime.now().millisecondsSinceEpoch,
+            };
+            options.method = 'POST';
+            options.path = '/px';
+            options.queryParameters.clear();
+            options.data = {'r': ProxyCipher.encrypt(payload)};
+            options.headers['Content-Type'] = 'application/json';
+          }
+
+          if (kDebugMode) debugPrint(">>> [${options.method}] ${options.uri}");
           return handler.next(options);
         },
         onResponse: (response, handler) {
+          if (kIsWeb) response.data = ProxyCipher.decrypt(response.data);
           final data = response.data;
           if (data is Map) {
             final status = data['status'];
@@ -68,7 +88,10 @@ class DioClient {
           return handler.next(response);
         },
         onError: (DioException e, handler) async {
-          print("DIO ERROR: ${e.message}");
+          if (kIsWeb && e.response != null) {
+            e.response!.data = ProxyCipher.decrypt(e.response!.data);
+          }
+          if (kDebugMode) debugPrint("DIO ERROR: ${e.message}");
 
           if (e.response?.statusCode == 429) {
             final message = e.response?.data is Map
@@ -153,11 +176,12 @@ class DioClient {
       ),
     );
 
-    // Optional: Add LogInterceptor for debugging
-    _dio.interceptors.add(LogInterceptor(
-      requestBody: true,
-      responseBody: true,
-    ));
+    if (kDebugMode) {
+      _dio.interceptors.add(LogInterceptor(
+        requestBody: true,
+        responseBody: true,
+      ));
+    }
   }
 
   Dio get dio => _dio;

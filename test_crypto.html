@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<title>Test AES Encrypt/Decrypt - /px Gateway</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+<style>
+  body { font-family: monospace; padding: 20px; background: #1e1e1e; color: #d4d4d4; }
+  h2 { color: #4ec9b0; }
+  label { color: #9cdcfe; display: block; margin-top: 14px; }
+  input, textarea { width: 100%; padding: 8px; background: #2d2d2d; color: #ce9178; border: 1px solid #555; border-radius: 4px; box-sizing: border-box; }
+  textarea { height: 80px; resize: vertical; }
+  button { margin-top: 10px; padding: 8px 20px; background: #0e639c; color: white; border: none; border-radius: 4px; cursor: pointer; }
+  button:hover { background: #1177bb; }
+  .output { margin-top: 10px; padding: 10px; background: #0d0d0d; border: 1px solid #444; border-radius: 4px; color: #b5cea8; word-break: break-all; white-space: pre-wrap; min-height: 40px; }
+  .section { border: 1px solid #444; border-radius: 6px; padding: 16px; margin-bottom: 20px; }
+  .tag { background: #264f78; padding: 2px 8px; border-radius: 3px; font-size: 12px; color: #9cdcfe; }
+  hr { border-color: #444; }
+</style>
+</head>
+<body>
+
+<h2>🔐 Test AES-256-CBC — Gateway /px</h2>
+<p style="color:#888">Key yang dipakai: <span style="color:#ce9178">PdC0nn3ct2026Sec3tKey32BytesXz1!</span></p>
+
+<div class="section">
+  <span class="tag">ENCRYPT</span> — Buat payload lalu enkripsi jadi format <code>r</code>
+
+  <label>Method:</label>
+  <input id="enc_method" value="POST">
+
+  <label>Path:</label>
+  <input id="enc_path" value="/login">
+
+  <label>Body (JSON):</label>
+  <textarea id="enc_body">{"username": "superadmin", "password": "Progress123"}</textarea>
+
+  <label>Query (JSON, kosongkan jika tidak ada):</label>
+  <textarea id="enc_query" style="height:40px">{}</textarea>
+
+  <button onclick="doEncrypt()">🔒 Encrypt → hasilkan <code>r</code></button>
+
+  <label>Hasil <code>r</code> (ini yang dikirim ke /api/px):</label>
+  <div class="output" id="enc_result">—</div>
+</div>
+
+<hr>
+
+<div class="section">
+  <span class="tag">DECRYPT</span> — Tempel nilai <code>r</code> atau <code>e</code> untuk dibaca
+
+  <label>Nilai yang mau di-decrypt (<code>ivBase64:ciphertextBase64</code>):</label>
+  <textarea id="dec_input" style="height:60px" placeholder="Paste nilai r atau e di sini..."></textarea>
+
+  <button onclick="doDecrypt()">🔓 Decrypt → lihat isinya</button>
+
+  <label>Hasil decrypt:</label>
+  <div class="output" id="dec_result">—</div>
+</div>
+
+<hr>
+
+<div class="section">
+  <span class="tag">SIMULASI PENUH</span> — Encrypt payload, lalu langsung decrypt hasilnya
+
+  <button onclick="doFullTest()">▶ Jalankan simulasi lengkap</button>
+  <div class="output" id="full_result">—</div>
+</div>
+
+<script>
+const SECRET_KEY = 'PdC0nn3ct2026Sec3tKey32BytesXz1!';
+const key = CryptoJS.enc.Utf8.parse(SECRET_KEY);
+
+function encrypt(obj) {
+  const iv = CryptoJS.lib.WordArray.random(16);
+  const cipher = CryptoJS.AES.encrypt(JSON.stringify(obj), key, {
+    iv, mode: CryptoJS.mode.CBC, padding: CryptoJS.pad.Pkcs7
+  });
+  return iv.toString(CryptoJS.enc.Base64) + ':' + cipher.toString();
+}
+
+function decrypt(str) {
+  const parts = str.split(':');
+  if (parts.length !== 2) throw new Error('Format harus ivBase64:ciphertextBase64');
+  const iv = CryptoJS.enc.Base64.parse(parts[0]);
+  const ct = CryptoJS.enc.Base64.parse(parts[1]);
+  const decrypted = CryptoJS.AES.decrypt({ ciphertext: ct }, key, {
+    iv, mode: CryptoJS.mode.CBC, padding: CryptoJS.pad.Pkcs7
+  });
+  return JSON.parse(decrypted.toString(CryptoJS.enc.Utf8));
+}
+
+function doEncrypt() {
+  try {
+    const payload = {
+      method: document.getElementById('enc_method').value.toUpperCase(),
+      path: document.getElementById('enc_path').value,
+      query: JSON.parse(document.getElementById('enc_query').value || '{}'),
+      body: JSON.parse(document.getElementById('enc_body').value || 'null'),
+      ts: Date.now()
+    };
+    const r = encrypt(payload);
+    document.getElementById('enc_result').textContent = r;
+    document.getElementById('dec_input').value = r;
+  } catch(e) {
+    document.getElementById('enc_result').textContent = '❌ Error: ' + e.message;
+  }
+}
+
+function doDecrypt() {
+  try {
+    const input = document.getElementById('dec_input').value.trim();
+    const result = decrypt(input);
+    document.getElementById('dec_result').textContent = JSON.stringify(result, null, 2);
+  } catch(e) {
+    document.getElementById('dec_result').textContent = '❌ Error: ' + e.message;
+  }
+}
+
+function doFullTest() {
+  try {
+    const payload = {
+      method: 'POST',
+      path: '/login',
+      query: {},
+      body: { username: 'superadmin', password: 'Progress123' },
+      ts: Date.now()
+    };
+
+    const r = encrypt(payload);
+    const decryptedBack = decrypt(r);
+
+    const lines = [
+      '=== PAYLOAD ASLI ===',
+      JSON.stringify(payload, null, 2),
+      '',
+      '=== SETELAH ENCRYPT (nilai r yang dikirim) ===',
+      r,
+      '',
+      '=== SETELAH DECRYPT KEMBALI ===',
+      JSON.stringify(decryptedBack, null, 2),
+      '',
+      decryptedBack.body?.username === payload.body?.username
+        ? '✅ Encrypt → Decrypt BERHASIL! Data sama.'
+        : '❌ Data tidak cocok!'
+    ];
+
+    document.getElementById('full_result').textContent = lines.join('\n');
+  } catch(e) {
+    document.getElementById('full_result').textContent = '❌ Error: ' + e.message;
+  }
+}
+</script>
+</body>
+</html>

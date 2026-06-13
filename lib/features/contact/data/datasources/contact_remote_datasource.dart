@@ -1,6 +1,7 @@
 
 
 import 'package:dio/dio.dart';
+import 'package:flutter/material.dart';
 import 'package:progress_group/core/utils/helpers/error_message.dart';
 import 'package:progress_group/features/contact/data/models/activity/activitty_prospect_status._model.dart';
 import 'package:progress_group/features/contact/data/models/activity/activity_api_model.dart';
@@ -559,7 +560,7 @@ class ContactRemoteDataSourceImpl implements ContactRemoteDataSource {
   Future<List<PameranAktifModel>> getPameranAktif() async {
     try {
       final response = await dio.get('/pameran/aktif');
-      print('[getPameranAktif] response: ${response.data}');
+      debugPrint('[getPameranAktif] response: ${response.data}');
       if (response.data['status'] == true) {
         final List<dynamic> data = response.data['data'];
         return data.map((json) => PameranAktifModel.fromJson(json as Map<String, dynamic>)).toList();
