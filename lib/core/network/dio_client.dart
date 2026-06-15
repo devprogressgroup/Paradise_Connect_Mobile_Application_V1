@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -17,6 +18,12 @@ class DioClient {
 
   static void resetSession() {
     _isHandling401 = false;
+  }
+
+  static void _printLong(String text, {int chunkSize = 800}) {
+    for (var i = 0; i < text.length; i += chunkSize) {
+      debugPrint(text.substring(i, i + chunkSize > text.length ? text.length : i + chunkSize));
+    }
   }
 
   static void _showGlobalSnackbar(String message) {
@@ -55,16 +62,52 @@ class DioClient {
           if (token != null && token.isNotEmpty) {
             options.headers["Authorization"] = "Bearer $token";
           }
-          if (kIsWeb) { // TODO: ganti ke: kIsWeb && ApiConstants.currentEnv == AppEnvironment.productionDomain
+          final isFileDownload = options.responseType == ResponseType.bytes ||
+              options.responseType == ResponseType.stream;
+          if (!isFileDownload) {
+            if (kDebugMode) {
+              final rawData = options.data;
+              if (rawData is FormData) {
+                debugPrint('>>> [REQ BODY] ${options.method} ${options.path}');
+                debugPrint('    fields: ${rawData.fields.map((e) => '${e.key}=${e.value}').join(', ')}');
+                debugPrint('    files : ${rawData.files.map((e) => '${e.key}=${e.value.filename} (${e.value.length}B)').join(', ')}');
+              } else if (rawData != null) {
+                debugPrint('>>> [REQ BODY] ${options.method} ${options.path}: $rawData');
+              }
+            }
+            dynamic body;
+            if (options.data is FormData) {
+              final fd = options.data as FormData;
+              final map = <String, dynamic>{};
+              for (final f in fd.fields) {
+                map[f.key] = f.value;
+              }
+              for (final f in fd.files) {
+                final chunks = await f.value.finalize().toList();
+                final bytes = chunks.fold<List<int>>([], (a, b) => a..addAll(b));
+                map[f.key] = {
+                  '__file': true,
+                  'filename': f.value.filename ?? 'file',
+                  'data': base64Encode(bytes),
+                  'contentType': f.value.contentType?.mimeType ?? 'application/octet-stream',
+                };
+              }
+              body = map;
+            } else if (options.data is Map) {
+              body = Map<String, dynamic>.from(options.data as Map);
+            } else {
+              body = options.data;
+            }
             final payload = {
               'method': options.method,
               'path': options.path,
               'query': Map<String, dynamic>.from(options.queryParameters),
-              'body': options.data is Map
-                  ? Map<String, dynamic>.from(options.data as Map)
-                  : options.data,
+              'body': body,
               'ts': DateTime.now().millisecondsSinceEpoch,
             };
+            if (kDebugMode) {
+              _printLong('[REQ DECRYPT] ${payload['method']} ${payload['path']} => ${jsonEncode(payload)}');
+            }
             options.method = 'POST';
             options.path = '/px';
             options.queryParameters.clear();
@@ -72,11 +115,20 @@ class DioClient {
             options.headers['Content-Type'] = 'application/json';
           }
 
-          if (kDebugMode) debugPrint(">>> [${options.method}] ${options.uri}");
+          if (kDebugMode) {
+            debugPrint(">>> [${options.method}] ${options.uri}");
+            if (options.data is Map) {
+              final r = (options.data as Map)['r']?.toString() ?? '';
+              _printLong('[REQ ENCRYPTED] $r');
+            }
+          }
           return handler.next(options);
         },
         onResponse: (response, handler) {
-          if (kIsWeb) response.data = ProxyCipher.decrypt(response.data);
+          response.data = ProxyCipher.decrypt(response.data);
+          if (kDebugMode) {
+            _printLong('[RES Des ${response.statusCode}] ${response.requestOptions.path} => ${jsonEncode(response.data)}');
+          }
           final data = response.data;
           if (data is Map) {
             final status = data['status'];
@@ -88,8 +140,11 @@ class DioClient {
           return handler.next(response);
         },
         onError: (DioException e, handler) async {
-          if (kIsWeb && e.response != null) {
+          if (e.response != null) {
             e.response!.data = ProxyCipher.decrypt(e.response!.data);
+            if (kDebugMode) {
+              _printLong('[RES ERR ${e.response!.statusCode}] ${e.requestOptions.path} => ${jsonEncode(e.response!.data)}');
+            }
           }
           if (kDebugMode) debugPrint("DIO ERROR: ${e.message}");
 

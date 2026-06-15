@@ -737,31 +737,31 @@ class _ContactDetailPageState extends State<ContactDetailPage>with TickerProvide
                         // =========================
                         // CONTACT DATES
                         // =========================
-                        final contact = context.read<ContactBloc>().state.contactDetail
-                            ?? widget.args.dataContact;
-                        if (contact != null) {
-                          final dateMappings = <Map<String, dynamic>>[
-                            {'label': 'Appt', 'date': contact.lastApptDate},
-                            {'label': 'Reserve', 'date': contact.lastReserveDate},
-                            {'label': 'SP', 'date': contact.lastSpDate},
-                            {'label': 'Akad', 'date': contact.lastAkadDate},
-                            {'label': 'Lost', 'date': contact.lastLostDate},
-                          ];
-                          for (final map in dateMappings) {
-                            final dateStr = map['date'] as String?;
-                            final label = map['label'] as String;
-                            if (dateStr != null && dateStr.isNotEmpty) {
-                              final date = DateTime.tryParse(dateStr);
-                              if (date != null) {
-                                timeline.add(ActivityTimelineItem(
-                                  date: date,
-                                  type: 'contact_date',
-                                  data: {'label': label, 'date': date},
-                                ));
-                              }
-                            }
-                          }
-                        }
+                        // final contact = context.read<ContactBloc>().state.contactDetail
+                        //     ?? widget.args.dataContact;
+                        // if (contact != null) {
+                        //   final dateMappings = <Map<String, dynamic>>[
+                        //     {'label': 'Appt', 'date': contact.lastApptDate},
+                        //     {'label': 'Reserve', 'date': contact.lastReserveDate},
+                        //     {'label': 'SP', 'date': contact.lastSpDate},
+                        //     {'label': 'Akad', 'date': contact.lastAkadDate},
+                        //     {'label': 'Lost', 'date': contact.lastLostDate},
+                        //   ];
+                        //   for (final map in dateMappings) {
+                        //     final dateStr = map['date'] as String?;
+                        //     final label = map['label'] as String;
+                        //     if (dateStr != null && dateStr.isNotEmpty) {
+                        //       final date = DateTime.tryParse(dateStr);
+                        //       if (date != null) {
+                        //         timeline.add(ActivityTimelineItem(
+                        //           date: date,
+                        //           type: 'contact_date',
+                        //           data: {'label': label, 'date': date},
+                        //         ));
+                        //       }
+                        //     }
+                        //   }
+                        // }
 
                         // =========================
                         // SORT DESC
@@ -1165,10 +1165,8 @@ class _ContactDetailPageState extends State<ContactDetailPage>with TickerProvide
                                   ContactDetailArgs(
                                     page: 6,
                                     dataContact: ContactEntity(
-                                      contactId:
-                                          widget.args.dataContact!.contactId,
-                                      fullName:
-                                          widget.args.dataContact?.fullName,
+                                      contactId: widget.args.dataContact!.contactId,
+                                      fullName:widget.args.dataContact?.fullName,
                                     ),
                                   ),
                                 );

@@ -783,8 +783,9 @@ class _AttandancePageState extends State<AttandancePage> {
     }
 
     final now = DateTime.now();
-    DateTime startDate = DateTime(now.year, now.month, 1);
-    DateTime endDate = DateTime(now.year, now.month + 1, 0);
+    final prevMonth = DateTime(now.year, now.month - 1);
+    DateTime startDate = DateTime(prevMonth.year, prevMonth.month, 25);
+    DateTime endDate = DateTime(now.year, now.month, 26);
     OwnerDropdownItem selectedOwner = ownerItems.first;
     final searchController = TextEditingController();
     String searchQuery = '';

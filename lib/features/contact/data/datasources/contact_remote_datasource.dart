@@ -1,5 +1,6 @@
 
 
+import 'dart:convert';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:progress_group/core/utils/helpers/error_message.dart';
@@ -429,29 +430,57 @@ class ContactRemoteDataSourceImpl implements ContactRemoteDataSource {
     }
   }
 
+  Future<String> _toBase64(UploadAttachmentParams params) async {
+    if (params.fileBytes != null) return base64Encode(params.fileBytes!);
+    if (params.file != null) return base64Encode(await params.file!.readAsBytes());
+    return '';
+  }
+
+  String _mimeType(String? fileName) {
+    final ext = (fileName ?? '').split('.').last.toLowerCase();
+    return switch (ext) {
+      'jpg' || 'jpeg' => 'image/jpeg',
+      'png'           => 'image/png',
+      'gif'           => 'image/gif',
+      'webp'          => 'image/webp',
+      'pdf'           => 'application/pdf',
+      'mp4'           => 'video/mp4',
+      _               => 'application/octet-stream',
+    };
+  }
+
   @override
   Future<void> uploadAttachment(UploadAttachmentParams params) async {
     try {
-      final formData = FormData.fromMap({
+      debugPrint('[uploadAttachment] contactId=${params.contactId} typeId=${params.attachmentTypeId} note=${params.attachmentNote} fileName=${params.fileName} hasFile=${params.file != null} hasBytes=${params.fileBytes != null} bytesLen=${params.fileBytes?.length}');
+
+      final fileBase64 = await _toBase64(params);
+      final body = <String, dynamic>{
         if (params.dealId != null) 'deal_id': params.dealId,
         if (params.activityId != null) 'activity_id': params.activityId,
         'attachment_type_id': params.attachmentTypeId,
         if (params.attachmentNote != null) 'attachment_note': params.attachmentNote,
-        if (params.fileBytes != null)
-          'file': MultipartFile.fromBytes(params.fileBytes!, filename: params.fileName ?? 'file')
-        else if (params.file != null && params.file!.path.isNotEmpty)
-          'file': await MultipartFile.fromFile(params.file!.path),
-      });
+        if (fileBase64.isNotEmpty) ...{
+          'file_base64': fileBase64,
+          'mime_type': _mimeType(params.fileName),
+          'file_name': params.fileName ?? 'file',
+        },
+      };
+
+      debugPrint('[uploadAttachment] POST /contacts/${params.contactId}/attachments body keys=${body.keys.join(', ')} base64Len=${fileBase64.length}');
 
       final response = await dio.post(
         '/contacts/${params.contactId}/attachments',
-        data: formData,
+        data: body,
       );
+
+      debugPrint('[uploadAttachment] response status=${response.statusCode} data=${response.data}');
 
       if (response.data['status'] != true) {
         throw Exception(response.data['message'] ?? 'Failed to upload attachment');
       }
     } on DioException catch (e) {
+      debugPrint('[uploadAttachment] DioException type=${e.type} status=${e.response?.statusCode} response=${e.response?.data}');
       throw Exception(getErrorMessage(e, 'Failed to upload attachment'));
     }
   }
@@ -494,26 +523,35 @@ class ContactRemoteDataSourceImpl implements ContactRemoteDataSource {
   @override
   Future<void> updateAttachment({required int contactId, required int attachmentId, required UploadAttachmentParams params}) async {
     try {
-      final formData = FormData.fromMap({
+      debugPrint('[updateAttachment] contactId=$contactId attachmentId=$attachmentId typeId=${params.attachmentTypeId} note=${params.attachmentNote} fileName=${params.fileName} hasFile=${params.file != null} hasBytes=${params.fileBytes != null} bytesLen=${params.fileBytes?.length}');
+
+      final fileBase64 = await _toBase64(params);
+      final body = <String, dynamic>{
         if (params.dealId != null) 'deal_id': params.dealId,
         if (params.activityId != null) 'activity_id': params.activityId,
         'attachment_type_id': params.attachmentTypeId,
         if (params.attachmentNote != null) 'attachment_note': params.attachmentNote,
-        if (params.fileBytes != null)
-          'file': MultipartFile.fromBytes(params.fileBytes!, filename: params.fileName ?? 'file')
-        else if (params.file != null && params.file!.path.isNotEmpty)
-          'file': await MultipartFile.fromFile(params.file!.path),
-      });
+        if (fileBase64.isNotEmpty) ...{
+          'file_base64': fileBase64,
+          'mime_type': _mimeType(params.fileName),
+          'file_name': params.fileName ?? 'file',
+        },
+      };
+
+      debugPrint('[updateAttachment] PATCH /contacts/$contactId/attachments/$attachmentId body keys=${body.keys.join(', ')} base64Len=${fileBase64.length}');
 
       final response = await dio.patch(
         '/contacts/$contactId/attachments/$attachmentId',
-        data: formData,
+        data: body,
       );
+
+      debugPrint('[updateAttachment] response status=${response.statusCode} data=${response.data}');
 
       if (response.data['status'] != true) {
         throw Exception(response.data['message'] ?? 'Failed to update attachment');
       }
     } on DioException catch (e) {
+      debugPrint('[updateAttachment] DioException type=${e.type} status=${e.response?.statusCode} response=${e.response?.data}');
       throw Exception(getErrorMessage(e, 'Failed to update attachment'));
     }
   }

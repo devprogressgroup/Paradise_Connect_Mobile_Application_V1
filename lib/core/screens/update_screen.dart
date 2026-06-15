@@ -223,28 +223,34 @@ class _ProgressBar extends StatelessWidget {
                   borderRadius: BorderRadius.circular(5),
                 ),
               ),
-              // Fill with glow
-              AnimatedBuilder(
-                animation: glowAnim,
-                builder: (context, _) {
-                  return AnimatedContainer(
-                    duration: const Duration(milliseconds: 300),
-                    curve: Curves.easeOut,
-                    width: (width * progress).clamp(0, width),
-                    height: 10,
-                    decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [Color(primaryColor), Color(blue3Color)],
-                      ),
-                      borderRadius: BorderRadius.circular(5),
-                      boxShadow: [
-                        BoxShadow(
-                          color: const Color(primaryColor).withValues(alpha: 0.5),
-                          blurRadius: glowAnim.value,
-                          spreadRadius: 1,
+              // Fill — TweenAnimationBuilder animates progress changes smoothly,
+              // AnimatedBuilder handles the glow pulse independently
+              TweenAnimationBuilder<double>(
+                tween: Tween(begin: 0, end: progress),
+                duration: const Duration(milliseconds: 250),
+                curve: Curves.easeOut,
+                builder: (_, value, __) {
+                  return AnimatedBuilder(
+                    animation: glowAnim,
+                    builder: (_, __) {
+                      return Container(
+                        width: (width * value).clamp(0, width),
+                        height: 10,
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            colors: [Color(primaryColor), Color(blue3Color)],
+                          ),
+                          borderRadius: BorderRadius.circular(5),
+                          boxShadow: [
+                            BoxShadow(
+                              color: const Color(primaryColor).withValues(alpha: 0.5),
+                              blurRadius: glowAnim.value,
+                              spreadRadius: 1,
+                            ),
+                          ],
                         ),
-                      ],
-                    ),
+                      );
+                    },
                   );
                 },
               ),

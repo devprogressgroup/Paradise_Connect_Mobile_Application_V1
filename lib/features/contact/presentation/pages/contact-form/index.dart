@@ -1245,7 +1245,9 @@ class _ContactFormPageState extends State<ContactFormPage> {
   String? _toBackendDate(String value) {
     if (value.isEmpty) return null;
     final dt = _parseDateOrToday(value);
-    return '${DateHelper.formatNumericCompact(dt)} 00:00:00';
+    final now = DateTime.now();
+    final time = '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}:${now.second.toString().padLeft(2, '0')}';
+    return '${DateHelper.formatNumericCompact(dt)} $time';
   }
 
   

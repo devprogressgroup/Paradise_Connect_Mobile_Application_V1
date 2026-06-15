@@ -130,7 +130,7 @@ class _LoginPageState extends State<LoginPage> {
                     ctx,
                     env: AppEnvironment.production,
                     label: 'Production',
-                    subtitle: '192.168.8.21:9090',
+                    subtitle: 'https://api.connect.paradise.id',
                     color: const Color(0xFF22C55E),
                     currentEnv: currentEnv,
                   ),
@@ -301,7 +301,7 @@ class _LoginPageState extends State<LoginPage> {
                     children: [
                       // Header
                       GestureDetector(
-                        onTap: _showEnvSwitcher,
+                        // onTap: _showEnvSwitcher,
                         child: const Text(
                           'Sign In',
                           textAlign: TextAlign.center,
@@ -589,7 +589,7 @@ class _LoginPageState extends State<LoginPage> {
                                   _login();
                                 },
                                 style: ElevatedButton.styleFrom(
-                                  backgroundColor: Color(primaryColor),
+                                  backgroundColor:ApiConstants.envLabel =="Production"? Color(primaryColor):Color(redColor),
                                   foregroundColor: Colors.white,
                                   elevation: 0,
                                   shape: RoundedRectangleBorder(
@@ -628,6 +628,20 @@ class _LoginPageState extends State<LoginPage> {
                           ],
                         ),
                       ),
+                      const SizedBox(height: 12),
+                      // ValueListenableBuilder<AppEnvironment>(
+                      //   valueListenable: ApiConstants.envNotifier,
+                      //   builder: (_, env, __) => Text(
+                      //     '${ApiConstants.envLabel} • ${ApiConstants.baseUrl}',
+                      //     textAlign: TextAlign.center,
+                      //     style: TextStyle(
+                      //       fontSize: 11,
+                      //       color: env == AppEnvironment.production
+                      //           ? Colors.grey[500]
+                      //           : Colors.orange[700],
+                      //     ),
+                      //   ),
+                      // ),
                     ],
                   ),
                 ),

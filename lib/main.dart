@@ -142,6 +142,13 @@ void main() async {
   final prefs = await SharedPreferences.getInstance();
   ApiConstants.loadFromPrefs(prefs);
 
+  // Fetch settings on startup so version check works before login
+  try {
+    final localDs = AuthLocalDataSourceImpl(prefs);
+    final settings = await SettingsRemoteDataSource(DioClient(localDs).dio).getSettings();
+    if (settings.isNotEmpty) ApiConstants.applySettings(settings);
+  } catch (_) {}
+
   try {
     await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
     if (!kIsWeb) {
@@ -389,6 +396,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
                   if (state is ProfileLoaded) {
                     settingsDs.getSettings().then((s) {
                       if (s.isNotEmpty) ApiConstants.applySettings(s);
+                      _checkVersion();
                     });
                   }
                 },

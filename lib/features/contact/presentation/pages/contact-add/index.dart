@@ -2,6 +2,7 @@ import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:file_picker/file_picker.dart';
+import 'package:progress_group/core/services/salesbook_sync_service.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:progress_group/core/utils/widget/shimmer_loading.dart';
 import 'package:flutter/cupertino.dart';
@@ -582,12 +583,16 @@ class _ContactAddPageState extends State<ContactAddPage> {
     File? finalFile = selectedFile ?? selectedImage;
     Uint8List? finalBytes = selectedFileBytes;
 
+    debugPrint('[_submitAttachment] isEdit=$isEdit isPdf=$isPdf selectedFileName=$selectedFileName selectedTypeId=$selectedTypeId hasImage=${selectedImage != null} hasFile=${selectedFile != null} hasBytes=${selectedFileBytes != null} bytesLen=${selectedFileBytes?.length}');
+
     if (!isPdf) {
       if (!kIsWeb && finalFile != null) {
         finalBytes = await compressImageFile(finalFile.path);
         finalFile = null;
+        debugPrint('[_submitAttachment] compressed image: bytesLen=${finalBytes.length}');
       } else if (kIsWeb && finalBytes != null) {
         finalBytes = await compressImageBytes(finalBytes);
+        debugPrint('[_submitAttachment] compressed web bytes: bytesLen=${finalBytes.length}');
       }
     }
     if (!mounted) return;
@@ -600,6 +605,8 @@ class _ContactAddPageState extends State<ContactAddPage> {
       fileBytes: finalBytes,
       fileName: selectedFileName,
     );
+
+    debugPrint('[_submitAttachment] dispatching event contactId=$contactId typeId=${params.attachmentTypeId} note=${params.attachmentNote} fileName=${params.fileName} hasFile=${params.file != null} hasBytes=${params.fileBytes != null} attachmentId=${isEdit ? widget.args.dataAttachment?.contactAttachmentId : null}');
 
     context.read<UploadAttachmentBloc>().add(
       SubmitAttachmentEvent(
@@ -638,26 +645,27 @@ class _ContactAddPageState extends State<ContactAddPage> {
     final editParams = widget.args.createContactParams;
 
     // Appt: 53, 60, 76
-    final firstApptDate =(selectedStatusId == 60 || selectedStatusId == 53 || selectedStatusId == 76) &&(contact?.firstApptDate == null && selectedDate != null)? DateFormat('yyyy-MM-dd').format(selectedDate!): null;
-    final lastApptDate =(selectedStatusId == 60 || selectedStatusId == 53 || selectedStatusId == 76) &&selectedDate != null? DateFormat('yyyy-MM-dd').format(selectedDate!): null;
+    final _timeNow = DateFormat('HH:mm:ss').format(DateTime.now());
+    String _fmtDate(DateTime d) => '${DateFormat('yyyy-MM-dd').format(d)} $_timeNow';
+
+    final firstApptDate =(selectedStatusId == 60 || selectedStatusId == 53 || selectedStatusId == 76) &&(contact?.firstApptDate == null && selectedDate != null)? _fmtDate(selectedDate!): null;
+    final lastApptDate =(selectedStatusId == 60 || selectedStatusId == 53 || selectedStatusId == 76) &&selectedDate != null? _fmtDate(selectedDate!): null;
 
     // Reserve: 54, 70, 71, 72
-    final firstReserveDate =(selectedStatusId == 54 ||selectedStatusId == 70 ||selectedStatusId == 71 ||selectedStatusId == 72) &&(contact?.firstReserveDate == null && selectedDate != null)? DateFormat('yyyy-MM-dd').format(selectedDate!): null;
-    final lastReserveDate =(selectedStatusId == 54 ||selectedStatusId == 70 ||selectedStatusId == 71 ||selectedStatusId == 72) &&(selectedDate != null)? DateFormat('yyyy-MM-dd').format(selectedDate!): null;
+    final firstReserveDate =(selectedStatusId == 54 ||selectedStatusId == 70 ||selectedStatusId == 71 ||selectedStatusId == 72) &&(contact?.firstReserveDate == null && selectedDate != null)? _fmtDate(selectedDate!): null;
+    final lastReserveDate =(selectedStatusId == 54 ||selectedStatusId == 70 ||selectedStatusId == 71 ||selectedStatusId == 72) &&(selectedDate != null)? _fmtDate(selectedDate!): null;
 
     // Visit: 63, 64, 65, 66, 67, 68, 69
-    final firstVisitDate =(selectedStatusId == 63 ||selectedStatusId == 64 ||selectedStatusId == 65 ||selectedStatusId == 66 ||selectedStatusId == 67 ||selectedStatusId == 68 ||selectedStatusId == 69) &&(contact?.firstVisitDate == null && selectedDate != null)? DateFormat('yyyy-MM-dd').format(selectedDate!): null;
-    final lastVisitDate =(selectedStatusId == 63 ||selectedStatusId == 64 ||selectedStatusId == 65 ||selectedStatusId == 66 ||selectedStatusId == 67 ||selectedStatusId == 68 ||selectedStatusId == 69) &&(selectedDate != null)? DateFormat('yyyy-MM-dd').format(selectedDate!): null;
+    final firstVisitDate =(selectedStatusId == 63 ||selectedStatusId == 64 ||selectedStatusId == 65 ||selectedStatusId == 66 ||selectedStatusId == 67 ||selectedStatusId == 68 ||selectedStatusId == 69) &&(contact?.firstVisitDate == null && selectedDate != null)? _fmtDate(selectedDate!): null;
+    final lastVisitDate =(selectedStatusId == 63 ||selectedStatusId == 64 ||selectedStatusId == 65 ||selectedStatusId == 66 ||selectedStatusId == 67 ||selectedStatusId == 68 ||selectedStatusId == 69) &&(selectedDate != null)? _fmtDate(selectedDate!): null;
 
     // SP: 74
-    final firstSPDate =(selectedStatusId == 74) &&(contact?.firstSpDate == null && selectedDate != null)? DateFormat('yyyy-MM-dd').format(selectedDate!): null;
-    final lastSPDate = (selectedStatusId == 74) && (selectedDate != null) ? DateFormat('yyyy-MM-dd').format(selectedDate!) : null;
+    final firstSPDate =(selectedStatusId == 74) &&(contact?.firstSpDate == null && selectedDate != null)? _fmtDate(selectedDate!): null;
+    final lastSPDate = (selectedStatusId == 74) && (selectedDate != null) ? _fmtDate(selectedDate!) : null;
 
     // Lost: 43, 55-58, 61-62, 67-69, 73, 75, 77, 78
-    // final firstLostDate =(contact?.firstLostDate == null && selectedDate != null)? DateFormat('yyyy-MM-dd').format(selectedDate!): null;
-    // final lostDate =(selectedStatusId == 67 ||selectedStatusId == 68 ||selectedStatusId == 69  ) &&(selectedDate != null)? DateFormat('yyyy-MM-dd').format(selectedDate!): null;
-    final firstLostDate =(contact?.firstLostDate == null && selectedDate != null)? DateFormat('yyyy-MM-dd').format(selectedDate!): null;
-    final lostDate =(selectedStatusId == 4 ||selectedStatusId == 5 ||selectedStatusId == 6 ||selectedStatusId == 9 ||selectedStatusId == 11 ||selectedStatusId == 13 ||selectedStatusId == 43 ||selectedStatusId == 50 ||selectedStatusId == 55 ||selectedStatusId == 56 ||selectedStatusId == 57 ||selectedStatusId == 58 ||selectedStatusId == 59 ||selectedStatusId == 61 ||selectedStatusId == 62 ||selectedStatusId == 67 ||selectedStatusId == 68 ||selectedStatusId == 69 ||selectedStatusId == 73 ||selectedStatusId == 75 ||selectedStatusId == 77 ||selectedStatusId == 78) &&(selectedDate != null)? DateFormat('yyyy-MM-dd').format(selectedDate!): null;
+    final firstLostDate =(contact?.firstLostDate == null && selectedDate != null)? _fmtDate(selectedDate!): null;
+    final lostDate =(selectedStatusId == 4 ||selectedStatusId == 5 ||selectedStatusId == 6 ||selectedStatusId == 9 ||selectedStatusId == 11 ||selectedStatusId == 13 ||selectedStatusId == 43 ||selectedStatusId == 50 ||selectedStatusId == 55 ||selectedStatusId == 56 ||selectedStatusId == 57 ||selectedStatusId == 58 ||selectedStatusId == 59 ||selectedStatusId == 61 ||selectedStatusId == 62 ||selectedStatusId == 67 ||selectedStatusId == 68 ||selectedStatusId == 69 ||selectedStatusId == 73 ||selectedStatusId == 75 ||selectedStatusId == 77 ||selectedStatusId == 78) &&(selectedDate != null)? _fmtDate(selectedDate!): null;
 
 
     if (contact == null) return;
@@ -717,6 +725,8 @@ class _ContactAddPageState extends State<ContactAddPage> {
       lostDate: lostDate,
     );
 
+    print('[_buildUpdateStatusProspect] req body: ${params.toJson()}');
+
     const visitStatusIds = [63, 64, 65, 66, 67, 68, 69];
     final isVisitStatus = visitStatusIds.contains(selectedStatusId);
 
@@ -738,6 +748,8 @@ class _ContactAddPageState extends State<ContactAddPage> {
     } else {
       context.read<ContactBloc>().add(   UpdateContactEvent(contact.contactId!, params), );
     }
+
+    SalesbookSyncService.syncContact(contact.contactId!);
   }
 
   Future<void> _submitVisit(BuildContext context) async {
@@ -2069,7 +2081,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
           focusNode: lBlockNoFN,
           onTapOutside: (event) => lBlockNoFN.unfocus(),
           decoration: InputDecoration(
-            hintText: "Enter block no",
+            hintText: "Enter blok no",
             hintStyle: TextStyle(color: Color(grey2Color), fontSize: 12),
             contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 2),
             border: OutlineInputBorder(

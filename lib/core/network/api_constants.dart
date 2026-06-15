@@ -19,17 +19,17 @@ class _EnvConfig {
 
 class ApiConstants {
   static const String _prefKey = 'app_environment';
+  static const String _prefSetKey = 'app_environment_user_set';
 
   static const Map<AppEnvironment, _EnvConfig> _configs = {
     AppEnvironment.production: _EnvConfig(
       label: 'Production',
-      baseUrl: 'http://api.connect.paradise.id/api',
-      storageUrl: 'http://api.connect.paradise.id/storage',
-      serverUrl: 'http://api.connect.paradise.id',
+      baseUrl: 'https://api.connect.paradise.id/api',
+      storageUrl: 'https://api.connect.paradise.id/storage',
+      serverUrl: 'https://api.connect.paradise.id',
     ),
 
-    
-    
+
     AppEnvironment.development: _EnvConfig(
       label: 'Development',
       baseUrl: 'http://192.168.8.36:8000/api',
@@ -56,19 +56,25 @@ class ApiConstants {
 
 
 
-  static AppEnvironment _currentEnv = AppEnvironment.productionDomain;
-  static final ValueNotifier<AppEnvironment> envNotifier = ValueNotifier(AppEnvironment.productionDomain);
+  static AppEnvironment _currentEnv = AppEnvironment.production;
+  static final ValueNotifier<AppEnvironment> envNotifier = ValueNotifier(AppEnvironment.production);
 
   static AppEnvironment get currentEnv => _currentEnv;
   static String get envLabel => _configs[_currentEnv]!.label;
 
   static void loadFromPrefs(SharedPreferences prefs) {
+    final userSet = prefs.getBool(_prefSetKey) ?? false;
+    if (!userSet) {
+      _currentEnv = AppEnvironment.production;
+      envNotifier.value = _currentEnv;
+      return;
+    }
     final saved = prefs.getString(_prefKey);
     _currentEnv = switch (saved) {
       'development' => AppEnvironment.development,
       'development2' => AppEnvironment.development2,
       'productionDomain' => AppEnvironment.productionDomain,
-      _ => AppEnvironment.productionDomain,
+      _ => AppEnvironment.production,
     };
     envNotifier.value = _currentEnv;
   }
@@ -83,6 +89,7 @@ class ApiConstants {
       AppEnvironment.production => 'production',
     };
     await prefs.setString(_prefKey, key);
+    await prefs.setBool(_prefSetKey, true);
     envNotifier.value = env;
   }
 
