@@ -246,7 +246,7 @@ class _SalesKitPageState extends State<SalesKitPage> {
           children: [
             customHeader(
               context,
-              widget.args.title ?? "SalesKit",
+              widget.args.title??"-",
               isBack: true,
             ),
             SizedBox(height: 1),

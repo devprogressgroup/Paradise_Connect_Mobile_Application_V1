@@ -13,40 +13,43 @@ Widget customHeader(BuildContext context, String title, {bool isBack = false, Co
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Row(
-            children: [
-              if(iconRight != null)
-              Container(
-                width: 40,
-                child: IconButton(
-                  icon:  Icon(iconRight, size: 24, color: colorBack),
-                  onPressed: () {
-                    iconRightOnTap?.call();
-                  },
-                ),
-              ),
-              !isBack ? SizedBox(): Row(
-                children: [
-                  GestureDetector(
-                    onTap: () {
-                      if (onBack != null) {
-                        onBack();
-                      } else {
-                        context.pop();
-                      }
+          Expanded(
+            child: Row(
+              children: [
+                if(iconRight != null)
+                Container(
+                  width: 40,
+                  child: IconButton(
+                    icon:  Icon(iconRight, size: 24, color: colorBack),
+                    onPressed: () {
+                      iconRightOnTap?.call();
                     },
-                    child: Icon(Icons.arrow_back, size: 27, color: colorBack),
                   ),
-                  SizedBox(width: 10),
-                ],
-              ),
-              Container(width:180,child: Text(title, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: colorTitle))),
-            ],
+                ),
+                !isBack ? SizedBox(): Row(
+                  children: [
+                    GestureDetector(
+                      onTap: () {
+                        if (onBack != null) {
+                          onBack();
+                        } else {
+                          context.pop();
+                        }
+                      },
+                      child: Icon(Icons.arrow_back, size: 27, color: colorBack),
+                    ),
+                    SizedBox(width: 10),
+                  ],
+                ),
+                Expanded(child: Text(title, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: colorTitle))),
+              ],
+            ),
           ),
+          if(iconLeft2 != null)
           Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              if(iconLeft2 != null)
+              
                 IconButton(
                   icon: Icon(iconLeft2, size: 24, color: colorIconLeft2),
                   onPressed: () {

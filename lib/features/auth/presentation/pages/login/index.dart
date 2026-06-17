@@ -267,7 +267,7 @@ class _LoginPageState extends State<LoginPage> {
           setState(() => _rememberMe = true);
         } else if (state is AuthFailure) {
           debugPrint('AuthFailure: ${state.error}');
-          showSnackbar(context, 'Email atau password salah', isError: true);
+           showSnackbar(context, state.error, isError: true);
         }
       },
       child: Scaffold(

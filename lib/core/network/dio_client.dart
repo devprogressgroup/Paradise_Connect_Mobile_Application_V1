@@ -196,6 +196,11 @@ class DioClient {
 
             await _authLocalDataSource.clearToken();
 
+            final data401 = e.response?.data;
+            final apiMessage = (data401 is Map && data401['message'] != null && data401['message'].toString().isNotEmpty)
+                ? data401['message'].toString()
+                : 'Sesi Anda telah habis. Silakan login kembali.';
+
             final context = AppRouter.rootNavigatorKey.currentContext;
             if (context != null && context.mounted) {
               showDialog(
@@ -203,7 +208,7 @@ class DioClient {
                 barrierDismissible: false,
                 builder: (dialogContext) => AlertDialog(
                   title: const Text("Sesi Berakhir"),
-                  content: const Text("Sesi Anda telah habis. Silakan login kembali."),
+                  content: Text(apiMessage),
                   actions: [
                     TextButton(
                       onPressed: () {
