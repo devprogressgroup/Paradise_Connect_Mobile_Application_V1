@@ -30,27 +30,27 @@ class ApiConstants {
     ),
 
 
-    AppEnvironment.development: _EnvConfig(
-      label: 'Development',
-      baseUrl: 'http://192.168.8.36:8000/api',
-      storageUrl: 'http://192.168.8.36:8000/storage',
-      serverUrl: 'http://192.168.8.36:8000',
-    ),
+    // AppEnvironment.development: _EnvConfig(
+    //   label: 'Development',
+    //   baseUrl: 'http://192.168.8.36:8000/api',
+    //   storageUrl: 'http://192.168.8.36:8000/storage',
+    //   serverUrl: 'http://192.168.8.36:8000',
+    // ),
 
-    AppEnvironment.development2: _EnvConfig(
-      label: 'Development 2',
-      baseUrl: 'http://192.168.18.150:8000/api',
-      storageUrl: 'http://192.168.18.150:8000/storage',
-      serverUrl: 'http://192.168.18.150:8000',
-    ),
+    // AppEnvironment.development2: _EnvConfig(
+    //   label: 'Development 2',
+    //   baseUrl: 'http://192.168.18.150:8000/api',
+    //   storageUrl: 'http://192.168.18.150:8000/storage',
+    //   serverUrl: 'http://192.168.18.150:8000',
+    // ),
 
 
-    AppEnvironment.productionDomain: _EnvConfig(
-      label: 'Production Domain',
-      baseUrl: 'https://apidevconnect.paradise.id/api',
-      storageUrl: 'https://apidevconnect.paradise.id/storage',
-      serverUrl: 'https://apidevconnect.paradise.id',
-    ),
+    // AppEnvironment.productionDomain: _EnvConfig(
+    //   label: 'Production Domain',
+    //   baseUrl: 'https://apidevconnect.paradise.id/api',
+    //   storageUrl: 'https://apidevconnect.paradise.id/storage',
+    //   serverUrl: 'https://apidevconnect.paradise.id',
+    // ),
   };
 
 
@@ -95,21 +95,11 @@ class ApiConstants {
 
   static _EnvConfig get _config => _configs[_currentEnv]!;
 
-  // static String get baseUrl => (kIsWeb && _currentEnv == AppEnvironment.productionDomain)
-  //     ? 'https://devconnect.paradise.id/proxy/api'
-  //     : _config.baseUrl;
-  // static String get storageUrl => (kIsWeb && _currentEnv == AppEnvironment.productionDomain)
-  //     ? 'https://devconnect.paradise.id/proxy/storage'
-  //     : _config.storageUrl;
-  // static String get serverUrl => (kIsWeb && _currentEnv == AppEnvironment.productionDomain)
-  //     ? 'https://devconnect.paradise.id/proxy'
-  //     : _config.serverUrl;
   static String get baseUrl => _config.baseUrl;
   static String get storageUrl => _config.storageUrl;
   static String get serverUrl => _config.serverUrl;
 
 
-  // Dynamic settings — loaded from /api/settings on startup, fallback to hardcoded defaults
   static String _waServerUrl = '';
   static String _salesbookWebhookUrl = '';
   static String _salesbookWebhookToken = '';

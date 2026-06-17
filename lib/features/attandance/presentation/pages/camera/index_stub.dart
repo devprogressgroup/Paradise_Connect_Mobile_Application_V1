@@ -704,7 +704,7 @@ class _WebSubmitPageState extends State<_WebSubmitPage> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             const SizedBox(height: 10),
-                            Text('Office / Pameran/ Open Table (optional)', style: TextStyle(fontSize: 14, color: Color(grey2Color))),
+                            Text('Office / Pameran / Open Table (optional)', style: TextStyle(fontSize: 14, color: Color(grey2Color))),
                             const SizedBox(height: 5),
 
                             if (widget.args.flag == 0 || widget.args.flag == 1)

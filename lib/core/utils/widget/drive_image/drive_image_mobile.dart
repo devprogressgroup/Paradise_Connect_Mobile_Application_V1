@@ -9,6 +9,7 @@ class DriveImage extends StatelessWidget {
   final BoxFit fit;
   final Widget? errorWidget;
   final VoidCallback? onTap;
+  final FilterQuality filterQuality;
 
   const DriveImage({
     super.key,
@@ -18,6 +19,7 @@ class DriveImage extends StatelessWidget {
     this.fit = BoxFit.cover,
     this.errorWidget,
     this.onTap,
+    this.filterQuality = FilterQuality.medium,
   });
 
   @override
@@ -27,6 +29,7 @@ class DriveImage extends StatelessWidget {
       width: width,
       height: height,
       fit: fit,
+      filterQuality: filterQuality,
       loadingBuilder: (context, child, progress) {
         if (progress == null) return child;
         return SizedBox(

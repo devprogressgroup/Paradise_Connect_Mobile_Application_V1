@@ -519,7 +519,7 @@ class _CameraPageState extends State<CameraPage> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             SizedBox(height: 10),
-                             Text("Office /Pameran/ Open Table (optional)", style: TextStyle(fontSize: 14, color: Color(grey2Color))),
+                             Text("Office / Pameran / Open Table (optional)", style: TextStyle(fontSize: 14, color: Color(grey2Color))),
                              SizedBox(height: 5),
 
                              if (widget.args.flag == 0 || widget.args.flag == 1)

@@ -558,13 +558,17 @@ class _SalesKitPageState extends State<SalesKitPage> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    DriveImage(
-                      url: logoImageUrl,
-                      height: 140,
-                      width: 140,
-                      fit: BoxFit.contain,
-                      onTap: ontap,
-                      errorWidget: const Icon(Icons.broken_image, color: Colors.white),
+                    ColorFiltered(
+                      colorFilter: const ColorFilter.mode(Colors.white, BlendMode.srcATop),
+                      child: DriveImage(
+                        url: logoImageUrl,
+                        height: 140,
+                        width: 140,
+                        fit: BoxFit.contain,
+                        filterQuality: FilterQuality.high,
+                        onTap: ontap,
+                        errorWidget: const Icon(Icons.broken_image, color: Colors.white),
+                      ),
                     ),
                   ],
                 ),

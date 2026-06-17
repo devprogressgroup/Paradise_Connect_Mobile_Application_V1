@@ -15,7 +15,7 @@ class TownshipModel extends TownshipEntity {
       id: json['id'] as int,
       slug: json['slug'] as String,
       name: json['name'] as String,
-      logo: json['logo_full_color'] as String? ?? '',
+      logo: json['logo'] as String? ?? '',
       groupBanner: json['group_banner'] as String? ?? '',
       location: json['location'] as String? ?? '',
     );

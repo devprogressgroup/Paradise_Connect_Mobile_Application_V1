@@ -14,6 +14,7 @@ class DriveImage extends StatefulWidget {
   final BoxFit fit;
   final Widget? errorWidget;
   final VoidCallback? onTap;
+  final FilterQuality filterQuality;
 
   const DriveImage({
     super.key,
@@ -23,6 +24,7 @@ class DriveImage extends StatefulWidget {
     this.fit = BoxFit.cover,
     this.errorWidget,
     this.onTap,
+    this.filterQuality = FilterQuality.medium,
   });
 
   @override
