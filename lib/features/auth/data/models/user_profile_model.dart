@@ -1,5 +1,45 @@
 import '../../domain/entities/user_profile.dart';
 
+class HirachyUserModel extends HirachyUserEntity {
+  HirachyUserModel({
+    required super.userId,
+    required super.fullName,
+    super.access,
+    super.accessLabel,
+  });
+
+  factory HirachyUserModel.fromJson(Map<String, dynamic> json) {
+    return HirachyUserModel(
+      userId: json['user_id'],
+      fullName: json['full_name'] ?? '',
+      access: json['access'],
+      accessLabel: json['access_label'],
+    );
+  }
+}
+
+class GroupHierarchyModel extends GroupHierarchyEntity {
+  GroupHierarchyModel({
+    required super.groupId,
+    required super.groupName,
+    super.users,
+    super.children,
+  });
+
+  factory GroupHierarchyModel.fromJson(Map<String, dynamic> json) {
+    return GroupHierarchyModel(
+      groupId: json['group_id'],
+      groupName: json['group_name'] ?? '',
+      users: json['users'] != null
+          ? (json['users'] as List).map((i) => HirachyUserModel.fromJson(i)).toList()
+          : const [],
+      children: json['children'] != null
+          ? (json['children'] as List).map((i) => GroupHierarchyModel.fromJson(i)).toList()
+          : const [],
+    );
+  }
+}
+
 class HierarchyNodeModel extends HierarchyNodeEntity {
   HierarchyNodeModel({
     super.salesRoleId,
@@ -61,8 +101,10 @@ class UserProfileModel extends UserProfileEntity {
     super.salesPersonId,
     super.salesTeamId,
     super.salesTeamName,
+    super.userRoleId,
     super.salesRoles,
     super.subordinates,
+    super.groupHierarchy,
     super.nikNumber,
   });
 
@@ -81,8 +123,10 @@ class UserProfileModel extends UserProfileEntity {
       salesPersonId: json['sales_person_id'],
       salesTeamId: json['sales_team_id'],
       salesTeamName: json['sales_team_name'],
+      userRoleId: json['user_role_id'],
       salesRoles: json['sales_roles'] != null ? (json['sales_roles'] as List).map((i) => HierarchyNodeModel.fromJson(i)).toList() : const [],
       subordinates: json['subordinates'] != null ? (json['subordinates'] as List).map((i) => HierarchyNodeModel.fromJson(i)).toList() : const [],
+      groupHierarchy: json['group_hierarchy'] != null ? (json['group_hierarchy'] as List).map((i) => GroupHierarchyModel.fromJson(i)).toList() : const [],
       nikNumber: json['nik_number'],
     );
   }

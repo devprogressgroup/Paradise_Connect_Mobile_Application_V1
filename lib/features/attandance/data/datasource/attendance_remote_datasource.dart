@@ -48,7 +48,7 @@ class AttendanceRemoteDataSourceImpl implements AttendanceRemoteDataSource {
         'page': page,
         'per_page': perPage,
         if (salesPersonIds != null && salesPersonIds.isNotEmpty)
-          "sales_person_id": salesPersonIds.join(','),
+          "user_id": salesPersonIds.join(','),
         if (startDate != null) 'start_date': startDate,
         if (endDate != null) 'end_date': endDate,
       },
@@ -95,7 +95,7 @@ class AttendanceRemoteDataSourceImpl implements AttendanceRemoteDataSource {
         'page': page,
         'per_page': perPage,
         if (salesPersonIds != null && salesPersonIds.isNotEmpty)
-          'sales_person_id': salesPersonIds.join(','),
+          'user_id': salesPersonIds.join(','),
         if (startDate != null) 'start_date': startDate,
         if (endDate != null) 'end_date': endDate,
         if (location != null && location.isNotEmpty) 'location': location,

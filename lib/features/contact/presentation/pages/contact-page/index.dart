@@ -189,8 +189,9 @@ class _ContactPageState extends State<ContactPage> {
                                               if (isSelected && profileState is ProfileLoaded) {
                                                 if (contactState.ownerIds!.length == 1) {
                                                   final id = contactState.ownerIds!.first;
-                                                  if (profileState.profile.userId == id) {
-                                                    label = profileState.profile.fullName;
+                                                  final user = profileState.profile;
+                                                  if (user.userId == id) {
+                                                    label = user.fullName;
                                                   } else {
                                                     HierarchyNodeEntity? found;
                                                     void search(List<HierarchyNodeEntity> nodes) {
@@ -200,9 +201,16 @@ class _ContactPageState extends State<ContactPage> {
                                                           search(n.subordinates);
                                                       }
                                                     }
-
-                                                    search(profileState.profile.subordinates);
-                                                    if (found != null) label = found!.fullName;
+                                                    search(user.subordinates);
+                                                    if (found != null) {
+                                                      label = found!.fullName;
+                                                    } else {
+                                                      for (final g in user.groupHierarchy) {
+                                                        for (final u in g.users) {
+                                                          if (u.userId == id) { label = u.fullName; break; }
+                                                        }
+                                                      }
+                                                    }
                                                   }
                                                 } else {
                                                   label = "${contactState.ownerIds!.length} Owners";
@@ -223,19 +231,31 @@ class _ContactPageState extends State<ContactPage> {
                                                       subtitle: user.positionName,
                                                     ));
 
-                                                    void addSubs(List<HierarchyNodeEntity> subs) {
-                                                      for (var s in subs) {
-                                                        ownerItems.add(OwnerDropdownItem(
-                                                          id: s.userId,
-                                                          name: s.fullName,
-                                                          subtitle: s.positionName,
-                                                        ));
-                                                        if (s.subordinates.isNotEmpty)
-                                                          addSubs(s.subordinates);
+                                                    if (user.subordinates.isNotEmpty) {
+                                                      void addSubs(List<HierarchyNodeEntity> subs) {
+                                                        for (var s in subs) {
+                                                          ownerItems.add(OwnerDropdownItem(
+                                                            id: s.userId,
+                                                            name: s.fullName,
+                                                            subtitle: s.positionName,
+                                                          ));
+                                                          if (s.subordinates.isNotEmpty)
+                                                            addSubs(s.subordinates);
+                                                        }
+                                                      }
+                                                      addSubs(user.subordinates);
+                                                    } else {
+                                                      for (final g in user.groupHierarchy) {
+                                                        for (final u in g.users) {
+                                                          if (u.userId == user.userId) continue;
+                                                          ownerItems.add(OwnerDropdownItem(
+                                                            id: u.userId,
+                                                            name: u.fullName,
+                                                            subtitle: g.groupName,
+                                                          ));
+                                                        }
                                                       }
                                                     }
-
-                                                    addSubs(user.subordinates);
 
                                                     final result = await context.pushNamed('detailContactDropdown',extra: ContactDropdownArgs(title: 'Pilih Owner',items: ownerItems,selectedIds: contactState.ownerIds,isMultiSelect: true,),);
 

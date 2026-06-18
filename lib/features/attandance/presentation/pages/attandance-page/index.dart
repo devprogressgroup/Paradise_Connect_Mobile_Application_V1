@@ -106,8 +106,7 @@ class _AttandancePageState extends State<AttandancePage> {
 
       final profileState = context.read<ProfileBloc>().state;
       if (profileState is ProfileLoaded) {
-        final id = profileState.profile.salesPersonId;
-        if (id != null) _attendanceOwnerIds = [id];
+        _attendanceOwnerIds = [profileState.profile.userId];
         if (const ['General Manager', 'Sales Manager']
             .contains(profileState.profile.positionName)) {
           context.read<AttendanceApprovalCubit>().loadBadge();
@@ -1422,16 +1421,22 @@ class _AttandancePageState extends State<AttandancePage> {
 
           String? findName(int? id) {
             if (id == null) return null;
-            if (user.salesPersonId == id) return user.fullName;
+            if (user.userId == id) return user.fullName;
             HierarchyNodeEntity? found;
             void search(List<HierarchyNodeEntity> nodes) {
               for (var n in nodes) {
-                if (n.salesPersonId == id) found = n;
+                if (n.userId == id) found = n;
                 if (found == null && n.subordinates.isNotEmpty) search(n.subordinates);
               }
             }
             search(user.subordinates);
-            return found?.fullName;
+            if (found != null) return found!.fullName;
+            for (final g in user.groupHierarchy) {
+              for (final u in g.users) {
+                if (u.userId == id) return u.fullName;
+              }
+            }
+            return null;
           }
 
           if (currentIds.length == 1) {
@@ -1451,22 +1456,35 @@ class _AttandancePageState extends State<AttandancePage> {
               final List<OwnerDropdownItem> ownerItems = [];
 
               ownerItems.add(OwnerDropdownItem(
-                id: user.salesPersonId,
+                id: user.userId,
                 name: user.fullName,
                 subtitle: user.positionName,
               ));
 
-              void addSubs(List<HierarchyNodeEntity> subs) {
-                for (var s in subs) {
-                  ownerItems.add(OwnerDropdownItem(
-                    id: s.salesPersonId,
-                    name: s.fullName,
-                    subtitle: s.positionName,
-                  ));
-                  if (s.subordinates.isNotEmpty) addSubs(s.subordinates);
+              if (user.subordinates.isNotEmpty) {
+                void addSubs(List<HierarchyNodeEntity> subs) {
+                  for (var s in subs) {
+                    ownerItems.add(OwnerDropdownItem(
+                      id: s.userId,
+                      name: s.fullName,
+                      subtitle: s.positionName,
+                    ));
+                    if (s.subordinates.isNotEmpty) addSubs(s.subordinates);
+                  }
+                }
+                addSubs(user.subordinates);
+              } else {
+                for (final g in user.groupHierarchy) {
+                  for (final u in g.users) {
+                    if (u.userId == user.userId) continue;
+                    ownerItems.add(OwnerDropdownItem(
+                      id: u.userId,
+                      name: u.fullName,
+                      subtitle: g.groupName,
+                    ));
+                  }
                 }
               }
-              addSubs(user.subordinates);
 
               final currentIds = isAttendance ? _attendanceOwnerIds : _activityOwnerIds;
               final result = await context.pushNamed(

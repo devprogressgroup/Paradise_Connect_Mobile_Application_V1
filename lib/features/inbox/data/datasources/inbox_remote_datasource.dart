@@ -21,7 +21,7 @@ class InboxContactRemoteDataSourceImpl implements InboxContactRemoteDataSource {
           'search': search ?? '',
           'c_page': cPage ?? 1,
           'g_page': gPage ?? 1,
-          if (salesExecutiveIds != null && salesExecutiveIds.isNotEmpty) 'sales_executive_id': salesExecutiveIds,
+          if (salesExecutiveIds != null && salesExecutiveIds.isNotEmpty) 'owner_id': salesExecutiveIds.join(','),
           'status_prospect_id': statusProspectId,
           'start_date': startDate,
           'end_date': endDate,

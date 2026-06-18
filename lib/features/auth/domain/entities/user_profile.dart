@@ -1,3 +1,31 @@
+class HirachyUserEntity {
+  final int userId;
+  final String fullName;
+  final String? access;
+  final String? accessLabel;
+
+  HirachyUserEntity({
+    required this.userId,
+    required this.fullName,
+    this.access,
+    this.accessLabel,
+  });
+}
+
+class GroupHierarchyEntity {
+  final int groupId;
+  final String groupName;
+  final List<HirachyUserEntity> users;
+  final List<GroupHierarchyEntity> children;
+
+  GroupHierarchyEntity({
+    required this.groupId,
+    required this.groupName,
+    this.users = const [],
+    this.children = const [],
+  });
+}
+
 class HierarchyNodeEntity {
   final int? salesRoleId;
   final int salesPersonId;
@@ -41,8 +69,10 @@ class UserProfileEntity {
   final int? salesPersonId;
   final int? salesTeamId;
   final String? salesTeamName;
+  final int? userRoleId;
   final List<HierarchyNodeEntity> salesRoles;
   final List<HierarchyNodeEntity> subordinates;
+  final List<GroupHierarchyEntity> groupHierarchy;
 
   UserProfileEntity({
     required this.userId,
@@ -59,8 +89,10 @@ class UserProfileEntity {
     this.salesPersonId,
     this.salesTeamId,
     this.salesTeamName,
+    this.userRoleId,
     this.salesRoles = const [],
     this.subordinates = const [],
+    this.groupHierarchy = const [],
   });
 
 }
