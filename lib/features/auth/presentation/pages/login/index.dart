@@ -139,7 +139,7 @@ class _LoginPageState extends State<LoginPage> {
                     ctx,
                     env: AppEnvironment.development,
                     label: 'Development',
-                    subtitle: '192.168.8.38:8000',
+                    subtitle: 'http://192.168.8.36:8000',
                     color: const Color(0xFFF59E0B),
                     currentEnv: currentEnv,
                   ),
@@ -301,7 +301,7 @@ class _LoginPageState extends State<LoginPage> {
                     children: [
                       // Header
                       GestureDetector(
-                        // onTap: _showEnvSwitcher,
+                        onTap: _showEnvSwitcher,
                         child: const Text(
                           'Sign In',
                           textAlign: TextAlign.center,

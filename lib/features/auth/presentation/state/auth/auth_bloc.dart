@@ -177,21 +177,6 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     emit(PermissionsLoading());
     try {
       final data = await getPermissionsUseCase();
-      debugPrint('=== PERMISSIONS ===');
-      debugPrint('user_id: ${data.userId} | full_name: ${data.fullName} | is_superadmin: ${data.isSuperadmin}');
-      for (final software in data.permissions) {
-        debugPrint('  [software] ${software.softwareName} (id: ${software.softwareId})');
-        for (final module in software.modules) {
-          debugPrint('    [module] ${module.moduleName} (id: ${module.moduleId})');
-          for (final form in module.forms) {
-            debugPrint('      [form] ${form.formName} (id: ${form.formId})');
-            for (final feature in form.features) {
-              debugPrint('        [feature] ${feature.featureName} | active: ${feature.active}');
-            }
-          }
-        }
-      }
-      debugPrint('=== END PERMISSIONS ===');
       PermissionsHelper.init(data);
       emit(PermissionsLoaded(data));
     } catch (e) {
