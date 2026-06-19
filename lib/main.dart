@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/date_symbol_data_local.dart';
+import 'package:progress_group/core/constants/colors.dart';
 import 'package:progress_group/core/network/dio_client.dart';
 import 'package:progress_group/core/services/push_notification_service.dart';
 import 'package:progress_group/features/attandance/domain/usecase/get_attendance_approval_today.dart';
@@ -164,7 +165,7 @@ void main() async {
 
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
-      statusBarColor: Colors.white,
+      statusBarColor: Color(greySplash),
       statusBarIconBrightness: Brightness.dark,
       statusBarBrightness: Brightness.light,
     ),
@@ -190,10 +191,19 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     ApiConstants.envNotifier.addListener(_resetApp);
+    PushNotificationService.otaTrigger.addListener(_onOtaTrigger);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       PushNotificationService.processPendingMessage();
       _checkVersion();
     });
+  }
+
+  void _onOtaTrigger() {
+    final result = PushNotificationService.otaTrigger.value;
+    if (result != null && mounted) {
+      setState(() => _updateResult = result);
+      PushNotificationService.otaTrigger.value = null;
+    }
   }
 
   @override
@@ -215,6 +225,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     ApiConstants.envNotifier.removeListener(_resetApp);
+    PushNotificationService.otaTrigger.removeListener(_onOtaTrigger);
     super.dispose();
   }
 

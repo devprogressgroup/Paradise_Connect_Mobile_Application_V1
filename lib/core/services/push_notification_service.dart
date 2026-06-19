@@ -4,6 +4,7 @@ import 'package:dio/dio.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart' show debugPrint, kIsWeb;
 import 'package:flutter/material.dart';
+import 'package:progress_group/core/services/version_check_service.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:progress_group/app/router.dart';
@@ -11,17 +12,14 @@ import 'package:progress_group/features/contact/data/arguments/contact_detail_ar
 import 'package:progress_group/features/contact/domain/entities/activity/activity_entity.dart';
 import 'package:progress_group/features/contact/domain/entities/contact/contact_entity.dart';
 import 'package:progress_group/features/notif/presentation/state/received_notif_cubit.dart';
-import 'package:url_launcher/url_launcher.dart';
 import 'web_notification_stub.dart'
     if (dart.library.js_interop) 'web_notification.dart';
 
 const String _channelId = 'upcoming_task_channel';
 const String _channelName = 'Upcoming Tasks';
-const String _vapidKey =
-    'BGIeIvkhfZzClnpnsLcZLyggcadQqTf_g996DoCZ1hJGeLcd0Tn8gHHuUnmjhvFA62wHqFLVDLaJjmZeGHC95PQ';
+const String _vapidKey =  'BGIeIvkhfZzClnpnsLcZLyggcadQqTf_g996DoCZ1hJGeLcd0Tn8gHHuUnmjhvFA62wHqFLVDLaJjmZeGHC95PQ';
 
-final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
-    FlutterLocalNotificationsPlugin();
+final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =   FlutterLocalNotificationsPlugin();
 
 class PushNotificationService {
   static Dio? _dio;
@@ -31,6 +29,9 @@ class PushNotificationService {
   /// Key untuk menampilkan SnackBar dari luar widget tree (web foreground notif).
   /// Pasang ke MaterialApp.scaffoldMessengerKey di main.dart.
   static final scaffoldMessengerKey = GlobalKey<ScaffoldMessengerState>();
+
+  /// Diset saat user tap "Download" di banner → main.dart dengarkan dan tampilkan UpdateScreen.
+  static final otaTrigger = ValueNotifier<VersionCheckResult?>(null);
 
   /// Dipanggil setelah DioClient dibuat (di build() MyApp) agar token bisa dikirim ke backend.
   static void setDio(Dio dio) {
@@ -79,9 +80,12 @@ class PushNotificationService {
               TextButton(
                 onPressed: () {
                   scaffoldMessengerKey.currentState?.hideCurrentMaterialBanner();
-                  if (downloadUrl.isNotEmpty) {
-                    launchUrl(Uri.parse(downloadUrl), mode: LaunchMode.externalApplication);
-                  }
+                  otaTrigger.value = VersionCheckResult(
+                    requiresUpdate: true,
+                    latestVersion: serverVersion,
+                    currentVersion: currentVersion,
+                    downloadUrl: downloadUrl,
+                  );
                 },
                 child: const Text('Download', style: TextStyle(fontWeight: FontWeight.bold)),
               ),
@@ -275,11 +279,27 @@ class PushNotificationService {
   }
 
   static void _navigateFromData(Map<String, dynamic> data) {
-    final context = AppRouter.rootNavigatorKey.currentContext;
-    if (context == null) return;
-
     final type = data['type'] as String?;
     final action = data['action'] as String?;
+
+    // app_update tidak butuh navigator context — cukup trigger ValueNotifier
+    if (type == 'app_update') {
+      final url = data['download_url'] as String? ?? data['route'] as String?;
+      if (url != null && url.isNotEmpty) {
+        PackageInfo.fromPlatform().then((info) {
+          otaTrigger.value = VersionCheckResult(
+            requiresUpdate: true,
+            latestVersion: (data['version'] as String?) ?? '',
+            currentVersion: info.version,
+            downloadUrl: url,
+          );
+        });
+      }
+      return;
+    }
+
+    final context = AppRouter.rootNavigatorKey.currentContext;
+    if (context == null) return;
 
     if (type == 'attendance') {
       int tab = 0;
@@ -299,14 +319,6 @@ class PushNotificationService {
 
     if (type == 'attendance_approved' || type == 'attendance_rejected') {
       AppRouter.router.go('/attandance');
-      return;
-    }
-
-    if (type == 'app_update') {
-      final url = data['download_url'] as String?;
-      if (url != null && url.isNotEmpty) {
-        launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
-      }
       return;
     }
 

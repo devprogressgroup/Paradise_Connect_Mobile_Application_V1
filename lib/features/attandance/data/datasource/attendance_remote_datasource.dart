@@ -1,3 +1,5 @@
+import 'dart:convert';
+import 'dart:io';
 import 'dart:typed_data';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
@@ -59,11 +61,18 @@ class AttendanceRemoteDataSourceImpl implements AttendanceRemoteDataSource {
   @override
   Future<Map<String, dynamic>> postAttendance({required String attendanceDatetime, required int flag, required String locationName, String? note, String? filePath, Uint8List? fileBytes, required int nikNumber, int? locationId, String? latitude, String? longitude}) async {
     try {
-      MultipartFile? attachment;
+      String? attachmentBase64;
       if (fileBytes != null) {
-        attachment = MultipartFile.fromBytes(fileBytes, filename: 'photo.jpg');
+        attachmentBase64 = 'data:image/jpeg;base64,${base64Encode(fileBytes)}';
       } else if (filePath != null) {
-        attachment = await MultipartFile.fromFile(filePath);
+        final bytes = await File(filePath).readAsBytes();
+        final ext = filePath.split('.').last.toLowerCase();
+        final mime = ext == 'png'
+            ? 'image/png'
+            : ext == 'pdf'
+                ? 'application/pdf'
+                : 'image/jpeg';
+        attachmentBase64 = 'data:$mime;base64,${base64Encode(bytes)}';
       }
 
       final formData = FormData.fromMap({
@@ -76,8 +85,10 @@ class AttendanceRemoteDataSourceImpl implements AttendanceRemoteDataSource {
         if (latitude != null) 'latitude': latitude,
         if (longitude != null) 'longitude': longitude,
         if (note != null) 'note': note,
-        if (attachment != null) 'file_attachment': attachment,
+        if (attachmentBase64 != null) 'file_attachment': attachmentBase64,
       });
+
+      debugPrint('[postAttendance] fields: ${formData.fields.map((e) => '${e.key}=${e.key == 'file_attachment' ? '<base64>' : e.value}').join(', ')}');
 
       final response = await dio.post('/attendance', data: formData);
       return response.data;
@@ -107,35 +118,39 @@ class AttendanceRemoteDataSourceImpl implements AttendanceRemoteDataSource {
   @override
   Future<Map<String, dynamic>> postAttendanceActivity({required String attendanceDatetime, required int flag, required String locationName, String? note, required List<String> filePaths, List<Uint8List>? fileBytesData, required int nikNumber, int? locationId, String? latitude, String? longitude}) async {
     try {
-      final formData = FormData.fromMap({
+      final List<String> base64Files = [];
+      if (fileBytesData != null && fileBytesData.isNotEmpty) {
+        for (final bytes in fileBytesData) {
+          base64Files.add('data:image/jpeg;base64,${base64Encode(bytes)}');
+        }
+      } else {
+        for (final path in filePaths) {
+          final bytes = await File(path).readAsBytes();
+          final ext = path.split('.').last.toLowerCase();
+          final mime = ext == 'png'
+              ? 'image/png'
+              : ext == 'pdf'
+                  ? 'application/pdf'
+                  : 'image/jpeg';
+          base64Files.add('data:$mime;base64,${base64Encode(bytes)}');
+        }
+      }
+
+      // Kirim sebagai JSON body agar `files` diterima PHP sebagai array native
+      final body = <String, dynamic>{
         'attendance_datetime': attendanceDatetime,
         'flag': flag,
         'location_name': locationName,
         'nik_number': nikNumber,
         'serial': 'PARADISE CONNECT',
+        'files': base64Files,
         if (locationId != null) 'location_id': locationId,
         if (latitude != null) 'latitude': latitude,
         if (longitude != null) 'longitude': longitude,
-        if (note != null) 'note': note,
-      });
+        if (note != null && note.isNotEmpty) 'note': note,
+      };
 
-      if (fileBytesData != null && fileBytesData.isNotEmpty) {
-        for (var i = 0; i < fileBytesData.length; i++) {
-          formData.files.add(MapEntry(
-            'files[]',
-            MultipartFile.fromBytes(fileBytesData[i], filename: 'photo_$i.jpg'),
-          ));
-        }
-      } else {
-        for (var path in filePaths) {
-          formData.files.add(MapEntry(
-            'files[]',
-            await MultipartFile.fromFile(path),
-          ));
-        }
-      }
-
-      final response = await dio.post('/attendance/activity', data: formData);
+      final response = await dio.post('/attendance/activity', data: body);
       return response.data;
     } on DioException catch (e) {
       if (e.type == DioExceptionType.cancel && e.error == 'SESSION_EXPIRED') throw Exception('SESSION_EXPIRED');
@@ -239,4 +254,5 @@ class AttendanceRemoteDataSourceImpl implements AttendanceRemoteDataSource {
       throw Exception('Gagal mengunduh PDF');
     }
   }
+
 }

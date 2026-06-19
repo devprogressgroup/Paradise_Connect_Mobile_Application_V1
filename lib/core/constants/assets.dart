@@ -1,5 +1,5 @@
 const String logoSplasShcreen ='assets/img/logo-splashscreen.png';
-
+const String logoSplasShcreenGif ='assets/img/logo-splas-screen.gif';
 
 
 const String icHomeDashboard = "assets/img/ic-home-dashboard.png";

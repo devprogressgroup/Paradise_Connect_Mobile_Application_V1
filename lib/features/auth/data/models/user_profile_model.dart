@@ -1,5 +1,45 @@
 import '../../domain/entities/user_profile.dart';
 
+class SalesTeamMemberModel extends SalesTeamMemberEntity {
+  SalesTeamMemberModel({
+    required super.salesPersonId,
+    super.userId,
+    required super.fullName,
+    super.positionName,
+    super.subordinates,
+  });
+
+  factory SalesTeamMemberModel.fromJson(Map<String, dynamic> json) {
+    return SalesTeamMemberModel(
+      salesPersonId: json['sales_person_id'],
+      userId: json['user_id'],
+      fullName: json['full_name'] ?? '',
+      positionName: json['position_name'],
+      subordinates: json['subordinates'] != null
+          ? (json['subordinates'] as List).map((i) => SalesTeamMemberModel.fromJson(i)).toList()
+          : const [],
+    );
+  }
+}
+
+class SalesTeamHierarchyModel extends SalesTeamHierarchyEntity {
+  SalesTeamHierarchyModel({
+    required super.salesTeamId,
+    required super.salesTeamName,
+    super.members,
+  });
+
+  factory SalesTeamHierarchyModel.fromJson(Map<String, dynamic> json) {
+    return SalesTeamHierarchyModel(
+      salesTeamId: json['sales_team_id'],
+      salesTeamName: json['sales_team_name'] ?? '',
+      members: json['members'] != null
+          ? (json['members'] as List).map((i) => SalesTeamMemberModel.fromJson(i)).toList()
+          : const [],
+    );
+  }
+}
+
 class HirachyUserModel extends HirachyUserEntity {
   HirachyUserModel({
     required super.userId,
@@ -102,9 +142,11 @@ class UserProfileModel extends UserProfileEntity {
     super.salesTeamId,
     super.salesTeamName,
     super.userRoleId,
+    super.userRoleName,
     super.salesRoles,
     super.subordinates,
     super.groupHierarchy,
+    super.salesTeamHierarchy,
     super.nikNumber,
   });
 
@@ -124,9 +166,11 @@ class UserProfileModel extends UserProfileEntity {
       salesTeamId: json['sales_team_id'],
       salesTeamName: json['sales_team_name'],
       userRoleId: json['user_role_id'],
+      userRoleName: json['user_role_name'],
       salesRoles: json['sales_roles'] != null ? (json['sales_roles'] as List).map((i) => HierarchyNodeModel.fromJson(i)).toList() : const [],
       subordinates: json['subordinates'] != null ? (json['subordinates'] as List).map((i) => HierarchyNodeModel.fromJson(i)).toList() : const [],
       groupHierarchy: json['group_hierarchy'] != null ? (json['group_hierarchy'] as List).map((i) => GroupHierarchyModel.fromJson(i)).toList() : const [],
+      salesTeamHierarchy: json['sales_team_hierarchy'] != null ? (json['sales_team_hierarchy'] as List).map((i) => SalesTeamHierarchyModel.fromJson(i)).toList() : const [],
       nikNumber: json['nik_number'],
     );
   }

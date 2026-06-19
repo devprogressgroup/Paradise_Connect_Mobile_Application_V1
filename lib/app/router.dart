@@ -32,6 +32,7 @@ import '../features/site-plan/presentation/project-list/index.dart';
 import '../features/site-plan/presentation/site-plan-page/index.dart';
 import '../features/landing-page/presentation/landing-page/index.dart';
 import '../features/splash/presentation/pages/index.dart';
+import '../features/siap-huni/presentation/pages/index.dart';
 import 'main_layout.dart';
 import '../core/utils/helpers/permissions_helper.dart';
 
@@ -255,6 +256,11 @@ class AppRouter {
             path: '/landing-page',
             name: 'landingPage',
             builder: (context, state) => const LandingPage(),
+          ),
+          GoRoute(
+            path: '/siap-huni',
+            name: 'siapHuni',
+            builder: (context, state) => const SiapHuniPage(),
           ),
         ],
       ),

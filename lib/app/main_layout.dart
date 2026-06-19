@@ -381,7 +381,7 @@ class _MainLayoutState extends State<MainLayout> {
                 _buildDrawerItem(context, icSidebarSitePlan, 'Site Plan', path: '/site-plan', index: 4),
               if (PermissionsHelper.canAccessSalesKit)
                 _buildDrawerItem(context, icSidebarSalesKit, 'Sales Kit', path: '/sales-kit', index: 5),
-              _buildDrawerItem(context, '', 'Info & Panduan', path: '/landing-page', index: 8, iconData: Icons.language_outlined),
+               _buildDrawerItem(context, '', 'Siap Huni', path: '/siap-huni', index: 9, iconData: Icons.home_rounded),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: Divider(),
@@ -428,6 +428,8 @@ class _MainLayoutState extends State<MainLayout> {
                     ),
                   ),
                 ),
+              
+              _buildDrawerItem(context, '', 'Info & Panduan', path: '/landing-page', index: 8, iconData: Icons.info),
               if (_pwaAvailable || _isIosSafariDevice) const SizedBox(height: 16),
               Padding(
                 padding: const EdgeInsets.symmetric( horizontal: 20),

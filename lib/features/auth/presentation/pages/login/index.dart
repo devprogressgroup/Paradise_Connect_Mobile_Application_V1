@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:progress_group/core/constants/colors.dart';
 import 'package:progress_group/core/network/api_constants.dart';
 import 'package:local_auth/local_auth.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../../../../core/utils/widget/custom_snackbar.dart';
 import '../../state/auth/auth_bloc.dart';
 import '../../state/auth/auth_event.dart';
@@ -629,6 +630,20 @@ class _LoginPageState extends State<LoginPage> {
                         ),
                       ),
                       const SizedBox(height: 12),
+                      GestureDetector(
+                        onTap: () async {
+                          final msg = ApiConstants.loginHelpMessage.isNotEmpty
+                              ? ApiConstants.loginHelpMessage
+                              : 'Halo, saya mengalami masalah saat login di aplikasi Progress Group. Mohon bantuannya.';
+                          final uri = Uri(
+                            scheme: 'https',
+                            host: 'wa.me',
+                            path: '/6281574966666',
+                            queryParameters: {'text': msg},
+                          );
+                          if (await canLaunchUrl(uri)) launchUrl(uri, mode: LaunchMode.externalApplication);
+                        },
+                        child: Text("Help", style: TextStyle( fontSize: 12, fontWeight: FontWeight.w700, color: Color(primaryColor), decoration: TextDecoration.underline, decorationColor: Color(primaryColor), decorationThickness: 1,),textAlign: TextAlign.center,)),
                       // ValueListenableBuilder<AppEnvironment>(
                       //   valueListenable: ApiConstants.envNotifier,
                       //   builder: (_, env, __) => Text(

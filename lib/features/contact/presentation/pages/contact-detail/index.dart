@@ -1861,7 +1861,7 @@ Widget _noteCreate(BuildContext context,ActivityEntity item){
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                "${item.activityType} on ${DateHelper.formatDateTimeShort(DateTime.parse(item.activityDate))}",
+                "${item.activityType}",
                 style: const TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 12,

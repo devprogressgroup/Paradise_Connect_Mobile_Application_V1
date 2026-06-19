@@ -10,11 +10,13 @@ import 'custom_header.dart';
 class WebViewPage extends StatefulWidget {
   final String url;
   final String title;
+  final bool showHeader;
 
   const WebViewPage({
     super.key,
     required this.url,
     required this.title,
+    this.showHeader = true,
   });
 
   bool get isPdf {
@@ -39,19 +41,20 @@ class _WebViewPageState extends State<WebViewPage> {
     return Scaffold(
       body: Column(
         children: [
-          SafeArea(
-            bottom: false,
-            child: customHeader(
-              context,
-              widget.title,
-              isBack: true,
-              colorTitle: Color(blackColor),
-              colorIconLeft: Color(primaryColor),
-              colorBack: Color(primaryColor),
-              iconLeft: widget.isPdf && _localFilePath != null ? Icons.share : null,
-              iconLeftOnTap: _shareFile,
+          if (widget.showHeader)
+            SafeArea(
+              bottom: false,
+              child: customHeader(
+                context,
+                widget.title,
+                isBack: true,
+                colorTitle: Color(blackColor),
+                colorIconLeft: Color(primaryColor),
+                colorBack: Color(primaryColor),
+                iconLeft: widget.isPdf && _localFilePath != null ? Icons.share : null,
+                iconLeftOnTap: _shareFile,
+              ),
             ),
-          ),
           Expanded(
             child: widget.isPdf
                 ? PdfViewerWidget(

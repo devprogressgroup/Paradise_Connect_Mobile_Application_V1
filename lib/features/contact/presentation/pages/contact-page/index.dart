@@ -205,11 +205,29 @@ class _ContactPageState extends State<ContactPage> {
                                                     if (found != null) {
                                                       label = found!.fullName;
                                                     } else {
-                                                      for (final g in user.groupHierarchy) {
-                                                        for (final u in g.users) {
-                                                          if (u.userId == id) { label = u.fullName; break; }
+                                                      String? foundLabel;
+                                                      void searchGroup(List<GroupHierarchyEntity> groups) {
+                                                        for (final g in groups) {
+                                                          for (final u in g.users) {
+                                                            if (u.userId == id) { foundLabel = u.fullName; return; }
+                                                          }
+                                                          if (foundLabel == null && g.children.isNotEmpty) searchGroup(g.children);
                                                         }
                                                       }
+                                                      searchGroup(user.groupHierarchy);
+                                                      if (foundLabel == null) {
+                                                        void searchTeam(List<SalesTeamMemberEntity> members) {
+                                                          for (final m in members) {
+                                                            if (m.userId == id) { foundLabel = m.fullName; return; }
+                                                            if (foundLabel == null && m.subordinates.isNotEmpty) searchTeam(m.subordinates);
+                                                          }
+                                                        }
+                                                        for (final team in user.salesTeamHierarchy) {
+                                                          if (foundLabel != null) break;
+                                                          searchTeam(team.members);
+                                                        }
+                                                      }
+                                                      if (foundLabel != null) label = foundLabel!;
                                                     }
                                                   }
                                                 } else {
@@ -245,15 +263,29 @@ class _ContactPageState extends State<ContactPage> {
                                                       }
                                                       addSubs(user.subordinates);
                                                     } else {
-                                                      for (final g in user.groupHierarchy) {
-                                                        for (final u in g.users) {
-                                                          if (u.userId == user.userId) continue;
-                                                          ownerItems.add(OwnerDropdownItem(
-                                                            id: u.userId,
-                                                            name: u.fullName,
-                                                            subtitle: g.groupName,
-                                                          ));
+                                                      final seen = <int>{user.userId};
+                                                      void addGroupUsers(List<GroupHierarchyEntity> groups) {
+                                                        for (final g in groups) {
+                                                          for (final u in g.users) {
+                                                            if (seen.contains(u.userId)) continue;
+                                                            seen.add(u.userId);
+                                                            ownerItems.add(OwnerDropdownItem(id: u.userId, name: u.fullName, subtitle: g.groupName));
+                                                          }
+                                                          if (g.children.isNotEmpty) addGroupUsers(g.children);
                                                         }
+                                                      }
+                                                      addGroupUsers(user.groupHierarchy);
+                                                      void addTeamMembers(List<SalesTeamMemberEntity> members, String teamName) {
+                                                        for (final m in members) {
+                                                          if (m.userId != null && !seen.contains(m.userId!)) {
+                                                            seen.add(m.userId!);
+                                                            ownerItems.add(OwnerDropdownItem(id: m.userId, name: m.fullName, subtitle: '$teamName - ${m.positionName ?? ''}'));
+                                                          }
+                                                          if (m.subordinates.isNotEmpty) addTeamMembers(m.subordinates, teamName);
+                                                        }
+                                                      }
+                                                      for (final team in user.salesTeamHierarchy) {
+                                                        addTeamMembers(team.members, team.salesTeamName);
                                                       }
                                                     }
 

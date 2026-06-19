@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:webview_flutter/webview_flutter.dart';
+import 'package:progress_group/features/auth/presentation/state/profile/profile_bloc.dart';
+import 'package:progress_group/features/auth/presentation/state/profile/profile_state.dart';
 import '../state/landing_page_cubit.dart';
 import '../state/landing_page_state.dart';
 
@@ -18,7 +20,14 @@ class _LandingPageState extends State<LandingPage> {
   @override
   void initState() {
     super.initState();
-    context.read<LandingPageCubit>().fetchUrl();
+    final profileState = context.read<ProfileBloc>().state;
+    String? username;
+    String? roleName;
+    if (profileState is ProfileLoaded) {
+      username = profileState.profile.username;
+      roleName = profileState.profile.userRoleName;
+    }
+    context.read<LandingPageCubit>().fetchUrl(username: username, roleName: roleName);
   }
 
   void _initController(String url) {

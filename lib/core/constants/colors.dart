@@ -29,7 +29,8 @@ const int grey8Color  = 0xFFD8E0F0;
 const int grey9Color = 0xFFE1E7F3;
 const int grey10Color  = 0xFFE6EDF5;
 const int grey11Color  = 0xFFF3F8FC;
-const int grey12Color  = 0xFFF4F1FD; 
+const int grey12Color  = 0xFFF4F1FD;
+const int greySplash =  0xFFDDDDDD;
 
 const int whiteColor = 0xFFFFFFFF;
 const int blackColor = 0xFF000000;

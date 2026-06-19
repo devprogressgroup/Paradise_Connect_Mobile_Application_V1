@@ -1242,7 +1242,8 @@ class _ContactAddPageState extends State<ContactAddPage> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          "Appt Volume",
+          (selectedStatusId == 60 || selectedStatusId == 53 || selectedStatusId == 76) ? "Appt Volume" :
+          (selectedStatusId == 54 ||selectedStatusId == 70 ||selectedStatusId == 71 ||selectedStatusId == 72) ? "Reserved Volume" : "Volume",
           style: TextStyle(
             fontSize: 12,
             fontWeight: FontWeight.bold,
@@ -1267,7 +1268,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
             if (result != null) {
               final selected = result as OwnerDropdownItem;
               setState(() {
-                volumeTC.text = selected.name;
+                volumeTC.text = selected.name.startsWith('>') ? selected.name.substring(1) : selected.name;
               });
             }
           },
@@ -1677,7 +1678,8 @@ class _ContactAddPageState extends State<ContactAddPage> {
   }
 
   int _parseVisitCount(String val) {
-    return int.tryParse(val) ?? 5;
+    final cleaned = val.startsWith('>') ? val.substring(1) : val;
+    return int.tryParse(cleaned) ?? 1;
   }
 
   void _loadTownshipClusters(String projectName) {

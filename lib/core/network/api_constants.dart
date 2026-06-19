@@ -106,9 +106,11 @@ class ApiConstants {
   static String _siteplanBaseUrl = '';
   static String _siteplanToken = '';
   static String _landingPageUrl = '';
+  static String _siapHuniUrl = '';
   static String _lastVersion = '';
   static String _appDownloadUrl = '';
   static String _saleskitUrl = '';
+  static String _loginHelpMessage = '';
 
   static String get waServerURL => _waServerUrl;
   static String get salesbookWebhookUrl => _salesbookWebhookUrl;
@@ -116,9 +118,11 @@ class ApiConstants {
   static String get siteplanBaseUrl => _siteplanBaseUrl;
   static Map<String, String> get siteplanWebviewHeaders => {'X-App-Token': _siteplanToken};
   static String get landingPageUrl => _landingPageUrl;
+  static String get siapHuniUrl => _siapHuniUrl;
   static String get lastVersion => _lastVersion;
   static String get appDownloadUrl => _appDownloadUrl;
   static String get saleskitUrl => _saleskitUrl;
+  static String get loginHelpMessage => _loginHelpMessage;
 
   static void applySettings(List<Map<String, dynamic>> settings) {
     for (final s in settings) {
@@ -138,12 +142,16 @@ class ApiConstants {
           _siteplanToken = value;
         case 'LANDING_PAGE_URL':
           _landingPageUrl = value;
+        case 'SIAP_HUNI_URL':
+          _siapHuniUrl = value;
         case 'LAST_VERSION':
           _lastVersion = value;
         case 'APP_DOWNLOAD_URL':
           _appDownloadUrl = value;
         case 'SALESKIT_URL':
           _saleskitUrl = value;
+        case 'LOGIN_HELP_MESSAGE':
+          _loginHelpMessage = value;
       }
     }
   }

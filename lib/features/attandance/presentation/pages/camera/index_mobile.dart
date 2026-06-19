@@ -155,7 +155,8 @@ class _CameraPageState extends State<CameraPage> {
 
 
 
-  Future<Uint8List> _compressImage(String filePath) async {
+  Future<String> _compressImageToFile(String filePath) async {
+    final tmp = '${Directory.systemTemp.path}/att_${DateTime.now().millisecondsSinceEpoch}.jpg';
     try {
       int quality = 80;
       Uint8List? result;
@@ -164,23 +165,21 @@ class _CameraPageState extends State<CameraPage> {
         if (result == null) break;
         quality -= 10;
       } while (result.lengthInBytes > 300 * 1024 && quality > 10);
-      if (result != null) return result;
+      if (result != null) {
+        await File(tmp).writeAsBytes(result);
+        return tmp;
+      }
     } catch (_) {}
-    return File(filePath).readAsBytes();
+    return filePath;
   }
 
   Future<void> _handleSubmit() async {
-    debugPrint("cekkkk");
     if (_imageFiles.isEmpty) return;
-    debugPrint("cekkkk2");
-
 
     if (widget.args.isReturnImage == true) {
       context.pop(_imageFiles.first.path);
       return;
     }
-    debugPrint("cekkkk3");
-
 
     final flag = widget.args.flag;
     final datetime = DateFormat('yyyy-MM-dd HH:mm:ss').format(DateTime.now());
@@ -197,13 +196,13 @@ class _CameraPageState extends State<CameraPage> {
     final activeLng = _selectedPameranLocation?.longitude ?? widget.args.longitude;
 
     if (_isMultiplePhotosSupported) {
-      final compressedList = await Future.wait(_imageFiles.map((e) => _compressImage(e.path)));
+      final compressedPaths = await Future.wait(_imageFiles.map((e) => _compressImageToFile(e.path)));
       if (!mounted) return;
-      context.read<AttendanceBloc>().add(SubmitAttendanceActivityEvent(datetime: datetime, flag: flag!, location: location, note: notesTC.text, filePaths: const [], fileBytesData: compressedList, nikNumber: nikNumber, locationId: activeLocationId, latitude: activeLat, longitude: activeLng,));
+      context.read<AttendanceBloc>().add(SubmitAttendanceActivityEvent(datetime: datetime, flag: flag!, location: location, note: notesTC.text, filePaths: compressedPaths, fileBytesData: null, nikNumber: nikNumber, locationId: activeLocationId, latitude: activeLat, longitude: activeLng));
     } else {
-      final compressed = await _compressImage(_imageFiles.first.path);
+      final compressedPath = await _compressImageToFile(_imageFiles.first.path);
       if (!mounted) return;
-      context.read<AttendanceBloc>().add(SubmitAttendanceEvent(datetime: datetime, flag: flag!, location: location, note: notesTC.text, fileBytes: compressed, nikNumber: nikNumber, locationId: activeLocationId, latitude: activeLat, longitude: activeLng,));
+      context.read<AttendanceBloc>().add(SubmitAttendanceEvent(datetime: datetime, flag: flag!, location: location, note: notesTC.text, filePath: compressedPath, fileBytes: null, nikNumber: nikNumber, locationId: activeLocationId, latitude: activeLat, longitude: activeLng));
     }
   }
 

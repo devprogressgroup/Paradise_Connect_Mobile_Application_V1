@@ -14,8 +14,10 @@ import 'package:progress_group/features/auth/presentation/state/auth/auth_state.
 import 'package:progress_group/features/auth/presentation/state/profile/profile_bloc.dart';
 import 'package:progress_group/features/auth/presentation/state/profile/profile_event.dart';
 import 'package:progress_group/features/auth/presentation/state/profile/profile_state.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../../../../core/constants/colors.dart';
 import '../../../../../core/utils/widget/custom_header.dart';
+import '../../../domain/entities/user_profile.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -465,6 +467,7 @@ class _ProfilePageState extends State<ProfilePage> {
                     //   ...user.subordinates.map((sub) => _buildHierarchyNode(sub, isAtasan: false)).toList(),
                     //   const SizedBox(height: 12),
                     // ],
+                   
                     const SizedBox(height: 20),
                     Row(
                       children: [
@@ -500,27 +503,27 @@ class _ProfilePageState extends State<ProfilePage> {
                     //     ),
                     //   ),
                     // ),
-                    // const SizedBox(height: 12),
-                    // SizedBox(
-                    //   width: double.infinity,
-                    //   child: OutlinedButton.icon(
-                    //     onPressed: () async {
-                    //       final prefs = await SharedPreferences.getInstance();
-                    //       final token = prefs.getString('auth_token') ?? '-';
-                    //       debugPrint('[TOKEN] $token');
-                    //       await Clipboard.setData(ClipboardData(text: token));
-                    //       if (context.mounted) showSnackbar(context, 'Token disalin ke clipboard', isError: false);
-                    //     },
-                    //     icon: const Icon(Icons.copy, size: 16),
-                    //     label: const Text('Print Token'),
-                    //     style: OutlinedButton.styleFrom(
-                    //       foregroundColor: Color(primaryColor),
-                    //       side: BorderSide(color: Color(primaryColor)),
-                    //       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                    //       padding: const EdgeInsets.symmetric(vertical: 14),
-                    //     ),
-                    //   ),
-                    // ),
+                    const SizedBox(height: 12),
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        onPressed: () async {
+                          final prefs = await SharedPreferences.getInstance();
+                          final token = prefs.getString('auth_token') ?? '-';
+                          debugPrint('[TOKEN] $token');
+                          await Clipboard.setData(ClipboardData(text: token));
+                          if (context.mounted) showSnackbar(context, 'Token disalin ke clipboard', isError: false);
+                        },
+                        icon: const Icon(Icons.copy, size: 16),
+                        label: const Text('Print Token'),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: Color(primaryColor),
+                          side: BorderSide(color: Color(primaryColor)),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                        ),
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -688,6 +691,8 @@ class _ProfilePageState extends State<ProfilePage> {
  Widget _label(String title){
     return Text(title, style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(grey2Color)));
   }
+
+  
 }
 
 class _BiometricPasswordDialog extends StatefulWidget {

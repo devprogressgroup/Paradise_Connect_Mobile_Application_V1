@@ -1,3 +1,31 @@
+class SalesTeamMemberEntity {
+  final int salesPersonId;
+  final int? userId;
+  final String fullName;
+  final String? positionName;
+  final List<SalesTeamMemberEntity> subordinates;
+
+  SalesTeamMemberEntity({
+    required this.salesPersonId,
+    this.userId,
+    required this.fullName,
+    this.positionName,
+    this.subordinates = const [],
+  });
+}
+
+class SalesTeamHierarchyEntity {
+  final int salesTeamId;
+  final String salesTeamName;
+  final List<SalesTeamMemberEntity> members;
+
+  SalesTeamHierarchyEntity({
+    required this.salesTeamId,
+    required this.salesTeamName,
+    this.members = const [],
+  });
+}
+
 class HirachyUserEntity {
   final int userId;
   final String fullName;
@@ -70,9 +98,11 @@ class UserProfileEntity {
   final int? salesTeamId;
   final String? salesTeamName;
   final int? userRoleId;
+  final String? userRoleName;
   final List<HierarchyNodeEntity> salesRoles;
   final List<HierarchyNodeEntity> subordinates;
   final List<GroupHierarchyEntity> groupHierarchy;
+  final List<SalesTeamHierarchyEntity> salesTeamHierarchy;
 
   UserProfileEntity({
     required this.userId,
@@ -90,9 +120,11 @@ class UserProfileEntity {
     this.salesTeamId,
     this.salesTeamName,
     this.userRoleId,
+    this.userRoleName,
     this.salesRoles = const [],
     this.subordinates = const [],
     this.groupHierarchy = const [],
+    this.salesTeamHierarchy = const [],
   });
 
 }

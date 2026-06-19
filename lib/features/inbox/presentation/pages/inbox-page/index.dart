@@ -276,12 +276,28 @@ class _InboxPageState extends State<InboxPage> {
                                       }
                                       search(user.subordinates);
                                       if (found != null) return found!.fullName;
-                                      for (final g in user.groupHierarchy) {
-                                        for (final u in g.users) {
-                                          if (u.userId == id) return u.fullName;
+                                      String? groupFound;
+                                      void searchGroup(List<GroupHierarchyEntity> groups) {
+                                        for (final g in groups) {
+                                          for (final u in g.users) {
+                                            if (u.userId == id) { groupFound = u.fullName; return; }
+                                          }
+                                          if (groupFound == null && g.children.isNotEmpty) searchGroup(g.children);
                                         }
                                       }
-                                      return null;
+                                      searchGroup(user.groupHierarchy);
+                                      if (groupFound != null) return groupFound;
+                                      void searchTeam(List<SalesTeamMemberEntity> members) {
+                                        for (final m in members) {
+                                          if (m.userId == id) { groupFound = m.fullName; return; }
+                                          if (groupFound == null && m.subordinates.isNotEmpty) searchTeam(m.subordinates);
+                                        }
+                                      }
+                                      for (final team in user.salesTeamHierarchy) {
+                                        if (groupFound != null) break;
+                                        searchTeam(team.members);
+                                      }
+                                      return groupFound;
                                     }
                     
                                     if (contactState.ownerIds!.length == 1) {
@@ -312,11 +328,29 @@ class _InboxPageState extends State<InboxPage> {
                                             }
                                             addSubs(user.subordinates);
                                           } else {
-                                            for (final g in user.groupHierarchy) {
-                                              for (final u in g.users) {
-                                                if (u.userId == user.userId) continue;
-                                                ownerItems.add(OwnerDropdownItem(id: u.userId, name: u.fullName, subtitle: g.groupName));
+                                            final seen = <int>{user.userId};
+                                            void addGroupUsers(List<GroupHierarchyEntity> groups) {
+                                              for (final g in groups) {
+                                                for (final u in g.users) {
+                                                  if (seen.contains(u.userId)) continue;
+                                                  seen.add(u.userId);
+                                                  ownerItems.add(OwnerDropdownItem(id: u.userId, name: u.fullName, subtitle: g.groupName));
+                                                }
+                                                if (g.children.isNotEmpty) addGroupUsers(g.children);
                                               }
+                                            }
+                                            addGroupUsers(user.groupHierarchy);
+                                            void addTeamMembers(List<SalesTeamMemberEntity> members, String teamName) {
+                                              for (final m in members) {
+                                                if (m.userId != null && !seen.contains(m.userId!)) {
+                                                  seen.add(m.userId!);
+                                                  ownerItems.add(OwnerDropdownItem(id: m.userId, name: m.fullName, subtitle: '$teamName - ${m.positionName ?? ''}'));
+                                                }
+                                                if (m.subordinates.isNotEmpty) addTeamMembers(m.subordinates, teamName);
+                                              }
+                                            }
+                                            for (final team in user.salesTeamHierarchy) {
+                                              addTeamMembers(team.members, team.salesTeamName);
                                             }
                                           }
                     

@@ -45,14 +45,8 @@ Widget customHeader(BuildContext context, String title, {bool isBack = false, Co
               ],
             ),
           ),
-          if(iconLeft2 != null)
-                IconButton(
-                  icon: Icon(iconLeft2, size: 24, color: colorIconLeft2),
-                  onPressed: () {
-                    iconLeft2OnTap?.call();
-                  },
-                ),
-          if (iconLeft != null || iconLeft2 != null)
+          
+          if (iconLeft != null)
           Row(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -63,7 +57,6 @@ Widget customHeader(BuildContext context, String title, {bool isBack = false, Co
                     iconLeft2OnTap?.call();
                   },
                 ),
-              if(iconLeft != null)
               Stack(
                 clipBehavior: Clip.none,
                 children: [
