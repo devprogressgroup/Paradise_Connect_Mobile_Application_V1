@@ -14,8 +14,8 @@ abstract class AttendanceRepository {
   Future<AttendanceEntity?> getTodayAttendance();
   Future<List<AttendanceLocation>> getLocations();
   Future<List<AttendanceLocation>> getOfficeLocations();
-  Future<void> submitAttendance({required String datetime,required int flag,required String location,String? note,String? filePath,Uint8List? fileBytes,required int nikNumber,int? locationId,String? latitude,String? longitude,});
-  Future<void> submitAttendanceActivity({required String datetime,required int flag,required String location,String? note,required List<String> filePaths,List<Uint8List>? fileBytesData,required int nikNumber,int? locationId,String? latitude,String? longitude,});
+  Future<void> submitAttendance({required String datetime,required int flag,required String location,String? note,String? filePath,Uint8List? fileBytes,int? locationId,String? latitude,String? longitude,});
+  Future<void> submitAttendanceActivity({required String datetime,required int flag,required String location,String? note,required List<String> filePaths,List<Uint8List>? fileBytesData,int? locationId,String? latitude,String? longitude,});
   Future<({List<AttendanceActivityEntity> data, int lastPage})> getAttendanceActivity({List<int>? salesPersonIds, String? startDate, String? endDate, String? location, int page, int perPage});
   Future<void> validasiCheckIn({required int logId, required int statusValidasi, String? noteValidasi});
   Future<({List<AttendanceApprovalEntity> data, int lastPage})> getAttendanceApprovalToday({String? search, String? status, int? flag, int page = 1, int perPage = 10});
@@ -207,7 +207,7 @@ class AttendanceRepositoryImpl implements AttendanceRepository {
   }
 
   @override
-  Future<void> submitAttendance({   required String datetime,   required int flag,   required String location,   String? note,   String? filePath,   Uint8List? fileBytes,   required int nikNumber,   int? locationId,   String? latitude,   String? longitude, }) async {
+  Future<void> submitAttendance({required String datetime, required int flag, required String location, String? note, String? filePath, Uint8List? fileBytes, int? locationId, String? latitude, String? longitude}) async {
     await remote.postAttendance(
       attendanceDatetime: datetime,
       flag: flag,
@@ -215,7 +215,6 @@ class AttendanceRepositoryImpl implements AttendanceRepository {
       note: note,
       filePath: filePath,
       fileBytes: fileBytes,
-      nikNumber: nikNumber,
       locationId: locationId,
       latitude: latitude,
       longitude: longitude,
@@ -223,7 +222,7 @@ class AttendanceRepositoryImpl implements AttendanceRepository {
   }
 
   @override
-  Future<void> submitAttendanceActivity({  required String datetime,  required int flag,  required String location,  String? note,  required List<String> filePaths,  List<Uint8List>? fileBytesData,  required int nikNumber,  int? locationId,  String? latitude,  String? longitude,}) async {
+  Future<void> submitAttendanceActivity({required String datetime, required int flag, required String location, String? note, required List<String> filePaths, List<Uint8List>? fileBytesData, int? locationId, String? latitude, String? longitude}) async {
     await remote.postAttendanceActivity(
       attendanceDatetime: datetime,
       flag: flag,
@@ -231,7 +230,6 @@ class AttendanceRepositoryImpl implements AttendanceRepository {
       note: note,
       filePaths: filePaths,
       fileBytesData: fileBytesData,
-      nikNumber: nikNumber,
       locationId: locationId,
       latitude: latitude,
       longitude: longitude,

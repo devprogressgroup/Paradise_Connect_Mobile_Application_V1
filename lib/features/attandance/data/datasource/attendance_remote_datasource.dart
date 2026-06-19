@@ -7,8 +7,8 @@ import 'package:flutter/material.dart';
 abstract class AttendanceRemoteDataSource {
   Future<Map<String, dynamic>> getAttendance({List<int>? salesPersonIds, String? startDate, String? endDate, int page = 1, int perPage = 10});
   Future<Map<String, dynamic>> getTodayAttendance();
-  Future<Map<String, dynamic>> postAttendance({required String attendanceDatetime, required int flag, required String locationName, String? note, String? filePath, Uint8List? fileBytes, required int nikNumber, int? locationId, String? latitude, String? longitude});
-  Future<Map<String, dynamic>> postAttendanceActivity({required String attendanceDatetime, required int flag, required String locationName, String? note, required List<String> filePaths, List<Uint8List>? fileBytesData, required int nikNumber, int? locationId, String? latitude, String? longitude});
+  Future<Map<String, dynamic>> postAttendance({required String attendanceDatetime, required int flag, required String locationName, String? note, String? filePath, Uint8List? fileBytes, int? locationId, String? latitude, String? longitude});
+  Future<Map<String, dynamic>> postAttendanceActivity({required String attendanceDatetime, required int flag, required String locationName, String? note, required List<String> filePaths, List<Uint8List>? fileBytesData, int? locationId, String? latitude, String? longitude});
   Future<Map<String, dynamic>> getLocations();
   Future<Map<String, dynamic>> getOfficeLocations();
   Future<Map<String, dynamic>> getAttendanceActivity({List<int>? salesPersonIds, String? startDate, String? endDate, String? location, int page, int perPage});
@@ -59,7 +59,7 @@ class AttendanceRemoteDataSourceImpl implements AttendanceRemoteDataSource {
   }
 
   @override
-  Future<Map<String, dynamic>> postAttendance({required String attendanceDatetime, required int flag, required String locationName, String? note, String? filePath, Uint8List? fileBytes, required int nikNumber, int? locationId, String? latitude, String? longitude}) async {
+  Future<Map<String, dynamic>> postAttendance({required String attendanceDatetime, required int flag, required String locationName, String? note, String? filePath, Uint8List? fileBytes, int? locationId, String? latitude, String? longitude}) async {
     try {
       String? attachmentBase64;
       if (fileBytes != null) {
@@ -79,8 +79,6 @@ class AttendanceRemoteDataSourceImpl implements AttendanceRemoteDataSource {
         'attendance_datetime': attendanceDatetime,
         'flag': flag,
         'location_name': locationName,
-        'nik_number': nikNumber,
-        'serial': 'PARADISE CONNECT',
         if (locationId != null) 'location_id': locationId,
         if (latitude != null) 'latitude': latitude,
         if (longitude != null) 'longitude': longitude,
@@ -116,7 +114,7 @@ class AttendanceRemoteDataSourceImpl implements AttendanceRemoteDataSource {
   }
 
   @override
-  Future<Map<String, dynamic>> postAttendanceActivity({required String attendanceDatetime, required int flag, required String locationName, String? note, required List<String> filePaths, List<Uint8List>? fileBytesData, required int nikNumber, int? locationId, String? latitude, String? longitude}) async {
+  Future<Map<String, dynamic>> postAttendanceActivity({required String attendanceDatetime, required int flag, required String locationName, String? note, required List<String> filePaths, List<Uint8List>? fileBytesData, int? locationId, String? latitude, String? longitude}) async {
     try {
       final List<String> base64Files = [];
       if (fileBytesData != null && fileBytesData.isNotEmpty) {
@@ -136,13 +134,10 @@ class AttendanceRemoteDataSourceImpl implements AttendanceRemoteDataSource {
         }
       }
 
-      // Kirim sebagai JSON body agar `files` diterima PHP sebagai array native
       final body = <String, dynamic>{
         'attendance_datetime': attendanceDatetime,
         'flag': flag,
         'location_name': locationName,
-        'nik_number': nikNumber,
-        'serial': 'PARADISE CONNECT',
         'files': base64Files,
         if (locationId != null) 'location_id': locationId,
         if (latitude != null) 'latitude': latitude,

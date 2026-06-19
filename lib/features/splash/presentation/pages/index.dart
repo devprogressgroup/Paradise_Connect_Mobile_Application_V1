@@ -65,18 +65,18 @@ class _SplashPageState extends State<SplashPage> {
     return BlocListener<ProfileBloc, ProfileState>(
       listener: (context, state) async {
         debugPrint('[Splash] ProfileBloc state: ${state.runtimeType}');
-        // if (state is ProfileLoaded) {
-        //   debugPrint('[Splash] ProfileLoaded: ${state.profile.username} (role ${state.profile.userRoleId}) → go /');
-        //   context.read<AuthBloc>().add(FetchPermissionsEvent());
-        //   AppRouter.authNotifier.value = true;
-        //   context.go('/');
-        // } else if (state is ProfileFailure) {
-        //   debugPrint('[Splash] ProfileFailure: ${state.message} → hapus token, go /login');
-        //   final prefs = await SharedPreferences.getInstance();
-        //   await prefs.remove('auth_token');
-        //   await prefs.setBool('is_auto_login', false);
-        //   if (mounted) context.go('/login');
-        // }
+        if (state is ProfileLoaded) {
+          debugPrint('[Splash] ProfileLoaded: ${state.profile.username} (role ${state.profile.userRoleId}) → go /');
+          context.read<AuthBloc>().add(FetchPermissionsEvent());
+          AppRouter.authNotifier.value = true;
+          context.go('/');
+        } else if (state is ProfileFailure) {
+          debugPrint('[Splash] ProfileFailure: ${state.message} → hapus token, go /login');
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.remove('auth_token');
+          await prefs.setBool('is_auto_login', false);
+          if (mounted) context.go('/login');
+        }
       },
       child: Scaffold(
         backgroundColor: Color(greySplash),
@@ -85,7 +85,7 @@ class _SplashPageState extends State<SplashPage> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Image.asset(
-                kIsWeb ? logoSplasShcreen : logoSplasShcreenGif,
+                kIsWeb ? logoSplasShcreenGif : logoSplasShcreenGif,
                 width: 300,
                 fit: BoxFit.contain,
               ),

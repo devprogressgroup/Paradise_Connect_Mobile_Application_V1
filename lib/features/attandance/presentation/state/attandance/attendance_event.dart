@@ -29,7 +29,6 @@ class SubmitAttendanceEvent extends AttendanceEvent {
   final String? note;
   final String? filePath;
   final Uint8List? fileBytes;
-  final int nikNumber;
   final int? locationId;
   final String? latitude;
   final String? longitude;
@@ -41,7 +40,6 @@ class SubmitAttendanceEvent extends AttendanceEvent {
     this.note,
     this.filePath,
     this.fileBytes,
-    required this.nikNumber,
     this.locationId,
     this.latitude,
     this.longitude,
@@ -55,7 +53,6 @@ class SubmitAttendanceActivityEvent extends AttendanceEvent {
   final String? note;
   final List<String> filePaths;
   final List<Uint8List>? fileBytesData;
-  final int nikNumber;
   final int? locationId;
   final String? latitude;
   final String? longitude;
@@ -67,7 +64,6 @@ class SubmitAttendanceActivityEvent extends AttendanceEvent {
     this.note,
     required this.filePaths,
     this.fileBytesData,
-    required this.nikNumber,
     this.locationId,
     this.latitude,
     this.longitude,

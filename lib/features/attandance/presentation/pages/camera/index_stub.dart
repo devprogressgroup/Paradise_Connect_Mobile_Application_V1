@@ -508,12 +508,6 @@ class _WebSubmitPageState extends State<_WebSubmitPage> {
         ? pameranTC.text
         : (widget.args.location ?? 'Unknown');
 
-    int nikNumber = 0;
-    final profileState = context.read<ProfileBloc>().state;
-    if (profileState is ProfileLoaded) {
-      nikNumber = profileState.profile.nikNumber ?? 0;
-    }
-
     final activeLocationId = _selectedPameranLocation?.id ?? widget.args.locationId;
     final activeLat = _selectedPameranLocation?.latitude ?? widget.args.latitude;
     final activeLng = _selectedPameranLocation?.longitude ?? widget.args.longitude;
@@ -526,7 +520,6 @@ class _WebSubmitPageState extends State<_WebSubmitPage> {
         note: notesTC.text,
         filePaths: const [],
         fileBytesData: _imageBytesList,
-        nikNumber: nikNumber,
         locationId: activeLocationId,
         latitude: activeLat,
         longitude: activeLng,
@@ -538,7 +531,6 @@ class _WebSubmitPageState extends State<_WebSubmitPage> {
         location: location,
         note: notesTC.text,
         fileBytes: _imageBytesList.first,
-        nikNumber: nikNumber,
         locationId: activeLocationId,
         latitude: activeLat,
         longitude: activeLng,

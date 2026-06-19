@@ -185,12 +185,6 @@ class _CameraPageState extends State<CameraPage> {
     final datetime = DateFormat('yyyy-MM-dd HH:mm:ss').format(DateTime.now());
     final location = pameranTC.text.isNotEmpty ? pameranTC.text : (widget.args.location ?? "Unknown");
 
-    int nikNumber = 0;
-    final profileState = context.read<ProfileBloc>().state;
-    if (profileState is ProfileLoaded) {
-      nikNumber = profileState.profile.nikNumber ?? 0;
-    }
-
     final activeLocationId = _selectedPameranLocation?.id ?? widget.args.locationId;
     final activeLat = _selectedPameranLocation?.latitude ?? widget.args.latitude;
     final activeLng = _selectedPameranLocation?.longitude ?? widget.args.longitude;
@@ -198,11 +192,11 @@ class _CameraPageState extends State<CameraPage> {
     if (_isMultiplePhotosSupported) {
       final compressedPaths = await Future.wait(_imageFiles.map((e) => _compressImageToFile(e.path)));
       if (!mounted) return;
-      context.read<AttendanceBloc>().add(SubmitAttendanceActivityEvent(datetime: datetime, flag: flag!, location: location, note: notesTC.text, filePaths: compressedPaths, fileBytesData: null, nikNumber: nikNumber, locationId: activeLocationId, latitude: activeLat, longitude: activeLng));
+      context.read<AttendanceBloc>().add(SubmitAttendanceActivityEvent(datetime: datetime, flag: flag!, location: location, note: notesTC.text, filePaths: compressedPaths, fileBytesData: null, locationId: activeLocationId, latitude: activeLat, longitude: activeLng));
     } else {
       final compressedPath = await _compressImageToFile(_imageFiles.first.path);
       if (!mounted) return;
-      context.read<AttendanceBloc>().add(SubmitAttendanceEvent(datetime: datetime, flag: flag!, location: location, note: notesTC.text, filePath: compressedPath, fileBytes: null, nikNumber: nikNumber, locationId: activeLocationId, latitude: activeLat, longitude: activeLng));
+      context.read<AttendanceBloc>().add(SubmitAttendanceEvent(datetime: datetime, flag: flag!, location: location, note: notesTC.text, filePath: compressedPath, fileBytes: null, locationId: activeLocationId, latitude: activeLat, longitude: activeLng));
     }
   }
 
