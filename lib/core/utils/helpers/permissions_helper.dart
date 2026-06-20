@@ -44,28 +44,56 @@ class PermissionsHelper {
     return null;
   }
 
+  // ── Feature ber-scope (Own/Team/Any) ──────────────────────────────
+  // Backend menyimpan feature sebagai {Action}Own/{Action}Team/{Action}Any
+  // (mis. ModifyOwn/ModifyTeam/ModifyAny). Helper ini = true bila SALAH SATU aktif.
+  // Visibilitas DATA (Own vs Team vs Any) ditegakkan server-side; di sini cukup boolean kapabilitas.
+  static bool checkScoped(String formName, String action) {
+    return check(formName, '${action}Own') ||
+        check(formName, '${action}Team') ||
+        check(formName, '${action}Any');
+  }
+
+  // Feature lampiran ber-scope: {Action}{Own/Team/Any}Attachment.
+  static bool checkScopedAttachment(String action) {
+    return check('Contacts', '${action}OwnAttachment') ||
+        check('Contacts', '${action}TeamAttachment') ||
+        check('Contacts', '${action}AnyAttachment');
+  }
+
+  // Level scope tertinggi: 'any' | 'team' | 'own' | 'none' (untuk kebutuhan UI lanjutan).
+  static String scopeLevel(String formName, String action) {
+    if (isSuperadmin) return 'any';
+    if (check(formName, '${action}Any')) return 'any';
+    if (check(formName, '${action}Team')) return 'team';
+    if (check(formName, '${action}Own')) return 'own';
+    return 'none';
+  }
+
   // Attendance
-  static bool get canReadAttendance       => check('Attendance', 'ReadOnly');
+  static bool get canReadAttendance       => checkScoped('Attendance', 'ReadOnly');
   static bool get canClockInOffice                    => check('Attendance', 'ClockInOffice');
   static bool get canClockInPameran                   => check('Attendance', 'ClockInPameran');
   static bool get canClockOutOffice                   => check('Attendance', 'ClockOutOffice');
   static bool get canClockOutPameran                  => check('Attendance', 'ClockOutPameran');
   static bool get canApproveRejectAttendance          => check('Attendance', 'ApproveReject');
+  // Like/Dislike check-in activity (validasi flag 6) — sejajar dgn ApproveReject, gate terpisah.
+  static bool get canCheckInVerify                    => check('Attendance', 'CheckInVerify');
 
   static bool get canClockInLuarLokasi                => check('Attendance', 'ClockInLuarLokasi');
   static bool get canClockOutLuarLokasi               => check('Attendance', 'ClockOutLuarLokasi');
   static bool get canClockInLuarLokasiRequestApprove  => check('Attendance', 'ClockInLuarLokasiRequestApprove');
-  static bool get canClockOutLuarLokasiRequestApprove => check('Attendance', 'ClockOuLuarLokasiRequestApprove');
+  static bool get canClockOutLuarLokasiRequestApprove => check('Attendance', 'ClockOutLuarLokasiRequestApprove');
 
   // Composite attendance permissions
   static bool get canClockIn  => canClockInOffice || canClockInPameran || canClockInLuarLokasi;
   static bool get canClockOut => canClockOutOffice || canClockOutPameran || canClockOutLuarLokasi;
 
   // true jika minimal satu fitur attendance aktif
-  static bool get canAccessAttendance => canReadAttendance || canClockInOffice || canClockInPameran || canClockOutOffice || canClockOutPameran || canApproveRejectAttendance || canClockInLuarLokasi || canClockOutLuarLokasi || canClockInLuarLokasiRequestApprove || canClockOutLuarLokasiRequestApprove;
+  static bool get canAccessAttendance => canReadAttendance || canClockInOffice || canClockInPameran || canClockOutOffice || canClockOutPameran || canApproveRejectAttendance || canCheckInVerify || canClockInLuarLokasi || canClockOutLuarLokasi || canClockInLuarLokasiRequestApprove || canClockOutLuarLokasiRequestApprove;
 
   // Attendance raw values
-  static int? get rawReadAttendance                       => checkRaw('Attendance', 'ReadOnly');
+  static int? get rawReadAttendance                       => canReadAttendance ? 1 : 0;
   static int? get rawClockInOffice                        => checkRaw('Attendance', 'ClockInOffice');
   static int? get rawClockInPameran                       => checkRaw('Attendance', 'ClockInPameran');
   static int? get rawClockOutOffice                       => checkRaw('Attendance', 'ClockOutOffice');
@@ -74,31 +102,30 @@ class PermissionsHelper {
   static int? get rawClockInLuarLokasi                    => checkRaw('Attendance', 'ClockInLuarLokasi');
   static int? get rawClockOutLuarLokasi                   => checkRaw('Attendance', 'ClockOutLuarLokasi');
   static int? get rawClockInLuarLokasiRequestApprove      => checkRaw('Attendance', 'ClockInLuarLokasiRequestApprove');
-  static int? get rawClockOutLuarLokasiRequestApprove     => checkRaw('Attendance', 'ClockOuLuarLokasiRequestApprove');
+  static int? get rawClockOutLuarLokasiRequestApprove     => checkRaw('Attendance', 'ClockOutLuarLokasiRequestApprove');
 
-  // Contacts
-  static bool get canModifyContacts       => check('Contacts', 'Modify');
-  static bool get canReadContacts         => check('Contacts', 'ReadOnly');
-  static bool get canDeleteContacts       => check('Contacts', 'Delete');
-  static bool get canModifyAttachment     => check('Contacts', 'ModifyAttachment');
-  static bool get canDeleteAttachment     => check('Contacts', 'DeleteAttachment');
+  // Contacts (feature ber-scope; kumulatif Modify/Delete ⇒ Read)
+  static bool get canModifyContacts       => checkScoped('Contacts', 'Modify');
+  static bool get canDeleteContacts       => checkScoped('Contacts', 'Delete');
+  static bool get canReadContacts         => checkScoped('Contacts', 'ReadOnly') || canModifyContacts || canDeleteContacts;
+  static bool get canModifyAttachment     => checkScopedAttachment('Modify');
+  static bool get canDeleteAttachment     => checkScopedAttachment('Delete');
 
   // true jika minimal satu fitur contacts aktif
   static bool get canAccessContacts => canReadContacts || canModifyContacts || canDeleteContacts || canModifyAttachment || canDeleteAttachment;
 
-  // Contact action-level helpers
-  // canModify = true → semua aksi aktif, abaikan permission lain
+  // Contact action-level helpers — DISELARASKAN dgn backend (per-aksi):
+  //   Create/Edit = Modify. Delete = Delete (Modify TIDAK memberi hapus; backend menolak 403).
   static bool get canCreateContact => canModifyContacts;
   static bool get canEditContact   => canModifyContacts;
-  static bool get canDeleteContact => canModifyContacts || canDeleteContacts;
+  static bool get canDeleteContact => canDeleteContacts;
 
-  // Attachment action-level helpers
-  // canModify = true → upload/edit/delete semua bisa
-  // canDeleteAttachment saja → hanya view + delete
-  // keduanya false tapi canRead = true → view only
+  // Attachment action-level helpers (selaras backend isAttachmentInScope):
+  //   FLOOR = Modify kontak. Upload/Edit = Modify kontak ATAU Modify*Attachment.
+  //   Delete = Modify kontak ATAU Delete*Attachment (Modify*Attachment TIDAK memberi hapus).
   static bool get canUploadAttachment     => canModifyContacts || canModifyAttachment;
   static bool get canEditAttachmentItem   => canModifyContacts || canModifyAttachment;
-  static bool get canDeleteAttachmentItem => canModifyContacts || canModifyAttachment || canDeleteAttachment;
+  static bool get canDeleteAttachmentItem => canModifyContacts || canDeleteAttachment;
   static bool get canViewAttachment       => canModifyContacts || canModifyAttachment || canDeleteAttachment || canReadContacts;
 
   // Sales Kit
@@ -112,7 +139,11 @@ class PermissionsHelper {
   static bool get canReadSitePlan         => check('Site Plan', 'ReadOnly');
   static bool get canAccessSitePlan       => canReadSitePlan;
 
-  // Inbox
-  static bool get canReadInbox            => check('Inbox', 'ReadOnly');
+  // Siap Huni (webview; satu ReadOnly — pola sama dengan Site Plan)
+  static bool get canReadSiapHuni         => check('Siap Huni', 'ReadOnly');
+  static bool get canAccessSiapHuni       => canReadSiapHuni;
+
+  // Inbox (read-only ber-scope)
+  static bool get canReadInbox            => checkScoped('Inbox', 'ReadOnly');
   static bool get canAccessInbox          => canReadInbox;
 }

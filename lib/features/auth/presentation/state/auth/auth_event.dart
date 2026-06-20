@@ -53,4 +53,21 @@ class ResetPasswordEvent extends AuthEvent {
   ResetPasswordEvent(this.entity);
 }
 
-class FetchPermissionsEvent extends AuthEvent {}
+class FetchPermissionsEvent extends AuthEvent {
+  /// silent = refresh di latar belakang tanpa state Loading/Error (anti-flicker bottom nav).
+  final bool silent;
+  FetchPermissionsEvent({this.silent = false});
+}
+
+// ── Impersonation (superadmin login-as) ──────────────────────────────
+class LoadImpersonatableUsersEvent extends AuthEvent {
+  final String? search;
+  LoadImpersonatableUsersEvent({this.search});
+}
+
+class ImpersonateEvent extends AuthEvent {
+  final int userId;
+  ImpersonateEvent(this.userId);
+}
+
+class StopImpersonationEvent extends AuthEvent {}

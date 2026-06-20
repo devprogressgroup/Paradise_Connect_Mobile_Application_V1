@@ -171,7 +171,8 @@ class UserProfileModel extends UserProfileEntity {
       subordinates: json['subordinates'] != null ? (json['subordinates'] as List).map((i) => HierarchyNodeModel.fromJson(i)).toList() : const [],
       groupHierarchy: json['group_hierarchy'] != null ? (json['group_hierarchy'] as List).map((i) => GroupHierarchyModel.fromJson(i)).toList() : const [],
       salesTeamHierarchy: json['sales_team_hierarchy'] != null ? (json['sales_team_hierarchy'] as List).map((i) => SalesTeamHierarchyModel.fromJson(i)).toList() : const [],
-      nikNumber: json['nik_number'],
+      // nik_number bisa int (sales) atau string (app_m_user.nik_number non-sales) → parse aman.
+      nikNumber: json['nik_number'] == null ? null : int.tryParse(json['nik_number'].toString()),
     );
   }
 

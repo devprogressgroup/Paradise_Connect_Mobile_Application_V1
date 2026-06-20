@@ -17,6 +17,7 @@ import 'package:progress_group/features/contact/data/models/info_source/info_sou
 import 'package:progress_group/features/contact/data/models/lost_reason/lost_reason_model.dart';
 import 'package:progress_group/features/contact/data/models/pameran/pameran_aktif_model.dart';
 import 'package:progress_group/features/contact/data/models/property/property_unit_model.dart';
+import 'package:progress_group/features/contact/data/models/unit/unit_hierarchy_model.dart';
 import 'package:progress_group/features/contact/domain/entities/activity/create_activity_params.dart';
 import 'package:progress_group/features/contact/domain/entities/activity/create_activity_visit_params.dart';
 import 'package:progress_group/features/contact/domain/entities/attachment/upload_attachment_params.dart';
@@ -64,6 +65,10 @@ abstract class ContactRemoteDataSource {
 
   Future<List<PropertyUnitClusterModel>> getPropertyUnits({required int townshipId});
   Future<List<PropertyUnitClusterModel>> getPropertyCommercialUnits({required int townshipId});
+
+  // Unit Picker (Model A) — inventory paradiseconnect.
+  Future<List<UnitCluster>> getUnitHierarchy({required int townshipId, String? search});
+  Future<List<UnitLot>> getUnitLots({required int productId, String? search});
   Future<List<PameranAktifModel>> getPameranAktif();
   Future<List<String>> getProductTypes();
 }
@@ -591,6 +596,40 @@ class ContactRemoteDataSourceImpl implements ContactRemoteDataSource {
       throw Exception(response.data['message'] ?? 'Gagal memuat data produk');
     } on DioException catch (e) {
       throw Exception(getErrorMessage(e, 'Gagal memuat data produk'));
+    }
+  }
+
+  @override
+  Future<List<UnitCluster>> getUnitHierarchy({required int townshipId, String? search}) async {
+    try {
+      final response = await dio.get('/property/units/hierarchy', queryParameters: {
+        'township_id': townshipId,
+        if (search != null && search.isNotEmpty) 'search': search,
+      });
+      if (response.data['status'] == true) {
+        final List<dynamic> data = response.data['data']['data'] ?? [];
+        return data.map((j) => UnitCluster.fromJson(j as Map<String, dynamic>)).toList();
+      }
+      throw Exception(response.data['message'] ?? 'Gagal memuat hierarki unit');
+    } on DioException catch (e) {
+      throw Exception(getErrorMessage(e, 'Gagal memuat hierarki unit'));
+    }
+  }
+
+  @override
+  Future<List<UnitLot>> getUnitLots({required int productId, String? search}) async {
+    try {
+      final response = await dio.get('/property/units/hierarchy', queryParameters: {
+        'product_id': productId,
+        if (search != null && search.isNotEmpty) 'search': search,
+      });
+      if (response.data['status'] == true) {
+        final List<dynamic> data = response.data['data']['lots'] ?? [];
+        return data.map((j) => UnitLot.fromJson(j as Map<String, dynamic>)).toList();
+      }
+      throw Exception(response.data['message'] ?? 'Gagal memuat kavling');
+    } on DioException catch (e) {
+      throw Exception(getErrorMessage(e, 'Gagal memuat kavling'));
     }
   }
 

@@ -6,6 +6,7 @@ import '../../domain/entities/reset_password.dart';
 import '../../domain/entities/user_entity.dart';
 import '../datasources/auth_remote_datasource.dart';
 import '../models/forgot_password_data_model.dart';
+import '../models/impersonatable_user_model.dart';
 import '../models/login_data_model.dart';
 import '../models/permissions_model.dart';
 import '../../domain/entities/user_profile.dart';
@@ -157,6 +158,8 @@ class AuthRepositoryImpl implements AuthRepository {
   @override
   Future<void> logout() async {
     await localDataSource.clearToken();
+    // Pastikan jejak impersonate ikut bersih bila logout saat sedang impersonate.
+    await localDataSource.clearImpersonatorToken();
   }
 
   @override
@@ -173,5 +176,62 @@ class AuthRepositoryImpl implements AuthRepository {
     }
 
     return response.data!;
+  }
+
+  @override
+  Future<List<ImpersonatableUser>> getImpersonatableUsers({String? search}) async {
+    final result = await remoteDataSource.getImpersonatableUsers(search: search);
+
+    final response = BaseResponse<List<ImpersonatableUser>>.fromJson(
+      result,
+      (data) => (data as List)
+          .map((e) => ImpersonatableUser.fromJson(e as Map<String, dynamic>))
+          .toList(),
+    );
+
+    if (!response.status) {
+      throw Exception(response.errors != null ? parseError(response.errors) : response.message);
+    }
+
+    return response.data ?? [];
+  }
+
+  @override
+  Future<String> impersonate(int userId) async {
+    final result = await remoteDataSource.impersonate(userId);
+
+    final response = BaseResponse<Map<String, dynamic>>.fromJson(
+      result,
+      (data) => data as Map<String, dynamic>,
+    );
+
+    if (!response.status || response.data == null) {
+      throw Exception(response.errors != null ? parseError(response.errors) : response.message);
+    }
+
+    final data = response.data!;
+    final newToken = data['access_token'] as String;
+    final targetName = (data['user']?['full_name'] ?? 'User').toString();
+
+    // Stash token admin SAAT INI sebelum ditukar, lalu pasang token target.
+    // persistent:true agar token target ditemukan splash & bertahan saat restart.
+    final adminToken = await localDataSource.getToken();
+    if (adminToken != null && adminToken.isNotEmpty) {
+      await localDataSource.saveImpersonatorToken(adminToken);
+    }
+    await localDataSource.saveToken(newToken, persistent: true);
+
+    return targetName;
+  }
+
+  @override
+  Future<void> stopImpersonation() async {
+    final adminToken = await localDataSource.getImpersonatorToken();
+    if (adminToken == null || adminToken.isEmpty) {
+      throw Exception('Token admin tidak ditemukan. Silakan login ulang.');
+    }
+    // Token admin asli masih valid di active_token server → pulihkan langsung.
+    await localDataSource.saveToken(adminToken, persistent: true);
+    await localDataSource.clearImpersonatorToken();
   }
 }

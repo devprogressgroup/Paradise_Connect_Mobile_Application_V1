@@ -15,8 +15,8 @@ abstract class AttendanceRemoteDataSource {
   Future<void> postValidasiCheckIn({required int logId, required int statusValidasi, String? noteValidasi});
   Future<Map<String, dynamic>> getAttendanceApprovalToday({String? search, String? status, int? flag, int page = 1, int perPage = 10});
   Future<void> postAttendanceApproval({required int logId, required int approve, String? note});
-  Future<void> downloadAttendancePdf({int? nikNumber, int? salesPersonId, required String startDate, required String endDate, required String savePath});
-  Future<Uint8List> downloadAttendancePdfBytes({int? nikNumber, int? salesPersonId, required String startDate, required String endDate});
+  Future<void> downloadAttendanceExcel({int? nikNumber, int? salesPersonId, required String startDate, required String endDate, required String savePath});
+  Future<Uint8List> downloadAttendanceExcelBytes({int? nikNumber, int? salesPersonId, required String startDate, required String endDate});
 }
 
 class AttendanceRemoteDataSourceImpl implements AttendanceRemoteDataSource {
@@ -203,7 +203,7 @@ class AttendanceRemoteDataSourceImpl implements AttendanceRemoteDataSource {
     }
   }
 
-  Map<String, dynamic> _pdfQueryParams({int? nikNumber, int? salesPersonId, required String startDate, required String endDate}) {
+  Map<String, dynamic> _excelQueryParams({int? nikNumber, int? salesPersonId, required String startDate, required String endDate}) {
     final params = <String, dynamic>{
       'start_date': startDate,
       'end_date': endDate,
@@ -217,10 +217,10 @@ class AttendanceRemoteDataSourceImpl implements AttendanceRemoteDataSource {
   }
 
   @override
-  Future<void> downloadAttendancePdf({int? nikNumber, int? salesPersonId, required String startDate, required String endDate, required String savePath}) async {
+  Future<void> downloadAttendanceExcel({int? nikNumber, int? salesPersonId, required String startDate, required String endDate, required String savePath}) async {
     try {
-      final params = _pdfQueryParams(nikNumber: nikNumber, salesPersonId: salesPersonId, startDate: startDate, endDate: endDate);
-      debugPrint('[downloadAttendancePdf MOBILE] endpoint: /attendance/report/excel | params: $params');
+      final params = _excelQueryParams(nikNumber: nikNumber, salesPersonId: salesPersonId, startDate: startDate, endDate: endDate);
+      debugPrint('[downloadAttendanceExcel MOBILE] endpoint: /attendance/report/excel | params: $params');
       await dio.download(
         '/attendance/report/excel',
         savePath,
@@ -229,15 +229,15 @@ class AttendanceRemoteDataSourceImpl implements AttendanceRemoteDataSource {
       );
     } on DioException catch (e) {
       if (e.type == DioExceptionType.cancel && e.error == 'SESSION_EXPIRED') throw Exception('SESSION_EXPIRED');
-      throw Exception('Gagal mengunduh PDF');
+      throw Exception('Gagal mengunduh Excel');
     }
   }
 
   @override
-  Future<Uint8List> downloadAttendancePdfBytes({int? nikNumber, int? salesPersonId, required String startDate, required String endDate}) async {
+  Future<Uint8List> downloadAttendanceExcelBytes({int? nikNumber, int? salesPersonId, required String startDate, required String endDate}) async {
     try {
-      final params = _pdfQueryParams(nikNumber: nikNumber, salesPersonId: salesPersonId, startDate: startDate, endDate: endDate);
-      debugPrint('[downloadAttendancePdfBytes WEB] endpoint: /attendance/report/excel | params: $params');
+      final params = _excelQueryParams(nikNumber: nikNumber, salesPersonId: salesPersonId, startDate: startDate, endDate: endDate);
+      debugPrint('[downloadAttendanceExcelBytes WEB] endpoint: /attendance/report/excel | params: $params');
       final response = await dio.get<List<int>>(
         '/attendance/report/excel',
         queryParameters: params,
@@ -246,7 +246,7 @@ class AttendanceRemoteDataSourceImpl implements AttendanceRemoteDataSource {
       return Uint8List.fromList(response.data!);
     } on DioException catch (e) {
       if (e.type == DioExceptionType.cancel && e.error == 'SESSION_EXPIRED') throw Exception('SESSION_EXPIRED');
-      throw Exception('Gagal mengunduh PDF');
+      throw Exception('Gagal mengunduh Excel');
     }
   }
 

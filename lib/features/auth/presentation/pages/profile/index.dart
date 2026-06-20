@@ -8,6 +8,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:progress_group/core/utils/widget/custom_button.dart';
 import 'package:progress_group/core/utils/widget/custom_snackbar.dart';
+import 'package:progress_group/core/utils/helpers/permissions_helper.dart';
 import 'package:progress_group/features/auth/presentation/state/auth/auth_bloc.dart';
 import 'package:progress_group/features/auth/presentation/state/auth/auth_event.dart';
 import 'package:progress_group/features/auth/presentation/state/auth/auth_state.dart';
@@ -259,8 +260,8 @@ class _ProfilePageState extends State<ProfilePage> {
 
           return RefreshIndicator(
             onRefresh: () async {
-              context.read<AuthBloc>().add(FetchPermissionsEvent());
-              context.read<ProfileBloc>().add(GetProfileEvent(forceRefresh: true));
+              context.read<AuthBloc>().add(FetchPermissionsEvent(silent: true));
+              context.read<ProfileBloc>().add(GetProfileEvent(forceRefresh: true, silent: true));
             },
             child: SingleChildScrollView(
               physics: const AlwaysScrollableScrollPhysics(),
@@ -485,6 +486,24 @@ class _ProfilePageState extends State<ProfilePage> {
                         ),
                       ],
                     ),
+                    // Superadmin: login sebagai user lain (impersonate) untuk uji permission.
+                    if (PermissionsHelper.isSuperadmin) ...[
+                      const SizedBox(height: 12),
+                      SizedBox(
+                        width: double.infinity,
+                        child: OutlinedButton.icon(
+                          onPressed: () => context.push('/impersonate'),
+                          icon: const Icon(Icons.people_alt_outlined, size: 18),
+                          label: const Text('Login Sebagai User'),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: Color(primaryColor),
+                            side: BorderSide(color: Color(primaryColor)),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                          ),
+                        ),
+                      ),
+                    ],
                     const SizedBox(height: 12),
                     // SizedBox(
                     //   width: double.infinity,

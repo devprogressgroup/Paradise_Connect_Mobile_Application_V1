@@ -1,4 +1,5 @@
 import '../../../domain/entities/contact/contact_entity.dart';
+import '../unit/unit_hierarchy_model.dart';
 
 class ContactModel extends ContactEntity {
   const ContactModel({
@@ -78,6 +79,9 @@ class ContactModel extends ContactEntity {
     super.lastProductId,
     super.productType,
     super.nameSP,
+    super.canEdit,
+    super.canDelete,
+    super.units,
   });
 
   factory ContactModel.fromJson(Map<String, dynamic> json) {
@@ -159,6 +163,10 @@ class ContactModel extends ContactEntity {
       lastProductId: json['last_product_id'],
       productType: json['product_type']?.toString(),
       nameSP: json['name_sp']?.toString(),
+      // null bila backend belum kirim flag → UI memperlakukan sebagai boleh (?? true).
+      canEdit: json['can_edit'] == null ? null : (json['can_edit'] == true || json['can_edit'] == 1),
+      canDelete: json['can_delete'] == null ? null : (json['can_delete'] == true || json['can_delete'] == 1),
+      units: (json['units'] as List?)?.map((e) => SelectedUnit.fromContactJson(e as Map<String, dynamic>)).toList(),
       createdAt: json['created_at'],
       updatedAt: json['updated_at'],
       deletedAt: json['deleted_at'],

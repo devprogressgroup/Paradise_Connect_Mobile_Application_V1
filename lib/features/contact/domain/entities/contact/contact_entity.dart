@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import 'package:progress_group/features/contact/data/models/unit/unit_hierarchy_model.dart';
 
 class ContactEntity extends Equatable {
   final int? contactId;
@@ -76,6 +77,11 @@ class ContactEntity extends Equatable {
   final int? lastProductId;
   final String? productType;
   final String? nameSP;
+  // Kapabilitas per-kontak dari backend (scope Modify/Delete). null = tak diketahui → UI anggap boleh.
+  final bool? canEdit;
+  final bool? canDelete;
+  // Model A — daftar unit (deal) kontak; dipakai About tab + prefill Edit picker.
+  final List<SelectedUnit>? units;
 
   const ContactEntity({
     this.contactId,
@@ -153,6 +159,9 @@ class ContactEntity extends Equatable {
     this.lastProductId,
     this.productType,
     this.nameSP,
+    this.canEdit,
+    this.canDelete,
+    this.units,
   });
 
   ContactEntity copyWith({
@@ -230,6 +239,9 @@ class ContactEntity extends Equatable {
     int? lastProductId,
     String? productType,
     String? nameSP,
+    bool? canEdit,
+    bool? canDelete,
+    List<SelectedUnit>? units,
   }) {
     return ContactEntity(
       contactId: contactId ?? this.contactId,
@@ -307,6 +319,9 @@ class ContactEntity extends Equatable {
       lastProductId: lastProductId ?? this.lastProductId,
       productType: productType ?? this.productType,
       nameSP: nameSP ?? this.nameSP,
+      canEdit: canEdit ?? this.canEdit,
+      canDelete: canDelete ?? this.canDelete,
+      units: units ?? this.units,
     );
   }
 
@@ -388,6 +403,9 @@ class ContactEntity extends Equatable {
     lastProductId,
     productType,
     nameSP,
+    canEdit,
+    canDelete,
+    units,
   ];
 }
 

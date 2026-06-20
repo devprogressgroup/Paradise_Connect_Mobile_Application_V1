@@ -171,7 +171,7 @@ class _ContactDetailPageState extends State<ContactDetailPage>with TickerProvide
   }
 
   Future<void> _getContactDetail() async {
-    context.read<AuthBloc>().add(FetchPermissionsEvent());
+    context.read<AuthBloc>().add(FetchPermissionsEvent(silent: true));
     final contactId = widget.args.dataContact?.contactId;
     if (contactId != null) {
       context.read<ContactBloc>().add(FetchContactDetailEvent(contactId));
@@ -179,7 +179,7 @@ class _ContactDetailPageState extends State<ContactDetailPage>with TickerProvide
   }
 
   Future<void> _getActivity() async {
-    context.read<AuthBloc>().add(FetchPermissionsEvent());
+    context.read<AuthBloc>().add(FetchPermissionsEvent(silent: true));
     final contactId = widget.args.dataContact?.contactId;
     if (contactId != null) {
       context.read<ContactDetailActivityBloc>().add(
@@ -192,7 +192,7 @@ class _ContactDetailPageState extends State<ContactDetailPage>with TickerProvide
   }
 
   Future<void> _getAttachment() async {
-    context.read<AuthBloc>().add(FetchPermissionsEvent());
+    context.read<AuthBloc>().add(FetchPermissionsEvent(silent: true));
     final contactId = widget.args.dataContact?.contactId;
     if (contactId != null) {
       context.read<AttachmentCubit>().fetch(contactId, null);
@@ -227,17 +227,36 @@ class _ContactDetailPageState extends State<ContactDetailPage>with TickerProvide
 
   @override
   Widget build(BuildContext context) {
-    return BlocListener<AuthBloc, AuthState>(
-      listener: (context, state) {
-        if (state is PermissionsLoaded) setState(() {});
-      },
+    return MultiBlocListener(
+      listeners: [
+        BlocListener<AuthBloc, AuthState>(
+          listener: (context, state) {
+            if (state is PermissionsLoaded) setState(() {});
+          },
+        ),
+        // Surface error 403 (mis. "Anda tidak memiliki akses ke kontak ini.") saat memuat detail,
+        // lalu kembali ke daftar — sebelumnya pesan ini hilang (tidak ditampilkan) di mobile.
+        BlocListener<ContactBloc, ContactState>(
+          listenWhen: (prev, curr) =>
+              curr.status == ContactStatus.error && prev.status == ContactStatus.loadingDetail,
+          listener: (context, state) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(state.errorMessage ?? 'Gagal memuat kontak'),
+                backgroundColor: Colors.red,
+              ),
+            );
+            if (context.canPop()) context.pop();
+          },
+        ),
+      ],
       child: Scaffold(body: SafeArea(child: _selectContact())),
     );
   }
 
   Widget _selectContact() {
     return Scaffold(
-      floatingActionButton: PermissionsHelper.canModifyContacts
+      floatingActionButton: (PermissionsHelper.canModifyContacts && (widget.args.dataContact?.canEdit ?? true))
           ? Padding(
               padding: const EdgeInsets.only(bottom: 10),
               child: FloatingActionButton(
@@ -1048,6 +1067,8 @@ class _ContactDetailPageState extends State<ContactDetailPage>with TickerProvide
         children: [
           customSearchField(controller: searchTC, focusNode: searchFN),
           SizedBox(height: 9),
+          // Upload hanya tampil bila boleh modify kontak ini (per-kontak), seperti web.
+          if (PermissionsHelper.canUploadAttachment && (widget.args.dataContact?.canEdit ?? true))
           Container(
             width: double.infinity,
             margin: const EdgeInsets.only(bottom: 9),
@@ -1066,7 +1087,7 @@ class _ContactDetailPageState extends State<ContactDetailPage>with TickerProvide
               children: [
                 BgIcon(
                   asset: icUpload,
-                  onTap: PermissionsHelper.canModifyAttachment ? () {
+                  onTap: PermissionsHelper.canUploadAttachment ? () {
                     _navigateToAddContact(
                       ContactDetailArgs(
                         dataContact: widget.args.dataContact,
@@ -1075,7 +1096,7 @@ class _ContactDetailPageState extends State<ContactDetailPage>with TickerProvide
                       ),
                     );
                   } : null,
-                  color: PermissionsHelper.canModifyAttachment ? Color(primaryColor) : Colors.grey,
+                  color: PermissionsHelper.canUploadAttachment ? Color(primaryColor) : Colors.grey,
                 ),
                 SizedBox(width: 10),
                 Column(
@@ -1085,7 +1106,7 @@ class _ContactDetailPageState extends State<ContactDetailPage>with TickerProvide
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w700,
-                        color: PermissionsHelper.canModifyAttachment ? Color(primaryColor) : Colors.grey,
+                        color: PermissionsHelper.canUploadAttachment ? Color(primaryColor) : Colors.grey,
                       ),
                     ),
                     Text(
@@ -1093,7 +1114,7 @@ class _ContactDetailPageState extends State<ContactDetailPage>with TickerProvide
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w400,
-                        color: PermissionsHelper.canModifyAttachment ? Color(grey5Color) : Colors.grey,
+                        color: PermissionsHelper.canUploadAttachment ? Color(grey5Color) : Colors.grey,
                       ),
                     ),
                   ],
@@ -1257,6 +1278,9 @@ class _ContactDetailPageState extends State<ContactDetailPage>with TickerProvide
                                   ),
 
                                   Spacer(),
+                                  // 3-titik hanya tampil bila ada aksi yang boleh (per-kontak), seperti web.
+                                  if ((PermissionsHelper.canEditAttachmentItem && (widget.args.dataContact?.canEdit ?? true)) ||
+                                      (PermissionsHelper.canDeleteAttachmentItem && (widget.args.dataContact?.canDelete ?? true)))
                                   PopupMenuButton<String>(
                                     enabled: item.attachmentTypeId != 12,
                                     icon: Container(
@@ -1284,28 +1308,28 @@ class _ContactDetailPageState extends State<ContactDetailPage>with TickerProvide
                                       }
                                     },
                                     itemBuilder: (context) => [
-                                      PopupMenuItem(
-                                        value: 'edit',
-                                        enabled: PermissionsHelper.canModifyAttachment,
-                                        child: Row(
-                                          children: [
-                                            Icon(Icons.edit, size: 18, color: PermissionsHelper.canModifyAttachment ? null : Colors.grey),
-                                            SizedBox(width: 8),
-                                            Text('Edit', style: TextStyle(color: PermissionsHelper.canModifyAttachment ? null : Colors.grey)),
-                                          ],
+                                      if (PermissionsHelper.canEditAttachmentItem && (widget.args.dataContact?.canEdit ?? true))
+                                        PopupMenuItem(
+                                          value: 'edit',
+                                          child: Row(
+                                            children: const [
+                                              Icon(Icons.edit, size: 18),
+                                              SizedBox(width: 8),
+                                              Text('Edit'),
+                                            ],
+                                          ),
                                         ),
-                                      ),
-                                      PopupMenuItem(
-                                        value: 'delete',
-                                        enabled: PermissionsHelper.canModifyAttachment || PermissionsHelper.canDeleteAttachment,
-                                        child: Row(
-                                          children: [
-                                            Icon(Icons.delete, size: 18, color: (PermissionsHelper.canModifyAttachment || PermissionsHelper.canDeleteAttachment) ? Colors.red : Colors.grey),
-                                            SizedBox(width: 8),
-                                            Text('Delete', style: TextStyle(color: (PermissionsHelper.canModifyAttachment || PermissionsHelper.canDeleteAttachment) ? null : Colors.grey)),
-                                          ],
+                                      if (PermissionsHelper.canDeleteAttachmentItem && (widget.args.dataContact?.canDelete ?? true))
+                                        PopupMenuItem(
+                                          value: 'delete',
+                                          child: Row(
+                                            children: const [
+                                              Icon(Icons.delete, size: 18, color: Colors.red),
+                                              SizedBox(width: 8),
+                                              Text('Delete'),
+                                            ],
+                                          ),
                                         ),
-                                      ),
                                     ],
                                   ),
                                 ],
@@ -1347,7 +1371,7 @@ class _ContactDetailPageState extends State<ContactDetailPage>with TickerProvide
                 _tabController.animateTo(result);
               });
             }
-          }, disabled: !PermissionsHelper.canEditContact),
+          }, hidden: !(PermissionsHelper.canEditContact && (contact.canEdit ?? true))),
           _buildIconLink(context, icDelete, "Delete Contact", () {
             showDialog(
               context: context,
@@ -1372,7 +1396,7 @@ class _ContactDetailPageState extends State<ContactDetailPage>with TickerProvide
                 ],
               ),
             );
-          }, disabled: !PermissionsHelper.canDeleteContact),
+          }, hidden: !(PermissionsHelper.canDeleteContact && (contact.canDelete ?? true))),
           _buildIconLink(context, icShare, "Share Contact", () {
             ShareHelper.shareContact(contact);
           }),
@@ -1388,7 +1412,9 @@ class _ContactDetailPageState extends State<ContactDetailPage>with TickerProvide
     VoidCallback onTap, {
     Color? color,
     bool disabled = false,
+    bool hidden = false,
   }) {
+    if (hidden) return const SizedBox.shrink();
     return InkWell(
       onTap: disabled ? null : () {
         Navigator.pop(context);

@@ -186,8 +186,10 @@ class _CameraPageState extends State<CameraPage> {
     final location = pameranTC.text.isNotEmpty ? pameranTC.text : (widget.args.location ?? "Unknown");
 
     final activeLocationId = _selectedPameranLocation?.id ?? widget.args.locationId;
-    final activeLat = _selectedPameranLocation?.latitude ?? widget.args.latitude;
-    final activeLng = _selectedPameranLocation?.longitude ?? widget.args.longitude;
+    // Koordinat yang disimpan = posisi GPS asli device (dibawa dari halaman utama via args),
+    // bukan koordinat statis kantor/pameran. Identitas lokasi tetap via activeLocationId.
+    final activeLat = widget.args.latitude;
+    final activeLng = widget.args.longitude;
 
     if (_isMultiplePhotosSupported) {
       final compressedPaths = await Future.wait(_imageFiles.map((e) => _compressImageToFile(e.path)));
@@ -247,7 +249,12 @@ class _CameraPageState extends State<CameraPage> {
                 context: context,
                 builder: (ctx) => AlertDialog(
                   title: const Text('Gagal'),
-                  content: const Text('Gagal menyimpan data kehadiran'),
+                  // Tampilkan pesan asli dari backend (mis. "NIK absensi belum diatur") agar jelas penyebabnya.
+                  content: Text(
+                    state.message.replaceFirst('Exception: ', '').trim().isEmpty
+                        ? 'Gagal menyimpan data kehadiran'
+                        : state.message.replaceFirst('Exception: ', '').trim(),
+                  ),
                   actions: [
                     TextButton(
                       onPressed: () => Navigator.of(ctx).pop(),

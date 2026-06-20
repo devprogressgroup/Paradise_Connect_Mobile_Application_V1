@@ -10,6 +10,8 @@ abstract class AuthRemoteDataSource {
   Future<Map<String, dynamic>> getMe();
   Future<Map<String, dynamic>> updateProfile({String? email, String? phoneNumber, String? password, String? passwordConfirmation, String? photoPath, List<int>? photoBytes, String? photoFilename});
   Future<Map<String, dynamic>> getPermissions();
+  Future<Map<String, dynamic>> getImpersonatableUsers({String? search});
+  Future<Map<String, dynamic>> impersonate(int userId);
 }
 
 class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
@@ -101,6 +103,42 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   Future<Map<String, dynamic>> getPermissions() async {
     try {
       final response = await dio.get('/permissions/me?software_id=1');
+      return response.data;
+    } on DioException catch (e) {
+      if (e.response != null) {
+        return e.response!.data;
+      } else {
+        throw Exception("Tidak dapat terhubung ke server");
+      }
+    }
+  }
+
+  @override
+  Future<Map<String, dynamic>> getImpersonatableUsers({String? search}) async {
+    try {
+      final response = await dio.get(
+        '/auth/impersonate/users',
+        queryParameters: {
+          if (search != null && search.isNotEmpty) 'search': search,
+        },
+      );
+      return response.data;
+    } on DioException catch (e) {
+      if (e.response != null) {
+        return e.response!.data;
+      } else {
+        throw Exception("Tidak dapat terhubung ke server");
+      }
+    }
+  }
+
+  @override
+  Future<Map<String, dynamic>> impersonate(int userId) async {
+    try {
+      final response = await dio.post(
+        '/auth/impersonate',
+        data: {"user_id": userId},
+      );
       return response.data;
     } on DioException catch (e) {
       if (e.response != null) {

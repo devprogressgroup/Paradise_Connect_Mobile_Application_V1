@@ -14,12 +14,13 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
 
   Future<void> _onGetProfile(GetProfileEvent event, Emitter<ProfileState> emit) async {
     if (!event.forceRefresh && state is ProfileLoaded) return;
-    emit(ProfileLoading());
+    if (!event.silent) emit(ProfileLoading());
     try {
       final profile = await getProfileUseCase();
       emit(ProfileLoaded(profile));
     } catch (e) {
-      emit(ProfileFailure(cleanErrorMessage(e)));
+      // Saat silent (refresh latar belakang), pertahankan profil lama bila gagal.
+      if (!event.silent) emit(ProfileFailure(cleanErrorMessage(e)));
     }
   }
 }

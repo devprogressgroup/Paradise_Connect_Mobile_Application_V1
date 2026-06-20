@@ -20,6 +20,7 @@ import 'package:progress_group/features/contact/domain/entities/contact/contact_
 import 'package:progress_group/features/auth/domain/entities/user_profile.dart';
 import 'package:progress_group/features/auth/presentation/state/profile/profile_bloc.dart';
 import 'package:progress_group/features/auth/presentation/state/profile/profile_state.dart';
+import 'package:progress_group/features/auth/presentation/state/profile/profile_event.dart';
 import 'package:progress_group/features/contact/data/arguments/contact_dropdown_args.dart';
 import '../../../../../core/utils/widget/custom_buttomsheet.dart';
 import '../../state/contact/contact_bloc.dart';
@@ -68,6 +69,10 @@ class _ContactPageState extends State<ContactPage> {
     ));
 
     context.read<ProspectStatusBloc>().add(FetchProspectStatusesEvent());
+
+    // Refresh akses (permission + profil/owner) saat masuk menu Contact — silent (tanpa flicker).
+    context.read<AuthBloc>().add(FetchPermissionsEvent(silent: true));
+    context.read<ProfileBloc>().add(GetProfileEvent(forceRefresh: true, silent: true));
   }
 
   @override
@@ -159,10 +164,15 @@ class _ContactPageState extends State<ContactPage> {
                     ),
                     Expanded(
                       child: BlocConsumer<ContactBloc, ContactState>(
-                        listenWhen: (prev, curr) => curr.status == ContactStatus.error && prev.status != ContactStatus.error,
+                        // HANYA reaksi ke error MUAT-LIST (prev=loading). ContactBloc di-share global, jadi
+                        // error simpan/update (prev=creating), hapus (deleting), atau muat-detail (loadingDetail)
+                        // dari layar lain TIDAK boleh memunculkan dialog "Gagal memuat data kontak" di sini.
+                        listenWhen: (prev, curr) =>
+                            curr.status == ContactStatus.error && prev.status == ContactStatus.loading,
                         listener: (context, state) {
                           debugPrint('ContactError: ${state.errorMessage}');
-                          showErrorDialog(context, 'Gagal memuat data kontak');
+                          final msg = (state.errorMessage ?? '').replaceFirst('Exception: ', '').trim();
+                          showErrorDialog(context, msg.isNotEmpty ? msg : 'Gagal memuat data kontak');
                         },
                         builder: (context, state) {
                           contactEntity = state.contacts;
@@ -661,7 +671,7 @@ Widget _buildContactOptions(BuildContext context, ContactEntity contact) {
       children: [
         _buildIconLink(context, icEdit, "Edit Contact", () {
             context.pushNamed('formContact', extra: ContactDetailArgs(dataContact: contact, page: 1));
-          }, disabled: !PermissionsHelper.canEditContact),
+          }, hidden: !(PermissionsHelper.canEditContact && (contact.canEdit ?? true))),
         _buildIconLink(context, icDelete, "Delete Contact", () {
             showDialog(
               context: context,
@@ -680,7 +690,7 @@ Widget _buildContactOptions(BuildContext context, ContactEntity contact) {
                 ],
               ),
             );
-          }, disabled: !PermissionsHelper.canDeleteContact),
+          }, hidden: !(PermissionsHelper.canDeleteContact && (contact.canDelete ?? true))),
         _buildIconLink(context, icShare, "Share Contact", () {
           ShareHelper.shareContact(contact);
         }),
@@ -689,7 +699,8 @@ Widget _buildContactOptions(BuildContext context, ContactEntity contact) {
   );
 }
 
-Widget _buildIconLink(BuildContext context, String asset, String label, VoidCallback onTap, {Color? color, bool disabled = false}) {
+Widget _buildIconLink(BuildContext context, String asset, String label, VoidCallback onTap, {Color? color, bool disabled = false, bool hidden = false}) {
+  if (hidden) return const SizedBox.shrink();
   return InkWell(
     onTap: disabled ? null : () {
       Navigator.pop(context);

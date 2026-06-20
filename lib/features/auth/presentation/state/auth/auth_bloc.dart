@@ -5,10 +5,14 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:progress_group/core/utils/helpers/error_message.dart';
 import 'package:progress_group/core/utils/helpers/permissions_helper.dart';
+import 'package:progress_group/core/utils/helpers/impersonation_manager.dart';
 import 'package:progress_group/features/auth/domain/usecase/clear_remember_me_usecase.dart';
 import 'package:progress_group/features/auth/domain/usecase/forgot_password_usecase.dart';
 import 'package:progress_group/features/auth/domain/usecase/get_biometric_enabled_usecase.dart';
+import 'package:progress_group/features/auth/domain/usecase/get_impersonatable_users_usecase.dart';
 import 'package:progress_group/features/auth/domain/usecase/get_permissions_usecase.dart';
+import 'package:progress_group/features/auth/domain/usecase/impersonate_usecase.dart';
+import 'package:progress_group/features/auth/domain/usecase/stop_impersonation_usecase.dart';
 import 'package:progress_group/features/auth/domain/usecase/get_remember_me_usecase.dart';
 import 'package:progress_group/features/auth/domain/usecase/login_usecase.dart';
 import 'package:progress_group/features/auth/domain/usecase/logout_usecase.dart';
@@ -32,6 +36,9 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   final UpdateProfileUseCase updateProfileUseCase;
   final LogoutUseCase logoutUseCase;
   final GetPermissionsUseCase getPermissionsUseCase;
+  final GetImpersonatableUsersUseCase getImpersonatableUsersUseCase;
+  final ImpersonateUseCase impersonateUseCase;
+  final StopImpersonationUseCase stopImpersonationUseCase;
 
   AuthBloc({
     required this.loginUseCase,
@@ -45,6 +52,9 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     required this.updateProfileUseCase,
     required this.logoutUseCase,
     required this.getPermissionsUseCase,
+    required this.getImpersonatableUsersUseCase,
+    required this.impersonateUseCase,
+    required this.stopImpersonationUseCase,
   }) : super(AuthInitial()) {
     on<LoginEvent>(_onLogin);
     on<ForgotPasswordEvent>(_onForgotPassword);
@@ -57,6 +67,9 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     on<UpdateProfileEvent>(_onUpdateProfile);
     on<LogoutEvent>(_onLogout);
     on<FetchPermissionsEvent>(_onFetchPermissions);
+    on<LoadImpersonatableUsersEvent>(_onLoadImpersonatableUsers);
+    on<ImpersonateEvent>(_onImpersonate);
+    on<StopImpersonationEvent>(_onStopImpersonation);
   }
 
   Future<void> _onLogin(LoginEvent event, Emitter<AuthState> emit,) async {
@@ -166,22 +179,59 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     try {
       await logoutUseCase();
       PermissionsHelper.clear();
+      await ImpersonationManager.stop(); // bersihkan banner/flag bila logout saat impersonate
       emit(AuthLoggedOut());
     } catch (e) {
       PermissionsHelper.clear();
+      await ImpersonationManager.stop();
       emit(AuthLoggedOut());
     }
   }
 
   Future<void> _onFetchPermissions(FetchPermissionsEvent event, Emitter<AuthState> emit) async {
-    emit(PermissionsLoading());
+    if (!event.silent) emit(PermissionsLoading());
     try {
       final data = await getPermissionsUseCase();
       PermissionsHelper.init(data);
       emit(PermissionsLoaded(data));
     } catch (e) {
       debugPrint('FetchPermissionsError: $e');
-      emit(PermissionsError());
+      // Saat silent (refresh latar belakang), JANGAN tampilkan error agar bottom nav
+      // tidak berubah jadi "Gagal memuat" karena blip jaringan; pertahankan state lama.
+      if (!event.silent) emit(PermissionsError());
+    }
+  }
+
+  // ── Impersonation ───────────────────────────────────────────────────
+  Future<void> _onLoadImpersonatableUsers(LoadImpersonatableUsersEvent event, Emitter<AuthState> emit) async {
+    emit(ImpersonatableUsersLoading());
+    try {
+      final users = await getImpersonatableUsersUseCase(search: event.search);
+      emit(ImpersonatableUsersLoaded(users));
+    } catch (e) {
+      emit(ImpersonatableUsersError(cleanErrorMessage(e)));
+    }
+  }
+
+  Future<void> _onImpersonate(ImpersonateEvent event, Emitter<AuthState> emit) async {
+    emit(ImpersonationInProgress());
+    try {
+      final targetName = await impersonateUseCase(event.userId);
+      await ImpersonationManager.start(targetName);
+      emit(ImpersonationStarted(targetName));
+    } catch (e) {
+      emit(ImpersonationFailure(cleanErrorMessage(e)));
+    }
+  }
+
+  Future<void> _onStopImpersonation(StopImpersonationEvent event, Emitter<AuthState> emit) async {
+    emit(ImpersonationInProgress());
+    try {
+      await stopImpersonationUseCase();
+      await ImpersonationManager.stop();
+      emit(ImpersonationStopped());
+    } catch (e) {
+      emit(ImpersonationFailure(cleanErrorMessage(e)));
     }
   }
 }

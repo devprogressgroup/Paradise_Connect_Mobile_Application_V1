@@ -14,6 +14,7 @@ import '../features/attandance/presentation/pages/camera/index.dart';
 import '../features/auth/presentation/pages/forgot-password/index.dart';
 import '../features/auth/presentation/pages/login/index.dart';
 import '../features/auth/presentation/pages/profile/index.dart';
+import '../features/auth/presentation/pages/impersonate/index.dart';
 import '../features/contact/data/arguments/contact_detail_args.dart';
 import '../features/contact/presentation/pages/contact-add/index.dart';
 import '../features/contact/presentation/pages/contact-detail/index.dart';
@@ -80,6 +81,11 @@ class AppRouter {
           builder: (context, state) {
           final args = state.extra as int;
           return ForgotPasswordPage(step: args);}
+      ),
+      GoRoute(
+        path: '/impersonate',
+        name: 'impersonate',
+        builder: (context, state) => const ImpersonatePage(),
       ),
       ShellRoute(
         builder: (context, state, child) {
@@ -260,6 +266,8 @@ class AppRouter {
           GoRoute(
             path: '/siap-huni',
             name: 'siapHuni',
+            redirect: (context, state) =>
+                PermissionsHelper.canAccessSiapHuni ? null : '/',
             builder: (context, state) => const SiapHuniPage(),
           ),
         ],

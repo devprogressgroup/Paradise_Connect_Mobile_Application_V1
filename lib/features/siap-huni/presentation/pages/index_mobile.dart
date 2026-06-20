@@ -17,6 +17,7 @@ class _SiapHuniPageState extends State<SiapHuniPage> {
   WebViewController? _controller;
   bool _pageLoading = false;
   bool _initialized = false;
+  String _builtUrl = ''; // SEMENTARA (debug): URL Siap Huni yang dibuat, ditampilkan di UI
 
   String _buildUrl(String fullName, String phone) {
     var base = ApiConstants.siapHuniUrl;
@@ -56,6 +57,7 @@ class _SiapHuniPageState extends State<SiapHuniPage> {
     } else {
       url = ApiConstants.siapHuniUrl;
     }
+    _builtUrl = url; // SEMENTARA: simpan untuk ditampilkan di UI
     if (url.isNotEmpty) {
       debugPrint('[SiapHuni] URL: $url');
       _initController(url);
@@ -64,19 +66,31 @@ class _SiapHuniPageState extends State<SiapHuniPage> {
 
   @override
   Widget build(BuildContext context) {
-    if (_controller == null) {
-      return const SafeArea(
-        bottom: false,
-        child: Center(child: Text('URL belum tersedia')),
-      );
-    }
     return SafeArea(
       bottom: false,
-      child: Stack(
-        fit: StackFit.expand,
+      child: Column(
         children: [
-          WebViewWidget(controller: _controller!),
-          if (_pageLoading) const Center(child: CircularProgressIndicator()),
+          // ⚠️ SEMENTARA (debug): tampilkan URL Siap Huni agar bisa diverifikasi/disalin. Hapus nanti.
+          Container(
+            width: double.infinity,
+            color: const Color(0xFFFFF3CD),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+            child: SelectableText(
+              _builtUrl.isEmpty ? '(URL belum tersedia)' : _builtUrl,
+              style: const TextStyle(fontSize: 11, color: Color(0xFF664D03)),
+            ),
+          ),
+          Expanded(
+            child: _controller == null
+                ? const Center(child: Text('URL belum tersedia'))
+                : Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      WebViewWidget(controller: _controller!),
+                      if (_pageLoading) const Center(child: CircularProgressIndicator()),
+                    ],
+                  ),
+          ),
         ],
       ),
     );

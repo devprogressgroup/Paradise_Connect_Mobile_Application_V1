@@ -10,14 +10,14 @@ import 'package:progress_group/core/utils/widget/shimmer_loading.dart';
 import 'package:intl/intl.dart';
 import 'package:progress_group/features/contact/domain/entities/contact/contact_entity.dart';
 import 'package:progress_group/features/contact/domain/entities/contact/create_contact_params.dart';
+import 'package:progress_group/features/contact/data/models/unit/unit_hierarchy_model.dart';
+import 'package:progress_group/features/contact/presentation/pages/unit-picker/index.dart';
 import 'package:go_router/go_router.dart';
 import 'package:progress_group/features/contact/domain/entities/prospect/prospect_status.dart';
 import 'package:progress_group/features/contact/presentation/state/info_source/info_source_bloc.dart';
 import 'package:progress_group/features/contact/presentation/state/info_source/info_source_event.dart';
 import 'package:progress_group/features/contact/presentation/state/lost_reason/lost_reason_block.dart';
 import 'package:progress_group/features/contact/presentation/state/lost_reason/lost_reason_event.dart';
-import 'package:progress_group/features/contact/presentation/state/product_type/product_type_bloc.dart';
-import 'package:progress_group/features/contact/presentation/state/product_type/product_type_state.dart';
 import 'package:progress_group/features/contact/presentation/state/lost_reason/lost_reason_state.dart';
 import 'package:progress_group/features/contact/presentation/state/prospect_status/prospect_status_event.dart';
 
@@ -42,7 +42,6 @@ import 'package:progress_group/features/saleskit/presentation/state/township/tow
 import 'package:progress_group/features/saleskit/presentation/state/township/township_event.dart';
 import 'package:progress_group/features/saleskit/presentation/state/township/township_state.dart';
 import 'package:progress_group/features/contact/presentation/state/property_unit/property_unit_cubit.dart';
-import 'package:progress_group/features/contact/presentation/state/property_unit/property_unit_state.dart';
 import '../../../../../core/utils/widget/error_dialog.dart';
 import '../../../../../core/utils/widget/custom_file_picker.dart';
 import '../../state/activity/activity_bloc.dart';
@@ -174,6 +173,13 @@ class _ContactFormPageState extends State<ContactFormPage> {
   bool _isSaving = false;
   String? _highlightedField;
 
+  // Model A — daftar unit yang diminati (1 unit = 1 deal). Diisi dari Unit Picker (create) / prefill deal (edit).
+  List<SelectedUnit> _selectedUnits = [];
+  bool _unitsTouched = false;
+  // Boleh kelola unit bila CREATE, atau EDIT (page 1) yang daftar unit-nya sudah ter-prefill (detail bawa `units`).
+  // page 2 = tab About (read-only) → chips tampil tapi tak bisa diubah.
+  bool get _canManageUnits => widget.args.page == 0 || (widget.args.page == 1 && widget.args.dataContact?.units != null);
+
   final List<OwnerDropdownItem> itemsProjectCategory = [
     OwnerDropdownItem(name: "Residential"),
     OwnerDropdownItem(name: "Commercial"),
@@ -207,6 +213,92 @@ class _ContactFormPageState extends State<ContactFormPage> {
   final Map<String, GlobalKey> _fieldKeys = {};
 
   CreateContactParams createContactParams = CreateContactParams();
+
+  // Field gabungan "Produk/Unit yang diminati" (Model A) — gantikan Project Category/Product Type/Product/Blok.
+  Widget _buildUnitField() {
+    final isUpdate = widget.args.page != 0;
+    final existing = widget.args.dataContact;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 10),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Produk/Unit yang diminati',
+              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: Color(grey5Color))),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              for (final u in _selectedUnits)
+                InputChip(
+                  label: Text(u.label, style: const TextStyle(fontSize: 12)),
+                  onDeleted: _canManageUnits
+                      ? () => setState(() {
+                            _selectedUnits = _selectedUnits.where((e) => e.key != u.key).toList();
+                            _unitsTouched = true;
+                          })
+                      : null,
+                  deleteIcon: const Icon(Icons.close, size: 15),
+                ),
+              ActionChip(
+                avatar: Icon(Icons.add, size: 16, color: Color(blue3Color)),
+                label: Text(_canManageUnits ? 'Tambah/Kelola Unit' : 'Kelola unit',
+                    style: TextStyle(color: Color(blue3Color), fontSize: 12)),
+                onPressed: _canManageUnits ? _openUnitPicker : _editUnitNotice,
+              ),
+            ],
+          ),
+          if (isUpdate && (existing?.lastProduct != null || existing?.lastBlokNo != null))
+            Padding(
+              padding: const EdgeInsets.only(top: 6),
+              child: Text(
+                'Saat ini: ${existing?.lastProduct ?? '-'}${existing?.lastBlokNo != null ? ' · ${existing!.lastBlokNo}' : ''}',
+                style: TextStyle(fontSize: 11.5, color: Color(grey5Color)),
+              ),
+            ),
+          if (!isUpdate && _selectedUnits.isEmpty)
+            Padding(
+              padding: const EdgeInsets.only(top: 6),
+              child: Text('Belum ada unit. Pilih Project lalu tekan "Tambah Unit".',
+                  style: TextStyle(fontSize: 11.5, color: Color(grey5Color))),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _openUnitPicker() async {
+    final townshipId = widget.args.page != 0 ? selectLastTownshipId : selectFirstTownshipId;
+    final townshipName = widget.args.page != 0 ? selectLastProject : selectFirstProject;
+    if (townshipId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Pilih Project terlebih dahulu')),
+      );
+      return;
+    }
+    final result = await Navigator.of(context).push<List<SelectedUnit>>(
+      MaterialPageRoute(
+        builder: (_) => UnitPickerScreen(
+          townshipId: townshipId,
+          townshipName: townshipName ?? 'Project',
+          initial: _selectedUnits,
+        ),
+      ),
+    );
+    if (result != null) {
+      setState(() {
+        _selectedUnits = result;
+        _unitsTouched = true;
+      });
+    }
+  }
+
+  void _editUnitNotice() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Kelola unit untuk kontak yang sudah ada akan segera tersedia.')),
+    );
+  }
 
   CreateContactParams _buildCurrentParams() {
     final isUpdate = widget.args.page == 1;
@@ -283,6 +375,10 @@ class _ContactFormPageState extends State<ContactFormPage> {
       propertyFileBytes: fileBytes,
       propertyFileNames: fileNames,
       periodePameranDate: _pameranIds.contains(selectedSource1Id) ? _periodePameranDateBackend : null,
+      // Model A: kirim units HANYA saat CREATE (page 0). Pada EDIT di-omit agar updateContact tak reconcile/Lost deal lama.
+      units: ((widget.args.page == 0 && _selectedUnits.isNotEmpty) || (widget.args.page != 0 && _unitsTouched))
+          ? _selectedUnits.map((u) => u.toApiJson()).toList()
+          : null,
     );
   }
 
@@ -465,6 +561,8 @@ class _ContactFormPageState extends State<ContactFormPage> {
   }
 
   Future<void> _fillForm(ContactEntity contact) async {
+    // Model A: prefill daftar unit dari deal kontak (untuk Edit picker reconcile aman).
+    if (contact.units != null) _selectedUnits = List.of(contact.units!);
     fullNameTC.text = contact.fullName ?? '';
     emailTC.text = contact.primaryEmail ?? '';
     waTC.text = contact.whatsappNumber ?? '';
@@ -1209,6 +1307,10 @@ class _ContactFormPageState extends State<ContactFormPage> {
       ktpAddress: ktpAddressTC.text.isNotEmpty ? ktpAddressTC.text : null,
       propertiesJson: propertiesJson.isNotEmpty ? propertiesJson : null,
       periodePameranDate: _pameranIds.contains(selectedSource1Id) ? _periodePameranDateBackend : null,
+      // Model A: kirim units HANYA saat CREATE (page 0). Pada EDIT di-omit agar updateContact tak reconcile/Lost deal lama.
+      units: ((widget.args.page == 0 && _selectedUnits.isNotEmpty) || (widget.args.page != 0 && _unitsTouched))
+          ? _selectedUnits.map((u) => u.toApiJson()).toList()
+          : null,
     );
     debugPrint('=== SAVE PARAMS ===');
     debugPrint('ownerId: ${params.ownerId}');
@@ -1300,8 +1402,10 @@ class _ContactFormPageState extends State<ContactFormPage> {
             Navigator.of(this.context).pop();
           }
           debugPrint('ContactFormError: ${state.errorMessage}');
+          // Tampilkan pesan ASLI dari backend (mis. "Anda tidak memiliki akses untuk mengubah kontak ini.")
+          final msg = (state.errorMessage ?? '').replaceFirst('Exception: ', '').trim();
           ScaffoldMessenger.of(this.context).showSnackBar(
-            const SnackBar(content: Text('Gagal menyimpan data kontak')),
+            SnackBar(content: Text(msg.isNotEmpty ? msg : 'Gagal menyimpan data kontak')),
           );
         }
       },
@@ -1479,6 +1583,8 @@ class _ContactFormPageState extends State<ContactFormPage> {
                             onTap: () async {
                               if (profileState is ProfileLoaded) {
                                 final user = profileState.profile;
+                                // Owner mengikuti scope MODIFY: Own = hanya diri sendiri; Team/Any = + bawahan.
+                                final modifyScope = PermissionsHelper.scopeLevel('Contacts', 'Modify');
                                 final List<OwnerDropdownItem> ownerItems = [];
                                 ownerItems.add(
                                   OwnerDropdownItem(
@@ -1487,31 +1593,21 @@ class _ContactFormPageState extends State<ContactFormPage> {
                                     subtitle: user.positionName,
                                   ),
                                 );
-                                void addSubs(List<HierarchyNodeEntity> subs) {
-                                  for (var s in subs) {
-                                    ownerItems.add(
-                                      OwnerDropdownItem(
-                                        id: s.userId,
-                                        name: s.fullName,
-                                        subtitle: s.positionName,
-                                      ),
-                                    );
-                                    if (s.subordinates.isNotEmpty)
-                                      addSubs(s.subordinates);
+                                if (modifyScope == 'team' || modifyScope == 'any') {
+                                  void addSubs(List<HierarchyNodeEntity> subs) {
+                                    for (var s in subs) {
+                                      ownerItems.add(
+                                        OwnerDropdownItem(
+                                          id: s.userId,
+                                          name: s.fullName,
+                                          subtitle: s.positionName,
+                                        ),
+                                      );
+                                      if (s.subordinates.isNotEmpty)
+                                        addSubs(s.subordinates);
+                                    }
                                   }
-                                }
-
-                                addSubs(user.subordinates);
-                
-                                if (ownerItems.length == 1) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text(
-                                        'Anda tidak memiliki bawahan untuk dipilih.',
-                                      ),
-                                    ),
-                                  );
-                                  return;
+                                  addSubs(user.subordinates);
                                 }
                 
                                 final result = await context.pushNamed(
@@ -1611,136 +1707,8 @@ class _ContactFormPageState extends State<ContactFormPage> {
                               }
                             },
                           ),
-                          _buildFieldDown(
-                            label: "Project Category",
-                            value: selectLastProjectCategory,
-                            onTap: () async {
-                              final result = await context.pushNamed(
-                                'detailContactDropdown',
-                                extra: ContactDropdownArgs(
-                                  title: 'Pilih Project Category',
-                                  items: itemsLastProjectCategory,
-                                  selectedName: selectLastProjectCategory,
-                                ),
-                              );
-                              if (result != null) {
-                                final selected = result as OwnerDropdownItem;
-                                setState(() {
-                                  selectLastProjectCategory = selected.name;
-                                  selectLastProjectProduct = null;
-                                  selectProductType = null;
-                                });
-                                if (selectLastTownshipId != null) {
-                                  context.read<PropertyUnitCubit>().load(
-                                    selectLastTownshipId!,
-                                    isCommercial: selected.name.toLowerCase() == 'commercial',
-                                  );
-                                }
-                              }
-                            },
-                          ),
-
-                          _buildFieldDown(
-                            label: "Product Type",
-                            value: selectProductType,
-                            onTap: () async {
-                              final ptState = context.read<ProductTypeBloc>().state;
-                              final items = ptState.types
-                                  .asMap()
-                                  .entries
-                                  .map((e) => OwnerDropdownItem(id: e.key, name: e.value))
-                                  .toList();
-                              if (ptState.status == ProductTypeStatus.loading) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(content: Text('Memuat data product type...')),
-                                );
-                                return;
-                              }
-                              if (items.isEmpty) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(content: Text('Data product type tidak tersedia')),
-                                );
-                                return;
-                              }
-                              final result = await context.pushNamed(
-                                'detailContactDropdown',
-                                extra: ContactDropdownArgs(
-                                  title: 'Pilih Product Type',
-                                  items: items,
-                                  selectedName: selectProductType,
-                                ),
-                              );
-                              if (result != null) {
-                                final selected = result as OwnerDropdownItem;
-                                setState(() => selectProductType = selected.name);
-                              }
-                            },
-                          ),
-
-                          _buildFieldDown(
-                            label: "Product",
-                            value: selectLastProjectProduct,
-                            onTap: () async {
-                              if (selectLastTownshipId == null) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(content: Text('Pilih Project terlebih dahulu')),
-                                );
-                                return;
-                              }
-
-                              final puState = context.read<PropertyUnitCubit>().state;
-
-                              if (puState is PropertyUnitLoading) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(content: Text('Memuat data product...')),
-                                );
-                                return;
-                              }
-
-                              if (puState is! PropertyUnitLoaded) {
-                                context.read<PropertyUnitCubit>().load(
-                                  selectLastTownshipId!,
-                                  isCommercial: selectLastProjectCategory?.toLowerCase() == 'commercial',
-                                );
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(content: Text('Memuat data product...')),
-                                );
-                                return;
-                              }
-
-                              if (puState.items.isEmpty) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(content: Text('Tidak ada produk tersedia untuk project ini')),
-                                );
-                                return;
-                              }
-
-                              final result = await context.pushNamed(
-                                'detailContactDropdown',
-                                extra: ContactDropdownArgs(
-                                  title: 'Pilih Product',
-                                  items: puState.items,
-                                  selectedId: selectLastProductId,
-                                ),
-                              );
-                              if (result != null) {
-                                final selected = result as OwnerDropdownItem;
-                                final parentId = int.tryParse(selected.typeData ?? '');
-                                final isCommercial = selectLastProjectCategory?.toLowerCase() == 'commercial';
-                                setState(() {
-                                  selectLastProjectProduct = selected.name;
-                                  selectLastProductId = selected.id;
-                                  selectLastClusterId = isCommercial ? null : parentId;
-                                  selectLastCommercialId = isCommercial ? parentId : null;
-                                });
-                              }
-                            },
-                          ),
-                          _buildField(
-                            label: "Blok No",
-                            controller: lBlockNoTC,
-                            focusNode: lBlockNoFN,
-                          ),
+                          // Model A: 4 field lama (Project Category/Product Type/Product/Blok No) DIGABUNG → Unit Picker multi-select.
+                          _buildUnitField(),
                           if (const [63, 64, 65, 66, 67, 68, 69].contains(selectedStatusId))
                             _buildFieldDown(
                               label: "Jumlah Datang",
@@ -2223,25 +2191,23 @@ class _ContactFormPageState extends State<ContactFormPage> {
                         onTap: () async {
                           if (profileState is ProfileLoaded) {
                             final user = profileState.profile;
+                            // Owner mengikuti scope MODIFY: Own = hanya diri sendiri; Team/Any = + bawahan.
+                            final modifyScope = PermissionsHelper.scopeLevel('Contacts', 'Modify');
                             final List<OwnerDropdownItem> ownerItems = [];
                             ownerItems.add(OwnerDropdownItem(id: user.userId, name: '${user.fullName} (me)', subtitle: user.positionName));
-                            void addSubs(List<HierarchyNodeEntity> subs) {
-                              for (var s in subs) {
-                                ownerItems.add(OwnerDropdownItem(id: s.userId, name: s.fullName, subtitle: s.positionName));
-                                if (s.subordinates.isNotEmpty) addSubs(s.subordinates);
+                            if (modifyScope == 'team' || modifyScope == 'any') {
+                              void addSubs(List<HierarchyNodeEntity> subs) {
+                                for (var s in subs) {
+                                  ownerItems.add(OwnerDropdownItem(id: s.userId, name: s.fullName, subtitle: s.positionName));
+                                  if (s.subordinates.isNotEmpty) addSubs(s.subordinates);
+                                }
                               }
+                              addSubs(user.subordinates);
                             }
-                            addSubs(user.subordinates);
                             if (selectedOwnerId == null && ownerItems.isNotEmpty) {
                               selectedOwnerId = ownerItems.first.id;
                               selectedOwnerName = ownerItems.first.name;
                               _updateSalesInformation(ownerItems.first.id ?? 0, user);
-                            }
-                            if (ownerItems.length == 1) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('Anda tidak memiliki bawahan untuk dipilih.')),
-                              );
-                              return;
                             }
                             final result = await context.pushNamed('detailContactDropdown',extra: ContactDropdownArgs(title: 'Pilih Owner', items: ownerItems, selectedId: selectedOwnerId),);
                             if (result != null) {

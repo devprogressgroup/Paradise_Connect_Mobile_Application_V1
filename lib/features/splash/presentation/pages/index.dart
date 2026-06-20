@@ -46,7 +46,9 @@ class _SplashPageState extends State<SplashPage> {
 
     if (token != null && token.isNotEmpty) {
       debugPrint('[Splash] → fetch profile');
-      context.read<ProfileBloc>().add(GetProfileEvent());
+      // forceRefresh: true agar saat re-entry (mis. setelah impersonate token swap)
+      // profil di-fetch ulang dengan token baru, bukan ambil cache user sebelumnya.
+      context.read<ProfileBloc>().add(GetProfileEvent(forceRefresh: true));
 
       _fallbackTimer = Timer(const Duration(seconds: 3), () {
         if (mounted && context.read<ProfileBloc>().state is ProfileLoading) {

@@ -17,6 +17,7 @@ import 'package:progress_group/features/contact/presentation/state/whatsapp_acti
 import 'package:progress_group/core/utils/helpers/permissions_helper.dart';
 import 'package:progress_group/features/auth/presentation/state/auth/auth_state.dart';
 import 'package:progress_group/core/utils/widget/shimmer_loading.dart';
+import 'package:progress_group/core/utils/widget/impersonation_banner.dart';
 
 class MainLayout extends StatefulWidget {
   final Widget child;
@@ -211,29 +212,36 @@ class _MainLayoutState extends State<MainLayout> {
       drawerEnableOpenDragGesture: false,
       drawer: location == '/' ? _buildFloatingDrawer(context) : null,
       drawerScrimColor: Color(background2Color).withOpacity(0.16),
-      body: Builder(
-        builder: (context) {
-          return Stack(
-            children: [
-              widget.child,
-              if (location == '/')
-                Positioned(
-                  left: 20,
-                  top: 0,
-                  bottom: 0,
-                  width: 40,
-                  child: GestureDetector(
-                    behavior: HitTestBehavior.translucent,
-                    onHorizontalDragUpdate: (details) {
-                      if (details.delta.dx > 12) {
-                        Scaffold.of(context).openDrawer();
-                      }
-                    },
-                  ),
-                ),
-            ],
-          );
-        },
+      body: Column(
+        children: [
+          const ImpersonationBanner(),
+          Expanded(
+            child: Builder(
+              builder: (context) {
+                return Stack(
+                  children: [
+                    widget.child,
+                    if (location == '/')
+                      Positioned(
+                        left: 20,
+                        top: 0,
+                        bottom: 0,
+                        width: 40,
+                        child: GestureDetector(
+                          behavior: HitTestBehavior.translucent,
+                          onHorizontalDragUpdate: (details) {
+                            if (details.delta.dx > 12) {
+                              Scaffold.of(context).openDrawer();
+                            }
+                          },
+                        ),
+                      ),
+                  ],
+                );
+              },
+            ),
+          ),
+        ],
       ),
       bottomNavigationBar: location.endsWith('/camera')
           ? null
@@ -381,7 +389,8 @@ class _MainLayoutState extends State<MainLayout> {
                 _buildDrawerItem(context, icSidebarSitePlan, 'Site Plan', path: '/site-plan', index: 4),
               if (PermissionsHelper.canAccessSalesKit)
                 _buildDrawerItem(context, icSidebarSalesKit, 'Sales Kit', path: '/sales-kit', index: 5),
-               _buildDrawerItem(context, '', 'Siap Huni', path: '/siap-huni', index: 9, iconData: Icons.home_rounded),
+              if (PermissionsHelper.canAccessSiapHuni)
+                _buildDrawerItem(context, '', 'Siap Huni', path: '/siap-huni', index: 9, iconData: Icons.home_rounded),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: Divider(),

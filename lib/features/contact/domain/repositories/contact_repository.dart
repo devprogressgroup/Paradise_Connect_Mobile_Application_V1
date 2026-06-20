@@ -8,6 +8,7 @@ import 'package:progress_group/features/contact/domain/entities/attachment/uploa
 import 'package:progress_group/features/contact/domain/entities/info_source/info_source.dart';
 import 'package:progress_group/features/contact/domain/entities/lost_reason/lost_reason_entity.dart';
 import 'package:progress_group/features/contact/domain/entities/property/property_unit_entity.dart';
+import 'package:progress_group/features/contact/data/models/unit/unit_hierarchy_model.dart';
 import '../entities/activity/activity_entity.dart';
 import '../entities/contact/contact_entity.dart';
 import '../entities/contact/contact_response.dart';
@@ -40,6 +41,8 @@ abstract class ContactRepository {
   Future<Either<String, void>> updateAttachment({  required int contactId,  required int attachmentId,  required UploadAttachmentParams params,});
   Future<Either<String, List<PropertyUnitCluster>>> getPropertyUnits({required int townshipId});
   Future<Either<String, List<PropertyUnitCluster>>> getPropertyCommercialUnits({required int townshipId});
+  Future<Either<String, List<UnitCluster>>> getUnitHierarchy({required int townshipId, String? search});
+  Future<Either<String, List<UnitLot>>> getUnitLots({required int productId, String? search});
   Future<Either<String, List<PameranAktifEntity>>> getPameranAktif();
   Future<Either<String, List<String>>> getProductTypes();
 }

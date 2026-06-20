@@ -27,11 +27,12 @@ import 'package:progress_group/features/attandance/presentation/state/office_loc
 import 'package:progress_group/features/attandance/presentation/state/attendance_activity/attendance_activity_event.dart';
 import 'package:progress_group/features/attandance/presentation/state/attendance_activity/attendance_activity_state.dart';
 import 'package:progress_group/features/attandance/presentation/state/attendance_approval/attendance_approval_cubit.dart';
-import 'package:progress_group/features/attandance/presentation/state/attendance_pdf/attendance_pdf_cubit.dart';
-import 'package:progress_group/features/attandance/presentation/state/attendance_pdf/attendance_pdf_state.dart';
+import 'package:progress_group/features/attandance/presentation/state/attendance_excel/attendance_excel_cubit.dart';
+import 'package:progress_group/features/attandance/presentation/state/attendance_excel/attendance_excel_state.dart';
 import 'package:progress_group/features/auth/domain/entities/user_profile.dart';
 import 'package:progress_group/features/auth/presentation/state/profile/profile_bloc.dart';
 import 'package:progress_group/features/auth/presentation/state/profile/profile_state.dart';
+import 'package:progress_group/features/auth/presentation/state/profile/profile_event.dart';
 import 'package:progress_group/features/auth/presentation/state/auth/auth_bloc.dart';
 import 'package:progress_group/features/auth/presentation/state/auth/auth_event.dart';
 import 'package:progress_group/features/auth/presentation/state/auth/auth_state.dart';
@@ -99,6 +100,9 @@ class _AttandancePageState extends State<AttandancePage> {
     _scrollController.addListener(_onScroll);
 
     Future.microtask(() {
+      // Refresh akses (permission + profil/owner) saat masuk menu Attendance — silent.
+      context.read<AuthBloc>().add(FetchPermissionsEvent(silent: true));
+      context.read<ProfileBloc>().add(GetProfileEvent(forceRefresh: true, silent: true));
       _initLocation();
       context.read<OfficeLocationCubit>().load(force: true).then((_) {
         if (_currentPosition != null) _computeNearestLocation(_currentPosition!);
@@ -107,8 +111,9 @@ class _AttandancePageState extends State<AttandancePage> {
       final profileState = context.read<ProfileBloc>().state;
       if (profileState is ProfileLoaded) {
         _attendanceOwnerIds = [profileState.profile.userId];
-        if (const ['General Manager', 'Sales Manager']
-            .contains(profileState.profile.positionName)) {
+        // Badge pending-approval mengikuti fitur ApproveReject (feature-driven), bukan
+        // hardcode jabatan — selaras dgn _isApprover, tombol approve, & notif backend.
+        if (PermissionsHelper.canApproveRejectAttendance) {
           context.read<AttendanceApprovalCubit>().loadBadge();
         }
       }
@@ -173,12 +178,11 @@ class _AttandancePageState extends State<AttandancePage> {
     );
   }
 
+  // Approver attendance = punya feature ApproveReject (master gate). Backend menentukan CAKUPAN:
+  // sales→hirarki t_sales_roles; non-sales→anggota group yang ditandai approver (+sub-group).
+  // Tombol approve/reject & daftar pending tampil bila feature ada; backend menolak di luar wewenang.
   bool _isApprover(UserProfileEntity profile) {
-    if (const ['General Manager', 'Sales Manager'].contains(profile.positionName)) return true;
-    if (profile.positionName == 'Sales Supervisor') {
-      return !profile.salesRoles.any((r) => const ['General Manager', 'Sales Manager'].contains(r.parent?.positionName));
-    }
-    return false;
+    return PermissionsHelper.canApproveRejectAttendance;
   }
 
   Future<bool> _handleLocationPermission({bool fromUserGesture = false}) async {
@@ -465,7 +469,10 @@ class _AttandancePageState extends State<AttandancePage> {
               accuracy: LocationAccuracy.medium,
               timeLimit: const Duration(seconds: 15),
             )
-          : const LocationSettings(accuracy: LocationAccuracy.high);
+          : const LocationSettings(
+              accuracy: LocationAccuracy.high,
+              timeLimit: Duration(seconds: 15), // Tambahkan timeLimit agar tidak loading forever
+            );
       return await Geolocator.getCurrentPosition(locationSettings: locationSettings);
     } catch (e) {
       return null;
@@ -565,9 +572,14 @@ class _AttandancePageState extends State<AttandancePage> {
       debugPrint('  distance       : ${effectiveDistance.toStringAsFixed(2)} m');
       debugPrint('  isInRadius     : $isInRadius');
 
-      // Cek permission berdasarkan tipe lokasi yang terselect
+      // Cek permission berdasarkan tipe lokasi yang terselect.
+      // Check In / aktivitas (flag 6) TIDAK butuh izin clock-in/out — selaras dgn
+      // _isClockButtonDisabled (flag 6 selalu enabled) & redirect noClockAccess→tab Check In.
+      // Sebelumnya flag 6 jatuh ke cabang Clock-Out → non-sales tanpa izin clock-out tak bisa Check In.
       final bool canProceed;
-      if (!isInRadius || nearestOfficeId == null) {
+      if (flagParam == 6) {
+        canProceed = true;
+      } else if (!isInRadius || nearestOfficeId == null) {
         canProceed = flagParam == 0
             ? (PermissionsHelper.canClockInLuarLokasi || PermissionsHelper.canClockInLuarLokasiRequestApprove)
             : (PermissionsHelper.canClockOutLuarLokasi || PermissionsHelper.canClockOutLuarLokasiRequestApprove);
@@ -593,7 +605,9 @@ class _AttandancePageState extends State<AttandancePage> {
 
       if (mounted) ScaffoldMessenger.of(context).hideCurrentSnackBar();
 
-      final result = await context.pushNamed('camera', extra: AttandanceArgs(flag: flagParam, type: title, location: isInRadius ? (nearestOfficeName ?? _address) : _address, time: DateHelper.formatTime(DateTime.now()), locationId: isInRadius ? nearestOfficeId : null, latitude: nearestOfficeLat, longitude: nearestOfficeLng, ), );
+      // Koordinat yang dikirim & disimpan = posisi GPS asli device (bukan koordinat statis kantor).
+      // locationId tetap mengikuti hasil geofence: id kantor bila di dalam radius, null bila di luar.
+      final result = await context.pushNamed('camera', extra: AttandanceArgs(flag: flagParam, type: title, location: isInRadius ? (nearestOfficeName ?? _address) : _address, time: DateHelper.formatTime(DateTime.now()), locationId: isInRadius ? nearestOfficeId : null, latitude: position.latitude.toString(), longitude: position.longitude.toString(), ), );
 
       if (result == true) {
         _getLog();
@@ -992,7 +1006,7 @@ class _AttandancePageState extends State<AttandancePage> {
       final start = DateFormat('yyyy-MM-dd').format(startDate);
       final end = DateFormat('yyyy-MM-dd').format(endDate);
       final isAll = selectedOwner.typeData == 'all';
-      context.read<AttendancePdfCubit>().download(
+      context.read<AttendanceExcelCubit>().download(
         salesPersonId: isAll ? null : selectedOwner.id,
         nikNumber: isAll ? null : (selectedOwner.id == null ? profile.nikNumber : null),
         startDate: start,
@@ -1183,9 +1197,9 @@ class _AttandancePageState extends State<AttandancePage> {
             }
           }
         },
-        child: BlocListener<AttendancePdfCubit, AttendancePdfState>(
+        child: BlocListener<AttendanceExcelCubit, AttendanceExcelState>(
         listener: (context, state) async {
-          if (state is AttendancePdfLoading) {
+          if (state is AttendanceExcelLoading) {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
                 content: Row(
@@ -1198,21 +1212,21 @@ class _AttandancePageState extends State<AttandancePage> {
                 duration: Duration(seconds: 30),
               ),
             );
-          } else if (state is AttendancePdfSuccess) {
+          } else if (state is AttendanceExcelSuccess) {
             ScaffoldMessenger.of(context).hideCurrentSnackBar();
             _showPdfOptions(context, state.filePath);
-            context.read<AttendancePdfCubit>().reset();
-          } else if (state is AttendancePdfWebSuccess) {
+            context.read<AttendanceExcelCubit>().reset();
+          } else if (state is AttendanceExcelWebSuccess) {
             ScaffoldMessenger.of(context).hideCurrentSnackBar();
             _showPdfOptionsWeb(context, state.bytes, state.fileName);
-            context.read<AttendancePdfCubit>().reset();
-          } else if (state is AttendancePdfError) {
+            context.read<AttendanceExcelCubit>().reset();
+          } else if (state is AttendanceExcelError) {
             ScaffoldMessenger.of(context).hideCurrentSnackBar();
-            debugPrint('AttendancePdfError: ${state.message}');
+            debugPrint('AttendanceExcelError: ${state.message}');
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(content: Text('Gagal mengunduh data kehadiran')),
             );
-            context.read<AttendancePdfCubit>().reset();
+            context.read<AttendanceExcelCubit>().reset();
           }
         },
         child: BlocListener<AttendanceBloc, AttendanceState>(
@@ -1413,7 +1427,7 @@ class _AttandancePageState extends State<AttandancePage> {
     return BlocBuilder<ProfileBloc, ProfileState>(
       builder: (context, profileState) {
         final currentIds = isAttendance ? _attendanceOwnerIds : _activityOwnerIds;
-        String label = 'Sales';
+        String label = 'User';
         final isSelected = currentIds != null && currentIds.isNotEmpty;
 
         if (isSelected && profileState is ProfileLoaded) {
@@ -1458,7 +1472,7 @@ class _AttandancePageState extends State<AttandancePage> {
           if (currentIds.length == 1) {
             label = findName(currentIds.first) ?? 'Filtered';
           } else {
-            label = '${currentIds.length} Owners';
+            label = '${currentIds.length} User';
           }
         }
 
@@ -1520,7 +1534,7 @@ class _AttandancePageState extends State<AttandancePage> {
               final result = await context.pushNamed(
                 'detailContactDropdown',
                 extra: ContactDropdownArgs(
-                  title: 'Pilih Owner',
+                  title: 'Pilih User',
                   items: ownerItems,
                   selectedIds: isMultiSelect ? currentIds : null,
                   selectedId: !isMultiSelect ? currentIds?.firstOrNull : null,
@@ -1685,7 +1699,9 @@ class _AttandancePageState extends State<AttandancePage> {
               if (state is AttendanceActivityLoaded) {
                 // Flatten each ActivityEntity into one entry per type
                 final profileState = context.read<ProfileBloc>().state;
-                final isAtasan = profileState is ProfileLoaded && _isApprover(profileState.profile);
+                // Tombol Like/Dislike check-in (validasi flag 6) digate feature CheckInVerify
+                // (terpisah dari ApproveReject yang dipakai header approve/reject di atas).
+                final canVerify = PermissionsHelper.canCheckInVerify;
                 final currentSalesPersonId = profileState is ProfileLoaded ? profileState.profile.salesPersonId : null;
 
                 final List<({String fullName, String? photoUrl, String date, String type, Color typeColor, String? datetime, String? location, String? contactName, String? note, List<String> images, int? statusValidasi, String? noteValidasi, int? logId, int salesPersonId})> entries = [];
@@ -1769,7 +1785,7 @@ class _AttandancePageState extends State<AttandancePage> {
                               statusValidasi: e.statusValidasi,
                               noteValidasi: e.noteValidasi,
                               logId: e.logId,
-                              isAtasan: isAtasan,
+                              canVerify: canVerify,
                               isSelf: currentSalesPersonId != null && e.salesPersonId == currentSalesPersonId,
                             )),
                           ],
@@ -1829,7 +1845,7 @@ class _AttandancePageState extends State<AttandancePage> {
     int? statusValidasi,
     String? noteValidasi,
     int? logId,
-    bool isAtasan = false,
+    bool canVerify = false,
     bool isSelf = false,
   }) {
     return _ActivityCard(
@@ -1845,7 +1861,7 @@ class _AttandancePageState extends State<AttandancePage> {
       statusValidasi: statusValidasi,
       noteValidasi: noteValidasi,
       logId: logId,
-      isAtasan: isAtasan,
+      canVerify: canVerify,
       isSelf: isSelf,
       onValidated: _getLog,
       onImageTap: (url) => _showActivityDetailDialog(
@@ -2658,7 +2674,7 @@ class _ActivityCard extends StatefulWidget {
   final int? statusValidasi;
   final String? noteValidasi;
   final int? logId;
-  final bool isAtasan;
+  final bool canVerify;
   final bool isSelf;
   final VoidCallback? onValidated;
 
@@ -2676,7 +2692,7 @@ class _ActivityCard extends StatefulWidget {
     this.statusValidasi,
     this.noteValidasi,
     this.logId,
-    this.isAtasan = false,
+    this.canVerify = false,
     this.isSelf = false,
     this.onValidated,
   });
@@ -2780,7 +2796,7 @@ class _ActivityCardState extends State<_ActivityCard> {
       );
     } else {
       if (widget.isSelf || widget.logId == null) return const SizedBox();
-      if (!widget.isAtasan) {
+      if (!widget.canVerify) {
         return const Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [

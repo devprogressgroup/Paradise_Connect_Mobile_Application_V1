@@ -52,3 +52,30 @@ class PermissionsLoaded extends AuthState {
 }
 
 class PermissionsError extends AuthState {}
+
+// ── Impersonation (superadmin login-as) ──────────────────────────────
+class ImpersonatableUsersLoading extends AuthState {}
+
+class ImpersonatableUsersLoaded extends AuthState {
+  final List<dynamic> users; // List<ImpersonatableUser>
+  ImpersonatableUsersLoaded(this.users);
+}
+
+class ImpersonatableUsersError extends AuthState {
+  final String message;
+  ImpersonatableUsersError(this.message);
+}
+
+class ImpersonationInProgress extends AuthState {}
+
+class ImpersonationStarted extends AuthState {
+  final String targetName;
+  ImpersonationStarted(this.targetName);
+}
+
+class ImpersonationStopped extends AuthState {}
+
+class ImpersonationFailure extends AuthState {
+  final String message;
+  ImpersonationFailure(this.message);
+}

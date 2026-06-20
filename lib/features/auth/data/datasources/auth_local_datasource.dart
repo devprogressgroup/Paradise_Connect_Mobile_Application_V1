@@ -14,6 +14,11 @@ abstract class AuthLocalDataSource {
 
   Future<void> saveBiometricEnabled(bool value);
   Future<bool> getBiometricEnabled();
+
+  // Impersonation: stash token admin asli agar bisa dipulihkan saat "Keluar".
+  Future<void> saveImpersonatorToken(String token);
+  Future<String?> getImpersonatorToken();
+  Future<void> clearImpersonatorToken();
 }
 
 class AuthLocalDataSourceImpl implements AuthLocalDataSource {
@@ -27,6 +32,7 @@ class AuthLocalDataSourceImpl implements AuthLocalDataSource {
   static const _rememberPasswordKey = 'remember_password';
   static const _autoLoginKey = 'is_auto_login';
   static const _biometricEnabledKey = 'biometric_enabled';
+  static const _impersonatorTokenKey = 'impersonator_token';
 
   @override
   Future<void> saveToken(String token, {bool persistent = false}) async {
@@ -90,5 +96,20 @@ class AuthLocalDataSourceImpl implements AuthLocalDataSource {
   @override
   Future<bool> getBiometricEnabled() async {
     return sharedPreferences.getBool(_biometricEnabledKey) ?? false;
+  }
+
+  @override
+  Future<void> saveImpersonatorToken(String token) async {
+    await sharedPreferences.setString(_impersonatorTokenKey, token);
+  }
+
+  @override
+  Future<String?> getImpersonatorToken() async {
+    return sharedPreferences.getString(_impersonatorTokenKey);
+  }
+
+  @override
+  Future<void> clearImpersonatorToken() async {
+    await sharedPreferences.remove(_impersonatorTokenKey);
   }
 }

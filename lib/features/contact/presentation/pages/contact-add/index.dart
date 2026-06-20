@@ -1,6 +1,6 @@
 import 'dart:io';
 import 'dart:typed_data';
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart' show kIsWeb, kDebugMode;
 import 'package:file_picker/file_picker.dart';
 import 'package:progress_group/core/services/salesbook_sync_service.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -725,7 +725,9 @@ class _ContactAddPageState extends State<ContactAddPage> {
       lostDate: lostDate,
     );
 
-    print('[_buildUpdateStatusProspect] req body: ${params.toJson()}');
+    if (kDebugMode) {
+      debugPrint('[_buildUpdateStatusProspect] req body: ${params.toJson()}');
+    }
 
     const visitStatusIds = [63, 64, 65, 66, 67, 68, 69];
     final isVisitStatus = visitStatusIds.contains(selectedStatusId);

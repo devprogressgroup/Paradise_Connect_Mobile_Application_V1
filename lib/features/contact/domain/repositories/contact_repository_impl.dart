@@ -8,6 +8,7 @@ import 'package:progress_group/features/contact/domain/entities/info_source/info
 import 'package:progress_group/features/contact/domain/entities/lost_reason/lost_reason_entity.dart';
 import 'package:progress_group/features/contact/domain/entities/pameran/pameran_aktif_entity.dart';
 import 'package:progress_group/features/contact/domain/entities/property/property_unit_entity.dart';
+import 'package:progress_group/features/contact/data/models/unit/unit_hierarchy_model.dart';
 import '../entities/activity/activity_entity.dart';
 import '../entities/contact/contact_entity.dart';
 import '../entities/contact/contact_response.dart';
@@ -272,6 +273,24 @@ class ContactRepositoryImpl implements ContactRepository {
     try {
       final result = await remoteDataSource.getPropertyCommercialUnits(townshipId: townshipId);
       return Right(result);
+    } catch (e) {
+      return Left(e.toString());
+    }
+  }
+
+  @override
+  Future<Either<String, List<UnitCluster>>> getUnitHierarchy({required int townshipId, String? search}) async {
+    try {
+      return Right(await remoteDataSource.getUnitHierarchy(townshipId: townshipId, search: search));
+    } catch (e) {
+      return Left(e.toString());
+    }
+  }
+
+  @override
+  Future<Either<String, List<UnitLot>>> getUnitLots({required int productId, String? search}) async {
+    try {
+      return Right(await remoteDataSource.getUnitLots(productId: productId, search: search));
     } catch (e) {
       return Left(e.toString());
     }

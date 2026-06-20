@@ -25,7 +25,7 @@ import 'package:progress_group/features/attandance/domain/usecase/post_attendanc
 import 'package:progress_group/features/attandance/presentation/state/attandance/attendance_bloc.dart';
 import 'package:progress_group/features/attandance/presentation/state/attendance_activity/attendance_activity_bloc.dart';
 import 'package:progress_group/features/attandance/presentation/state/attendance_approval/attendance_approval_cubit.dart';
-import 'package:progress_group/features/attandance/presentation/state/attendance_pdf/attendance_pdf_cubit.dart';
+import 'package:progress_group/features/attandance/presentation/state/attendance_excel/attendance_excel_cubit.dart';
 import 'package:progress_group/features/notif/presentation/state/received_notif_cubit.dart';
 import 'package:progress_group/features/attandance/presentation/state/pameran_location/pameran_location_cubit.dart';
 import 'package:progress_group/features/attandance/presentation/state/office_location/office_location_cubit.dart';
@@ -43,6 +43,10 @@ import 'package:progress_group/features/auth/domain/usecase/login_usecase.dart';
 import 'package:progress_group/features/auth/domain/usecase/get_profile_usecase.dart';
 import 'package:progress_group/features/auth/domain/usecase/logout_usecase.dart';
 import 'package:progress_group/features/auth/domain/usecase/get_permissions_usecase.dart';
+import 'package:progress_group/features/auth/domain/usecase/get_impersonatable_users_usecase.dart';
+import 'package:progress_group/features/auth/domain/usecase/impersonate_usecase.dart';
+import 'package:progress_group/features/auth/domain/usecase/stop_impersonation_usecase.dart';
+import 'package:progress_group/core/utils/helpers/impersonation_manager.dart';
 import 'package:progress_group/features/auth/domain/usecase/reset_password_usecase.dart';
 import 'package:progress_group/features/auth/presentation/state/auth/auth_bloc.dart';
 import 'package:progress_group/features/auth/presentation/state/auth/auth_event.dart';
@@ -127,6 +131,8 @@ import 'features/contact/presentation/state/attachment/upload_attachment_bloc.da
 import 'features/contact/domain/usecases/property/get_property_units_usecase.dart';
 import 'features/contact/domain/usecases/property/get_property_commercial_units_usecase.dart';
 import 'features/contact/presentation/state/property_unit/property_unit_cubit.dart';
+import 'features/contact/domain/usecases/unit/unit_picker_usecase.dart';
+import 'features/contact/presentation/state/unit_picker/unit_picker_cubit.dart';
 import 'features/landing-page/data/datasources/landing_page_remote_datasource.dart';
 import 'features/landing-page/data/repositories/landing_page_repository_impl.dart';
 import 'features/landing-page/domain/usecases/get_landing_page_url_usecase.dart';
@@ -142,6 +148,7 @@ void main() async {
   await initializeDateFormatting('id_ID', null);
   final prefs = await SharedPreferences.getInstance();
   ApiConstants.loadFromPrefs(prefs);
+  ImpersonationManager.bind(prefs); // rehydrate banner impersonate jika app di-restart saat impersonate
 
   // Fetch settings on startup so version check works before login
   try {
@@ -208,9 +215,23 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed && _updateResult == null) {
-      _checkVersion();
+    if (state == AppLifecycleState.resumed) {
+      if (_updateResult == null) _checkVersion();
+      // Saat app kembali ke depan: refresh permission + profil (owner/hirarki) secara SILENT
+      // agar perubahan hak akses langsung terlihat tanpa harus logout-login. Tanpa flicker.
+      _refreshAccessSilently();
     }
+  }
+
+  /// Refresh /permissions/me + /me di latar belakang (tanpa state Loading) bila sudah login.
+  void _refreshAccessSilently() {
+    if (!AppRouter.authNotifier.value) return; // hanya saat sudah login
+    final ctx = AppRouter.rootNavigatorKey.currentContext;
+    if (ctx == null) return;
+    try {
+      ctx.read<AuthBloc>().add(FetchPermissionsEvent(silent: true));
+      ctx.read<ProfileBloc>().add(GetProfileEvent(forceRefresh: true, silent: true));
+    } catch (_) {}
   }
 
   Future<void> _checkVersion() async {
@@ -264,6 +285,9 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     final logoutUseCase = LogoutUseCase(repository);
     final getProfileUseCase = GetProfileUseCase(repository);
     final getPermissionsUseCase = GetPermissionsUseCase(repository);
+    final getImpersonatableUsersUseCase = GetImpersonatableUsersUseCase(repository);
+    final impersonateUseCase = ImpersonateUseCase(repository);
+    final stopImpersonationUseCase = StopImpersonationUseCase(repository);
 
     // Inbox & Messages
     final inboxRemoteDataSource = InboxContactRemoteDataSourceImpl(dioClient.dio);
@@ -307,6 +331,8 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     final getProductTypesUseCase = GetProductTypesUseCase(contactRepository);
     final getPropertyUnitsUseCase = GetPropertyUnitsUseCase(contactRepository);
     final getPropertyCommercialUnitsUseCase = GetPropertyCommercialUnitsUseCase(contactRepository);
+    final getUnitHierarchyUseCase = GetUnitHierarchyUseCase(contactRepository);
+    final getUnitLotsUseCase = GetUnitLotsUseCase(contactRepository);
     
     // SitePlan
     final siteplanRemoteDataSource = SiteplanRemoteDataSourceImpl(dioClient.dio);
@@ -347,7 +373,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
         return MultiBlocProvider(
           key: _blocKey,
           providers: [
-            BlocProvider(create: (_) => AuthBloc(loginUseCase: loginUseCase, forgotPasswordUseCase: forgotPasswordUseCase, getRememberMeUseCase: getRememberMeUseCase, clearRememberMeUseCase: clearRememberMeUseCase, getBiometricEnabledUseCase: getBiometricEnabledUseCase, saveBiometricEnabledUseCase: saveBiometricEnabledUseCase, saveCredentialsUseCase: saveCredentialsUseCase, updateProfileUseCase: updateProfileUseCase, resetPasswordUsecase: resetPasswordUsecase, logoutUseCase: logoutUseCase, getPermissionsUseCase: getPermissionsUseCase)),
+            BlocProvider(create: (_) => AuthBloc(loginUseCase: loginUseCase, forgotPasswordUseCase: forgotPasswordUseCase, getRememberMeUseCase: getRememberMeUseCase, clearRememberMeUseCase: clearRememberMeUseCase, getBiometricEnabledUseCase: getBiometricEnabledUseCase, saveBiometricEnabledUseCase: saveBiometricEnabledUseCase, saveCredentialsUseCase: saveCredentialsUseCase, updateProfileUseCase: updateProfileUseCase, resetPasswordUsecase: resetPasswordUsecase, logoutUseCase: logoutUseCase, getPermissionsUseCase: getPermissionsUseCase, getImpersonatableUsersUseCase: getImpersonatableUsersUseCase, impersonateUseCase: impersonateUseCase, stopImpersonationUseCase: stopImpersonationUseCase)),
             BlocProvider(create: (_) => InboxContactBloc(getInboxContactsUsecase)),
             BlocProvider(create: (_) => WhatsappDeviceBloc(getWhatsappDevicesUsecase)),
             BlocProvider(create: (_) => WhatsappQrBloc(getQrSessionUsecase)),
@@ -371,13 +397,14 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
             BlocProvider(create: (_) => OfficeLocationCubit(getOfficeLocationsUseCase)),
             BlocProvider(create: (_) => AttendanceActivityBloc(getAttendanceActivityUseCase: getAttendanceActivityUseCase, validasiCheckInUseCase: validasiCheckInUseCase)),
             BlocProvider(create: (_) => AttendanceApprovalCubit(getAttendanceApprovalTodayUseCase, postAttendanceApprovalUseCase)),
-            BlocProvider(create: (_) => AttendancePdfCubit(attendanceRepository)),
+            BlocProvider(create: (_) => AttendanceExcelCubit(attendanceRepository)),
             BlocProvider(create: (_) => ReceivedNotifCubit()),
             BlocProvider(create: (_) => WhatsappActivityBloc(getWhatsappActivityUseCase)),
             BlocProvider(create: (_) => InfoSourceBloc(getInfoSourcesUseCase: getInfoSourcesUseCase)),
             BlocProvider(create: (_) => LostReasonBloc(getLostReasonsUseCase: getLostReasonsUseCase)),
             BlocProvider(create: (_) => ProductTypeBloc(getProductTypesUseCase: getProductTypesUseCase)..add(const FetchProductTypesEvent())),
             BlocProvider(create: (_) => PropertyUnitCubit(getPropertyUnitsUseCase, getPropertyCommercialUnitsUseCase)),
+            BlocProvider(create: (_) => UnitPickerCubit(getUnitHierarchyUseCase, getUnitLotsUseCase)),
             BlocProvider(create: (_) => PameranAktifCubit(contactRepository)),
             BlocProvider(create: (_) => LandingPageCubit(getLandingPageUrlUseCase)..fetchUrl()),
             BlocProvider(create: (_) => SiteplanBloc(siteplanRepository)..add(LoadSiteplanEvent())),
@@ -399,6 +426,10 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
                   } else if (state is AuthLoggedOut) {
                     // Restart aplikasi total seolah-olah baru dibuka pertama kali
                     _resetApp();
+                  } else if (state is ImpersonationStarted || state is ImpersonationStopped) {
+                    // Token sudah ditukar (impersonate / kembali ke admin). Re-init penuh
+                    // via splash: fetch profile (forceRefresh) + permissions user baru → '/'.
+                    AppRouter.router.go('/splash');
                   }
                 },
               ),

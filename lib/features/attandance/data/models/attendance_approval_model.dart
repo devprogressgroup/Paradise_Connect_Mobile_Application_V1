@@ -26,7 +26,8 @@ class AttendanceApprovalModel extends AttendanceApprovalEntity {
   factory AttendanceApprovalModel.fromJson(Map<String, dynamic> json) {
     return AttendanceApprovalModel(
       logId: json['log_id'] as int,
-      nikNumber: json['nik_number'] as int?,
+      // nik_number bisa int / string → parse aman (NON-SALES pakai app_m_user.nik_number VARCHAR).
+      nikNumber: json['nik_number'] == null ? null : int.tryParse(json['nik_number'].toString()),
       attendanceDatetime: json['attendance_datetime'] as String?,
       flag: json['flag'] as int?,
       flagLabel: json['flag_label'] as String?,

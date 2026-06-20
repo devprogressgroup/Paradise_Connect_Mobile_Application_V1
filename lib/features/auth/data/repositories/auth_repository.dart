@@ -2,6 +2,7 @@ import '../../domain/entities/reset_password.dart';
 import '../../domain/entities/user_entity.dart';
 import '../../domain/entities/user_profile.dart';
 import '../models/forgot_password_data_model.dart';
+import '../models/impersonatable_user_model.dart';
 import '../models/permissions_model.dart';
 
 abstract class AuthRepository {
@@ -17,4 +18,9 @@ abstract class AuthRepository {
   Future<void> logout();
   Future<UserProfileEntity> getProfile();
   Future<PermissionsModel> fetchPermissions();
+
+  // Impersonation (superadmin login-as)
+  Future<List<ImpersonatableUser>> getImpersonatableUsers({String? search});
+  Future<String> impersonate(int userId); // returns target full_name
+  Future<void> stopImpersonation();
 }
