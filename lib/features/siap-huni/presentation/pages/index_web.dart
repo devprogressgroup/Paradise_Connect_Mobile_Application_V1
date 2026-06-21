@@ -37,7 +37,7 @@ class _SiapHuniPageState extends State<SiapHuniPage> {
       final connector = base.contains('?') ? '&' : '?';
       base = '${base}${connector}embed=1&key=';
     }
-    final encrypted = ProxyCipher.encrypt({'nama_Sales': fullName, 'no_hp': phone});
+    final encrypted = ProxyCipher.encrypt({'nama_sales': fullName, 'no_hp': phone});
     return '$base${Uri.encodeComponent(encrypted)}';
   }
 
@@ -85,7 +85,7 @@ class _SiapHuniPageState extends State<SiapHuniPage> {
       url = ApiConstants.siapHuniUrl;
     }
     if (url.isNotEmpty) {
-      debugPrint('[SiapHuni] URL: $url');
+      // debugPrint('[SiapHuni] URL: $url');
       _initIframe(url);
     }
   }

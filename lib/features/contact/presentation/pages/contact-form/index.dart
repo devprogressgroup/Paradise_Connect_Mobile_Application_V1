@@ -175,10 +175,20 @@ class _ContactFormPageState extends State<ContactFormPage> {
 
   // Model A — daftar unit yang diminati (1 unit = 1 deal). Diisi dari Unit Picker (create) / prefill deal (edit).
   List<SelectedUnit> _selectedUnits = [];
+  // Semua unit/deal kontak (lintas project, sudah termasuk yg Lost) — sumber untuk filter per-project.
+  List<SelectedUnit> _allUnits = [];
   bool _unitsTouched = false;
-  // Boleh kelola unit bila CREATE, atau EDIT (page 1) yang daftar unit-nya sudah ter-prefill (detail bawa `units`).
-  // page 2 = tab About (read-only) → chips tampil tapi tak bisa diubah.
-  bool get _canManageUnits => widget.args.page == 0 || (widget.args.page == 1 && widget.args.dataContact?.units != null);
+  // True bila daftar unit existing SUDAH ter-load (dari detail kontak yang membawa key `units`).
+  // Dipakai sebagai gate kelola unit di EDIT agar reconcile aman (tak menimpa deal yang belum ter-load).
+  bool _unitsLoaded = false;
+  // Boleh kelola unit bila CREATE, atau EDIT (page 1) yang daftar unit existing-nya sudah ter-load.
+  // page 2 = tab About (read-only) → baris tampil tapi tak bisa diubah (tap → form Edit).
+  bool get _canManageUnits => widget.args.page == 0 || (widget.args.page == 1 && _unitsLoaded);
+
+  // Penyempitan: mobile hanya menampilkan unit AKTIF (belum Lost) dari satu project/township.
+  // Deal project lain tetap ada di t_deals (history) — detail lintas-project dilihat di web.
+  List<SelectedUnit> _activeUnitsForTownship(int? townshipId) =>
+      _allUnits.where((u) => !u.isLost && (townshipId == null || u.townshipId == townshipId)).toList();
 
   final List<OwnerDropdownItem> itemsProjectCategory = [
     OwnerDropdownItem(name: "Residential"),
@@ -215,62 +225,113 @@ class _ContactFormPageState extends State<ContactFormPage> {
   CreateContactParams createContactParams = CreateContactParams();
 
   // Field gabungan "Produk/Unit yang diminati" (Model A) — gantikan Project Category/Product Type/Product/Blok.
+  // Tampilan = baris field SERAGAM (gaya sama dgn Status Prospect/Project). 1 unit = 1 baris "Produk/Unit".
+  // About (page 2): read-only, tap baris → halaman Edit (form). Edit/Create: tap → halaman Pilih Unit.
   Widget _buildUnitField() {
-    final isUpdate = widget.args.page != 0;
-    final existing = widget.args.dataContact;
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 10),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('Produk/Unit yang diminati',
-              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: Color(grey5Color))),
-          const SizedBox(height: 8),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              for (final u in _selectedUnits)
-                InputChip(
-                  label: Text(u.label, style: const TextStyle(fontSize: 12)),
-                  onDeleted: _canManageUnits
-                      ? () => setState(() {
-                            _selectedUnits = _selectedUnits.where((e) => e.key != u.key).toList();
-                            _unitsTouched = true;
-                          })
-                      : null,
-                  deleteIcon: const Icon(Icons.close, size: 15),
-                ),
-              ActionChip(
-                avatar: Icon(Icons.add, size: 16, color: Color(blue3Color)),
-                label: Text(_canManageUnits ? 'Tambah/Kelola Unit' : 'Kelola unit',
-                    style: TextStyle(color: Color(blue3Color), fontSize: 12)),
-                onPressed: _canManageUnits ? _openUnitPicker : _editUnitNotice,
-              ),
-            ],
+    final isAbout = widget.args.page == 2;
+
+    // Aksi tap baris: About → beralih ke form edit; selain itu → buka Unit Picker (gate permission).
+    final VoidCallback? rowTap = isAbout
+        ? () => _goToEdit(focusField: 'Produk/Unit')
+        : (_canManageUnits ? _openUnitPicker : _editUnitNotice);
+    // Chevron hanya pada mode yang bisa diubah (Edit/Create & boleh kelola). About = gaya read-only.
+    final bool showChevron = !isAbout && _canManageUnits;
+
+    if (_selectedUnits.isEmpty) {
+      return _unitFieldRow(value: '', onTap: rowTap, showChevron: showChevron);
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        for (final u in _selectedUnits)
+          _unitFieldRow(
+            value: _unitDisplay(u),
+            onTap: rowTap,
+            showChevron: showChevron,
+            isHoek: u.isTipeHoek,
           ),
-          if (isUpdate && (existing?.lastProduct != null || existing?.lastBlokNo != null))
-            Padding(
-              padding: const EdgeInsets.only(top: 6),
-              child: Text(
-                'Saat ini: ${existing?.lastProduct ?? '-'}${existing?.lastBlokNo != null ? ' · ${existing!.lastBlokNo}' : ''}',
-                style: TextStyle(fontSize: 11.5, color: Color(grey5Color)),
+      ],
+    );
+  }
+
+  // Teks tampilan unit: "BB1-1 Ariawood EcoArdence" (kavling · tipe · cluster);
+  // fallback "tipe cluster · Waiting list" / "tipe cluster · Belum tentukan kavling".
+  String _unitDisplay(SelectedUnit u) {
+    final tail = [u.productName, u.clusterName]
+        .where((e) => (e ?? '').toString().trim().isNotEmpty)
+        .map((e) => e!.trim())
+        .join(' ');
+    if (u.propertyId != null && (u.propertyName ?? '').trim().isNotEmpty) {
+      return [u.propertyName!.trim(), tail].where((e) => e.isNotEmpty).join(' ');
+    }
+    final status = u.isWaitingList ? 'Waiting list' : 'Belum tentukan kavling';
+    return tail.isNotEmpty ? '$tail · $status' : status;
+  }
+
+  // Satu baris field "Produk/Unit" — meniru gaya _buildFieldDown (label kecil + nilai + garis bawah).
+  // Tidak memakai GlobalKey agar aman saat banyak baris berlabel sama.
+  Widget _unitFieldRow({
+    required String value,
+    required VoidCallback? onTap,
+    required bool showChevron,
+    bool isHoek = false,
+  }) {
+    final bool isEmpty = value.trim().isEmpty;
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+        constraints: const BoxConstraints(minHeight: 50),
+        decoration: BoxDecoration(
+          color: Color(whiteColor),
+          border: Border(bottom: BorderSide(width: 1, color: Color(grey9Color))),
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (!isEmpty) ...[
+                    Text('Produk/Unit',
+                        style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: Color(grey2Color))),
+                    const SizedBox(height: 2),
+                  ],
+                  isEmpty
+                      ? Text('Produk/Unit',
+                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(grey2Color)))
+                      : Row(
+                          children: [
+                            Flexible(
+                              child: Text(value,
+                                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(blackColor))),
+                            ),
+                            if (isHoek)
+                              Container(
+                                margin: const EdgeInsets.only(left: 6),
+                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                                decoration: BoxDecoration(
+                                    color: const Color(0xFFFFF6E5), borderRadius: BorderRadius.circular(20)),
+                                child: const Text('Hook',
+                                    style: TextStyle(fontSize: 9, color: Color(0xFFB26A00), fontWeight: FontWeight.w600)),
+                              ),
+                          ],
+                        ),
+                ],
               ),
             ),
-          if (!isUpdate && _selectedUnits.isEmpty)
-            Padding(
-              padding: const EdgeInsets.only(top: 6),
-              child: Text('Belum ada unit. Pilih Project lalu tekan "Tambah Unit".',
-                  style: TextStyle(fontSize: 11.5, color: Color(grey5Color))),
-            ),
-        ],
+            if (showChevron) const Icon(Icons.arrow_drop_down, size: 28),
+          ],
+        ),
       ),
     );
   }
 
   Future<void> _openUnitPicker() async {
-    final townshipId = widget.args.page != 0 ? selectLastTownshipId : selectFirstTownshipId;
-    final townshipName = widget.args.page != 0 ? selectLastProject : selectFirstProject;
+    // Penyempitan: unit SELALU mengikuti "Project" yang sedang dipilih (selectLast*), fallback first utk create.
+    final townshipId = selectLastTownshipId ?? selectFirstTownshipId;
+    final townshipName = selectLastProject ?? selectFirstProject;
     if (townshipId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Pilih Project terlebih dahulu')),
@@ -455,6 +516,12 @@ class _ContactFormPageState extends State<ContactFormPage> {
         await _fillForm(currentDetail);
       } else if (widget.args.dataContact != null) {
         await _fillForm(widget.args.dataContact!);
+        // Data dari list belum membawa `units` → fetch detail agar daftar unit ter-load (gate kelola unit).
+        if (!_unitsLoaded && contactId != null) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) context.read<ContactBloc>().add(FetchContactDetailEvent(contactId));
+          });
+        }
       }
       _formInitialized = true;
       if (widget.args.focusField != null) {
@@ -561,8 +628,13 @@ class _ContactFormPageState extends State<ContactFormPage> {
   }
 
   Future<void> _fillForm(ContactEntity contact) async {
-    // Model A: prefill daftar unit dari deal kontak (untuk Edit picker reconcile aman).
-    if (contact.units != null) _selectedUnits = List.of(contact.units!);
+    // Model A: prefill daftar unit dari deal kontak. Mobile hanya tampilkan unit AKTIF dari PROJECT TERAKHIR
+    // (last_project_id); deal project lain tetap utuh di t_deals (history). _allUnits simpan semua utk re-filter.
+    if (contact.units != null) {
+      _allUnits = List.of(contact.units!);
+      _selectedUnits = _activeUnitsForTownship(contact.lastProjectId);
+      _unitsLoaded = true;
+    }
     fullNameTC.text = contact.fullName ?? '';
     emailTC.text = contact.primaryEmail ?? '';
     waTC.text = contact.whatsappNumber ?? '';
@@ -1199,18 +1271,13 @@ class _ContactFormPageState extends State<ContactFormPage> {
     }
     if (!_validateEmail()) return;
 
-    // Status group flags (same grouping as contact-add _submitUpdateStatus)
-    const apptIds    = [53, 60,];
-    const reserveIds = [54, 70, 71, 72];
-    const visitIds   = [63, 64, 65, 66];
-    const spIds      = [74];
-    const lostIds    = [55, 56, 57, 58, 61, 62, 67, 68, 69, 73, 75, 77, 78];
-
-    final isAppt    = apptIds.contains(selectedStatusId);
-    final isReserve = reserveIds.contains(selectedStatusId);
-    final isVisit   = visitIds.contains(selectedStatusId);
-    final isSP      = spIds.contains(selectedStatusId);
-    final isLost    = lostIds.contains(selectedStatusId);
+    // Status group flags dari backend (field `group`) — sumber tunggal, konsisten dgn contact-add. Tanpa daftar ID hardcoded.
+    final group     = _statusGroup(selectedStatusId);
+    final isAppt    = group == 'appt';
+    final isReserve = group == 'reserve';
+    final isVisit   = group == 'visit';
+    final isSP      = group == 'sp';
+    final isLost    = group == 'lost';
 
     // first* date: kirim hanya jika status cocok DAN existing kosong (atau create mode)
     final existing        = widget.args.dataContact;
@@ -1394,6 +1461,14 @@ class _ContactFormPageState extends State<ContactFormPage> {
         } else if (state.status == ContactStatus.detailLoaded &&
             state.contactDetail != null &&
             !_formInitialized) {
+          _fillForm(state.contactDetail!);
+        } else if (widget.args.page == 1 &&
+            state.status == ContactStatus.detailLoaded &&
+            !_unitsLoaded &&
+            state.contactDetail != null) {
+          // Detail PENUH tiba setelah form awalnya terisi dari data LIST yang slim
+          // (GET /contacts hanya kirim id/nama/wa/owner → salutation/email/KTP/sumber informasi/tanggal kosong).
+          // Isi ulang SEMUA field dari detail + daftar unit. Fetch dipicu saat _init (sebelum user mengetik) → aman.
           _fillForm(state.contactDetail!);
         } else if (state.status == ContactStatus.error && widget.args.page != 2) {
           setState(() => _isSaving = false);
@@ -1687,12 +1762,18 @@ class _ContactFormPageState extends State<ContactFormPage> {
                                 );
                                 if (result != null) {
                                   final selected = result as OwnerDropdownItem;
+                                  final projectChanged = selectLastTownshipId != selected.id;
                                   setState(() {
                                     selectLastProject = selected.name;
                                     selectLastTownshipId = selected.id;
                                     selectLastProjectCategory = null;
                                     selectLastProjectProduct = null;
                                     selectProductType = null;
+                                    // Penyempitan: tampilkan unit AKTIF dari project yang dipilih (deal project lain
+                                    // tetap di t_deals). Edit: ambil dari _allUnits; Create: kosong (belum ada deal).
+                                    if (projectChanged) {
+                                      _selectedUnits = _activeUnitsForTownship(selected.id);
+                                    }
                                   });
                                   context.read<PropertyUnitCubit>().load(
                                     selected.id!,
@@ -1709,7 +1790,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
                           ),
                           // Model A: 4 field lama (Project Category/Product Type/Product/Blok No) DIGABUNG → Unit Picker multi-select.
                           _buildUnitField(),
-                          if (const [63, 64, 65, 66, 67, 68, 69].contains(selectedStatusId))
+                          if (_isVisitorWi(selectedStatusId))
                             _buildFieldDown(
                               label: "Jumlah Datang",
                               value: vCountTC.text.isEmpty ? null : (vCountTC.text == '5' ? '>5' : vCountTC.text),
@@ -1730,7 +1811,8 @@ class _ContactFormPageState extends State<ContactFormPage> {
                                 }
                               },
                             ),
-                          if (const [53, 54, 60, 61, 62, 76].contains(selectedStatusId))
+                          if (_statusGroup(selectedStatusId) == 'appt' ||
+                              _statusGroup(selectedStatusId) == 'reserve')
                             _buildFieldDown(
                               label: "Appt Volume",
                               value: volumePlanTC.text.isEmpty ? null : (volumePlanTC.text == '5' ? '>5' : volumePlanTC.text),
@@ -1901,21 +1983,21 @@ class _ContactFormPageState extends State<ContactFormPage> {
                             controller: lastApptDateTC,
                             focusNode: lastApptDateFN,
                             fieldType: 'date',
-                            onViewTap: () => _goEditStatus(statusIds: [53, 60, 76]),
+                            onViewTap: () => _goEditStatus(group: 'appt'),
                           ),
                            _buildField(
                             label: "Visitor/WI Date",
                             controller: lastVisitorDateTC,
                             focusNode: lastVisitorDateFN,
                             fieldType: 'date',
-                            onViewTap: () => _goEditStatus(statusIds: [63, 64, 65, 66, 67, 68, 69]),
+                            onViewTap: () => _goEditStatus(group: 'visit'),
                           ),
                            _buildField(
                             label: "Reserve Date",
                             controller: reserveDateTC,
                             focusNode: reserveDateFN,
                             fieldType: 'date',
-                            onViewTap: () => _goEditStatus(statusIds: [54, 70, 71, 72]),
+                            onViewTap: () => _goEditStatus(group: 'reserve'),
                           ),
 
                            _buildField(
@@ -1923,7 +2005,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
                             controller: lspTC,
                             focusNode: lspFN,
                             fieldType: 'date',
-                            onViewTap: () => _goEditStatus(statusIds: [74]),
+                            onViewTap: () => _goEditStatus(group: 'sp'),
                           ),
                           //  _buildField(
                           //   label: "Akad Date",
@@ -1936,7 +2018,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
                             controller: lastLostDateTC,
                             focusNode: lastLostDateFN,
                             fieldType: 'date',
-                            onViewTap: () => _goEditStatus(statusIds: [43, 55, 56, 57, 58, 61, 62, 67, 68, 69, 73, 75, 77, 78]),
+                            onViewTap: () => _goEditStatus(group: 'lost'),
                           ),
                          
 
@@ -2626,19 +2708,66 @@ class _ContactFormPageState extends State<ContactFormPage> {
     }
   }
 
-  void _goEditStatus({List<int>? statusIds}) async {
+  /// Grup form ('db'|'appt'|'visit'|'reserve'|'sp'|'lost') untuk [id] dari backend (field `group`).
+  /// Sumber tunggal = setting STATUS_PROSPECT_* (lihat ProspectStage::formGroupMap). Fallback 'db'.
+  String _statusGroup(int? id) {
+    if (id == null) return 'db';
+    final st = context.read<ProspectStatusBloc>().state;
+    if (st.status != ProspectStatusEnum.loaded) return 'db';
+    for (final s in st.statuses) {
+      if (s.statusProspectId == id) return s.group;
+    }
+    return 'db';
+  }
+
+  /// True bila status [id] termasuk "Visitor/WI" (isVisitorWi / STATUS_PROSPECT_VISITOR_WI)
+  /// → tampilkan field Jumlah Datang. Menggantikan hardcode [63..69].
+  bool _isVisitorWi(int? id) {
+    if (id == null) return false;
+    final st = context.read<ProspectStatusBloc>().state;
+    if (st.status != ProspectStatusEnum.loaded) return false;
+    for (final s in st.statuses) {
+      if (s.statusProspectId == id) return s.isVisitorWi;
+    }
+    return false;
+  }
+
+  /// prospect_status_id anggota sebuah [group] (dari daftar status backend), urut sesuai daftar (status_value).
+  List<int> _statusIdsForGroup(String group) {
+    final st = context.read<ProspectStatusBloc>().state;
+    if (st.status != ProspectStatusEnum.loaded) return const [];
+    return st.statuses
+        .where((e) => e.group == group)
+        .map((e) => e.statusProspectId)
+        .toList();
+  }
+
+  /// Buka form Update Status untuk satu [group] milestone (Appt/Visit/Reserve/SP/Lost).
+  /// Daftar status & default-nya diturunkan dari grup backend (tanpa daftar ID hardcoded).
+  void _goEditStatus({String? group}) async {
     if (!PermissionsHelper.canEditContact) return;
-    final contact = widget.args.dataContact;
+    // Pakai detail TERBARU dari bloc (bawa tanggal milestone + units + project terisi) supaya form status
+    // berfungsi sbg "lihat detail yang sudah diinput", bukan data list basi.
+    final stateDetail = context.read<ContactBloc>().state.contactDetail;
+    final contact = (stateDetail != null && stateDetail.contactId == widget.args.dataContact?.contactId)
+        ? stateDetail
+        : widget.args.dataContact;
     if (contact == null) return;
 
-    // Jika statusIds diberikan, pakai status saat ini kalau cocok, otherwise pakai yang pertama
-    final int? resolvedStatusId = statusIds != null && statusIds.isNotEmpty
-        ? (statusIds.contains(selectedStatusId) ? selectedStatusId : statusIds.first)
-        : selectedStatusId;
+    // Status default untuk milestone yang di-tap: status saat ini bila masih dalam grup, selain itu status pertama grup.
+    int? resolvedStatusId = selectedStatusId;
+    if (group != null) {
+      final ids = _statusIdsForGroup(group);
+      if (ids.isNotEmpty) {
+        resolvedStatusId = ids.contains(selectedStatusId) ? selectedStatusId : ids.first;
+      }
+    }
 
     await context.pushNamed(
       'addContact',
       extra: ContactDetailArgs(
+        // Pakai contact SEGAR apa adanya (last_project + last_project_id + units = satu sumber konsisten).
+        // JANGAN campur dgn state form (selectLastProject bisa basi → nama project ≠ id project).
         dataContact: contact.copyWith(statusProspectId: resolvedStatusId),
         page: 6,
         sourceRoute: 'editContact',

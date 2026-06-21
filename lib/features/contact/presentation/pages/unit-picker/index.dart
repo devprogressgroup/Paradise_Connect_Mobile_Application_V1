@@ -280,9 +280,11 @@ class _UnitPickerScreenState extends State<UnitPickerScreen> {
     return InkWell(
       onTap: onTap,
       child: Container(
-        color: checked ? _selectedBg : null,
         padding: const EdgeInsets.fromLTRB(56, 11, 14, 11),
-        decoration: const BoxDecoration(border: Border(top: BorderSide(color: Color(0x10000000)))),
+        decoration: BoxDecoration(
+          color: checked ? _selectedBg : null,
+          border: const Border(top: BorderSide(color: Color(0x10000000))),
+        ),
         child: Row(
           children: [
             _checkbox(checked),
@@ -339,15 +341,16 @@ class _UnitPickerScreenState extends State<UnitPickerScreen> {
           SizedBox(
             width: double.infinity,
             child: ElevatedButton.icon(
-              onPressed: selected.isEmpty ? null : () => Navigator.of(context).pop(selected),
-              icon: const Icon(Icons.check, size: 18),
+              // Boleh konfirmasi KOSONG → kembalikan [] = "Belum menentukan unit" (membersihkan pilihan).
+              onPressed: () => Navigator.of(context).pop(selected),
+              icon: Icon(selected.isEmpty ? Icons.remove_circle_outline : Icons.check, size: 18),
               style: ElevatedButton.styleFrom(
-                backgroundColor: Color(blue3Color),
+                backgroundColor: selected.isEmpty ? Color(grey5Color) : Color(blue3Color),
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 14),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
               ),
-              label: Text(selected.isEmpty ? 'Pilih unit terlebih dahulu' : 'Konfirmasi ${selected.length} unit dipilih',
+              label: Text(selected.isEmpty ? 'Belum menentukan unit' : 'Konfirmasi ${selected.length} unit dipilih',
                   style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
             ),
           ),

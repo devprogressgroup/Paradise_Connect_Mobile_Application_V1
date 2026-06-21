@@ -34,6 +34,7 @@ import '../features/site-plan/presentation/site-plan-page/index.dart';
 import '../features/landing-page/presentation/landing-page/index.dart';
 import '../features/splash/presentation/pages/index.dart';
 import '../features/siap-huni/presentation/pages/index.dart';
+import '../features/contact/presentation/pages/pipeline/index.dart';
 import 'main_layout.dart';
 import '../core/utils/helpers/permissions_helper.dart';
 
@@ -269,6 +270,25 @@ class AppRouter {
             redirect: (context, state) =>
                 PermissionsHelper.canAccessSiapHuni ? null : '/',
             builder: (context, state) => const SiapHuniPage(),
+          ),
+          GoRoute(
+            path: '/pipeline',
+            name: 'pipeline',
+            redirect: (context, state) =>
+                PermissionsHelper.canAccessContacts ? null : '/',
+            builder: (context, state) {
+              final extra = state.extra;
+              List<int>? ids;
+              String? title;
+              if (extra is Map) {
+                final raw = extra['statusIds'];
+                if (raw is List) {
+                  ids = raw.map((e) => e is int ? e : int.tryParse('$e') ?? 0).where((e) => e != 0).toList();
+                }
+                title = extra['title']?.toString();
+              }
+              return PipelineScreen(statusIds: ids, title: title);
+            },
           ),
         ],
       ),

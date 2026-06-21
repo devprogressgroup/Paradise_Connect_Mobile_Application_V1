@@ -29,7 +29,7 @@ class _SiapHuniPageState extends State<SiapHuniPage> {
       final connector = base.contains('?') ? '&' : '?';
       base = '${base}${connector}embed=1&key=';
     }
-    final encrypted = ProxyCipher.encrypt({'nama_Sales': fullName, 'no_hp': phone});
+    final encrypted = ProxyCipher.encrypt({'nama_sales': fullName, 'no_hp': phone});
     return '$base${Uri.encodeComponent(encrypted)}';
   }
 
@@ -59,7 +59,7 @@ class _SiapHuniPageState extends State<SiapHuniPage> {
     }
     _builtUrl = url; // SEMENTARA: simpan untuk ditampilkan di UI
     if (url.isNotEmpty) {
-      debugPrint('[SiapHuni] URL: $url');
+      // debugPrint('[SiapHuni] URL: $url');
       _initController(url);
     }
   }
@@ -71,15 +71,15 @@ class _SiapHuniPageState extends State<SiapHuniPage> {
       child: Column(
         children: [
           // ⚠️ SEMENTARA (debug): tampilkan URL Siap Huni agar bisa diverifikasi/disalin. Hapus nanti.
-          Container(
-            width: double.infinity,
-            color: const Color(0xFFFFF3CD),
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-            child: SelectableText(
-              _builtUrl.isEmpty ? '(URL belum tersedia)' : _builtUrl,
-              style: const TextStyle(fontSize: 11, color: Color(0xFF664D03)),
-            ),
-          ),
+          // Container(
+          //   width: double.infinity,
+          //   color: const Color(0xFFFFF3CD),
+          //   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+          //   child: SelectableText(
+          //     _builtUrl.isEmpty ? '(URL belum tersedia)' : _builtUrl,
+          //     style: const TextStyle(fontSize: 11, color: Color(0xFF664D03)),
+          //   ),
+          // ),
           Expanded(
             child: _controller == null
                 ? const Center(child: Text('URL belum tersedia'))

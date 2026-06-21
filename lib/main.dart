@@ -71,6 +71,8 @@ import 'package:progress_group/features/contact/domain/usecases/product_type/get
 import 'package:progress_group/features/contact/presentation/state/product_type/product_type_bloc.dart';
 import 'package:progress_group/features/contact/presentation/state/product_type/product_type_event.dart';
 import 'package:progress_group/features/contact/presentation/state/pameran_aktif/pameran_aktif_cubit.dart';
+import 'package:progress_group/features/contact/data/datasources/pipeline_remote_datasource.dart';
+import 'package:progress_group/features/contact/presentation/state/pipeline/pipeline_cubit.dart';
 import 'package:progress_group/features/contact/presentation/state/whatsapp_activity/whatsapp_unread_summary_bloc.dart';
 import 'package:progress_group/core/network/api_constants.dart';
 import 'package:progress_group/features/home/domain/usecases/get_report_whatsapp_usecase.dart';
@@ -308,6 +310,8 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     // Contacts & Activities
     final contactRemoteDataSource = ContactRemoteDataSourceImpl(dioClient.dio);
     final contactRepository = ContactRepositoryImpl(contactRemoteDataSource);
+    // Sales Pipeline per-deal/unit (Model A) — datasource hit GET /deals.
+    final pipelineRemoteDataSource = PipelineRemoteDataSourceImpl(dioClient.dio);
     final getContactsUseCase = GetContactsUseCase(contactRepository);
     final getContactDetailUseCase = GetContactDetailUseCase(contactRepository);
     final getProspectStatusesUseCase = GetProspectStatusesUseCase(contactRepository);
@@ -384,6 +388,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
             BlocProvider(create: (_) => ContactBloc(getContactsUseCase: getContactsUseCase, createContactUseCase: createContactUseCase, updateContactUseCase: updateContactUseCase, deleteContactUseCase: deleteContactUseCase, getContactDetailUseCase: getContactDetailUseCase)),
             BlocProvider(create: (_) => ProspectStatusBloc(getProspectStatusesUseCase: getProspectStatusesUseCase)),
             BlocProvider(create: (_) => ContactPropertiesBloc(getContactPropertiesUseCase: getContactPropertiesUseCase)),
+            BlocProvider(create: (_) => PipelineCubit(pipelineRemoteDataSource)),
             BlocProvider(create: (_) => ActivityBloc(getActivitiesUseCase: getActivitiesUseCase, createActivityUseCase: createActivityUseCase, postStatusFollowUseCase: postStatusFollowUseCase)),
             BlocProvider(create: (_) => NotifActivityBloc(getActivitiesUseCase: getActivitiesUseCase, createActivityUseCase: createActivityUseCase, postStatusFollowUseCase: postStatusFollowUseCase)),
             BlocProvider(create: (_) => ContactDetailActivityBloc(getActivitiesUseCase: getActivitiesUseCase, createActivityUseCase: createActivityUseCase, postStatusFollowUseCase: postStatusFollowUseCase)),

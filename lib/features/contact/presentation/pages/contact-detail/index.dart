@@ -546,7 +546,8 @@ class _ContactDetailPageState extends State<ContactDetailPage>with TickerProvide
             () {
               _navigateToAddContact(
                 ContactDetailArgs(
-                  dataContact: widget.args.dataContact,
+                  // Pakai detail TERBARU (bawa last_project + units) agar form Visit langsung benar, bukan data list basi.
+                  dataContact: context.read<ContactBloc>().state.contactDetail ?? widget.args.dataContact,
                   page: 4,
                   namePage: "Visit",
                 ),
@@ -560,7 +561,8 @@ class _ContactDetailPageState extends State<ContactDetailPage>with TickerProvide
             () {
               _navigateToAddContact(
                 ContactDetailArgs(
-                  dataContact: widget.args.dataContact,
+                  // Pakai detail TERBARU (bawa last_project + units) agar form langsung benar, bukan data list basi.
+                  dataContact: context.read<ContactBloc>().state.contactDetail ?? widget.args.dataContact,
                   page: 6,
                   namePage: "Update Status Prospect",
                 ),
@@ -783,9 +785,17 @@ class _ContactDetailPageState extends State<ContactDetailPage>with TickerProvide
                         // }
 
                         // =========================
-                        // SORT DESC
+                        // SORT DESC (newest di atas). "Created contact" SELALU paling bawah,
+                        // sehingga status prospek (mis. submit awal) tampil di ATAS create date.
                         // =========================
-                        timeline.sort((a, b) => b.date.compareTo(a.date));
+                        bool _isCreate(ActivityTimelineItem t) =>
+                            t.type == 'activity' && (t.data.activityType == 'Created contact');
+                        timeline.sort((a, b) {
+                          final aC = _isCreate(a), bC = _isCreate(b);
+                          if (aC && !bC) return 1;   // a (create) ke bawah
+                          if (bC && !aC) return -1;  // b (create) ke bawah
+                          return b.date.compareTo(a.date);
+                        });
 
                         // =========================
                         // GROUP BY DATE
@@ -995,7 +1005,10 @@ class _ContactDetailPageState extends State<ContactDetailPage>with TickerProvide
                   SizedBox(
                     width: double.infinity,
                     child: Text(
-                      "Status changed from ${item.previousStatusValue ?? ''} - ${item.previousStatusName ?? ''}  to ${item.statusValue ?? ''} - ${item.statusName} ",
+                      // Submit AWAL (tak ada status sebelumnya) → "Ubah status prospek ke X" (bukan "from xxx to X").
+                      (item.previousStatusName == null || item.previousStatusName!.isEmpty)
+                          ? "Status changed to ${item.statusValue ?? ''} - ${item.statusName}"
+                          : "Status changed from ${item.previousStatusValue ?? ''} - ${item.previousStatusName ?? ''} to ${item.statusValue ?? ''} - ${item.statusName}",
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(fontSize: 11),

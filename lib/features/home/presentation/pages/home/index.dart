@@ -623,7 +623,7 @@ class _HomePageState extends State<HomePage> {
                         final isLastVisible = index == visibleStatuses.length - 1;
                         final showBottomBorder = !isLastVisible || allStatuses.length > _prospectStatusCollapsedCount;
                         return GestureDetector(
-                          onTap: () => context.go('/contact', extra: [item.prospectStatusId]),
+                          onTap: () => context.pushNamed('pipeline', extra: {'statusIds': [item.prospectStatusId], 'title': item.statusName}),
                           child: Container(
                           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                           decoration: BoxDecoration(

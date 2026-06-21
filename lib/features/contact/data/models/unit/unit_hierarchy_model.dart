@@ -107,10 +107,13 @@ class SelectedUnit {
     this.isWaitingList = false,
     this.isTipeHoek = false,
     this.statusProspectId,
+    this.lostDate,
   });
 
   // Status pipeline unit ini (dari deal) — untuk badge di About. Diabaikan saat picker/toApiJson.
   final int? statusProspectId;
+  // Tanggal Lost deal ini (null = aktif). Dipakai untuk menyaring unit aktif di tampilan mobile.
+  final String? lostDate;
 
   // Parse dari response detail kontak (key `units`) — untuk About + prefill Edit.
   factory SelectedUnit.fromContactJson(Map<String, dynamic> j) => SelectedUnit(
@@ -124,7 +127,11 @@ class SelectedUnit {
         isWaitingList: j['is_waiting_list'] == true || j['is_waiting_list'] == 1,
         isTipeHoek: j['is_tipe_hoek'] == true || j['is_tipe_hoek'] == 1,
         statusProspectId: j['status_prospect_id'],
+        lostDate: j['lost_date']?.toString(),
       );
+
+  // True bila deal unit ini sudah Lost (lost_date terisi).
+  bool get isLost => lostDate != null && lostDate!.isNotEmpty;
 
   // Kunci unik untuk seleksi/dedup (cluster|product|property|waiting).
   String get key =>
