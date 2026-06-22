@@ -302,7 +302,7 @@ class _LoginPageState extends State<LoginPage> {
                     children: [
                       // Header
                       GestureDetector(
-                        onTap: _showEnvSwitcher,
+                        // onTap: _showEnvSwitcher,
                         child: const Text(
                           'Sign In',
                           textAlign: TextAlign.center,
