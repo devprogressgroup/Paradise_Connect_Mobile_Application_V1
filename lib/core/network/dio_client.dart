@@ -64,6 +64,9 @@ class DioClient {
           }
           final isFileDownload = options.responseType == ResponseType.bytes ||
               options.responseType == ResponseType.stream;
+          if (isFileDownload) {
+            options.receiveTimeout = const Duration(minutes: 3);
+          }
           if (!isFileDownload) {
             if (kDebugMode) {
               final rawData = options.data;
@@ -125,25 +128,33 @@ class DioClient {
           return handler.next(options);
         },
         onResponse: (response, handler) {
-          response.data = ProxyCipher.decrypt(response.data);
-          if (kDebugMode) {
-            _printLong('[RES Des ${response.statusCode}] ${response.requestOptions.path} => ${jsonEncode(response.data)}');
-          }
-          final data = response.data;
-          if (data is Map) {
-            final status = data['status'];
-            final message = data['message']?.toString() ?? '';
-            if (status == false && message.toLowerCase().contains('too many')) {
-              _showGlobalSnackbar('Terlalu banyak percobaan. Coba beberapa saat lagi.');
+          final isFileDownload = response.requestOptions.responseType == ResponseType.bytes ||
+              response.requestOptions.responseType == ResponseType.stream;
+          if (!isFileDownload) {
+            response.data = ProxyCipher.decrypt(response.data);
+            if (kDebugMode) {
+              _printLong('[RES Des ${response.statusCode}] ${response.requestOptions.path} => ${jsonEncode(response.data)}');
+            }
+            final data = response.data;
+            if (data is Map) {
+              final status = data['status'];
+              final message = data['message']?.toString() ?? '';
+              if (status == false && message.toLowerCase().contains('too many')) {
+                _showGlobalSnackbar('Terlalu banyak percobaan. Coba beberapa saat lagi.');
+              }
             }
           }
           return handler.next(response);
         },
         onError: (DioException e, handler) async {
           if (e.response != null) {
-            e.response!.data = ProxyCipher.decrypt(e.response!.data);
-            if (kDebugMode) {
-              _printLong('[RES ERR ${e.response!.statusCode}] ${e.requestOptions.path} => ${jsonEncode(e.response!.data)}');
+            final isFileDownload = e.requestOptions.responseType == ResponseType.bytes ||
+                e.requestOptions.responseType == ResponseType.stream;
+            if (!isFileDownload) {
+              e.response!.data = ProxyCipher.decrypt(e.response!.data);
+              if (kDebugMode) {
+                _printLong('[RES ERR ${e.response!.statusCode}] ${e.requestOptions.path} => ${jsonEncode(e.response!.data)}');
+              }
             }
           }
           if (kDebugMode) debugPrint("DIO ERROR: ${e.message}");

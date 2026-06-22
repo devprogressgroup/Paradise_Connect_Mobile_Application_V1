@@ -36,6 +36,8 @@ class _DateFilterPageState extends State<DateFilterPage> {
     final startOfLastMonth = DateTime(now.year, now.month - 1, 1);
     final endOfLastMonth = DateTime(now.year, now.month, 0);
 
+    final lastYearStart = DateTime(now.year - 1, now.month, now.day);
+
     _presets = [
       _DateOption("Today", _today, _today),
       _DateOption("Yesterday", yesterday, yesterday),
@@ -43,6 +45,7 @@ class _DateFilterPageState extends State<DateFilterPage> {
       _DateOption("Last Week", startOfLastWeek, endOfLastWeek),
       _DateOption("This Month", startOfMonth, _today),
       _DateOption("Last Month", startOfLastMonth, endOfLastMonth),
+      _DateOption("Last 1 Year", lastYearStart, _today),
     ];
 
     _selectedLabel = widget.selectedLabel;

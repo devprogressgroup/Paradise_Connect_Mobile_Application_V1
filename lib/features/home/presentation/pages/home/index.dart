@@ -623,7 +623,19 @@ class _HomePageState extends State<HomePage> {
                         final isLastVisible = index == visibleStatuses.length - 1;
                         final showBottomBorder = !isLastVisible || allStatuses.length > _prospectStatusCollapsedCount;
                         return GestureDetector(
-                          onTap: () => context.pushNamed('pipeline', extra: {'statusIds': [item.prospectStatusId], 'title': item.statusName}),
+                          // onTap: () => context.pushNamed('pipeline', extra: {'statusIds': [item.prospectStatusId], 'title': item.statusName}),
+                          onTap: () {
+                            final now = DateTime.now();
+                            final today = DateTime(now.year, now.month, now.day);
+                            final fmt = DateFormat('yyyy-MM-dd');
+                            final defaultStart = fmt.format(DateTime(today.year - 1, today.month, today.day));
+                            final defaultEnd = fmt.format(today);
+                            context.go('/contact', extra: {
+                              'statusIds': [item.prospectStatusId],
+                              'startDate': item.startDate ?? defaultStart,
+                              'endDate': item.endDate ?? defaultEnd,
+                            });
+                          },
                           child: Container(
                           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                           decoration: BoxDecoration(

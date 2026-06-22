@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:progress_group/core/network/api_constants.dart';
 import 'package:progress_group/core/network/proxy_cipher.dart';
@@ -39,7 +40,17 @@ class _SiapHuniPageState extends State<SiapHuniPage> {
       ..setNavigationDelegate(NavigationDelegate(
         onPageStarted: (_) => setState(() => _pageLoading = true),
         onPageFinished: (_) => setState(() => _pageLoading = false),
-        onNavigationRequest: (_) => NavigationDecision.navigate,
+        onNavigationRequest: (request) {
+          final url = request.url;
+          debugPrint('[SiapHuni NAV] $url');
+          if (url.startsWith('whatsapp://') ||
+              url.contains('wa.me') ||
+              url.contains('api.whatsapp.com')) {
+            launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
+            return NavigationDecision.prevent;
+          }
+          return NavigationDecision.navigate;
+        },
       ))
       ..loadRequest(Uri.parse(url));
   }

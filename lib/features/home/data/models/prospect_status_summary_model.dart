@@ -7,6 +7,8 @@ class ProspectStatusItemModel extends ProspectStatusItemEntity {
     required super.statusName,
     required super.totalContacts,
     required super.totalDeals,
+    super.startDate,
+    super.endDate,
   });
 
   factory ProspectStatusItemModel.fromJson(Map<String, dynamic> json) {
@@ -16,6 +18,8 @@ class ProspectStatusItemModel extends ProspectStatusItemEntity {
       statusName: json['status_name'] as String,
       totalContacts: json['total_contacts'] as int,
       totalDeals: json['total_deals'] as int,
+      startDate: json['start_date'] as String?,
+      endDate: json['end_date'] as String?,
     );
   }
 }

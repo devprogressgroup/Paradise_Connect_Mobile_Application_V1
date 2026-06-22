@@ -111,8 +111,22 @@ class AppRouter {
             redirect: (context, state) =>
                 PermissionsHelper.canAccessContacts ? null : '/',
             builder: (context, state) {
-              final initialStatusIds = state.extra is List<int> ? state.extra as List<int> : null;
-              return ContactPage(initialStatusIds: initialStatusIds);
+              final extra = state.extra;
+              List<int>? initialStatusIds;
+              String? initialStartDate;
+              String? initialEndDate;
+              if (extra is Map<String, dynamic>) {
+                initialStatusIds = (extra['statusIds'] as List?)?.cast<int>();
+                initialStartDate = extra['startDate'] as String?;
+                initialEndDate = extra['endDate'] as String?;
+              } else if (extra is List<int>) {
+                initialStatusIds = extra;
+              }
+              return ContactPage(
+                initialStatusIds: initialStatusIds,
+                initialStartDate: initialStartDate,
+                initialEndDate: initialEndDate,
+              );
             },
             routes: [
               GoRoute(
@@ -245,6 +259,14 @@ class AppRouter {
                 path: 'approval',
                 name: 'approval',
                 builder: (context, state) => const ApprovalPage(),
+              ),
+              GoRoute(
+                name: 'attendanceOwnerDropdown',
+                path: 'owner-dropdown',
+                builder: (context, state) {
+                  final args = state.extra as ContactDropdownArgs;
+                  return DropdownListContact(args: args);
+                },
               ),
             ],
           ),

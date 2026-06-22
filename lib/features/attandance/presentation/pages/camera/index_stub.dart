@@ -743,7 +743,7 @@ class _WebSubmitPageState extends State<_WebSubmitPage> {
                                     }
                                     final items = locationList.map((e) => OwnerDropdownItem(id: e.id, name: e.name)).toList();
                                     final result = await context.pushNamed(
-                                      'detailContactDropdown',
+                                      'attendanceOwnerDropdown',
                                       extra: ContactDropdownArgs(title: 'Pilih Pameran', items: items, selectedId: _selectedPameranLocation?.id, isMultiSelect: false),
                                     );
                                     if (result != null) {

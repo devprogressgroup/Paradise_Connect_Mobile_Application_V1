@@ -1532,7 +1532,7 @@ class _AttandancePageState extends State<AttandancePage> {
 
               final currentIds = isAttendance ? _attendanceOwnerIds : _activityOwnerIds;
               final result = await context.pushNamed(
-                'detailContactDropdown',
+                'attendanceOwnerDropdown',
                 extra: ContactDropdownArgs(
                   title: 'Pilih User',
                   items: ownerItems,

@@ -414,6 +414,7 @@ class _MainLayoutState extends State<MainLayout> {
               //   ),
               // ),
               const Spacer(),
+               _buildDrawerItem(context, '', 'Info & Panduan', path: '/landing-page', index: 8, iconData: Icons.info),
               if (_pwaAvailable || _isIosSafariDevice)
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -437,8 +438,6 @@ class _MainLayoutState extends State<MainLayout> {
                     ),
                   ),
                 ),
-              
-              _buildDrawerItem(context, '', 'Info & Panduan', path: '/landing-page', index: 8, iconData: Icons.info),
               if (_pwaAvailable || _isIosSafariDevice) const SizedBox(height: 16),
               Padding(
                 padding: const EdgeInsets.symmetric( horizontal: 20),

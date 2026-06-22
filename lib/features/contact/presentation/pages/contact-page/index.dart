@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:progress_group/core/utils/helpers/permissions_helper.dart';
 import 'package:progress_group/core/utils/widget/shimmer_loading.dart';
 import 'package:go_router/go_router.dart';
@@ -35,7 +36,9 @@ import '../../../domain/entities/prospect/prospect_status.dart';
 
 class ContactPage extends StatefulWidget {
   final List<int>? initialStatusIds;
-  const ContactPage({super.key, this.initialStatusIds});
+  final String? initialStartDate;
+  final String? initialEndDate;
+  const ContactPage({super.key, this.initialStatusIds, this.initialStartDate, this.initialEndDate});
 
   @override
   State<ContactPage> createState() => _ContactPageState();
@@ -62,10 +65,19 @@ class _ContactPageState extends State<ContactPage> {
 
     _scrollController = ScrollController()..addListener(_onScroll);
 
+    if (widget.initialStartDate != null) {
+      selectedDateLabel = _resolveDateLabel(
+        widget.initialStartDate!,
+        widget.initialEndDate ?? widget.initialStartDate!,
+      );
+    }
+
     context.read<ContactBloc>().add(FetchContactsEvent(
       search: '',
       isRefresh: true,
       statusProspectIds: widget.initialStatusIds,
+      startDate: widget.initialStartDate,
+      endDate: widget.initialEndDate,
     ));
 
     context.read<ProspectStatusBloc>().add(FetchProspectStatusesEvent());
@@ -80,15 +92,24 @@ class _ContactPageState extends State<ContactPage> {
     super.didUpdateWidget(oldWidget);
     final newIds = widget.initialStatusIds;
     final oldIds = oldWidget.initialStatusIds;
-    final changed = newIds != null &&
+    final statusChanged = newIds != null &&
         newIds.isNotEmpty &&
         newIds.toString() != (oldIds ?? []).toString();
-    if (changed) {
+    if (statusChanged) {
       _searchController.clear();
+      final newLabel = widget.initialStartDate != null
+          ? _resolveDateLabel(
+              widget.initialStartDate!,
+              widget.initialEndDate ?? widget.initialStartDate!,
+            )
+          : null;
+      setState(() => selectedDateLabel = newLabel);
       context.read<ContactBloc>().add(FetchContactsEvent(
         search: '',
         isRefresh: true,
         statusProspectIds: newIds,
+        startDate: widget.initialStartDate,
+        endDate: widget.initialEndDate,
       ));
     }
   }
@@ -121,6 +142,36 @@ class _ContactPageState extends State<ContactPage> {
         context.read<ContactBloc>().add(const FetchContactsEvent());
       }
     }
+  }
+
+  String _resolveDateLabel(String startDate, String endDate) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final fmt = DateFormat('yyyy-MM-dd');
+    final yesterday = today.subtract(const Duration(days: 1));
+    final startOfWeek = today.subtract(Duration(days: today.weekday - 1));
+    final startOfLastWeek = startOfWeek.subtract(const Duration(days: 7));
+    final endOfLastWeek = startOfWeek.subtract(const Duration(days: 1));
+    final startOfMonth = DateTime(now.year, now.month, 1);
+    final startOfLastMonth = DateTime(now.year, now.month - 1, 1);
+    final endOfLastMonth = DateTime(now.year, now.month, 0);
+
+    final lastYearStart = DateTime(now.year - 1, now.month, now.day);
+
+    final presets = <List<String>>[
+      ['Today', fmt.format(today), fmt.format(today)],
+      ['Yesterday', fmt.format(yesterday), fmt.format(yesterday)],
+      ['This Week', fmt.format(startOfWeek), fmt.format(today)],
+      ['Last Week', fmt.format(startOfLastWeek), fmt.format(endOfLastWeek)],
+      ['This Month', fmt.format(startOfMonth), fmt.format(today)],
+      ['Last Month', fmt.format(startOfLastMonth), fmt.format(endOfLastMonth)],
+      ['Last 1 Year', fmt.format(lastYearStart), fmt.format(today)],
+    ];
+
+    for (final p in presets) {
+      if (p[1] == startDate && p[2] == endDate) return p[0];
+    }
+    return startDate == endDate ? startDate : '$startDate - $endDate';
   }
 
   String _normalizeSearch(String value) {
