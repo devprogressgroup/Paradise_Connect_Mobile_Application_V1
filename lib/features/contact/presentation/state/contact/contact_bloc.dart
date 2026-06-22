@@ -120,6 +120,7 @@ class ContactBloc extends Bloc<ContactEvent, ContactState> {
                 : [...state.contacts, ...response.data],
             hasReachedMax: isLastPage,
             currentPage: currentPage + 1,
+            totalContacts: response.total ?? state.totalContacts,
           ),
         );
       },

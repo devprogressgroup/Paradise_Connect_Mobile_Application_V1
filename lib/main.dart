@@ -108,6 +108,8 @@ import 'features/saleskit/domain/usecase/get_commercials_usecase.dart';
 import 'features/saleskit/domain/usecase/get_townships_saleskit_usecase.dart';
 import 'features/saleskit/domain/usecase/get_townships_usecase.dart';
 import 'features/saleskit/presentation/state/saleskit_detail/saleskit_detail_bloc.dart';
+import 'features/saleskit/presentation/state/saleskit_township/saleskit_township_bloc.dart';
+import 'features/saleskit/presentation/state/saleskit_township/saleskit_township_event.dart';
 import 'features/saleskit/presentation/state/township/township_bloc.dart';
 import 'features/saleskit/presentation/state/township/township_event.dart';
 import 'core/utils/theme.dart';
@@ -415,7 +417,8 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
             BlocProvider(create: (_) => PameranAktifCubit(contactRepository)),
             BlocProvider(create: (_) => LandingPageCubit(getLandingPageUrlUseCase)..fetchUrl()),
             BlocProvider(create: (_) => SiteplanBloc(siteplanRepository)..add(LoadSiteplanEvent())),
-            BlocProvider(create: (_) => TownshipBloc(getTownshipsUseCase, getTownshipsSalesKitUseCase)..add(GetTownshipsEvent())),
+            BlocProvider(create: (_) => TownshipBloc(getTownshipsUseCase)..add(GetTownshipsEvent())),
+            BlocProvider(create: (_) => SalesKitTownshipBloc(getTownshipsSalesKitUseCase)..add(GetSalesKitTownshipsEvent())),
             BlocProvider(create: (_) => SalesKitDetailBloc(getClustersUseCase: getClustersUseCase, getCommercialsUseCase: getCommercialsUseCase)),
           ],
           child: MultiBlocListener(

@@ -224,7 +224,7 @@ class _MainLayoutState extends State<MainLayout> {
                     if (location == '/')
                       Positioned(
                         left: 20,
-                        top: 0,
+                        top: 10,
                         bottom: 0,
                         width: 40,
                         child: GestureDetector(

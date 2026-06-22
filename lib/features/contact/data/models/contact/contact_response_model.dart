@@ -13,6 +13,7 @@ class ContactResponseModel extends ContactResponse {
     super.perPage,
     super.prevPageUrl,
     super.to,
+    super.total,
   });
 
   factory ContactResponseModel.fromJson(Map<String, dynamic> json) {
@@ -30,6 +31,7 @@ class ContactResponseModel extends ContactResponse {
       perPage: json['per_page']?.toString(),
       prevPageUrl: json['prev_page_url'],
       to: json['to'] != null ? int.tryParse(json['to'].toString()) : null,
+      total: json['total'] != null ? int.tryParse(json['total'].toString()) : null,
     );
   }
 }

@@ -12,9 +12,9 @@ import 'package:progress_group/features/saleskit/domain/entities/township_entity
 import 'package:progress_group/features/saleskit/presentation/state/saleskit_detail/saleskit_detail_bloc.dart';
 import 'package:progress_group/features/saleskit/presentation/state/saleskit_detail/saleskit_detail_event.dart';
 import 'package:progress_group/features/saleskit/presentation/state/saleskit_detail/saleskit_detail_state.dart';
-import 'package:progress_group/features/saleskit/presentation/state/township/township_bloc.dart';
-import 'package:progress_group/features/saleskit/presentation/state/township/township_event.dart';
-import 'package:progress_group/features/saleskit/presentation/state/township/township_state.dart';
+import 'package:progress_group/features/saleskit/presentation/state/saleskit_township/saleskit_township_bloc.dart';
+import 'package:progress_group/features/saleskit/presentation/state/saleskit_township/saleskit_township_event.dart';
+import 'package:progress_group/features/saleskit/presentation/state/saleskit_township/saleskit_township_state.dart';
 
 import '../../../../core/utils/widget/webview_page.dart';
 
@@ -408,10 +408,10 @@ class _SalesKitPageState extends State<SalesKitPage> {
   }
 
   Widget _builSalsesKitScreen() {
-    return BlocConsumer<TownshipBloc, TownshipState>(
+    return BlocConsumer<SalesKitTownshipBloc, SalesKitTownshipState>(
       listener: (context, state) {
-        if (state is TownshipError) {
-          debugPrint('TownshipError: ${state.message}');
+        if (state is SalesKitTownshipError) {
+          debugPrint('SalesKitTownshipError: ${state.message}');
         }
       },
       builder: (context, state) {
@@ -423,7 +423,7 @@ class _SalesKitPageState extends State<SalesKitPage> {
               child: RefreshIndicator(
                 onRefresh: () async {
                   context.read<AuthBloc>().add(FetchPermissionsEvent());
-                  context.read<TownshipBloc>().add(GetTownshipsSalesKitEvent());
+                  context.read<SalesKitTownshipBloc>().add(GetSalesKitTownshipsEvent());
                 },
                 child: _buildTownshipContent(state),
               ),
@@ -434,8 +434,8 @@ class _SalesKitPageState extends State<SalesKitPage> {
     );
   }
 
-  Widget _buildTownshipContent(TownshipState state) {
-    if (state is TownshipLoading) {
+  Widget _buildTownshipContent(SalesKitTownshipState state) {
+    if (state is SalesKitTownshipLoading) {
       return SingleChildScrollView(
         physics: const NeverScrollableScrollPhysics(),
         padding: const EdgeInsets.symmetric(horizontal: 16.0),
@@ -446,7 +446,7 @@ class _SalesKitPageState extends State<SalesKitPage> {
       );
     }
 
-    if (state is TownshipError) {
+    if (state is SalesKitTownshipError) {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -455,7 +455,7 @@ class _SalesKitPageState extends State<SalesKitPage> {
             SizedBox(height: 12),
             ElevatedButton(
               onPressed: () =>
-                  context.read<TownshipBloc>().add(GetTownshipsSalesKitEvent()),
+                  context.read<SalesKitTownshipBloc>().add(GetSalesKitTownshipsEvent()),
               child: const Text("Coba Lagi"),
             ),
           ],
@@ -463,7 +463,7 @@ class _SalesKitPageState extends State<SalesKitPage> {
       );
     }
 
-    final townships = state is TownshipLoaded
+    final townships = state is SalesKitTownshipLoaded
         ? state.townships
         : <TownshipEntity>[];
 

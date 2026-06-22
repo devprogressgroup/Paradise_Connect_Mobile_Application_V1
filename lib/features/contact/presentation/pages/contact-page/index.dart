@@ -596,7 +596,20 @@ class _ContactPageState extends State<ContactPage> {
                                   },
                                 ),
                               ),
-
+                                Padding(
+                                  padding: const EdgeInsets.only(top: 8, bottom: 4),
+                                  child: Align(
+                                    alignment: Alignment.centerLeft,
+                                    child: Text(
+                                      'Total: ${state.totalContacts} contacts',
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        color: Color(grey5Color),
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ),
+                                ),
                               Expanded(
                                 child: Builder(
                                   builder: (context) {

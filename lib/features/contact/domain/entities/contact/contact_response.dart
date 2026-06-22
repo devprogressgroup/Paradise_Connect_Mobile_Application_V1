@@ -12,6 +12,7 @@ class ContactResponse extends Equatable {
   final String? perPage;
   final String? prevPageUrl;
   final int? to;
+  final int? total;
 
   const ContactResponse({
     required this.currentPage,
@@ -24,6 +25,7 @@ class ContactResponse extends Equatable {
     this.perPage,
     this.prevPageUrl,
     this.to,
+    this.total,
   });
 
   @override
@@ -38,5 +40,6 @@ class ContactResponse extends Equatable {
         perPage,
         prevPageUrl,
         to,
+        total,
       ];
 }

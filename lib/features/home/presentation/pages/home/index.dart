@@ -632,8 +632,8 @@ class _HomePageState extends State<HomePage> {
                             final defaultEnd = fmt.format(today);
                             context.go('/contact', extra: {
                               'statusIds': [item.prospectStatusId],
-                              'startDate': item.startDate ?? defaultStart,
-                              'endDate': item.endDate ?? defaultEnd,
+                              'startDate': _prospectStartDate ?? defaultStart,
+                              'endDate': _prospectEndDate ?? defaultEnd,
                             });
                           },
                           child: Container(

@@ -35,6 +35,7 @@ class ContactState extends Equatable {
   final String? reserveEndDate;
   final String? spStartDate;
   final String? spEndDate;
+  final int? totalContacts;
 
   const ContactState({
     this.status = ContactStatus.initial,
@@ -56,6 +57,7 @@ class ContactState extends Equatable {
     this.reserveEndDate,
     this.spStartDate,
     this.spEndDate,
+    this.totalContacts,
   });
 
   ContactState copyWith({
@@ -86,6 +88,7 @@ class ContactState extends Equatable {
     bool clearVisitDates = false,
     bool clearReserveDates = false,
     bool clearSpDates = false,
+    int? totalContacts,
   }) {
     return ContactState(
       status: status ?? this.status,
@@ -107,6 +110,7 @@ class ContactState extends Equatable {
       reserveEndDate: clearReserveDates ? null : (reserveEndDate ?? this.reserveEndDate),
       spStartDate: clearSpDates ? null : (spStartDate ?? this.spStartDate),
       spEndDate: clearSpDates ? null : (spEndDate ?? this.spEndDate),
+      totalContacts: totalContacts ?? this.totalContacts,
     );
   }
 
@@ -131,5 +135,6 @@ class ContactState extends Equatable {
     reserveEndDate,
     spStartDate,
     spEndDate,
+    totalContacts,
   ];
 }
