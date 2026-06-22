@@ -423,7 +423,7 @@ class _SalesKitPageState extends State<SalesKitPage> {
               child: RefreshIndicator(
                 onRefresh: () async {
                   context.read<AuthBloc>().add(FetchPermissionsEvent());
-                  context.read<TownshipBloc>().add(GetTownshipsEvent());
+                  context.read<TownshipBloc>().add(GetTownshipsSalesKitEvent());
                 },
                 child: _buildTownshipContent(state),
               ),
@@ -455,7 +455,7 @@ class _SalesKitPageState extends State<SalesKitPage> {
             SizedBox(height: 12),
             ElevatedButton(
               onPressed: () =>
-                  context.read<TownshipBloc>().add(GetTownshipsEvent()),
+                  context.read<TownshipBloc>().add(GetTownshipsSalesKitEvent()),
               child: const Text("Coba Lagi"),
             ),
           ],

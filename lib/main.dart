@@ -105,6 +105,7 @@ import 'features/site-plan/presentation/state/siteplan_event.dart';
 import 'features/saleskit/domain/repositories/saleskit_repository.dart';
 import 'features/saleskit/domain/usecase/get_clusters_usecase.dart';
 import 'features/saleskit/domain/usecase/get_commercials_usecase.dart';
+import 'features/saleskit/domain/usecase/get_townships_saleskit_usecase.dart';
 import 'features/saleskit/domain/usecase/get_townships_usecase.dart';
 import 'features/saleskit/presentation/state/saleskit_detail/saleskit_detail_bloc.dart';
 import 'features/saleskit/presentation/state/township/township_bloc.dart';
@@ -351,6 +352,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     final salesKitRemoteDataSource = SalesKitRemoteDataSourceImpl(dioClient.dio);
     final salesKitRepository = SalesKitRepositoryImpl(salesKitRemoteDataSource);
     final getTownshipsUseCase = GetTownshipsUseCase(salesKitRepository);
+    final getTownshipsSalesKitUseCase = GetTownshipsSalesKitUseCase(salesKitRepository);
     final getClustersUseCase = GetClustersUseCase(salesKitRepository);
     final getCommercialsUseCase = GetCommercialsUseCase(salesKitRepository);
 
@@ -413,7 +415,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
             BlocProvider(create: (_) => PameranAktifCubit(contactRepository)),
             BlocProvider(create: (_) => LandingPageCubit(getLandingPageUrlUseCase)..fetchUrl()),
             BlocProvider(create: (_) => SiteplanBloc(siteplanRepository)..add(LoadSiteplanEvent())),
-            BlocProvider(create: (_) => TownshipBloc(getTownshipsUseCase)..add(GetTownshipsEvent())),
+            BlocProvider(create: (_) => TownshipBloc(getTownshipsUseCase, getTownshipsSalesKitUseCase)..add(GetTownshipsEvent())),
             BlocProvider(create: (_) => SalesKitDetailBloc(getClustersUseCase: getClustersUseCase, getCommercialsUseCase: getCommercialsUseCase)),
           ],
           child: MultiBlocListener(

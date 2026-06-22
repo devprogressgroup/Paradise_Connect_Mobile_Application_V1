@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 
 abstract class SalesKitRemoteDataSource {
   Future<List<Map<String, dynamic>>> getTownships();
+  Future<List<Map<String, dynamic>>> getTownshipsSalesKit();
   Future<List<Map<String, dynamic>>> getClusters(int townshipId);
   Future<List<Map<String, dynamic>>> getCommercials(int townshipId);
 }
@@ -21,6 +22,20 @@ class SalesKitRemoteDataSourceImpl implements SalesKitRemoteDataSource {
       throw Exception(data['message'] ?? 'Gagal mengambil data township');
     } on DioException catch (e) {
       throw Exception(e.response?.data?['message'] ?? 'Gagal mengambil data township');
+    }
+  }
+
+  @override
+  Future<List<Map<String, dynamic>>> getTownshipsSalesKit() async {
+    try {
+      final response = await dio.get('/property/townships/saleskit');
+      final data = response.data;
+      if (data['status'] == true) {
+        return List<Map<String, dynamic>>.from(data['data']);
+      }
+      throw Exception(data['message'] ?? 'Gagal mengambil data township saleskit');
+    } on DioException catch (e) {
+      throw Exception(e.response?.data?['message'] ?? 'Gagal mengambil data township saleskit');
     }
   }
 
