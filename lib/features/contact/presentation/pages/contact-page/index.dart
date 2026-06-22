@@ -708,7 +708,7 @@ Widget _buildListContacts(BuildContext context, ContactEntity contact) {
                     children: [
                       Text(contact.fullName ?? 'No Name',style: TextStyle(fontSize: 16, color: Color(blue2Color), fontWeight: FontWeight.bold),overflow: TextOverflow.ellipsis),
                       Text(contact.whatsappNumber != null ? _normalizePhone(contact.whatsappNumber!) : 'No Phone',style: TextStyle(fontSize: 14, color: Color(grey5Color)),overflow: TextOverflow.ellipsis),
-                      Text(contact.ownerName ??'-',style: TextStyle(fontSize: 12, color: Color(grey5Color)),overflow: TextOverflow.ellipsis),
+                      Text(contact.ownerName ??'No Owner',style: TextStyle(fontSize: 12, color: Color(grey5Color)),overflow: TextOverflow.ellipsis),
                     ],
                   ),
                 ),
