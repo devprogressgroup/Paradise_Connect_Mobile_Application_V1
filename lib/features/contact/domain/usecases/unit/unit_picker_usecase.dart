@@ -14,6 +14,6 @@ class GetUnitLotsUseCase {
   final ContactRepository repository;
   GetUnitLotsUseCase(this.repository);
 
-  Future<Either<String, List<UnitLot>>> call({required int productId, String? search}) =>
-      repository.getUnitLots(productId: productId, search: search);
+  Future<Either<String, List<UnitLot>>> call({required int productId, int? townshipId, int? companyId, String? search}) =>
+      repository.getUnitLots(productId: productId, townshipId: townshipId, companyId: companyId, search: search);
 }

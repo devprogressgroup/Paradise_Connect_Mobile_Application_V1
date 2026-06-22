@@ -3,17 +3,23 @@
 
 class UnitCluster {
   final int projectId; // m_project.project_id (→ FK cluster_id)
+  final int companyId; // m_project.company_id — disambiguasi multi-company (1 township bisa >1 company)
+  final int townshipId;
   final String projectName;
   final List<UnitProduct> products;
 
   const UnitCluster({
     required this.projectId,
+    this.companyId = 0,
+    this.townshipId = 0,
     required this.projectName,
     this.products = const [],
   });
 
   factory UnitCluster.fromJson(Map<String, dynamic> j) => UnitCluster(
         projectId: j['project_id'] ?? 0,
+        companyId: j['company_id'] ?? 0,
+        townshipId: j['township_id'] ?? 0,
         projectName: (j['project_name'] ?? '').toString(),
         products: ((j['products'] as List?) ?? const [])
             .map((e) => UnitProduct.fromJson(e as Map<String, dynamic>))
@@ -23,6 +29,8 @@ class UnitCluster {
 
 class UnitProduct {
   final int productId; // m_product.product_id
+  final int companyId; // m_product.company_id — dibawa ke request LOTS + payload unit (multi-company)
+  final int townshipId;
   final String? productName;
   final String displayName;
   final String? spec; // mis. "LB 80m²"
@@ -34,6 +42,8 @@ class UnitProduct {
 
   const UnitProduct({
     required this.productId,
+    this.companyId = 0,
+    this.townshipId = 0,
     this.productName,
     required this.displayName,
     this.spec,
@@ -46,6 +56,8 @@ class UnitProduct {
 
   factory UnitProduct.fromJson(Map<String, dynamic> j) => UnitProduct(
         productId: j['product_id'] ?? 0,
+        companyId: j['company_id'] ?? 0,
+        townshipId: j['township_id'] ?? 0,
         productName: j['product_name']?.toString(),
         displayName: (j['display_name'] ?? j['product_name'] ?? '').toString(),
         spec: j['spec']?.toString(),
@@ -87,6 +99,7 @@ class UnitLot {
 // Hasil pilihan picker yang dikembalikan ke form (1 item = 1 unit = 1 deal).
 class SelectedUnit {
   final int townshipId; // → FK project_id
+  final int companyId; // m_*.company_id — disambiguasi multi-company; dikirim ke backend utk lookup tepat
   final int clusterId; // m_project.project_id → FK cluster_id
   final String clusterName;
   final int? productId; // m_product.product_id
@@ -98,6 +111,7 @@ class SelectedUnit {
 
   const SelectedUnit({
     required this.townshipId,
+    this.companyId = 0,
     required this.clusterId,
     required this.clusterName,
     this.productId,
@@ -118,6 +132,7 @@ class SelectedUnit {
   // Parse dari response detail kontak (key `units`) — untuk About + prefill Edit.
   factory SelectedUnit.fromContactJson(Map<String, dynamic> j) => SelectedUnit(
         townshipId: j['township_id'] ?? 0,
+        companyId: j['company_id'] ?? 0,
         clusterId: j['cluster_id'] ?? 0,
         clusterName: (j['cluster_name'] ?? '').toString(),
         productId: j['product_id'],
@@ -147,6 +162,7 @@ class SelectedUnit {
 
   Map<String, dynamic> toApiJson() => {
         'township_id': townshipId,
+        'company_id': companyId, // backend pakai utk lookup unit yang tepat (multi-company)
         'cluster_id': clusterId,
         'product_id': productId,
         'property_id': propertyId,

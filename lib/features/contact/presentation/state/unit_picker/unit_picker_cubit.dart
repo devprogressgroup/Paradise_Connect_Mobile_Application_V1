@@ -42,28 +42,39 @@ class UnitPickerCubit extends Cubit<UnitPickerState> {
     emit(state.copyWith(expandedClusters: s));
   }
 
-  Future<void> toggleProduct(int productId) async {
-    final s = Set<int>.from(state.expandedProducts);
-    if (s.contains(productId)) {
-      s.remove(productId);
+  /// Key produk KOMPOSIT (company|product) — cegah bentrok product_id sama beda company dlm 1 township.
+  static String productKey(UnitProduct p) => '${p.companyId}|${p.productId}';
+
+  Future<void> toggleProduct(UnitProduct product) async {
+    final key = productKey(product);
+    final s = Set<String>.from(state.expandedProducts);
+    if (s.contains(key)) {
+      s.remove(key);
       emit(state.copyWith(expandedProducts: s));
       return;
     }
-    s.add(productId);
+    s.add(key);
     emit(state.copyWith(expandedProducts: s));
-    if (!state.lotsByProduct.containsKey(productId)) {
-      await loadLots(productId);
+    if (!state.lotsByProduct.containsKey(key)) {
+      await loadLots(product);
     }
   }
 
-  Future<void> loadLots(int productId) async {
-    emit(state.copyWith(loadingProductIds: {...state.loadingProductIds, productId}));
-    final res = await getLots(productId: productId);
-    final done = Set<int>.from(state.loadingProductIds)..remove(productId);
+  Future<void> loadLots(UnitProduct product) async {
+    final key = productKey(product);
+    emit(state.copyWith(loadingProductIds: {...state.loadingProductIds, key}));
+    // Multi-company: LOTS WAJIB di-scope (township + company) — tanpa ini hasil meledak/lintas-company.
+    final res = await getLots(
+      productId: product.productId,
+      townshipId: product.townshipId != 0 ? product.townshipId : _townshipId,
+      companyId: product.companyId,
+      search: null,
+    );
+    final done = Set<String>.from(state.loadingProductIds)..remove(key);
     res.fold(
       (f) => emit(state.copyWith(loadingProductIds: done, errorMessage: f)),
       (lots) {
-        final map = Map<int, List<UnitLot>>.from(state.lotsByProduct)..[productId] = lots;
+        final map = Map<String, List<UnitLot>>.from(state.lotsByProduct)..[key] = lots;
         emit(state.copyWith(lotsByProduct: map, loadingProductIds: done));
       },
     );
@@ -79,8 +90,10 @@ class UnitPickerCubit extends Cubit<UnitPickerState> {
     emit(state.copyWith(selected: m));
   }
 
+  // company unit = company cluster (m_project.company_id) — dikirim ke backend utk lookup tepat (multi-company).
   void toggleLot(UnitCluster cluster, UnitProduct product, UnitLot lot) => _toggle(SelectedUnit(
-        townshipId: _townshipId,
+        townshipId: cluster.townshipId != 0 ? cluster.townshipId : _townshipId,
+        companyId: cluster.companyId,
         clusterId: cluster.projectId,
         clusterName: cluster.projectName,
         productId: product.productId,
@@ -91,7 +104,8 @@ class UnitPickerCubit extends Cubit<UnitPickerState> {
       ));
 
   void toggleWaiting(UnitCluster cluster, UnitProduct product) => _toggle(SelectedUnit(
-        townshipId: _townshipId,
+        townshipId: cluster.townshipId != 0 ? cluster.townshipId : _townshipId,
+        companyId: cluster.companyId,
         clusterId: cluster.projectId,
         clusterName: cluster.projectName,
         productId: product.productId,
@@ -100,7 +114,8 @@ class UnitPickerCubit extends Cubit<UnitPickerState> {
       ));
 
   void toggleUndecided(UnitCluster cluster, UnitProduct product) => _toggle(SelectedUnit(
-        townshipId: _townshipId,
+        townshipId: cluster.townshipId != 0 ? cluster.townshipId : _townshipId,
+        companyId: cluster.companyId,
         clusterId: cluster.projectId,
         clusterName: cluster.projectName,
         productId: product.productId,

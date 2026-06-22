@@ -68,7 +68,7 @@ abstract class ContactRemoteDataSource {
 
   // Unit Picker (Model A) — inventory paradiseconnect.
   Future<List<UnitCluster>> getUnitHierarchy({required int townshipId, String? search});
-  Future<List<UnitLot>> getUnitLots({required int productId, String? search});
+  Future<List<UnitLot>> getUnitLots({required int productId, int? townshipId, int? companyId, String? search});
   Future<List<PameranAktifModel>> getPameranAktif();
   Future<List<String>> getProductTypes();
 }
@@ -617,10 +617,13 @@ class ContactRemoteDataSourceImpl implements ContactRemoteDataSource {
   }
 
   @override
-  Future<List<UnitLot>> getUnitLots({required int productId, String? search}) async {
+  Future<List<UnitLot>> getUnitLots({required int productId, int? townshipId, int? companyId, String? search}) async {
     try {
       final response = await dio.get('/property/units/hierarchy', queryParameters: {
         'product_id': productId,
+        // Multi-company: WAJIB kirim township + company → backend scope LOTS ke unit company yang benar.
+        if ((townshipId ?? 0) != 0) 'township_id': townshipId,
+        if ((companyId ?? 0) != 0) 'company_id': companyId,
         if (search != null && search.isNotEmpty) 'search': search,
       });
       if (response.data['status'] == true) {

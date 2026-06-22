@@ -213,12 +213,14 @@ class _UnitPickerScreenState extends State<UnitPickerScreen> {
   }
 
   List<Widget> _productTile(UnitPickerCubit cubit, UnitPickerState state, UnitCluster cluster, UnitProduct product) {
-    final expanded = state.expandedProducts.contains(product.productId);
-    final loadingLots = state.loadingProductIds.contains(product.productId);
-    final lots = state.lotsByProduct[product.productId] ?? const [];
+    // Key produk KOMPOSIT (company|product) — cegah bentrok product_id sama beda company dlm 1 township.
+    final pkey = UnitPickerCubit.productKey(product);
+    final expanded = state.expandedProducts.contains(pkey);
+    final loadingLots = state.loadingProductIds.contains(pkey);
+    final lots = state.lotsByProduct[pkey] ?? const [];
     return [
       InkWell(
-        onTap: () => cubit.toggleProduct(product.productId),
+        onTap: () => cubit.toggleProduct(product),
         child: Container(
           color: const Color(0xFFF7FAFE),
           padding: const EdgeInsets.fromLTRB(36, 11, 14, 11),

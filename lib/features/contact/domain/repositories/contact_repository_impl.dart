@@ -288,9 +288,9 @@ class ContactRepositoryImpl implements ContactRepository {
   }
 
   @override
-  Future<Either<String, List<UnitLot>>> getUnitLots({required int productId, String? search}) async {
+  Future<Either<String, List<UnitLot>>> getUnitLots({required int productId, int? townshipId, int? companyId, String? search}) async {
     try {
-      return Right(await remoteDataSource.getUnitLots(productId: productId, search: search));
+      return Right(await remoteDataSource.getUnitLots(productId: productId, townshipId: townshipId, companyId: companyId, search: search));
     } catch (e) {
       return Left(e.toString());
     }
