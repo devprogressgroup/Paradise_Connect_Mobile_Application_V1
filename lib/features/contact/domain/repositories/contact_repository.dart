@@ -42,7 +42,7 @@ abstract class ContactRepository {
   Future<Either<String, List<PropertyUnitCluster>>> getPropertyUnits({required int townshipId});
   Future<Either<String, List<PropertyUnitCluster>>> getPropertyCommercialUnits({required int townshipId});
   Future<Either<String, List<UnitCluster>>> getUnitHierarchy({required int townshipId, String? search});
-  Future<Either<String, List<UnitLot>>> getUnitLots({required int productId, String? search});
+  Future<Either<String, List<UnitLot>>> getUnitLots({required int productId, int? townshipId, int? companyId, String? search});
   Future<Either<String, List<PameranAktifEntity>>> getPameranAktif();
   Future<Either<String, List<String>>> getProductTypes();
 }

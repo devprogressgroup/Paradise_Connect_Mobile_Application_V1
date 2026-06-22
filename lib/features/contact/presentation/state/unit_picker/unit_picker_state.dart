@@ -6,10 +6,11 @@ enum UnitPickerStatus { initial, loading, loaded, error }
 class UnitPickerState extends Equatable {
   final UnitPickerStatus status;
   final List<UnitCluster> clusters;
-  final Map<int, List<UnitLot>> lotsByProduct; // productId → kavling (lazy)
-  final Set<int> loadingProductIds; // produk yang lots-nya sedang dimuat
-  final Set<int> expandedClusters;
-  final Set<int> expandedProducts;
+  // Key produk = "companyId|productId" (KOMPOSIT) — 1 township bisa punya product_id sama beda company.
+  final Map<String, List<UnitLot>> lotsByProduct; // key produk → kavling (lazy)
+  final Set<String> loadingProductIds; // key produk yang lots-nya sedang dimuat
+  final Set<int> expandedClusters; // projectId (unik per township → aman pakai int)
+  final Set<String> expandedProducts; // key produk komposit
   final Map<String, SelectedUnit> selected; // key → unit terpilih
   final String search;
   final String? errorMessage;
@@ -29,10 +30,10 @@ class UnitPickerState extends Equatable {
   UnitPickerState copyWith({
     UnitPickerStatus? status,
     List<UnitCluster>? clusters,
-    Map<int, List<UnitLot>>? lotsByProduct,
-    Set<int>? loadingProductIds,
+    Map<String, List<UnitLot>>? lotsByProduct,
+    Set<String>? loadingProductIds,
     Set<int>? expandedClusters,
-    Set<int>? expandedProducts,
+    Set<String>? expandedProducts,
     Map<String, SelectedUnit>? selected,
     String? search,
     String? errorMessage,
