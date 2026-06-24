@@ -14,7 +14,7 @@ class LandingPageCubit extends Cubit<LandingPageState> {
     try {
       final url = await getLandingPageUrlUseCase();
       final result = _injectUserParams(_ensureProtocol(url), username, roleName);
-      // debugPrint('[LandingPage] URL: $result');
+      debugPrint('[LandingPage] URL: $result');
       emit(LandingPageLoaded(result));
     } catch (e) {
       emit(LandingPageError(cleanErrorMessage(e)));

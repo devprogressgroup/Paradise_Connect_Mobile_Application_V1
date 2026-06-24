@@ -2371,7 +2371,7 @@ class _AttandancePageState extends State<AttandancePage> {
     final dt = raw != null ? DateTime.tryParse(raw) : null;
 
     return Expanded(
-      child: image != null && flagParam != 6
+      child: dt != null && flagParam != 6
           ? GestureDetector(
               onTap: () { if (attendance != null) _showAttendanceDialog(attendance, flagParam); },
               child: Padding(
@@ -2380,12 +2380,22 @@ class _AttandancePageState extends State<AttandancePage> {
                 children: [
                   ClipRRect(
                     borderRadius: BorderRadius.circular(8),
-                    child: DriveImage(
-                      url: image,
-                      width: 200,
-                      height: 200,
-                      fit: BoxFit.cover,
-                    ),
+                    child: image != null
+                        ? DriveImage(
+                            url: image,
+                            width: 200,
+                            height: 200,
+                            fit: BoxFit.cover,
+                          )
+                        : Container(
+                            width: 200,
+                            height: 200,
+                            decoration: BoxDecoration(
+                              color: Color(primaryColor).withValues(alpha: 0.08),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Icon(Icons.punch_clock, size: 80, color: Color(primaryColor).withValues(alpha: 0.4)),
+                          ),
                   ),
                   Positioned.fill(
                     top: 123,
@@ -2403,12 +2413,12 @@ class _AttandancePageState extends State<AttandancePage> {
                           Row(children: [
                             Icon(Icons.access_time_filled, color: flagParam == 0 ? Color(greenPercentColor) : Color(redPeriodColor), size: 10),
                             const SizedBox(width: 6),
-                            Text(dt != null ? DateHelper.formatTime(dt) : '-', style: const TextStyle(color: Colors.white, fontSize: 10)),
+                            Text(DateHelper.formatTime(dt), style: const TextStyle(color: Colors.white, fontSize: 10)),
                           ]),
                           Row(children: [
                             Icon(Icons.calendar_today_sharp, color: Color(primaryColor), size: 10),
                             const SizedBox(width: 6),
-                            Text(dt != null ? DateHelper.formatDate(dt) : DateHelper.formatDate(DateTime.now()), style: const TextStyle(color: Colors.white, fontSize: 10)),
+                            Text(DateHelper.formatDate(dt), style: const TextStyle(color: Colors.white, fontSize: 10)),
                           ]),
                           Row(children: [
                             Icon(Icons.location_on, color: Color(primaryColor), size: 10),
