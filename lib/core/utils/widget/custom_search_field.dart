@@ -21,7 +21,7 @@ Widget customSearchField({
         hintStyle: TextStyle(fontSize: 14,fontWeight: FontWeight.w400,color: Color(grey4Color)),
         filled: true,
         fillColor: Color(whiteColor),
-        prefixIcon: Image.asset(icNavSearch),
+        prefixIcon: Image.asset(icSearch),
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(14),borderSide: BorderSide(color: Color(grey8Color),width: 1)),
         enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14),borderSide: BorderSide(color: Color(grey8Color),width: 1)),
         focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14),borderSide: BorderSide(color: Color(primaryColor),width: 1.5)),

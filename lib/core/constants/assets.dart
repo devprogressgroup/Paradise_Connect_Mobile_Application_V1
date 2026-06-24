@@ -2,11 +2,9 @@ const String logoSplasShcreen ='assets/img/logo-splashscreen.png';
 const String logoSplasShcreenGif ='assets/img/logo-splas-screen.gif';
 
 
-const String icHomeDashboard = "assets/img/ic-home-dashboard.png";
-const String icCalendar = "assets/img/ic-calendar.png";
-
 const String icNavHome = "assets/img/ic-nav-home.png";
-const String icNavSearch = "assets/img/ic-nav-search.png";
+const String icNavAttendance = 'assets/img/ic-nav-attendance.png';
+
 
 const String icSidebarDashboard = "assets/img/ic-sidebar-dashboard.png";
 const String icSidebarContacts = "assets/img/ic-sidebar-contact.png";
@@ -14,7 +12,6 @@ const String icSidebarInbox = "assets/img/ic-sidebar-inbox.png";
 const String icSidebarSitePlan = "assets/img/ic-sidebar-inventory.png";
 const String icSidebarSalesKit = "assets/img/ic-sidebar-saleskit.png";
 const String icSidebarChatSA = "assets/img/ic-sidebar-chat-sa.png";
-const String icSidebarAttandance = "assets/img/ic-sidebar-attandance.png";
 
 const String icContactDetailPhone = 'assets/img/ic-contact-detail-phone.png';
 const String icContactDetailWA = 'assets/img/ic-contact-detail-wa.png';
@@ -33,5 +30,8 @@ const String icEBrouchure = 'assets/img/ic-ebrochre.png';
 const String icFilter = 'assets/img/ic-filter.png';
 const String icPerson = 'assets/img/ic-person.png';
 const String icQR = 'assets/img/ic-qr.png';
-const String icNavActivity = 'assets/img/ic-nav-activiy.png';
+const String icSearch = "assets/img/ic-search.png";
+const String icCalendar = "assets/img/ic-calendar.png";
+
+
 
