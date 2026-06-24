@@ -1348,9 +1348,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
       // Reserve dates — kirim hanya jika status reserve
       reserveDate:      isReserve ? _toBackendDate(dateOr(reserveDateTC.text)) : null,
       lastReserveDate:  isReserve ? _toBackendDate(dateOr(reserveDateTC.text)) : null,
-      firstReserveDate: isReserve && firstReserveEmpty
-          ? _toBackendDate(dateOr(firstReserveDateTC.text.isNotEmpty ? firstReserveDateTC.text : reserveDateTC.text))
-          : null,
+      firstReserveDate: isReserve && firstReserveEmpty? _toBackendDate(dateOr(firstReserveDateTC.text.isNotEmpty ? firstReserveDateTC.text : reserveDateTC.text)): null,
 
       // SP dates — kirim hanya jika status SP
       lastSPDate:  isSP ? _toBackendDate(dateOr(lspTC.text)) : null,
@@ -1358,9 +1356,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
 
       // Akad dates — hanya dikirim saat edit
       lastAkadDate:  isUpdate ? _toBackendDate(lakadTC.text) : null,
-      firstAkadDate: isUpdate && (existing?.firstAkadDate == null || (existing!.firstAkadDate?.isEmpty ?? true))
-          ? _toBackendDate(fakadTC.text)
-          : null,
+      firstAkadDate: isUpdate && (existing?.firstAkadDate == null || (existing!.firstAkadDate?.isEmpty ?? true))? _toBackendDate(fakadTC.text): null,
 
       // Lost dates — kirim hanya jika status lost
       lostDate:     isLost ? _toBackendDate(dateOr(lastLostDateTC.text)) : null,
@@ -1375,18 +1371,10 @@ class _ContactFormPageState extends State<ContactFormPage> {
       propertiesJson: propertiesJson.isNotEmpty ? propertiesJson : null,
       periodePameranDate: _pameranIds.contains(selectedSource1Id) ? _periodePameranDateBackend : null,
       // Model A: kirim units HANYA saat CREATE (page 0). Pada EDIT di-omit agar updateContact tak reconcile/Lost deal lama.
-      units: ((widget.args.page == 0 && _selectedUnits.isNotEmpty) || (widget.args.page != 0 && _unitsTouched))
-          ? _selectedUnits.map((u) => u.toApiJson()).toList()
-          : null,
+      units: ((widget.args.page == 0 && _selectedUnits.isNotEmpty) || (widget.args.page != 0 && _unitsTouched)) ? _selectedUnits.map((u) => u.toApiJson()).toList() : null,
     );
-    // debugPrint('=== SAVE PARAMS ===');
-    // debugPrint('ownerId: ${params.ownerId}');
-    // debugPrint('salesExecutiveId: ${params.salesExecutiveId}');
-    // debugPrint('salesManagerId: ${params.salesManagerId}');
-    // debugPrint('salesSupervisorId: ${params.salesSupervisorId}');
-    // debugPrint('salesGeneralManagerId: ${params.salesGeneralManagerId}');
-    // debugPrint('salesTeamId: ${params.salesTeamId}');
-    // debugPrint('===================');
+
+    debugPrint("Param: ${params.toJson()}");
 
     setState(() => _isSaving = true);
     if (isUpdate) {
@@ -1910,14 +1898,8 @@ class _ContactFormPageState extends State<ContactFormPage> {
                             Builder(builder: (context) {
                               final ps = context.watch<PameranAktifCubit>().state;
                               final list = ps is PameranAktifLoaded ? ps.data : [];
-                              if (list.isNotEmpty) {
-                                for (final e in list) {
-                                  // debugPrint('PameranAktif startDate: ${e.startDate}, endDate: ${e.endDate}');
-                                }
-                              }
                               final firstDate = list.isNotEmpty ? list.map((e) => e.startDate).reduce((a, b) => a.isBefore(b) ? a : b) : null;
                               final lastDate = list.isNotEmpty ? list.map((e) => e.endDate).reduce((a, b) => a.isAfter(b) ? a : b) : null;
-                              // debugPrint('firstDate: $firstDate, lastDate: $lastDate');
                               return _buildField(
                                 label: "Periode Pameran Date",
                                 controller: periodePameranDateTC,

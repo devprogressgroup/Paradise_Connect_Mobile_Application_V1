@@ -9,6 +9,9 @@ const _envMeta = {
 };
 
 void showEnvSwitcher(BuildContext context) {
+  final available = ApiConstants.availableEnvironments;
+  if (available.length == 1 && available.contains(AppEnvironment.production)) return;
+
   showModalBottomSheet(
     context: context,
     isScrollControlled: true,

@@ -67,7 +67,8 @@ class DioClient {
           if (isFileDownload) {
             options.receiveTimeout = const Duration(minutes: 3);
           }
-          if (!isFileDownload) {
+          final skipEncryption = options.extra['skipEncryption'] == true;
+          if (!isFileDownload && !skipEncryption) {
             if (kDebugMode) {
               final rawData = options.data;
               if (rawData is FormData) {
