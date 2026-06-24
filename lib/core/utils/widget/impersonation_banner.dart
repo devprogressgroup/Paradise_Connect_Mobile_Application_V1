@@ -38,8 +38,7 @@ class ImpersonationBanner extends StatelessWidget {
                     ),
                   ),
                   TextButton.icon(
-                    onPressed: () =>
-                        context.read<AuthBloc>().add(StopImpersonationEvent()),
+                    onPressed: () => context.read<AuthBloc>().add(StopImpersonationEvent()),
                     icon: const Icon(Icons.logout, color: Colors.white, size: 16),
                     label: const Text('Keluar', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                     style: TextButton.styleFrom(

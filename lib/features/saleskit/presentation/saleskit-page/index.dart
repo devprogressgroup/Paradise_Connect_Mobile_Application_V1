@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:progress_group/features/auth/presentation/state/auth/auth_bloc.dart';
 import 'package:progress_group/features/auth/presentation/state/auth/auth_event.dart';
@@ -238,7 +238,7 @@ class _SalesKitPageState extends State<SalesKitPage> {
           }
         }
         if (state is SalesKitDetailError) {
-          debugPrint('SalesKitDetailError: ${state.message}');
+          // debugPrint('SalesKitDetailError: ${state.message}');
         }
       },
       builder: (context, state) {
@@ -411,7 +411,7 @@ class _SalesKitPageState extends State<SalesKitPage> {
     return BlocConsumer<SalesKitTownshipBloc, SalesKitTownshipState>(
       listener: (context, state) {
         if (state is SalesKitTownshipError) {
-          debugPrint('SalesKitTownshipError: ${state.message}');
+          // debugPrint('SalesKitTownshipError: ${state.message}');
         }
       },
       builder: (context, state) {

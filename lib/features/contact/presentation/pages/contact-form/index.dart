@@ -1,4 +1,4 @@
-import 'package:flutter/foundation.dart' show kIsWeb;
+﻿import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:progress_group/core/utils/helpers/permissions_helper.dart';
 import 'package:progress_group/core/services/salesbook_sync_service.dart';
 import 'package:flutter/material.dart';
@@ -550,16 +550,16 @@ class _ContactFormPageState extends State<ContactFormPage> {
 
     if (context.read<ProspectStatusBloc>().state.status !=
         ProspectStatusEnum.loaded) {
-      debugPrint('[ContactForm] fetching ProspectStatuses');
+      // debugPrint('[ContactForm] fetching ProspectStatuses');
       context.read<ProspectStatusBloc>().add(FetchProspectStatusesEvent());
     } else {
-      debugPrint('[ContactForm] ProspectStatuses already loaded');
+      // debugPrint('[ContactForm] ProspectStatuses already loaded');
     }
 
     // Load townships for project dropdown
     final townshipState = context.read<TownshipBloc>().state;
     if (townshipState is! TownshipLoaded) {
-      debugPrint('[ContactForm] fetching Townships');
+      // debugPrint('[ContactForm] fetching Townships');
       context.read<TownshipBloc>().add(GetTownshipsEvent());
     } else if (widget.args.page == 0 && selectFirstProject == null && townshipState.townships.isNotEmpty) {
       final first = townshipState.townships.first;
@@ -569,13 +569,13 @@ class _ContactFormPageState extends State<ContactFormPage> {
       });
     }
     if (context.read<ContactPropertiesBloc>().state.status != ContactPropertiesStatus.loaded) {
-      debugPrint('[ContactForm] fetching ContactProperties');
+      // debugPrint('[ContactForm] fetching ContactProperties');
       context.read<ContactPropertiesBloc>().add(FetchContactPropertiesEvent());
     } else {
-      debugPrint('[ContactForm] ContactProperties already loaded');
+      // debugPrint('[ContactForm] ContactProperties already loaded');
     }
     if (context.read<LostReasonBloc>().state.status != LostReasonStatus.loaded) {
-      debugPrint('[ContactForm] fetching LostReasons');
+      // debugPrint('[ContactForm] fetching LostReasons');
       context.read<LostReasonBloc>().add(FetchLostReasonsEvent());
     }
 
@@ -1379,14 +1379,14 @@ class _ContactFormPageState extends State<ContactFormPage> {
           ? _selectedUnits.map((u) => u.toApiJson()).toList()
           : null,
     );
-    debugPrint('=== SAVE PARAMS ===');
-    debugPrint('ownerId: ${params.ownerId}');
-    debugPrint('salesExecutiveId: ${params.salesExecutiveId}');
-    debugPrint('salesManagerId: ${params.salesManagerId}');
-    debugPrint('salesSupervisorId: ${params.salesSupervisorId}');
-    debugPrint('salesGeneralManagerId: ${params.salesGeneralManagerId}');
-    debugPrint('salesTeamId: ${params.salesTeamId}');
-    debugPrint('===================');
+    // debugPrint('=== SAVE PARAMS ===');
+    // debugPrint('ownerId: ${params.ownerId}');
+    // debugPrint('salesExecutiveId: ${params.salesExecutiveId}');
+    // debugPrint('salesManagerId: ${params.salesManagerId}');
+    // debugPrint('salesSupervisorId: ${params.salesSupervisorId}');
+    // debugPrint('salesGeneralManagerId: ${params.salesGeneralManagerId}');
+    // debugPrint('salesTeamId: ${params.salesTeamId}');
+    // debugPrint('===================');
 
     setState(() => _isSaving = true);
     if (isUpdate) {
@@ -1426,7 +1426,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
       listener: (context, state) {
         if (state.status == ContactStatus.createSuccess && widget.args.page == 0) {
           setState(() => _isSaving = false);
-          debugPrint('[ContactForm] CREATE success — contact_id: ${state.contactDetail?.contactId} ${state.contactDetail?.fullName}');
+          // debugPrint('[ContactForm] CREATE success — contact_id: ${state.contactDetail?.contactId} ${state.contactDetail?.fullName}');
           if (state.contactDetail?.contactId != null) {
             SalesbookSyncService.syncContact(state.contactDetail!.contactId!);
           }
@@ -1445,7 +1445,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
           });
         } else if (state.status == ContactStatus.updateSuccess && widget.args.page == 1) {
           setState(() => _isSaving = false);
-          debugPrint('[ContactForm] UPDATE success — contact_id: ${state.contactDetail?.contactId}');
+          // debugPrint('[ContactForm] UPDATE success — contact_id: ${state.contactDetail?.contactId}');
           if (state.contactDetail?.contactId != null) {
             SalesbookSyncService.syncContact(state.contactDetail!.contactId!);
           }
@@ -1476,7 +1476,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
             _isDialogShowing = false;
             Navigator.of(this.context).pop();
           }
-          debugPrint('ContactFormError: ${state.errorMessage}');
+          // debugPrint('ContactFormError: ${state.errorMessage}');
           // Tampilkan pesan ASLI dari backend (mis. "Anda tidak memiliki akses untuk mengubah kontak ini.")
           final msg = (state.errorMessage ?? '').replaceFirst('Exception: ', '').trim();
           ScaffoldMessenger.of(this.context).showSnackBar(
@@ -1547,7 +1547,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
                   curr.status == ContactStatus.error &&
                   prev.status != ContactStatus.error,
               listener: (context, contactState) {
-                debugPrint('ContactFormDetailError: ${contactState.errorMessage}');
+                // debugPrint('ContactFormDetailError: ${contactState.errorMessage}');
                 showErrorDialog(context, 'Gagal memuat data kontak').then((_) {
                   if (context.mounted) context.pop();
                 });
@@ -1912,12 +1912,12 @@ class _ContactFormPageState extends State<ContactFormPage> {
                               final list = ps is PameranAktifLoaded ? ps.data : [];
                               if (list.isNotEmpty) {
                                 for (final e in list) {
-                                  debugPrint('PameranAktif startDate: ${e.startDate}, endDate: ${e.endDate}');
+                                  // debugPrint('PameranAktif startDate: ${e.startDate}, endDate: ${e.endDate}');
                                 }
                               }
                               final firstDate = list.isNotEmpty ? list.map((e) => e.startDate).reduce((a, b) => a.isBefore(b) ? a : b) : null;
                               final lastDate = list.isNotEmpty ? list.map((e) => e.endDate).reduce((a, b) => a.isAfter(b) ? a : b) : null;
-                              debugPrint('firstDate: $firstDate, lastDate: $lastDate');
+                              // debugPrint('firstDate: $firstDate, lastDate: $lastDate');
                               return _buildField(
                                 label: "Periode Pameran Date",
                                 controller: periodePameranDateTC,
@@ -2144,7 +2144,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
                           return const SizedBox.shrink();
                         }
                         if (state.status == ContactPropertiesStatus.error) {
-                          debugPrint('ContactPropertiesError: ${state.errorMessage}');
+                          // debugPrint('ContactPropertiesError: ${state.errorMessage}');
                           return const Padding(padding: EdgeInsets.all(8.0), child: Text('Gagal memuat properties'));
                         }
 

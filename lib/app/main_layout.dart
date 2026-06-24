@@ -337,9 +337,13 @@ class _MainLayoutState extends State<MainLayout> {
                             String userPosition = "";
                             String? photoUrl;
                             if (state is ProfileLoaded) {
-                              userName = state.profile.fullName;
-                              userPosition = state.profile.positionName ?? "";
-                              photoUrl = state.profile.photoUrl;
+                              final profile = state.profile;
+                              userName = profile.fullName;
+                              final isSales = profile.userRoleId == 3 || profile.salesPersonId != null;
+                              userPosition = isSales
+                                  ? (profile.positionName ?? "")
+                                  : (profile.userRoleName ?? "");
+                              photoUrl = profile.photoUrl;
                             }
                             return Row(
                               children: [

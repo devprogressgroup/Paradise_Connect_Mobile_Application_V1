@@ -1,4 +1,4 @@
-// Web-only site plan viewer.
+﻿// Web-only site plan viewer.
 // Menggunakan backend Laravel sebagai proxy (server-to-server) karena
 // browser tidak bisa bypass CORS untuk custom header X-App-Token.
 //
@@ -129,7 +129,7 @@ class _SitePlanPageState extends State<SitePlanPage> {
           _initFromSites(state.sites);
         }
         if (state is SiteplanError) {
-          debugPrint('SiteplanError: ${state.message}');
+          // debugPrint('SiteplanError: ${state.message}');
         }
       },
       builder: (context, state) {

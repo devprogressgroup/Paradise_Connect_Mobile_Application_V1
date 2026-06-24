@@ -1,4 +1,4 @@
-import 'package:flutter/foundation.dart' show kIsWeb;
+﻿import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
@@ -203,11 +203,11 @@ class _ProfilePageState extends State<ProfilePage> {
           passwordTC.clear();
           confirmPasswordTC.clear();
           setState(() { _selectedPhoto = null; _selectedPhotoBytes = null; });
-          debugPrint('AuthSuccess: ${state.message}');
+          // debugPrint('AuthSuccess: ${state.message}');
           showSnackbar(context, 'Profil berhasil diperbarui', isError: false);
           context.read<ProfileBloc>().add(GetProfileEvent(forceRefresh: true));
         } else if (state is AuthFailure) {
-          debugPrint('AuthFailure: ${state.error}');
+          // debugPrint('AuthFailure: ${state.error}');
           showSnackbar(context, 'Gagal menyimpan perubahan profil', isError: true);
         }
       },
@@ -232,7 +232,7 @@ class _ProfilePageState extends State<ProfilePage> {
           emailTC.text = state.profile.email;
           phoneTC.text = state.profile.phoneNumber;
         } else if (state is ProfileFailure) {
-          debugPrint('ProfileFailure: ${state.message}');
+          // debugPrint('ProfileFailure: ${state.message}');
         }
       },
       builder: (context, state) {
@@ -326,11 +326,18 @@ class _ProfilePageState extends State<ProfilePage> {
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Container(
+                           Container(
                               width: MediaQuery.of(context).size.width * 0.6,
                               child: Text(user.fullName, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold))),
-                            if (user.positionName != null && user.positionName!.isNotEmpty)
-                              Text(user.positionName!, style: const TextStyle(fontSize: 14, color: Colors.blueAccent)),
+                            if (user.userRoleId == 3 || user.salesPersonId != null) ...[
+                              if (user.positionName != null && user.positionName!.isNotEmpty)
+                                Text(user.positionName!, style: const TextStyle(fontSize: 14, color: Colors.blueAccent)),
+                                if (user.salesTeamName != null && user.salesTeamName!.isNotEmpty)
+                                Text(user.salesTeamName!, style: const TextStyle(fontSize: 14, color: Colors.blueAccent)),
+                            ] else ...[
+                              if (user.userRoleName != null && user.userRoleName!.isNotEmpty)
+                                Text(user.userRoleName!, style: const TextStyle(fontSize: 14, color: Colors.blueAccent)),
+                            ],
                           ],
                         ),
                       ],
@@ -529,7 +536,7 @@ class _ProfilePageState extends State<ProfilePage> {
                     //     onPressed: () async {
                     //       final prefs = await SharedPreferences.getInstance();
                     //       final token = prefs.getString('auth_token') ?? '-';
-                    //       debugPrint('[TOKEN] $token');
+                    //       // debugPrint('[TOKEN] $token');
                     //       await Clipboard.setData(ClipboardData(text: token));
                     //       if (context.mounted) showSnackbar(context, 'Token disalin ke clipboard', isError: false);
                     //     },

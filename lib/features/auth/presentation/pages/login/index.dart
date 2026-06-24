@@ -1,4 +1,4 @@
-import 'package:flutter/foundation.dart' show kIsWeb;
+﻿import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
@@ -153,7 +153,7 @@ class _LoginPageState extends State<LoginPage> {
           _passwordController.text = state.password;
           setState(() => _rememberMe = true);
         } else if (state is AuthFailure) {
-          debugPrint('AuthFailure: ${state.error}');
+          // debugPrint('AuthFailure: ${state.error}');
            showSnackbar(context, state.error, isError: true);
         }
       },
@@ -188,7 +188,7 @@ class _LoginPageState extends State<LoginPage> {
                     children: [
                       // Header
                       GestureDetector(
-                        onTap: () => showEnvSwitcher(context),
+                        // onTap: () => showEnvSwitcher(context),
                         child: const Text(
                           'Sign In',
                           textAlign: TextAlign.center,

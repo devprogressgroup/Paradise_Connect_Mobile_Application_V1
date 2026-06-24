@@ -1,4 +1,4 @@
-import 'package:chewie/chewie.dart';
+﻿import 'package:chewie/chewie.dart';
 import 'package:flutter/material.dart';
 import 'package:progress_group/core/utils/widget/shimmer_loading.dart';
 import 'package:progress_group/features/contact/presentation/pages/attachment-view/index.dart';
@@ -91,7 +91,7 @@ class _InboxDetailPageState extends State<InboxDetailPage> {
                   listener: (context, state) {
                     if (state is MessageError) {
                       _isFetchingMore = false;
-                      debugPrint('MessageError: ${state.message}');
+                      // debugPrint('MessageError: ${state.message}');
                       showErrorDialog(context, 'Gagal memuat pesan');
                     }
                   },
@@ -411,7 +411,7 @@ class _VideoPlayerWidgetState extends State<_VideoPlayerWidget> {
       looping: false,
       aspectRatio: _videoPlayerController.value.aspectRatio,
       errorBuilder: (context, errorMessage) {
-        debugPrint('VideoPlayerError: $errorMessage');
+        // debugPrint('VideoPlayerError: $errorMessage');
         return const Center(child: Text('Gagal memuat video', style: TextStyle(color: Colors.white)));
       },
     );

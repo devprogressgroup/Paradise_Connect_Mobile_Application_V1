@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:progress_group/features/auth/presentation/state/auth/auth_bloc.dart';
 import 'package:progress_group/features/auth/presentation/state/auth/auth_event.dart';
@@ -335,14 +335,14 @@ class _NotifPageState extends State<NotifPage> {
         return BlocConsumer<NotifActivityBloc, ActivityState>(
           listenWhen: (prev, curr) => curr.status == ActivityStatus.error && prev.status != ActivityStatus.error,
           listener: (context, activityState) {
-            debugPrint('NotifActivityError: ${activityState.errorMessage}');
+            // debugPrint('NotifActivityError: ${activityState.errorMessage}');
           },
           builder: (context, activityState) {
             return BlocConsumer<AttendanceApprovalCubit, AttendanceApprovalState>(
               listenWhen: (prev, curr) => curr is AttendanceApprovalError && prev is! AttendanceApprovalError,
               listener: (context, approvalState) {
                 if (approvalState is AttendanceApprovalError) {
-                  debugPrint('AttendanceApprovalError: ${approvalState.message}');
+                  // debugPrint('AttendanceApprovalError: ${approvalState.message}');
                 }
               },
               builder: (context, approvalState) {

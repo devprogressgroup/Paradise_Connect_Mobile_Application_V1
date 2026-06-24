@@ -166,7 +166,7 @@ class UserProfileModel extends UserProfileEntity {
       salesTeamId: json['sales_team_id'],
       salesTeamName: json['sales_team_name'],
       userRoleId: json['user_role_id'],
-      userRoleName: json['user_role_name'],
+      userRoleName: json['role']?['name'] ?? json['user_role_name'],
       salesRoles: json['sales_roles'] != null ? (json['sales_roles'] as List).map((i) => HierarchyNodeModel.fromJson(i)).toList() : const [],
       subordinates: json['subordinates'] != null ? (json['subordinates'] as List).map((i) => HierarchyNodeModel.fromJson(i)).toList() : const [],
       groupHierarchy: json['group_hierarchy'] != null ? (json['group_hierarchy'] as List).map((i) => GroupHierarchyModel.fromJson(i)).toList() : const [],

@@ -1,4 +1,4 @@
-import 'dart:io';
+﻿import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter/foundation.dart' show kIsWeb, kDebugMode;
 import 'package:file_picker/file_picker.dart';
@@ -593,16 +593,16 @@ class _ContactAddPageState extends State<ContactAddPage> {
     File? finalFile = selectedFile ?? selectedImage;
     Uint8List? finalBytes = selectedFileBytes;
 
-    debugPrint('[_submitAttachment] isEdit=$isEdit isPdf=$isPdf selectedFileName=$selectedFileName selectedTypeId=$selectedTypeId hasImage=${selectedImage != null} hasFile=${selectedFile != null} hasBytes=${selectedFileBytes != null} bytesLen=${selectedFileBytes?.length}');
+    // debugPrint('[_submitAttachment] isEdit=$isEdit isPdf=$isPdf selectedFileName=$selectedFileName selectedTypeId=$selectedTypeId hasImage=${selectedImage != null} hasFile=${selectedFile != null} hasBytes=${selectedFileBytes != null} bytesLen=${selectedFileBytes?.length}');
 
     if (!isPdf) {
       if (!kIsWeb && finalFile != null) {
         finalBytes = await compressImageFile(finalFile.path);
         finalFile = null;
-        debugPrint('[_submitAttachment] compressed image: bytesLen=${finalBytes.length}');
+        // debugPrint('[_submitAttachment] compressed image: bytesLen=${finalBytes.length}');
       } else if (kIsWeb && finalBytes != null) {
         finalBytes = await compressImageBytes(finalBytes);
-        debugPrint('[_submitAttachment] compressed web bytes: bytesLen=${finalBytes.length}');
+        // debugPrint('[_submitAttachment] compressed web bytes: bytesLen=${finalBytes.length}');
       }
     }
     if (!mounted) return;
@@ -616,7 +616,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
       fileName: selectedFileName,
     );
 
-    debugPrint('[_submitAttachment] dispatching event contactId=$contactId typeId=${params.attachmentTypeId} note=${params.attachmentNote} fileName=${params.fileName} hasFile=${params.file != null} hasBytes=${params.fileBytes != null} attachmentId=${isEdit ? widget.args.dataAttachment?.contactAttachmentId : null}');
+    // debugPrint('[_submitAttachment] dispatching event contactId=$contactId typeId=${params.attachmentTypeId} note=${params.attachmentNote} fileName=${params.fileName} hasFile=${params.file != null} hasBytes=${params.fileBytes != null} attachmentId=${isEdit ? widget.args.dataAttachment?.contactAttachmentId : null}');
 
     context.read<UploadAttachmentBloc>().add(
       SubmitAttachmentEvent(
@@ -731,7 +731,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
     );
 
     if (kDebugMode) {
-      debugPrint('[_buildUpdateStatusProspect] req body: ${params.toJson()}');
+      // debugPrint('[_buildUpdateStatusProspect] req body: ${params.toJson()}');
     }
 
     // Alur Visit (buat visit-activity + foto) bila status termasuk GRUP 'visit'. Status Lost-dari-visit
@@ -880,7 +880,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
                 context.pop();
               }
             } else if (state.status == ActivityStatus.error) {
-              debugPrint('ActivityError: ${state.errorMessage}');
+              // debugPrint('ActivityError: ${state.errorMessage}');
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
                   content: Text('Gagal menambahkan activity'),
@@ -895,7 +895,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
             if (state is UploadAttachmentSuccess) {
               context.pop(2);
             } else if (state is UploadAttachmentError) {
-              debugPrint('UploadAttachmentError: ${state.message}');
+              // debugPrint('UploadAttachmentError: ${state.message}');
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
                   content: Text('Gagal mengunggah lampiran'),
@@ -966,7 +966,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
               }
               if (selectedProject != null) _loadTownshipClusters(selectedProject!);
             } else if (state.status == ContactStatus.error) {
-              debugPrint('ContactStatusError: ${state.errorMessage}');
+              // debugPrint('ContactStatusError: ${state.errorMessage}');
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
                   content: Text('Gagal memperbarui data kontak'),
@@ -981,7 +981,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
             if (state is VisitSuccess) {
               context.pop(0); // 0 = Activity tab
             } else if (state is VisitError) {
-              debugPrint('VisitError: ${state.message}');
+              // debugPrint('VisitError: ${state.message}');
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
                   content: Text('Gagal menyimpan data kunjungan'),

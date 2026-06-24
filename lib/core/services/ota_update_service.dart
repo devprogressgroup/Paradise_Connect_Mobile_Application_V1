@@ -1,4 +1,4 @@
-import 'dart:io';
+﻿import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
@@ -36,7 +36,7 @@ class OtaUpdateService {
         savePath,
         cancelToken: _cancelToken,
         onReceiveProgress: (received, total) {
-          debugPrint('[OTA] received=$received total=$total');
+          // debugPrint('[OTA] received=$received total=$total');
           if (total > 0) {
             onProgress(received / total);
           } else {

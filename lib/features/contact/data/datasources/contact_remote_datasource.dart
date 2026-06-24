@@ -1,4 +1,4 @@
-
+﻿
 
 import 'dart:convert';
 import 'package:dio/dio.dart';
@@ -457,7 +457,7 @@ class ContactRemoteDataSourceImpl implements ContactRemoteDataSource {
   @override
   Future<void> uploadAttachment(UploadAttachmentParams params) async {
     try {
-      debugPrint('[uploadAttachment] contactId=${params.contactId} typeId=${params.attachmentTypeId} note=${params.attachmentNote} fileName=${params.fileName} hasFile=${params.file != null} hasBytes=${params.fileBytes != null} bytesLen=${params.fileBytes?.length}');
+      // debugPrint('[uploadAttachment] contactId=${params.contactId} typeId=${params.attachmentTypeId} note=${params.attachmentNote} fileName=${params.fileName} hasFile=${params.file != null} hasBytes=${params.fileBytes != null} bytesLen=${params.fileBytes?.length}');
 
       final fileBase64 = await _toBase64(params);
       final body = <String, dynamic>{
@@ -472,20 +472,20 @@ class ContactRemoteDataSourceImpl implements ContactRemoteDataSource {
         },
       };
 
-      debugPrint('[uploadAttachment] POST /contacts/${params.contactId}/attachments body keys=${body.keys.join(', ')} base64Len=${fileBase64.length}');
+      // debugPrint('[uploadAttachment] POST /contacts/${params.contactId}/attachments body keys=${body.keys.join(', ')} base64Len=${fileBase64.length}');
 
       final response = await dio.post(
         '/contacts/${params.contactId}/attachments',
         data: body,
       );
 
-      debugPrint('[uploadAttachment] response status=${response.statusCode} data=${response.data}');
+      // debugPrint('[uploadAttachment] response status=${response.statusCode} data=${response.data}');
 
       if (response.data['status'] != true) {
         throw Exception(response.data['message'] ?? 'Failed to upload attachment');
       }
     } on DioException catch (e) {
-      debugPrint('[uploadAttachment] DioException type=${e.type} status=${e.response?.statusCode} response=${e.response?.data}');
+      // debugPrint('[uploadAttachment] DioException type=${e.type} status=${e.response?.statusCode} response=${e.response?.data}');
       throw Exception(getErrorMessage(e, 'Failed to upload attachment'));
     }
   }
@@ -528,7 +528,7 @@ class ContactRemoteDataSourceImpl implements ContactRemoteDataSource {
   @override
   Future<void> updateAttachment({required int contactId, required int attachmentId, required UploadAttachmentParams params}) async {
     try {
-      debugPrint('[updateAttachment] contactId=$contactId attachmentId=$attachmentId typeId=${params.attachmentTypeId} note=${params.attachmentNote} fileName=${params.fileName} hasFile=${params.file != null} hasBytes=${params.fileBytes != null} bytesLen=${params.fileBytes?.length}');
+      // debugPrint('[updateAttachment] contactId=$contactId attachmentId=$attachmentId typeId=${params.attachmentTypeId} note=${params.attachmentNote} fileName=${params.fileName} hasFile=${params.file != null} hasBytes=${params.fileBytes != null} bytesLen=${params.fileBytes?.length}');
 
       final fileBase64 = await _toBase64(params);
       final body = <String, dynamic>{
@@ -543,20 +543,20 @@ class ContactRemoteDataSourceImpl implements ContactRemoteDataSource {
         },
       };
 
-      debugPrint('[updateAttachment] PATCH /contacts/$contactId/attachments/$attachmentId body keys=${body.keys.join(', ')} base64Len=${fileBase64.length}');
+      // debugPrint('[updateAttachment] PATCH /contacts/$contactId/attachments/$attachmentId body keys=${body.keys.join(', ')} base64Len=${fileBase64.length}');
 
       final response = await dio.patch(
         '/contacts/$contactId/attachments/$attachmentId',
         data: body,
       );
 
-      debugPrint('[updateAttachment] response status=${response.statusCode} data=${response.data}');
+      // debugPrint('[updateAttachment] response status=${response.statusCode} data=${response.data}');
 
       if (response.data['status'] != true) {
         throw Exception(response.data['message'] ?? 'Failed to update attachment');
       }
     } on DioException catch (e) {
-      debugPrint('[updateAttachment] DioException type=${e.type} status=${e.response?.statusCode} response=${e.response?.data}');
+      // debugPrint('[updateAttachment] DioException type=${e.type} status=${e.response?.statusCode} response=${e.response?.data}');
       throw Exception(getErrorMessage(e, 'Failed to update attachment'));
     }
   }
@@ -640,7 +640,7 @@ class ContactRemoteDataSourceImpl implements ContactRemoteDataSource {
   Future<List<PameranAktifModel>> getPameranAktif() async {
     try {
       final response = await dio.get('/pameran/aktif');
-      debugPrint('[getPameranAktif] response: ${response.data}');
+      // debugPrint('[getPameranAktif] response: ${response.data}');
       if (response.data['status'] == true) {
         final List<dynamic> data = response.data['data'];
         return data.map((json) => PameranAktifModel.fromJson(json as Map<String, dynamic>)).toList();

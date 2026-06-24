@@ -1,4 +1,4 @@
-import 'dart:async';
+﻿import 'dart:async';
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:dio/dio.dart';
@@ -169,13 +169,16 @@ class _AttandancePageState extends State<AttandancePage> {
   }
 
   void _onTabChanged(int index) {
+    if (!mounted) return;
     setState(() => selectedIndex = index);
 
-    _pageController.animateToPage(
-      index,
-      duration: const Duration(milliseconds: 300),
-      curve: Curves.easeOutCubic,
-    );
+    if (_pageController.hasClients) {
+      _pageController.animateToPage(
+        index,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOutCubic,
+      );
+    }
   }
 
   // Approver attendance = punya feature ApproveReject (master gate). Backend menentukan CAKUPAN:
@@ -271,7 +274,7 @@ class _AttandancePageState extends State<AttandancePage> {
     if (!mounted) return;
     final officeLocations = context.read<OfficeLocationCubit>().state;
     if (officeLocations.isEmpty) {
-      debugPrint('[_computeNearestLocation] no office locations from API → luar lokasi, canClockIn=${PermissionsHelper.canClockInLuarLokasi || PermissionsHelper.canClockInLuarLokasiRequestApprove}, canClockOut=${PermissionsHelper.canClockOutLuarLokasi || PermissionsHelper.canClockOutLuarLokasiRequestApprove}');
+      // debugPrint('[_computeNearestLocation] no office locations from API → luar lokasi, canClockIn=${PermissionsHelper.canClockInLuarLokasi || PermissionsHelper.canClockInLuarLokasiRequestApprove}, canClockOut=${PermissionsHelper.canClockOutLuarLokasi || PermissionsHelper.canClockOutLuarLokasiRequestApprove}');
       if (mounted) {
         setState(() { _nearestTypeLocationId = null; _nearestIsInRadius = false; _locationResolved = true; });
         _trySetInitialTab();
@@ -297,15 +300,15 @@ class _AttandancePageState extends State<AttandancePage> {
     }
 
     final resolvedTypeId = inRadius ? typeId : null;
-    debugPrint('[PermissionsHelper] canClockInOffice                    : ${PermissionsHelper.canClockInOffice}');
-    debugPrint('[PermissionsHelper] canClockInPameran                   : ${PermissionsHelper.canClockInPameran}');
-    debugPrint('[PermissionsHelper] canClockInLuarLokasi                : ${PermissionsHelper.canClockInLuarLokasi}');
-    debugPrint('[PermissionsHelper] canClockInLuarLokasiRequestApprove  : ${PermissionsHelper.canClockInLuarLokasiRequestApprove}');
-    debugPrint('[PermissionsHelper] canClockOutOffice                   : ${PermissionsHelper.canClockOutOffice}');
-    debugPrint('[PermissionsHelper] canClockOutPameran                  : ${PermissionsHelper.canClockOutPameran}');
-    debugPrint('[PermissionsHelper] canClockOutLuarLokasi               : ${PermissionsHelper.canClockOutLuarLokasi}');
-    debugPrint('[PermissionsHelper] canClockOutLuarLokasiRequestApprove : ${PermissionsHelper.canClockOutLuarLokasiRequestApprove}');
-    debugPrint('[_computeNearestLocation] typeLocationId=$resolvedTypeId, isInRadius=$inRadius');
+    // debugPrint('[PermissionsHelper] canClockInOffice                    : ${PermissionsHelper.canClockInOffice}');
+    // debugPrint('[PermissionsHelper] canClockInPameran                   : ${PermissionsHelper.canClockInPameran}');
+    // debugPrint('[PermissionsHelper] canClockInLuarLokasi                : ${PermissionsHelper.canClockInLuarLokasi}');
+    // debugPrint('[PermissionsHelper] canClockInLuarLokasiRequestApprove  : ${PermissionsHelper.canClockInLuarLokasiRequestApprove}');
+    // debugPrint('[PermissionsHelper] canClockOutOffice                   : ${PermissionsHelper.canClockOutOffice}');
+    // debugPrint('[PermissionsHelper] canClockOutPameran                  : ${PermissionsHelper.canClockOutPameran}');
+    // debugPrint('[PermissionsHelper] canClockOutLuarLokasi               : ${PermissionsHelper.canClockOutLuarLokasi}');
+    // debugPrint('[PermissionsHelper] canClockOutLuarLokasiRequestApprove : ${PermissionsHelper.canClockOutLuarLokasiRequestApprove}');
+    // debugPrint('[_computeNearestLocation] typeLocationId=$resolvedTypeId, isInRadius=$inRadius');
 
     if (mounted) {
       setState(() {
@@ -531,7 +534,7 @@ class _AttandancePageState extends State<AttandancePage> {
 
       if (officeLocations.isNotEmpty) {
         for (var office in officeLocations) {
-          debugPrint('[office] id=${office.id}, name=${office.name}, typeLocationId=${office.typeLocationId}, lat=${office.latitude}, lng=${office.longitude}');
+          // debugPrint('[office] id=${office.id}, name=${office.name}, typeLocationId=${office.typeLocationId}, lat=${office.latitude}, lng=${office.longitude}');
           final lat = double.tryParse(office.latitude ?? '');
           final lng = double.tryParse(office.longitude ?? '');
           if (lat != null && lng != null) {
@@ -556,21 +559,21 @@ class _AttandancePageState extends State<AttandancePage> {
       final effectiveRadius = activeRadius ?? radiusMeter;
       final isInRadius = effectiveDistance <= effectiveRadius;
 
-      debugPrint('[_handleMoveCamera] selected location:');
-      debugPrint('  id             : $nearestOfficeId');
-      debugPrint('  name           : $nearestOfficeName');
-      debugPrint('  latitude       : $nearestOfficeLat');
-      debugPrint('  longitude      : $nearestOfficeLng');
-      debugPrint('  radius         : $activeRadius');
-      debugPrint('  typeLocationId : $nearestOfficeTypeId');
-      debugPrint('ClockIn Permision pameran ${PermissionsHelper.canClockInPameran}');
-      debugPrint('ClockIn Permision office ${PermissionsHelper.canClockInOffice}');
-      debugPrint('ClockIn Permision luar lokasi ${PermissionsHelper.canClockInLuarLokasi}');
-      debugPrint('ClockOut Permision pameran ${PermissionsHelper.canClockOutPameran}');
-      debugPrint('ClockOut Permision office ${PermissionsHelper.canClockOutOffice}');
-      debugPrint('ClockOut Permision luar lokasi ${PermissionsHelper.canClockOutLuarLokasi}');
-      debugPrint('  distance       : ${effectiveDistance.toStringAsFixed(2)} m');
-      debugPrint('  isInRadius     : $isInRadius');
+      // debugPrint('[_handleMoveCamera] selected location:');
+      // debugPrint('  id             : $nearestOfficeId');
+      // debugPrint('  name           : $nearestOfficeName');
+      // debugPrint('  latitude       : $nearestOfficeLat');
+      // debugPrint('  longitude      : $nearestOfficeLng');
+      // debugPrint('  radius         : $activeRadius');
+      // debugPrint('  typeLocationId : $nearestOfficeTypeId');
+      // debugPrint('ClockIn Permision pameran ${PermissionsHelper.canClockInPameran}');
+      // debugPrint('ClockIn Permision office ${PermissionsHelper.canClockInOffice}');
+      // debugPrint('ClockIn Permision luar lokasi ${PermissionsHelper.canClockInLuarLokasi}');
+      // debugPrint('ClockOut Permision pameran ${PermissionsHelper.canClockOutPameran}');
+      // debugPrint('ClockOut Permision office ${PermissionsHelper.canClockOutOffice}');
+      // debugPrint('ClockOut Permision luar lokasi ${PermissionsHelper.canClockOutLuarLokasi}');
+      // debugPrint('  distance       : ${effectiveDistance.toStringAsFixed(2)} m');
+      // debugPrint('  isInRadius     : $isInRadius');
 
       // Cek permission berdasarkan tipe lokasi yang terselect.
       // Check In / aktivitas (flag 6) TIDAK butuh izin clock-in/out — selaras dgn
@@ -593,7 +596,7 @@ class _AttandancePageState extends State<AttandancePage> {
             : PermissionsHelper.canClockOutOffice;
       }
 
-      debugPrint('[_handleMoveCamera] canProceed: $canProceed');
+      // debugPrint('[_handleMoveCamera] canProceed: $canProceed');
 
       if (!canProceed) {
         if (mounted) {
@@ -1222,7 +1225,7 @@ class _AttandancePageState extends State<AttandancePage> {
             context.read<AttendanceExcelCubit>().reset();
           } else if (state is AttendanceExcelError) {
             ScaffoldMessenger.of(context).hideCurrentSnackBar();
-            debugPrint('AttendanceExcelError: ${state.message}');
+            // debugPrint('AttendanceExcelError: ${state.message}');
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(content: Text('Gagal mengunduh data kehadiran')),
             );

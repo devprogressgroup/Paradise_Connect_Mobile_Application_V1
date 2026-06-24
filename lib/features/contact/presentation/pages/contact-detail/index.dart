@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:progress_group/core/constants/assets.dart';
 import 'package:progress_group/core/utils/widget/drive_image/drive_image.dart';
@@ -68,10 +68,18 @@ class _ContactDetailPageState extends State<ContactDetailPage>with TickerProvide
   int _cPage = 1;
   int _gPage = 1;
   final ScrollController _activityScrollController = ScrollController();
+  late ContactDetailActivityBloc _contactDetailActivityBloc;
+  late ActivityProspectStatusBloc _activityProspectStatusBloc;
+  late AttachmentCubit _attachmentCubit;
+  late ContactBloc _contactBloc;
 
   @override
   void initState() {
     super.initState();
+    _contactDetailActivityBloc = context.read<ContactDetailActivityBloc>();
+    _activityProspectStatusBloc = context.read<ActivityProspectStatusBloc>();
+    _attachmentCubit = context.read<AttachmentCubit>();
+    _contactBloc = context.read<ContactBloc>();
     currentTab = widget.args.initialTab;
     _tabController = TabController(
       length: tabs.length,
@@ -211,12 +219,10 @@ class _ContactDetailPageState extends State<ContactDetailPage>with TickerProvide
 
   @override
   void dispose() {
-    context.read<ContactDetailActivityBloc>().add(ResetActivityEvent());
-    context.read<ActivityProspectStatusBloc>().add(
-      ResetActivityProspectStatusEvent(),
-    );
-    context.read<AttachmentCubit>().reset();
-    context.read<ContactBloc>().add(ClearContactDetailEvent());
+    _contactDetailActivityBloc.add(ResetActivityEvent());
+    _activityProspectStatusBloc.add(ResetActivityProspectStatusEvent());
+    _attachmentCubit.reset();
+    _contactBloc.add(ClearContactDetailEvent());
     _tabController.dispose();
     _headerAnimController.dispose();
     _activityScrollController.dispose();
@@ -1146,7 +1152,7 @@ class _ContactDetailPageState extends State<ContactDetailPage>with TickerProvide
                 }
 
                 if (state is UploadAttachmentError) {
-                  debugPrint('UploadAttachmentError: ${state.message}');
+                  // debugPrint('UploadAttachmentError: ${state.message}');
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(content: Text('Gagal mengunggah lampiran')),
                   );
@@ -1158,7 +1164,7 @@ class _ContactDetailPageState extends State<ContactDetailPage>with TickerProvide
                   listenWhen: (prev, curr) => curr is AttachmentError && prev is! AttachmentError,
                   listener: (context, state) {
                     if (state is AttachmentError) {
-                      debugPrint('AttachmentError: ${state.message}');
+                      // debugPrint('AttachmentError: ${state.message}');
                       showErrorDialog(context, 'Gagal memuat lampiran');
                     }
                   },

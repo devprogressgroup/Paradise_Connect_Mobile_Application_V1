@@ -64,7 +64,7 @@ class _HomePageState extends State<HomePage> {
     _prospectStartDate = DateFormat('yyyy-MM-dd').format(DateTime(now.year - 1, now.month, now.day));
     _prospectEndDate   = DateFormat('yyyy-MM-dd').format(now);
     _prospectDateLabel = 'Last 1 Year';
-    _loadData();
+    _loadData(force: true);
   }
 
   Future<void> _selectDateRange() async {
@@ -163,9 +163,7 @@ class _HomePageState extends State<HomePage> {
     }
 
     // Pending approval untuk upcoming task — hanya GM dan Sales Manager
-    final canManageApproval = profileState is ProfileLoaded &&
-        const ['General Manager', 'Sales Manager']
-            .contains(profileState.profile.positionName);
+    final canManageApproval = profileState is ProfileLoaded && const ['General Manager', 'Sales Manager'].contains(profileState.profile.positionName);
     if (canManageApproval) {
       context.read<AttendanceApprovalCubit>().load(status: 'pending');
     }
@@ -529,7 +527,7 @@ class _HomePageState extends State<HomePage> {
     return BlocConsumer<ProspectStatusSummaryBloc, ProspectStatusSummaryState>(
       listenWhen: (prev, curr) => curr.status == ProspectStatusSummaryStatus.error && prev.status != ProspectStatusSummaryStatus.error,
       listener: (context, state) {
-        debugPrint('ProspectStatusSummaryError: ${state.errorMessage}');
+        // debugPrint('ProspectStatusSummaryError: ${state.errorMessage}');
         showErrorDialog(context, 'Gagal memuat prospect status');
       },
       builder: (context, state) {
@@ -799,7 +797,7 @@ class _HomePageState extends State<HomePage> {
                 return buildHomeChartShimmer();
               }
               if (state is ReportError) {
-                debugPrint('ReportError: ${state.message}');
+                // debugPrint('ReportError: ${state.message}');
                 return const SizedBox(
                   height: 150,
                   child: Center(
