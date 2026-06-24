@@ -61,6 +61,7 @@ class AttendanceRepositoryImpl implements AttendanceRepository {
     bool? needsApproval0, needsApproval1;
     String? approveName0, approveName1, rejectName0, rejectName1;
     List<String>? fileAttchment0, fileAttchment1, fileAttchment6;
+    String? serial0, serial1, serial6;
 
     for (var log in logs) {
       final flag = log['flag'] as int;
@@ -75,6 +76,7 @@ class AttendanceRepositoryImpl implements AttendanceRepository {
       final needsApprovalBool = log['needs_approval'] as bool? ?? false;
       final approveName = log['approve_name'] as String?;
       final rejectName = log['reject_name'] as String?;
+      final serial = log['serial'] as String?;
 
       if (flag == 0) {
         clockIn = datetime;
@@ -86,6 +88,7 @@ class AttendanceRepositoryImpl implements AttendanceRepository {
         needsApproval0 = needsApprovalBool;
         approveName0 = approveName;
         rejectName0 = rejectName;
+        serial0 = serial;
       } else if (flag == 1) {
         clockOut = datetime;
         location1 = locationName;
@@ -96,11 +99,13 @@ class AttendanceRepositoryImpl implements AttendanceRepository {
         needsApproval1 = needsApprovalBool;
         approveName1 = approveName;
         rejectName1 = rejectName;
+        serial1 = serial;
       } else if (flag == 6) {
         checkInActivity = datetime;
         location6 = locationName;
         note6 = note;
         fileAttchment6 = files;
+        serial6 = serial;
       }
     }
 
@@ -130,6 +135,9 @@ class AttendanceRepositoryImpl implements AttendanceRepository {
       approveName1: approveName1,
       rejectName0: rejectName0,
       rejectName1: rejectName1,
+      serial0: serial0,
+      serial1: serial1,
+      serial6: serial6,
     );
   }
 
@@ -177,6 +185,9 @@ class AttendanceRepositoryImpl implements AttendanceRepository {
           approveName1: m.approveName1 ?? existing.approveName1,
           rejectName0: m.rejectName0 ?? existing.rejectName0,
           rejectName1: m.rejectName1 ?? existing.rejectName1,
+          serial0: m.serial0 ?? existing.serial0,
+          serial1: m.serial1 ?? existing.serial1,
+          serial6: m.serial6 ?? existing.serial6,
         );
       }
     }

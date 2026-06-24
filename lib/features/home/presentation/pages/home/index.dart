@@ -19,6 +19,7 @@ import 'package:progress_group/features/home/presentation/state/prospect-status-
 import 'package:progress_group/features/home/presentation/state/prospect-status-summary/prospect_status_summary_state.dart';
 import 'package:progress_group/features/auth/presentation/state/auth/auth_bloc.dart';
 import 'package:progress_group/features/auth/presentation/state/auth/auth_event.dart';
+import 'package:progress_group/features/auth/presentation/state/auth/auth_state.dart';
 import 'package:progress_group/features/auth/presentation/state/profile/profile_bloc.dart';
 import 'package:progress_group/features/auth/presentation/state/profile/profile_event.dart';
 import 'package:progress_group/features/auth/presentation/state/profile/profile_state.dart';
@@ -179,7 +180,10 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
+    return BlocListener<AuthBloc, AuthState>(
+      listenWhen: (_, curr) => curr is ImpersonationStopped,
+      listener: (_, __) => _loadData(force: true),
+      child: SafeArea(
       child: Column(
         children: [
           BlocBuilder<NotifActivityBloc, ActivityState>(
@@ -268,10 +272,10 @@ class _HomePageState extends State<HomePage> {
           ),
         ],
       ),
+    ),
     );
   }
 
-  
   Widget _buildComingTask() {
     return BlocBuilder<ActivityBloc, ActivityState>(
       builder: (context, state) {
@@ -527,7 +531,7 @@ class _HomePageState extends State<HomePage> {
     return BlocConsumer<ProspectStatusSummaryBloc, ProspectStatusSummaryState>(
       listenWhen: (prev, curr) => curr.status == ProspectStatusSummaryStatus.error && prev.status != ProspectStatusSummaryStatus.error,
       listener: (context, state) {
-        // debugPrint('ProspectStatusSummaryError: ${state.errorMessage}');
+        debugPrint('ProspectStatusSummaryError: ${state.errorMessage}');
         showErrorDialog(context, 'Gagal memuat prospect status');
       },
       builder: (context, state) {

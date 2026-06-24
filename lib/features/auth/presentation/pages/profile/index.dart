@@ -530,26 +530,26 @@ class _ProfilePageState extends State<ProfilePage> {
                     //   ),
                     // ),
                     // const SizedBox(height: 12),
-                    SizedBox(
-                      width: double.infinity,
-                      child: OutlinedButton.icon(
-                        onPressed: () async {
-                          final prefs = await SharedPreferences.getInstance();
-                          final token = prefs.getString('auth_token') ?? '-';
-                          debugPrint('[TOKEN] $token');
-                          await Clipboard.setData(ClipboardData(text: token));
-                          if (context.mounted) showSnackbar(context, 'Token disalin ke clipboard', isError: false);
-                        },
-                        icon: const Icon(Icons.copy, size: 16),
-                        label: const Text('Print Token'),
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: Color(primaryColor),
-                          side: BorderSide(color: Color(primaryColor)),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                        ),
-                      ),
-                    ),
+                    // SizedBox(
+                    //   width: double.infinity,
+                    //   child: OutlinedButton.icon(
+                    //     onPressed: () async {
+                    //       final prefs = await SharedPreferences.getInstance();
+                    //       final token = prefs.getString('auth_token') ?? '-';
+                    //       debugPrint('[TOKEN] $token');
+                    //       await Clipboard.setData(ClipboardData(text: token));
+                    //       if (context.mounted) showSnackbar(context, 'Token disalin ke clipboard', isError: false);
+                    //     },
+                    //     icon: const Icon(Icons.copy, size: 16),
+                    //     label: const Text('Print Token'),
+                    //     style: OutlinedButton.styleFrom(
+                    //       foregroundColor: Color(primaryColor),
+                    //       side: BorderSide(color: Color(primaryColor)),
+                    //       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    //       padding: const EdgeInsets.symmetric(vertical: 14),
+                    //     ),
+                    //   ),
+                    // ),
                   ],
                 ),
               ),

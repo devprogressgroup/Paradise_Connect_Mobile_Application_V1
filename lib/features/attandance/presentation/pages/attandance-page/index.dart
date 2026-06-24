@@ -1887,6 +1887,7 @@ class _AttandancePageState extends State<AttandancePage> {
     String? note,
     String? contactName,
     String? type,
+    String? serial,
   }) {
    
     // Index gambar yang ditap — untuk sorot di thumbnail strip
@@ -1923,6 +1924,7 @@ class _AttandancePageState extends State<AttandancePage> {
                               width: double.infinity,
                               height: 200,
                               fit: BoxFit.cover,
+                              errorWidget: _buildImageErrorWidget(serial: serial, height: 200),
                               onTap: () => _showImagePreview(context, allImages, selectedIndex),
                             ),
                           ),
@@ -1965,7 +1967,7 @@ class _AttandancePageState extends State<AttandancePage> {
                                 ),
                                 child: ClipRRect(
                                   borderRadius: BorderRadius.circular(6),
-                                  child: DriveImage(url: allImages[i], width: 52, height: 52, fit: BoxFit.cover),
+                                  child: DriveImage(url: allImages[i], width: 52, height: 52, fit: BoxFit.cover, errorWidget: _buildImageErrorWidget(serial: serial, height: 52)),
                                 ),
                               ),
                             ),
@@ -2543,6 +2545,18 @@ class _AttandancePageState extends State<AttandancePage> {
 
 
     
+  Widget _buildImageErrorWidget({String? serial, double height = 180}) {
+    return Container(
+      height: height,
+      decoration: BoxDecoration(
+        color: Color(primaryColor).withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      alignment: Alignment.center,
+      child: Icon(Icons.punch_clock, size: 50, color: Color(primaryColor).withValues(alpha: 0.4)),
+    );
+  }
+
   void _showAttendanceDialog(AttendanceEntity item, int flag) {
     final String timeValue = flag == 0 ? item.clockIn ?? "-" : item.clockOut ?? "-";
     final List<String>? images =flag == 0 ? item.fileAttchment0 : item.fileAttchment1;
@@ -2552,6 +2566,7 @@ class _AttandancePageState extends State<AttandancePage> {
     final int? isReject = flag == 0 ? item.isReject0 : item.isReject1;
     final String? approveName = flag == 0 ? item.approveName0 : item.approveName1;
     final String? rejectName = flag == 0 ? item.rejectName0 : item.rejectName1;
+    final String? serial = flag == 0 ? item.serial0 : item.serial1;
 
     final String displayTime = (timeValue != '-') ? DateHelper.formatTime(DateTime.parse(timeValue)) : '-';
     final String? displayImage =  (images != null && images.isNotEmpty)       ? (flag == 0 ? images.first : images.last)       : null;
@@ -2582,13 +2597,10 @@ class _AttandancePageState extends State<AttandancePage> {
                                 width: double.infinity,
                                 height: 180,
                                 fit: BoxFit.cover,
+                                errorWidget: _buildImageErrorWidget(serial: serial),
                                 onTap: () => _showImagePreview(context, images!, flag == 0 ? 0 : images.length - 1),
                               )
-                            : Container(
-                                height: 180,
-                                color: Colors.grey.shade200,
-                                child: const Icon(Icons.image, size: 50),
-                              ),
+                            : _buildImageErrorWidget(serial: serial),
                       ),
                       if (displayImage != null)
                         Positioned(

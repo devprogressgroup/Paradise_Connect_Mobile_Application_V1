@@ -6,7 +6,6 @@ class ProspectStatusItemModel extends ProspectStatusItemEntity {
     required super.statusValue,
     required super.statusName,
     required super.totalContacts,
-    required super.totalDeals,
     super.startDate,
     super.endDate,
   });
@@ -17,7 +16,6 @@ class ProspectStatusItemModel extends ProspectStatusItemEntity {
       statusValue: json['status_value'] as String,
       statusName: json['status_name'] as String,
       totalContacts: json['total_contacts'] as int,
-      totalDeals: json['total_deals'] as int,
       startDate: json['start_date'] as String?,
       endDate: json['end_date'] as String?,
     );
@@ -27,7 +25,6 @@ class ProspectStatusItemModel extends ProspectStatusItemEntity {
 class ProspectStatusSummaryModel extends ProspectStatusSummaryEntity {
   const ProspectStatusSummaryModel({
     required super.totalContacts,
-    required super.totalDeals,
     required super.statuses,
   });
 
@@ -38,7 +35,6 @@ class ProspectStatusSummaryModel extends ProspectStatusSummaryEntity {
 
     return ProspectStatusSummaryModel(
       totalContacts: json['total_contacts'] as int,
-      totalDeals: json['total_deals'] as int,
       statuses: statusList,
     );
   }
