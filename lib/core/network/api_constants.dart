@@ -32,9 +32,9 @@ class ApiConstants {
 
     // AppEnvironment.development: _EnvConfig(
     //   label: 'Development',
-    //   baseUrl: 'http://192.168.8.36:8000/api',
-    //   storageUrl: 'http://192.168.8.36:8000/storage',
-    //   serverUrl: 'http://192.168.8.36:8000',
+    //   baseUrl: 'http://192.168.9.47:8000/api',
+    //   storageUrl: 'http://192.168.9.47:8000/storage',
+    //   serverUrl: 'http://192.168.9.47:8000',
     // ),
 
     // AppEnvironment.development2: _EnvConfig(
@@ -45,12 +45,12 @@ class ApiConstants {
     // ),
 
 
-    AppEnvironment.productionDomain: _EnvConfig(
-      label: 'Production Domain',
-      baseUrl: 'https://apidevconnect.paradise.id/api',
-      storageUrl: 'https://apidevconnect.paradise.id/storage',
-      serverUrl: 'https://apidevconnect.paradise.id',
-    ),
+    // AppEnvironment.productionDomain: _EnvConfig(
+    //   label: 'Production Domain',
+    //   baseUrl: 'https://apidevconnect.paradise.id/api',
+    //   storageUrl: 'https://apidevconnect.paradise.id/storage',
+    //   serverUrl: 'https://apidevconnect.paradise.id',
+    // ),
   };
 
 
@@ -60,7 +60,9 @@ class ApiConstants {
   static final ValueNotifier<AppEnvironment> envNotifier = ValueNotifier(AppEnvironment.production);
 
   static AppEnvironment get currentEnv => _currentEnv;
-  static String get envLabel => _configs[_currentEnv]!.label;
+  static String get envLabel => (_configs[_currentEnv] ?? _configs[AppEnvironment.production]!).label;
+  static Set<AppEnvironment> get availableEnvironments => _configs.keys.toSet();
+  static String baseUrlFor(AppEnvironment env) => _configs[env]?.baseUrl ?? '';
 
   static void loadFromPrefs(SharedPreferences prefs) {
     final userSet = prefs.getBool(_prefSetKey) ?? false;
@@ -70,12 +72,13 @@ class ApiConstants {
       return;
     }
     final saved = prefs.getString(_prefKey);
-    _currentEnv = switch (saved) {
+    final parsed = switch (saved) {
       'development' => AppEnvironment.development,
       'development2' => AppEnvironment.development2,
       'productionDomain' => AppEnvironment.productionDomain,
       _ => AppEnvironment.production,
     };
+    _currentEnv = _configs.containsKey(parsed) ? parsed : AppEnvironment.production;
     envNotifier.value = _currentEnv;
   }
 
@@ -93,7 +96,7 @@ class ApiConstants {
     envNotifier.value = env;
   }
 
-  static _EnvConfig get _config => _configs[_currentEnv]!;
+  static _EnvConfig get _config => _configs[_currentEnv] ?? _configs[AppEnvironment.production]!;
 
   static String get baseUrl => _config.baseUrl;
   static String get storageUrl => _config.storageUrl;

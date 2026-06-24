@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:progress_group/core/constants/colors.dart';
 import 'package:progress_group/core/network/api_constants.dart';
 import 'package:local_auth/local_auth.dart';
+import 'package:progress_group/core/utils/widget/env_swither.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../../../core/utils/widget/custom_snackbar.dart';
 import '../../state/auth/auth_bloc.dart';
@@ -97,122 +98,7 @@ class _LoginPageState extends State<LoginPage> {
     }
   }
 
-  void _showEnvSwitcher() {
-    showModalBottomSheet(
-      context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (ctx) {
-        return ValueListenableBuilder<AppEnvironment>(
-          valueListenable: ApiConstants.envNotifier,
-          builder: (_, currentEnv, __) {
-            return Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Pilih Environment',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 16),
-                  const SizedBox(height: 10),
-                  _envOption(
-                    ctx,
-                    env: AppEnvironment.development2,
-                    label: 'Development 2',
-                    subtitle: '192.168.1.11:8000',
-                    color: const Color(0xFF3B82F6),
-                    currentEnv: currentEnv,
-                  ),
-                  _envOption(
-                    ctx,
-                    env: AppEnvironment.production,
-                    label: 'Production',
-                    subtitle: 'https://api.connect.paradise.id',
-                    color: const Color(0xFF22C55E),
-                    currentEnv: currentEnv,
-                  ),
-                  const SizedBox(height: 10),
-                  _envOption(
-                    ctx,
-                    env: AppEnvironment.development,
-                    label: 'Development',
-                    subtitle: 'http://192.168.8.45:8000',
-                    color: const Color(0xFFF59E0B),
-                    currentEnv: currentEnv,
-                  ),
-                  const SizedBox(height: 10),
-                  _envOption(
-                    ctx,
-                    env: AppEnvironment.productionDomain,
-                    label: 'Production Domain',
-                    subtitle: 'https://apidevconnect.paradise.id/api',
-                    color: const Color(0xFF8B5CF6),
-                    currentEnv: currentEnv,
-                  ),
-
-                  const SizedBox(height: 8),
-                ],
-              ),
-            );
-          },
-        );
-      },
-    );
-  }
-
-  Widget _envOption(
-    BuildContext ctx, {
-    required AppEnvironment env,
-    required String label,
-    required String subtitle,
-    required Color color,
-    required AppEnvironment currentEnv,
-  }) {
-    final isSelected = currentEnv == env;
-    return GestureDetector(
-      onTap: () async {
-        Navigator.pop(ctx);
-        if (currentEnv != env) {
-          await ApiConstants.switchEnv(env);
-        }
-      },
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        decoration: BoxDecoration(
-          color: isSelected ? color.withValues(alpha: 0.08) : Colors.grey.withValues(alpha: 0.06),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: isSelected ? color : Colors.transparent,
-            width: 1.5,
-          ),
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 10,
-              height: 10,
-              decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(label, style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: isSelected ? color : Colors.black87)),
-                  Text(subtitle, style: TextStyle(fontSize: 12, color: Colors.grey[600])),
-                ],
-              ),
-            ),
-            if (isSelected) Icon(Icons.check_circle, color: color, size: 20),
-          ],
-        ),
-      ),
-    );
-  }
+  
 
   void _login() {
     final email = _emailController.text.trim();
@@ -302,7 +188,7 @@ class _LoginPageState extends State<LoginPage> {
                     children: [
                       // Header
                       GestureDetector(
-                        // onTap: _showEnvSwitcher,
+                        onTap: () => showEnvSwitcher(context),
                         child: const Text(
                           'Sign In',
                           textAlign: TextAlign.center,
