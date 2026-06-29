@@ -244,11 +244,7 @@ class _SalesKitPageState extends State<SalesKitPage> {
       builder: (context, state) {
         return Column(
           children: [
-            customHeader(
-              context,
-              widget.args.title??"-",
-              isBack: true,
-            ),
+            customHeader(   context,   widget.args.title??"-",   isBack: true, ),
             SizedBox(height: 1),
             Expanded(
               child: RefreshIndicator(

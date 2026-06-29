@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-enum AppEnvironment { production, development, development2, productionDomain }
+enum AppEnvironment { production, development, development2, developmnetDomain }
 
 class _EnvConfig {
   final String label;
@@ -30,12 +30,12 @@ class ApiConstants {
     ),
 
 
-    // AppEnvironment.development: _EnvConfig(
-    //   label: 'Development',
-    //   baseUrl: 'http://192.168.8.36:8000/api',
-    //   storageUrl: 'http://192.168.8.36:8000/storage',
-    //   serverUrl: 'http://192.168.8.36:8000',
-    // ),
+    AppEnvironment.development: _EnvConfig(
+      label: 'Development IP',
+      baseUrl: 'http://192.168.8.36:8000/api',
+      storageUrl: 'http://192.168.8.36:8000/storage',
+      serverUrl: 'http://192.168.8.36:8000',
+    ),
 
     // AppEnvironment.development2: _EnvConfig(
     //   label: 'Development 2',
@@ -45,12 +45,12 @@ class ApiConstants {
     // ),
 
 
-    // AppEnvironment.productionDomain: _EnvConfig(
-    //   label: 'Production Domain',
-    //   baseUrl: 'https://apidevconnect.paradise.id/api',
-    //   storageUrl: 'https://apidevconnect.paradise.id/storage',
-    //   serverUrl: 'https://apidevconnect.paradise.id',
-    // ),
+    AppEnvironment.developmnetDomain: _EnvConfig(
+      label: 'Development',
+      baseUrl: 'https://apidevconnect.paradise.id/api',
+      storageUrl: 'https://apidevconnect.paradise.id/storage',
+      serverUrl: 'https://apidevconnect.paradise.id',
+    ),
   };
 
 
@@ -61,6 +61,7 @@ class ApiConstants {
 
   static AppEnvironment get currentEnv => _currentEnv;
   static String get envLabel => (_configs[_currentEnv] ?? _configs[AppEnvironment.production]!).label;
+  static String labelFor(AppEnvironment env) => (_configs[env] ?? _configs[AppEnvironment.production]!).label;
   static Set<AppEnvironment> get availableEnvironments => _configs.keys.toSet();
   static String baseUrlFor(AppEnvironment env) => _configs[env]?.baseUrl ?? '';
 
@@ -75,7 +76,7 @@ class ApiConstants {
     final parsed = switch (saved) {
       'development' => AppEnvironment.development,
       'development2' => AppEnvironment.development2,
-      'productionDomain' => AppEnvironment.productionDomain,
+      'productionDomain' => AppEnvironment.developmnetDomain,
       _ => AppEnvironment.production,
     };
     _currentEnv = _configs.containsKey(parsed) ? parsed : AppEnvironment.production;
@@ -88,7 +89,7 @@ class ApiConstants {
     final key = switch (env) {
       AppEnvironment.development => 'development',
       AppEnvironment.development2 => 'development2',
-      AppEnvironment.productionDomain => 'productionDomain',
+      AppEnvironment.developmnetDomain => 'productionDomain',
       AppEnvironment.production => 'production',
     };
     await prefs.setString(_prefKey, key);

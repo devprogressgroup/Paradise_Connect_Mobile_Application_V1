@@ -6,6 +6,7 @@ import 'package:progress_group/core/constants/colors.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'custom_header.dart';
+import 'floating_download_overlay.dart';
 
 class WebViewPage extends StatefulWidget {
   final String url;
@@ -29,12 +30,7 @@ class WebViewPage extends StatefulWidget {
 }
 
 class _WebViewPageState extends State<WebViewPage> {
-  String? _localFilePath;
-
-  void _shareFile() {
-    if (_localFilePath == null) return;
-    Share.shareXFiles([XFile(_localFilePath!)], subject: widget.title);
-  }
+  void _shareUrl() => Share.share(widget.url, subject: widget.title);
 
   @override
   Widget build(BuildContext context) {
@@ -51,8 +47,8 @@ class _WebViewPageState extends State<WebViewPage> {
                 colorTitle: Color(blackColor),
                 colorIconLeft: Color(primaryColor),
                 colorBack: Color(primaryColor),
-                iconLeft: widget.isPdf && _localFilePath != null ? Icons.share : null,
-                iconLeftOnTap: _shareFile,
+                iconLeft: Icons.share,
+                iconLeftOnTap: _shareUrl,
               ),
             ),
           Expanded(
@@ -60,9 +56,9 @@ class _WebViewPageState extends State<WebViewPage> {
                 ? PdfViewerWidget(
                     url: widget.url,
                     title: widget.title,
-                    onFileReady: (path) => setState(() => _localFilePath = path),
+                    onFileReady: (_) {},
                   )
-                : WebViewerWidget(url: widget.url),
+                : WebViewerWidget(url: widget.url, title: widget.title),
           ),
         ],
       ),
@@ -196,10 +192,12 @@ class _PdfViewerWidgetState extends State<PdfViewerWidget> {
 
 class WebViewerWidget extends StatefulWidget {
   final String url;
+  final String title;
 
   const WebViewerWidget({
     super.key,
     required this.url,
+    required this.title,
   });
 
   @override
@@ -209,6 +207,25 @@ class WebViewerWidget extends StatefulWidget {
 class _WebViewerWidgetState extends State<WebViewerWidget> {
   late final WebViewController controller;
   bool isLoading = true;
+  BuildContext? _ctx;
+
+  bool _isDownloadUrl(String url) =>
+      url.contains('export=download') ||
+      url.contains('uc?id=') ||
+      url.contains('drive.usercontent.google.com/download');
+
+  String _filenameFromTitle() {
+    final title = widget.title.trim();
+    // Derive extension from page URL if possible
+    final urlLower = widget.url.toLowerCase();
+    for (final ext in ['.mp4', '.mov', '.avi', '.mkv', '.webm', '.pdf', '.zip']) {
+      if (urlLower.contains(ext)) {
+        final safe = title.replaceAll(RegExp(r'[<>:"/\\|?*]'), '_');
+        return '$safe$ext';
+      }
+    }
+    return '${title.replaceAll(RegExp(r'[<>:"/\\|?*]'), '_')}.mp4';
+  }
 
   @override
   void initState() {
@@ -219,20 +236,23 @@ class _WebViewerWidgetState extends State<WebViewerWidget> {
       ..setNavigationDelegate(
         NavigationDelegate(
           onPageStarted: (_) {
-            if (mounted) {
-              setState(() {
-                isLoading = true;
-              });
-            }
+            if (mounted) setState(() => isLoading = true);
           },
           onPageFinished: (_) {
-            if (mounted) {
-              setState(() {
-                isLoading = false;
-              });
-            }
+            if (mounted) setState(() => isLoading = false);
           },
-          onNavigationRequest: (_) => NavigationDecision.navigate,
+          onNavigationRequest: (NavigationRequest request) {
+            final url = request.url;
+            if (_isDownloadUrl(url) && _ctx != null) {
+              FloatingDownloadManager.show(
+                context: _ctx!,
+                url: url,
+                filename: _filenameFromTitle(),
+              );
+              return NavigationDecision.prevent;
+            }
+            return NavigationDecision.navigate;
+          },
         ),
       )
       ..loadRequest(Uri.parse(widget.url));
@@ -240,6 +260,7 @@ class _WebViewerWidgetState extends State<WebViewerWidget> {
 
   @override
   Widget build(BuildContext context) {
+    _ctx = context;
     return Stack(
       fit: StackFit.expand,
       children: [

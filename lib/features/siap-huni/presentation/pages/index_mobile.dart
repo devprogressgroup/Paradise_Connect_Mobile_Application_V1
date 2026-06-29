@@ -18,7 +18,6 @@ class _SiapHuniPageState extends State<SiapHuniPage> {
   WebViewController? _controller;
   bool _pageLoading = false;
   bool _initialized = false;
-  String _builtUrl = ''; // SEMENTARA (debug): URL Siap Huni yang dibuat, ditampilkan di UI
 
   String _buildUrl(String fullName, String phone) {
     var base = ApiConstants.siapHuniUrl;
@@ -68,7 +67,7 @@ class _SiapHuniPageState extends State<SiapHuniPage> {
     } else {
       url = ApiConstants.siapHuniUrl;
     }
-    _builtUrl = url; // SEMENTARA: simpan untuk ditampilkan di UI
+// SEMENTARA: simpan untuk ditampilkan di UI
     if (url.isNotEmpty) {
       // debugPrint('[SiapHuni] URL: $url');
       _initController(url);

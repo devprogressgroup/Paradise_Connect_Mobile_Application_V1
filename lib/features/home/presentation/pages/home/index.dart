@@ -531,7 +531,7 @@ class _HomePageState extends State<HomePage> {
     return BlocConsumer<ProspectStatusSummaryBloc, ProspectStatusSummaryState>(
       listenWhen: (prev, curr) => curr.status == ProspectStatusSummaryStatus.error && prev.status != ProspectStatusSummaryStatus.error,
       listener: (context, state) {
-        debugPrint('ProspectStatusSummaryError: ${state.errorMessage}');
+        // debugPrint('ProspectStatusSummaryError: ${state.errorMessage}');
         showErrorDialog(context, 'Gagal memuat prospect status');
       },
       builder: (context, state) {

@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:progress_group/core/constants/colors.dart';
 import 'package:progress_group/core/network/api_constants.dart';
 
-const _envMeta = {
-  AppEnvironment.production: (label: 'Production', color: Color(0xFF22C55E)),
-  AppEnvironment.development: (label: 'Development', color: Color(0xFFF59E0B)),
-  AppEnvironment.development2: (label: 'Development 2', color: Color(0xFF3B82F6)),
-  AppEnvironment.productionDomain: (label: 'Production Domain', color: Color(0xFF8B5CF6)),
+const _envColors = {
+  AppEnvironment.production: Color(primaryColor),
+  AppEnvironment.development: Color(0xFF22C55E),
+  AppEnvironment.development2: Color(0xFFF59E0B),
+  AppEnvironment.developmnetDomain: Color(0xFF8B5CF6),
 };
 
 void showEnvSwitcher(BuildContext context) {
@@ -24,7 +25,7 @@ void showEnvSwitcher(BuildContext context) {
         valueListenable: ApiConstants.envNotifier,
         builder: (_, currentEnv, __) {
           final available = ApiConstants.availableEnvironments;
-          final options = _envMeta.entries.where((e) => available.contains(e.key)).toList();
+          final options = _envColors.entries.where((e) => available.contains(e.key)).toList();
           return ConstrainedBox(
             constraints: BoxConstraints(minHeight: screenHeight * 0.45),
             child: Padding(
@@ -43,9 +44,9 @@ void showEnvSwitcher(BuildContext context) {
                         child: _EnvOption(
                           ctx: ctx,
                           env: e.key,
-                          label: e.value.label,
+                          label: ApiConstants.labelFor(e.key),
                           subtitle: ApiConstants.baseUrlFor(e.key),
-                          color: e.value.color,
+                          color: e.value,
                           currentEnv: currentEnv,
                         ),
                       )),
