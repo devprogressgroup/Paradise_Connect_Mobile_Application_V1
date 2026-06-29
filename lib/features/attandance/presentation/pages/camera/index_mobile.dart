@@ -1,4 +1,4 @@
-import 'dart:async';
+﻿import 'dart:async';
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:camera/camera.dart';
@@ -119,7 +119,7 @@ class _CameraPageState extends State<CameraPage> {
         setState(() => _cameraError = "Kamera timeout, coba lagi.");
       }
     } catch (e) {
-      debugPrint("ERROR CAMERA: $e");
+      // debugPrint("ERROR CAMERA: $e");
       if (mounted) {
         setState(() => _cameraError = "Gagal membuka kamera: $e");
       }
@@ -143,7 +143,7 @@ class _CameraPageState extends State<CameraPage> {
         _isAddingMore = false;
       });
     } catch (e) {
-      debugPrint("ERROR TAKE PICTURE: $e");
+      // debugPrint("ERROR TAKE PICTURE: $e");
     }
   }
 
@@ -243,7 +243,7 @@ class _CameraPageState extends State<CameraPage> {
                 context.go('/attandance');
               }
             } else if (state is AttendanceError) {
-              debugPrint('AttendanceError: ${state.message}');
+              // debugPrint('AttendanceError: ${state.message}');
               if (state.message == 'SESSION_EXPIRED' || state.message.contains('[cancel]')) return;
               showDialog(
                 context: context,

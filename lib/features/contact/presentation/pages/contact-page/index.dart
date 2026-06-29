@@ -1,4 +1,4 @@
-import 'dart:async';
+﻿import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:progress_group/core/utils/helpers/permissions_helper.dart';
@@ -56,10 +56,12 @@ class _ContactPageState extends State<ContactPage> {
   String? selectedSpDateLabel;
 
   List<ContactEntity> contactEntity = [];
+  late ContactBloc _contactBloc;
 
   @override
   void initState() {
     super.initState();
+    _contactBloc = context.read<ContactBloc>();
 
     _searchController.clear();
 
@@ -118,11 +120,8 @@ class _ContactPageState extends State<ContactPage> {
   void dispose() {
     _searchController.clear();
 
-    context.read<ContactBloc>().add(
-      const FetchContactsEvent(search: '', isRefresh: true),
-    );
-
-    context.read<ContactBloc>().add(ClearContactsEvent());
+    _contactBloc.add(const FetchContactsEvent(search: '', isRefresh: true));
+    _contactBloc.add(ClearContactsEvent());
 
     _debounce?.cancel();
     _scrollController.dispose();
@@ -221,7 +220,7 @@ class _ContactPageState extends State<ContactPage> {
                         listenWhen: (prev, curr) =>
                             curr.status == ContactStatus.error && prev.status == ContactStatus.loading,
                         listener: (context, state) {
-                          debugPrint('ContactError: ${state.errorMessage}');
+                          // debugPrint('ContactError: ${state.errorMessage}');
                           final msg = (state.errorMessage ?? '').replaceFirst('Exception: ', '').trim();
                           showErrorDialog(context, msg.isNotEmpty ? msg : 'Gagal memuat data kontak');
                         },

@@ -1,4 +1,4 @@
-import 'dart:async';
+﻿import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../../../../core/utils/helpers/date_helper.dart';
 import '../../../../../core/utils/helpers/error_message.dart';
@@ -233,7 +233,7 @@ class _ApprovalPageState extends State<ApprovalPage> {
                 listenWhen: (prev, curr) => curr is AttendanceApprovalError && prev is! AttendanceApprovalError,
                 listener: (context, state) {
                   if (state is AttendanceApprovalError) {
-                    debugPrint('AttendanceApprovalError: ${state.message}');
+                    // debugPrint('AttendanceApprovalError: ${state.message}');
                   }
                 },
                 builder: (context, state) {

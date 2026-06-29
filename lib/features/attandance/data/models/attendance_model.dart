@@ -27,6 +27,9 @@ class AttendanceModel extends AttendanceEntity {
     super.approveName1,
     super.rejectName0,
     super.rejectName1,
+    super.serial0,
+    super.serial1,
+    super.serial6,
   });
 
   factory AttendanceModel.fromJson(Map<String, dynamic> json) {

@@ -1,4 +1,4 @@
-// Web-only camera implementation using browser getUserMedia API.
+﻿// Web-only camera implementation using browser getUserMedia API.
 // Loaded via conditional export in index.dart when dart.library.io is false.
 // ignore: avoid_web_libraries_in_flutter, deprecated_member_use
 import 'dart:async';
@@ -59,7 +59,7 @@ class _CameraPageState extends State<CameraPage> {
             context.go('/attandance');
           }
         } else if (state is AttendanceError) {
-          debugPrint('AttendanceError: ${state.message}');
+          // debugPrint('AttendanceError: ${state.message}');
           showDialog(
             context: context,
             builder: (ctx) => AlertDialog(

@@ -1,4 +1,4 @@
-import 'package:file_picker/file_picker.dart';
+﻿import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
@@ -166,7 +166,7 @@ class _FilePickerSheet extends StatelessWidget {
         isPdf: false,
       );
     } catch (e) {
-      debugPrint('[CustomFilePicker] camera error: $e');
+      // debugPrint('[CustomFilePicker] camera error: $e');
       return null;
     }
   }
@@ -204,7 +204,7 @@ class _FilePickerSheet extends StatelessWidget {
         );
       }
     } catch (e) {
-      debugPrint('[CustomFilePicker] gallery error: $e');
+      // debugPrint('[CustomFilePicker] gallery error: $e');
       return null;
     }
   }
@@ -231,7 +231,7 @@ class _FilePickerSheet extends StatelessWidget {
         isPdf: isPdf,
       );
     } catch (e) {
-      debugPrint('[CustomFilePicker] document error: $e');
+      // debugPrint('[CustomFilePicker] document error: $e');
       return null;
     }
   }

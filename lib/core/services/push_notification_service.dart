@@ -1,4 +1,4 @@
-import 'dart:convert';
+﻿import 'dart:convert';
 
 import 'package:dio/dio.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
@@ -161,7 +161,7 @@ class PushNotificationService {
       badge: true,
       sound: true,
     );
-    debugPrint('[FCM] Permission: ${settings.authorizationStatus}');
+    // debugPrint('[FCM] Permission: ${settings.authorizationStatus}');
   }
 
   static Future<void> _setupLocalNotifications() async {

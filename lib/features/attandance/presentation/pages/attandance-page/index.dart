@@ -1,4 +1,4 @@
-import 'dart:async';
+﻿import 'dart:async';
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:dio/dio.dart';
@@ -169,13 +169,16 @@ class _AttandancePageState extends State<AttandancePage> {
   }
 
   void _onTabChanged(int index) {
+    if (!mounted) return;
     setState(() => selectedIndex = index);
 
-    _pageController.animateToPage(
-      index,
-      duration: const Duration(milliseconds: 300),
-      curve: Curves.easeOutCubic,
-    );
+    if (_pageController.hasClients) {
+      _pageController.animateToPage(
+        index,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOutCubic,
+      );
+    }
   }
 
   // Approver attendance = punya feature ApproveReject (master gate). Backend menentukan CAKUPAN:
@@ -271,7 +274,7 @@ class _AttandancePageState extends State<AttandancePage> {
     if (!mounted) return;
     final officeLocations = context.read<OfficeLocationCubit>().state;
     if (officeLocations.isEmpty) {
-      debugPrint('[_computeNearestLocation] no office locations from API → luar lokasi, canClockIn=${PermissionsHelper.canClockInLuarLokasi || PermissionsHelper.canClockInLuarLokasiRequestApprove}, canClockOut=${PermissionsHelper.canClockOutLuarLokasi || PermissionsHelper.canClockOutLuarLokasiRequestApprove}');
+      // debugPrint('[_computeNearestLocation] no office locations from API → luar lokasi, canClockIn=${PermissionsHelper.canClockInLuarLokasi || PermissionsHelper.canClockInLuarLokasiRequestApprove}, canClockOut=${PermissionsHelper.canClockOutLuarLokasi || PermissionsHelper.canClockOutLuarLokasiRequestApprove}');
       if (mounted) {
         setState(() { _nearestTypeLocationId = null; _nearestIsInRadius = false; _locationResolved = true; });
         _trySetInitialTab();
@@ -297,15 +300,15 @@ class _AttandancePageState extends State<AttandancePage> {
     }
 
     final resolvedTypeId = inRadius ? typeId : null;
-    debugPrint('[PermissionsHelper] canClockInOffice                    : ${PermissionsHelper.canClockInOffice}');
-    debugPrint('[PermissionsHelper] canClockInPameran                   : ${PermissionsHelper.canClockInPameran}');
-    debugPrint('[PermissionsHelper] canClockInLuarLokasi                : ${PermissionsHelper.canClockInLuarLokasi}');
-    debugPrint('[PermissionsHelper] canClockInLuarLokasiRequestApprove  : ${PermissionsHelper.canClockInLuarLokasiRequestApprove}');
-    debugPrint('[PermissionsHelper] canClockOutOffice                   : ${PermissionsHelper.canClockOutOffice}');
-    debugPrint('[PermissionsHelper] canClockOutPameran                  : ${PermissionsHelper.canClockOutPameran}');
-    debugPrint('[PermissionsHelper] canClockOutLuarLokasi               : ${PermissionsHelper.canClockOutLuarLokasi}');
-    debugPrint('[PermissionsHelper] canClockOutLuarLokasiRequestApprove : ${PermissionsHelper.canClockOutLuarLokasiRequestApprove}');
-    debugPrint('[_computeNearestLocation] typeLocationId=$resolvedTypeId, isInRadius=$inRadius');
+    // debugPrint('[PermissionsHelper] canClockInOffice                    : ${PermissionsHelper.canClockInOffice}');
+    // debugPrint('[PermissionsHelper] canClockInPameran                   : ${PermissionsHelper.canClockInPameran}');
+    // debugPrint('[PermissionsHelper] canClockInLuarLokasi                : ${PermissionsHelper.canClockInLuarLokasi}');
+    // debugPrint('[PermissionsHelper] canClockInLuarLokasiRequestApprove  : ${PermissionsHelper.canClockInLuarLokasiRequestApprove}');
+    // debugPrint('[PermissionsHelper] canClockOutOffice                   : ${PermissionsHelper.canClockOutOffice}');
+    // debugPrint('[PermissionsHelper] canClockOutPameran                  : ${PermissionsHelper.canClockOutPameran}');
+    // debugPrint('[PermissionsHelper] canClockOutLuarLokasi               : ${PermissionsHelper.canClockOutLuarLokasi}');
+    // debugPrint('[PermissionsHelper] canClockOutLuarLokasiRequestApprove : ${PermissionsHelper.canClockOutLuarLokasiRequestApprove}');
+    // debugPrint('[_computeNearestLocation] typeLocationId=$resolvedTypeId, isInRadius=$inRadius');
 
     if (mounted) {
       setState(() {
@@ -531,7 +534,7 @@ class _AttandancePageState extends State<AttandancePage> {
 
       if (officeLocations.isNotEmpty) {
         for (var office in officeLocations) {
-          debugPrint('[office] id=${office.id}, name=${office.name}, typeLocationId=${office.typeLocationId}, lat=${office.latitude}, lng=${office.longitude}');
+          // debugPrint('[office] id=${office.id}, name=${office.name}, typeLocationId=${office.typeLocationId}, lat=${office.latitude}, lng=${office.longitude}');
           final lat = double.tryParse(office.latitude ?? '');
           final lng = double.tryParse(office.longitude ?? '');
           if (lat != null && lng != null) {
@@ -556,21 +559,21 @@ class _AttandancePageState extends State<AttandancePage> {
       final effectiveRadius = activeRadius ?? radiusMeter;
       final isInRadius = effectiveDistance <= effectiveRadius;
 
-      debugPrint('[_handleMoveCamera] selected location:');
-      debugPrint('  id             : $nearestOfficeId');
-      debugPrint('  name           : $nearestOfficeName');
-      debugPrint('  latitude       : $nearestOfficeLat');
-      debugPrint('  longitude      : $nearestOfficeLng');
-      debugPrint('  radius         : $activeRadius');
-      debugPrint('  typeLocationId : $nearestOfficeTypeId');
-      debugPrint('ClockIn Permision pameran ${PermissionsHelper.canClockInPameran}');
-      debugPrint('ClockIn Permision office ${PermissionsHelper.canClockInOffice}');
-      debugPrint('ClockIn Permision luar lokasi ${PermissionsHelper.canClockInLuarLokasi}');
-      debugPrint('ClockOut Permision pameran ${PermissionsHelper.canClockOutPameran}');
-      debugPrint('ClockOut Permision office ${PermissionsHelper.canClockOutOffice}');
-      debugPrint('ClockOut Permision luar lokasi ${PermissionsHelper.canClockOutLuarLokasi}');
-      debugPrint('  distance       : ${effectiveDistance.toStringAsFixed(2)} m');
-      debugPrint('  isInRadius     : $isInRadius');
+      // debugPrint('[_handleMoveCamera] selected location:');
+      // debugPrint('  id             : $nearestOfficeId');
+      // debugPrint('  name           : $nearestOfficeName');
+      // debugPrint('  latitude       : $nearestOfficeLat');
+      // debugPrint('  longitude      : $nearestOfficeLng');
+      // debugPrint('  radius         : $activeRadius');
+      // debugPrint('  typeLocationId : $nearestOfficeTypeId');
+      // debugPrint('ClockIn Permision pameran ${PermissionsHelper.canClockInPameran}');
+      // debugPrint('ClockIn Permision office ${PermissionsHelper.canClockInOffice}');
+      // debugPrint('ClockIn Permision luar lokasi ${PermissionsHelper.canClockInLuarLokasi}');
+      // debugPrint('ClockOut Permision pameran ${PermissionsHelper.canClockOutPameran}');
+      // debugPrint('ClockOut Permision office ${PermissionsHelper.canClockOutOffice}');
+      // debugPrint('ClockOut Permision luar lokasi ${PermissionsHelper.canClockOutLuarLokasi}');
+      // debugPrint('  distance       : ${effectiveDistance.toStringAsFixed(2)} m');
+      // debugPrint('  isInRadius     : $isInRadius');
 
       // Cek permission berdasarkan tipe lokasi yang terselect.
       // Check In / aktivitas (flag 6) TIDAK butuh izin clock-in/out — selaras dgn
@@ -593,7 +596,7 @@ class _AttandancePageState extends State<AttandancePage> {
             : PermissionsHelper.canClockOutOffice;
       }
 
-      debugPrint('[_handleMoveCamera] canProceed: $canProceed');
+      // debugPrint('[_handleMoveCamera] canProceed: $canProceed');
 
       if (!canProceed) {
         if (mounted) {
@@ -1222,7 +1225,7 @@ class _AttandancePageState extends State<AttandancePage> {
             context.read<AttendanceExcelCubit>().reset();
           } else if (state is AttendanceExcelError) {
             ScaffoldMessenger.of(context).hideCurrentSnackBar();
-            debugPrint('AttendanceExcelError: ${state.message}');
+            // debugPrint('AttendanceExcelError: ${state.message}');
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(content: Text('Gagal mengunduh data kehadiran')),
             );
@@ -1884,6 +1887,7 @@ class _AttandancePageState extends State<AttandancePage> {
     String? note,
     String? contactName,
     String? type,
+    String? serial,
   }) {
    
     // Index gambar yang ditap — untuk sorot di thumbnail strip
@@ -1920,6 +1924,7 @@ class _AttandancePageState extends State<AttandancePage> {
                               width: double.infinity,
                               height: 200,
                               fit: BoxFit.cover,
+                              errorWidget: _buildImageErrorWidget(serial: serial, height: 200),
                               onTap: () => _showImagePreview(context, allImages, selectedIndex),
                             ),
                           ),
@@ -1962,7 +1967,7 @@ class _AttandancePageState extends State<AttandancePage> {
                                 ),
                                 child: ClipRRect(
                                   borderRadius: BorderRadius.circular(6),
-                                  child: DriveImage(url: allImages[i], width: 52, height: 52, fit: BoxFit.cover),
+                                  child: DriveImage(url: allImages[i], width: 52, height: 52, fit: BoxFit.cover, errorWidget: _buildImageErrorWidget(serial: serial, height: 52)),
                                 ),
                               ),
                             ),
@@ -2368,7 +2373,7 @@ class _AttandancePageState extends State<AttandancePage> {
     final dt = raw != null ? DateTime.tryParse(raw) : null;
 
     return Expanded(
-      child: image != null && flagParam != 6
+      child: dt != null && flagParam != 6
           ? GestureDetector(
               onTap: () { if (attendance != null) _showAttendanceDialog(attendance, flagParam); },
               child: Padding(
@@ -2377,12 +2382,22 @@ class _AttandancePageState extends State<AttandancePage> {
                 children: [
                   ClipRRect(
                     borderRadius: BorderRadius.circular(8),
-                    child: DriveImage(
-                      url: image,
-                      width: 200,
-                      height: 200,
-                      fit: BoxFit.cover,
-                    ),
+                    child: image != null
+                        ? DriveImage(
+                            url: image,
+                            width: 200,
+                            height: 200,
+                            fit: BoxFit.cover,
+                          )
+                        : Container(
+                            width: 200,
+                            height: 200,
+                            decoration: BoxDecoration(
+                              color: Color(primaryColor).withValues(alpha: 0.08),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Icon(Icons.punch_clock, size: 80, color: Color(primaryColor).withValues(alpha: 0.4)),
+                          ),
                   ),
                   Positioned.fill(
                     top: 123,
@@ -2400,12 +2415,12 @@ class _AttandancePageState extends State<AttandancePage> {
                           Row(children: [
                             Icon(Icons.access_time_filled, color: flagParam == 0 ? Color(greenPercentColor) : Color(redPeriodColor), size: 10),
                             const SizedBox(width: 6),
-                            Text(dt != null ? DateHelper.formatTime(dt) : '-', style: const TextStyle(color: Colors.white, fontSize: 10)),
+                            Text(DateHelper.formatTime(dt), style: const TextStyle(color: Colors.white, fontSize: 10)),
                           ]),
                           Row(children: [
                             Icon(Icons.calendar_today_sharp, color: Color(primaryColor), size: 10),
                             const SizedBox(width: 6),
-                            Text(dt != null ? DateHelper.formatDate(dt) : DateHelper.formatDate(DateTime.now()), style: const TextStyle(color: Colors.white, fontSize: 10)),
+                            Text(DateHelper.formatDate(dt), style: const TextStyle(color: Colors.white, fontSize: 10)),
                           ]),
                           Row(children: [
                             Icon(Icons.location_on, color: Color(primaryColor), size: 10),
@@ -2530,6 +2545,18 @@ class _AttandancePageState extends State<AttandancePage> {
 
 
     
+  Widget _buildImageErrorWidget({String? serial, double height = 180}) {
+    return Container(
+      height: height,
+      decoration: BoxDecoration(
+        color: Color(primaryColor).withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      alignment: Alignment.center,
+      child: Icon(Icons.punch_clock, size: 50, color: Color(primaryColor).withValues(alpha: 0.4)),
+    );
+  }
+
   void _showAttendanceDialog(AttendanceEntity item, int flag) {
     final String timeValue = flag == 0 ? item.clockIn ?? "-" : item.clockOut ?? "-";
     final List<String>? images =flag == 0 ? item.fileAttchment0 : item.fileAttchment1;
@@ -2539,6 +2566,7 @@ class _AttandancePageState extends State<AttandancePage> {
     final int? isReject = flag == 0 ? item.isReject0 : item.isReject1;
     final String? approveName = flag == 0 ? item.approveName0 : item.approveName1;
     final String? rejectName = flag == 0 ? item.rejectName0 : item.rejectName1;
+    final String? serial = flag == 0 ? item.serial0 : item.serial1;
 
     final String displayTime = (timeValue != '-') ? DateHelper.formatTime(DateTime.parse(timeValue)) : '-';
     final String? displayImage =  (images != null && images.isNotEmpty)       ? (flag == 0 ? images.first : images.last)       : null;
@@ -2569,13 +2597,10 @@ class _AttandancePageState extends State<AttandancePage> {
                                 width: double.infinity,
                                 height: 180,
                                 fit: BoxFit.cover,
+                                errorWidget: _buildImageErrorWidget(serial: serial),
                                 onTap: () => _showImagePreview(context, images!, flag == 0 ? 0 : images.length - 1),
                               )
-                            : Container(
-                                height: 180,
-                                color: Colors.grey.shade200,
-                                child: const Icon(Icons.image, size: 50),
-                              ),
+                            : _buildImageErrorWidget(serial: serial),
                       ),
                       if (displayImage != null)
                         Positioned(

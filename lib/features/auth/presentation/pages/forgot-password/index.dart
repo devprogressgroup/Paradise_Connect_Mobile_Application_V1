@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:progress_group/core/utils/widget/custom_loading.dart';
@@ -159,7 +159,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
 
             if (state is AuthFailure) {
               _hideLoading();
-              debugPrint('AuthFailure: ${state.error}');
+              // debugPrint('AuthFailure: ${state.error}');
               showSnackbar(context, _step == 1 ? 'Gagal mengirim kode verifikasi' : 'Gagal mereset password', isError: true);
             }
           },

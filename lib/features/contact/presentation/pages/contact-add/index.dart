@@ -1,4 +1,4 @@
-import 'dart:io';
+﻿import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter/foundation.dart' show kIsWeb, kDebugMode;
 import 'package:file_picker/file_picker.dart';
@@ -116,6 +116,12 @@ class _ContactAddPageState extends State<ContactAddPage> {
   bool isPdf = false;
   List<File> selectedImages = [];
   List<Uint8List> selectedImageBytes = [];
+
+  // Attachment upload (page 5) — multi-file
+  List<File> _attachFiles = [];
+  List<Uint8List> _attachFileBytes = [];
+  List<String> _attachFileNames = [];
+  List<bool> _attachFilesIsPdf = [];
 
   List<OwnerDropdownItem> itemsJmlDatang = [
     OwnerDropdownItem(name: "1"),
@@ -335,34 +341,70 @@ class _ContactAddPageState extends State<ContactAddPage> {
   }
 
   Future<void> pickFile() async {
+    final isEdit = widget.args.page == 7;
     final result = await FilePicker.platform.pickFiles(
       type: FileType.custom,
       allowedExtensions: ['jpg', 'jpeg', 'png', 'pdf'],
       withData: kIsWeb,
+      allowMultiple: !isEdit,
     );
 
     if (result == null) return;
-    final picked = result.files.single;
 
-    if (kIsWeb) {
-      if (picked.bytes != null) {
-        setState(() {
-          selectedFileBytes = picked.bytes;
-          selectedFile = null;
-          selectedFileName = picked.name;
-          isPdf = picked.name.toLowerCase().endsWith('.pdf');
-        });
+    if (isEdit) {
+      // Edit mode: satu file saja
+      final picked = result.files.single;
+      if (kIsWeb) {
+        if (picked.bytes != null) {
+          setState(() {
+            selectedFileBytes = picked.bytes;
+            selectedFile = null;
+            selectedFileName = picked.name;
+            isPdf = picked.name.toLowerCase().endsWith('.pdf');
+          });
+        }
+      } else {
+        if (picked.path != null) {
+          setState(() {
+            selectedFile = File(picked.path!);
+            selectedFileBytes = null;
+            selectedFileName = picked.name;
+            isPdf = picked.name.toLowerCase().endsWith('.pdf');
+          });
+        }
       }
-    } else {
-      if (picked.path != null) {
-        setState(() {
-          selectedFile = File(picked.path!);
-          selectedFileBytes = null;
-          selectedFileName = picked.name;
-          isPdf = picked.name.toLowerCase().endsWith('.pdf');
-        });
+      return;
+    }
+
+    // Upload mode: banyak file
+    final newFiles = <File>[];
+    final newBytes = <Uint8List>[];
+    final newNames = <String>[];
+    final newIsPdf = <bool>[];
+
+    for (final picked in result.files) {
+      final isPdfFile = picked.name.toLowerCase().endsWith('.pdf');
+      if (kIsWeb) {
+        if (picked.bytes != null) {
+          newBytes.add(Uint8List.fromList(picked.bytes!));
+          newNames.add(picked.name);
+          newIsPdf.add(isPdfFile);
+        }
+      } else {
+        if (picked.path != null) {
+          newFiles.add(File(picked.path!));
+          newNames.add(picked.name);
+          newIsPdf.add(isPdfFile);
+        }
       }
     }
+
+    setState(() {
+      _attachFiles.addAll(newFiles);
+      _attachFileBytes.addAll(newBytes);
+      _attachFileNames.addAll(newNames);
+      _attachFilesIsPdf.addAll(newIsPdf);
+    });
   }
 
   Future<void> _openCamera() async {
@@ -579,52 +621,91 @@ class _ContactAddPageState extends State<ContactAddPage> {
     final isEdit = widget.args.page == 7;
 
     if (selectedTypeId == null) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Pilih tipe attachment')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Pilih tipe attachment')),
+      );
       return;
     }
 
-    if (!isEdit && selectedImage == null && selectedFile == null && selectedFileBytes == null) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Pilih file')));
+    if (isEdit) {
+      // Edit mode: single file
+      if (selectedImage == null && selectedFile == null && selectedFileBytes == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Pilih file')),
+        );
+        return;
+      }
+
+      File? finalFile = selectedFile ?? selectedImage;
+      Uint8List? finalBytes = selectedFileBytes;
+
+      if (!isPdf) {
+        if (!kIsWeb && finalFile != null) {
+          finalBytes = await compressImageFile(finalFile.path);
+          finalFile = null;
+        } else if (kIsWeb && finalBytes != null) {
+          finalBytes = await compressImageBytes(finalBytes);
+        }
+      }
+      if (!mounted) return;
+
+      final params = UploadAttachmentParams(
+        contactId: contactId,
+        attachmentTypeId: selectedTypeId!,
+        attachmentNote: descTC.text.isEmpty ? null : descTC.text,
+        file: finalFile,
+        fileBytes: finalBytes,
+        fileName: selectedFileName,
+      );
+
+      context.read<UploadAttachmentBloc>().add(
+        SubmitAttachmentEvent(
+          params: params,
+          attachmentId: widget.args.dataAttachment?.contactAttachmentId,
+        ),
+      );
       return;
     }
 
-    File? finalFile = selectedFile ?? selectedImage;
-    Uint8List? finalBytes = selectedFileBytes;
+    // Upload mode: multiple files
+    if (_attachFiles.isEmpty && _attachFileBytes.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Pilih minimal satu file')),
+      );
+      return;
+    }
 
-    debugPrint('[_submitAttachment] isEdit=$isEdit isPdf=$isPdf selectedFileName=$selectedFileName selectedTypeId=$selectedTypeId hasImage=${selectedImage != null} hasFile=${selectedFile != null} hasBytes=${selectedFileBytes != null} bytesLen=${selectedFileBytes?.length}');
-
-    if (!isPdf) {
-      if (!kIsWeb && finalFile != null) {
-        finalBytes = await compressImageFile(finalFile.path);
-        finalFile = null;
-        debugPrint('[_submitAttachment] compressed image: bytesLen=${finalBytes.length}');
-      } else if (kIsWeb && finalBytes != null) {
-        finalBytes = await compressImageBytes(finalBytes);
-        debugPrint('[_submitAttachment] compressed web bytes: bytesLen=${finalBytes.length}');
+    final compressedBytes = <Uint8List>[];
+    if (!kIsWeb) {
+      for (int i = 0; i < _attachFiles.length; i++) {
+        if (_attachFilesIsPdf[i]) {
+          compressedBytes.add(await _attachFiles[i].readAsBytes());
+        } else {
+          compressedBytes.add(await compressImageFile(_attachFiles[i].path));
+        }
+      }
+    } else {
+      for (int i = 0; i < _attachFileBytes.length; i++) {
+        if (_attachFilesIsPdf[i]) {
+          compressedBytes.add(_attachFileBytes[i]);
+        } else {
+          compressedBytes.add(await compressImageBytes(_attachFileBytes[i]));
+        }
       }
     }
+
     if (!mounted) return;
 
     final params = UploadAttachmentParams(
       contactId: contactId,
       attachmentTypeId: selectedTypeId!,
       attachmentNote: descTC.text.isEmpty ? null : descTC.text,
-      file: finalFile,
-      fileBytes: finalBytes,
-      fileName: selectedFileName,
+      filesBytesList: compressedBytes,
+      fileNames: List<String>.from(_attachFileNames),
     );
 
-    debugPrint('[_submitAttachment] dispatching event contactId=$contactId typeId=${params.attachmentTypeId} note=${params.attachmentNote} fileName=${params.fileName} hasFile=${params.file != null} hasBytes=${params.fileBytes != null} attachmentId=${isEdit ? widget.args.dataAttachment?.contactAttachmentId : null}');
-
     context.read<UploadAttachmentBloc>().add(
-      SubmitAttachmentEvent(
-        params: params,
-        attachmentId: isEdit
-            ? widget.args.dataAttachment?.contactAttachmentId
-            : null,
-      ),
+      SubmitAttachmentEvent(params: params, attachmentId: null),
     );
   }
 
@@ -730,9 +811,9 @@ class _ContactAddPageState extends State<ContactAddPage> {
       lostDate: lostDate,
     );
 
-    if (kDebugMode) {
-      debugPrint('[_buildUpdateStatusProspect] req body: ${params.toJson()}');
-    }
+    // if (kDebugMode) {
+    //   debugPrint('[_buildUpdateStatusProspect] req body: ${params.toJson()}');
+    // }
 
     // Alur Visit (buat visit-activity + foto) bila status termasuk GRUP 'visit'. Status Lost-dari-visit
     // (mis. Lost WI) kini grup 'lost' → hanya update kontak (bukan mencatat kunjungan baru).
@@ -754,7 +835,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
       // Also update contact-level fields (project, category, notes) that CreateVisitEvent doesn't save
       context.read<ContactBloc>().add(UpdateContactEvent(contact.contactId!, params));
     } else {
-      context.read<ContactBloc>().add(   UpdateContactEvent(contact.contactId!, params), );
+      context.read<ContactBloc>().add(UpdateContactEvent(contact.contactId!, params), );
     }
 
     SalesbookSyncService.syncContact(contact.contactId!);
@@ -783,6 +864,16 @@ class _ContactAddPageState extends State<ContactAddPage> {
 
     final visitImages = await _compressVisitImages();
     if (!mounted) return;
+
+    // debugPrint('[_submitVisit] selectedImages count  : ${selectedImages.length}');
+    // debugPrint('[_submitVisit] selectedImageBytes count: ${selectedImageBytes.length}');
+    // debugPrint('[_submitVisit] files (non-web)        : ${visitImages.files?.length ?? 0}');
+    // debugPrint('[_submitVisit] bytesData (compressed) : ${visitImages.bytesData?.length ?? 0}');
+    // if (visitImages.bytesData != null) {
+    //   for (var i = 0; i < visitImages.bytesData!.length; i++) {
+    //     debugPrint('[_submitVisit]   image[$i] size: ${visitImages.bytesData![i].lengthInBytes} bytes');
+    //   }
+    // }
 
     final paramsVisit = CreateVisitParams(
       contactId: contact.contactId!,
@@ -837,6 +928,8 @@ class _ContactAddPageState extends State<ContactAddPage> {
 
     context.read<ActivityVisitBloc>().add(CreateVisitEvent(paramsVisit));
     context.read<ContactBloc>().add(UpdateContactEvent(contact.contactId!, paramsContact));
+
+    // debugPrint('ini params visit ${paramsContact.toJson()}');
   }
 
   @override
@@ -880,7 +973,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
                 context.pop();
               }
             } else if (state.status == ActivityStatus.error) {
-              debugPrint('ActivityError: ${state.errorMessage}');
+              // debugPrint('ActivityError: ${state.errorMessage}');
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
                   content: Text('Gagal menambahkan activity'),
@@ -895,7 +988,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
             if (state is UploadAttachmentSuccess) {
               context.pop(2);
             } else if (state is UploadAttachmentError) {
-              debugPrint('UploadAttachmentError: ${state.message}');
+              // debugPrint('UploadAttachmentError: ${state.message}');
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
                   content: Text('Gagal mengunggah lampiran'),
@@ -966,7 +1059,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
               }
               if (selectedProject != null) _loadTownshipClusters(selectedProject!);
             } else if (state.status == ContactStatus.error) {
-              debugPrint('ContactStatusError: ${state.errorMessage}');
+              // debugPrint('ContactStatusError: ${state.errorMessage}');
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
                   content: Text('Gagal memperbarui data kontak'),
@@ -981,7 +1074,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
             if (state is VisitSuccess) {
               context.pop(0); // 0 = Activity tab
             } else if (state is VisitError) {
-              debugPrint('VisitError: ${state.message}');
+              // debugPrint('VisitError: ${state.message}');
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
                   content: Text('Gagal menyimpan data kunjungan'),
@@ -1249,12 +1342,10 @@ class _ContactAddPageState extends State<ContactAddPage> {
   }
 
   /// Grup form status terpilih saat ini (baca state bloc; 'db' bila belum tersedia).
-  String _currentStatusGroup() =>
-      _resolveStatusGroup(context.read<ProspectStatusBloc>().state, selectedStatusId) ?? 'db';
+  String _currentStatusGroup() => _resolveStatusGroup(context.read<ProspectStatusBloc>().state, selectedStatusId) ?? 'db';
 
   /// True bila status [id] termasuk grup 'visit' (penentu alur simpan Visit: buat visit-activity + foto).
-  bool _isVisitGroup(int? id) =>
-      _resolveStatusGroup(context.read<ProspectStatusBloc>().state, id) == 'visit';
+  bool _isVisitGroup(int? id) => _resolveStatusGroup(context.read<ProspectStatusBloc>().state, id) == 'visit';
 
   /// Daftar status yang boleh dipilih saat merekam Visit (page Visit).
   /// Sumber: flag `isVisitForm` (setting STATUS_PROSPECT_APPOINTMENT_REALIZE di backend) — tanpa daftar ID hardcoded.
@@ -2071,6 +2162,157 @@ class _ContactAddPageState extends State<ContactAddPage> {
     );
   }
 
+  Widget _buildMultiFileArea() {
+    final totalFiles = kIsWeb ? _attachFileBytes.length : _attachFiles.length;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              "Files",
+              style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(grey2Color)),
+            ),
+            if (totalFiles > 0)
+              TextButton.icon(
+                onPressed: pickFile,
+                icon: Icon(Icons.add, size: 16, color: Color(primaryColor)),
+                label: Text("Tambah", style: TextStyle(color: Color(primaryColor), fontSize: 12)),
+                style: TextButton.styleFrom(padding: EdgeInsets.zero),
+              ),
+          ],
+        ),
+        SizedBox(height: 6),
+        if (totalFiles == 0)
+          GestureDetector(
+            onTap: pickFile,
+            child: Container(
+              width: double.infinity,
+              height: 100,
+              decoration: BoxDecoration(
+                color: Color(grey9Color),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Color(grey7Color)),
+              ),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Container(
+                    width: 58,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      color: Color(whiteColor),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: Color(primaryColor)),
+                    ),
+                    child: Image.asset(icUpload, height: 24, width: 24),
+                  ),
+                  SizedBox(height: 8),
+                  Text(
+                    "Upload Files",
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(blue2Color)),
+                  ),
+                ],
+              ),
+            ),
+          )
+        else
+          SizedBox(
+            height: 110,
+            child: ListView.builder(
+              scrollDirection: Axis.horizontal,
+              itemCount: totalFiles,
+              itemBuilder: (context, index) {
+                final isPdfFile = _attachFilesIsPdf[index];
+                final fileName = _attachFileNames[index];
+
+                Widget preview;
+                if (isPdfFile) {
+                  preview = Container(
+                    width: 100,
+                    height: 100,
+                    decoration: BoxDecoration(
+                      color: Color(grey9Color),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Color(grey7Color)),
+                    ),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.picture_as_pdf, size: 36, color: Colors.red),
+                        SizedBox(height: 4),
+                        Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 4),
+                          child: Text(
+                            fileName,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            textAlign: TextAlign.center,
+                            style: TextStyle(fontSize: 9, color: Color(grey2Color)),
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                } else if (kIsWeb) {
+                  preview = Image.memory(
+                    _attachFileBytes[index],
+                    width: 100,
+                    height: 100,
+                    fit: BoxFit.cover,
+                  );
+                } else {
+                  preview = Image.file(
+                    _attachFiles[index],
+                    width: 100,
+                    height: 100,
+                    fit: BoxFit.cover,
+                  );
+                }
+
+                return Stack(
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.only(right: 8.0),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: preview,
+                      ),
+                    ),
+                    Positioned(
+                      top: 0,
+                      right: 8,
+                      child: GestureDetector(
+                        onTap: () {
+                          setState(() {
+                            if (kIsWeb) {
+                              _attachFileBytes.removeAt(index);
+                            } else {
+                              _attachFiles.removeAt(index);
+                            }
+                            _attachFileNames.removeAt(index);
+                            _attachFilesIsPdf.removeAt(index);
+                          });
+                        },
+                        child: Container(
+                          decoration: const BoxDecoration(
+                            color: Colors.black54,
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(Icons.close, color: Colors.white, size: 20),
+                        ),
+                      ),
+                    ),
+                  ],
+                );
+              },
+            ),
+          ),
+      ],
+    );
+  }
+
   Widget _buildAttachment() {
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 16, vertical: 20),
@@ -2083,77 +2325,60 @@ class _ContactAddPageState extends State<ContactAddPage> {
           mainAxisAlignment: MainAxisAlignment.center,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            GestureDetector(
-              onTap: pickFile,
-              child: Container(
-                width: double.infinity,
-                height: 130,
-                padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(8),
-                  color: Color(grey9Color),
-                  border: Border.all(color: Color(grey7Color)),
-                ),
-                child:
-                    (selectedFile != null ||
-                        selectedFileBytes != null ||
-                        selectedImage != null ||
-                        existingImageUrl != null)
-                    ? ClipRRect(
-                        borderRadius: BorderRadius.circular(8),
-                        child: isPdf
-                            ? Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  const Icon(Icons.picture_as_pdf, size: 60, color: Colors.red),
-                                  const SizedBox(height: 8),
-                                  Text(selectedFileName ?? "PDF File", textAlign: TextAlign.center),
-                                ],
-                              )
-                            : selectedFileBytes != null
-                            ? Image.memory(
-                                selectedFileBytes!,
-                                width: double.infinity,
-                                fit: BoxFit.cover,
-                              )
-                            : (selectedFile != null || selectedImage != null)
-                            ? Image.file(
-                                selectedFile ?? selectedImage!,
-                                width: double.infinity,
-                                fit: BoxFit.cover,
-                              )
-                            : DriveImage(
-                                url: existingImageUrl!,
-                                width: double.infinity,
-                                fit: BoxFit.cover,
+            if (widget.args.page == 7)
+              GestureDetector(
+                onTap: pickFile,
+                child: Container(
+                  width: double.infinity,
+                  height: 130,
+                  padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(8),
+                    color: Color(grey9Color),
+                    border: Border.all(color: Color(grey7Color)),
+                  ),
+                  child: (selectedFile != null || selectedFileBytes != null || selectedImage != null || existingImageUrl != null)
+                      ? ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: isPdf
+                              ? Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    const Icon(Icons.picture_as_pdf, size: 60, color: Colors.red),
+                                    const SizedBox(height: 8),
+                                    Text(selectedFileName ?? "PDF File", textAlign: TextAlign.center),
+                                  ],
+                                )
+                              : selectedFileBytes != null
+                              ? Image.memory(selectedFileBytes!, width: double.infinity, fit: BoxFit.cover)
+                              : (selectedFile != null || selectedImage != null)
+                              ? Image.file(selectedFile ?? selectedImage!, width: double.infinity, fit: BoxFit.cover)
+                              : DriveImage(url: existingImageUrl!, width: double.infinity, fit: BoxFit.cover),
+                        )
+                      : Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Container(
+                              width: 58,
+                              height: 44,
+                              decoration: BoxDecoration(
+                                color: Color(whiteColor),
+                                borderRadius: BorderRadius.circular(14),
+                                border: Border.all(color: Color(primaryColor)),
                               ),
-                      )
-                    : Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Container(
-                            width: 58,
-                            height: 44,
-                            decoration: BoxDecoration(
-                              color: Color(whiteColor),
-                              borderRadius: BorderRadius.circular(14),
-                              border: Border.all(color: Color(primaryColor)),
+                              child: Image.asset(icUpload, height: 24, width: 24),
                             ),
-                            child: Image.asset(icUpload, height: 24, width: 24),
-                          ),
-                          SizedBox(height: 8),
-                          Text(
-                            "Upload Files",
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.bold,
-                              color: Color(blue2Color),
+                            SizedBox(height: 8),
+                            Text(
+                              "Upload Files",
+                              style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(blue2Color)),
                             ),
-                          ),
-                        ],
-                      ),
-              ),
-            ),
+                          ],
+                        ),
+                ),
+              )
+            else
+              _buildMultiFileArea(),
 
             SizedBox(height: 12),
             Text(

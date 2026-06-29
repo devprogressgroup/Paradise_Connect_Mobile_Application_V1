@@ -24,6 +24,9 @@ class AttendanceEntity {
   final String? approveName1;
   final String? rejectName0;
   final String? rejectName1;
+  final String? serial0;
+  final String? serial1;
+  final String? serial6;
 
   AttendanceEntity({
     required this.date,
@@ -51,6 +54,9 @@ class AttendanceEntity {
     this.approveName1,
     this.rejectName0,
     this.rejectName1,
+    this.serial0,
+    this.serial1,
+    this.serial6,
   });
 
 }

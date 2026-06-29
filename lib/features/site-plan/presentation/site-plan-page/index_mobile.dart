@@ -1,4 +1,4 @@
-import 'dart:io';
+﻿import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
@@ -191,7 +191,7 @@ class _SitePlanPageState extends State<SitePlanPage> {
           _initFromSites(state.sites);
         }
         if (state is SiteplanError) {
-          debugPrint('SiteplanError: ${state.message}');
+          // debugPrint('SiteplanError: ${state.message}');
         }
       },
       builder: (context, state) {

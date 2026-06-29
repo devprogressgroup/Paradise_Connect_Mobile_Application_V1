@@ -1,6 +1,7 @@
-
+﻿
 
 import 'dart:convert';
+import 'dart:typed_data';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:progress_group/core/utils/helpers/error_message.dart';
@@ -314,27 +315,41 @@ class ContactRemoteDataSourceImpl implements ContactRemoteDataSource {
   @override
   Future<void> createActivityVisit(CreateVisitParams params) async {
     try {
-      final formData = FormData.fromMap({
-        'contact_id': params.contactId,
-        'status_prospect_id': params.statusProspectId,
-        'visit_count': params.visitCount,
-        'activity_date': params.activityDate,
-        'notes': params.notes,
-        if (params.filesBytesData != null && params.filesBytesData!.isNotEmpty)
-          'files[]': params.filesBytesData!
-              .asMap()
-              .entries
-              .map((e) => MultipartFile.fromBytes(e.value, filename: 'photo_${e.key}.jpg'))
-              .toList()
-        else if (params.files != null && params.files!.isNotEmpty)
-          'files[]': await Future.wait(
-            params.files!.map((file) => MultipartFile.fromFile(file.path)).toList(),
-          ),
-      });
+      final formData = FormData();
+      formData.fields.addAll([
+        MapEntry('contact_id', params.contactId.toString()),
+        MapEntry('status_prospect_id', params.statusProspectId.toString()),
+        MapEntry('visit_count', params.visitCount.toString()),
+        MapEntry('activity_date', params.activityDate),
+        MapEntry('notes', params.notes),
+      ]);
+
+      if (params.filesBytesData != null && params.filesBytesData!.isNotEmpty) {
+        for (var i = 0; i < params.filesBytesData!.length; i++) {
+          formData.files.add(MapEntry(
+            'files[]',
+            MultipartFile.fromBytes(params.filesBytesData![i], filename: 'photo_$i.jpg'),
+          ));
+        }
+      } else if (params.files != null && params.files!.isNotEmpty) {
+        for (var i = 0; i < params.files!.length; i++) {
+          formData.files.add(MapEntry(
+            'files[]',
+            await MultipartFile.fromFile(params.files![i].path, filename: 'photo_$i.jpg'),
+          ));
+        }
+      }
+
+      // debugPrint('[createActivityVisit] fields: ${formData.fields.map((e) => '${e.key}=${e.value}').join(', ')}');
+      // debugPrint('[createActivityVisit] files count: ${formData.files.length}');
+      // for (final f in formData.files) {
+      //   debugPrint('[createActivityVisit]   file: ${f.value.filename} (${f.value.length}B)');
+      // }
 
       final response = await dio.post(
         '/activities/visit',
         data: formData,
+        options: Options(extra: {'skipEncryption': true}),
       );
 
       if (response.data['status'] != true) {
@@ -457,8 +472,38 @@ class ContactRemoteDataSourceImpl implements ContactRemoteDataSource {
   @override
   Future<void> uploadAttachment(UploadAttachmentParams params) async {
     try {
-      debugPrint('[uploadAttachment] contactId=${params.contactId} typeId=${params.attachmentTypeId} note=${params.attachmentNote} fileName=${params.fileName} hasFile=${params.file != null} hasBytes=${params.fileBytes != null} bytesLen=${params.fileBytes?.length}');
+      // Multiple files (upload baru) — satu request dengan array files (data URI)
+      if (params.filesBytesList != null && params.filesBytesList!.isNotEmpty) {
+        final filesDataUris = <String>[];
+        final fileNamesArray = <String>[];
 
+        for (int i = 0; i < params.filesBytesList!.length; i++) {
+          final bytes = params.filesBytesList![i];
+          final fileName = params.fileNames != null && i < params.fileNames!.length
+              ? params.fileNames![i]
+              : 'file_$i';
+          final mimeType = _mimeType(fileName);
+          filesDataUris.add('data:$mimeType;base64,${base64Encode(bytes)}');
+          fileNamesArray.add(fileName);
+        }
+
+        final body = <String, dynamic>{
+          if (params.dealId != null) 'deal_id': params.dealId,
+          if (params.activityId != null) 'activity_id': params.activityId,
+          'attachment_type_id': params.attachmentTypeId,
+          if (params.attachmentNote != null) 'attachment_note': params.attachmentNote,
+          'files': filesDataUris,
+          'file_names': fileNamesArray,
+        };
+
+        final response = await dio.post('/contacts/${params.contactId}/attachments', data: body);
+        if (response.data['status'] != true) {
+          throw Exception(response.data['message'] ?? 'Failed to upload attachments');
+        }
+        return;
+      }
+
+      // Single file (edit mode)
       final fileBase64 = await _toBase64(params);
       final body = <String, dynamic>{
         if (params.dealId != null) 'deal_id': params.dealId,
@@ -472,20 +517,15 @@ class ContactRemoteDataSourceImpl implements ContactRemoteDataSource {
         },
       };
 
-      debugPrint('[uploadAttachment] POST /contacts/${params.contactId}/attachments body keys=${body.keys.join(', ')} base64Len=${fileBase64.length}');
-
       final response = await dio.post(
         '/contacts/${params.contactId}/attachments',
         data: body,
       );
 
-      debugPrint('[uploadAttachment] response status=${response.statusCode} data=${response.data}');
-
       if (response.data['status'] != true) {
         throw Exception(response.data['message'] ?? 'Failed to upload attachment');
       }
     } on DioException catch (e) {
-      debugPrint('[uploadAttachment] DioException type=${e.type} status=${e.response?.statusCode} response=${e.response?.data}');
       throw Exception(getErrorMessage(e, 'Failed to upload attachment'));
     }
   }
@@ -528,7 +568,7 @@ class ContactRemoteDataSourceImpl implements ContactRemoteDataSource {
   @override
   Future<void> updateAttachment({required int contactId, required int attachmentId, required UploadAttachmentParams params}) async {
     try {
-      debugPrint('[updateAttachment] contactId=$contactId attachmentId=$attachmentId typeId=${params.attachmentTypeId} note=${params.attachmentNote} fileName=${params.fileName} hasFile=${params.file != null} hasBytes=${params.fileBytes != null} bytesLen=${params.fileBytes?.length}');
+      // debugPrint('[updateAttachment] contactId=$contactId attachmentId=$attachmentId typeId=${params.attachmentTypeId} note=${params.attachmentNote} fileName=${params.fileName} hasFile=${params.file != null} hasBytes=${params.fileBytes != null} bytesLen=${params.fileBytes?.length}');
 
       final fileBase64 = await _toBase64(params);
       final body = <String, dynamic>{
@@ -543,20 +583,20 @@ class ContactRemoteDataSourceImpl implements ContactRemoteDataSource {
         },
       };
 
-      debugPrint('[updateAttachment] PATCH /contacts/$contactId/attachments/$attachmentId body keys=${body.keys.join(', ')} base64Len=${fileBase64.length}');
+      // debugPrint('[updateAttachment] PATCH /contacts/$contactId/attachments/$attachmentId body keys=${body.keys.join(', ')} base64Len=${fileBase64.length}');
 
       final response = await dio.patch(
         '/contacts/$contactId/attachments/$attachmentId',
         data: body,
       );
 
-      debugPrint('[updateAttachment] response status=${response.statusCode} data=${response.data}');
+      // debugPrint('[updateAttachment] response status=${response.statusCode} data=${response.data}');
 
       if (response.data['status'] != true) {
         throw Exception(response.data['message'] ?? 'Failed to update attachment');
       }
     } on DioException catch (e) {
-      debugPrint('[updateAttachment] DioException type=${e.type} status=${e.response?.statusCode} response=${e.response?.data}');
+      // debugPrint('[updateAttachment] DioException type=${e.type} status=${e.response?.statusCode} response=${e.response?.data}');
       throw Exception(getErrorMessage(e, 'Failed to update attachment'));
     }
   }
@@ -640,7 +680,7 @@ class ContactRemoteDataSourceImpl implements ContactRemoteDataSource {
   Future<List<PameranAktifModel>> getPameranAktif() async {
     try {
       final response = await dio.get('/pameran/aktif');
-      debugPrint('[getPameranAktif] response: ${response.data}');
+      // debugPrint('[getPameranAktif] response: ${response.data}');
       if (response.data['status'] == true) {
         final List<dynamic> data = response.data['data'];
         return data.map((json) => PameranAktifModel.fromJson(json as Map<String, dynamic>)).toList();

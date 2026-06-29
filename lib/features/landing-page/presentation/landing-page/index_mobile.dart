@@ -1,5 +1,6 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:progress_group/features/auth/presentation/state/profile/profile_bloc.dart';
 import 'package:progress_group/features/auth/presentation/state/profile/profile_state.dart';
@@ -36,7 +37,17 @@ class _LandingPageState extends State<LandingPage> {
       ..setNavigationDelegate(NavigationDelegate(
         onPageStarted: (_) => setState(() => _pageLoading = true),
         onPageFinished: (_) => setState(() => _pageLoading = false),
-        onNavigationRequest: (_) => NavigationDecision.navigate,
+        onNavigationRequest: (request) {
+          final url = request.url;
+          debugPrint('[LandingPage NAV] $url');
+          if (url.startsWith('whatsapp://') ||
+              url.contains('wa.me') ||
+              url.contains('api.whatsapp.com')) {
+            launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
+            return NavigationDecision.prevent;
+          }
+          return NavigationDecision.navigate;
+        },
       ))
       ..loadRequest(Uri.parse(url));
   }
@@ -49,7 +60,7 @@ class _LandingPageState extends State<LandingPage> {
         listenWhen: (prev, curr) => curr is LandingPageError && prev is! LandingPageError,
         listener: (context, state) {
           if (state is LandingPageError) {
-            debugPrint('LandingPageError: ${state.message}');
+            // debugPrint('LandingPageError: ${state.message}');
           }
         },
         builder: (context, state) {

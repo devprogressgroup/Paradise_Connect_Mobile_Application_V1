@@ -1,4 +1,4 @@
-import 'package:dio/dio.dart';
+﻿import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import '../network/api_constants.dart';
 
@@ -15,9 +15,9 @@ class SalesbookSyncService {
         data: FormData.fromMap({'contact_id': contactId}),
         options: Options(headers: {'X-App-Token': ApiConstants.salesbookWebhookToken}),
       );
-      debugPrint('[SalesbookSync] contact_id=$contactId → ${response.statusCode} ${response.data}');
+      // debugPrint('[SalesbookSync] contact_id=$contactId → ${response.statusCode} ${response.data}');
     } catch (e) {
-      debugPrint('[SalesbookSync] ERROR contact_id=$contactId → $e');
+      // debugPrint('[SalesbookSync] ERROR contact_id=$contactId → $e');
     }
   }
 }

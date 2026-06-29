@@ -287,7 +287,7 @@ class _MainLayoutState extends State<MainLayout> {
                 if (PermissionsHelper.canAccessContacts)
                   _buildNavItem(context, path: '/contact', icon: icSidebarContacts, label: 'Contact', isActive: currentIndex == 1),
                 if (PermissionsHelper.canAccessAttendance)
-                  _buildNavItem(context, path: '/attandance', icon: icNavActivity, label: 'Attendance', isActive: currentIndex == 6),
+                  _buildNavItem(context, path: '/attandance', icon: icNavAttendance, label: 'Attendance', isActive: currentIndex == 6),
                 if (PermissionsHelper.canAccessInbox)
                   BlocBuilder<WhatsappActivityBloc, WhatsappActivityState>(
                     builder: (context, state) {
@@ -316,147 +316,155 @@ class _MainLayoutState extends State<MainLayout> {
         backgroundColor: Colors.white,
         elevation: 7,
         child: SafeArea(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.start,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              GestureDetector(
-                onTap: () {
-                  context.push('/profile');
-                },
-                child: Padding(
-                  padding: const EdgeInsets.symmetric( horizontal: 16),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.start,
-                    children: [
-                      BlocBuilder<ProfileBloc, ProfileState>(
-                        builder: (context, state) {
-                          String userName = "User";
-                          String userPosition = "";
-                          String? photoUrl;
-                          if (state is ProfileLoaded) {
-                            userName = state.profile.fullName;
-                            userPosition = state.profile.positionName ?? "";
-                            photoUrl = state.profile.photoUrl;
-                          }
-                          return Row(
-                            children: [
-                              ClipOval(
-                                child: photoUrl != null
-                                    ? Image.network(
-                                        photoUrl,
-                                        width: 54,
-                                        height: 54,
-                                        fit: BoxFit.cover,
-                                        errorBuilder: (_, __, ___) => CircleAvatar(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 16.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                GestureDetector(
+                  onTap: () {
+                    context.push('/profile');
+                  },
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric( horizontal: 16),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.start,
+                      children: [
+                        BlocBuilder<ProfileBloc, ProfileState>(
+                          builder: (context, state) {
+                            String userName = "User";
+                            String userPosition = "";
+                            String? photoUrl;
+                            if (state is ProfileLoaded) {
+                              final profile = state.profile;
+                              userName = profile.fullName;
+                              final isSales = profile.userRoleId == 3 || profile.salesPersonId != null;
+                              userPosition = isSales
+                                  ? (profile.positionName ?? "")
+                                  : (profile.userRoleName ?? "");
+                              photoUrl = profile.photoUrl;
+                            }
+                            return Row(
+                              children: [
+                                ClipOval(
+                                  child: photoUrl != null
+                                      ? Image.network(
+                                          photoUrl,
+                                          width: 54,
+                                          height: 54,
+                                          fit: BoxFit.cover,
+                                          errorBuilder: (_, __, ___) => CircleAvatar(
+                                            radius: 27,
+                                            backgroundColor: Color(primaryColor),
+                                            child: Icon(Icons.person, color: Colors.white, size: 37),
+                                          ),
+                                        )
+                                      : CircleAvatar(
                                           radius: 27,
                                           backgroundColor: Color(primaryColor),
                                           child: Icon(Icons.person, color: Colors.white, size: 37),
                                         ),
-                                      )
-                                    : CircleAvatar(
-                                        radius: 27,
-                                        backgroundColor: Color(primaryColor),
-                                        child: Icon(Icons.person, color: Colors.white, size: 37),
-                                      ),
-                              ),
-                              SizedBox(width: 10),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(userName, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w400, color: Color(grey2Color))),
-                                    if (userPosition.isNotEmpty)
-                                      Text(userPosition, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w400, color: Color(grey2Color))),
-                                  ],
                                 ),
-                              ),
-                            ],
-                          );
-                        },
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              SizedBox(height: 10),
-              _buildDrawerItem(context, icSidebarDashboard, 'Dashboard', path: '/', index: 0),
-              if (PermissionsHelper.canAccessContacts)
-                _buildDrawerItem(context, icSidebarContacts, 'Contacts', path: '/contact', index: 1),
-              if (PermissionsHelper.canAccessInbox)
-                _buildDrawerItem(context, icSidebarInbox, 'Inbox', path: '/inbox', index: 2),
-              if (PermissionsHelper.canAccessSitePlan)
-                _buildDrawerItem(context, icSidebarSitePlan, 'Site Plan', path: '/site-plan', index: 4),
-              if (PermissionsHelper.canAccessSalesKit)
-                _buildDrawerItem(context, icSidebarSalesKit, 'Sales Kit', path: '/sales-kit', index: 5),
-              if (PermissionsHelper.canAccessSiapHuni)
-                _buildDrawerItem(context, '', 'Siap Huni', path: '/siap-huni', index: 9, iconData: Icons.home_rounded),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Divider(),
-              ),
-              if (PermissionsHelper.canAccessAttendance)
-                _buildDrawerItem(context, icSidebarAttandance, 'Attandance', path: '/attandance', index: 6),
-              const Spacer(),
-              // Padding(
-              //   padding: const EdgeInsets.symmetric(horizontal: 40.0),
-              //   child: ElevatedButton.icon(
-              //     onPressed: () {
-              //       // WA Redirect
-              //     },
-              //     icon: Image.asset(icSidebarChatSA, width: 24, height: 24, color: Colors.white),
-              //     label: const Text('Chat SA',style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w700)),
-              //     style: ElevatedButton.styleFrom(
-              //       backgroundColor: Color(primaryColor),
-              //       minimumSize: const Size(double.infinity, 48),
-              //       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              //     ),
-              //   ),
-              // ),
-              const Spacer(),
-               _buildDrawerItem(context, '', 'Info & Panduan', path: '/landing-page', index: 8, iconData: Icons.info),
-              if (_pwaAvailable || _isIosSafariDevice)
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  child: GestureDetector(
-                    onTap: () {
-                      Navigator.of(context).pop();
-                      if (_isIosSafariDevice) {
-                        _showIosInstallInstructions();
-                      } else {
-                        showPwaInstallPrompt().then((_) {
-                          if (mounted) setState(() => _pwaAvailable = isPwaInstallAvailable());
-                        });
-                      }
-                    },
-                    child: Row(
-                      children: [
-                        Icon(Icons.install_mobile_outlined, color: Color(primaryColor), size: 24),
-                        SizedBox(width: 10),
-                        Text("Install App", style: TextStyle(color: Color(primaryColor), fontSize: 16, fontWeight: FontWeight.w600)),
+                                SizedBox(width: 10),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(userName, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w400, color: Color(grey2Color))),
+                                      if (userPosition.isNotEmpty)
+                                        Text(userPosition, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w400, color: Color(grey2Color))),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            );
+                          },
+                        ),
                       ],
                     ),
                   ),
                 ),
-              if (_pwaAvailable || _isIosSafariDevice) const SizedBox(height: 16),
-              Padding(
-                padding: const EdgeInsets.symmetric( horizontal: 20),
-                child: GestureDetector(
-                  onTap: () {
-                    Navigator.of(context).pop();
-                    context.read<AuthBloc>().add(LogoutEvent());
-                  },
-                  child: Row(
-                    children: [
-                      Icon(Icons.login_outlined, color: Color(grey2Color), size: 24),
-                      SizedBox(width: 10),
-                      Text("Logout", style: TextStyle(color: Color(grey2Color), fontSize: 16, fontWeight: FontWeight.w600),),
-                    ],
+                SizedBox(height: 10),
+                _buildDrawerItem(context, icSidebarDashboard, 'Dashboard', path: '/', index: 0),
+                if (PermissionsHelper.canAccessContacts)
+                  _buildDrawerItem(context, icSidebarContacts, 'Contacts', path: '/contact', index: 1),
+                if (PermissionsHelper.canAccessInbox)
+                  _buildDrawerItem(context, icSidebarInbox, 'Inbox', path: '/inbox', index: 2),
+                if (PermissionsHelper.canAccessSitePlan)
+                  _buildDrawerItem(context, icSidebarSitePlan, 'Site Plan', path: '/site-plan', index: 4),
+                if (PermissionsHelper.canAccessSalesKit)
+                  _buildDrawerItem(context, icSidebarSalesKit, 'Sales Kit', path: '/sales-kit', index: 5),
+                if (PermissionsHelper.canAccessSiapHuni)
+                  _buildDrawerItem(context, '', 'Siap Huni', path: '/siap-huni', index: 9, iconData: Icons.home_rounded),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Divider(),
+                ),
+                if (PermissionsHelper.canAccessAttendance)
+                  _buildDrawerItem(context, icNavAttendance, 'Attandance', path: '/attandance', index: 6),
+                const Spacer(),
+
+                // Padding(
+                //   padding: const EdgeInsets.symmetric(horizontal: 40.0),
+                //   child: ElevatedButton.icon(
+                //     onPressed: () {
+                //       // WA Redirect
+                //     },
+                //     icon: Image.asset(icSidebarChatSA, width: 24, height: 24, color: Colors.white),
+                //     label: const Text('Chat SA',style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w700)),
+                //     style: ElevatedButton.styleFrom(
+                //       backgroundColor: Color(primaryColor),
+                //       minimumSize: const Size(double.infinity, 48),
+                //       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                //     ),
+                //   ),
+                // ),
+                const Spacer(),
+                 _buildDrawerItem(context, '', 'Info & Panduan', path: '/landing-page', index: 8, iconData: Icons.info),
+                if (_pwaAvailable || _isIosSafariDevice)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: GestureDetector(
+                      onTap: () {
+                        Navigator.of(context).pop();
+                        if (_isIosSafariDevice) {
+                          _showIosInstallInstructions();
+                        } else {
+                          showPwaInstallPrompt().then((_) {
+                            if (mounted) setState(() => _pwaAvailable = isPwaInstallAvailable());
+                          });
+                        }
+                      },
+                      child: Row(
+                        children: [
+                          Icon(Icons.install_mobile_outlined, color: Color(primaryColor), size: 24),
+                          SizedBox(width: 10),
+                          Text("Install App", style: TextStyle(color: Color(primaryColor), fontSize: 16, fontWeight: FontWeight.w600)),
+                        ],
+                      ),
+                    ),
+                  ),
+                if (_pwaAvailable || _isIosSafariDevice) const SizedBox(height: 16),
+                Padding(
+                  padding: const EdgeInsets.symmetric( horizontal: 20),
+                  child: GestureDetector(
+                    onTap: () {
+                      Navigator.of(context).pop();
+                      context.read<AuthBloc>().add(LogoutEvent());
+                    },
+                    child: Row(
+                      children: [
+                        Icon(Icons.login_outlined, color: Color(grey2Color), size: 24),
+                        SizedBox(width: 10),
+                        Text("Logout", style: TextStyle(color: Color(grey2Color), fontSize: 16, fontWeight: FontWeight.w600),),
+                      ],
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(height: 32),
-            ],
+                const SizedBox(height: 16),
+              ],
+            ),
           ),
         ),
       ),

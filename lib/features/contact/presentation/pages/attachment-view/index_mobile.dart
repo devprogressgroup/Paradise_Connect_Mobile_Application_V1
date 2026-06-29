@@ -86,7 +86,11 @@ class _AttachmentWebViewPageState extends State<AttachmentWebViewPage> {
   }
 
   Widget _buildLoadingOverlay() {
-    return buildAttachmentShimmer();
+    return Center(
+      child: CircularProgressIndicator(
+        valueColor: const AlwaysStoppedAnimation<Color>(Colors.blue),
+      ),
+    );
   }
 
   String _convertDriveUrl(String url) {
@@ -108,4 +112,4 @@ class _AttachmentWebViewPageState extends State<AttachmentWebViewPage> {
 
     return url;
   }
-}
+}

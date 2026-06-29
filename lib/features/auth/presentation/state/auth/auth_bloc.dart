@@ -1,4 +1,4 @@
-
+﻿
 
 
 import 'package:flutter/foundation.dart';
@@ -195,7 +195,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       PermissionsHelper.init(data);
       emit(PermissionsLoaded(data));
     } catch (e) {
-      debugPrint('FetchPermissionsError: $e');
+      // debugPrint('FetchPermissionsError: $e');
       // Saat silent (refresh latar belakang), JANGAN tampilkan error agar bottom nav
       // tidak berubah jadi "Gagal memuat" karena blip jaringan; pertahankan state lama.
       if (!event.silent) emit(PermissionsError());

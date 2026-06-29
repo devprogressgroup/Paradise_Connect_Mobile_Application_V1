@@ -80,7 +80,7 @@ class AttendanceAlertsWidget extends StatelessWidget {
                 ),
               ],
             ),
-            Image.asset(icNavActivity, width: 30, color: Color(primaryColor)),
+            Image.asset(icNavAttendance, width: 30, color: Color(primaryColor)),
           ],
         ),
       ),

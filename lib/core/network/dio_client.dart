@@ -1,4 +1,4 @@
-import 'dart:convert';
+﻿import 'dart:convert';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -22,7 +22,7 @@ class DioClient {
 
   static void _printLong(String text, {int chunkSize = 800}) {
     for (var i = 0; i < text.length; i += chunkSize) {
-      debugPrint(text.substring(i, i + chunkSize > text.length ? text.length : i + chunkSize));
+      // debugPrint(text.substring(i, i + chunkSize > text.length ? text.length : i + chunkSize));
     }
   }
 
@@ -67,15 +67,16 @@ class DioClient {
           if (isFileDownload) {
             options.receiveTimeout = const Duration(minutes: 3);
           }
-          if (!isFileDownload) {
+          final skipEncryption = options.extra['skipEncryption'] == true;
+          if (!isFileDownload && !skipEncryption) {
             if (kDebugMode) {
               final rawData = options.data;
               if (rawData is FormData) {
-                debugPrint('>>> [REQ BODY] ${options.method} ${options.path}');
-                debugPrint('    fields: ${rawData.fields.map((e) => '${e.key}=${e.value}').join(', ')}');
-                debugPrint('    files : ${rawData.files.map((e) => '${e.key}=${e.value.filename} (${e.value.length}B)').join(', ')}');
+                // debugPrint('>>> [REQ BODY] ${options.method} ${options.path}');
+                // debugPrint('    fields: ${rawData.fields.map((e) => '${e.key}=${e.value}').join(', ')}');
+                // debugPrint('    files : ${rawData.files.map((e) => '${e.key}=${e.value.filename} (${e.value.length}B)').join(', ')}');
               } else if (rawData != null) {
-                debugPrint('>>> [REQ BODY] ${options.method} ${options.path}: $rawData');
+                // debugPrint('>>> [REQ BODY] ${options.method} ${options.path}: $rawData');
               }
             }
             dynamic body;
@@ -119,7 +120,7 @@ class DioClient {
           }
 
           if (kDebugMode) {
-            debugPrint(">>> [${options.method}] ${options.uri}");
+            // debugPrint(">>> [${options.method}] ${options.uri}");
             if (options.data is Map) {
               final r = (options.data as Map)['r']?.toString() ?? '';
               _printLong('[REQ ENCRYPTED] $r');
@@ -157,7 +158,7 @@ class DioClient {
               }
             }
           }
-          if (kDebugMode) debugPrint("DIO ERROR: ${e.message}");
+          // if (kDebugMode) debugPrint("DIO ERROR: ${e.message}");
 
           if (e.response?.statusCode == 429) {
             final message = e.response?.data is Map
@@ -247,12 +248,12 @@ class DioClient {
       ),
     );
 
-    if (kDebugMode) {
-      _dio.interceptors.add(LogInterceptor(
-        requestBody: true,
-        responseBody: true,
-      ));
-    }
+    // if (kDebugMode) {
+    //   _dio.interceptors.add(LogInterceptor(
+    //     requestBody: true,
+    //     responseBody: true,
+    //   ));
+    // }
   }
 
   Dio get dio => _dio;
