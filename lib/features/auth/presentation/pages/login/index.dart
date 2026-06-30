@@ -1,5 +1,6 @@
 ﻿import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
+import '../../../../../core/utils/web_debug_util.dart' as web_debug;
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:progress_group/core/constants/colors.dart';
@@ -43,6 +44,7 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   Future<void> _loadAvailableBiometrics() async {
+    if (kIsWeb) return;
     final isSupported = await _auth.isDeviceSupported();
     if (!isSupported) return;
     final biometrics = await _auth.getAvailableBiometrics();
@@ -530,6 +532,20 @@ class _LoginPageState extends State<LoginPage> {
                           if (await canLaunchUrl(uri)) launchUrl(uri, mode: LaunchMode.externalApplication);
                         },
                         child: Text("Help", style: TextStyle( fontSize: 12, fontWeight: FontWeight.w700, color: Color(primaryColor), decoration: TextDecoration.underline, decorationColor: Color(primaryColor), decorationThickness: 1,),textAlign: TextAlign.center,)),
+                      if (kIsWeb) ...[
+                        const SizedBox(height: 8),
+                        GestureDetector(
+                          onTap: web_debug.showDebugPanel,
+                          child: Text(
+                            'Debug Info',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: 10,
+                              color: Colors.grey[400],
+                            ),
+                          ),
+                        ),
+                      ],
                       // ValueListenableBuilder<AppEnvironment>(
                       //   valueListenable: ApiConstants.envNotifier,
                       //   builder: (_, env, __) => Text(

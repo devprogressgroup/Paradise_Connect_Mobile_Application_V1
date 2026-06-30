@@ -239,8 +239,12 @@ class AppRouter {
           ),
           GoRoute(
             path: '/attandance',
-            redirect: (context, state) =>
-                PermissionsHelper.canAccessAttendance ? null : '/',
+            redirect: (context, state) {
+              if (!PermissionsHelper.canAccessAttendance) {
+                debugPrint('[Router] /attandance redirect → "/" (canAccessAttendance=false)');
+              }
+              return PermissionsHelper.canAccessAttendance ? null : '/';
+            },
             builder: (context, state) {
               final tabParam = state.uri.queryParameters['initialTab'];
               final initialTab = tabParam != null ? int.tryParse(tabParam) : null;

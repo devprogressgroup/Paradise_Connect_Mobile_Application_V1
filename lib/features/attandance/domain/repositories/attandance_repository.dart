@@ -29,6 +29,13 @@ class AttendanceRepositoryImpl implements AttendanceRepository {
 
   AttendanceRepositoryImpl(this.remote);
 
+  // Aman untuk int, double, maupun string dari API
+  static int _parseLastPage(dynamic value) {
+    if (value is num) return value.toInt();
+    if (value is String) return int.tryParse(value) ?? 1;
+    return 1;
+  }
+
   @override
   Future<List<AttendanceLocation>> getLocations() async {
     final result = await remote.getLocations();
@@ -147,7 +154,7 @@ class AttendanceRepositoryImpl implements AttendanceRepository {
 
     final pagination = result['data'] as Map<String, dynamic>;
     final list = pagination['data'] as List;
-    final lastPage = (pagination['last_page'] as num?)?.toInt() ?? 1;
+    final lastPage = _parseLastPage(pagination['last_page']);
     final models = list.map((e) => AttendanceModel.fromJson(e)).toList();
 
     // Grouping by Date and FullName to merge ClockIn and ClockOut
@@ -201,7 +208,7 @@ class AttendanceRepositoryImpl implements AttendanceRepository {
   }
 
   @override
-  Future<({List<AttendanceActivityEntity> data, int lastPage})> getAttendanceActivity({List<int>? salesPersonIds, String? startDate, String? endDate, String? location, int page = 1, int perPage = 20}) async {
+  Future<({List<AttendanceActivityEntity> data, int lastPage})> getAttendanceActivity({List<int>? salesPersonIds, String? startDate, String? endDate, String? location, int page = 1, int perPage =5}) async {
     final result = await remote.getAttendanceActivity(
       salesPersonIds: salesPersonIds,
       startDate: startDate,
@@ -212,7 +219,7 @@ class AttendanceRepositoryImpl implements AttendanceRepository {
     );
     final pagination = result['data'] as Map<String, dynamic>;
     final list = pagination['data'] as List;
-    final lastPage = (pagination['last_page'] as num?)?.toInt() ?? 1;
+    final lastPage = _parseLastPage(pagination['last_page']);
     final data = list.map((e) => AttendanceActivityModel.fromJson(e as Map<String, dynamic>)).toList();
     return (data: data, lastPage: lastPage);
   }
@@ -259,7 +266,7 @@ class AttendanceRepositoryImpl implements AttendanceRepository {
     if (result['status'] == true && result['data'] != null) {
       final rawData = result['data']['data'] as List<dynamic>? ?? [];
       final data = rawData.map((e) => AttendanceApprovalModel.fromJson(e as Map<String, dynamic>)).toList();
-      final lastPage = (result['data']['last_page'] as num?)?.toInt() ?? 1;
+      final lastPage = _parseLastPage(result['data']['last_page']);
       return (data: data, lastPage: lastPage);
     }
     return (data: <AttendanceApprovalEntity>[], lastPage: 1);

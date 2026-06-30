@@ -26,6 +26,9 @@ class PushNotificationService {
   static RemoteMessage? _pendingMessage;
   static final FirebaseMessaging _messaging = FirebaseMessaging.instance;
 
+  // false jika browser tidak mendukung Firebase Messaging (Chrome iOS, Safari lama)
+  static bool _supported = true;
+
   /// Key untuk menampilkan SnackBar dari luar widget tree (web foreground notif).
   /// Pasang ke MaterialApp.scaffoldMessengerKey di main.dart.
   static final scaffoldMessengerKey = GlobalKey<ScaffoldMessengerState>();
@@ -111,26 +114,37 @@ class PushNotificationService {
 
   /// Dipanggil setelah login berhasil — saat itu auth token sudah ada
   static void sendTokenAfterLogin() {
+    if (!_supported) return;
     _messaging.getToken(vapidKey: kIsWeb ? _vapidKey : null).then((token) {
       if (token != null) _sendTokenToBackend(token);
+    }).catchError((e) {
+      debugPrint('[FCM] getToken failed: $e');
     });
   }
 
   /// Dipanggil sekali di main() setelah Firebase.initializeApp().
   static Future<void> initialize() async {
-    await _requestPermission();
+    try {
+      await _requestPermission();
+    } catch (e) {
+      debugPrint('[FCM] Browser tidak mendukung Firebase Messaging: $e');
+      _supported = false;
+      return;
+    }
     if (!kIsWeb) await _setupLocalNotifications();
-    // Token dikirim ke backend setelah login via sendTokenAfterLogin()
-    // _registerToken() hanya untuk refresh listener
 
-    _messaging.onTokenRefresh.listen(_sendTokenToBackend);
-    FirebaseMessaging.onMessage.listen(_handleForegroundMessage);
-    FirebaseMessaging.onMessageOpenedApp.listen(_handleNotificationTap);
+    try {
+      _messaging.onTokenRefresh.listen(_sendTokenToBackend);
+      FirebaseMessaging.onMessage.listen(_handleForegroundMessage);
+      FirebaseMessaging.onMessageOpenedApp.listen(_handleNotificationTap);
 
-    // Simpan pesan awal jika app dibuka dari notifikasi (saat app terminated)
-    final initialMessage = await _messaging.getInitialMessage();
-    if (initialMessage != null) {
-      _pendingMessage = initialMessage;
+      final initialMessage = await _messaging.getInitialMessage();
+      if (initialMessage != null) {
+        _pendingMessage = initialMessage;
+      }
+    } catch (e) {
+      debugPrint('[FCM] Messaging listener setup failed: $e');
+      _supported = false;
     }
   }
 

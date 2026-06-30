@@ -1,9 +1,11 @@
 ﻿
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'dart:ui' show PlatformDispatcher;
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'core/utils/web_debug_util.dart' as web_debug;
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:progress_group/core/constants/colors.dart';
@@ -150,6 +152,18 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  if (kIsWeb) {
+    FlutterError.onError = (details) {
+      FlutterError.presentError(details);
+      web_debug.logDebugError('Flutter: ${details.exceptionAsString()}');
+    };
+    PlatformDispatcher.instance.onError = (error, stack) {
+      web_debug.logDebugError('Uncaught: $error\n$stack');
+      return false;
+    };
+  }
+
   await initializeDateFormatting('id_ID', null);
   final prefs = await SharedPreferences.getInstance();
   ApiConstants.loadFromPrefs(prefs);
@@ -169,7 +183,7 @@ void main() async {
     }
     await PushNotificationService.initialize();
   } catch (e) {
-    // debugPrint('Firebase init error: $e');
+    debugPrint('[Firebase] Init error: $e');
   }
 
   // Inisialisasi router pertama kali
@@ -434,6 +448,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
                     PushNotificationService.sendTokenAfterLogin();
                     PushNotificationService.checkAndShowUpdateBanner();
                   } else if (state is AuthLoggedOut) {
+                    web_debug.logDebugError('App: AuthLoggedOut — _resetApp dipanggil (keluar dari semua halaman)');
                     // Restart aplikasi total seolah-olah baru dibuka pertama kali
                     _resetApp();
                   } else if (state is ImpersonationStarted || state is ImpersonationStopped) {

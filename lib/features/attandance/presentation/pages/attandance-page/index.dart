@@ -2,11 +2,11 @@
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:dio/dio.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart' show kIsWeb, debugPrint;
+import 'package:progress_group/core/utils/web_debug_util.dart' as web_debug;
 import 'package:path_provider/path_provider.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:progress_group/core/utils/widget/shimmer_loading.dart';
-import 'package:geocoding/geocoding.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:go_router/go_router.dart';
@@ -41,7 +41,10 @@ import '../../../../../core/utils/helpers/date_helper.dart';
 import '../../../../../core/utils/helpers/error_message.dart';
 import 'package:progress_group/core/utils/web_download.dart';
 import '../../../../../core/utils/widget/custom_header.dart';
+import 'package:geocoding/geocoding.dart';
 import '../../../data/arguments/attandance_args.dart';
+
+part 'index_location.dart';
 
 class AttandancePage extends StatefulWidget {
   final int? initialTab;
@@ -51,26 +54,17 @@ class AttandancePage extends StatefulWidget {
   State<AttandancePage> createState() => _AttandancePageState();
 }
 
-class _AttandancePageState extends State<AttandancePage> {
+class _AttandancePageState extends State<AttandancePage>
+    with AttendanceLocationMixin<AttandancePage> {
   late PageController _pageController;
   final double officeLat =  -6.1416575;
   final double officeLng = 106.8659419;
-  final double radiusMeter = 1050;
-
-  StreamSubscription<Position>? _positionStream;
-  Position? _currentPosition;
   late ScrollController _scrollController;
 
   int selectedIndex = 0;
   String selectedMenu ='activity';
-  String? _address;
-  bool _isProcessing = false;
   bool _isCameraOpening = false;
   bool _attendanceLogLoaded = false;
-  int? _nearestTypeLocationId;
-  bool _nearestIsInRadius = false;
-  bool _locationResolved = false;
-  DateTime? _lastGeocodeTime;
   bool _hasSetInitialTab = false;
   bool _isButtonPinned = false;
   bool _permissionsReady = false;
@@ -84,6 +78,8 @@ class _AttandancePageState extends State<AttandancePage> {
   List<int>? _activityOwnerIds;
   String? _activityStartDate;
   String? _activityEndDate;
+
+  Timer? _loadMoreDebounce;
 
 
   @override
@@ -100,29 +96,38 @@ class _AttandancePageState extends State<AttandancePage> {
     _scrollController.addListener(_onScroll);
 
     Future.microtask(() {
-      // Refresh akses (permission + profil/owner) saat masuk menu Attendance — silent.
+      // Tahap 1 — data ringan + device-only (tidak tunggu server)
       context.read<AuthBloc>().add(FetchPermissionsEvent(silent: true));
       context.read<ProfileBloc>().add(GetProfileEvent(forceRefresh: true, silent: true));
-      _initLocation();
-      context.read<OfficeLocationCubit>().load(force: true).then((_) {
-        if (_currentPosition != null) _computeNearestLocation(_currentPosition!);
-      });
+      _initLocation(); // hanya device GPS, tidak ada API call
 
       final profileState = context.read<ProfileBloc>().state;
       if (profileState is ProfileLoaded) {
         _attendanceOwnerIds = [profileState.profile.userId];
-        // Badge pending-approval mengikuti fitur ApproveReject (feature-driven), bukan
-        // hardcode jabatan — selaras dgn _isApprover, tombol approve, & notif backend.
         if (PermissionsHelper.canApproveRejectAttendance) {
           context.read<AttendanceApprovalCubit>().loadBadge();
         }
       }
-      _getLog();
+
+      // Tahap 2 — muat tab yang langsung terlihat (Activity = default tab)
+      context.read<AttendanceActivityBloc>().add(GetAttendanceActivityEvent(
+        salesPersonIds: _activityOwnerIds,
+        startDate: _activityDateRange.start,
+        endDate: _activityDateRange.end,
+      ));
+
+      // Tahap 3 — status absen + lokasi kantor dimuat setelah activity mulai,
+      // agar tidak bersaing memperebutkan bandwidth di awal sekaligus.
+      Future.delayed(const Duration(milliseconds: 500), () {
+        if (!mounted) return;
+        context.read<AttendanceBloc>().add(LoadTodayAttendanceEvent());
+      });
     });
   }
 
   @override
   void dispose() {
+    _loadMoreDebounce?.cancel();
     _positionStream?.cancel();
     _pageController.dispose();
     _scrollController.removeListener(_onScroll);
@@ -141,6 +146,11 @@ class _AttandancePageState extends State<AttandancePage> {
     final atBottom = _scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 300;
     if (!atBottom) return;
 
+    _loadMoreDebounce?.cancel();
+    _loadMoreDebounce = Timer(const Duration(milliseconds: 400), _triggerLoadMore);
+  }
+
+  void _triggerLoadMore() {
     if (selectedMenu == 'activity') {
       final activityState = context.read<AttendanceActivityBloc>().state;
       if (activityState is! AttendanceActivityLoaded) return;
@@ -148,8 +158,8 @@ class _AttandancePageState extends State<AttandancePage> {
       if (activityState.activityPage >= activityState.activityLastPage) return;
       context.read<AttendanceActivityBloc>().add(GetAttendanceActivityEvent(
         salesPersonIds: _activityOwnerIds,
-        startDate: _activityStartDate,
-        endDate: _activityEndDate,
+        startDate: _activityDateRange.start,
+        endDate: _activityDateRange.end,
         page: activityState.activityPage + 1,
         isLoadMore: true,
       ));
@@ -187,301 +197,6 @@ class _AttandancePageState extends State<AttandancePage> {
   bool _isApprover(UserProfileEntity profile) {
     return PermissionsHelper.canApproveRejectAttendance;
   }
-
-  Future<bool> _handleLocationPermission({bool fromUserGesture = false}) async {
-    // Di web, isLocationServiceEnabled hanya cek apakah browser support geolocation
-    final serviceEnabled = await Geolocator.isLocationServiceEnabled();
-    if (!serviceEnabled) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('GPS tidak aktif. Aktifkan GPS untuk melanjutkan.'),
-            backgroundColor: Colors.orange,
-            action: SnackBarAction(
-              label: 'Aktifkan',
-              textColor: Colors.white,
-              onPressed: () => Geolocator.openLocationSettings(),
-            ),
-          ),
-        );
-      }
-      return false;
-    }
-
-    LocationPermission permission = await Geolocator.checkPermission();
-
-    if (permission == LocationPermission.denied) {
-      // Di web, requestPermission() hanya muncul jika dipanggil saat user gesture.
-      // Kalau dipanggil saat init (bukan gesture), Chrome bisa suppress dialog.
-      if (!fromUserGesture && kIsWeb) {
-        // Jangan request saat init di web — tunggu user klik dulu
-        return false;
-      }
-      permission = await Geolocator.requestPermission();
-      if (permission == LocationPermission.denied) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Izin lokasi ditolak. Izinkan lokasi di browser untuk melanjutkan.'),
-              backgroundColor: Colors.orange,
-            ),
-          );
-        }
-        return false;
-      }
-    }
-
-    if (permission == LocationPermission.deniedForever) {
-      if (mounted) {
-        if (kIsWeb) {
-          showDialog(
-            context: context,
-            builder: (ctx) => AlertDialog(
-              title: const Text('Izin Lokasi Diblokir'),
-              content: const Text(
-                'Chrome memblokir akses lokasi untuk halaman ini.\n\n'
-                'Cara mengaktifkan:\n'
-                '1. Klik ikon 🔒 atau ⓘ di address bar\n'
-                '2. Pilih "Site settings"\n'
-                '3. Ubah "Location" ke "Allow"\n'
-                '4. Refresh halaman',
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(ctx),
-                  child: const Text('Mengerti'),
-                ),
-              ],
-            ),
-          );
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Izin lokasi ditolak permanen. Buka settings untuk mengaktifkan.'),
-              backgroundColor: Colors.red,
-            ),
-          );
-          await Geolocator.openAppSettings();
-        }
-      }
-      return false;
-    }
-
-    return true;
-  }
-
-  void _computeNearestLocation(Position position) {
-    if (!mounted) return;
-    final officeLocations = context.read<OfficeLocationCubit>().state;
-    if (officeLocations.isEmpty) {
-      // debugPrint('[_computeNearestLocation] no office locations from API → luar lokasi, canClockIn=${PermissionsHelper.canClockInLuarLokasi || PermissionsHelper.canClockInLuarLokasiRequestApprove}, canClockOut=${PermissionsHelper.canClockOutLuarLokasi || PermissionsHelper.canClockOutLuarLokasiRequestApprove}');
-      if (mounted) {
-        setState(() { _nearestTypeLocationId = null; _nearestIsInRadius = false; _locationResolved = true; });
-        _trySetInitialTab();
-      }
-      return;
-    }
-
-    double? nearestDistance;
-    int? typeId;
-    bool inRadius = false;
-
-    for (var office in officeLocations) {
-      final lat = double.tryParse(office.latitude ?? '');
-      final lng = double.tryParse(office.longitude ?? '');
-      if (lat == null || lng == null) continue;
-      final d = Geolocator.distanceBetween(lat, lng, position.latitude, position.longitude);
-      if (nearestDistance == null || d < nearestDistance) {
-        nearestDistance = d;
-        typeId = office.typeLocationId;
-        final radius = office.radius?.toDouble() ?? radiusMeter;
-        inRadius = d <= radius;
-      }
-    }
-
-    final resolvedTypeId = inRadius ? typeId : null;
-    // debugPrint('[PermissionsHelper] canClockInOffice                    : ${PermissionsHelper.canClockInOffice}');
-    // debugPrint('[PermissionsHelper] canClockInPameran                   : ${PermissionsHelper.canClockInPameran}');
-    // debugPrint('[PermissionsHelper] canClockInLuarLokasi                : ${PermissionsHelper.canClockInLuarLokasi}');
-    // debugPrint('[PermissionsHelper] canClockInLuarLokasiRequestApprove  : ${PermissionsHelper.canClockInLuarLokasiRequestApprove}');
-    // debugPrint('[PermissionsHelper] canClockOutOffice                   : ${PermissionsHelper.canClockOutOffice}');
-    // debugPrint('[PermissionsHelper] canClockOutPameran                  : ${PermissionsHelper.canClockOutPameran}');
-    // debugPrint('[PermissionsHelper] canClockOutLuarLokasi               : ${PermissionsHelper.canClockOutLuarLokasi}');
-    // debugPrint('[PermissionsHelper] canClockOutLuarLokasiRequestApprove : ${PermissionsHelper.canClockOutLuarLokasiRequestApprove}');
-    // debugPrint('[_computeNearestLocation] typeLocationId=$resolvedTypeId, isInRadius=$inRadius');
-
-    if (mounted) {
-      setState(() {
-        _nearestTypeLocationId = inRadius ? typeId : null;
-        _nearestIsInRadius = inRadius;
-        _locationResolved = true;
-      });
-      _trySetInitialTab();
-    }
-  }
-
-  bool _isClockButtonDisabled(int flagParam) {
-    if (flagParam != 0 && flagParam != 1) return false;
-    if (!_locationResolved) return false;
-    if (!_nearestIsInRadius) {
-      return flagParam == 0
-          ? !(PermissionsHelper.canClockInLuarLokasi || PermissionsHelper.canClockInLuarLokasiRequestApprove)
-          : !(PermissionsHelper.canClockOutLuarLokasi || PermissionsHelper.canClockOutLuarLokasiRequestApprove);
-    }
-    if (_nearestTypeLocationId == 2) {
-      return flagParam == 0
-          ? !PermissionsHelper.canClockInPameran
-          : !PermissionsHelper.canClockOutPameran;
-    }
-    return flagParam == 0
-        ? !PermissionsHelper.canClockInOffice
-        : !PermissionsHelper.canClockOutOffice;
-  }
-
-  Future<void> _initLocation() async {
-    // fromUserGesture: false — saat init, di web kita hanya cek kalau sudah granted
-    // Chrome tidak akan munculkan dialog izin kecuali dipicu user gesture
-    final hasPermission = await _handleLocationPermission(fromUserGesture: false);
-    if (!hasPermission) {
-      if (mounted) {
-        setState(() => _locationResolved = true);
-        _trySetInitialTab();
-      }
-      return;
-    }
-
-    if (kIsWeb) {
-      // Web: browser geolocation API tidak mendukung distanceFilter via stream dengan baik,
-      // gunakan getCurrentPosition sekali saat init, lalu stream tanpa filter.
-      try {
-        final position = await Geolocator.getCurrentPosition(
-          locationSettings: WebSettings(
-            accuracy: LocationAccuracy.medium,
-            timeLimit: const Duration(seconds: 15),
-          ),
-        );
-        if (!mounted) return;
-        _currentPosition = position;
-        _computeNearestLocation(position);
-        await _getAddressFromLatLng(position);
-      } catch (e) {
-        // ignore
-      }
-      // Tetap pasang stream untuk update posisi berikutnya di web
-      _positionStream = Geolocator.getPositionStream(
-        locationSettings: const LocationSettings(
-          accuracy: LocationAccuracy.medium,
-        ),
-      ).listen((Position position) async {
-        _currentPosition = position;
-        _computeNearestLocation(position);
-        if (_isProcessing) return;
-        _isProcessing = true;
-        try {
-          if (!mounted) return;
-          if (_lastGeocodeTime == null ||
-              DateTime.now().difference(_lastGeocodeTime!) > const Duration(seconds: 30)) {
-            _lastGeocodeTime = DateTime.now();
-            await _getAddressFromLatLng(position);
-          }
-        } catch (e) {
-          // ignore
-        } finally {
-          _isProcessing = false;
-        }
-      });
-      return;
-    }
-
-    _positionStream = Geolocator.getPositionStream(
-      locationSettings: const LocationSettings(
-        accuracy: LocationAccuracy.high,
-        distanceFilter: 5,
-      ),
-    ).listen((Position position) async {
-      _currentPosition = position;
-      _computeNearestLocation(position);
-
-      if (_isProcessing) return;
-      _isProcessing = true;
-
-      try {
-        if (!mounted) return;
-
-        if (_lastGeocodeTime == null ||
-            DateTime.now().difference(_lastGeocodeTime!) > const Duration(seconds: 10)) {
-          _lastGeocodeTime = DateTime.now();
-          await _getAddressFromLatLng(position);
-        }
-      } catch (e) {
-        // ignore
-      } finally {
-        _isProcessing = false;
-      }
-    });
-  }
-
-  Future<void> _getAddressFromLatLng(Position position) async {
-    try {
-      if (kIsWeb) {
-        // geocoding package tidak support web — pakai Nominatim (OpenStreetMap)
-        final dio = Dio();
-        final response = await dio.get(
-          'https://nominatim.openstreetmap.org/reverse',
-          queryParameters: {
-            'lat': position.latitude,
-            'lon': position.longitude,
-            'format': 'json',
-          },
-          options: Options(headers: {'Accept-Language': 'id'}),
-        );
-        final display = response.data['display_name'] as String?;
-        if (display != null && mounted) {
-          setState(() => _address = display);
-        }
-        return;
-      }
-
-      List<Placemark> placemarks = await placemarkFromCoordinates(
-        position.latitude,
-        position.longitude,
-      );
-
-      final place = placemarks.first;
-
-      setState(() {
-        _address =
-            "${place.street}, ${place.subLocality}, ${place.locality}, "
-            "${place.subAdministrativeArea}, ${place.administrativeArea}";
-      });
-    } catch (e) {
-      setState(() {
-        _address = "Alamat tidak ditemukan";
-      });
-    }
-  }
-
-  Future<Position?> _getCurrentLocationOnce() async {
-    // Gunakan posisi dari stream jika sudah tersedia — langsung, tanpa delay
-    if (_currentPosition != null) return _currentPosition;
-
-    // Fallback: minta sekali. Web pakai WebSettings (timeLimit), mobile pakai LocationSettings.
-    try {
-      final locationSettings = kIsWeb
-          ? WebSettings(
-              accuracy: LocationAccuracy.medium,
-              timeLimit: const Duration(seconds: 15),
-            )
-          : const LocationSettings(
-              accuracy: LocationAccuracy.high,
-              timeLimit: Duration(seconds: 15), // Tambahkan timeLimit agar tidak loading forever
-            );
-      return await Geolocator.getCurrentPosition(locationSettings: locationSettings);
-    } catch (e) {
-      return null;
-    }
-  }
-
 
   Future<void> _handleMoveCamera(String title, int flagParam) async {
     if (!mounted || _isCameraOpening) return;
@@ -528,8 +243,6 @@ class _AttandancePageState extends State<AttandancePage> {
       double? activeRadius;
       String? nearestOfficeName;
       int? nearestOfficeId;
-      String? nearestOfficeLat;
-      String? nearestOfficeLng;
       int? nearestOfficeTypeId;
 
       if (officeLocations.isNotEmpty) {
@@ -547,8 +260,6 @@ class _AttandancePageState extends State<AttandancePage> {
               activeRadius = office.radius?.toDouble() ?? radiusMeter;
               nearestOfficeName = office.name;
               nearestOfficeId = office.id;
-              nearestOfficeLat = office.latitude;
-              nearestOfficeLng = office.longitude;
               nearestOfficeTypeId = office.typeLocationId;
             }
           }
@@ -559,23 +270,7 @@ class _AttandancePageState extends State<AttandancePage> {
       final effectiveRadius = activeRadius ?? radiusMeter;
       final isInRadius = effectiveDistance <= effectiveRadius;
 
-      // debugPrint('[_handleMoveCamera] selected location:');
-      // debugPrint('  id             : $nearestOfficeId');
-      // debugPrint('  name           : $nearestOfficeName');
-      // debugPrint('  latitude       : $nearestOfficeLat');
-      // debugPrint('  longitude      : $nearestOfficeLng');
-      // debugPrint('  radius         : $activeRadius');
-      // debugPrint('  typeLocationId : $nearestOfficeTypeId');
-      // debugPrint('ClockIn Permision pameran ${PermissionsHelper.canClockInPameran}');
-      // debugPrint('ClockIn Permision office ${PermissionsHelper.canClockInOffice}');
-      // debugPrint('ClockIn Permision luar lokasi ${PermissionsHelper.canClockInLuarLokasi}');
-      // debugPrint('ClockOut Permision pameran ${PermissionsHelper.canClockOutPameran}');
-      // debugPrint('ClockOut Permision office ${PermissionsHelper.canClockOutOffice}');
-      // debugPrint('ClockOut Permision luar lokasi ${PermissionsHelper.canClockOutLuarLokasi}');
-      // debugPrint('  distance       : ${effectiveDistance.toStringAsFixed(2)} m');
-      // debugPrint('  isInRadius     : $isInRadius');
-
-      // Cek permission berdasarkan tipe lokasi yang terselect.
+      
       // Check In / aktivitas (flag 6) TIDAK butuh izin clock-in/out — selaras dgn
       // _isClockButtonDisabled (flag 6 selalu enabled) & redirect noClockAccess→tab Check In.
       // Sebelumnya flag 6 jatuh ke cabang Clock-Out → non-sales tanpa izin clock-out tak bisa Check In.
@@ -630,8 +325,16 @@ class _AttandancePageState extends State<AttandancePage> {
     }
   }
 
+  // Default 7 hari terakhir jika tidak ada filter aktif
+  ({String start, String end}) get _activityDateRange {
+    final now = DateTime.now();
+    return (
+      start: _activityStartDate ?? DateHelper.formatNumericCompact(now.subtract(const Duration(days: 7))),
+      end: _activityEndDate ?? DateHelper.formatNumericCompact(now),
+    );
+  }
+
   Future<void> _getLog() async {
-    context.read<AuthBloc>().add(FetchPermissionsEvent());
     if (_attendanceLogLoaded) {
       context.read<AttendanceBloc>().add(FetchAttendanceDataEvent(
         salesPersonIds: _attendanceOwnerIds,
@@ -643,8 +346,8 @@ class _AttandancePageState extends State<AttandancePage> {
     }
     context.read<AttendanceActivityBloc>().add(GetAttendanceActivityEvent(
       salesPersonIds: _activityOwnerIds,
-      startDate: _activityStartDate,
-      endDate: _activityEndDate,
+      startDate: _activityDateRange.start,
+      endDate: _activityDateRange.end,
     ));
   }
 
@@ -1121,6 +824,7 @@ class _AttandancePageState extends State<AttandancePage> {
   }
 
   Future<void> _savePdfToStorage(String tempFilePath) async {
+    if (kIsWeb) return; // file sudah otomatis ter-download via browser
     try {
       final fileName = tempFilePath.split('/').last;
       String savedPath;
@@ -1225,7 +929,7 @@ class _AttandancePageState extends State<AttandancePage> {
             context.read<AttendanceExcelCubit>().reset();
           } else if (state is AttendanceExcelError) {
             ScaffoldMessenger.of(context).hideCurrentSnackBar();
-            // debugPrint('AttendanceExcelError: ${state.message}');
+            debugPrint('AttendanceExcelError: ${state.message}');
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(content: Text('Gagal mengunduh data kehadiran')),
             );
@@ -1626,7 +1330,7 @@ class _AttandancePageState extends State<AttandancePage> {
 
               final Map<String, List<AttendanceEntity>> weekGroups = {};
               for (final item in data) {
-                final d = DateTime.parse(item.date);
+                final d = DateTime.tryParse(item.date) ?? DateTime(2000);
                 final ws = weekStartOf(d);
                 final key = '${item.fullName ?? ""}__${ws.year}-${ws.month.toString().padLeft(2, "0")}-${ws.day.toString().padLeft(2, "0")}';
                 weekGroups.putIfAbsent(key, () => []).add(item);
@@ -1984,9 +1688,9 @@ class _AttandancePageState extends State<AttandancePage> {
                               if (type != null)
                                 _buildInfoRow(Icons.local_activity, type, Color(primaryColor)),
                               const SizedBox(height: 6),
-                              _buildInfoRow(Icons.access_time_filled, datetime != null ? DateHelper.formatTime(DateTime.parse(datetime)) : '-', Color(greenPercentColor)),
+                              _buildInfoRow(Icons.access_time_filled, () { final d = DateTime.tryParse(datetime ?? ''); return d != null ? DateHelper.formatTime(d) : (datetime ?? '-'); }(), Color(greenPercentColor)),
                               const SizedBox(height: 6),
-                              _buildInfoRow(Icons.calendar_today, datetime != null ? DateHelper.formatDate(DateTime.parse(datetime)) : '-', Color(primaryColor)),
+                              _buildInfoRow(Icons.calendar_today, () { final d = DateTime.tryParse(datetime ?? ''); return d != null ? DateHelper.formatDate(d) : (datetime ?? '-'); }(), Color(primaryColor)),
                               if (location != null && location.isNotEmpty) ...[
                                 const SizedBox(height: 6),
                                 _buildInfoRow(Icons.map, location, Color(primaryColor)),
@@ -2056,7 +1760,7 @@ class _AttandancePageState extends State<AttandancePage> {
   }
 
   Widget _buildCardAttendance(AttendanceEntity item) {
-    final date = DateTime.parse(item.date);
+    final date = DateTime.tryParse(item.date) ?? DateTime(2000);
     final bool pendingIn = item.clockIn != null && (item.needsApproval0 ?? false) && item.isApprove0 == null && item.isReject0 == null;
     final bool pendingOut = item.clockOut != null && (item.needsApproval1 ?? false) && item.isApprove1 == null && item.isReject1 == null;
 
@@ -2097,7 +1801,7 @@ class _AttandancePageState extends State<AttandancePage> {
                     _buildInlineBadge('Pending', Colors.orange),
                   ] else ...[
                     Text(
-                      item.clockIn != null ? DateHelper.formatTime(DateTime.parse(item.clockIn!)) : '-',
+                      item.clockIn != null ? (DateTime.tryParse(item.clockIn!) != null ? DateHelper.formatTime(DateTime.tryParse(item.clockIn!)!) : item.clockIn!) : '-',
                       textAlign: TextAlign.center,
                       style: const TextStyle(fontSize: 12),
                     ),
@@ -2127,7 +1831,7 @@ class _AttandancePageState extends State<AttandancePage> {
                     _buildInlineBadge('Pending', Colors.orange),
                   ] else ...[
                     Text(
-                      item.clockOut != null ? DateHelper.formatTime(DateTime.parse(item.clockOut!)) : '-',
+                      item.clockOut != null ? (DateTime.tryParse(item.clockOut!) != null ? DateHelper.formatTime(DateTime.tryParse(item.clockOut!)!) : item.clockOut!) : '-',
                       textAlign: TextAlign.center,
                       style: const TextStyle(fontSize: 12),
                     ),
@@ -2568,7 +2272,7 @@ class _AttandancePageState extends State<AttandancePage> {
     final String? rejectName = flag == 0 ? item.rejectName0 : item.rejectName1;
     final String? serial = flag == 0 ? item.serial0 : item.serial1;
 
-    final String displayTime = (timeValue != '-') ? DateHelper.formatTime(DateTime.parse(timeValue)) : '-';
+    final String displayTime = (timeValue != '-') ? (DateTime.tryParse(timeValue) != null ? DateHelper.formatTime(DateTime.tryParse(timeValue)!) : timeValue) : '-';
     final String? displayImage =  (images != null && images.isNotEmpty)       ? (flag == 0 ? images.first : images.last)       : null;
 
     showDialog(
@@ -2629,7 +2333,7 @@ class _AttandancePageState extends State<AttandancePage> {
                   const SizedBox(height: 8),
                   _buildInfoRow(
                     Icons.calendar_today,
-                    DateHelper.formatDate(DateTime.parse(item.date)),
+                    DateHelper.formatDate(DateTime.tryParse(item.date) ?? DateTime(2000)),
                     Color(primaryColor),
                   ),
                   const SizedBox(height: 8),
@@ -2953,7 +2657,13 @@ class _ActivityCardState extends State<_ActivityCard> {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    Text(DateHelper.formatTime(DateTime.parse(widget.datetime!)), style: const TextStyle(fontSize: 10)),
+                    Text(
+                      () {
+                        final dt = DateTime.tryParse(widget.datetime ?? '');
+                        return dt != null ? DateHelper.formatTime(dt) : (widget.datetime ?? '-');
+                      }(),
+                      style: const TextStyle(fontSize: 10),
+                    ),
 
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
@@ -3057,283 +2767,3 @@ class _ActivityCardState extends State<_ActivityCard> {
     );
   }
 }
-
-  // Widget _buildCardAktivity(AttendanceEntity item) {
-  //   final images = item.fileAttchment6 ?? [];
-
-  //   return StatefulBuilder(
-  //     builder: (context, setStateSB) {
-  //       final ScrollController scrollController = ScrollController();
-
-  //       bool isAtStart = true;
-  //       bool isAtEnd = false;
-
-  //       void updateScrollState() {
-  //         if (!scrollController.hasClients) return;
-
-  //         final maxScroll = scrollController.position.maxScrollExtent;
-  //         final offset = scrollController.offset;
-
-  //         setStateSB(() {
-  //           isAtStart = offset <= 0;
-  //           isAtEnd = offset >= maxScroll;
-  //         });
-  //       }
-
-  //       scrollController.addListener(updateScrollState);
-
-  //       return Container(
-  //         margin: const EdgeInsets.only(bottom: 30),
-  //         decoration: BoxDecoration(
-  //           color: const Color(whiteColor),
-  //           borderRadius: BorderRadius.circular(12),
-  //         ),
-  //         child: Column(
-  //           crossAxisAlignment: CrossAxisAlignment.start,
-  //           children: [
-  //             /// ================= HEADER =================
-  //             Container(
-  //               padding: const EdgeInsets.only(left: 12),
-  //               decoration: BoxDecoration(
-  //                 border: Border(
-  //                   left: BorderSide(
-  //                     color: Color(purpleColor),
-  //                     width: 5,
-  //                   ),
-  //                 ),
-  //               ),
-  //               child: Row(
-  //                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
-  //                 children: [
-  //                   Row(
-  //                     children: [
-  //                     Container(
-  //                         width: 40,
-  //                         height: 40,
-  //                         decoration: BoxDecoration(
-  //                           color: Color(primaryColor),
-  //                           shape: BoxShape.circle
-  //                         ),
-  //                         child: Center(
-  //                           child: Text(
-  //                             getInitials(item.fullName??''),
-  //                             maxLines: 1,
-  //                             overflow: TextOverflow.ellipsis,
-  //                             style: const TextStyle(
-  //                               fontSize: 12,
-  //                               fontWeight: FontWeight.bold,
-  //                               color: Color(whiteColor)
-  //                             ),
-  //                           ),
-  //                         ),
-  //                       ),
-  //                       SizedBox(width: 5),
-  //                       Column(
-  //                         crossAxisAlignment: CrossAxisAlignment.start,
-  //                         children: [
-  //                           Text(
-  //                             item.fullName??'',
-  //                             maxLines: 1,
-  //                             overflow: TextOverflow.ellipsis,
-  //                             style: const TextStyle(
-  //                               fontSize: 15,
-  //                               fontWeight: FontWeight.bold,
-  //                             ),
-  //                           ),
-  //                           Container(
-  //                             width: 180,
-  //                             child: Text(item.location6 ?? '',maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 11),)),
-  //                         ],
-  //                       ),
-  //                     ],
-  //                   ),
-                    
-  //                 Column(
-  //                   crossAxisAlignment: CrossAxisAlignment.end,
-  //                   children: [
-  //                     // Text(item.checkInActivity != null && item.checkInActivity!.isNotEmpty? DateFormat('dd/MM/yyyy').format(DateTime.parse(item.checkInActivity!)): '-',style: const TextStyle(fontSize: 11)),
-  //                     Text(item.checkInActivity != null && item.checkInActivity!.isNotEmpty? DateFormat('hh:mm').format(DateTime.parse(item.checkInActivity!)): '-',style: const TextStyle(fontSize: 11)),
-  //                   ],
-  //                 ),
-  //                 ],
-  //               ),
-  //             ),
-
-  //             const SizedBox(height: 5),
-  //             Text(
-  //               item.note6 ?? '',
-  //               style: TextStyle(fontWeight: FontWeight.w100),
-  //             ),
-  //             const SizedBox(height: 10),
-  //             /// ================= IMAGES =================
-  //             if (images.isNotEmpty)
-  //               SizedBox(
-  //                 height: 200,
-  //                 child: Stack(
-  //                   children: [
-  //                     ListView.builder(
-  //                       controller: scrollController,
-  //                       scrollDirection: Axis.horizontal,
-  //                       itemCount: images.length,
-  //                       itemBuilder: (context, index) {
-  //                         return Container(
-  //                           margin: const EdgeInsets.only(right: 10),
-  //                           child: ClipRRect(
-  //                             borderRadius: BorderRadius.circular(8),
-  //                             child: DriveImage(
-  //                               url: images[index],
-  //                               width: 200,
-  //                               height: 200,
-  //                               fit: BoxFit.cover,
-  //                               onTap: () => _showImagePreview(context, images, index),
-  //                             ),
-  //                           ),
-  //                         );
-  //                       },
-  //                     ),
-
-  //                     /// ================= LEFT ARROW =================
-  //                     if (images.length > 1 && !isAtStart)
-  //                       Positioned(
-  //                         left: 5,
-  //                         top: 0,
-  //                         bottom: 0,
-  //                         child: Center(
-  //                           child: GestureDetector(
-  //                             onTap: () {
-  //                               final newOffset =(scrollController.offset - 250).clamp(0.0,scrollController.position.maxScrollExtent,);
-  //                               scrollController.animateTo(newOffset,duration: const Duration(milliseconds: 250),curve: Curves.easeInOut,);
-  //                             },
-  //                             child: Container(
-  //                               padding: const EdgeInsets.all(8),
-  //                               decoration: BoxDecoration(
-  //                                 color: Colors.black.withOpacity(0.4),
-  //                                 shape: BoxShape.circle,
-  //                               ),
-  //                               child: const Icon(
-  //                                 Icons.arrow_back_ios,
-  //                                 color: Colors.white,
-  //                                 size: 16,
-  //                               ),
-  //                             ),
-  //                           ),
-  //                         ),
-  //                       ),
-  //                     /// ================= RIGHT ARROW =================
-  //                     if (images.length > 1 && !isAtEnd)
-  //                       Positioned(
-  //                         right: 5,
-  //                         top: 0,
-  //                         bottom: 0,
-  //                         child: Center(
-  //                           child: GestureDetector(
-  //                             onTap: () {
-  //                               final newOffset = (scrollController.offset + 250).clamp(0.0,scrollController.position.maxScrollExtent,);
-  //                               scrollController.animateTo(newOffset,duration: const Duration(milliseconds: 250),curve: Curves.easeInOut,);
-  //                             },
-  //                             child: Container(
-  //                               padding: const EdgeInsets.all(8),
-  //                               decoration: BoxDecoration(
-  //                                 color: Colors.black.withOpacity(0.4),
-  //                                 shape: BoxShape.circle,
-  //                               ),
-  //                               child: const Icon(
-  //                                 Icons.arrow_forward_ios,
-  //                                 color: Colors.white,
-  //                                 size: 16,
-  //                               ),
-  //                             ),
-  //                           ),
-  //                         ),
-  //                       ),
-  //                   ],
-  //                 ),
-  //               ),
-            
-  //           ],
-  //         ),
-  //       );
-  //     },
-  //   );
-  // }
-
-
-
-  // Widget _filterDate({String section = 'activity'}) {
-  //   final isAttendance = section == 'attendance';
-  //   final startDate = isAttendance ? _attendanceStartDate : _activityStartDate;
-  //   final endDate = isAttendance ? _attendanceEndDate : _activityEndDate;
-  //   final dateLabel = isAttendance ? _attendanceDateLabel : _activityDateLabel;
-
-  //   final isSelected = startDate != null && endDate != null;
-  //   String label = 'Date';
-  //   if (isSelected) {
-  //     if (dateLabel != null) {
-  //       label = dateLabel;
-  //     } else {
-  //       final start = DateTime.tryParse(startDate);
-  //       final end = DateTime.tryParse(endDate);
-  //       if (start != null && end != null) {
-  //         label = '${DateFormat('d MMM').format(start)} - ${DateFormat('d MMM').format(end)}';
-  //       }
-  //     }
-  //   }
-
-  //   return CustomFilterButton(
-  //     label: label,
-  //     isSelected: isSelected,
-  //     onTap: () async {
-  //       final result = await context.pushNamed<DateFilterResult>(
-  //         'dateFilter',
-  //         extra: {
-  //           'label': dateLabel,
-  //           'startDate': startDate,
-  //           'endDate': endDate,
-  //         },
-  //       );
-
-  //       if (result != null) {
-  //         if (result.isClear) {
-  //           setState(() {
-  //             if (isAttendance) {
-  //               _attendanceStartDate = null;
-  //               _attendanceEndDate = null;
-  //               _attendanceDateLabel = null;
-  //             } else {
-  //               _activityStartDate = null;
-  //               _activityEndDate = null;
-  //               _activityDateLabel = null;
-  //             }
-  //           });
-  //         } else {
-  //           setState(() {
-  //             if (isAttendance) {
-  //               _attendanceStartDate = result.startDate;
-  //               _attendanceEndDate = result.endDate;
-  //               _attendanceDateLabel = result.label;
-  //             } else {
-  //               _activityStartDate = result.startDate;
-  //               _activityEndDate = result.endDate;
-  //               _activityDateLabel = result.label;
-  //             }
-  //           });
-  //         }
-  //         if (isAttendance) {
-  //           _attendanceLogLoaded = true;
-  //           context.read<AttendanceBloc>().add(FetchAttendanceDataEvent(
-  //             salesPersonIds: _attendanceOwnerIds,
-  //             startDate: _attendanceStartDate,
-  //             endDate: _attendanceEndDate,
-  //           ));
-  //         } else {
-  //           context.read<AttendanceActivityBloc>().add(GetAttendanceActivityEvent(
-  //             salesPersonIds: _activityOwnerIds,
-  //             startDate: _activityStartDate,
-  //             endDate: _activityEndDate,
-  //           ));
-  //         }
-  //       }
-  //     },
-  //   );
-  // }
-

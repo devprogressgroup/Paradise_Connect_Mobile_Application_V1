@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:shared_preferences/shared_preferences.dart';
 
 abstract class AuthLocalDataSource {
@@ -37,7 +38,7 @@ class AuthLocalDataSourceImpl implements AuthLocalDataSource {
   @override
   Future<void> saveToken(String token, {bool persistent = false}) async {
     _sessionToken = token;
-    if (persistent) {
+    if (persistent || kIsWeb) {
       await sharedPreferences.setString(_tokenKey, token);
     } else {
       await sharedPreferences.remove(_tokenKey);

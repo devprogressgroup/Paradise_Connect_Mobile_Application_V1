@@ -93,6 +93,7 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Future<void> _loadAvailableBiometrics() async {
+    if (kIsWeb) return;
     final isSupported = await _localAuth.isDeviceSupported();
     if (!isSupported) return;
     final biometrics = await _localAuth.getAvailableBiometrics();

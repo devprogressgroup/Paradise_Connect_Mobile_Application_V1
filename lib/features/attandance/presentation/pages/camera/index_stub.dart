@@ -168,7 +168,12 @@ class _WebCameraPageState extends State<_WebCameraPage> {
   Future<void> _requestCamera() async {
     if (mounted) setState(() => _status = _CameraStatus.requesting);
     try {
-      final stream = await html.window.navigator.mediaDevices!.getUserMedia({
+      final mediaDevices = html.window.navigator.mediaDevices;
+      if (mediaDevices == null) {
+        if (mounted) setState(() { _status = _CameraStatus.error; _error = _CameraError.noDevice; });
+        return;
+      }
+      final stream = await mediaDevices.getUserMedia({
         'video': {'facingMode': 'user'},
         'audio': false,
       }).timeout(const Duration(seconds: 15));

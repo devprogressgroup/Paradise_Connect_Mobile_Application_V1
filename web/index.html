@@ -100,6 +100,125 @@
       document.body.style.background = "transparent";
     }
   </script>
+
+  <!-- Eruda mobile debugger — dimuat saat tombol Debug Info ditekan atau ada error -->
+  <script id="debug-panel-script">
+  (function () {
+    var _loading = false;
+    var _earlyErrors = [];
+    var _CRASH_KEY = 'pwa_crash_log';
+
+    // Simpan error ke localStorage agar tetap ada setelah app restart
+    function _persist(label, msg) {
+      try {
+        var logs = JSON.parse(localStorage.getItem(_CRASH_KEY) || '[]');
+        var full = label + ': ' + msg;
+        var last = logs[logs.length - 1];
+        if (last && last.msg === full) {
+          last.ts = Date.now();
+          last.count = (last.count || 1) + 1;
+        } else {
+          logs.push({ ts: Date.now(), msg: full });
+          if (logs.length > 50) logs = logs.slice(-50);
+        }
+        localStorage.setItem(_CRASH_KEY, JSON.stringify(logs));
+      } catch (_) {}
+    }
+
+    function _load(cb) {
+      if (window.eruda) { cb(); return; }
+      if (_loading) {
+        var t = setInterval(function () {
+          if (window.eruda) { clearInterval(t); cb(); }
+        }, 50);
+        return;
+      }
+      _loading = true;
+      var s = document.createElement('script');
+      s.src = 'https://cdn.jsdelivr.net/npm/eruda';
+      s.onload = function () {
+        eruda.init();
+        _earlyErrors.forEach(function (msg) { console.error(msg); });
+        _earlyErrors = [];
+        cb();
+      };
+      s.onerror = function () {
+        console.warn('[debug] Gagal load Eruda — periksa koneksi internet');
+      };
+      document.head.appendChild(s);
+    }
+
+    // Saat app restart setelah crash, baca log sesi sebelumnya dari localStorage
+    window.addEventListener('load', function () {
+      try {
+        var saved = JSON.parse(localStorage.getItem(_CRASH_KEY) || '[]');
+        if (saved.length === 0) return;
+        // Tandai Flutter bahwa ada crash log sebelumnya (tombol Debug Info bisa badge)
+        window._hasPrevCrashLog = true;
+        _load(function () {
+          eruda.show();
+          console.warn('[CRASH LOG] ' + saved.length + ' error dari sesi sebelumnya (ketik clearCrashLog() untuk hapus):');
+          saved.forEach(function (e) {
+            var time = new Date(e.ts).toLocaleString('id-ID', { dateStyle: 'short', timeStyle: 'medium' });
+            console.error('[' + time + '] ' + e.msg);
+          });
+        });
+      } catch (_) {}
+    });
+
+    // Auto-show saat ada JS error
+    window.addEventListener('error', function (e) {
+      // Skip error tanpa pesan — biasanya Flutter internal noise dari native JS API
+      if (!e.message) return;
+      var msg = e.message + ' @ ' + (e.filename || '?') + ':' + e.lineno;
+      _persist('JS', msg);
+      if (window.eruda) {
+        eruda.show();
+      } else {
+        _earlyErrors.push(msg);
+        _load(function () { eruda.show(); });
+      }
+    });
+
+    window.addEventListener('unhandledrejection', function (e) {
+      var reason = e.reason ? (e.reason.message || String(e.reason)) : 'unknown';
+      var msg = 'PROMISE REJECT: ' + reason;
+      // Firebase messaging/unsupported-browser: SDK memang tidak support iOS, bukan error kita
+      var isFirebaseWarning = reason.indexOf('unsupported-browser') !== -1;
+      // Geolocation errors: izin ditolak / GPS mati — bukan crash app, jangan restart
+      var isGeoError = /geolocation|user denied|origin does not have permission|position unavailable/i.test(reason);
+      if (isFirebaseWarning || isGeoError) return; // abaikan sepenuhnya
+      _persist('PROMISE', msg);
+      if (window.eruda) {
+        eruda.show();
+      } else {
+        _earlyErrors.push(msg);
+        _load(function () { eruda.show(); });
+      }
+    });
+
+    // Dipanggil dari tombol "Debug Info" di login Flutter
+    window.showDebugPanel = function () {
+      _load(function () { eruda.show(); });
+    };
+
+    // Ketik di Eruda console untuk hapus log lama
+    window.clearCrashLog = function () {
+      try { localStorage.removeItem(_CRASH_KEY); } catch (_) {}
+      window._hasPrevCrashLog = false;
+      console.log('[debug] Crash log dihapus.');
+    };
+
+    // Dipanggil dari Dart (FlutterError / PlatformDispatcher) via js_interop
+    window.logDebugLine = function (type, msg) {
+      var prefixed = '[Dart] ' + msg;
+      _persist('DART', msg); // simpan error Dart ke localStorage juga
+      if (type === 'error') console.error(prefixed);
+      else if (type === 'warn') console.warn(prefixed);
+      else console.log(prefixed);
+    };
+  })();
+  </script>
 </head>
 <body>
   <picture id="splash">

@@ -9,6 +9,7 @@ import '../../features/auth/presentation/state/auth/auth_bloc.dart';
 import '../../features/auth/presentation/state/auth/auth_event.dart';
 import 'api_constants.dart';
 import 'proxy_cipher.dart';
+import '../../core/utils/web_debug_util.dart' as web_debug;
 
 class DioClient {
   final AuthLocalDataSource _authLocalDataSource;
@@ -158,7 +159,7 @@ class DioClient {
               }
             }
           }
-          // if (kDebugMode) debugPrint("DIO ERROR: ${e.message}");
+          if (kDebugMode) debugPrint("DIO ERROR: ${e.message}");
 
           if (e.response?.statusCode == 429) {
             final message = e.response?.data is Map
@@ -202,8 +203,9 @@ class DioClient {
                   final retryResponse = await _dio.fetch(e.requestOptions);
                   return handler.resolve(retryResponse);
                 }
-            } catch (_) {
-              // Refresh failed — fall through to logout
+            } catch (refreshErr) {
+              debugPrint('[DioClient] Token refresh failed: $refreshErr');
+              web_debug.logDebugError('401 token refresh failed: $refreshErr');
             }
 
             await _authLocalDataSource.clearToken();
@@ -215,6 +217,8 @@ class DioClient {
 
             final context = AppRouter.rootNavigatorKey.currentContext;
             if (context != null && context.mounted) {
+              debugPrint('[DioClient] 401 sesi habis — tampilkan dialog. url: ${e.requestOptions.path}');
+              web_debug.logDebugError('401 sesi habis (dialog) — ${e.requestOptions.path}: $apiMessage');
               showDialog(
                 context: context,
                 barrierDismissible: false,
@@ -233,6 +237,8 @@ class DioClient {
                 ),
               );
             } else {
+              debugPrint('[DioClient] 401 sesi habis — context null, redirect ke /login. url: ${e.requestOptions.path}');
+              web_debug.logDebugError('401 sesi habis (silent redirect /login) — ${e.requestOptions.path}: $apiMessage');
               _isHandling401 = false;
               AppRouter.router.go('/login');
             }
