@@ -246,7 +246,14 @@ class _MainLayoutState extends State<MainLayout> {
       ),
       bottomNavigationBar: location.endsWith('/camera')
           ? null
-          : Container(
+          // SafeArea(bottom) — Container biasa tidak otomatis mereservasi ruang
+          // buat bilah navigasi sistem. Sebagian merk Android (Samsung One UI)
+          // melaporkan safe-area-inset-bottom > 0 buat gesture bar-nya, jadi
+          // tanpa ini konten bottom nav ketutup sebagian. Xiaomi kebetulan
+          // melaporkan 0 jadi kelihatan aman walau tanpa SafeArea.
+          : SafeArea(
+        top: false,
+        child: Container(
         decoration: BoxDecoration(
           color: Color(whiteColor),
           boxShadow: [
@@ -302,6 +309,7 @@ class _MainLayoutState extends State<MainLayout> {
             );
           },
         ),
+      ),
       ),
     )));
   }
