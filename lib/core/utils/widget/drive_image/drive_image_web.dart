@@ -15,6 +15,9 @@ class DriveImage extends StatefulWidget {
   final Widget? errorWidget;
   final VoidCallback? onTap;
   final FilterQuality filterQuality;
+  // Dipanggil sekali saat gambar selesai dimuat ATAU gagal — dipakai carousel
+  // untuk memuat gambar satu-satu berurutan, bukan sekaligus semua.
+  final VoidCallback? onLoad;
 
   const DriveImage({
     super.key,
@@ -25,6 +28,7 @@ class DriveImage extends StatefulWidget {
     this.errorWidget,
     this.onTap,
     this.filterQuality = FilterQuality.medium,
+    this.onLoad,
   });
 
   @override
@@ -35,6 +39,7 @@ class _DriveImageWebState extends State<DriveImage> {
   static int _counter = 0;
   late final String _viewId;
   bool _hasError = false;
+  bool _onLoadFired = false;
 
   @override
   void initState() {
@@ -53,9 +58,21 @@ class _DriveImageWebState extends State<DriveImage> {
 
     img.onError.listen((_) {
       if (mounted) setState(() => _hasError = true);
+      _fireOnLoad();
+    });
+    img.onLoad.listen((_) {
+      _fireOnLoad();
     });
 
     ui_web.platformViewRegistry.registerViewFactory(_viewId, (_) => img);
+  }
+
+  // onLoad harus persis sekali per gambar (sukses ATAU gagal) — carousel di
+  // pemanggil pakai ini sebagai sinyal "lanjut ke gambar berikutnya".
+  void _fireOnLoad() {
+    if (_onLoadFired) return;
+    _onLoadFired = true;
+    widget.onLoad?.call();
   }
 
   String _toCdnUrl(String url) {

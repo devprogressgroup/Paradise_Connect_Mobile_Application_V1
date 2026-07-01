@@ -109,11 +109,14 @@ class _AttandancePageState extends State<AttandancePage>
         }
       }
 
-      // Tahap 2 — muat tab yang langsung terlihat (Activity = default tab)
+      // Tahap 2 — muat tab yang langsung terlihat (Activity = default tab).
+      // perPage kecil (4) + SliverList lazy di _buildActivityLogSlivers() —
+      // supaya jumlah kartu+gambar yang dibangun sekaligus tetap kecil.
       context.read<AttendanceActivityBloc>().add(GetAttendanceActivityEvent(
         salesPersonIds: _activityOwnerIds,
         startDate: _activityDateRange.start,
         endDate: _activityDateRange.end,
+        perPage: 4,
       ));
 
       // Tahap 3 — status absen + lokasi kantor dimuat setelah activity mulai,
@@ -161,6 +164,7 @@ class _AttandancePageState extends State<AttandancePage>
         startDate: _activityDateRange.start,
         endDate: _activityDateRange.end,
         page: activityState.activityPage + 1,
+        perPage: 4,
         isLoadMore: true,
       ));
     } else if (selectedMenu == 'attendance') {
@@ -348,6 +352,7 @@ class _AttandancePageState extends State<AttandancePage>
       salesPersonIds: _activityOwnerIds,
       startDate: _activityDateRange.start,
       endDate: _activityDateRange.end,
+      perPage: 4,
     ));
   }
 
@@ -1017,11 +1022,10 @@ class _AttandancePageState extends State<AttandancePage>
                             ),
                           ),
                           
-                          SliverToBoxAdapter(
-                            child: selectedMenu == 'activity'
-                                ? _buildActivityLog()
-                                : _buildAttendanceLog(),
-                          ),
+                          if (selectedMenu == 'activity')
+                            ..._buildActivityLogSlivers()
+                          else
+                            SliverToBoxAdapter(child: _buildAttendanceLog()),
                         ],
                       ),
                     ),
@@ -1377,166 +1381,189 @@ class _AttandancePageState extends State<AttandancePage>
     );
   }
 
-  Widget _buildActivityLog() {
-    return Container(
-      width: double.infinity,
-      margin: EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-      padding: EdgeInsets.symmetric(vertical: 14, horizontal: 16),
-      decoration: BoxDecoration(
-        color: Color(grey11Color),
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          BlocBuilder<AttendanceActivityBloc, AttendanceActivityState>(
-            builder: (context, state) {
-              if (state is AttendanceActivityLoading) {
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    buildLogHeaderShimmer(),
-                    const SizedBox(height: 5),
-                    buildActivityLogShimmer(),
-                  ],
-                );
-              }
+  // Sama persis tampilan/layout-nya dengan _buildActivityLog() versi lama (Container
+  // rounded + padding yang sama), tapi list tanggal sekarang SliverList sungguhan —
+  // kartu (+carousel gambar di dalamnya) baru dibangun saat benar-benar discroll ke
+  // layar, bukan semua sekaligus seperti ListView.builder(shrinkWrap:true) dulu.
+  // DecoratedSliver dipakai supaya background rounded tetap satu kesatuan mengikuti
+  // seluruh grup sliver di dalamnya (header + list + footer loading-more).
+  List<Widget> _buildActivityLogSlivers() {
+    final header = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text("Activity", style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
+            Row(
+              children: [
+                _filterOwner(isMultiSelect: true, section: 'activity'),
+              ],
+            ),
+          ],
+        ),
+        const SizedBox(height: 5),
+      ],
+    );
 
-              Widget content = const SizedBox();
-              if (state is AttendanceActivityLoaded) {
-                // Flatten each ActivityEntity into one entry per type
-                final profileState = context.read<ProfileBloc>().state;
-                // Tombol Like/Dislike check-in (validasi flag 6) digate feature CheckInVerify
-                // (terpisah dari ApproveReject yang dipakai header approve/reject di atas).
-                final canVerify = PermissionsHelper.canCheckInVerify;
-                final currentSalesPersonId = profileState is ProfileLoaded ? profileState.profile.salesPersonId : null;
-
-                final List<({String fullName, String? photoUrl, String date, String type, Color typeColor, String? datetime, String? location, String? contactName, String? note, List<String> images, int? statusValidasi, String? noteValidasi, int? logId, int salesPersonId})> entries = [];
-
-                for (final item in state.activityLogs) {
-                  if (item.clockInDate != null) {
-                    entries.add((fullName: item.fullName, photoUrl: item.photoUrl, date: item.date, type: 'Clock In', typeColor: const Color(0xFF27AE60), datetime: item.clockInDate, location: item.clockInLocation, contactName: null, note: item.clockInNote, images: item.clockInAttachment ?? [], statusValidasi: null, noteValidasi: null, logId: null, salesPersonId: item.salesPersonId));
-                  }
-                  if (item.clockOutDate != null) {
-                    entries.add((fullName: item.fullName, photoUrl: item.photoUrl, date: item.date, type: 'Clock Out', typeColor: const Color(0xFFE74C3C), datetime: item.clockOutDate, location: item.clockOutLocation, contactName: null, note: item.clockOutNote, images: item.clockOutAttachment ?? [], statusValidasi: null, noteValidasi: null, logId: null, salesPersonId: item.salesPersonId));
-                  }
-                  for (final c in item.checkIns) {
-                    if (c.checkInDate != null) {
-                      entries.add((fullName: item.fullName, photoUrl: item.photoUrl, date: item.date, type: 'Check In', typeColor: const Color(0xFF2980B9), datetime: c.checkInDate, location: c.checkInLocation, contactName: null, note: c.checkInNote, images: c.checkInAttachment ?? [], statusValidasi: c.statusValidasi, noteValidasi: c.noteValidasi, logId: c.logId, salesPersonId: item.salesPersonId));
-                    }
-                  }
-                  for (final v in item.visits) {
-                    if (v.datetime != null) {
-                      entries.add((fullName: item.fullName, photoUrl: item.photoUrl, date: item.date, type: 'Visit', typeColor: const Color(0xFFE67E22), datetime: v.datetime, location: v.lastProject, contactName: v.contactName, note: v.note, images: v.attachment ?? [], statusValidasi: null, noteValidasi: null, logId: null, salesPersonId: item.salesPersonId));
-                    }
-                  }
-                }
-
-                entries.sort((a, b) {
-                  final dateCmp = b.date.compareTo(a.date);
-                  if (dateCmp != 0) return dateCmp;
-                  final aDt = a.datetime != null ? DateTime.tryParse(a.datetime!) : null;
-                  final bDt = b.datetime != null ? DateTime.tryParse(b.datetime!) : null;
-                  if (aDt == null && bDt == null) return 0;
-                  if (aDt == null) return 1;
-                  if (bDt == null) return -1;
-                  return bDt.compareTo(aDt);
-                });
-
-                if (entries.isEmpty) {
-                  content = const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 20),
-                    child: Center(child: Text('Tidak ada data aktivitas')),
-                  );
-                } else {
-                  // Group by date
-                  final Map<String, List<({String fullName, String? photoUrl, String date, String type, Color typeColor, String? datetime, String? location, String? contactName, String? note, List<String> images, int? statusValidasi, String? noteValidasi, int? logId, int salesPersonId})>> grouped = {};
-                  for (final e in entries) {
-                    grouped.putIfAbsent(e.date, () => []).add(e);
-                  }
-                  final dates = grouped.keys.toList()..sort((a, b) => b.compareTo(a));
-
-                  content = ListView.builder(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    padding: EdgeInsets.zero,
-                    itemCount: dates.length,
-                    itemBuilder: (_, i) {
-                      final date = dates[i];
-                      final items = grouped[date]!;
-                      final parsedDate = DateTime.tryParse(date);
-                      final dateLabel = parsedDate != null
-                          ? DateHelper.formatToIndonesian(parsedDate)
-                          : date;
-                      return RepaintBoundary(
+    return [
+      SliverPadding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        sliver: DecoratedSliver(
+          decoration: BoxDecoration(
+            color: Color(grey11Color),
+            borderRadius: BorderRadius.circular(16),
+          ),
+          sliver: SliverPadding(
+            padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+            sliver: SliverMainAxisGroup(
+              slivers: [
+                BlocBuilder<AttendanceActivityBloc, AttendanceActivityState>(
+                  builder: (context, state) {
+                    if (state is AttendanceActivityLoading) {
+                      return SliverToBoxAdapter(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Padding(
-                              padding: const EdgeInsets.only(top: 12, bottom: 10),
-                              child: Text(
-                                dateLabel,
-                                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                              ),
-                            ),
-                            ...items.map((e) => _buildCardActivityNew(
-                              fullName: e.fullName,
-                              photoUrl: e.photoUrl,
-                              type: e.type,
-                              typeColor: e.typeColor,
-                              datetime: e.datetime,
-                              location: e.location,
-                              contactName: e.contactName,
-                              note: e.note,
-                              images: e.images,
-                              statusValidasi: e.statusValidasi,
-                              noteValidasi: e.noteValidasi,
-                              logId: e.logId,
-                              canVerify: canVerify,
-                              isSelf: currentSalesPersonId != null && e.salesPersonId == currentSalesPersonId,
-                            )),
+                            buildLogHeaderShimmer(),
+                            const SizedBox(height: 5),
+                            buildActivityLogShimmer(),
                           ],
                         ),
                       );
-                    },
-                  );
-                }
-              }
+                    }
 
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text("Activity", style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
-                      Row(
-                        children: [
-                          _filterOwner(isMultiSelect: true, section: 'activity'),
+                    if (state is! AttendanceActivityLoaded) {
+                      return SliverToBoxAdapter(child: header);
+                    }
+
+                    // Flatten each ActivityEntity into one entry per type
+                    final profileState = context.read<ProfileBloc>().state;
+                    // Tombol Like/Dislike check-in (validasi flag 6) digate feature CheckInVerify
+                    // (terpisah dari ApproveReject yang dipakai header approve/reject di atas).
+                    final canVerify = PermissionsHelper.canCheckInVerify;
+                    final currentSalesPersonId = profileState is ProfileLoaded ? profileState.profile.salesPersonId : null;
+
+                    final List<({String fullName, String? photoUrl, String date, String type, Color typeColor, String? datetime, String? location, String? contactName, String? note, List<String> images, int? statusValidasi, String? noteValidasi, int? logId, int salesPersonId})> entries = [];
+
+                    for (final item in state.activityLogs) {
+                      if (item.clockInDate != null) {
+                        entries.add((fullName: item.fullName, photoUrl: item.photoUrl, date: item.date, type: 'Clock In', typeColor: const Color(0xFF27AE60), datetime: item.clockInDate, location: item.clockInLocation, contactName: null, note: item.clockInNote, images: item.clockInAttachment ?? [], statusValidasi: null, noteValidasi: null, logId: null, salesPersonId: item.salesPersonId));
+                      }
+                      if (item.clockOutDate != null) {
+                        entries.add((fullName: item.fullName, photoUrl: item.photoUrl, date: item.date, type: 'Clock Out', typeColor: const Color(0xFFE74C3C), datetime: item.clockOutDate, location: item.clockOutLocation, contactName: null, note: item.clockOutNote, images: item.clockOutAttachment ?? [], statusValidasi: null, noteValidasi: null, logId: null, salesPersonId: item.salesPersonId));
+                      }
+                      for (final c in item.checkIns) {
+                        if (c.checkInDate != null) {
+                          entries.add((fullName: item.fullName, photoUrl: item.photoUrl, date: item.date, type: 'Check In', typeColor: const Color(0xFF2980B9), datetime: c.checkInDate, location: c.checkInLocation, contactName: null, note: c.checkInNote, images: c.checkInAttachment ?? [], statusValidasi: c.statusValidasi, noteValidasi: c.noteValidasi, logId: c.logId, salesPersonId: item.salesPersonId));
+                        }
+                      }
+                      for (final v in item.visits) {
+                        if (v.datetime != null) {
+                          entries.add((fullName: item.fullName, photoUrl: item.photoUrl, date: item.date, type: 'Visit', typeColor: const Color(0xFFE67E22), datetime: v.datetime, location: v.lastProject, contactName: v.contactName, note: v.note, images: v.attachment ?? [], statusValidasi: null, noteValidasi: null, logId: null, salesPersonId: item.salesPersonId));
+                        }
+                      }
+                    }
+
+                    entries.sort((a, b) {
+                      final dateCmp = b.date.compareTo(a.date);
+                      if (dateCmp != 0) return dateCmp;
+                      final aDt = a.datetime != null ? DateTime.tryParse(a.datetime!) : null;
+                      final bDt = b.datetime != null ? DateTime.tryParse(b.datetime!) : null;
+                      if (aDt == null && bDt == null) return 0;
+                      if (aDt == null) return 1;
+                      if (bDt == null) return -1;
+                      return bDt.compareTo(aDt);
+                    });
+
+                    if (entries.isEmpty) {
+                      return SliverMainAxisGroup(
+                        slivers: [
+                          SliverToBoxAdapter(child: header),
+                          const SliverToBoxAdapter(
+                            child: Padding(
+                              padding: EdgeInsets.symmetric(vertical: 20),
+                              child: Center(child: Text('Tidak ada data aktivitas')),
+                            ),
+                          ),
                         ],
-                      ),
-                    ],
-                  ),
-                  SizedBox(height: 5),
-                  content,
-                ],
-              );
-            },
+                      );
+                    }
+
+                    // Group by date
+                    final Map<String, List<({String fullName, String? photoUrl, String date, String type, Color typeColor, String? datetime, String? location, String? contactName, String? note, List<String> images, int? statusValidasi, String? noteValidasi, int? logId, int salesPersonId})>> grouped = {};
+                    for (final e in entries) {
+                      grouped.putIfAbsent(e.date, () => []).add(e);
+                    }
+                    final dates = grouped.keys.toList()..sort((a, b) => b.compareTo(a));
+
+                    return SliverMainAxisGroup(
+                      slivers: [
+                        SliverToBoxAdapter(child: header),
+                        SliverList.builder(
+                          itemCount: dates.length,
+                          itemBuilder: (_, i) {
+                            final date = dates[i];
+                            final items = grouped[date]!;
+                            final parsedDate = DateTime.tryParse(date);
+                            final dateLabel = parsedDate != null
+                                ? DateHelper.formatToIndonesian(parsedDate)
+                                : date;
+                            return RepaintBoundary(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Padding(
+                                    padding: const EdgeInsets.only(top: 12, bottom: 10),
+                                    child: Text(
+                                      dateLabel,
+                                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                                    ),
+                                  ),
+                                  ...items.map((e) => _buildCardActivityNew(
+                                    fullName: e.fullName,
+                                    photoUrl: e.photoUrl,
+                                    type: e.type,
+                                    typeColor: e.typeColor,
+                                    datetime: e.datetime,
+                                    location: e.location,
+                                    contactName: e.contactName,
+                                    note: e.note,
+                                    images: e.images,
+                                    statusValidasi: e.statusValidasi,
+                                    noteValidasi: e.noteValidasi,
+                                    logId: e.logId,
+                                    canVerify: canVerify,
+                                    isSelf: currentSalesPersonId != null && e.salesPersonId == currentSalesPersonId,
+                                  )),
+                                ],
+                              ),
+                            );
+                          },
+                        ),
+                      ],
+                    );
+                  },
+                ),
+                BlocBuilder<AttendanceActivityBloc, AttendanceActivityState>(
+                  builder: (context, state) {
+                    if (state is AttendanceActivityLoaded && state.activityLoadingMore) {
+                      return const SliverToBoxAdapter(
+                        child: Padding(
+                          padding: EdgeInsets.symmetric(vertical: 16),
+                          child: Center(child: CircularProgressIndicator()),
+                        ),
+                      );
+                    }
+                    return const SliverToBoxAdapter(child: SizedBox());
+                  },
+                ),
+              ],
+            ),
           ),
-          BlocBuilder<AttendanceActivityBloc, AttendanceActivityState>(
-            builder: (context, state) {
-              if (state is AttendanceActivityLoaded && state.activityLoadingMore) {
-                return const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 16),
-                  child: Center(child: CircularProgressIndicator()),
-                );
-              }
-              return SizedBox();
-            },
-          ),
-        ],
+        ),
       ),
-    );
+    ];
   }
 
   Widget _buildCardActivityNew({
@@ -2436,6 +2463,20 @@ class _ActivityCardState extends State<_ActivityCard> {
   bool _isAtEnd = false;
   bool _photoError = false;
 
+  // Muat gambar carousel satu-satu berurutan (bukan sekaligus semua) — cuma
+  // index < _loadedImageCount yang benar-benar dirender jadi DriveImage
+  // (nembak network request); sisanya placeholder sampai gilirannya.
+  int _loadedImageCount = 1;
+
+  void _advanceImageLoad(int index) {
+    if (!mounted) return;
+    // Cuma index yang sedang jadi "giliran depan" yang boleh memicu lanjut,
+    // supaya tidak ada request yang saling numpuk/duluan.
+    if (index != _loadedImageCount - 1) return;
+    if (_loadedImageCount >= widget.images.length) return;
+    setState(() => _loadedImageCount++);
+  }
+
   @override
   void initState() {
     super.initState();
@@ -2696,6 +2737,25 @@ class _ActivityCardState extends State<_ActivityCard> {
                         scrollDirection: Axis.horizontal,
                         itemCount: widget.images.length,
                         itemBuilder: (context, index) {
+                          // Belum giliran — jangan render DriveImage dulu (jangan nembak
+                          // network request) supaya loading gambar berurutan satu-satu.
+                          if (index >= _loadedImageCount) {
+                            return Container(
+                              margin: const EdgeInsets.only(right: 10),
+                              width: imageWidth,
+                              height: 200,
+                              decoration: BoxDecoration(
+                                color: Colors.grey.shade200,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              alignment: Alignment.center,
+                              child: const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(strokeWidth: 2),
+                              ),
+                            );
+                          }
                           return Container(
                             margin: const EdgeInsets.only(right: 10),
                             child: ClipRRect(
@@ -2706,6 +2766,7 @@ class _ActivityCardState extends State<_ActivityCard> {
                                 height: 200,
                                 fit: BoxFit.cover,
                                 onTap: () => widget.onImageTap(widget.images[index]),
+                                onLoad: () => _advanceImageLoad(index),
                                 errorWidget: Container(
                                   width: imageWidth,
                                   height: 200,

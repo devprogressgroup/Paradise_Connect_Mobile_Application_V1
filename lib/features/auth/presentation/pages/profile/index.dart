@@ -1,4 +1,5 @@
-﻿import 'package:flutter/foundation.dart' show kIsWeb;
+﻿import 'package:flutter/foundation.dart' show kIsWeb, debugPrint;
+import 'package:progress_group/core/utils/web_debug_util.dart' as web_debug;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
@@ -485,6 +486,8 @@ class _ProfilePageState extends State<ProfilePage> {
                         Expanded(
                           child: customButton(
                             () {
+                              debugPrint('[Profile] LogoutEvent dipicu dari: tombol Logout di halaman Profile');
+                              web_debug.logDebugError('LogoutEvent dipicu dari: tombol Logout di halaman Profile');
                               context.read<AuthBloc>().add(LogoutEvent());
                             },
                             "Logout",

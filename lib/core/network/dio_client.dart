@@ -180,32 +180,43 @@ class DioClient {
               return handler.next(e);
             }
 
-            try {
-                final refreshDio = Dio(BaseOptions(
-                  baseUrl: ApiConstants.baseUrl,
-                  headers: {
-                    "Accept": "application/json",
-                    "Authorization": "Bearer $currentToken",
-                  },
-                ));
+            // Request yang SUDAH pernah di-retry (ditandai via extra) tidak boleh
+            // masuk refresh+retry lagi. Tanpa guard ini: kalau token hasil refresh
+            // tetap 401 (misal saat impersonate, token belum sinkron), retry lewat
+            // _dio.fetch() masuk lagi ke interceptor ini secara rekursif →
+            // refresh+retry tanpa henti → API ditembak berkali-kali sampai tab
+            // kehabisan memori & crash/restart ("looping ke login").
+            final alreadyRetried = e.requestOptions.extra['_401Retried'] == true;
 
-                final refreshResponse = await refreshDio.post('/refresh');
-                final body = refreshResponse.data as Map<String, dynamic>;
+            if (!alreadyRetried) {
+              try {
+                  final refreshDio = Dio(BaseOptions(
+                    baseUrl: ApiConstants.baseUrl,
+                    headers: {
+                      "Accept": "application/json",
+                      "Authorization": "Bearer $currentToken",
+                    },
+                  ));
 
-                if (body['status'] == true) {
-                  final newToken = body['data']['access_token'] as String;
-                  final persistent = await _authLocalDataSource.isAutoLogin();
-                  await _authLocalDataSource.saveToken(newToken, persistent: persistent);
-                  _isHandling401 = false;
+                  final refreshResponse = await refreshDio.post('/refresh');
+                  final body = refreshResponse.data as Map<String, dynamic>;
 
-                  // Retry original request with new token
-                  e.requestOptions.headers["Authorization"] = "Bearer $newToken";
-                  final retryResponse = await _dio.fetch(e.requestOptions);
-                  return handler.resolve(retryResponse);
-                }
-            } catch (refreshErr) {
-              debugPrint('[DioClient] Token refresh failed: $refreshErr');
-              web_debug.logDebugError('401 token refresh failed: $refreshErr');
+                  if (body['status'] == true) {
+                    final newToken = body['data']['access_token'] as String;
+                    final persistent = await _authLocalDataSource.isAutoLogin();
+                    await _authLocalDataSource.saveToken(newToken, persistent: persistent);
+                    _isHandling401 = false;
+
+                    // Retry original request with new token (ditandai, lihat komentar di atas)
+                    e.requestOptions.extra['_401Retried'] = true;
+                    e.requestOptions.headers["Authorization"] = "Bearer $newToken";
+                    final retryResponse = await _dio.fetch(e.requestOptions);
+                    return handler.resolve(retryResponse);
+                  }
+              } catch (refreshErr) {
+                debugPrint('[DioClient] Token refresh failed: $refreshErr');
+                web_debug.logDebugError('401 token refresh failed: $refreshErr');
+              }
             }
 
             await _authLocalDataSource.clearToken();
@@ -228,6 +239,8 @@ class DioClient {
                   actions: [
                     TextButton(
                       onPressed: () {
+                        debugPrint('[DioClient] LogoutEvent dipicu dari: dialog Sesi Berakhir (tombol OK)');
+                        web_debug.logDebugError('LogoutEvent dipicu dari: dialog Sesi Berakhir (tombol OK)');
                         Navigator.of(dialogContext).pop();
                         context.read<AuthBloc>().add(LogoutEvent());
                       },

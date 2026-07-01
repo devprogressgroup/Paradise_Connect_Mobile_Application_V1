@@ -13,6 +13,7 @@ import 'package:progress_group/features/auth/presentation/state/profile/profile_
 import 'package:progress_group/features/auth/presentation/state/profile/profile_event.dart';
 import 'package:progress_group/features/auth/presentation/state/profile/profile_state.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:progress_group/core/utils/web_debug_util.dart' as web_debug;
 
 class SplashPage extends StatefulWidget {
   const SplashPage({super.key});
@@ -37,27 +38,27 @@ class _SplashPageState extends State<SplashPage> {
   }
 
   void _checkToken() async {
-    // debugPrint('[Splash] _checkToken: start');
+    // web_debug.logDebugError('[Splash] _checkToken: start');
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('auth_token');
-    // debugPrint('[Splash] token: ${token != null && token.isNotEmpty ? 'ada (${token.length} chars)' : 'tidak ada'}');
+    web_debug.logDebugError('[Splash] token: ${token != null && token.isNotEmpty ? 'ada (${token.length} chars)' : 'tidak ada'}');
 
     if (!mounted) return;
 
     if (token != null && token.isNotEmpty) {
-      // debugPrint('[Splash] → fetch profile');
+      // web_debug.logDebugError('[Splash] → fetch profile');
       // forceRefresh: true agar saat re-entry (mis. setelah impersonate token swap)
       // profil di-fetch ulang dengan token baru, bukan ambil cache user sebelumnya.
       context.read<ProfileBloc>().add(GetProfileEvent(forceRefresh: true));
 
       _fallbackTimer = Timer(const Duration(seconds: 3), () {
         if (mounted && context.read<ProfileBloc>().state is ProfileLoading) {
-          // debugPrint('[Splash] fallback timer: profile masih loading → go /login');
+          web_debug.logDebugError('[Splash] fallback timer: profile masih loading → go /login');
           context.go('/login');
         }
       });
     } else {
-      // debugPrint('[Splash] → no token, go /login');
+      web_debug.logDebugError('[Splash] → no token, go /login');
       context.go('/login');
     }
   }
@@ -66,14 +67,14 @@ class _SplashPageState extends State<SplashPage> {
   Widget build(BuildContext context) {
     return BlocListener<ProfileBloc, ProfileState>(
       listener: (context, state) async {
-        // debugPrint('[Splash] ProfileBloc state: ${state.runtimeType}');
+        web_debug.logDebugError('[Splash] ProfileBloc state: ${state.runtimeType}');
         if (state is ProfileLoaded) {
-          // debugPrint('[Splash] ProfileLoaded: ${state.profile.username} (role ${state.profile.userRoleId}) → go /');
+          web_debug.logDebugError('[Splash] ProfileLoaded: ${state.profile.username} (role ${state.profile.userRoleId}) → go /');
           context.read<AuthBloc>().add(FetchPermissionsEvent());
           AppRouter.authNotifier.value = true;
           context.go('/');
         } else if (state is ProfileFailure) {
-          // debugPrint('[Splash] ProfileFailure: ${state.message} → hapus token, go /login');
+          web_debug.logDebugError('[Splash] ProfileFailure: ${state.message} → hapus token, go /login');
           final prefs = await SharedPreferences.getInstance();
           await prefs.remove('auth_token');
           await prefs.setBool('is_auto_login', false);

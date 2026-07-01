@@ -2,7 +2,7 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'dart:ui' show PlatformDispatcher;
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart' show kIsWeb, debugPrint;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'core/utils/web_debug_util.dart' as web_debug;
@@ -448,16 +448,20 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
                     PushNotificationService.sendTokenAfterLogin();
                     PushNotificationService.checkAndShowUpdateBanner();
                   } else if (state is AuthLoggedOut) {
+                    debugPrint('[App] AuthLoggedOut — _resetApp dipanggil (keluar dari semua halaman)');
                     web_debug.logDebugError('App: AuthLoggedOut — _resetApp dipanggil (keluar dari semua halaman)');
                     // Restart aplikasi total seolah-olah baru dibuka pertama kali
                     _resetApp();
                   } else if (state is ImpersonationStarted || state is ImpersonationStopped) {
                     // Token sudah ditukar (impersonate / kembali ke admin). Re-init penuh
                     // via splash: fetch profile (forceRefresh) + permissions user baru → '/'.
+                    debugPrint('[App] ImpersonationStarted/Stopped — go /splash');
+                    web_debug.logDebugError('App: ImpersonationStarted/Stopped — go /splash');
                     AppRouter.router.go('/splash');
                   }
                 },
               ),
+              
               BlocListener<ProfileBloc, ProfileState>(
                 listener: (context, state) {
                   if (state is ProfileLoaded) {

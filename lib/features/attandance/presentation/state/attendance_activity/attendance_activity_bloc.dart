@@ -78,6 +78,7 @@ class AttendanceActivityBloc extends Bloc<AttendanceActivityEvent, AttendanceAct
           endDate: event.endDate,
           location: event.location,
           page: event.page,
+          perPage: event.perPage,
         );
 
         final List<AttendanceActivityEntity> existingLogs =

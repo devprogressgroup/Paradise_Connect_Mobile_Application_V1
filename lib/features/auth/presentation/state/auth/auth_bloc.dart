@@ -1,8 +1,10 @@
 ﻿
 
 
+import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:progress_group/core/utils/helpers/error_message.dart';
+import 'package:progress_group/core/utils/web_debug_util.dart' as web_debug;
 import 'package:progress_group/core/utils/helpers/permissions_helper.dart';
 import 'package:progress_group/core/utils/helpers/impersonation_manager.dart';
 import 'package:progress_group/features/auth/domain/usecase/clear_remember_me_usecase.dart';
@@ -175,6 +177,8 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   }
 
   Future<void> _onLogout(LogoutEvent event, Emitter<AuthState> emit) async {
+    debugPrint('[AuthBloc] LogoutEvent diterima:\n${StackTrace.current}');
+    web_debug.logDebugError('AuthBloc: LogoutEvent diterima — ${StackTrace.current}');
     try {
       await logoutUseCase();
       PermissionsHelper.clear();
