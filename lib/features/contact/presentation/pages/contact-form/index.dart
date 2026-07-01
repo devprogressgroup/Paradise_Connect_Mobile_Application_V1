@@ -1780,13 +1780,13 @@ class _ContactFormPageState extends State<ContactFormPage> {
                           _buildUnitField(),
                           if (_isVisitorWi(selectedStatusId))
                             _buildFieldDown(
-                              label: "Jumlah Datang",
+                              label: "berapa kali datang",
                               value: vCountTC.text.isEmpty ? null : (vCountTC.text == '5' ? '>5' : vCountTC.text),
                               onTap: () async {
                                 final result = await context.pushNamed(
                                   'detailContactDropdown',
                                   extra: ContactDropdownArgs(
-                                    title: 'Jumlah Datang',
+                                    title: 'berapa kali datang',
                                     items: itemsJmlDatang,
                                     selectedId: null,
                                   ),
@@ -1802,13 +1802,13 @@ class _ContactFormPageState extends State<ContactFormPage> {
                           if (_statusGroup(selectedStatusId) == 'appt' ||
                               _statusGroup(selectedStatusId) == 'reserve')
                             _buildFieldDown(
-                              label: "Appt Volume",
+                              label: "berapa kali appt",
                               value: volumePlanTC.text.isEmpty ? null : (volumePlanTC.text == '5' ? '>5' : volumePlanTC.text),
                               onTap: () async {
                                 final result = await context.pushNamed(
                                   'detailContactDropdown',
                                   extra: ContactDropdownArgs(
-                                    title: 'Appt Volume',
+                                    title: 'berapa kali appt',
                                     items: itemsVolume,
                                     selectedId: null,
                                   ),
@@ -2703,7 +2703,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
   }
 
   /// True bila status [id] termasuk "Visitor/WI" (isVisitorWi / STATUS_PROSPECT_VISITOR_WI)
-  /// → tampilkan field Jumlah Datang. Menggantikan hardcode [63..69].
+  /// → tampilkan field berapa kali datang. Menggantikan hardcode [63..69].
   bool _isVisitorWi(int? id) {
     if (id == null) return false;
     final st = context.read<ProspectStatusBloc>().state;

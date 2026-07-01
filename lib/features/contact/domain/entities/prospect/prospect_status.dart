@@ -15,7 +15,7 @@ class ProspectStatusEntity extends Equatable {
   final bool isVisitForm;
 
   /// True bila status termasuk "Visitor/WI" (STATUS_PROSPECT_VISITOR_WI) → form Visit mengaktifkan
-  /// input jumlah datang (>1). Menggantikan hardcode `selectedStatusId == 65`.
+  /// input berapa kali datang (>1). Menggantikan hardcode `selectedStatusId == 65`.
   final bool isVisitorWi;
 
   const ProspectStatusEntity({

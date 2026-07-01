@@ -81,6 +81,13 @@ class _AttandancePageState extends State<AttandancePage>
 
   Timer? _loadMoreDebounce;
 
+  // Kartu Activity di-reveal satu-satu berurutan (bukan sekaligus semua yang
+  // masuk range render SliverList) — kartu ke-N tidak dibangun penuh (cuma
+  // shimmer) sampai kartu ke-(N-1) selesai load SEMUA gambarnya. Notifier
+  // terpisah (bukan setState di halaman) supaya nambah hitungan cuma
+  // rebuild SliverList-nya, bukan seluruh halaman.
+  final ValueNotifier<int> _loadedActivityCardCount = ValueNotifier(1);
+
 
   @override
   void initState() {
@@ -132,6 +139,7 @@ class _AttandancePageState extends State<AttandancePage>
   void dispose() {
     _loadMoreDebounce?.cancel();
     _positionStream?.cancel();
+    _loadedActivityCardCount.dispose();
     _pageController.dispose();
     _scrollController.removeListener(_onScroll);
     _scrollController.dispose();
@@ -339,6 +347,7 @@ class _AttandancePageState extends State<AttandancePage>
   }
 
   Future<void> _getLog() async {
+    _loadedActivityCardCount.value = 1;
     if (_attendanceLogLoaded) {
       context.read<AttendanceBloc>().add(FetchAttendanceDataEvent(
         salesPersonIds: _attendanceOwnerIds,
@@ -1280,6 +1289,7 @@ class _AttandancePageState extends State<AttandancePage>
                     endDate: _attendanceEndDate,
                   ));
                 } else {
+                  _loadedActivityCardCount.value = 1;
                   context.read<AttendanceActivityBloc>().add(GetAttendanceActivityEvent(
                     salesPersonIds: _activityOwnerIds,
                     startDate: _activityStartDate,
@@ -1447,39 +1457,26 @@ class _AttandancePageState extends State<AttandancePage>
 
                     final List<({String fullName, String? photoUrl, String date, String type, Color typeColor, String? datetime, String? location, String? contactName, String? note, List<String> images, int? statusValidasi, String? noteValidasi, int? logId, int salesPersonId})> entries = [];
 
-                    // state.activityLogs sudah dalam urutan tampil yang benar (tiap
-                    // halaman diurutkan Bloc, halaman baru selalu ditempel di belakang
-                    // — lihat attendance_activity_bloc.dart). Di sini kita HANYA urutkan
-                    // entry di dalam satu entity/hari yang sama (clock in/out/checkin/visit
-                    // hari itu), TIDAK pernah re-sort lintas entity — supaya kartu yang
-                    // sudah tampil tidak pernah bergeser saat load-more menambah data baru.
+                    // Tidak ada sort sama sekali di sini — tampilkan apa adanya sesuai
+                    // urutan balikan API (state.activityLogs: halaman lama duluan,
+                    // halaman baru dari load-more ditempel di belakang oleh Bloc).
                     for (final item in state.activityLogs) {
-                      final List<({String fullName, String? photoUrl, String date, String type, Color typeColor, String? datetime, String? location, String? contactName, String? note, List<String> images, int? statusValidasi, String? noteValidasi, int? logId, int salesPersonId})> itemEntries = [];
                       if (item.clockInDate != null) {
-                        itemEntries.add((fullName: item.fullName, photoUrl: item.photoUrl, date: item.date, type: 'Clock In', typeColor: const Color(0xFF27AE60), datetime: item.clockInDate, location: item.clockInLocation, contactName: null, note: item.clockInNote, images: item.clockInAttachment ?? [], statusValidasi: null, noteValidasi: null, logId: null, salesPersonId: item.salesPersonId));
+                        entries.add((fullName: item.fullName, photoUrl: item.photoUrl, date: item.date, type: 'Clock In', typeColor: const Color(0xFF27AE60), datetime: item.clockInDate, location: item.clockInLocation, contactName: null, note: item.clockInNote, images: item.clockInAttachment ?? [], statusValidasi: null, noteValidasi: null, logId: null, salesPersonId: item.salesPersonId));
                       }
                       if (item.clockOutDate != null) {
-                        itemEntries.add((fullName: item.fullName, photoUrl: item.photoUrl, date: item.date, type: 'Clock Out', typeColor: const Color(0xFFE74C3C), datetime: item.clockOutDate, location: item.clockOutLocation, contactName: null, note: item.clockOutNote, images: item.clockOutAttachment ?? [], statusValidasi: null, noteValidasi: null, logId: null, salesPersonId: item.salesPersonId));
+                        entries.add((fullName: item.fullName, photoUrl: item.photoUrl, date: item.date, type: 'Clock Out', typeColor: const Color(0xFFE74C3C), datetime: item.clockOutDate, location: item.clockOutLocation, contactName: null, note: item.clockOutNote, images: item.clockOutAttachment ?? [], statusValidasi: null, noteValidasi: null, logId: null, salesPersonId: item.salesPersonId));
                       }
                       for (final c in item.checkIns) {
                         if (c.checkInDate != null) {
-                          itemEntries.add((fullName: item.fullName, photoUrl: item.photoUrl, date: item.date, type: 'Check In', typeColor: const Color(0xFF2980B9), datetime: c.checkInDate, location: c.checkInLocation, contactName: null, note: c.checkInNote, images: c.checkInAttachment ?? [], statusValidasi: c.statusValidasi, noteValidasi: c.noteValidasi, logId: c.logId, salesPersonId: item.salesPersonId));
+                          entries.add((fullName: item.fullName, photoUrl: item.photoUrl, date: item.date, type: 'Check In', typeColor: const Color(0xFF2980B9), datetime: c.checkInDate, location: c.checkInLocation, contactName: null, note: c.checkInNote, images: c.checkInAttachment ?? [], statusValidasi: c.statusValidasi, noteValidasi: c.noteValidasi, logId: c.logId, salesPersonId: item.salesPersonId));
                         }
                       }
                       for (final v in item.visits) {
                         if (v.datetime != null) {
-                          itemEntries.add((fullName: item.fullName, photoUrl: item.photoUrl, date: item.date, type: 'Visit', typeColor: const Color(0xFFE67E22), datetime: v.datetime, location: v.lastProject, contactName: v.contactName, note: v.note, images: v.attachment ?? [], statusValidasi: null, noteValidasi: null, logId: null, salesPersonId: item.salesPersonId));
+                          entries.add((fullName: item.fullName, photoUrl: item.photoUrl, date: item.date, type: 'Visit', typeColor: const Color(0xFFE67E22), datetime: v.datetime, location: v.lastProject, contactName: v.contactName, note: v.note, images: v.attachment ?? [], statusValidasi: null, noteValidasi: null, logId: null, salesPersonId: item.salesPersonId));
                         }
                       }
-                      itemEntries.sort((a, b) {
-                        final aDt = a.datetime != null ? DateTime.tryParse(a.datetime!) : null;
-                        final bDt = b.datetime != null ? DateTime.tryParse(b.datetime!) : null;
-                        if (aDt == null && bDt == null) return 0;
-                        if (aDt == null) return 1;
-                        if (bDt == null) return -1;
-                        return bDt.compareTo(aDt);
-                      });
-                      entries.addAll(itemEntries);
                     }
 
                     if (entries.isEmpty) {
@@ -1506,37 +1503,64 @@ class _AttandancePageState extends State<AttandancePage>
                     }
                     final dates = grouped.keys.toList();
 
+                    // Ratakan header-tanggal + kartu jadi satu list baris, dan beri tiap
+                    // KARTU nomor urut global (lintas tanggal) — supaya kartu bisa digilir
+                    // satu-satu di seluruh list, bukan cuma di dalam 1 grup tanggal.
+                    final List<({bool isHeader, String date, ({String fullName, String? photoUrl, String date, String type, Color typeColor, String? datetime, String? location, String? contactName, String? note, List<String> images, int? statusValidasi, String? noteValidasi, int? logId, int salesPersonId})? entry, int? cardIndex})> rows = [];
+                    int cardCounter = 0;
+                    for (final date in dates) {
+                      rows.add((isHeader: true, date: date, entry: null, cardIndex: null));
+                      for (final e in grouped[date]!) {
+                        rows.add((isHeader: false, date: date, entry: e, cardIndex: cardCounter));
+                        cardCounter++;
+                      }
+                    }
+
                     return SliverMainAxisGroup(
                       slivers: [
                         SliverToBoxAdapter(child: header),
-                        SliverList.builder(
-                          itemCount: dates.length,
-                          itemBuilder: (_, i) {
-                            final date = dates[i];
-                            final items = grouped[date]!;
-                            final parsedDate = DateTime.tryParse(date);
-                            final dateLabel = parsedDate != null
-                                ? DateHelper.formatToIndonesian(parsedDate)
-                                : date;
-                            return RepaintBoundary(
-                              key: ValueKey('activity-date-$date'),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Padding(
+                        ValueListenableBuilder<int>(
+                          valueListenable: _loadedActivityCardCount,
+                          builder: (context, loadedCount, _) {
+                            return SliverList.builder(
+                              itemCount: rows.length,
+                              itemBuilder: (_, i) {
+                                final row = rows[i];
+                                if (row.isHeader) {
+                                  final parsedDate = DateTime.tryParse(row.date);
+                                  final dateLabel = parsedDate != null
+                                      ? DateHelper.formatToIndonesian(parsedDate)
+                                      : row.date;
+                                  return Padding(
+                                    key: ValueKey('activity-date-header-${row.date}'),
                                     padding: const EdgeInsets.only(top: 12, bottom: 10),
                                     child: Text(
                                       dateLabel,
                                       style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                                     ),
-                                  ),
-                                  ...items.map((e) => _buildCardActivityNew(
-                                    // Key stabil per entry — tanpa ini SliverList mengenali
-                                    // kartu berdasarkan POSISI, jadi kalau data baru masuk dan
-                                    // urutan bergeser, State kartu lama (termasuk progres load
-                                    // gambar-nya) ke-reuse buat entry yang berbeda → data "nyasar"
-                                    // antar kartu.
-                                    key: ValueKey('${e.salesPersonId}_${e.date}_${e.type}_${e.datetime}_${e.logId ?? ''}'),
+                                  );
+                                }
+
+                                final e = row.entry!;
+                                final cardIndex = row.cardIndex!;
+                                // Key stabil per entry — tanpa ini SliverList mengenali baris
+                                // berdasarkan POSISI, jadi kalau data baru masuk dan urutan
+                                // bergeser, State lama (termasuk progres load gambar) ke-reuse
+                                // buat entry yang berbeda → data "nyasar" antar kartu.
+                                final cardKey = ValueKey('${e.salesPersonId}_${e.date}_${e.type}_${e.datetime}_${e.logId ?? ''}');
+
+                                // Belum giliran — kartu ke-(cardIndex+1) belum boleh dibangun
+                                // penuh sampai kartu sebelumnya selesai load semua gambarnya.
+                                if (cardIndex >= loadedCount) {
+                                  return KeyedSubtree(
+                                    key: cardKey,
+                                    child: const ShimmerActivityItem(),
+                                  );
+                                }
+
+                                return RepaintBoundary(
+                                  key: cardKey,
+                                  child: _buildCardActivityNew(
                                     fullName: e.fullName,
                                     photoUrl: e.photoUrl,
                                     type: e.type,
@@ -1551,9 +1575,13 @@ class _AttandancePageState extends State<AttandancePage>
                                     logId: e.logId,
                                     canVerify: canVerify,
                                     isSelf: currentSalesPersonId != null && e.salesPersonId == currentSalesPersonId,
-                                  )),
-                                ],
-                              ),
+                                    onFullyLoaded: () {
+                                      if (cardIndex != _loadedActivityCardCount.value - 1) return;
+                                      _loadedActivityCardCount.value = cardIndex + 2;
+                                    },
+                                  ),
+                                );
+                              },
                             );
                           },
                         ),
@@ -1598,9 +1626,11 @@ class _AttandancePageState extends State<AttandancePage>
     int? logId,
     bool canVerify = false,
     bool isSelf = false,
+    VoidCallback? onFullyLoaded,
   }) {
     return _ActivityCard(
       key: key,
+      onFullyLoaded: onFullyLoaded,
       fullName: fullName,
       photoUrl: photoUrl,
       type: type,
@@ -2485,6 +2515,10 @@ class _ActivityCard extends StatefulWidget {
   final bool canVerify;
   final bool isSelf;
   final VoidCallback? onValidated;
+  // Dipanggil sekali saat kartu ini selesai load SEMUA gambarnya (atau segera
+  // kalau tidak ada gambar) — dipakai halaman untuk "membuka giliran" kartu
+  // berikutnya di list (reveal satu-satu, bukan sekaligus semua).
+  final VoidCallback? onFullyLoaded;
 
   const _ActivityCard({
     super.key,
@@ -2504,6 +2538,7 @@ class _ActivityCard extends StatefulWidget {
     this.canVerify = false,
     this.isSelf = false,
     this.onValidated,
+    this.onFullyLoaded,
   });
 
   @override
@@ -2520,14 +2555,26 @@ class _ActivityCardState extends State<_ActivityCard> {
   // index < _loadedImageCount yang benar-benar dirender jadi DriveImage
   // (nembak network request); sisanya placeholder sampai gilirannya.
   int _loadedImageCount = 1;
+  bool _fullyLoadedFired = false;
 
   void _advanceImageLoad(int index) {
     if (!mounted) return;
     // Cuma index yang sedang jadi "giliran depan" yang boleh memicu lanjut,
     // supaya tidak ada request yang saling numpuk/duluan.
     if (index != _loadedImageCount - 1) return;
-    if (_loadedImageCount >= widget.images.length) return;
+    if (_loadedImageCount >= widget.images.length) {
+      // Ini gambar TERAKHIR di kartu ini — beri tahu halaman supaya kartu
+      // berikutnya boleh mulai dibangun/loading gambarnya.
+      _fireFullyLoaded();
+      return;
+    }
     setState(() => _loadedImageCount++);
+  }
+
+  void _fireFullyLoaded() {
+    if (_fullyLoadedFired) return;
+    _fullyLoadedFired = true;
+    widget.onFullyLoaded?.call();
   }
 
   @override
@@ -2535,6 +2582,15 @@ class _ActivityCardState extends State<_ActivityCard> {
     super.initState();
     _scrollController = ScrollController();
     _scrollController.addListener(_updateScrollState);
+    if (widget.images.isEmpty) {
+      // Tidak ada gambar buat ditunggu — langsung buka giliran kartu
+      // berikutnya, tapi ditunda ke frame berikutnya (bukan sinkron di
+      // initState) supaya tidak memicu setState/notify di widget lain
+      // saat proses build masih berjalan.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _fireFullyLoaded();
+      });
+    }
   }
 
   @override

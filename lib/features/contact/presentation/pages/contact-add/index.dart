@@ -1364,7 +1364,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
   }
 
   /// True bila status terpilih adalah status "realisasi visit" (isVisitForm / APPOINTMENT_REALIZE).
-  /// Penanda untuk menampilkan foto kunjungan & jumlah datang (vs status visit non-realisasi spt Hot Prospect).
+  /// Penanda untuk menampilkan foto kunjungan & berapa kali datang (vs status visit non-realisasi spt Hot Prospect).
   bool _currentIsVisitFormStatus() {
     final st = context.read<ProspectStatusBloc>().state;
     return st.status == ProspectStatusEnum.loaded &&
@@ -1372,7 +1372,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
   }
 
   /// True bila status terpilih termasuk "Visitor/WI" (isVisitorWi / STATUS_PROSPECT_VISITOR_WI) →
-  /// jumlah datang boleh >1 (opsi penuh). Menggantikan hardcode `selectedStatusId == 65`.
+  /// berapa kali datang boleh >1 (opsi penuh). Menggantikan hardcode `selectedStatusId == 65`.
   bool _currentIsVisitorWi() {
     final st = context.read<ProspectStatusBloc>().state;
     if (st.status != ProspectStatusEnum.loaded) return false;
@@ -1452,7 +1452,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          _currentStatusGroup() == 'appt' ? "Appt Volume" :
+          _currentStatusGroup() == 'appt' ? "berapa kali appt" :
           _currentStatusGroup() == 'reserve' ? "Reserved Volume" : "Volume",
           style: TextStyle(
             fontSize: 12,
@@ -1470,7 +1470,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
             final result = await context.pushNamed(
               'detailContactDropdown',
               extra: ContactDropdownArgs(
-                title: 'Pilih Appt Volume',
+                title: 'Pilih berapa kali appt',
                 items: itemsVolume,
                 selectedId: selectedItem.id,
               ),
@@ -2083,7 +2083,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          "Jumlah Datang",
+          "berapa kali datang",
           style: TextStyle(
             fontSize: 12,
             fontWeight: FontWeight.bold,
@@ -2100,8 +2100,8 @@ class _ContactAddPageState extends State<ContactAddPage> {
             final result = await context.pushNamed(
               'detailContactDropdown',
               extra: ContactDropdownArgs(
-                title: 'Pilih Jumlah Datang',
-                // Status Visitor/WI (config-driven) → boleh jumlah datang >1; selain itu hanya 1.
+                title: 'Pilih berapa kali datang',
+                // Status Visitor/WI (config-driven) → boleh berapa kali datang >1; selain itu hanya 1.
                 items: _currentIsVisitorWi()
                     ? itemsJmlDatang
                     : (itemsJmlDatang.isNotEmpty ? [itemsJmlDatang.first] : []),

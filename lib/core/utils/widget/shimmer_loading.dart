@@ -158,12 +158,10 @@ class ShimmerActivityItem extends StatelessWidget {
   Widget build(BuildContext context) {
     return _shimmerWrap(
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(12),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _ShimmerBox(width: 100, height: 10),
-            const SizedBox(height: 12),
             Container(
               decoration: BoxDecoration(color: Color(grey3Color), borderRadius: BorderRadius.circular(12)),
               child: Row(
@@ -183,11 +181,11 @@ class ShimmerActivityItem extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          _ShimmerBox(width: 160, height: 13),
-                          const SizedBox(height: 6),
-                          _ShimmerBox(width: 100, height: 11),
-                          const SizedBox(height: 6),
-                          _ShimmerBox(width: double.infinity, height: 11),
+                          // _ShimmerBox(width: 160, height: 13),
+                          // const SizedBox(height: 6),
+                          // _ShimmerBox(width: 100, height: 11),
+                          // const SizedBox(height: 6),
+                          _ShimmerBox(width: double.infinity, height: MediaQuery.of(context).size.height * 0.25),
                         ],
                       ),
                     ),

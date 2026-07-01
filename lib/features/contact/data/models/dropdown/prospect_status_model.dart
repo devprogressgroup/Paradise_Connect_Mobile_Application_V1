@@ -19,7 +19,7 @@ class ProspectStatusModel extends ProspectStatusEntity {
       group: (json['group'] as String?)?.isNotEmpty == true ? json['group'] as String : 'db',
       // Flag status visit (STATUS_PROSPECT_APPOINTMENT_REALIZE); fallback false bila server lama.
       isVisitForm: json['is_visit_form'] == true || json['is_visit_form'] == 1,
-      // Flag Visitor/WI (STATUS_PROSPECT_VISITOR_WI) → aktifkan input jumlah datang >1.
+      // Flag Visitor/WI (STATUS_PROSPECT_VISITOR_WI) → aktifkan input berapa kali datang >1.
       isVisitorWi: json['is_visitor_wi'] == true || json['is_visitor_wi'] == 1,
     );
   }
