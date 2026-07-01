@@ -86,8 +86,15 @@ class AttendanceActivityBloc extends Bloc<AttendanceActivityEvent, AttendanceAct
                 ? currentState.activityLogs
                 : [];
 
+        // Urutkan HANYA halaman yang baru datang (terbaru dulu), lalu tempelkan
+        // di belakang data yang sudah ada — jangan re-sort gabungan semuanya.
+        // Kalau backend tidak selalu balas halaman berikutnya secara kronologis
+        // ketat, re-sort global bisa bikin halaman baru "melompat" ke atas dan
+        // menggeser semua kartu yang sudah ditampilkan (terlihat seperti restart).
+        final newPage = [...result.data]..sort((a, b) => b.date.compareTo(a.date));
+
         emit(AttendanceActivityLoaded(
-          activityLogs: [...existingLogs, ...result.data],
+          activityLogs: [...existingLogs, ...newPage],
           activityPage: event.page,
           activityLastPage: result.lastPage,
           activityLoadingMore: false,

@@ -239,7 +239,7 @@ class DioClient {
                   actions: [
                     TextButton(
                       onPressed: () {
-                        debugPrint('[DioClient] LogoutEvent dipicu dari: dialog Sesi Berakhir (tombol OK)');
+                        // debugPrint('[DioClient] LogoutEvent dipicu dari: dialog Sesi Berakhir (tombol OK)');
                         web_debug.logDebugError('LogoutEvent dipicu dari: dialog Sesi Berakhir (tombol OK)');
                         Navigator.of(dialogContext).pop();
                         context.read<AuthBloc>().add(LogoutEvent());
@@ -250,7 +250,7 @@ class DioClient {
                 ),
               );
             } else {
-              debugPrint('[DioClient] 401 sesi habis — context null, redirect ke /login. url: ${e.requestOptions.path}');
+              // debugPrint('[DioClient] 401 sesi habis — context null, redirect ke /login. url: ${e.requestOptions.path}');
               web_debug.logDebugError('401 sesi habis (silent redirect /login) — ${e.requestOptions.path}: $apiMessage');
               _isHandling401 = false;
               AppRouter.router.go('/login');

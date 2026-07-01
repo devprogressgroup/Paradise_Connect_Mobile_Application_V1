@@ -532,20 +532,20 @@ class _LoginPageState extends State<LoginPage> {
                           if (await canLaunchUrl(uri)) launchUrl(uri, mode: LaunchMode.externalApplication);
                         },
                         child: Text("Help", style: TextStyle( fontSize: 12, fontWeight: FontWeight.w700, color: Color(primaryColor), decoration: TextDecoration.underline, decorationColor: Color(primaryColor), decorationThickness: 1,),textAlign: TextAlign.center,)),
-                      if (kIsWeb) ...[
-                        const SizedBox(height: 8),
-                        GestureDetector(
-                          onTap: web_debug.showDebugPanel,
-                          child: Text(
-                            'Debug Info',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              fontSize: 10,
-                              color: Colors.grey[400],
-                            ),
-                          ),
-                        ),
-                      ],
+                      // if (kIsWeb) ...[
+                      //   const SizedBox(height: 8),
+                      //   GestureDetector(
+                      //     onTap: web_debug.showDebugPanel,
+                      //     child: Text(
+                      //       'Debug Info',
+                      //       textAlign: TextAlign.center,
+                      //       style: TextStyle(
+                      //         fontSize: 10,
+                      //         color: Colors.grey[400],
+                      //       ),
+                      //     ),
+                      //   ),
+                      // ],
                       // ValueListenableBuilder<AppEnvironment>(
                       //   valueListenable: ApiConstants.envNotifier,
                       //   builder: (_, env, __) => Text(

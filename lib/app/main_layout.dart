@@ -451,8 +451,8 @@ class _MainLayoutState extends State<MainLayout> {
                   padding: const EdgeInsets.symmetric( horizontal: 20),
                   child: GestureDetector(
                     onTap: () {
-                      debugPrint('[MainLayout] LogoutEvent dipicu dari: tombol Logout di drawer');
-                      web_debug.logDebugError('LogoutEvent dipicu dari: tombol Logout di drawer');
+                      // debugPrint('[MainLayout] LogoutEvent dipicu dari: tombol Logout di drawer');
+                      // web_debug.logDebugError('LogoutEvent dipicu dari: tombol Logout di drawer');
                       Navigator.of(context).pop();
                       context.read<AuthBloc>().add(LogoutEvent());
                     },

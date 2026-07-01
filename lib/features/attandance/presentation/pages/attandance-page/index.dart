@@ -116,7 +116,7 @@ class _AttandancePageState extends State<AttandancePage>
         salesPersonIds: _activityOwnerIds,
         startDate: _activityDateRange.start,
         endDate: _activityDateRange.end,
-        perPage: 4,
+        perPage: 3,
       ));
 
       // Tahap 3 — status absen + lokasi kantor dimuat setelah activity mulai,
@@ -164,7 +164,7 @@ class _AttandancePageState extends State<AttandancePage>
         startDate: _activityDateRange.start,
         endDate: _activityDateRange.end,
         page: activityState.activityPage + 1,
-        perPage: 4,
+        perPage: 3,
         isLoadMore: true,
       ));
     } else if (selectedMenu == 'attendance') {
@@ -352,7 +352,7 @@ class _AttandancePageState extends State<AttandancePage>
       salesPersonIds: _activityOwnerIds,
       startDate: _activityDateRange.start,
       endDate: _activityDateRange.end,
-      perPage: 4,
+      perPage: 3,
     ));
   }
 
@@ -1284,6 +1284,7 @@ class _AttandancePageState extends State<AttandancePage>
                     salesPersonIds: _activityOwnerIds,
                     startDate: _activityStartDate,
                     endDate: _activityEndDate,
+                    perPage: 4,
                   ));
                 }
               }
@@ -1446,35 +1447,40 @@ class _AttandancePageState extends State<AttandancePage>
 
                     final List<({String fullName, String? photoUrl, String date, String type, Color typeColor, String? datetime, String? location, String? contactName, String? note, List<String> images, int? statusValidasi, String? noteValidasi, int? logId, int salesPersonId})> entries = [];
 
+                    // state.activityLogs sudah dalam urutan tampil yang benar (tiap
+                    // halaman diurutkan Bloc, halaman baru selalu ditempel di belakang
+                    // — lihat attendance_activity_bloc.dart). Di sini kita HANYA urutkan
+                    // entry di dalam satu entity/hari yang sama (clock in/out/checkin/visit
+                    // hari itu), TIDAK pernah re-sort lintas entity — supaya kartu yang
+                    // sudah tampil tidak pernah bergeser saat load-more menambah data baru.
                     for (final item in state.activityLogs) {
+                      final List<({String fullName, String? photoUrl, String date, String type, Color typeColor, String? datetime, String? location, String? contactName, String? note, List<String> images, int? statusValidasi, String? noteValidasi, int? logId, int salesPersonId})> itemEntries = [];
                       if (item.clockInDate != null) {
-                        entries.add((fullName: item.fullName, photoUrl: item.photoUrl, date: item.date, type: 'Clock In', typeColor: const Color(0xFF27AE60), datetime: item.clockInDate, location: item.clockInLocation, contactName: null, note: item.clockInNote, images: item.clockInAttachment ?? [], statusValidasi: null, noteValidasi: null, logId: null, salesPersonId: item.salesPersonId));
+                        itemEntries.add((fullName: item.fullName, photoUrl: item.photoUrl, date: item.date, type: 'Clock In', typeColor: const Color(0xFF27AE60), datetime: item.clockInDate, location: item.clockInLocation, contactName: null, note: item.clockInNote, images: item.clockInAttachment ?? [], statusValidasi: null, noteValidasi: null, logId: null, salesPersonId: item.salesPersonId));
                       }
                       if (item.clockOutDate != null) {
-                        entries.add((fullName: item.fullName, photoUrl: item.photoUrl, date: item.date, type: 'Clock Out', typeColor: const Color(0xFFE74C3C), datetime: item.clockOutDate, location: item.clockOutLocation, contactName: null, note: item.clockOutNote, images: item.clockOutAttachment ?? [], statusValidasi: null, noteValidasi: null, logId: null, salesPersonId: item.salesPersonId));
+                        itemEntries.add((fullName: item.fullName, photoUrl: item.photoUrl, date: item.date, type: 'Clock Out', typeColor: const Color(0xFFE74C3C), datetime: item.clockOutDate, location: item.clockOutLocation, contactName: null, note: item.clockOutNote, images: item.clockOutAttachment ?? [], statusValidasi: null, noteValidasi: null, logId: null, salesPersonId: item.salesPersonId));
                       }
                       for (final c in item.checkIns) {
                         if (c.checkInDate != null) {
-                          entries.add((fullName: item.fullName, photoUrl: item.photoUrl, date: item.date, type: 'Check In', typeColor: const Color(0xFF2980B9), datetime: c.checkInDate, location: c.checkInLocation, contactName: null, note: c.checkInNote, images: c.checkInAttachment ?? [], statusValidasi: c.statusValidasi, noteValidasi: c.noteValidasi, logId: c.logId, salesPersonId: item.salesPersonId));
+                          itemEntries.add((fullName: item.fullName, photoUrl: item.photoUrl, date: item.date, type: 'Check In', typeColor: const Color(0xFF2980B9), datetime: c.checkInDate, location: c.checkInLocation, contactName: null, note: c.checkInNote, images: c.checkInAttachment ?? [], statusValidasi: c.statusValidasi, noteValidasi: c.noteValidasi, logId: c.logId, salesPersonId: item.salesPersonId));
                         }
                       }
                       for (final v in item.visits) {
                         if (v.datetime != null) {
-                          entries.add((fullName: item.fullName, photoUrl: item.photoUrl, date: item.date, type: 'Visit', typeColor: const Color(0xFFE67E22), datetime: v.datetime, location: v.lastProject, contactName: v.contactName, note: v.note, images: v.attachment ?? [], statusValidasi: null, noteValidasi: null, logId: null, salesPersonId: item.salesPersonId));
+                          itemEntries.add((fullName: item.fullName, photoUrl: item.photoUrl, date: item.date, type: 'Visit', typeColor: const Color(0xFFE67E22), datetime: v.datetime, location: v.lastProject, contactName: v.contactName, note: v.note, images: v.attachment ?? [], statusValidasi: null, noteValidasi: null, logId: null, salesPersonId: item.salesPersonId));
                         }
                       }
+                      itemEntries.sort((a, b) {
+                        final aDt = a.datetime != null ? DateTime.tryParse(a.datetime!) : null;
+                        final bDt = b.datetime != null ? DateTime.tryParse(b.datetime!) : null;
+                        if (aDt == null && bDt == null) return 0;
+                        if (aDt == null) return 1;
+                        if (bDt == null) return -1;
+                        return bDt.compareTo(aDt);
+                      });
+                      entries.addAll(itemEntries);
                     }
-
-                    entries.sort((a, b) {
-                      final dateCmp = b.date.compareTo(a.date);
-                      if (dateCmp != 0) return dateCmp;
-                      final aDt = a.datetime != null ? DateTime.tryParse(a.datetime!) : null;
-                      final bDt = b.datetime != null ? DateTime.tryParse(b.datetime!) : null;
-                      if (aDt == null && bDt == null) return 0;
-                      if (aDt == null) return 1;
-                      if (bDt == null) return -1;
-                      return bDt.compareTo(aDt);
-                    });
 
                     if (entries.isEmpty) {
                       return SliverMainAxisGroup(
@@ -1490,12 +1496,15 @@ class _AttandancePageState extends State<AttandancePage>
                       );
                     }
 
-                    // Group by date
+                    // Group by date — urutan grup TIDAK di-sort ulang, ikut urutan
+                    // kemunculan di `entries` (yaitu urutan halaman: lama → baru
+                    // ditempel di belakang), supaya grup tanggal yang sudah tampil
+                    // tidak pernah pindah posisi saat load-more.
                     final Map<String, List<({String fullName, String? photoUrl, String date, String type, Color typeColor, String? datetime, String? location, String? contactName, String? note, List<String> images, int? statusValidasi, String? noteValidasi, int? logId, int salesPersonId})>> grouped = {};
                     for (final e in entries) {
                       grouped.putIfAbsent(e.date, () => []).add(e);
                     }
-                    final dates = grouped.keys.toList()..sort((a, b) => b.compareTo(a));
+                    final dates = grouped.keys.toList();
 
                     return SliverMainAxisGroup(
                       slivers: [
@@ -1510,6 +1519,7 @@ class _AttandancePageState extends State<AttandancePage>
                                 ? DateHelper.formatToIndonesian(parsedDate)
                                 : date;
                             return RepaintBoundary(
+                              key: ValueKey('activity-date-$date'),
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
@@ -1521,6 +1531,12 @@ class _AttandancePageState extends State<AttandancePage>
                                     ),
                                   ),
                                   ...items.map((e) => _buildCardActivityNew(
+                                    // Key stabil per entry — tanpa ini SliverList mengenali
+                                    // kartu berdasarkan POSISI, jadi kalau data baru masuk dan
+                                    // urutan bergeser, State kartu lama (termasuk progres load
+                                    // gambar-nya) ke-reuse buat entry yang berbeda → data "nyasar"
+                                    // antar kartu.
+                                    key: ValueKey('${e.salesPersonId}_${e.date}_${e.type}_${e.datetime}_${e.logId ?? ''}'),
                                     fullName: e.fullName,
                                     photoUrl: e.photoUrl,
                                     type: e.type,
@@ -1567,6 +1583,7 @@ class _AttandancePageState extends State<AttandancePage>
   }
 
   Widget _buildCardActivityNew({
+    Key? key,
     required String fullName,
     String? photoUrl,
     required String type,
@@ -1583,6 +1600,7 @@ class _AttandancePageState extends State<AttandancePage>
     bool isSelf = false,
   }) {
     return _ActivityCard(
+      key: key,
       fullName: fullName,
       photoUrl: photoUrl,
       type: type,
@@ -1624,6 +1642,10 @@ class _AttandancePageState extends State<AttandancePage>
     // Index gambar yang ditap — untuk sorot di thumbnail strip
     int selectedIndex = allImages.indexOf(tappedUrl);
     if (selectedIndex < 0) selectedIndex = 0;
+
+    // Muat thumbnail satu-satu berurutan (bukan sekaligus semua yang kelihatan
+    // di strip) — sama seperti carousel utama di _ActivityCard.
+    int loadedThumbCount = 1;
 
     showDialog(
       context: context,
@@ -1685,23 +1707,53 @@ class _AttandancePageState extends State<AttandancePage>
                           child: ListView.builder(
                             scrollDirection: Axis.horizontal,
                             itemCount: allImages.length,
-                            itemBuilder: (_, i) => GestureDetector(
-                              onTap: () => setDialogState(() => selectedIndex = i),
-                              child: Container(
-                                margin: const EdgeInsets.only(right: 8),
-                                decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(8),
-                                  border: Border.all(
-                                    color: i == selectedIndex ? Color(primaryColor) : Colors.transparent,
-                                    width: 2,
+                            itemBuilder: (_, i) {
+                              if (i >= loadedThumbCount) {
+                                return Container(
+                                  margin: const EdgeInsets.only(right: 8),
+                                  width: 52,
+                                  height: 52,
+                                  decoration: BoxDecoration(
+                                    color: Colors.grey.shade200,
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                  alignment: Alignment.center,
+                                  child: const SizedBox(
+                                    width: 14,
+                                    height: 14,
+                                    child: CircularProgressIndicator(strokeWidth: 2),
+                                  ),
+                                );
+                              }
+                              return GestureDetector(
+                                onTap: () => setDialogState(() => selectedIndex = i),
+                                child: Container(
+                                  margin: const EdgeInsets.only(right: 8),
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(8),
+                                    border: Border.all(
+                                      color: i == selectedIndex ? Color(primaryColor) : Colors.transparent,
+                                      width: 2,
+                                    ),
+                                  ),
+                                  child: ClipRRect(
+                                    borderRadius: BorderRadius.circular(6),
+                                    child: DriveImage(
+                                      url: allImages[i],
+                                      width: 52,
+                                      height: 52,
+                                      fit: BoxFit.cover,
+                                      errorWidget: _buildImageErrorWidget(serial: serial, height: 52),
+                                      onLoad: () {
+                                        if (i != loadedThumbCount - 1) return;
+                                        if (loadedThumbCount >= allImages.length) return;
+                                        setDialogState(() => loadedThumbCount++);
+                                      },
+                                    ),
                                   ),
                                 ),
-                                child: ClipRRect(
-                                  borderRadius: BorderRadius.circular(6),
-                                  child: DriveImage(url: allImages[i], width: 52, height: 52, fit: BoxFit.cover, errorWidget: _buildImageErrorWidget(serial: serial, height: 52)),
-                                ),
-                              ),
-                            ),
+                              );
+                            },
                           ),
                         ),
                       ],
@@ -2435,6 +2487,7 @@ class _ActivityCard extends StatefulWidget {
   final VoidCallback? onValidated;
 
   const _ActivityCard({
+    super.key,
     required this.fullName,
     this.photoUrl,
     required this.type,
@@ -2614,6 +2667,10 @@ class _ActivityCardState extends State<_ActivityCard> {
 
   @override
   Widget build(BuildContext context) {
+    // Kalau page sedang di-fling/scroll cepat, jangan bangun carousel gambar
+    // sama sekali (skip network request) — cuma tampilkan kotak placeholder.
+    // Widget ini otomatis rebuild lagi begitu scroll melambat/berhenti.
+    final deferImageLoad = Scrollable.recommendDeferredLoadingForContext(context);
     return Container(
       margin: const EdgeInsets.only(bottom: 15),
       padding: const EdgeInsets.all(12),
@@ -2723,7 +2780,15 @@ class _ActivityCardState extends State<_ActivityCard> {
           const SizedBox(height: 5),
           Text(widget.note ?? '', style: const TextStyle(fontWeight: FontWeight.w100)),
           const SizedBox(height: 10),
-          if (widget.images.isNotEmpty)
+          if (widget.images.isNotEmpty && deferImageLoad)
+            Container(
+              height: 200,
+              decoration: BoxDecoration(
+                color: Colors.grey.shade200,
+                borderRadius: BorderRadius.circular(8),
+              ),
+            )
+          else if (widget.images.isNotEmpty)
             LayoutBuilder(
               builder: (context, constraints) {
                 final availableWidth = constraints.maxWidth;
