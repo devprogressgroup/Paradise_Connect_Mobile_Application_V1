@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:progress_group/core/network/api_constants.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -31,15 +30,6 @@ class VersionCheckService {
   }
 
   static Future<VersionCheckResult> check() async {
-    if (kIsWeb) {
-      return const VersionCheckResult(
-        requiresUpdate: false,
-        latestVersion: '',
-        currentVersion: '',
-        downloadUrl: '',
-      );
-    }
-
     try {
       final info = await PackageInfo.fromPlatform();
       final currentVersion = info.version;

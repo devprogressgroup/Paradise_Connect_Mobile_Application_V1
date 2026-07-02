@@ -246,6 +246,31 @@
   <script src="flutter_bootstrap.js" async=""></script>
 
   <script>
+    // Dipanggil dari Dart (VersionCheckService) saat versi dari API beda
+    // dengan versi yang sedang berjalan — sama seperti mekanisme force
+    // update di mobile, tapi untuk web langsung purge cache + reload
+    // (tidak ada "download APK" di web).
+    window.forcePwaUpdate = function () {
+      var tasks = [];
+      if ('serviceWorker' in navigator) {
+        tasks.push(
+          navigator.serviceWorker.getRegistrations().then(function (regs) {
+            return Promise.all(regs.map(function (r) { return r.unregister(); }));
+          })
+        );
+      }
+      if (window.caches && caches.keys) {
+        tasks.push(
+          caches.keys().then(function (keys) {
+            return Promise.all(keys.map(function (k) { return caches.delete(k); }));
+          })
+        );
+      }
+      Promise.all(tasks).catch(function () { }).finally(function () {
+        window.location.reload();
+      });
+    };
+
     // PWA Install Prompt
     let _pwaInstallPrompt = null;
 
@@ -309,15 +334,65 @@
       return isIos && isSafari && !isStandalone;
     };
 
+    // Registrasi service worker sudah ditangani oleh flutter_bootstrap.js
+    // (lewat _flutter.loader.load({ serviceWorker: {...} })) yang otomatis
+    // pakai cache-busting query (?v=hash). Di sini kita cuma "menumpang"
+    // registrasi itu untuk mendeteksi versi baru dan auto-reload,
+    // TANPA register() ulang — supaya tidak bentrok scope/URL.
     if ('serviceWorker' in navigator) {
-      window.addEventListener('load', function () {
-        navigator.serviceWorker.register('flutter_service_worker.js')
-          .then(function (reg) {
-            console.log('[PWA] Service worker registered:', reg.scope);
-          })
-          .catch(function (err) {
-            console.warn('[PWA] Service worker registration failed:', err);
+      let _swRefreshing = false;
+
+      // Saat versi baru berhasil ambil alih kontrol halaman, reload sekali
+      // supaya user langsung dapat aset/kode terbaru tanpa hapus cache manual.
+      navigator.serviceWorker.addEventListener('controllerchange', function () {
+        if (_swRefreshing) return;
+        _swRefreshing = true;
+        window.location.reload();
+      });
+
+      navigator.serviceWorker.ready.then(function (reg) {
+        console.log('[PWA] Service worker ready:', reg.scope);
+
+        function activateIfWaiting() {
+          if (reg.waiting) reg.waiting.postMessage('skipWaiting');
+        }
+
+        // Ada versi baru yang sudah "waiting" dari sesi sebelumnya
+        activateIfWaiting();
+
+        // Versi baru terdeteksi sedang di-install saat app berjalan
+        reg.addEventListener('updatefound', function () {
+          var newWorker = reg.installing;
+          if (!newWorker) return;
+          newWorker.addEventListener('statechange', function () {
+            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+              activateIfWaiting();
+            }
           });
+        });
+
+        // Cek update langsung tiap kali app dibuka (termasuk PWA yang
+        // dibuka dari home screen icon iOS) — jangan andalkan cek
+        // otomatis browser yang di iOS standalone kadang tidak jalan.
+        reg.update().catch(function () { });
+
+        // iOS PWA jarang benar-benar "ditutup" (cuma di-background), jadi
+        // cek update lagi tiap kali app kembali ke foreground...
+        document.addEventListener('visibilitychange', function () {
+          if (document.visibilityState === 'visible') {
+            reg.update().catch(function () { });
+          }
+        });
+
+        // ...dan tiap 15 menit selama app dibiarkan terbuka di foreground
+        // (PWA sering dibiarkan menyala seharian tanpa pernah di-background).
+        setInterval(function () {
+          if (document.visibilityState === 'visible') {
+            reg.update().catch(function () { });
+          }
+        }, 15 * 60 * 1000);
+      }).catch(function (err) {
+        console.warn('[PWA] Service worker not ready:', err);
       });
     }
   </script>

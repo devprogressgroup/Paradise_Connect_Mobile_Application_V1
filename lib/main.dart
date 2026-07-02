@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart' show kIsWeb, debugPrint;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'core/utils/web_debug_util.dart' as web_debug;
+import 'core/utils/web_update.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:progress_group/core/constants/colors.dart';
@@ -257,6 +258,12 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     try {
       final result = await VersionCheckService.check();
       if (!mounted || !result.requiresUpdate) return;
+      if (kIsWeb) {
+        // Web tidak punya "download APK" — langsung purge cache + reload
+        // supaya PWA otomatis pakai build terbaru tanpa aksi user.
+        forcePwaUpdate();
+        return;
+      }
       setState(() => _updateResult = result);
     } catch (_) {}
   }
