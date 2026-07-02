@@ -9,6 +9,32 @@ import 'package:progress_group/features/auth/presentation/state/auth/auth_event.
 class ImpersonationBanner extends StatelessWidget {
   const ImpersonationBanner({super.key});
 
+  // Konfirmasi dulu sebelum benar-benar keluar dari mode impersonate — banner
+  // ini nempel di atas SEMUA halaman, jadi tombol "Keluar" gampang ke-tap
+  // tidak sengaja (misal pas scroll dari dekat area atas layar).
+  void _confirmStopImpersonation(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Keluar dari Impersonate?'),
+        content: const Text('Kamu akan kembali ke akun admin.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: const Text('Batal'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.of(dialogContext).pop();
+              context.read<AuthBloc>().add(StopImpersonationEvent());
+            },
+            child: const Text('Keluar'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return ValueListenableBuilder<String?>(
@@ -38,7 +64,7 @@ class ImpersonationBanner extends StatelessWidget {
                     ),
                   ),
                   TextButton.icon(
-                    onPressed: () => context.read<AuthBloc>().add(StopImpersonationEvent()),
+                    onPressed: () => _confirmStopImpersonation(context),
                     icon: const Icon(Icons.logout, color: Colors.white, size: 16),
                     label: const Text('Keluar', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                     style: TextButton.styleFrom(

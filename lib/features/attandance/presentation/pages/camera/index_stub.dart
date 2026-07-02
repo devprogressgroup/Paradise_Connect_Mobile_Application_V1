@@ -157,9 +157,17 @@ class _WebCameraPageState extends State<_WebCameraPage> {
     final video = html.VideoElement()
       ..autoplay = true
       ..muted = true
+      // Wajib buat iOS Safari — tanpa ini video ditahan (nunjukin tombol
+      // play manual bawaan browser) walau stream sudah aktif & autoplay=true.
+      ..setAttribute('playsinline', 'true')
+      ..setAttribute('webkit-playsinline', 'true')
+      ..controls = false
       ..style.width = '100%'
       ..style.height = '100%'
       ..style.objectFit = 'cover';
+    // Jaga-jaga: kalau autoplay tetap ditahan browser, tap di video-nya
+    // sendiri (user gesture asli) akan selalu berhasil memulai playback.
+    video.onClick.listen((_) => video.play().catchError((_) {}));
     ui_web.platformViewRegistry.registerViewFactory(_viewId, (_) => video);
     _video = video;
     _requestCamera();

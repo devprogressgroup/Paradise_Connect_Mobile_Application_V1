@@ -14,6 +14,7 @@ import 'package:intl/intl.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:progress_group/core/constants/colors.dart';
 import 'package:progress_group/core/utils/helpers/permissions_helper.dart';
+import 'package:progress_group/core/utils/helpers/camera_permission_primer.dart';
 import 'package:progress_group/core/utils/widget/custom_snackbar.dart';
 import 'package:progress_group/core/utils/widget/drive_image/drive_image.dart';
 import 'package:progress_group/core/utils/helpers/initial_name_helper.dart';
@@ -123,7 +124,7 @@ class _AttandancePageState extends State<AttandancePage>
         salesPersonIds: _activityOwnerIds,
         startDate: _activityDateRange.start,
         endDate: _activityDateRange.end,
-        perPage: 3,
+        perPage: 35,
       ));
 
       // Tahap 3 — status absen + lokasi kantor dimuat setelah activity mulai,
@@ -172,7 +173,7 @@ class _AttandancePageState extends State<AttandancePage>
         startDate: _activityDateRange.start,
         endDate: _activityDateRange.end,
         page: activityState.activityPage + 1,
-        perPage: 3,
+        perPage: 35,
         isLoadMore: true,
       ));
     } else if (selectedMenu == 'attendance') {
@@ -213,6 +214,7 @@ class _AttandancePageState extends State<AttandancePage>
   Future<void> _handleMoveCamera(String title, int flagParam) async {
     if (!mounted || _isCameraOpening) return;
     setState(() => _isCameraOpening = true);
+    web_debug.logDebugInfo('[Camera] _handleMoveCamera mulai — title=$title flag=$flagParam');
 
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
@@ -223,22 +225,31 @@ class _AttandancePageState extends State<AttandancePage>
     );
 
     try {
+      // Minta izin kamera SECEPAT MUNGKIN, sebelum proses lokasi yang panjang
+      // di bawah — di Safari/WebKit lama, kalau getUserMedia() dipanggil
+      // setelah beberapa await/detik sejak tap user, browser diam-diam
+      // menolak TANPA menampilkan dialog izin sama sekali (dianggap bukan
+      // lagi permintaan dari user gesture). No-op di platform non-web.
+      await primeCameraPermission();
+
       // Pastikan permission granted — ini dipicu user gesture, Chrome akan munculkan dialog
       final hasPermission = await _handleLocationPermission(fromUserGesture: true);
+      web_debug.logDebugInfo('[Camera] cek izin lokasi -> hasPermission=$hasPermission');
       if (!hasPermission) {
         if (mounted) ScaffoldMessenger.of(context).hideCurrentSnackBar();
         return;
       }
 
-      // Ambil lokasi — web langsung proceed meski null (stream masih jalan di background)
+      // // Ambil lokasi — web langsung proceed meski null (stream masih jalan di background)
       final position = await _getCurrentLocationOnce();
+      web_debug.logDebugInfo('[Camera] ambil lokasi -> ${position == null ? "null" : "${position.latitude},${position.longitude}"}');
 
       if (position == null) {
         if (mounted) {
           ScaffoldMessenger.of(context).hideCurrentSnackBar();
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text("Lokasi belum terdeteksi, coba lagi"),
+              content: Text("Lokasi belum terdeteksi, coba lagi cek permisionnya di pengaturan"),
               backgroundColor: Colors.orange,
             ),
           );
@@ -250,6 +261,7 @@ class _AttandancePageState extends State<AttandancePage>
       await officeLocationCubit.load(force: true);
       if (!mounted) return;
       var officeLocations = officeLocationCubit.state;
+      web_debug.logDebugInfo('[Camera] office locations loaded -> ${officeLocations.length} lokasi');
 
       double? nearestDistance;
       double? activeRadius;
@@ -303,7 +315,7 @@ class _AttandancePageState extends State<AttandancePage>
             : PermissionsHelper.canClockOutOffice;
       }
 
-      // debugPrint('[_handleMoveCamera] canProceed: $canProceed');
+      web_debug.logDebugInfo('[Camera] canProceed=$canProceed isInRadius=$isInRadius nearestOfficeId=$nearestOfficeId');
 
       if (!canProceed) {
         if (mounted) {
@@ -315,19 +327,23 @@ class _AttandancePageState extends State<AttandancePage>
 
       if (mounted) ScaffoldMessenger.of(context).hideCurrentSnackBar();
 
+      web_debug.logDebugInfo('[Camera] navigasi ke halaman camera...');
       // Koordinat yang dikirim & disimpan = posisi GPS asli device (bukan koordinat statis kantor).
       // locationId tetap mengikuti hasil geofence: id kantor bila di dalam radius, null bila di luar.
       final result = await context.pushNamed('camera', extra: AttandanceArgs(flag: flagParam, type: title, location: isInRadius ? (nearestOfficeName ?? _address) : _address, time: DateHelper.formatTime(DateTime.now()), locationId: isInRadius ? nearestOfficeId : null, latitude: position.latitude.toString(), longitude: position.longitude.toString(), ), );
+      // final result = await context.pushNamed('camera', extra: AttandanceArgs(flag: flagParam, type: title, location: "", time: DateHelper.formatTime(DateTime.now()), locationId: 0, latitude: "", longitude: "", ), );
+      web_debug.logDebugInfo('[Camera] balik dari halaman camera -> result=$result');
 
       if (result == true) {
         _getLog();
       }
     } catch (e) {
+      web_debug.logDebugError('[Camera] Gagal membuka kamera : $e');
       if (mounted) {
         ScaffoldMessenger.of(context).hideCurrentSnackBar();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Gagal membuka kamera: ${cleanErrorMessage(e)}. Coba lagi.'),
+            content: Text('Gagal membuka kamera mohon cek pengaturan kamera dan coba lagi.'),
             backgroundColor: Colors.red,
           ),
         );
@@ -361,7 +377,7 @@ class _AttandancePageState extends State<AttandancePage>
       salesPersonIds: _activityOwnerIds,
       startDate: _activityDateRange.start,
       endDate: _activityDateRange.end,
-      perPage: 3,
+      perPage: 35,
     ));
   }
 
@@ -1294,7 +1310,7 @@ class _AttandancePageState extends State<AttandancePage>
                     salesPersonIds: _activityOwnerIds,
                     startDate: _activityStartDate,
                     endDate: _activityEndDate,
-                    perPage: 4,
+                    perPage: 35,
                   ));
                 }
               }

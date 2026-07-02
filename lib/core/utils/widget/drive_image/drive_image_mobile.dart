@@ -39,14 +39,30 @@ class _DriveImageState extends State<DriveImage> {
     widget.onLoad?.call();
   }
 
+  int _targetWidth() {
+    final w = widget.width;
+    final h = widget.height;
+    final basis = (w != null && w.isFinite && w > 0)
+        ? w
+        : (h != null && h.isFinite && h > 0 ? h : null);
+    if (basis == null) return 1000;
+    // x2 buat layar retina, dibatasi biar tidak minta lebih dari yang perlu.
+    return (basis * 2).round().clamp(1, 1600).toInt();
+  }
+
   @override
   Widget build(BuildContext context) {
     final image = Image.network(
-      convertDriveUrl(widget.url),
+      convertDriveUrl(widget.url, targetWidth: _targetWidth()),
       width: widget.width,
       height: widget.height,
       fit: widget.fit,
       filterQuality: widget.filterQuality,
+      // Pengaman tambahan: walau sudah minta thumbnail kecil ke server, ini
+      // maksa Flutter sendiri DECODE di ukuran kecil itu juga — kalau-kalau
+      // server tetap balas gambar lebih besar dari yang diminta, memori
+      // bitmap yang disimpan tetap kecil, bukan ukuran asli respons.
+      cacheWidth: _targetWidth(),
       loadingBuilder: (context, child, progress) {
         if (progress == null) {
           _fireOnLoad();

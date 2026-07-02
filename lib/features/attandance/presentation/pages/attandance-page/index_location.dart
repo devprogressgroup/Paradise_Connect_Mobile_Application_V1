@@ -84,6 +84,21 @@ mixin AttendanceLocationMixin<T extends StatefulWidget> on State<T> {
 
   // ── Permission ────────────────────────────────────────────────────────────────
   Future<bool> _handleLocationPermission({bool fromUserGesture = false}) async {
+    try {
+      return await _checkLocationPermission(fromUserGesture: fromUserGesture);
+    } catch (e) {
+      // Package geolocator/geolocator_web pernah melempar "Null check operator
+      // used on a null value" secara internal di WebKit lama (iPhone 6s, iOS 15)
+      // saat query navigator.permissions — di luar kendali kita untuk benerin
+      // langsung tanpa fork package. Daripada blokir user total, anggap lolos
+      // dan biarkan _getCurrentLocationOnce() (yang sudah aman/ada try-catch)
+      // jadi penentu akhir apakah lokasi benar-benar bisa diambil.
+      web_debug.logDebugError('_handleLocationPermission gagal (package error, dilewati): $e');
+      return true;
+    }
+  }
+
+  Future<bool> _checkLocationPermission({bool fromUserGesture = false}) async {
     final serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
       if (mounted) {

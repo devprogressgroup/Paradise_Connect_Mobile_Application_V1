@@ -1,10 +1,9 @@
-// Web-only: pakai HTML <img> element untuk bypass CORS restriction.
-// HtmlElementView intercept semua pointer event — gunakan transparent overlay
-// GestureDetector di atas HtmlElementView agar onTap bisa diterima Flutter.
-// ignore: avoid_web_libraries_in_flutter, deprecated_member_use
-import 'dart:html' as html;
-import 'dart:ui_web' as ui_web;
-
+// Web: pakai Image.network bawaan Flutter (bukan HtmlElementView manual).
+// HtmlElementView/<img> manual sebelumnya dipakai buat menghindari CORS, tapi
+// platform view itu ternyata bisa lolos dari ClipRRect/Stack Flutter di
+// WebKit lama (iOS 15) — gambar bisa nutupin header/bottom nav. Image.network
+// dirender lewat canvas Flutter sendiri, otomatis ikut aturan clip/layout,
+// tidak bisa lolos ke luar batasnya.
 import 'package:flutter/material.dart';
 
 class DriveImage extends StatefulWidget {
@@ -36,36 +35,7 @@ class DriveImage extends StatefulWidget {
 }
 
 class _DriveImageWebState extends State<DriveImage> {
-  static int _counter = 0;
-  late final String _viewId;
-  bool _hasError = false;
   bool _onLoadFired = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _counter++;
-    _viewId = 'drive-img-$_counter';
-
-    final img = html.ImageElement()
-      ..src = _toCdnUrl(widget.url)
-      ..style.width = '100%'
-      ..style.height = '100%'
-      ..style.objectFit = _fitToCss(widget.fit)
-      ..style.display = 'block'
-      // pointer-events: none agar overlay GestureDetector yang handle tap
-      ..style.pointerEvents = 'none';
-
-    img.onError.listen((_) {
-      if (mounted) setState(() => _hasError = true);
-      _fireOnLoad();
-    });
-    img.onLoad.listen((_) {
-      _fireOnLoad();
-    });
-
-    ui_web.platformViewRegistry.registerViewFactory(_viewId, (_) => img);
-  }
 
   // onLoad harus persis sekali per gambar (sukses ATAU gagal) — carousel di
   // pemanggil pakai ini sebagai sinyal "lanjut ke gambar berikutnya".
@@ -75,61 +45,82 @@ class _DriveImageWebState extends State<DriveImage> {
     widget.onLoad?.call();
   }
 
+  int? _targetPixelSize() {
+    final w = widget.width;
+    final h = widget.height;
+    final basis = (w != null && w.isFinite && w > 0)
+        ? w
+        : (h != null && h.isFinite && h > 0 ? h : null);
+    if (basis == null) return null;
+    // x2 buat layar retina, dibatasi biar tidak minta lebih dari yang perlu.
+    return (basis * 2).round().clamp(1, 1600).toInt();
+  }
+
   String _toCdnUrl(String url) {
     try {
       final match = RegExp(r'/d/([a-zA-Z0-9_-]+)').firstMatch(url);
-      if (match != null) {
-        return 'https://lh3.googleusercontent.com/d/${match.group(1)}';
-      }
-      return url;
+      if (match == null) return url;
+      final id = match.group(1);
+      final baseUrl = 'https://lh3.googleusercontent.com/d/$id';
+
+      // Minta thumbnail SEUKURAN yang benar-benar ditampilkan (x2 buat layar
+      // retina), bukan foto original — foto HP modern bisa 3000x4000+ piksel;
+      // decode ukuran itu cuma buat ditampilkan di kotak 200x200 boros memori
+      // banget, apalagi di device RAM kecil (mis. iPhone lama). lh3.googleusercontent.com
+      // mendukung suffix "=w{width}-h{height}" buat resize di sisi server.
+      final size = _targetPixelSize();
+      if (size == null) return baseUrl;
+      return '$baseUrl=w$size-h$size';
     } catch (_) {
       return url;
     }
   }
 
-  String _fitToCss(BoxFit fit) {
-    switch (fit) {
-      case BoxFit.cover:   return 'cover';
-      case BoxFit.contain: return 'contain';
-      case BoxFit.fill:    return 'fill';
-      default:             return 'cover';
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
-    if (_hasError) {
-      final fallback = widget.errorWidget ??
-          Container(
-            width: widget.width,
-            height: widget.height,
-            color: Colors.grey.shade200,
-            alignment: Alignment.center,
-            child: const Icon(Icons.broken_image, size: 40, color: Colors.grey),
-          );
-      if (widget.onTap != null) {
-        return GestureDetector(onTap: widget.onTap, child: fallback);
-      }
-      return fallback;
-    }
-
-    return SizedBox(
+    final image = Image.network(
+      _toCdnUrl(widget.url),
       width: widget.width,
       height: widget.height,
-      child: Stack(
-        children: [
-          Positioned.fill(child: HtmlElementView(viewType: _viewId)),
-          // Overlay transparan untuk menangkap tap ke Flutter
-          if (widget.onTap != null)
-            Positioned.fill(
-              child: GestureDetector(
-                onTap: widget.onTap,
-                behavior: HitTestBehavior.opaque,
-                child: const SizedBox.expand(),
-              ),
-            ),
-        ],
-      ),
+      fit: widget.fit,
+      filterQuality: widget.filterQuality,
+      // Pengaman tambahan: walau sudah minta thumbnail kecil ke server, ini
+      // maksa Flutter sendiri DECODE di ukuran kecil itu juga.
+      cacheWidth: _targetPixelSize(),
+      loadingBuilder: (context, child, progress) {
+        if (progress == null) {
+          _fireOnLoad();
+          return child;
+        }
+        return Container(
+          width: widget.width,
+          height: widget.height,
+          color: Colors.grey.shade200,
+        );
+      },
+      errorBuilder: (context, error, stackTrace) {
+        _fireOnLoad();
+        return widget.errorWidget ?? _defaultError();
+      },
+    );
+
+    if (widget.onTap != null) {
+      return GestureDetector(
+        onTap: widget.onTap,
+        behavior: HitTestBehavior.opaque,
+        child: image,
+      );
+    }
+    return image;
+  }
+
+  Widget _defaultError() {
+    return Container(
+      width: widget.width,
+      height: widget.height,
+      color: Colors.grey.shade200,
+      alignment: Alignment.center,
+      child: const Icon(Icons.broken_image, size: 40, color: Colors.grey),
     );
   }
 }

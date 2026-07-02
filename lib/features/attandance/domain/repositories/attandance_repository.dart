@@ -40,14 +40,14 @@ class AttendanceRepositoryImpl implements AttendanceRepository {
   Future<List<AttendanceLocation>> getLocations() async {
     final result = await remote.getLocations();
     final list = result['data'] as List;
-    return list.map((e) => AttendanceLocationModel.fromJson(e)).toList();
+    return list.map((e) => AttendanceLocationModel.fromJson(e)).whereType<AttendanceLocationModel>().toList();
   }
 
   @override
   Future<List<AttendanceLocation>> getOfficeLocations() async {
     final result = await remote.getOfficeLocations();
     final list = result['data']['data'] as List;
-    return list.map((e) => AttendanceLocationModel.fromJson(e)).toList();
+    return list.map((e) => AttendanceLocationModel.fromJson(e)).whereType<AttendanceLocationModel>().toList();
   }
 
   @override

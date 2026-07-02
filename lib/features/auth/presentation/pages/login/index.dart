@@ -518,20 +518,31 @@ class _LoginPageState extends State<LoginPage> {
                         ),
                       ),
                       const SizedBox(height: 12),
-                      GestureDetector(
-                        onTap: () async {
-                          final msg = ApiConstants.loginHelpMessage.isNotEmpty
-                              ? ApiConstants.loginHelpMessage
-                              : 'Halo, saya mengalami masalah saat login di aplikasi Progress Group. Mohon bantuannya.';
-                          final uri = Uri(
-                            scheme: 'https',
-                            host: 'wa.me',
-                            path: '/6281574966666',
-                            queryParameters: {'text': msg},
-                          );
-                          if (await canLaunchUrl(uri)) launchUrl(uri, mode: LaunchMode.externalApplication);
-                        },
-                        child: Text("Help", style: TextStyle( fontSize: 12, fontWeight: FontWeight.w700, color: Color(primaryColor), decoration: TextDecoration.underline, decorationColor: Color(primaryColor), decorationThickness: 1,),textAlign: TextAlign.center,)),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          GestureDetector(
+                            onTap: () async {
+                             context.pushNamed("forgot-password", extra: 1);
+                            },
+                            child: Text("Register", style: TextStyle( fontSize: 12, fontWeight: FontWeight.w700, color: Color(primaryColor), decoration: TextDecoration.underline, decorationColor: Color(primaryColor), decorationThickness: 1,),textAlign: TextAlign.center,)),
+                        
+                          GestureDetector(
+                            onTap: () async {
+                              final msg = ApiConstants.loginHelpMessage.isNotEmpty
+                                  ? ApiConstants.loginHelpMessage
+                                  : 'Halo, saya mengalami masalah saat login di aplikasi Progress Group. Mohon bantuannya.';
+                              final uri = Uri(
+                                scheme: 'https',
+                                host: 'wa.me',
+                                path: '/6281574966666',
+                                queryParameters: {'text': msg},
+                              );
+                              if (await canLaunchUrl(uri)) launchUrl(uri, mode: LaunchMode.externalApplication);
+                            },
+                            child: Text("Help", style: TextStyle( fontSize: 12, fontWeight: FontWeight.w700, color: Color(primaryColor), decoration: TextDecoration.underline, decorationColor: Color(primaryColor), decorationThickness: 1,),textAlign: TextAlign.center,)),
+                        ],
+                      ),
                       // if (kIsWeb) ...[
                       //   const SizedBox(height: 8),
                       //   GestureDetector(
