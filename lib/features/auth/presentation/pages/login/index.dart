@@ -524,7 +524,7 @@ class _LoginPageState extends State<LoginPage> {
                           Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Text("Don't have an account? ", style: TextStyle( fontSize: 12, fontWeight: FontWeight.w700, color: Colors.grey),),
+                              Text("Don't have an account? ", style: TextStyle( fontSize: 12, color: Colors.grey),),
                               GestureDetector(
                                 onTap: () async {
                                  context.pushNamed("forgot-password", extra: {'step': 1, 'isRegister': true});
