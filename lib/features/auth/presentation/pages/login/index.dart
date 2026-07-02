@@ -518,14 +518,20 @@ class _LoginPageState extends State<LoginPage> {
                         ),
                       ),
                       const SizedBox(height: 12),
-                      Row(
+                      Column(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          GestureDetector(
-                            onTap: () async {
-                             context.pushNamed("forgot-password", extra: {'step': 1, 'isRegister': true});
-                            },
-                            child: Text("Register", style: TextStyle( fontSize: 12, fontWeight: FontWeight.w700, color: Color(primaryColor), decoration: TextDecoration.underline, decorationColor: Color(primaryColor), decorationThickness: 1,),textAlign: TextAlign.center,)),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text("Don't have an account? ", style: TextStyle( fontSize: 12, fontWeight: FontWeight.w700, color: Colors.grey),),
+                              GestureDetector(
+                                onTap: () async {
+                                 context.pushNamed("forgot-password", extra: {'step': 1, 'isRegister': true});
+                                },
+                                child: Text("Sign Up", style: TextStyle( fontSize: 12, fontWeight: FontWeight.w700, color: Color(primaryColor), decoration: TextDecoration.underline, decorationColor: Color(primaryColor), decorationThickness: 1,),textAlign: TextAlign.center,)),
+                            ],
+                          ),
                         
                           GestureDetector(
                             onTap: () async {
@@ -540,7 +546,11 @@ class _LoginPageState extends State<LoginPage> {
                               );
                               if (await canLaunchUrl(uri)) launchUrl(uri, mode: LaunchMode.externalApplication);
                             },
-                            child: Text("Help", style: TextStyle( fontSize: 12, fontWeight: FontWeight.w700, color: Color(primaryColor), decoration: TextDecoration.underline, decorationColor: Color(primaryColor), decorationThickness: 1,),textAlign: TextAlign.center,)),
+                            child: Text("Help",style: TextStyle(
+                                color: Color(grey3Color),
+                                fontSize: 12,
+                                fontWeight: FontWeight.w400,
+                              ),)),
                         ],
                       ),
                       // if (kIsWeb) ...[
