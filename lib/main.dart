@@ -497,3 +497,6 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     );
   }
 }
+
+
+//versi paradise-connect 1.0.2+1
