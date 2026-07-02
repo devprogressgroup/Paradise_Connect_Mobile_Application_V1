@@ -1,6 +1,7 @@
 ﻿import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:progress_group/core/utils/helpers/number_helper.dart';
 import 'package:progress_group/core/utils/widget/shimmer_loading.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -732,13 +733,10 @@ class _InboxPageState extends State<InboxPage> {
                                       color: Color(primaryColor),
                                       shape: BoxShape.circle,
                                     ),
-                                    constraints: const BoxConstraints(
-                                      minWidth: 18,
-                                      minHeight: 18,
-                                    ),
+                                    
                                     child: Center(
                                       child: Text(
-                                        '${item.unreadCount}',
+                                        '${NumberHelper.thousands(item.unreadCount)}',
                                         style: const TextStyle(
                                           color: Colors.white,
                                           fontSize: 10,

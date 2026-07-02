@@ -80,8 +80,11 @@ class AppRouter {
         path: '/forgot-password',
         name: 'forgot-password',
           builder: (context, state) {
-          final args = state.extra as int;
-          return ForgotPasswordPage(step: args);}
+          final extra = state.extra;
+          if (extra is Map) {
+            return ForgotPasswordPage(step: extra['step'] as int, isRegister: extra['isRegister'] as bool? ?? false);
+          }
+          return ForgotPasswordPage(step: extra as int);}
       ),
       GoRoute(
         path: '/impersonate',

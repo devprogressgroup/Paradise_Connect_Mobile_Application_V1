@@ -1452,7 +1452,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          _currentStatusGroup() == 'appt' ? "berapa kali appt" :
+          _currentStatusGroup() == 'appt' ? "Berapa kali appt" :
           _currentStatusGroup() == 'reserve' ? "Reserved Volume" : "Volume",
           style: TextStyle(
             fontSize: 12,
@@ -2083,7 +2083,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          "berapa kali datang",
+          "Berapa kali datang",
           style: TextStyle(
             fontSize: 12,
             fontWeight: FontWeight.bold,

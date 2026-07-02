@@ -13,7 +13,8 @@ import '../../state/auth/auth_bloc.dart';
 
 class ForgotPasswordPage extends StatefulWidget {
   final int step;
-  const ForgotPasswordPage({super.key, required this.step});
+  final bool isRegister;
+  const ForgotPasswordPage({super.key, required this.step, this.isRegister = false});
 
   @override
   State<ForgotPasswordPage> createState() => _ForgotPasswordPageState();
@@ -355,6 +356,37 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
     );
   }
 
+  Widget _buildStep(int number, String text) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6.0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 22,
+            height: 22,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: Color(primaryColor),
+              shape: BoxShape.circle,
+            ),
+            child: Text(
+              '$number',
+              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Colors.white),
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              text,
+              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: Color(grey2Color)),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildForgotPass(){
     return Container(
        padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 40.0),
@@ -369,8 +401,26 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
          mainAxisSize: MainAxisSize.min,
          crossAxisAlignment: CrossAxisAlignment.stretch,
          children: [
-           const Text('Forgot Password',textAlign: TextAlign.center,style: TextStyle(fontSize: 18,fontWeight: FontWeight.w700,letterSpacing: 0,color: Color(blue2Color))),
-           Text("Enter your WhatsApp number and we will send you a code to reset your password",textAlign: TextAlign.center, style: TextStyle(fontSize: 14,fontWeight: FontWeight.w700,color: Color(grey2Color))),
+           Text(widget.isRegister ? 'Register akun' : 'Forgot Password',textAlign: TextAlign.center,style: TextStyle(fontSize: 18,fontWeight: FontWeight.w700,letterSpacing: 0,color: Color(blue2Color))),
+           const SizedBox(height: 4),
+           if (widget.isRegister)
+             Padding(
+               padding: const EdgeInsets.symmetric(horizontal: 4.0),
+               child: Column(
+                 crossAxisAlignment: CrossAxisAlignment.start,
+                 children: [
+                   _buildStep(1, 'Masukkan nomor WhatsApp yang telah didaftarkan di bagian Personalia (HRD).'),
+                   _buildStep(2, 'Tekan "Send Request", lalu masukkan kode OTP yang dikirim ke WhatsApp Anda.'),
+                   _buildStep(3, 'Buat & konfirmasi Password baru Anda — setelah berhasil, Anda otomatis masuk ke aplikasi.'),
+                 ],
+               ),
+             )
+           else
+             Text(
+               "Enter your WhatsApp number and we will send you a code to reset your password",
+               textAlign: TextAlign.center,
+               style: TextStyle(fontSize: 14,fontWeight: FontWeight.w700,color: Color(grey2Color)),
+             ),
            const SizedBox(height: 32),
            Text("WhatsApp Number",style: TextStyle(fontSize: 14,fontWeight: FontWeight.w700,color: Color(grey2Color))),
            const SizedBox(height: 10),

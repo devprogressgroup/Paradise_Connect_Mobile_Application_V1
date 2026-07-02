@@ -1780,13 +1780,13 @@ class _ContactFormPageState extends State<ContactFormPage> {
                           _buildUnitField(),
                           if (_isVisitorWi(selectedStatusId))
                             _buildFieldDown(
-                              label: "berapa kali datang",
+                              label: "Berapa kali datang",
                               value: vCountTC.text.isEmpty ? null : (vCountTC.text == '5' ? '>5' : vCountTC.text),
                               onTap: () async {
                                 final result = await context.pushNamed(
                                   'detailContactDropdown',
                                   extra: ContactDropdownArgs(
-                                    title: 'berapa kali datang',
+                                    title: 'Berapa kali datang',
                                     items: itemsJmlDatang,
                                     selectedId: null,
                                   ),
@@ -1802,13 +1802,13 @@ class _ContactFormPageState extends State<ContactFormPage> {
                           if (_statusGroup(selectedStatusId) == 'appt' ||
                               _statusGroup(selectedStatusId) == 'reserve')
                             _buildFieldDown(
-                              label: "berapa kali appt",
+                              label: "Berapa kali appt",
                               value: volumePlanTC.text.isEmpty ? null : (volumePlanTC.text == '5' ? '>5' : volumePlanTC.text),
                               onTap: () async {
                                 final result = await context.pushNamed(
                                   'detailContactDropdown',
                                   extra: ContactDropdownArgs(
-                                    title: 'berapa kali appt',
+                                    title: 'Berapa kali appt',
                                     items: itemsVolume,
                                     selectedId: null,
                                   ),

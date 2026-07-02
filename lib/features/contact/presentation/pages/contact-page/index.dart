@@ -1,6 +1,7 @@
 ﻿import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:progress_group/core/utils/helpers/number_helper.dart';
 import 'package:progress_group/core/utils/helpers/permissions_helper.dart';
 import 'package:progress_group/core/utils/widget/shimmer_loading.dart';
 import 'package:go_router/go_router.dart';
@@ -600,7 +601,7 @@ class _ContactPageState extends State<ContactPage> {
                                   child: Align(
                                     alignment: Alignment.centerLeft,
                                     child: Text(
-                                      'Total: ${state.totalContacts} contacts',
+                                      'Total: ${NumberHelper.thousands(state.totalContacts??0)} contacts',
                                       style: TextStyle(
                                         fontSize: 13,
                                         color: Color(grey5Color),

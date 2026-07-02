@@ -523,7 +523,7 @@ class _LoginPageState extends State<LoginPage> {
                         children: [
                           GestureDetector(
                             onTap: () async {
-                             context.pushNamed("forgot-password", extra: 1);
+                             context.pushNamed("forgot-password", extra: {'step': 1, 'isRegister': true});
                             },
                             child: Text("Register", style: TextStyle( fontSize: 12, fontWeight: FontWeight.w700, color: Color(primaryColor), decoration: TextDecoration.underline, decorationColor: Color(primaryColor), decorationThickness: 1,),textAlign: TextAlign.center,)),
                         

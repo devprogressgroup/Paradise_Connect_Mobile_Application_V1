@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:progress_group/core/constants/colors.dart';
 import 'package:progress_group/core/constants/assets.dart';
 import 'package:progress_group/core/utils/helpers/date_helper.dart';
+import 'package:progress_group/core/utils/helpers/number_helper.dart';
 import 'package:progress_group/features/attandance/domain/entities/attendance_approval_entity.dart';
 import 'package:progress_group/features/attandance/presentation/state/attendance_approval/attendance_approval_cubit.dart';
 import 'package:progress_group/features/attandance/presentation/state/attendance_approval/attendance_approval_state.dart';
@@ -599,8 +600,14 @@ class _HomePageState extends State<HomePage> {
 
               ],
             ),
-            
-           
+            if (state.summary != null)
+              Padding(
+                padding: const EdgeInsets.only(top: 4),
+                child: Text(
+                  'Total: ${NumberHelper.thousands(state.summary!.statuses.fold<int>(0, (sum, item) => sum + item.totalContacts))} contacts',
+                  style: TextStyle(fontSize: 12, color: Color(grey5Color)),
+                ),
+              ),
             const SizedBox(height: 8),
             if (state.status == ProspectStatusSummaryStatus.loading)
               buildProspectStatusShimmer()
@@ -684,7 +691,7 @@ class _HomePageState extends State<HomePage> {
                                   Icon(Icons.people_outline, size: 14, color: Color(grey2Color)),
                                   const SizedBox(width: 2),
                                   Text(
-                                    "${item.totalContacts}",
+                                    NumberHelper.thousands(item.totalContacts),
                                     style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(hasActivity ? blackColor : grey2Color)),
                                   ),
                                 ],
@@ -740,13 +747,9 @@ class _HomePageState extends State<HomePage> {
         if (value == 0) return "0";
         if (value >= 1000000) {
           double m = value / 1000000;
-          return m == m.toInt() ? "${m.toInt()}M" : "${m.toStringAsFixed(1)}M";
+          return m == m.toInt() ? "${NumberHelper.thousands(m.toInt())}M" : "${m.toStringAsFixed(1)}M";
         }
-        if (value >= 1000) {
-          double k = value / 1000;
-          return k == k.toInt() ? "${k.toInt()}K" : "${k.toStringAsFixed(1)}K";
-        }
-        return value.toInt().toString();
+        return NumberHelper.thousands(value.toInt());
       }
     return Container(
       padding: const EdgeInsets.all(8),
@@ -769,6 +772,7 @@ class _HomePageState extends State<HomePage> {
               if (chartHeaderState is ReportInitial || chartHeaderState is ReportLoading) {
                 return buildDashboardChartHeaderShimmer();
               }
+              
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -779,9 +783,9 @@ class _HomePageState extends State<HomePage> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text(
+                      Text(
                         "Chat Volume",
-                        style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
                       ),
                       Text(
                         "${day} Days",
@@ -862,6 +866,7 @@ class _HomePageState extends State<HomePage> {
                                       SizedBox(
                                         width: 30,
                                         child: Text(
+                                           
                                           _formatYAxisLabel(val),
                                           textAlign: TextAlign.left,
                                           style: TextStyle(fontSize: 10, color: Colors.grey[600]),
