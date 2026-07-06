@@ -553,20 +553,20 @@ class _LoginPageState extends State<LoginPage> {
                               ),)),
                         ],
                       ),
-                      // if (kIsWeb) ...[
-                      //   const SizedBox(height: 8),
-                      //   GestureDetector(
-                      //     onTap: web_debug.showDebugPanel,
-                      //     child: Text(
-                      //       'Debug Info',
-                      //       textAlign: TextAlign.center,
-                      //       style: TextStyle(
-                      //         fontSize: 10,
-                      //         color: Colors.grey[400],
-                      //       ),
-                      //     ),
-                      //   ),
-                      // ],
+                      if (kIsWeb) ...[
+                        const SizedBox(height: 8),
+                        GestureDetector(
+                          onTap: web_debug.showDebugPanel,
+                          child: Text(
+                            'Debug Info',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: 10,
+                              color: Colors.grey[400],
+                            ),
+                          ),
+                        ),
+                      ],
                       // ValueListenableBuilder<AppEnvironment>(
                       //   valueListenable: ApiConstants.envNotifier,
                       //   builder: (_, env, __) => Text(

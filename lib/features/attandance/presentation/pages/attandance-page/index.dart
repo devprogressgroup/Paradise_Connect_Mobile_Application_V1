@@ -58,8 +58,6 @@ class AttandancePage extends StatefulWidget {
 class _AttandancePageState extends State<AttandancePage>
     with AttendanceLocationMixin<AttandancePage> {
   late PageController _pageController;
-  final double officeLat =  -6.1416575;
-  final double officeLng = 106.8659419;
   late ScrollController _scrollController;
 
   int selectedIndex = 0;
@@ -81,6 +79,7 @@ class _AttandancePageState extends State<AttandancePage>
   String? _activityEndDate;
 
   Timer? _loadMoreDebounce;
+  StreamSubscription? _officeLocationSub;
 
   // Kartu Activity di-reveal satu-satu berurutan (bukan sekaligus semua yang
   // masuk range render SliverList) — kartu ke-N tidak dibangun penuh (cuma
@@ -107,6 +106,18 @@ class _AttandancePageState extends State<AttandancePage>
       // Tahap 1 — data ringan + device-only (tidak tunggu server)
       context.read<AuthBloc>().add(FetchPermissionsEvent(silent: true));
       context.read<ProfileBloc>().add(GetProfileEvent(forceRefresh: true, silent: true));
+      // Muat lokasi kantor SEKARANG, jangan tunggu user tap tombol Clock In/Out —
+      // supaya _computeNearestLocation() sudah bisa hitung radius yang benar
+      // begitu GPS fix pertama datang, bukan cuma "false" karena list masih kosong.
+      final officeLocationCubit = context.read<OfficeLocationCubit>();
+      officeLocationCubit.load();
+      // Begitu data lokasi kantor sampai, hitung ulang radius pakai posisi
+      // GPS yang sudah ada — supaya tidak perlu nunggu GPS fix baru lagi.
+      _officeLocationSub = officeLocationCubit.stream.listen((locations) {
+        if (locations.isNotEmpty && _currentPosition != null) {
+          _computeNearestLocation(_currentPosition!);
+        }
+      });
       _initLocation(); // hanya device GPS, tidak ada API call
 
       final profileState = context.read<ProfileBloc>().state;
@@ -140,6 +151,7 @@ class _AttandancePageState extends State<AttandancePage>
   void dispose() {
     _loadMoreDebounce?.cancel();
     _positionStream?.cancel();
+    _officeLocationSub?.cancel();
     _loadedActivityCardCount.dispose();
     _pageController.dispose();
     _scrollController.removeListener(_onScroll);
@@ -263,11 +275,19 @@ class _AttandancePageState extends State<AttandancePage>
       var officeLocations = officeLocationCubit.state;
       web_debug.logDebugInfo('[Camera] office locations loaded -> ${officeLocations.length} lokasi');
 
-      double? nearestDistance;
-      double? activeRadius;
-      String? nearestOfficeName;
-      int? nearestOfficeId;
-      int? nearestOfficeTypeId;
+      // Dicek independen per tipe — user bisa berada di dalam radius Office
+      // DAN Pameran sekaligus (radius overlap). Kalau cuma diambil satu
+      // "pemenang" berdasar jarak terdekat, lokasi Pameran (radius kecil,
+      // tanpa izin) bisa menutupi lokasi Office (radius besar, ada izin)
+      // yang jaraknya sedikit lebih jauh tapi user tetap valid di dalamnya
+      // — selaras dengan fix di _computeNearestLocation (index_location.dart).
+      String? officeCandidateName;
+      int? officeCandidateId;
+      double? officeCandidateDistance;
+
+      String? pameranCandidateName;
+      int? pameranCandidateId;
+      double? pameranCandidateDistance;
 
       if (officeLocations.isNotEmpty) {
         for (var office in officeLocations) {
@@ -279,43 +299,47 @@ class _AttandancePageState extends State<AttandancePage>
               lat, lng,
               position.latitude, position.longitude,
             );
-            if (nearestDistance == null || d < nearestDistance) {
-              nearestDistance = d;
-              activeRadius = office.radius?.toDouble() ?? radiusMeter;
-              nearestOfficeName = office.name;
-              nearestOfficeId = office.id;
-              nearestOfficeTypeId = office.typeLocationId;
+            final radius = office.radius?.toDouble() ?? radiusMeter;
+            if (d <= radius) {
+              if (office.typeLocationId == 2) {
+                if (pameranCandidateDistance == null || d < pameranCandidateDistance) {
+                  pameranCandidateDistance = d;
+                  pameranCandidateName = office.name;
+                  pameranCandidateId = office.id;
+                }
+              } else {
+                if (officeCandidateDistance == null || d < officeCandidateDistance) {
+                  officeCandidateDistance = d;
+                  officeCandidateName = office.name;
+                  officeCandidateId = office.id;
+                }
+              }
             }
           }
         }
       }
 
-      final effectiveDistance = nearestDistance ?? Geolocator.distanceBetween(officeLat, officeLng, position.latitude, position.longitude);
-      final effectiveRadius = activeRadius ?? radiusMeter;
-      final isInRadius = effectiveDistance <= effectiveRadius;
+      final bool inOfficeRadius = officeCandidateId != null;
+      final bool inPameranRadius = pameranCandidateId != null;
+      final isInRadius = inOfficeRadius || inPameranRadius;
 
-      
+      final bool officeAllowed = inOfficeRadius &&
+          (flagParam == 0 ? PermissionsHelper.canClockInOffice : PermissionsHelper.canClockOutOffice);
+      final bool pameranAllowed = inPameranRadius &&
+          (flagParam == 0 ? PermissionsHelper.canClockInPameran : PermissionsHelper.canClockOutPameran);
+      // Luar Lokasi = override total: berlaku di mana pun user berada, tidak
+      // disyaratkan harus benar-benar di luar radius Office/Pameran dulu —
+      // selaras dengan _isClockButtonDisabled (index_location.dart).
+      final bool luarLokasiAllowed = flagParam == 0
+          ? (PermissionsHelper.canClockInLuarLokasi || PermissionsHelper.canClockInLuarLokasiRequestApprove)
+          : (PermissionsHelper.canClockOutLuarLokasi || PermissionsHelper.canClockOutLuarLokasiRequestApprove);
+
       // Check In / aktivitas (flag 6) TIDAK butuh izin clock-in/out — selaras dgn
       // _isClockButtonDisabled (flag 6 selalu enabled) & redirect noClockAccess→tab Check In.
       // Sebelumnya flag 6 jatuh ke cabang Clock-Out → non-sales tanpa izin clock-out tak bisa Check In.
-      final bool canProceed;
-      if (flagParam == 6) {
-        canProceed = true;
-      } else if (!isInRadius || nearestOfficeId == null) {
-        canProceed = flagParam == 0
-            ? (PermissionsHelper.canClockInLuarLokasi || PermissionsHelper.canClockInLuarLokasiRequestApprove)
-            : (PermissionsHelper.canClockOutLuarLokasi || PermissionsHelper.canClockOutLuarLokasiRequestApprove);
-      } else if (nearestOfficeTypeId == 2) {
-        canProceed = flagParam == 0
-            ? PermissionsHelper.canClockInPameran
-            : PermissionsHelper.canClockOutPameran;
-      } else {
-        canProceed = flagParam == 0
-            ? PermissionsHelper.canClockInOffice
-            : PermissionsHelper.canClockOutOffice;
-      }
+      final bool canProceed = flagParam == 6 || officeAllowed || pameranAllowed || luarLokasiAllowed;
 
-      web_debug.logDebugInfo('[Camera] canProceed=$canProceed isInRadius=$isInRadius nearestOfficeId=$nearestOfficeId');
+      web_debug.logDebugInfo('[Camera] canProceed=$canProceed isInRadius=$isInRadius officeId=$officeCandidateId pameranId=$pameranCandidateId');
 
       if (!canProceed) {
         if (mounted) {
@@ -323,6 +347,28 @@ class _AttandancePageState extends State<AttandancePage>
           showSnackbar(context, 'Anda tidak punya akses', isError: true);
         }
         return;
+      }
+
+      // Lokasi yang dicatat di record: flag 6 (tanpa gating izin) pakai yang
+      // paling dekat apa pun tipenya; flag 0/1 pakai lokasi yang benar-benar
+      // memberi akses (kalau dua-duanya diizinkan sekaligus, pakai yang lebih dekat).
+      String? nearestOfficeName;
+      int? nearestOfficeId;
+      if (flagParam == 6) {
+        final useOffice = (officeCandidateDistance ?? double.infinity) <=
+            (pameranCandidateDistance ?? double.infinity);
+        nearestOfficeName = useOffice ? officeCandidateName : pameranCandidateName;
+        nearestOfficeId = useOffice ? officeCandidateId : pameranCandidateId;
+      } else if (officeAllowed && pameranAllowed) {
+        final useOffice = officeCandidateDistance! <= pameranCandidateDistance!;
+        nearestOfficeName = useOffice ? officeCandidateName : pameranCandidateName;
+        nearestOfficeId = useOffice ? officeCandidateId : pameranCandidateId;
+      } else if (officeAllowed) {
+        nearestOfficeName = officeCandidateName;
+        nearestOfficeId = officeCandidateId;
+      } else if (pameranAllowed) {
+        nearestOfficeName = pameranCandidateName;
+        nearestOfficeId = pameranCandidateId;
       }
 
       if (mounted) ScaffoldMessenger.of(context).hideCurrentSnackBar();

@@ -18,7 +18,6 @@ import 'package:progress_group/core/utils/helpers/permissions_helper.dart';
 import 'package:progress_group/features/auth/presentation/state/auth/auth_state.dart';
 import 'package:progress_group/core/utils/widget/shimmer_loading.dart';
 import 'package:progress_group/core/utils/widget/impersonation_banner.dart';
-import 'package:progress_group/core/utils/web_debug_util.dart' as web_debug;
 
 class MainLayout extends StatefulWidget {
   final Widget child;

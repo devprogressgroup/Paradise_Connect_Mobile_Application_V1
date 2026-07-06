@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     // START: FlutterFire Configuration
@@ -6,6 +8,12 @@ plugins {
     id("kotlin-android")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
+}
+
+val keystoreProperties = Properties()
+val keystorePropertiesFile = rootProject.file("key.properties")
+if (keystorePropertiesFile.exists()) {
+    keystoreProperties.load(keystorePropertiesFile.inputStream())
 }
 
 android {
@@ -34,8 +42,25 @@ android {
         versionName = flutter.versionName
     }
 
+    signingConfigs {
+        if (keystorePropertiesFile.exists()) {
+            create("release") {
+                keyAlias = keystoreProperties["keyAlias"] as String
+                keyPassword = keystoreProperties["keyPassword"] as String
+                storeFile = file(keystoreProperties["storeFile"] as String)
+                storePassword = keystoreProperties["storePassword"] as String
+            }
+        }
+    }
+
     buildTypes {
         release {
+            // SEMENTARA balik pakai debug keystore (bukan release keystore upload-keystore.jks)
+            // supaya signature-nya tetap sama dengan APK main yang sudah tersebar di lapangan —
+            // kalau dipaksa ganti ke release keystore sekarang, SEMUA device yang sudah install
+            // wajib uninstall manual dulu (signature mismatch), karena update in-place ditolak Android.
+            // Config signingConfigs.release di atas SENGAJA dibiarkan (tidak dihapus) untuk dipakai
+            // lagi nanti kalau migrasi ke release keystore sudah direncanakan & dikomunikasikan ke tim lapangan.
             signingConfig = signingConfigs.getByName("debug")
             isMinifyEnabled = true
             isShrinkResources = true
