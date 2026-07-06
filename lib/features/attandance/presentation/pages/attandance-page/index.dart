@@ -68,12 +68,10 @@ class _AttandancePageState extends State<AttandancePage>
   bool _isButtonPinned = false;
   bool _permissionsReady = false;
   AttendanceLoaded? _pendingInitialTabState;
-  // Attendance Log filter
   List<int>? _attendanceOwnerIds;
   String? _attendanceStartDate;
   String? _attendanceEndDate;
 
-  // Activity Log filter
   List<int>? _activityOwnerIds;
   String? _activityStartDate;
   String? _activityEndDate;
@@ -81,11 +79,6 @@ class _AttandancePageState extends State<AttandancePage>
   Timer? _loadMoreDebounce;
   StreamSubscription? _officeLocationSub;
 
-  // Kartu Activity di-reveal satu-satu berurutan (bukan sekaligus semua yang
-  // masuk range render SliverList) — kartu ke-N tidak dibangun penuh (cuma
-  // shimmer) sampai kartu ke-(N-1) selesai load SEMUA gambarnya. Notifier
-  // terpisah (bukan setState di halaman) supaya nambah hitungan cuma
-  // rebuild SliverList-nya, bukan seluruh halaman.
   final ValueNotifier<int> _loadedActivityCardCount = ValueNotifier(1);
 
 
@@ -103,22 +96,15 @@ class _AttandancePageState extends State<AttandancePage>
     _scrollController.addListener(_onScroll);
 
     Future.microtask(() {
-      // Tahap 1 — data ringan + device-only (tidak tunggu server)
       context.read<AuthBloc>().add(FetchPermissionsEvent(silent: true));
       context.read<ProfileBloc>().add(GetProfileEvent(forceRefresh: true, silent: true));
-      // Muat lokasi kantor SEKARANG, jangan tunggu user tap tombol Clock In/Out —
-      // supaya _computeNearestLocation() sudah bisa hitung radius yang benar
-      // begitu GPS fix pertama datang, bukan cuma "false" karena list masih kosong.
       final officeLocationCubit = context.read<OfficeLocationCubit>();
       officeLocationCubit.load();
-      // Begitu data lokasi kantor sampai, hitung ulang radius pakai posisi
-      // GPS yang sudah ada — supaya tidak perlu nunggu GPS fix baru lagi.
       _officeLocationSub = officeLocationCubit.stream.listen((locations) {
         if (locations.isNotEmpty && _currentPosition != null) {
           _computeNearestLocation(_currentPosition!);
         }
       });
-      _initLocation(); // hanya device GPS, tidak ada API call
 
       final profileState = context.read<ProfileBloc>().state;
       if (profileState is ProfileLoaded) {
@@ -128,9 +114,6 @@ class _AttandancePageState extends State<AttandancePage>
         }
       }
 
-      // Tahap 2 — muat tab yang langsung terlihat (Activity = default tab).
-      // perPage kecil (4) + SliverList lazy di _buildActivityLogSlivers() —
-      // supaya jumlah kartu+gambar yang dibangun sekaligus tetap kecil.
       context.read<AttendanceActivityBloc>().add(GetAttendanceActivityEvent(
         salesPersonIds: _activityOwnerIds,
         startDate: _activityDateRange.start,
@@ -138,8 +121,6 @@ class _AttandancePageState extends State<AttandancePage>
         perPage: 35,
       ));
 
-      // Tahap 3 — status absen + lokasi kantor dimuat setelah activity mulai,
-      // agar tidak bersaing memperebutkan bandwidth di awal sekaligus.
       Future.delayed(const Duration(milliseconds: 500), () {
         if (!mounted) return;
         context.read<AttendanceBloc>().add(LoadTodayAttendanceEvent());
@@ -216,9 +197,6 @@ class _AttandancePageState extends State<AttandancePage>
     }
   }
 
-  // Approver attendance = punya feature ApproveReject (master gate). Backend menentukan CAKUPAN:
-  // sales→hirarki t_sales_roles; non-sales→anggota group yang ditandai approver (+sub-group).
-  // Tombol approve/reject & daftar pending tampil bila feature ada; backend menolak di luar wewenang.
   bool _isApprover(UserProfileEntity profile) {
     return PermissionsHelper.canApproveRejectAttendance;
   }
@@ -237,14 +215,8 @@ class _AttandancePageState extends State<AttandancePage>
     );
 
     try {
-      // Minta izin kamera SECEPAT MUNGKIN, sebelum proses lokasi yang panjang
-      // di bawah — di Safari/WebKit lama, kalau getUserMedia() dipanggil
-      // setelah beberapa await/detik sejak tap user, browser diam-diam
-      // menolak TANPA menampilkan dialog izin sama sekali (dianggap bukan
-      // lagi permintaan dari user gesture). No-op di platform non-web.
       await primeCameraPermission();
 
-      // Pastikan permission granted — ini dipicu user gesture, Chrome akan munculkan dialog
       final hasPermission = await _handleLocationPermission(fromUserGesture: true);
       web_debug.logDebugInfo('[Camera] cek izin lokasi -> hasPermission=$hasPermission');
       if (!hasPermission) {
@@ -252,7 +224,6 @@ class _AttandancePageState extends State<AttandancePage>
         return;
       }
 
-      // // Ambil lokasi — web langsung proceed meski null (stream masih jalan di background)
       final position = await _getCurrentLocationOnce();
       web_debug.logDebugInfo('[Camera] ambil lokasi -> ${position == null ? "null" : "${position.latitude},${position.longitude}"}');
 
@@ -275,12 +246,6 @@ class _AttandancePageState extends State<AttandancePage>
       var officeLocations = officeLocationCubit.state;
       web_debug.logDebugInfo('[Camera] office locations loaded -> ${officeLocations.length} lokasi');
 
-      // Dicek independen per tipe — user bisa berada di dalam radius Office
-      // DAN Pameran sekaligus (radius overlap). Kalau cuma diambil satu
-      // "pemenang" berdasar jarak terdekat, lokasi Pameran (radius kecil,
-      // tanpa izin) bisa menutupi lokasi Office (radius besar, ada izin)
-      // yang jaraknya sedikit lebih jauh tapi user tetap valid di dalamnya
-      // — selaras dengan fix di _computeNearestLocation (index_location.dart).
       String? officeCandidateName;
       int? officeCandidateId;
       double? officeCandidateDistance;
@@ -291,7 +256,6 @@ class _AttandancePageState extends State<AttandancePage>
 
       if (officeLocations.isNotEmpty) {
         for (var office in officeLocations) {
-          // debugPrint('[office] id=${office.id}, name=${office.name}, typeLocationId=${office.typeLocationId}, lat=${office.latitude}, lng=${office.longitude}');
           final lat = double.tryParse(office.latitude ?? '');
           final lng = double.tryParse(office.longitude ?? '');
           if (lat != null && lng != null) {
@@ -327,16 +291,10 @@ class _AttandancePageState extends State<AttandancePage>
           (flagParam == 0 ? PermissionsHelper.canClockInOffice : PermissionsHelper.canClockOutOffice);
       final bool pameranAllowed = inPameranRadius &&
           (flagParam == 0 ? PermissionsHelper.canClockInPameran : PermissionsHelper.canClockOutPameran);
-      // Luar Lokasi = override total: berlaku di mana pun user berada, tidak
-      // disyaratkan harus benar-benar di luar radius Office/Pameran dulu —
-      // selaras dengan _isClockButtonDisabled (index_location.dart).
       final bool luarLokasiAllowed = flagParam == 0
           ? (PermissionsHelper.canClockInLuarLokasi || PermissionsHelper.canClockInLuarLokasiRequestApprove)
           : (PermissionsHelper.canClockOutLuarLokasi || PermissionsHelper.canClockOutLuarLokasiRequestApprove);
 
-      // Check In / aktivitas (flag 6) TIDAK butuh izin clock-in/out — selaras dgn
-      // _isClockButtonDisabled (flag 6 selalu enabled) & redirect noClockAccess→tab Check In.
-      // Sebelumnya flag 6 jatuh ke cabang Clock-Out → non-sales tanpa izin clock-out tak bisa Check In.
       final bool canProceed = flagParam == 6 || officeAllowed || pameranAllowed || luarLokasiAllowed;
 
       web_debug.logDebugInfo('[Camera] canProceed=$canProceed isInRadius=$isInRadius officeId=$officeCandidateId pameranId=$pameranCandidateId');
@@ -349,9 +307,6 @@ class _AttandancePageState extends State<AttandancePage>
         return;
       }
 
-      // Lokasi yang dicatat di record: flag 6 (tanpa gating izin) pakai yang
-      // paling dekat apa pun tipenya; flag 0/1 pakai lokasi yang benar-benar
-      // memberi akses (kalau dua-duanya diizinkan sekaligus, pakai yang lebih dekat).
       String? nearestOfficeName;
       int? nearestOfficeId;
       if (flagParam == 6) {
@@ -374,10 +329,7 @@ class _AttandancePageState extends State<AttandancePage>
       if (mounted) ScaffoldMessenger.of(context).hideCurrentSnackBar();
 
       web_debug.logDebugInfo('[Camera] navigasi ke halaman camera...');
-      // Koordinat yang dikirim & disimpan = posisi GPS asli device (bukan koordinat statis kantor).
-      // locationId tetap mengikuti hasil geofence: id kantor bila di dalam radius, null bila di luar.
       final result = await context.pushNamed('camera', extra: AttandanceArgs(flag: flagParam, type: title, location: isInRadius ? (nearestOfficeName ?? _address) : _address, time: DateHelper.formatTime(DateTime.now()), locationId: isInRadius ? nearestOfficeId : null, latitude: position.latitude.toString(), longitude: position.longitude.toString(), ), );
-      // final result = await context.pushNamed('camera', extra: AttandanceArgs(flag: flagParam, type: title, location: "", time: DateHelper.formatTime(DateTime.now()), locationId: 0, latitude: "", longitude: "", ), );
       web_debug.logDebugInfo('[Camera] balik dari halaman camera -> result=$result');
 
       if (result == true) {
@@ -399,7 +351,6 @@ class _AttandancePageState extends State<AttandancePage>
     }
   }
 
-  // Default 7 hari terakhir jika tidak ada filter aktif
   ({String start, String end}) get _activityDateRange {
     final now = DateTime.now();
     return (
@@ -463,7 +414,6 @@ class _AttandancePageState extends State<AttandancePage>
                     ),
                   ),
 
-                  /// Tombol kiri
                   if (currentIndex > 0)
                     Positioned(
                       left: 10,
@@ -479,7 +429,6 @@ class _AttandancePageState extends State<AttandancePage>
                       ),
                     ),
 
-                  /// Tombol kanan
                   if (currentIndex < imageUrls.length - 1)
                     Positioned(
                       right: 10,
@@ -495,7 +444,6 @@ class _AttandancePageState extends State<AttandancePage>
                       ),
                     ),
 
-                  /// Close
                   Positioned(
                     top: 0,
                     right: 0,
@@ -509,7 +457,6 @@ class _AttandancePageState extends State<AttandancePage>
                     ),
                   ),
 
-                  /// Indicator
                   if (imageUrls.length > 1)
                     Positioned(
                       bottom: 10,
@@ -542,9 +489,7 @@ class _AttandancePageState extends State<AttandancePage>
     if (profileState is! ProfileLoaded) return;
     final profile = profileState.profile;
 
-    // Bangun daftar owner
     final List<OwnerDropdownItem> ownerItems = [];
-    // Tambahkan diri sendiri hanya jika punya data kehadiran (salesPersonId atau nikNumber)
     if (profile.salesPersonId != null || profile.nikNumber != null) {
       ownerItems.add(OwnerDropdownItem(
         id: profile.salesPersonId,
@@ -586,7 +531,6 @@ class _AttandancePageState extends State<AttandancePage>
     String searchQuery = '';
     bool dropdownOpen = false;
 
-    // Helper: compact date button
     Widget dateButton({required String label, required DateTime date, required VoidCallback onTap}) {
       return GestureDetector(
         onTap: onTap,
@@ -625,7 +569,6 @@ class _AttandancePageState extends State<AttandancePage>
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  // Baris atas: [filter] | [mulai] | [akhir]
                   Row(
                     children: [
                       if (ownerItems.length > 1) ...[
@@ -699,7 +642,6 @@ class _AttandancePageState extends State<AttandancePage>
                     ],
                   ),
 
-                  // Dropdown list karyawan (expand saat dropdownOpen == true)
                   if (ownerItems.length > 1 && dropdownOpen) ...[
                     const SizedBox(height: 6),
                     TextField(
@@ -900,7 +842,6 @@ class _AttandancePageState extends State<AttandancePage>
   }
 
   Future<void> _savePdfToStorage(String tempFilePath) async {
-    if (kIsWeb) return; // file sudah otomatis ter-download via browser
     try {
       final fileName = tempFilePath.split('/').last;
       String savedPath;
@@ -974,7 +915,6 @@ class _AttandancePageState extends State<AttandancePage>
             _permissionsReady = true;
             _trySetInitialTab();
             if (_currentPosition != null) _computeNearestLocation(_currentPosition!);
-            // Refresh: jika sudah di-set tab awal dan user sedang di Clock In tapi disabled → pindah ke Check In
             if (_hasSetInitialTab && selectedIndex == 0 && _isClockButtonDisabled(0)) {
               _onTabChanged(1);
             }
@@ -1080,7 +1020,6 @@ class _AttandancePageState extends State<AttandancePage>
                             ),
                           ),
 
-                          /// BUTTON
                           SliverToBoxAdapter(child: const SizedBox(height: 35)),
                           SliverToBoxAdapter(
                             child: BlocBuilder<AttendanceBloc, AttendanceState>(
@@ -1118,7 +1057,6 @@ class _AttandancePageState extends State<AttandancePage>
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisAlignment: MainAxisAlignment.start,
           children: [
-        // MY ACTIVITY
             Expanded(
               child: GestureDetector(
                 onTap: () {
@@ -1155,7 +1093,6 @@ class _AttandancePageState extends State<AttandancePage>
             ),
             const SizedBox(width: 8),
 
-            // ATTENDANCE LOG
             Expanded(
               child: GestureDetector(
                 onTap: () {
@@ -1402,7 +1339,6 @@ class _AttandancePageState extends State<AttandancePage>
                 ),
               );
             } else {
-              // Group by person + ISO week (Monday start)
               DateTime weekStartOf(DateTime d) => d.subtract(Duration(days: d.weekday - 1));
 
               final Map<String, List<AttendanceEntity>> weekGroups = {};
@@ -1454,12 +1390,6 @@ class _AttandancePageState extends State<AttandancePage>
     );
   }
 
-  // Sama persis tampilan/layout-nya dengan _buildActivityLog() versi lama (Container
-  // rounded + padding yang sama), tapi list tanggal sekarang SliverList sungguhan —
-  // kartu (+carousel gambar di dalamnya) baru dibangun saat benar-benar discroll ke
-  // layar, bukan semua sekaligus seperti ListView.builder(shrinkWrap:true) dulu.
-  // DecoratedSliver dipakai supaya background rounded tetap satu kesatuan mengikuti
-  // seluruh grup sliver di dalamnya (header + list + footer loading-more).
   List<Widget> _buildActivityLogSlivers() {
     final header = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1510,18 +1440,12 @@ class _AttandancePageState extends State<AttandancePage>
                       return SliverToBoxAdapter(child: header);
                     }
 
-                    // Flatten each ActivityEntity into one entry per type
                     final profileState = context.read<ProfileBloc>().state;
-                    // Tombol Like/Dislike check-in (validasi flag 6) digate feature CheckInVerify
-                    // (terpisah dari ApproveReject yang dipakai header approve/reject di atas).
                     final canVerify = PermissionsHelper.canCheckInVerify;
                     final currentSalesPersonId = profileState is ProfileLoaded ? profileState.profile.salesPersonId : null;
 
                     final List<({String fullName, String? photoUrl, String date, String type, Color typeColor, String? datetime, String? location, String? contactName, String? note, List<String> images, int? statusValidasi, String? noteValidasi, int? logId, int salesPersonId})> entries = [];
 
-                    // Tidak ada sort sama sekali di sini — tampilkan apa adanya sesuai
-                    // urutan balikan API (state.activityLogs: halaman lama duluan,
-                    // halaman baru dari load-more ditempel di belakang oleh Bloc).
                     for (final item in state.activityLogs) {
                       if (item.clockInDate != null) {
                         entries.add((fullName: item.fullName, photoUrl: item.photoUrl, date: item.date, type: 'Clock In', typeColor: const Color(0xFF27AE60), datetime: item.clockInDate, location: item.clockInLocation, contactName: null, note: item.clockInNote, images: item.clockInAttachment ?? [], statusValidasi: null, noteValidasi: null, logId: null, salesPersonId: item.salesPersonId));
@@ -1555,19 +1479,12 @@ class _AttandancePageState extends State<AttandancePage>
                       );
                     }
 
-                    // Group by date — urutan grup TIDAK di-sort ulang, ikut urutan
-                    // kemunculan di `entries` (yaitu urutan halaman: lama → baru
-                    // ditempel di belakang), supaya grup tanggal yang sudah tampil
-                    // tidak pernah pindah posisi saat load-more.
                     final Map<String, List<({String fullName, String? photoUrl, String date, String type, Color typeColor, String? datetime, String? location, String? contactName, String? note, List<String> images, int? statusValidasi, String? noteValidasi, int? logId, int salesPersonId})>> grouped = {};
                     for (final e in entries) {
                       grouped.putIfAbsent(e.date, () => []).add(e);
                     }
                     final dates = grouped.keys.toList();
 
-                    // Ratakan header-tanggal + kartu jadi satu list baris, dan beri tiap
-                    // KARTU nomor urut global (lintas tanggal) — supaya kartu bisa digilir
-                    // satu-satu di seluruh list, bukan cuma di dalam 1 grup tanggal.
                     final List<({bool isHeader, String date, ({String fullName, String? photoUrl, String date, String type, Color typeColor, String? datetime, String? location, String? contactName, String? note, List<String> images, int? statusValidasi, String? noteValidasi, int? logId, int salesPersonId})? entry, int? cardIndex})> rows = [];
                     int cardCounter = 0;
                     for (final date in dates) {
@@ -1605,14 +1522,8 @@ class _AttandancePageState extends State<AttandancePage>
 
                                 final e = row.entry!;
                                 final cardIndex = row.cardIndex!;
-                                // Key stabil per entry — tanpa ini SliverList mengenali baris
-                                // berdasarkan POSISI, jadi kalau data baru masuk dan urutan
-                                // bergeser, State lama (termasuk progres load gambar) ke-reuse
-                                // buat entry yang berbeda → data "nyasar" antar kartu.
                                 final cardKey = ValueKey('${e.salesPersonId}_${e.date}_${e.type}_${e.datetime}_${e.logId ?? ''}');
 
-                                // Belum giliran — kartu ke-(cardIndex+1) belum boleh dibangun
-                                // penuh sampai kartu sebelumnya selesai load semua gambarnya.
                                 if (cardIndex >= loadedCount) {
                                   return KeyedSubtree(
                                     key: cardKey,
@@ -1731,12 +1642,9 @@ class _AttandancePageState extends State<AttandancePage>
     String? serial,
   }) {
    
-    // Index gambar yang ditap — untuk sorot di thumbnail strip
     int selectedIndex = allImages.indexOf(tappedUrl);
     if (selectedIndex < 0) selectedIndex = 0;
 
-    // Muat thumbnail satu-satu berurutan (bukan sekaligus semua yang kelihatan
-    // di strip) — sama seperti carousel utama di _ActivityCard.
     int loadedThumbCount = 1;
 
     showDialog(
@@ -1759,7 +1667,6 @@ class _AttandancePageState extends State<AttandancePage>
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      // Gambar utama — klik untuk fullscreen
                       Stack(
                         children: [
                           ClipRRect(
@@ -1791,7 +1698,6 @@ class _AttandancePageState extends State<AttandancePage>
                         ],
                       ),
 
-                      // Thumbnail strip kalau lebih dari 1 gambar
                       if (allImages.length > 1) ...[
                         const SizedBox(height: 10),
                         SizedBox(
@@ -1892,7 +1798,6 @@ class _AttandancePageState extends State<AttandancePage>
 
   Widget _buildWeeklyAttendanceCard(List<AttendanceEntity> items) {
     final name = items.first.fullName ?? '';
-    // Sort days oldest → newest
     final sorted = [...items]..sort((a, b) => a.date.compareTo(b.date));
 
     return Container(
@@ -1906,7 +1811,6 @@ class _AttandancePageState extends State<AttandancePage>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header: name + date range
           Padding(
             padding: const EdgeInsets.only(bottom: 6, left: 12, right: 12),
             child: Row(
@@ -1923,7 +1827,6 @@ class _AttandancePageState extends State<AttandancePage>
               ],
             ),
           ),
-          // Day rows using original card style
           ...sorted.map((item) => _buildCardAttendance(item)),
         ],
       ),
@@ -1939,7 +1842,6 @@ class _AttandancePageState extends State<AttandancePage>
       padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
       child: Row(
         children: [
-          // DATE
           Container(
             width: 56,
             height: 48,
@@ -1958,7 +1860,6 @@ class _AttandancePageState extends State<AttandancePage>
 
           const SizedBox(width: 8),
 
-          // CLOCK IN
           Expanded(
             child: GestureDetector(
               onTap: (!pendingIn && item.clockIn != null) ? () => _showAttendanceDialog(item, 0) : null,
@@ -1988,7 +1889,6 @@ class _AttandancePageState extends State<AttandancePage>
 
           Container(width: 1, height: 40, color: Color(grey9Color)),
 
-          // CLOCK OUT
           Expanded(
             child: GestureDetector(
               onTap: (!pendingOut && item.clockOut != null) ? () => _showAttendanceDialog(item, 1) : null,
@@ -2205,7 +2105,6 @@ class _AttandancePageState extends State<AttandancePage>
     String? approveName,
     String? rejectName,
   }) {
-    // Build status badge based on new logic
     Widget? statusBadge;
     if (needsApproval) {
       final Color badgeColor;
@@ -2577,9 +2476,6 @@ class _ActivityCard extends StatefulWidget {
   final bool canVerify;
   final bool isSelf;
   final VoidCallback? onValidated;
-  // Dipanggil sekali saat kartu ini selesai load SEMUA gambarnya (atau segera
-  // kalau tidak ada gambar) — dipakai halaman untuk "membuka giliran" kartu
-  // berikutnya di list (reveal satu-satu, bukan sekaligus semua).
   final VoidCallback? onFullyLoaded;
 
   const _ActivityCard({
@@ -2613,20 +2509,13 @@ class _ActivityCardState extends State<_ActivityCard> {
   bool _isAtEnd = false;
   bool _photoError = false;
 
-  // Muat gambar carousel satu-satu berurutan (bukan sekaligus semua) — cuma
-  // index < _loadedImageCount yang benar-benar dirender jadi DriveImage
-  // (nembak network request); sisanya placeholder sampai gilirannya.
   int _loadedImageCount = 1;
   bool _fullyLoadedFired = false;
 
   void _advanceImageLoad(int index) {
     if (!mounted) return;
-    // Cuma index yang sedang jadi "giliran depan" yang boleh memicu lanjut,
-    // supaya tidak ada request yang saling numpuk/duluan.
     if (index != _loadedImageCount - 1) return;
     if (_loadedImageCount >= widget.images.length) {
-      // Ini gambar TERAKHIR di kartu ini — beri tahu halaman supaya kartu
-      // berikutnya boleh mulai dibangun/loading gambarnya.
       _fireFullyLoaded();
       return;
     }
@@ -2645,10 +2534,6 @@ class _ActivityCardState extends State<_ActivityCard> {
     _scrollController = ScrollController();
     _scrollController.addListener(_updateScrollState);
     if (widget.images.isEmpty) {
-      // Tidak ada gambar buat ditunggu — langsung buka giliran kartu
-      // berikutnya, tapi ditunda ke frame berikutnya (bukan sinkron di
-      // initState) supaya tidak memicu setState/notify di widget lain
-      // saat proses build masih berjalan.
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) _fireFullyLoaded();
       });
@@ -2785,9 +2670,6 @@ class _ActivityCardState extends State<_ActivityCard> {
 
   @override
   Widget build(BuildContext context) {
-    // Kalau page sedang di-fling/scroll cepat, jangan bangun carousel gambar
-    // sama sekali (skip network request) — cuma tampilkan kotak placeholder.
-    // Widget ini otomatis rebuild lagi begitu scroll melambat/berhenti.
     final deferImageLoad = Scrollable.recommendDeferredLoadingForContext(context);
     return Container(
       margin: const EdgeInsets.only(bottom: 15),
@@ -2920,8 +2802,6 @@ class _ActivityCardState extends State<_ActivityCard> {
                         scrollDirection: Axis.horizontal,
                         itemCount: widget.images.length,
                         itemBuilder: (context, index) {
-                          // Belum giliran — jangan render DriveImage dulu (jangan nembak
-                          // network request) supaya loading gambar berurutan satu-satu.
                           if (index >= _loadedImageCount) {
                             return Container(
                               margin: const EdgeInsets.only(right: 10),
