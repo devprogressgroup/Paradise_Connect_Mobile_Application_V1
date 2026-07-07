@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:progress_group/core/constants/assets.dart';
 import 'package:progress_group/core/constants/colors.dart';
+import 'package:progress_group/core/utils/helpers/app_time.dart';
 import 'package:progress_group/core/utils/helpers/date_helper.dart';
 import 'package:progress_group/features/attandance/presentation/state/attandance/attendance_bloc.dart';
 import 'package:progress_group/features/attandance/presentation/state/attandance/attendance_state.dart';
@@ -26,7 +27,7 @@ class AttendanceAlertsWidget extends StatelessWidget {
           if (!isCheckedIn) {
             final clockInTime = DateTime.tryParse(today.clockIn!);
             if (clockInTime != null) {
-              showCheckIn = DateTime.now().difference(clockInTime).inMinutes >= 10;
+              showCheckIn = AppTime.now().difference(clockInTime).inMinutes >= 10;
             }
           } else {
             showCheckIn = true;
@@ -75,7 +76,7 @@ class AttendanceAlertsWidget extends StatelessWidget {
                   children: [
                     Text(message,style: TextStyle(fontSize: 14,fontWeight: FontWeight.bold,color: Color(blackColor),),),
                     Text('Tap untuk absensi',style: TextStyle(fontSize: 12,fontWeight: FontWeight.bold,color: Color(grey2Color)),),
-                    Text('${DateHelper.formatToIndonesian(DateTime.now(),)}',style: TextStyle(fontSize: 12,fontWeight: FontWeight.bold,color: Color(grey2Color)),),
+                    Text('${DateHelper.formatToIndonesian(AppTime.now(),)}',style: TextStyle(fontSize: 12,fontWeight: FontWeight.bold,color: Color(grey2Color)),),
                   ],
                 ),
               ],

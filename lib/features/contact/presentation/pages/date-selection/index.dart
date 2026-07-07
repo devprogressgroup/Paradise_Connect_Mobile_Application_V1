@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:progress_group/core/constants/colors.dart';
 import 'package:progress_group/features/contact/data/models/dropdown/date_filter.dart';
+import 'package:progress_group/core/utils/helpers/app_time.dart';
 
 class DateFilterPage extends StatefulWidget {
   final String? selectedLabel;
@@ -26,7 +27,7 @@ class _DateFilterPageState extends State<DateFilterPage> {
   @override
   void initState() {
     super.initState();
-    final now = DateTime.now();
+    final now = AppTime.now();
     _today = DateTime(now.year, now.month, now.day);
     final yesterday = _today.subtract(const Duration(days: 1));
     final startOfWeek = _today.subtract(Duration(days: _today.weekday - 1));
@@ -250,7 +251,7 @@ class _DateFilterPageState extends State<DateFilterPage> {
           final picked = await showDateRangePicker(
             context: context,
             firstDate: DateTime(2020),
-            lastDate: DateTime.now().add(const Duration(days: 365)),
+            lastDate: AppTime.now().add(const Duration(days: 365)),
             builder: (context, child) {
               return Theme(
                 data: Theme.of(context).copyWith(

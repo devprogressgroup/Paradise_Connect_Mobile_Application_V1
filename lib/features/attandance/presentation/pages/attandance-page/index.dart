@@ -13,6 +13,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:progress_group/core/constants/colors.dart';
+import 'package:progress_group/core/utils/helpers/app_time.dart';
 import 'package:progress_group/core/utils/helpers/permissions_helper.dart';
 import 'package:progress_group/core/utils/helpers/camera_permission_primer.dart';
 import 'package:progress_group/core/utils/widget/custom_snackbar.dart';
@@ -329,7 +330,7 @@ class _AttandancePageState extends State<AttandancePage>
       if (mounted) ScaffoldMessenger.of(context).hideCurrentSnackBar();
 
       web_debug.logDebugInfo('[Camera] navigasi ke halaman camera...');
-      final result = await context.pushNamed('camera', extra: AttandanceArgs(flag: flagParam, type: title, location: isInRadius ? (nearestOfficeName ?? _address) : _address, time: DateHelper.formatTime(DateTime.now()), locationId: isInRadius ? nearestOfficeId : null, latitude: position.latitude.toString(), longitude: position.longitude.toString(), ), );
+      final result = await context.pushNamed('camera', extra: AttandanceArgs(flag: flagParam, type: title, location: isInRadius ? (nearestOfficeName ?? _address) : _address, time: DateHelper.formatTime(AppTime.now()), locationId: isInRadius ? nearestOfficeId : null, latitude: position.latitude.toString(), longitude: position.longitude.toString(), ), );
       web_debug.logDebugInfo('[Camera] balik dari halaman camera -> result=$result');
 
       if (result == true) {
@@ -352,7 +353,7 @@ class _AttandancePageState extends State<AttandancePage>
   }
 
   ({String start, String end}) get _activityDateRange {
-    final now = DateTime.now();
+    final now = AppTime.now();
     return (
       start: _activityStartDate ?? DateHelper.formatNumericCompact(now.subtract(const Duration(days: 7))),
       end: _activityEndDate ?? DateHelper.formatNumericCompact(now),
@@ -522,7 +523,7 @@ class _AttandancePageState extends State<AttandancePage>
       ownerItems.insert(0, OwnerDropdownItem(id: null, name: 'Semua Karyawan', typeData: 'all'));
     }
 
-    final now = DateTime.now();
+    final now = AppTime.now();
     final prevMonth = DateTime(now.year, now.month - 1);
     DateTime startDate = DateTime(prevMonth.year, prevMonth.month, 25);
     DateTime endDate = DateTime(now.year, now.month, 26);
@@ -887,7 +888,7 @@ class _AttandancePageState extends State<AttandancePage>
   void _trySetInitialTab() {
     if (_hasSetInitialTab || !_permissionsReady || !_locationResolved || _pendingInitialTabState == null) return;
     final today = _pendingInitialTabState!.todayData;
-    final now = DateTime.now();
+    final now = AppTime.now();
     final noClockAccess = _isClockButtonDisabled(0) && _isClockButtonDisabled(1);
 
     int targetIndex;
@@ -1989,72 +1990,54 @@ class _AttandancePageState extends State<AttandancePage>
       padding: const EdgeInsets.symmetric(horizontal: 10),
       child: Container(
         height: height,
+        padding: const EdgeInsets.all(4),
         decoration: BoxDecoration(
           color: Colors.grey.shade100,
           borderRadius: BorderRadius.circular(height / 2),
         ),
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            const double overlap = 25;
-            final tabWidth = (constraints.maxWidth + (tabs.length - 1) * overlap) / tabs.length;
-
-            final page = _pageController.hasClients? (_pageController.page ?? 0): selectedIndex.toDouble();
-
-            List<int> order = [0, 1, 2];
-            order.sort((a, b) {
-              return (b - page).abs().compareTo((a - page).abs());
-            });
-
-            return Stack(
-              children: order.map((index) {
-                return _buildStackTab(
-                  index: index,
-                  left: index * (tabWidth - overlap),
-                  tabWidth: tabWidth,
-                  height: height,
-                  tabs: tabs,
-                  page: page,
-                );
-              }).toList(),
+        // Segmented control lebar-rata (Row + Expanded) — dipilih dibanding Stack
+        // dengan offset "overlap" manual karena hasilnya konsisten di semua lebar
+        // layar (termasuk hp lipat), bukan hasil kalkulasi pixel yang rapuh.
+        child: Row(
+          children: List.generate(tabs.length, (index) {
+            final isActive = selectedIndex == index;
+            return Expanded(
+              child: GestureDetector(
+                onTap: () => _onTabChanged(index),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 250),
+                  alignment: Alignment.center,
+                  margin: const EdgeInsets.symmetric(horizontal: 2),
+                  decoration: BoxDecoration(
+                    color: isActive ? Color(primaryColor) : Colors.transparent,
+                    borderRadius: BorderRadius.circular(height / 2),
+                    boxShadow: isActive ? [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.1),
+                        blurRadius: 10,
+                        offset: const Offset(0, 2),
+                      )
+                    ] : [],
+                  ),
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 6),
+                      child: Text(
+                        tabs[index],
+                        maxLines: 1,
+                        style: TextStyle(
+                          color: isActive ? Colors.white : Colors.grey[700],
+                          fontWeight: FontWeight.w600,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
             );
-          },
-        ),
-      ),
-    );
-  }
-
-
-  Widget _buildStackTab({required int index,required double left,required double tabWidth,required double height,required List<String> tabs,required double page,}) {
-    final isActive = (page - index).abs() < 0.5;
-
-    return Positioned(
-      left: left,
-      child: GestureDetector(
-        onTap: () => _onTabChanged(index),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 250),
-          width: tabWidth,
-          height: height,
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            color: isActive? Color(primaryColor): Colors.transparent,
-           borderRadius: BorderRadius.circular(height / 2),
-            boxShadow: isActive ? [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.1),
-                blurRadius: 10,
-                offset: const Offset(0, 2),
-              )
-            ] : [],
-          ),
-          child: Text(
-            tabs[index],
-            style: TextStyle(
-              color: isActive ? Colors.white : Colors.grey[700],
-              fontWeight: FontWeight.w600,
-              fontSize: 13,
-            ),
-          ),
+          }),
         ),
       ),
     );
@@ -2151,83 +2134,102 @@ class _AttandancePageState extends State<AttandancePage>
           ? GestureDetector(
               onTap: () { if (attendance != null) _showAttendanceDialog(attendance, flagParam); },
               child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 70, vertical: 5),
-              child: Stack(
-                children: [
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(8),
-                    child: image != null
-                        ? DriveImage(
-                            url: image,
-                            width: 200,
-                            height: 200,
-                            fit: BoxFit.cover,
-                          )
-                        : Container(
-                            width: 200,
-                            height: 200,
-                            decoration: BoxDecoration(
-                              color: Color(primaryColor).withValues(alpha: 0.08),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Icon(Icons.punch_clock, size: 80, color: Color(primaryColor).withValues(alpha: 0.4)),
-                          ),
-                  ),
-                  Positioned.fill(
-                    top: 123,
-                    bottom: 0,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 5),
-                      decoration: BoxDecoration(
-                        color: Color(blue2Color).withValues(alpha: 0.5),
-                        borderRadius: const BorderRadius.only(bottomLeft: Radius.circular(8), bottomRight: Radius.circular(8)),
-                      ),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        crossAxisAlignment: CrossAxisAlignment.start,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 5),
+              // Ukuran kartu foto dihitung dari ruang yang benar-benar tersedia
+              // (bukan 200x200 tetap) supaya tidak overflow di layar sempit
+              // (mis. cover screen hp lipat) dan overlay info tidak lagi
+              // pakai offset "top" hardcoded — cukup nempel di bawah (bottom: 0)
+              // sehingga otomatis menyesuaikan berapa pun ukuran kartunya.
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final maxW = constraints.maxWidth.isFinite ? constraints.maxWidth : 170.0;
+                  final maxH = constraints.maxHeight.isFinite ? constraints.maxHeight : 170.0;
+                  final size = [maxW, maxH, 170.0].reduce((a, b) => a < b ? a : b);
+                  return Center(
+                    child: SizedBox(
+                      width: size,
+                      height: size,
+                      child: Stack(
                         children: [
-                          Row(children: [
-                            Icon(Icons.access_time_filled, color: flagParam == 0 ? Color(greenPercentColor) : Color(redPeriodColor), size: 10),
-                            const SizedBox(width: 6),
-                            Text(DateHelper.formatTime(dt), style: const TextStyle(color: Colors.white, fontSize: 10)),
-                          ]),
-                          Row(children: [
-                            Icon(Icons.calendar_today_sharp, color: Color(primaryColor), size: 10),
-                            const SizedBox(width: 6),
-                            Text(DateHelper.formatDate(dt), style: const TextStyle(color: Colors.white, fontSize: 10)),
-                          ]),
-                          Row(children: [
-                            Icon(Icons.location_on, color: Color(primaryColor), size: 10),
-                            const SizedBox(width: 6),
-                            SizedBox(
-                              width: 150,
-                              child: Text(
-                                '${flagParam == 0 ? attendance?.location0 : attendance?.location1}',
-                                style: const TextStyle(color: Colors.white, fontSize: 10),
-                                overflow: TextOverflow.ellipsis,
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(8),
+                            child: image != null
+                                ? DriveImage(
+                                    url: image,
+                                    width: size,
+                                    height: size,
+                                    fit: BoxFit.cover,
+                                  )
+                                : Container(
+                                    width: size,
+                                    height: size,
+                                    decoration: BoxDecoration(
+                                      color: Color(primaryColor).withValues(alpha: 0.08),
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: Icon(Icons.punch_clock, size: size * 0.4, color: Color(primaryColor).withValues(alpha: 0.4)),
+                                  ),
+                          ),
+                          Positioned(
+                            left: 0,
+                            right: 0,
+                            bottom: 0,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: Color(blue2Color).withValues(alpha: 0.5),
+                                borderRadius: const BorderRadius.only(bottomLeft: Radius.circular(8), bottomRight: Radius.circular(8)),
+                              ),
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(children: [
+                                    Icon(Icons.access_time_filled, color: flagParam == 0 ? Color(greenPercentColor) : Color(redPeriodColor), size: 10),
+                                    const SizedBox(width: 6),
+                                    Text(DateHelper.formatTime(dt), style: const TextStyle(color: Colors.white, fontSize: 10)),
+                                  ]),
+                                  Row(children: [
+                                    Icon(Icons.calendar_today_sharp, color: Color(primaryColor), size: 10),
+                                    const SizedBox(width: 6),
+                                    Text(DateHelper.formatDate(dt), style: const TextStyle(color: Colors.white, fontSize: 10)),
+                                  ]),
+                                  Row(children: [
+                                    Icon(Icons.location_on, color: Color(primaryColor), size: 10),
+                                    const SizedBox(width: 6),
+                                    Expanded(
+                                      child: Text(
+                                        '${flagParam == 0 ? attendance?.location0 : attendance?.location1}',
+                                        style: const TextStyle(color: Colors.white, fontSize: 10),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                  ]),
+                                ],
                               ),
                             ),
-                          ]),
+                          ),
+                          if (statusBadge != null)
+                            Positioned(top: 8, left: 8, child: statusBadge),
+                           if (isReject == 1) ...[
+                               Positioned(top: 8, right: 8, child: GestureDetector(
+                                  onTap: _isCameraOpening ? null : () => _handleMoveCamera(title, flagParam),
+                                 child: Container(
+                                  padding: EdgeInsets.all(4),
+                                  decoration: BoxDecoration(
+                                    color: Color(primaryColor),
+                                    borderRadius: BorderRadius.circular(8)
+                                  ),
+                                  child: const Icon(Icons.refresh, size: 18, color: Colors.white),
+                                 ),
+                               )),
+                              ],
                         ],
                       ),
                     ),
-                  ),
-                  if (statusBadge != null)
-                    Positioned(top: 8, left: 8, child: statusBadge),
-                   if (isReject == 1) ...[
-                       Positioned(top: 8, right: 8, child: GestureDetector(
-                          onTap: _isCameraOpening ? null : () => _handleMoveCamera(title, flagParam),
-                         child: Container(
-                          padding: EdgeInsets.all(4),
-                          decoration: BoxDecoration(
-                            color: Color(primaryColor),
-                            borderRadius: BorderRadius.circular(8)
-                          ),
-                          child: const Icon(Icons.refresh, size: 18, color: Colors.white),
-                         ),
-                       )),
-                      ],
-                ],
+                  );
+                },
               ),
             ),
             )
@@ -2236,8 +2238,8 @@ class _AttandancePageState extends State<AttandancePage>
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Text(DateHelper.formatTime(DateTime.now()), style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
-                  Text(DateHelper.formatDate(DateTime.now()), style: TextStyle(fontSize: 11, color: Color(grey6Color))),
+                  Text(DateHelper.formatTime(AppTime.now()), style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+                  Text(DateHelper.formatDate(AppTime.now()), style: TextStyle(fontSize: 11, color: Color(grey6Color))),
                   const SizedBox(height: 8),
                   Material(
                     color: Colors.transparent,

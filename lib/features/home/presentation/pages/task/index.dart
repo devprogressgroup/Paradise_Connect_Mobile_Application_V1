@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:progress_group/core/constants/assets.dart';
 import 'package:progress_group/core/constants/colors.dart';
+import 'package:progress_group/core/utils/helpers/app_time.dart';
 import 'package:progress_group/core/utils/helpers/date_helper.dart';
 import 'package:progress_group/core/utils/widget/attendance_alerts_widget.dart';
 import 'package:progress_group/core/utils/widget/custom_filter_button.dart';
@@ -169,7 +170,7 @@ class _TaskPageState extends State<TaskPage> {
 
   void _loadAll() {
     context.read<AuthBloc>().add(FetchPermissionsEvent());
-    final todayStr = DateFormat('yyyy-MM-dd').format(DateTime.now());
+    final todayStr = DateFormat('yyyy-MM-dd').format(AppTime.now());
     context.read<ActivityBloc>().add(FetchActivitiesEvent(
       followUpStartDate: todayStr,
       followUpEndDate: todayStr,
@@ -195,7 +196,7 @@ class _TaskPageState extends State<TaskPage> {
     );
     if (result != null && mounted) {
       setState(() => _selectedActivity = result);
-      final todayStr = DateFormat('yyyy-MM-dd').format(DateTime.now());
+      final todayStr = DateFormat('yyyy-MM-dd').format(AppTime.now());
       context.read<ActivityBloc>().add(FetchActivitiesEvent(
         followUpStartDate: todayStr,
         followUpEndDate: todayStr,

@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import 'package:progress_group/core/utils/helpers/app_time.dart';
 import 'package:progress_group/core/utils/helpers/date_helper.dart';
 import 'package:progress_group/core/utils/widget/custom_button.dart';
 import 'package:progress_group/features/attandance/data/arguments/attandance_args.dart';
@@ -182,7 +183,7 @@ class _CameraPageState extends State<CameraPage> {
     }
 
     final flag = widget.args.flag;
-    final datetime = DateFormat('yyyy-MM-dd HH:mm:ss').format(DateTime.now());
+    final datetime = DateFormat('yyyy-MM-dd HH:mm:ss').format(AppTime.now());
     final location = pameranTC.text.isNotEmpty ? pameranTC.text : (widget.args.location ?? "Unknown");
 
     final activeLocationId = _selectedPameranLocation?.id ?? widget.args.locationId;
@@ -436,7 +437,7 @@ class _CameraPageState extends State<CameraPage> {
                                 children: [
                                   Row(children: [Icon(Icons.access_time_filled, color: Color(greenPercentColor), size: 25), SizedBox(width: 10), Text(widget.args.time ?? "-", style: TextStyle(color: Colors.white))]),
                                   SizedBox(height: 10),
-                                  Row(children: [Icon(Icons.calendar_today_sharp, color: Color(primaryColor), size: 25), SizedBox(width: 10), Text(DateHelper.formatDate(DateTime.now()), style: TextStyle(color: Colors.white))]),
+                                  Row(children: [Icon(Icons.calendar_today_sharp, color: Color(primaryColor), size: 25), SizedBox(width: 10), Text(DateHelper.formatDate(AppTime.now()), style: TextStyle(color: Colors.white))]),
                                   SizedBox(height: 10),
                                   Row(children: [Icon(Icons.location_on, color: Color(primaryColor), size: 25), SizedBox(width: 10), SizedBox(width: 250, child: Text(widget.args.location ?? "-", style: TextStyle(color: Colors.white), overflow: TextOverflow.ellipsis))]),
                                 ],
@@ -507,7 +508,7 @@ class _CameraPageState extends State<CameraPage> {
                          SizedBox(height: 8),
                          _buildfield(label: "Time", value: widget.args.time ?? "-"),
                          SizedBox(height: 8),
-                         _buildfield(label: "Date", value:DateHelper.formatDate(DateTime.now())),
+                         _buildfield(label: "Date", value:DateHelper.formatDate(AppTime.now())),
                         ],
                       ),
 
@@ -718,5 +719,5 @@ class _CameraPageState extends State<CameraPage> {
 // widget.args.location ?? "-"
    // Row(children: [Icon(Icons.access_time_filled, color: Color(greenPercentColor), size: 18), SizedBox(width: 10), Text(widget.args.time ?? "-", style: TextStyle(fontSize: 13, color: Color(grey2Color)))]),
                 // SizedBox(height: 8),
-                // Row(children: [Icon(Icons.calendar_today_sharp, color: Color(primaryColor), size: 18), SizedBox(width: 10), Text(DateHelper.formatDate(DateTime.now()), style: TextStyle(fontSize: 13, color: Color(grey2Color)))]),
+                // Row(children: [Icon(Icons.calendar_today_sharp, color: Color(primaryColor), size: 18), SizedBox(width: 10), Text(DateHelper.formatDate(AppTime.now()), style: TextStyle(fontSize: 13, color: Color(grey2Color)))]),
                 // SizedBox(height: 8),

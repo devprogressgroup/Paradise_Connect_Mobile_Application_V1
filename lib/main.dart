@@ -5,6 +5,7 @@ import 'dart:ui' show PlatformDispatcher;
 import 'package:flutter/foundation.dart' show kIsWeb, debugPrint;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:progress_group/core/screens/update_screen.dart';
 import 'core/utils/web_debug_util.dart' as web_debug;
 import 'core/utils/web_update.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -98,7 +99,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'app/router.dart';
 import 'core/network/settings_remote_datasource.dart';
-import 'core/screens/update_screen.dart';
+// import 'core/screens/update_screen.dart'; // full-screen forced update — diganti banner
+import 'core/utils/widget/update_banner.dart';
 import 'core/services/version_check_service.dart';
 import 'features/saleskit/data/datasources/saleskit_remote_datasource.dart';
 import 'features/site-plan/data/datasources/siteplan_remote_datasource.dart';
@@ -399,7 +401,12 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
       theme: AppTheme.lightTheme,
       routerConfig: AppRouter.router,
       builder: (context, child) {
-        return MultiBlocProvider(
+        final mq = MediaQuery.of(context);
+        return MediaQuery(
+          data: mq.copyWith(
+            textScaler: mq.textScaler.clamp(minScaleFactor: 0.85, maxScaleFactor: 1.15),
+          ),
+          child: MultiBlocProvider(
           key: _blocKey,
           providers: [
             BlocProvider(create: (_) => AuthBloc(loginUseCase: loginUseCase, forgotPasswordUseCase: forgotPasswordUseCase, getRememberMeUseCase: getRememberMeUseCase, clearRememberMeUseCase: clearRememberMeUseCase, getBiometricEnabledUseCase: getBiometricEnabledUseCase, saveBiometricEnabledUseCase: saveBiometricEnabledUseCase, saveCredentialsUseCase: saveCredentialsUseCase, updateProfileUseCase: updateProfileUseCase, resetPasswordUsecase: resetPasswordUsecase, logoutUseCase: logoutUseCase, getPermissionsUseCase: getPermissionsUseCase, getImpersonatableUsersUseCase: getImpersonatableUsersUseCase, impersonateUseCase: impersonateUseCase, stopImpersonationUseCase: stopImpersonationUseCase)),
@@ -484,13 +491,15 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
               children: [
                 child!,
                 if (_updateResult != null)
-                  UpdateScreen(
+                  // const Positioned(top: 0, left: 0, right: 0, child: UpdateBanner()),
+                   UpdateScreen(
                     downloadUrl: _updateResult!.downloadUrl,
                     currentVersion: _updateResult!.currentVersion,
                     latestVersion: _updateResult!.latestVersion,
                   ),
               ],
             ),
+          ),
           ),
         );
       },

@@ -23,23 +23,21 @@ class DefaultFirebaseOptions {
 
   static const FirebaseOptions android = FirebaseOptions(
     apiKey: 'AIzaSyARKkkCwhqqTeqHUQ8OFloW4e9gDg8WmrY',
-    appId: '1:729428932735:android:8ec407c3ca726a7ea6274a',
+    appId: '1:729428932735:android:8bb0a4e0d2f84631a6274a',
     messagingSenderId: '729428932735',
     projectId: 'paradise-connect-mobile-6effd',
     storageBucket: 'paradise-connect-mobile-6effd.firebasestorage.app',
   );
-
   // Nilai diambil dari google-services.json (paradise-connect-mobile-6effd)
 
   static const FirebaseOptions ios = FirebaseOptions(
     apiKey: 'AIzaSyA4zCrddsInlOO8UjNzfr_5bGnYTE63RLs',
-    appId: '1:729428932735:ios:c119e9fad116bc75a6274a',
+    appId: '1:729428932735:ios:c7491da858b2495aa6274a',
     messagingSenderId: '729428932735',
     projectId: 'paradise-connect-mobile-6effd',
     storageBucket: 'paradise-connect-mobile-6effd.firebasestorage.app',
-    iosBundleId: 'com.example.progressGroup',
+    iosBundleId: 'id.co.progressgroup.connect',
   );
-
   // iOS — sesuaikan dengan GoogleService-Info.plist jika ada
 
   static const FirebaseOptions web = FirebaseOptions(
@@ -51,5 +49,4 @@ class DefaultFirebaseOptions {
     storageBucket: 'paradise-connect-mobile-6effd.firebasestorage.app',
     measurementId: 'G-CSPZP3F9M7',
   );
-
 }

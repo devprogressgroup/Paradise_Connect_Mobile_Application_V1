@@ -1,6 +1,7 @@
 ﻿import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:progress_group/core/utils/helpers/app_time.dart';
 import 'package:progress_group/core/utils/helpers/number_helper.dart';
 import 'package:progress_group/core/utils/helpers/permissions_helper.dart';
 import 'package:progress_group/core/utils/widget/shimmer_loading.dart';
@@ -145,7 +146,7 @@ class _ContactPageState extends State<ContactPage> {
   }
 
   String _resolveDateLabel(String startDate, String endDate) {
-    final now = DateTime.now();
+    final now = AppTime.now();
     final today = DateTime(now.year, now.month, now.day);
     final fmt = DateFormat('yyyy-MM-dd');
     final yesterday = today.subtract(const Duration(days: 1));

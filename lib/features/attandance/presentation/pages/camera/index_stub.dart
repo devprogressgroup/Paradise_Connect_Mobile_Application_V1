@@ -11,6 +11,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import 'package:progress_group/core/utils/helpers/app_time.dart';
 import 'package:progress_group/core/utils/helpers/date_helper.dart';
 import 'package:progress_group/core/utils/widget/custom_button.dart';
 import 'package:progress_group/features/attandance/data/arguments/attandance_args.dart';
@@ -521,7 +522,7 @@ class _WebSubmitPageState extends State<_WebSubmitPage> {
     }
 
     final flag = widget.args.flag;
-    final datetime = DateFormat('yyyy-MM-dd HH:mm:ss').format(DateTime.now());
+    final datetime = DateFormat('yyyy-MM-dd HH:mm:ss').format(AppTime.now());
     final location = pameranTC.text.isNotEmpty
         ? pameranTC.text
         : (widget.args.location ?? 'Unknown');
@@ -634,7 +635,7 @@ class _WebSubmitPageState extends State<_WebSubmitPage> {
                                 children: [
                                   Row(children: [Icon(Icons.access_time_filled, color: Color(greenPercentColor), size: 25), const SizedBox(width: 10), Text(widget.args.time ?? '-', style: const TextStyle(color: Colors.white))]),
                                   const SizedBox(height: 10),
-                                  Row(children: [Icon(Icons.calendar_today_sharp, color: Color(primaryColor), size: 25), const SizedBox(width: 10), Text(DateHelper.formatDate(DateTime.now()), style: const TextStyle(color: Colors.white))]),
+                                  Row(children: [Icon(Icons.calendar_today_sharp, color: Color(primaryColor), size: 25), const SizedBox(width: 10), Text(DateHelper.formatDate(AppTime.now()), style: const TextStyle(color: Colors.white))]),
                                   const SizedBox(height: 10),
                                   Row(children: [Icon(Icons.location_on, color: Color(primaryColor), size: 25), const SizedBox(width: 10), SizedBox(width: 250, child: Text(widget.args.location ?? '-', style: const TextStyle(color: Colors.white), overflow: TextOverflow.ellipsis))]),
                                 ],
@@ -705,7 +706,7 @@ class _WebSubmitPageState extends State<_WebSubmitPage> {
                           const SizedBox(height: 8),
                           _buildInfoField(label: 'Time', value: widget.args.time ?? '-'),
                           const SizedBox(height: 8),
-                          _buildInfoField(label: 'Date', value: DateHelper.formatDate(DateTime.now())),
+                          _buildInfoField(label: 'Date', value: DateHelper.formatDate(AppTime.now())),
                         ],
                       ),
 

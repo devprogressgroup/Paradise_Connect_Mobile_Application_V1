@@ -1,6 +1,6 @@
 ﻿import 'dart:io';
 import 'dart:typed_data';
-import 'package:flutter/foundation.dart' show kIsWeb, kDebugMode;
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:file_picker/file_picker.dart';
 import 'package:progress_group/core/services/salesbook_sync_service.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -43,6 +43,7 @@ import 'package:progress_group/features/contact/presentation/state/contact/conta
 import 'package:progress_group/features/contact/presentation/state/contact/contact_event.dart';
 
 import '../../../../../core/constants/colors.dart';
+import '../../../../../core/utils/helpers/app_time.dart';
 import '../../../../../core/utils/helpers/date_helper.dart';
 import '../../../../../core/utils/helpers/image_compress_helper.dart';
 import '../../../../../core/utils/widget/custom_header.dart';
@@ -147,7 +148,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
   @override
   void initState() {
     super.initState();
-    selectedDate = DateTime.now();
+    selectedDate = AppTime.now();
     if (widget.args.dataActivity?.notes != null) {
       descFormActivityTC.text = widget.args.dataActivity!.notes!;
     }
@@ -189,7 +190,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
       final d = DateTime.parse(raw);
       // Khusus Lost: bila tersimpan tanpa jam (00:00), tampilkan dengan jam sekarang (perilaku lama).
       if (group == 'lost') {
-        final n = DateTime.now();
+        final n = AppTime.now();
         return d.hour == 0 && d.minute == 0
             ? DateTime(d.year, d.month, d.day, n.hour, n.minute, 0)
             : d;
@@ -229,7 +230,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
           try {
             isFollowUp = true;
             final d = DateTime.parse(activity.nextFollowUpDate!);
-            final n = DateTime.now();
+            final n = AppTime.now();
             selectedDate = d.hour == 0 && d.minute == 0
                 ? DateTime(d.year, d.month, d.day, n.hour, n.minute, 0)
                 : d;
@@ -237,7 +238,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
         } else if (activity.activityDate.isNotEmpty) {
           try {
             final d = DateTime.parse(activity.activityDate);
-            final n = DateTime.now();
+            final n = AppTime.now();
             selectedDate = d.hour == 0 && d.minute == 0
                 ? DateTime(d.year, d.month, d.day, n.hour, n.minute, 0)
                 : d;
@@ -412,7 +413,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
       'camera',
       extra: AttandanceArgs(
         type: "Visit",
-        time: DateFormat('HH:mm').format(DateTime.now()),
+        time: DateFormat('HH:mm').format(AppTime.now()),
         isReturnImage: true,
         skipPreview: true,
       ),
@@ -490,7 +491,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
   }
 
   Future<void> pickDateTime(BuildContext context) async {
-    final now = DateTime.now();
+    final now = AppTime.now();
 
     final date = await showDatePicker(
       context: context,
@@ -1672,7 +1673,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
                 Text(
                   selectedDate != null
                       ? DateHelper.formatDateTimeShort(selectedDate!)
-                      : DateHelper.formatDateTimeShort(DateTime.now()),
+                      : DateHelper.formatDateTimeShort(AppTime.now()),
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.bold,
@@ -2589,7 +2590,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  DateHelper.formatDateTimeShort(DateTime.now()),
+                  DateHelper.formatDateTimeShort(AppTime.now()),
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.bold,
@@ -2655,7 +2656,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
                         Text(
                           selectedDate != null
                               ? DateHelper.formatDateTimeShort(selectedDate!)
-                              : DateHelper.formatDateTimeShort(DateTime.now()),
+                              : DateHelper.formatDateTimeShort(AppTime.now()),
                           style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.bold,
@@ -2686,7 +2687,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
                           setState(() => _noteError = true);
                           return;
                         }
-                        _submitActivity(activityType: widget.args.namePage ?? '',activityDate: DateTime.now(),notesTC: descFormActivityTC,isFollowUp: isFollowUp,followUpDate: selectedDate,);
+                        _submitActivity(activityType: widget.args.namePage ?? '',activityDate: AppTime.now(),notesTC: descFormActivityTC,isFollowUp: isFollowUp,followUpDate: selectedDate,);
                       }
                     },
                     isLoading ? 'Menyimpan...' : (widget.args.buttonLabel ?? 'Save'),
@@ -2734,7 +2735,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
                   Text(
                     selectedDate != null
                         ? DateHelper.formatDateTimeShort(selectedDate!)
-                        : DateHelper.formatDateTimeShort(DateTime.now()),
+                        : DateHelper.formatDateTimeShort(AppTime.now()),
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.bold,
@@ -2819,7 +2820,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
                           setState(() => _noteError = true);
                           return;
                         }
-                        _submitActivity(activityType: widget.args.namePage ?? '',activityDate: DateTime.now(),notesTC: descFormActivityTC,isFollowUp: true,followUpDate: selectedDate ?? DateTime.now(),);
+                        _submitActivity(activityType: widget.args.namePage ?? '',activityDate: AppTime.now(),notesTC: descFormActivityTC,isFollowUp: true,followUpDate: selectedDate ?? AppTime.now(),);
                       }
                     },
                     isLoading ? 'Menyimpan...' : (widget.args.buttonLabel ?? 'Save'),

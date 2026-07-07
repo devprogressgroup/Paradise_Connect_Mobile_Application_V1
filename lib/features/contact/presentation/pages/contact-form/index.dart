@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_contacts/flutter_contacts.dart';
 import 'dart:convert';
 import 'package:flutter/services.dart';
+import 'package:progress_group/core/utils/helpers/app_time.dart';
 import 'package:progress_group/core/utils/helpers/date_helper.dart';
 import 'package:progress_group/core/utils/widget/shimmer_loading.dart';
 import 'package:intl/intl.dart';
@@ -474,7 +475,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
       return;
     }
     final parsed = _parseDateOrToday(text);
-    final now = DateTime.now();
+    final now = AppTime.now();
     final combined = DateTime(parsed.year, parsed.month, parsed.day, now.hour, now.minute, now.second);
     _periodePameranDateBackend = '${DateHelper.formatNumericCompact(combined)} ${DateFormat('HH:mm:ss').format(combined)}';
   }
@@ -591,7 +592,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
     }
 
     if (widget.args.page == 0 && widget.args.dataContact == null) {
-      final today = DateHelper.formatDate(DateTime.now());
+      final today = DateHelper.formatDate(AppTime.now());
 
       setState(() {
         if (firstApptDateTC.text.isEmpty) firstApptDateTC.text = today;
@@ -650,7 +651,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
     selectedSource2Name = contact.sumberInformasi2Name;
     selectedSource2Id = int.tryParse(contact.sumberInformasi2 ?? '');
     if (_pameranIds.contains(selectedSource1Id)) {
-      final now = DateTime.now();
+      final now = AppTime.now();
       _periodePameranDateBackend = '${DateHelper.formatNumericCompact(now)} ${DateFormat('HH:mm:ss').format(now)}';
       periodePameranDateTC.text = DateHelper.formatDate(now);
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -1250,7 +1251,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
   }
 
   Future<void> _handleSave() async {
-    final today = DateHelper.formatDate(DateTime.now());
+    final today = DateHelper.formatDate(AppTime.now());
     final isCreate = widget.args.page == 0;
     final isUpdate = widget.args.page == 1;
 
@@ -1386,7 +1387,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
 
 
   DateTime _parseDateOrToday(String? value) {
-    if (value == null || value.isEmpty) return DateTime.now();
+    if (value == null || value.isEmpty) return AppTime.now();
     try {
       return DateTime.parse(value);
     } catch (_) {}
@@ -1396,13 +1397,13 @@ class _ContactFormPageState extends State<ContactFormPage> {
     try {
       return DateFormat('dd/MM/yyyy').parse(value);
     } catch (_) {}
-    return DateTime.now();
+    return AppTime.now();
   }
 
   String? _toBackendDate(String value) {
     if (value.isEmpty) return null;
     final dt = _parseDateOrToday(value);
-    final now = DateTime.now();
+    final now = AppTime.now();
     final time = '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}:${now.second.toString().padLeft(2, '0')}';
     return '${DateHelper.formatNumericCompact(dt)} $time';
   }
@@ -1846,7 +1847,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
                                   final selected = result as OwnerDropdownItem;
                                   final isPameran = _pameranIds.contains(selected.id);
                                   if (isPameran) {
-                                    final now = DateTime.now();
+                                    final now = AppTime.now();
                                     _periodePameranDateBackend = '${DateHelper.formatNumericCompact(now)} ${DateFormat('HH:mm:ss').format(now)}';
                                     periodePameranDateTC.text = DateHelper.formatDate(now);
                                     context.read<PameranAktifCubit>().load();
@@ -2344,7 +2345,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
                               final selected = result as OwnerDropdownItem;
                               final isPameran = _pameranIds.contains(selected.id);
                               if (isPameran) {
-                                final now = DateTime.now();
+                                final now = AppTime.now();
                                 _periodePameranDateBackend = '${DateHelper.formatNumericCompact(now)} ${DateFormat('HH:mm:ss').format(now)}';
                                 periodePameranDateTC.text = DateHelper.formatDate(now);
                                 context.read<PameranAktifCubit>().load();

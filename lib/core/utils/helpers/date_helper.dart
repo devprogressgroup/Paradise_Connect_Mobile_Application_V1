@@ -1,10 +1,11 @@
 import 'package:intl/intl.dart';
+import 'app_time.dart';
 
 class DateHelper {
 
 
   static String nowFull() {
-    return formatDate(DateTime.now());
+    return formatDate(AppTime.now());
   }
 
   /// 🔥 JAM SAJA (08:30 AM)
@@ -13,7 +14,7 @@ class DateHelper {
   }
 
   static String nowTime() {
-    return formatTime(DateTime.now());
+    return formatTime(AppTime.now());
   }
 
   /// 🔥 TANGGAL SAJA ( 13 April 2026)
@@ -22,12 +23,12 @@ class DateHelper {
   }
 
   static String nowDate() {
-    return formatDate(DateTime.now());
+    return formatDate(AppTime.now());
   }
 
 
   static String nowDayDate() {
-    return formatDate(DateTime.now());
+    return formatDate(AppTime.now());
   }
 
 /// 🔥 16 May 2026 20:00
@@ -49,7 +50,7 @@ class DateHelper {
   }
 
   static String nowDay() {
-    return formatDay(DateTime.now());
+    return formatDay(AppTime.now());
   }
 
   String formatInboxDate(String? value) {
@@ -59,7 +60,7 @@ class DateHelper {
 
   if (date == null) return value;
 
-  final now = DateTime.now();
+  final now = AppTime.now();
 
   final isToday =
       date.year == now.year &&

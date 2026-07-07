@@ -10,6 +10,8 @@ import '../../features/auth/presentation/state/auth/auth_event.dart';
 import 'api_constants.dart';
 import 'proxy_cipher.dart';
 import '../../core/utils/web_debug_util.dart' as web_debug;
+import '../../core/utils/helpers/app_time.dart';
+import '../../core/utils/widget/device_time_warning_dialog.dart';
 
 class DioClient {
   final AuthLocalDataSource _authLocalDataSource;
@@ -40,6 +42,28 @@ class DioClient {
         duration: const Duration(seconds: 3),
       ),
     );
+  }
+
+  static void _checkDeviceTimeDrift() {
+    if (!AppTime.consumeSuspiciousDriftFlag()) return;
+    final context = AppRouter.rootNavigatorKey.currentContext;
+    if (context == null || !context.mounted) return;
+    showDeviceTimeWarningDialog(context);
+  }
+
+  static bool _certWarningShown = false;
+
+  // HTTPS ditolak (sertifikat dianggap invalid) hampir selalu berarti jam
+  // perangkat salah (sertifikat server valid tapi tampak "belum berlaku"/
+  // "kadaluarsa" di mata device). Ini terjadi SEBELUM ada response sama
+  // sekali, jadi AppTime (yang butuh response utk sync) tidak akan sempat
+  // mendeteksinya — makanya perlu ditangkap terpisah dari drift check di atas.
+  static void _checkCertificateError(DioException e) {
+    if (e.type != DioExceptionType.badCertificate || _certWarningShown) return;
+    _certWarningShown = true;
+    final context = AppRouter.rootNavigatorKey.currentContext;
+    if (context == null || !context.mounted) return;
+    showDeviceTimeWarningDialog(context, message: certErrorMessage);
   }
 
   DioClient(this._authLocalDataSource) {
@@ -108,7 +132,7 @@ class DioClient {
               'path': options.path,
               'query': Map<String, dynamic>.from(options.queryParameters),
               'body': body,
-              'ts': DateTime.now().millisecondsSinceEpoch,
+              'ts': AppTime.now().millisecondsSinceEpoch,
             };
             if (kDebugMode) {
               _printLong('[REQ DECRYPT] ${payload['method']} ${payload['path']} => ${jsonEncode(payload)}');
@@ -130,6 +154,8 @@ class DioClient {
           return handler.next(options);
         },
         onResponse: (response, handler) {
+          AppTime.syncFromHeader(response.headers.value('date'));
+          _checkDeviceTimeDrift();
           final isFileDownload = response.requestOptions.responseType == ResponseType.bytes ||
               response.requestOptions.responseType == ResponseType.stream;
           if (!isFileDownload) {
@@ -149,6 +175,9 @@ class DioClient {
           return handler.next(response);
         },
         onError: (DioException e, handler) async {
+          AppTime.syncFromHeader(e.response?.headers.value('date'));
+          _checkDeviceTimeDrift();
+          _checkCertificateError(e);
           if (e.response != null) {
             final isFileDownload = e.requestOptions.responseType == ResponseType.bytes ||
                 e.requestOptions.responseType == ResponseType.stream;

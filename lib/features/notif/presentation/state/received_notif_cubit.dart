@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../domain/entities/received_notif_entity.dart';
+import '../../../../core/utils/helpers/app_time.dart';
 
 class ReceivedNotifState {
   final List<ReceivedNotifEntity> items;
@@ -32,7 +33,7 @@ class ReceivedNotifCubit extends Cubit<ReceivedNotifState> {
       body: body,
       type: type,
       data: Map<String, dynamic>.from(data),
-      receivedAt: DateTime.now(),
+      receivedAt: AppTime.now(),
     ));
   }
 

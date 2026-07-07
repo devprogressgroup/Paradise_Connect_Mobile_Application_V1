@@ -12,6 +12,7 @@ import 'package:progress_group/features/inbox/presentation/state/message/message
 import 'package:progress_group/features/inbox/presentation/state/message/message_state.dart';
 import 'package:video_player/video_player.dart';
 import '../../../../../core/utils/widget/error_dialog.dart';
+import '../../../../../core/utils/helpers/app_time.dart';
 
 class InboxDetailPage extends StatefulWidget {
   final InboxDetailArgs args;
@@ -57,7 +58,7 @@ class _InboxDetailPageState extends State<InboxDetailPage> {
   String _formatDateHeader(int timestamp) {
     if (timestamp == 0) return "";
     final date = DateTime.fromMillisecondsSinceEpoch(timestamp * 1000);
-    final now = DateTime.now();
+    final now = AppTime.now();
     final today = DateTime(now.year, now.month, now.day);
     final yesterday = DateTime(now.year, now.month, now.day - 1);
     final msgDate = DateTime(date.year, date.month, date.day);

@@ -5,6 +5,7 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart' show debugPrint, kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:progress_group/core/services/version_check_service.dart';
+import 'package:progress_group/core/utils/helpers/app_time.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:progress_group/app/router.dart';
@@ -345,10 +346,10 @@ class PushNotificationService {
       if (activityId != null && contactId != null) {
         final activityType   = data['activity_type']       as String? ?? '';
         final contactName    = data['contact_name']        as String? ?? '';
-        final activityDate   = data['activity_date']       as String? ?? DateTime.now().toIso8601String().substring(0, 10);
+        final activityDate   = data['activity_date']       as String? ?? AppTime.now().toIso8601String().substring(0, 10);
         final nextFollowUp   = data['next_follow_up_date'] as String?;
         final createdBy      = int.tryParse(data['created_by'] as String? ?? '') ?? 0;
-        final createdAt      = data['created_at']          as String? ?? DateTime.now().toIso8601String();
+        final createdAt      = data['created_at']          as String? ?? AppTime.now().toIso8601String();
 
         int    page     = 6;
         String namePage = 'Update Status Prospect';

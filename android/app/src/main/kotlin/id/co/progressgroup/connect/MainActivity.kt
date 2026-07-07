@@ -1,4 +1,4 @@
-package com.example.progress_group
+package id.co.progressgroup.connect
 
 import android.content.Intent
 import android.net.Uri

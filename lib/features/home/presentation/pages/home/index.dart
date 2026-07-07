@@ -5,6 +5,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:progress_group/core/constants/colors.dart';
 import 'package:progress_group/core/constants/assets.dart';
+import 'package:progress_group/core/utils/helpers/app_time.dart';
 import 'package:progress_group/core/utils/helpers/date_helper.dart';
 import 'package:progress_group/core/utils/helpers/number_helper.dart';
 import 'package:progress_group/features/attandance/domain/entities/attendance_approval_entity.dart';
@@ -47,8 +48,8 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
 
-  DateTime _chartEndDate = DateTime.now();
-  DateTime _chartStartDate = DateTime.now().subtract(const Duration(days: 6));
+  DateTime _chartEndDate = AppTime.now();
+  DateTime _chartStartDate = AppTime.now().subtract(const Duration(days: 6));
   int day = 0;
   bool isCompleted = false;
   DateTime? _lastLoadTime;
@@ -62,7 +63,7 @@ class _HomePageState extends State<HomePage> {
   void initState() {
     super.initState();
     day = _chartEndDate.difference(_chartStartDate).inDays + 1;
-    final now = DateTime.now();
+    final now = AppTime.now();
     _prospectStartDate = DateFormat('yyyy-MM-dd').format(DateTime(now.year - 1, now.month, now.day));
     _prospectEndDate   = DateFormat('yyyy-MM-dd').format(now);
     _prospectDateLabel = 'Last 1 Year';
@@ -123,7 +124,7 @@ class _HomePageState extends State<HomePage> {
   }
 
   Future<void> _loadData({bool force = false}) async {
-    final now = DateTime.now();
+    final now = AppTime.now();
     if (!force && _lastLoadTime != null && now.difference(_lastLoadTime!).inSeconds < 10) return;
     _lastLoadTime = now;
     context.read<AuthBloc>().add(FetchPermissionsEvent());
@@ -634,7 +635,7 @@ class _HomePageState extends State<HomePage> {
                         return GestureDetector(
                           // onTap: () => context.pushNamed('pipeline', extra: {'statusIds': [item.prospectStatusId], 'title': item.statusName}),
                           onTap: () {
-                            final now = DateTime.now();
+                            final now = AppTime.now();
                             final today = DateTime(now.year, now.month, now.day);
                             final fmt = DateFormat('yyyy-MM-dd');
                             final defaultStart = fmt.format(DateTime(today.year - 1, today.month, today.day));
