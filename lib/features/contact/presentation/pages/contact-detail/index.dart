@@ -239,8 +239,6 @@ class _ContactDetailPageState extends State<ContactDetailPage>with TickerProvide
             if (state is PermissionsLoaded) setState(() {});
           },
         ),
-        // Surface error 403 (mis. "Anda tidak memiliki akses ke kontak ini.") saat memuat detail,
-        // lalu kembali ke daftar — sebelumnya pesan ini hilang (tidak ditampilkan) di mobile.
         BlocListener<ContactBloc, ContactState>(
           listenWhen: (prev, curr) =>
               curr.status == ContactStatus.error && prev.status == ContactStatus.loadingDetail,
@@ -282,7 +280,6 @@ class _ContactDetailPageState extends State<ContactDetailPage>with TickerProvide
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    // Back button + title + icons — semua collapse bersama
                     AnimatedBuilder(
                       animation: _headerAnim,
                       builder: (context, child) {
@@ -402,7 +399,6 @@ class _ContactDetailPageState extends State<ContactDetailPage>with TickerProvide
                           ),
                     ),
 
-                    // Tab bar — strip full-width, pill padded
                     SizedBox(
                       height: 60,
                       child: Stack(
@@ -516,20 +512,6 @@ class _ContactDetailPageState extends State<ContactDetailPage>with TickerProvide
               );
             },
           ),
-          // ContactOptionsSheet.buildIconLink(
-          //   context,
-          //   icContactDetailMeeting,
-          //   "Meeting",
-          //   () {
-          //     _navigateToAddContact(
-          //       ContactDetailArgs(
-          //         dataContact: widget.args.dataContact,
-          //         page: 2,
-          //         namePage: "Meeting",
-          //       ),
-          //     );
-          //   },
-          // ),
           ContactOptionsSheet.buildIconLink(
             context,
             icContactDetailReminder,
@@ -551,7 +533,6 @@ class _ContactDetailPageState extends State<ContactDetailPage>with TickerProvide
             () {
               _navigateToAddContact(
                 ContactDetailArgs(
-                  // Pakai detail TERBARU (bawa last_project + units) agar form Visit langsung benar, bukan data list basi.
                   dataContact: context.read<ContactBloc>().state.contactDetail ?? widget.args.dataContact,
                   page: 4,
                   namePage: "Visit",
@@ -566,7 +547,6 @@ class _ContactDetailPageState extends State<ContactDetailPage>with TickerProvide
             () {
               _navigateToAddContact(
                 ContactDetailArgs(
-                  // Pakai detail TERBARU (bawa last_project + units) agar form langsung benar, bukan data list basi.
                   dataContact: context.read<ContactBloc>().state.contactDetail ?? widget.args.dataContact,
                   page: 6,
                   namePage: "Update Status Prospect",
@@ -675,22 +655,13 @@ class _ContactDetailPageState extends State<ContactDetailPage>with TickerProvide
                       WhatsappActivityState
                     >(
                       builder: (context, unreadState) {
-                        // =========================
-                        // LOADING
-                        // =========================
                         if (activityState.status == ActivityStatus.loading &&
                             activityState.activities.isEmpty) {
                           return buildActivityShimmer();
                         }
 
-                        // =========================
-                        // MERGE TIMELINE
-                        // =========================
                         List<ActivityTimelineItem> timeline = [];
 
-                        // =========================
-                        // ACTIVITY
-                        // =========================
                         for (var item in activityState.activities) {
                           final date = DateTime.tryParse(item.activityDate);
 
@@ -705,9 +676,6 @@ class _ContactDetailPageState extends State<ContactDetailPage>with TickerProvide
                           }
                         }
 
-                        // =========================
-                        // PROSPECT
-                        // =========================
                         for (var item in prospectState.data) {
                           final date = DateTime.tryParse(item.createdAt);
 
@@ -722,9 +690,6 @@ class _ContactDetailPageState extends State<ContactDetailPage>with TickerProvide
                           }
                         }
 
-                        // =========================
-                        // WHATSAPP
-                        // =========================
                         for (var item in whatsappState.data) {
                           final date = DateTime.tryParse(item.lastMessageAt);
 
@@ -739,9 +704,6 @@ class _ContactDetailPageState extends State<ContactDetailPage>with TickerProvide
                           }
                         }
 
-                        // =========================
-                        // INBOX CONTACT
-                        // =========================
                         if (inboxState is InboxContactLoaded) {
                           for (var item in inboxState.contacts) {
                             final date = DateTime.tryParse(
@@ -760,51 +722,16 @@ class _ContactDetailPageState extends State<ContactDetailPage>with TickerProvide
                           }
                         }
 
-                        // =========================
-                        // CONTACT DATES
-                        // =========================
-                        // final contact = context.read<ContactBloc>().state.contactDetail
-                        //     ?? widget.args.dataContact;
-                        // if (contact != null) {
-                        //   final dateMappings = <Map<String, dynamic>>[
-                        //     {'label': 'Appt', 'date': contact.lastApptDate},
-                        //     {'label': 'Reserve', 'date': contact.lastReserveDate},
-                        //     {'label': 'SP', 'date': contact.lastSpDate},
-                        //     {'label': 'Akad', 'date': contact.lastAkadDate},
-                        //     {'label': 'Lost', 'date': contact.lastLostDate},
-                        //   ];
-                        //   for (final map in dateMappings) {
-                        //     final dateStr = map['date'] as String?;
-                        //     final label = map['label'] as String;
-                        //     if (dateStr != null && dateStr.isNotEmpty) {
-                        //       final date = DateTime.tryParse(dateStr);
-                        //       if (date != null) {
-                        //         timeline.add(ActivityTimelineItem(
-                        //           date: date,
-                        //           type: 'contact_date',
-                        //           data: {'label': label, 'date': date},
-                        //         ));
-                        //       }
-                        //     }
-                        //   }
-                        // }
 
-                        // =========================
-                        // SORT DESC (newest di atas). "Created contact" SELALU paling bawah,
-                        // sehingga status prospek (mis. submit awal) tampil di ATAS create date.
-                        // =========================
                         bool _isCreate(ActivityTimelineItem t) =>
                             t.type == 'activity' && (t.data.activityType == 'Created contact');
                         timeline.sort((a, b) {
                           final aC = _isCreate(a), bC = _isCreate(b);
-                          if (aC && !bC) return 1;   // a (create) ke bawah
-                          if (bC && !aC) return -1;  // b (create) ke bawah
+                        
+                        
                           return b.date.compareTo(a.date);
                         });
 
-                        // =========================
-                        // GROUP BY DATE
-                        // =========================
                         final Map<String, List<ActivityTimelineItem>> grouped =
                             {};
 
@@ -818,9 +745,6 @@ class _ContactDetailPageState extends State<ContactDetailPage>with TickerProvide
                           grouped[key]!.add(item);
                         }
 
-                        // =========================
-                        // UI
-                        // =========================
                         return RefreshIndicator(
                           onRefresh: _getActivity,
                           child: grouped.isEmpty
@@ -846,7 +770,6 @@ class _ContactDetailPageState extends State<ContactDetailPage>with TickerProvide
                             vertical: 16,
                           ),
                           children: [
-                            // TIMELINE ITEMS
                             ...grouped.entries.map((entry) {
                               final date = entry.key;
                               final items = entry.value.where((e) {
@@ -1010,7 +933,6 @@ class _ContactDetailPageState extends State<ContactDetailPage>with TickerProvide
                   SizedBox(
                     width: double.infinity,
                     child: Text(
-                      // Submit AWAL (tak ada status sebelumnya) → "Ubah status prospek ke X" (bukan "from xxx to X").
                       (item.previousStatusName == null || item.previousStatusName!.isEmpty)
                           ? "Status changed to ${item.statusValue ?? ''} - ${item.statusName}"
                           : "Status changed from ${item.previousStatusValue ?? ''} - ${item.previousStatusName ?? ''} to ${item.statusValue ?? ''} - ${item.statusName}",
@@ -1085,7 +1007,6 @@ class _ContactDetailPageState extends State<ContactDetailPage>with TickerProvide
         children: [
           customSearchField(controller: searchTC, focusNode: searchFN),
           SizedBox(height: 9),
-          // Upload hanya tampil bila boleh modify kontak ini (per-kontak), seperti web.
           if (PermissionsHelper.canUploadAttachment && (widget.args.dataContact?.canEdit ?? true))
           Container(
             width: double.infinity,
@@ -1151,7 +1072,6 @@ class _ContactDetailPageState extends State<ContactDetailPage>with TickerProvide
                 }
 
                 if (state is UploadAttachmentError) {
-                  // debugPrint('UploadAttachmentError: ${state.message}');
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(content: Text('Gagal mengunggah lampiran')),
                   );
@@ -1163,7 +1083,6 @@ class _ContactDetailPageState extends State<ContactDetailPage>with TickerProvide
                   listenWhen: (prev, curr) => curr is AttachmentError && prev is! AttachmentError,
                   listener: (context, state) {
                     if (state is AttachmentError) {
-                      // debugPrint('AttachmentError: ${state.message}');
                       showErrorDialog(context, 'Gagal memuat lampiran');
                     }
                   },
@@ -1296,7 +1215,6 @@ class _ContactDetailPageState extends State<ContactDetailPage>with TickerProvide
                                   ),
 
                                   Spacer(),
-                                  // 3-titik hanya tampil bila ada aksi yang boleh (per-kontak), seperti web.
                                   if ((PermissionsHelper.canEditAttachmentItem && (widget.args.dataContact?.canEdit ?? true)) ||
                                       (PermissionsHelper.canDeleteAttachmentItem && (widget.args.dataContact?.canDelete ?? true)))
                                   PopupMenuButton<String>(
@@ -1494,7 +1412,6 @@ class _ContactDetailPageState extends State<ContactDetailPage>with TickerProvide
                   ),
                 ),
 
-                /// Tombol kiri
                 if (currentIndex > 0)
                   Positioned(
                     left: 10,
@@ -1510,7 +1427,6 @@ class _ContactDetailPageState extends State<ContactDetailPage>with TickerProvide
                     ),
                   ),
 
-                /// Tombol kanan
                 if (currentIndex < imageUrls.length - 1)
                   Positioned(
                     right: 10,
@@ -1526,7 +1442,6 @@ class _ContactDetailPageState extends State<ContactDetailPage>with TickerProvide
                     ),
                   ),
 
-                /// Close
                 Positioned(
                   top: 0,
                   right: 0,
@@ -1540,7 +1455,6 @@ class _ContactDetailPageState extends State<ContactDetailPage>with TickerProvide
                   ),
                 ),
 
-                /// Indicator
                 Positioned(
                   bottom: 10,
                   child: Container(
@@ -1632,7 +1546,6 @@ class _ActivityItemState extends State<ActivityItem> {
       });
     });
 
-    // delay biar posisi awal kebaca
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!_scrollController.hasClients) return;
 
@@ -1740,7 +1653,6 @@ class _ActivityItemState extends State<ActivityItem> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            /// ================= HEADER =================
            if(item.activityType == 'Created contact') _noteCreate(context, item),
            if(item.activityType != 'Created contact')
             Row(
@@ -1817,7 +1729,6 @@ class _ActivityItemState extends State<ActivityItem> {
               ],
             ),
 
-            /// ================= IMAGES =================
             if (item.imagePaths != null && item.imagePaths!.isNotEmpty)
               Container(
                 height: 200,
@@ -1854,7 +1765,6 @@ class _ActivityItemState extends State<ActivityItem> {
                       },
                     ),
 
-                    /// 🔥 LEFT ARROW
                     if (!isAtStart)
                       Positioned(
                         left: 5,
@@ -1868,7 +1778,6 @@ class _ActivityItemState extends State<ActivityItem> {
                         ),
                       ),
 
-                    /// 🔥 RIGHT ARROW
                     if (!isAtEnd)
                       Positioned(
                         right: 5,

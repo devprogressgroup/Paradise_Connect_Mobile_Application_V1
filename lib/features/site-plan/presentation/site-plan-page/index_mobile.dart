@@ -10,8 +10,8 @@ import '../state/siteplan_bloc.dart';
 import '../state/siteplan_event.dart';
 import '../state/siteplan_state.dart';
 
-/// Local HTTP proxy yang meneruskan semua sub-request WebView ke target server
-/// beserta custom headers (X-App-Token, dsb).
+
+
 class _LocalProxy {
   HttpServer? _server;
   HttpClient? _client;
@@ -191,7 +191,7 @@ class _SitePlanPageState extends State<SitePlanPage> {
           _initFromSites(state.sites);
         }
         if (state is SiteplanError) {
-          // debugPrint('SiteplanError: ${state.message}');
+          
         }
       },
       builder: (context, state) {

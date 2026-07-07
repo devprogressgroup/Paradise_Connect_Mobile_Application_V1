@@ -1,8 +1,7 @@
-// Web-only attachment viewer.
-// Iframe dari localhost tidak bisa kirim cookie Google Drive (SameSite policy).
-// Pakai timeout untuk deteksi kegagalan: jika onLoad tidak fire dalam 8 detik,
-// tampilkan banner fallback + tombol buka di tab baru.
-// ignore: avoid_web_libraries_in_flutter, deprecated_member_use
+
+
+
+
 import 'dart:async';
 import 'dart:html' as html;
 import 'dart:ui_web' as ui_web;
@@ -51,7 +50,7 @@ class _AttachmentWebViewPageState extends State<AttachmentWebViewPage> {
       if (mounted) setState(() => _isLoading = false);
     });
 
-    // Jika onLoad tidak fire dalam 8 detik → kemungkinan redirect login
+    
     _timeoutTimer = Timer(const Duration(seconds: 8), () {
       if (mounted && _isLoading) {
         setState(() {
@@ -106,7 +105,7 @@ class _AttachmentWebViewPageState extends State<AttachmentWebViewPage> {
               colorBack: const Color(primaryColor),
             ),
 
-            // Banner hanya muncul ketika gagal load (timeout)
+            
             if (_showFallbackBanner)
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),

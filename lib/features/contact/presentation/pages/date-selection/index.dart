@@ -57,7 +57,7 @@ class _DateFilterPageState extends State<DateFilterPage> {
       final match = _presets.where((e) => e.label == _selectedLabel).firstOrNull;
       if (match != null) _selectedResult = _buildResult(match.label, match.start, match.end);
     } else if (widget.startDate != null && widget.endDate != null) {
-      // restore from ContactBloc dates when selectedLabel is null (e.g. after widget recreate)
+      
       for (final preset in _presets) {
         if (DateFormat('yyyy-MM-dd').format(preset.start) == widget.startDate &&
             DateFormat('yyyy-MM-dd').format(preset.end) == widget.endDate) {
@@ -121,7 +121,7 @@ class _DateFilterPageState extends State<DateFilterPage> {
       body: SafeArea(
         child: Column(
           children: [
-            /// HEADER
+            
             Container(
               height: 64,
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
@@ -151,7 +151,7 @@ class _DateFilterPageState extends State<DateFilterPage> {
               ),
             ),
 
-            /// SELECT ALL / CLEAR ALL
+            
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
               child: Row(
@@ -192,7 +192,7 @@ class _DateFilterPageState extends State<DateFilterPage> {
               ),
             ),
 
-            /// LIST
+            
             Expanded(
               child: ListView.separated(
                 padding: const EdgeInsets.symmetric(vertical: 8),

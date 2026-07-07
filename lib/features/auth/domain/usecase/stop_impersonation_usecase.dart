@@ -5,6 +5,6 @@ class StopImpersonationUseCase {
 
   StopImpersonationUseCase(this.repository);
 
-  /// Mengembalikan token admin asli yang di-stash (keluar dari impersonate).
+ 
   Future<void> call() => repository.stopImpersonation();
 }

@@ -8,7 +8,6 @@ class DateHelper {
     return formatDate(AppTime.now());
   }
 
-  /// 🔥 JAM SAJA (08:30 AM)
   static String formatTime(DateTime date) {
    return DateFormat('HH:mm', 'en_US').format(date);
   }
@@ -17,7 +16,6 @@ class DateHelper {
     return formatTime(AppTime.now());
   }
 
-  /// 🔥 TANGGAL SAJA ( 13 April 2026)
   static String formatDate(DateTime date) {
     return DateFormat('dd MMMM yyyy', 'en_US').format(date);
   }
@@ -30,13 +28,10 @@ class DateHelper {
   static String nowDayDate() {
     return formatDate(AppTime.now());
   }
-
-/// 🔥 16 May 2026 20:00
   static String formatDateTimeShort(DateTime date) {
     return DateFormat('dd MMM yyyy HH:mm', 'en_US').format(date);
   }
 
-  /// 🔥 HARI SAJA (Monday)
   static String formatDay(DateTime date) {
     return DateFormat('EEEE', 'en_US').format(date);
   }

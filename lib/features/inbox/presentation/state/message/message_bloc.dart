@@ -33,7 +33,7 @@ class MessageBloc extends Bloc<MessageEvent, MessageState> {
       );
 
       if (event.isLoadMore && currentState is MessageLoaded) {
-        // Gabungkan pesan yang sudah ada dengan pesan baru (yang lebih lama) di bagian akhir
+        
         final combinedMessages = [...currentState.chatHistory.messages, ...chatHistory.messages];
         emit(MessageLoaded(
           ChatHistory(

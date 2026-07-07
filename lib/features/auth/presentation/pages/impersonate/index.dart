@@ -9,8 +9,8 @@ import 'package:progress_group/features/auth/presentation/state/auth/auth_bloc.d
 import 'package:progress_group/features/auth/presentation/state/auth/auth_event.dart';
 import 'package:progress_group/features/auth/presentation/state/auth/auth_state.dart';
 
-/// Picker user untuk superadmin "login as" (impersonate).
-/// Navigasi setelah berhasil ditangani listener global di main.dart (→ /splash).
+
+
 class ImpersonatePage extends StatefulWidget {
   const ImpersonatePage({super.key});
 
@@ -22,10 +22,10 @@ class _ImpersonatePageState extends State<ImpersonatePage> {
   final TextEditingController _searchTC = TextEditingController();
   Timer? _debounce;
 
-  // State lokal dipakai agar daftar tidak hilang ketika AuthBloc memancarkan
-  // state tak-relevan (mis. PermissionsLoaded dari layout lain).
+  
+  
   List<ImpersonatableUser> _users = [];
-  bool _loadingList = true; // dispatch load di initState → tampilkan spinner dulu
+  bool _loadingList = true; 
   String? _listError;
   bool _busy = false;
 
@@ -113,7 +113,7 @@ class _ImpersonatePageState extends State<ImpersonatePage> {
             setState(() => _busy = false);
             showSnackbar(context, state.message, isError: true);
           }
-          // ImpersonationStarted → navigasi di-handle listener global (main.dart).
+          
         },
         child: Column(
           children: [

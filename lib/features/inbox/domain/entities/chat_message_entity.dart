@@ -1,4 +1,4 @@
-// lib/features/inbox/domain/entities/chat_message_entity.dart
+
 
 class ChatMessage {
   final String id;

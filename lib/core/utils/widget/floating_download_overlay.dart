@@ -32,9 +32,6 @@ class FloatingDownloadManager {
   }
 }
 
-// ---------------------------------------------------------------------------
-// Floating card widget
-// ---------------------------------------------------------------------------
 
 class FloatingDownloadWidget extends StatefulWidget {
   final String url;
@@ -109,7 +106,7 @@ class _FloatingDownloadWidgetState extends State<FloatingDownloadWidget>
     super.dispose();
   }
 
-  // Coba ambil nama file asli dari Content-Disposition header
+
   Future<String> _resolveFilename() async {
     try {
       final response = await Dio().head(
@@ -126,21 +123,21 @@ class _FloatingDownloadWidgetState extends State<FloatingDownloadWidget>
     return widget.filename;
   }
 
-  // Pisah tiga pola agar tidak ada masalah escape di dalam raw string
+
   static String _parseContentDisposition(String cd) {
-    // filename*=UTF-8''encoded%20name.mp4
+  
     var m = RegExp(r"filename\*=UTF-8''([^;\s]+)", caseSensitive: false).firstMatch(cd);
     if (m != null) {
       final name = Uri.decodeComponent(m.group(1) ?? '').replaceAll(RegExp(r'[<>:"/\\|?*]'), '_').trim();
       if (name.isNotEmpty) return name;
     }
-    // filename="name.mp4"
+  
     m = RegExp(r'filename="([^"]+)"', caseSensitive: false).firstMatch(cd);
     if (m != null) {
       final name = (m.group(1) ?? '').replaceAll(RegExp(r'[<>:"/\\|?*]'), '_').trim();
       if (name.isNotEmpty) return name;
     }
-    // filename=name.mp4 (tanpa tanda kutip)
+  
     m = RegExp(r'filename=([^;\s"]+)', caseSensitive: false).firstMatch(cd);
     if (m != null) {
       final name = (m.group(1) ?? '').replaceAll(RegExp(r'[<>:"/\\|?*]'), '_').trim();
@@ -154,7 +151,7 @@ class _FloatingDownloadWidgetState extends State<FloatingDownloadWidget>
       final dir = await getTemporaryDirectory();
       _cancelToken = CancelToken();
 
-      // Resolve real filename (extension) from response headers
+    
       final resolved = await _resolveFilename();
       if (mounted) setState(() => _resolvedFilename = resolved);
 
@@ -232,7 +229,7 @@ class _FloatingDownloadWidgetState extends State<FloatingDownloadWidget>
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Header row
+              
                 Row(
                   children: [
                     _StatusIcon(isDone: _isDone, isError: _error != null),
@@ -286,7 +283,7 @@ class _FloatingDownloadWidgetState extends State<FloatingDownloadWidget>
                   ],
                 ),
 
-                // Progress bar
+              
                 if (!_isDone && _error == null) ...[
                   const SizedBox(height: 10),
                   ClipRRect(
@@ -300,7 +297,7 @@ class _FloatingDownloadWidgetState extends State<FloatingDownloadWidget>
                   ),
                 ],
 
-                // Action buttons after done
+              
                 if (_isDone) ...[
                   const SizedBox(height: 12),
                   Row(
@@ -317,7 +314,7 @@ class _FloatingDownloadWidgetState extends State<FloatingDownloadWidget>
                         ),
                         const SizedBox(width: 8),
                       ],
-                      // Tombol bagikan selalu tampil
+                    
                       Expanded(
                         child: _ActionButton(
                           icon: Icons.share,
@@ -339,9 +336,6 @@ class _FloatingDownloadWidgetState extends State<FloatingDownloadWidget>
   }
 }
 
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
 
 class _StatusIcon extends StatelessWidget {
   final bool isDone;
@@ -418,9 +412,6 @@ class _ActionButton extends StatelessWidget {
   }
 }
 
-// ---------------------------------------------------------------------------
-// Video player page
-// ---------------------------------------------------------------------------
 
 class _VideoPlayerPage extends StatefulWidget {
   final String filePath;
@@ -501,9 +492,6 @@ class _VideoPlayerPageState extends State<_VideoPlayerPage> {
   }
 }
 
-// ---------------------------------------------------------------------------
-// PDF viewer page (local file)
-// ---------------------------------------------------------------------------
 
 class _PdfLocalViewerPage extends StatefulWidget {
   final String filePath;
@@ -553,9 +541,6 @@ class _PdfLocalViewerPageState extends State<_PdfLocalViewerPage> {
   }
 }
 
-// ---------------------------------------------------------------------------
-// Image viewer page (local file)
-// ---------------------------------------------------------------------------
 
 class _ImageViewerPage extends StatelessWidget {
   final String filePath;

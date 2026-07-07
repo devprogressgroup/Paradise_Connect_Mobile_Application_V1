@@ -29,7 +29,7 @@ class AttendanceRepositoryImpl implements AttendanceRepository {
 
   AttendanceRepositoryImpl(this.remote);
 
-  // Aman untuk int, double, maupun string dari API
+ 
   static int _parseLastPage(dynamic value) {
     if (value is num) return value.toInt();
     if (value is String) return int.tryParse(value) ?? 1;
@@ -157,7 +157,7 @@ class AttendanceRepositoryImpl implements AttendanceRepository {
     final lastPage = _parseLastPage(pagination['last_page']);
     final models = list.map((e) => AttendanceModel.fromJson(e)).toList();
 
-    // Grouping by Date and FullName to merge ClockIn and ClockOut
+   
     final Map<String, AttendanceEntity> grouped = {};
 
     for (var m in models) {

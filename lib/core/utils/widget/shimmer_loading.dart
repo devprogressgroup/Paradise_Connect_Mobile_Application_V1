@@ -30,7 +30,7 @@ Widget _shimmerWrap({required Widget child}) {
   );
 }
 
-// ─── Contact List Item ────────────────────────────────────────────────────────
+
 class ShimmerContactItem extends StatelessWidget {
   const ShimmerContactItem({super.key});
 
@@ -90,7 +90,7 @@ Widget buildContactPageShimmer() {
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Filter buttons row (3 pills)
+        
         SizedBox(
           height: 50,
           child: Row(
@@ -106,7 +106,7 @@ Widget buildContactPageShimmer() {
           ),
         ),
         const SizedBox(height: 4),
-        // Contact list
+        
         ...List.generate(8, (_) => Padding(
           padding: const EdgeInsets.only(bottom: 10),
           child: Container(
@@ -149,8 +149,8 @@ Widget buildContactPageShimmer() {
   );
 }
 
-// ─── Activity / Timeline Item ─────────────────────────────────────────────────
-// Matches: Container(margin:bottom10, padding:12, radius:12) with left-border accent + 3 text lines
+
+
 class ShimmerActivityItem extends StatelessWidget {
   const ShimmerActivityItem({super.key});
 
@@ -167,24 +167,24 @@ class ShimmerActivityItem extends StatelessWidget {
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Container(
-                  //   width: 5,
-                  //   height: 60,
-                  //   decoration: BoxDecoration(
-                  //     color: Colors.white,
-                  //     borderRadius: BorderRadius.circular(4),
-                  //   ),
-                  // ),
+                  
+                  
+                  
+                  
+                  
+                  
+                  
+                  
                   const SizedBox(width: 12),
                   Expanded(
                     child: Container(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          // _ShimmerBox(width: 160, height: 13),
-                          // const SizedBox(height: 6),
-                          // _ShimmerBox(width: 100, height: 11),
-                          // const SizedBox(height: 6),
+                          
+                          
+                          
+                          
                           _ShimmerBox(width: double.infinity, height: MediaQuery.of(context).size.height * 0.25),
                         ],
                       ),
@@ -209,8 +209,8 @@ Widget buildActivityShimmer() {
   );
 }
 
-// ─── Attachment Item ──────────────────────────────────────────────────────────
-// Matches: padding(15h,10v), radius 16, 44x44(r12) thumb, 3 text lines, 44x44 right button
+
+
 class ShimmerAttachmentItem extends StatelessWidget {
   const ShimmerAttachmentItem({super.key});
 
@@ -259,8 +259,8 @@ Widget buildAttachmentShimmer() {
   );
 }
 
-// ─── Inbox Item ───────────────────────────────────────────────────────────────
-// Matches: padding all(10), 46x40 rect avatar (r8), name+phone left, time+badge(18x18) right
+
+
 class ShimmerInboxItem extends StatelessWidget {
   const ShimmerInboxItem({super.key});
 
@@ -392,7 +392,7 @@ Widget buildProspectStatusShimmer() {
   );
 }
 
-// ─── Home Chart ───────────────────────────────────────────────────────────────
+
 Widget buildHomeChartShimmer() {
   return _shimmerWrap(
     child: SizedBox(
@@ -416,8 +416,8 @@ Widget buildHomeChartShimmer() {
   );
 }
 
-// ─── Saleskit Card ────────────────────────────────────────────────────────────
-// Matches: padding bottom 16, height 141, radius 16, centered Column: logo+title+subtitle
+
+
 class ShimmerSaleskitCard extends StatelessWidget {
   const ShimmerSaleskitCard({super.key});
 
@@ -458,8 +458,8 @@ Widget buildSaleskitShimmer() {
   );
 }
 
-// ─── Activity Log Item ────────────────────────────────────────────────────────
-// Matches: _buildCardActivityNew — left-border card: circle avatar + name col + time/badge + image row
+
+
 Widget buildActivityLogShimmer() {
   return ListView.builder(
     physics: const NeverScrollableScrollPhysics(),
@@ -476,7 +476,7 @@ Widget buildActivityLogShimmer() {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // Left purple border placeholder
+              
               Container(width: 5, decoration: BoxDecoration(color: Colors.white, borderRadius: const BorderRadius.only(topLeft: Radius.circular(12), bottomLeft: Radius.circular(12)))),
               const SizedBox(width: 12),
               Expanded(
@@ -485,7 +485,7 @@ Widget buildActivityLogShimmer() {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Header row
+                      
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
@@ -514,10 +514,10 @@ Widget buildActivityLogShimmer() {
                         ],
                       ),
                       const SizedBox(height: 10),
-                      // Note line
+                      
                       _ShimmerBox(width: 180, height: 11),
                       const SizedBox(height: 10),
-                      // Image strip
+                      
                       Row(
                         children: [
                           _ShimmerBox(width: 100, height: 100, borderRadius: 8),
@@ -538,12 +538,12 @@ Widget buildActivityLogShimmer() {
   );
 }
 
-// ─── Attendance Floating Card (tab bar + clock buttons) ──────────────────────
+
 Widget buildAttendanceFloatingCardShimmer() {
   return _shimmerWrap(
     child: Column(
       children: [
-        // Tab bar area
+        
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 10),
           child: Container(
@@ -555,7 +555,7 @@ Widget buildAttendanceFloatingCardShimmer() {
           ),
         ),
         const SizedBox(height: 5),
-        // Button area
+        
         SizedBox(
           height: 180,
           child: Column(
@@ -576,7 +576,7 @@ Widget buildAttendanceFloatingCardShimmer() {
   );
 }
 
-// ─── Dashboard Top (Welcome text + date range selector) ──────────────────────
+
 Widget buildDashboardTopShimmer() {
   return _shimmerWrap(
     child: Column(
@@ -603,7 +603,7 @@ Widget buildDashboardTopShimmer() {
   );
 }
 
-// ─── Dashboard Chart Header (Statistics + Chat Volume / X Days) ──────────────
+
 Widget buildDashboardChartHeaderShimmer() {
   return _shimmerWrap(
     child: Column(
@@ -623,7 +623,7 @@ Widget buildDashboardChartHeaderShimmer() {
   );
 }
 
-// ─── Inbox Filter Chips (Owner / Date / Status) ──────────────────────────────
+
 Widget buildInboxFilterShimmer() {
   return _shimmerWrap(
     child: Row(
@@ -638,7 +638,7 @@ Widget buildInboxFilterShimmer() {
   );
 }
 
-// ─── Inbox Tab Bar (Personal / Groups) ───────────────────────────────────────
+
 Widget buildInboxTabBarShimmer() {
   return _shimmerWrap(
     child: Container(
@@ -674,7 +674,7 @@ Widget buildInboxTabBarShimmer() {
   );
 }
 
-// ─── Log Section Header (title + filter button) ──────────────────────────────
+
 Widget buildLogHeaderShimmer() {
   return _shimmerWrap(
     child: Row(
@@ -687,7 +687,7 @@ Widget buildLogHeaderShimmer() {
   );
 }
 
-// ─── Attendance Tab Buttons (Activity / Attendance Log) ───────────────────────
+
 Widget buildAttendanceTabButtonShimmer() {
   return _shimmerWrap(
     child: Padding(
@@ -703,8 +703,8 @@ Widget buildAttendanceTabButtonShimmer() {
   );
 }
 
-// ─── Attendance Item ──────────────────────────────────────────────────────────
-// Matches: padding(4v,8h), Row: 70x40(r6) date box + icon+text col + 2x40 divider + icon+text col
+
+
 Widget buildAttendanceShimmer() {
   return ListView.builder(
     physics: const NeverScrollableScrollPhysics(),
@@ -748,8 +748,8 @@ Widget buildAttendanceShimmer() {
   );
 }
 
-// ─── Profile ──────────────────────────────────────────────────────────────────
-// Matches: SingleChildScrollView → Container(radius24, padding16): Row(60x60 circle + name col) + NIK + divider + 4 fields + buttons
+
+
 Widget buildProfileShimmer() {
   return SingleChildScrollView(
     physics: const AlwaysScrollableScrollPhysics(),
@@ -814,8 +814,8 @@ Widget buildProfileShimmer() {
   );
 }
 
-// ─── Notification Item ────────────────────────────────────────────────────────
-// Matches: Container(margin:bottom10, padding:16h/12v, radius:10, white), Row spaceBetween: [circle+lines] + [icon]
+
+
 Widget buildNotifShimmer() {
   return ListView.builder(
     physics: const NeverScrollableScrollPhysics(),
@@ -856,7 +856,7 @@ Widget buildNotifShimmer() {
   );
 }
 
-// ─── Site Plan ────────────────────────────────────────────────────────────────
+
 Widget buildSiteplanShimmer() {
   return _shimmerWrap(
     child: Column(
@@ -875,8 +875,8 @@ Widget buildSiteplanShimmer() {
   );
 }
 
-// ─── Message / Chat Item ──────────────────────────────────────────────────────
-// Matches: left has 40x40 circle + name+time row + bubble(topLeft:0); right has time+name row + bubble(topRight:0)
+
+
 class ShimmerMessageItem extends StatelessWidget {
   final bool isMe;
   const ShimmerMessageItem({super.key, this.isMe = false});
@@ -962,13 +962,13 @@ Widget buildMessageShimmer() {
   );
 }
 
-// ─── Activity Page (filter chips + card list) ─────────────────────────────────
+
 Widget buildActivityPageShimmer() {
   return _shimmerWrap(
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Card items
+        
         ...List.generate(6, (_) => Container(
           margin: const EdgeInsets.only(bottom: 10, left: 16, right: 16),
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -1004,8 +1004,8 @@ Widget buildActivityPageShimmer() {
   );
 }
 
-// ─── Task Item ────────────────────────────────────────────────────────────────
-// Matches: padding(16h,5v), bottom border, Row: 40px circle + 3 text lines + 30px icon right
+
+
 Widget buildTaskShimmer() {
   return _shimmerWrap(
     child: Column(
@@ -1044,7 +1044,7 @@ Widget buildTaskShimmer() {
   );
 }
 
-// ─── Saleskit Detail (Residential / Commercial dropdown + cards) ──────────────
+
 Widget _buildShimmerGridCard() {
   return Container(
     
@@ -1083,7 +1083,7 @@ Widget buildSaleskitDetailShimmer() {
   );
 }
 
-// ─── Contact Detail Header Name ──────────────────────────────────────────────
+
 Widget buildContactHeaderNameShimmer() {
   return _shimmerWrap(
     child: Column(
@@ -1097,7 +1097,7 @@ Widget buildContactHeaderNameShimmer() {
   );
 }
 
-// ─── Approval Card ────────────────────────────────────────────────────────────
+
 Widget buildApprovalShimmer() {
   return ListView.builder(
     physics: const NeverScrollableScrollPhysics(),
@@ -1144,7 +1144,7 @@ Widget buildApprovalShimmer() {
   );
 }
 
-// ─── Bottom Nav Loading ───────────────────────────────────────────────────────
+
 class ShimmerBottomNav extends StatelessWidget {
   final int itemCount;
   final double itemSize;
@@ -1165,7 +1165,7 @@ class ShimmerBottomNav extends StatelessWidget {
   }
 }
 
-// ─── Form / Detail Loading ────────────────────────────────────────────────────
+
 Widget buildFormShimmer({bool showHeader = true}) {
   Widget fieldRow({double labelWidth = 100, double fieldHeight = 44}) => Padding(
         padding: const EdgeInsets.only(bottom: 12),
@@ -1183,15 +1183,15 @@ Widget buildFormShimmer({bool showHeader = true}) {
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        fieldRow(labelWidth: 110),           // Status Prospect
-        fieldRow(labelWidth: 80),            // Tanggal
-        fieldRow(labelWidth: 60),            // Project
-        fieldRow(labelWidth: 120),           // Project Category
-        fieldRow(labelWidth: 90),            // Product Type
-        fieldRow(labelWidth: 70),            // Product
-        fieldRow(labelWidth: 70),            // Block No
-        fieldRow(labelWidth: 40, fieldHeight: 80), // Note
-        _ShimmerBox(width: double.infinity, height: 48, borderRadius: 12), // Button
+        fieldRow(labelWidth: 110),           
+        fieldRow(labelWidth: 80),            
+        fieldRow(labelWidth: 60),            
+        fieldRow(labelWidth: 120),           
+        fieldRow(labelWidth: 90),            
+        fieldRow(labelWidth: 70),            
+        fieldRow(labelWidth: 70),            
+        fieldRow(labelWidth: 40, fieldHeight: 80), 
+        _ShimmerBox(width: double.infinity, height: 48, borderRadius: 12), 
       ],
     ),
   );

@@ -9,8 +9,6 @@ import 'package:progress_group/features/contact/domain/entities/contact/contact_
 import 'package:progress_group/features/contact/presentation/state/pipeline/pipeline_cubit.dart';
 import 'package:progress_group/features/contact/presentation/state/pipeline/pipeline_state.dart';
 
-/// Sales Pipeline per-deal/unit (Model A). Dibuka dari kartu "Prospect Status" di Home.
-/// 1 kartu = 1 deal = 1 unit yang diminati kontak (query t_deals via GET /api/deals).
 class PipelineScreen extends StatefulWidget {
   final List<int>? statusIds;
   final String? title;

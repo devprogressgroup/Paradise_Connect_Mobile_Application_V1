@@ -27,24 +27,18 @@ class PushNotificationService {
   static RemoteMessage? _pendingMessage;
   static final FirebaseMessaging _messaging = FirebaseMessaging.instance;
 
-  // false jika browser tidak mendukung Firebase Messaging (Chrome iOS, Safari lama)
   static bool _supported = true;
 
-  /// Key untuk menampilkan SnackBar dari luar widget tree (web foreground notif).
-  /// Pasang ke MaterialApp.scaffoldMessengerKey di main.dart.
   static final scaffoldMessengerKey = GlobalKey<ScaffoldMessengerState>();
 
-  /// Diset saat user tap "Download" di banner → main.dart dengarkan dan tampilkan UpdateScreen.
   static final otaTrigger = ValueNotifier<VersionCheckResult?>(null);
 
-  /// Dipanggil setelah DioClient dibuat (di build() MyApp) agar token bisa dikirim ke backend.
   static void setDio(Dio dio) {
     _dio = dio;
   }
 
-  /// Cek versi app ke server. Jika ada update → tampil banner di atas layar.
   static Future<void> checkAndShowUpdateBanner() async {
-    if (kIsWeb) return; // hanya mobile
+  
     try {
       final dio = _dio ?? Dio();
       final resp = await dio.get('/app-version');
@@ -99,7 +93,6 @@ class PushNotificationService {
     } catch (_) {}
   }
 
-  /// Bandingkan versi semantic (major.minor.patch). Return true jika [a] > [b].
   static bool _isNewer(String a, String b) {
     final av = a.split('.').map((e) => int.tryParse(e) ?? 0).toList();
     final bv = b.split('.').map((e) => int.tryParse(e) ?? 0).toList();
@@ -113,7 +106,6 @@ class PushNotificationService {
     return false;
   }
 
-  /// Dipanggil setelah login berhasil — saat itu auth token sudah ada
   static void sendTokenAfterLogin() {
     if (!_supported) return;
     _messaging.getToken(vapidKey: kIsWeb ? _vapidKey : null).then((token) {
@@ -123,7 +115,6 @@ class PushNotificationService {
     });
   }
 
-  /// Dipanggil sekali di main() setelah Firebase.initializeApp().
   static Future<void> initialize() async {
     try {
       await _requestPermission();
@@ -149,7 +140,6 @@ class PushNotificationService {
     }
   }
 
-  /// Dipanggil dari initState() MyApp via addPostFrameCallback agar navigator sudah siap.
   static void processPendingMessage() {
     if (_pendingMessage != null) {
       final msg = _pendingMessage!;
@@ -159,7 +149,6 @@ class PushNotificationService {
     }
   }
 
-  /// Public wrapper untuk navigasi dari tap item di NotifPage.
   static void navigateFromData(Map<String, dynamic> data) => _navigateFromData(data);
 
   static void _saveToNotifList(RemoteMessage message) {
@@ -176,7 +165,6 @@ class PushNotificationService {
       badge: true,
       sound: true,
     );
-    // debugPrint('[FCM] Permission: ${settings.authorizationStatus}');
   }
 
   static Future<void> _setupLocalNotifications() async {
@@ -194,7 +182,6 @@ class PushNotificationService {
       },
     );
 
-    // Buat notification channel untuk Android 8+
     const channel = AndroidNotificationChannel(
       _channelId,
       _channelName,
@@ -218,7 +205,6 @@ class PushNotificationService {
     } catch (_) {}
   }
 
-  /// Tampilkan in-app SnackBar di web — selalu muncul meski tab sedang fokus.
   static void _showWebBanner(String? title, String? body, {VoidCallback? onTap}) {
     if (title == null) return;
     final messenger = scaffoldMessengerKey.currentState;
@@ -252,7 +238,6 @@ class PushNotificationService {
     );
   }
 
-  // Tampilkan local notification saat app di foreground
   static void _handleForegroundMessage(RemoteMessage message) {
     _saveToNotifList(message);
 
@@ -297,7 +282,6 @@ class PushNotificationService {
     final type = data['type'] as String?;
     final action = data['action'] as String?;
 
-    // app_update tidak butuh navigator context — cukup trigger ValueNotifier
     if (type == 'app_update') {
       final url = data['download_url'] as String? ?? data['route'] as String?;
       if (url != null && url.isNotEmpty) {

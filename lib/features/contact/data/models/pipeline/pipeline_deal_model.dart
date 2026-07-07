@@ -1,5 +1,5 @@
-/// Sales Pipeline BERBASIS DEAL/UNIT (Model A) — item dari GET /api/deals.
-/// 1 baris = 1 deal = 1 unit yang diminati kontak.
+
+
 class PipelineDeal {
   final int dealId;
   final int contactId;
@@ -7,22 +7,22 @@ class PipelineDeal {
   final String? salutation;
   final String? phone;
   final String? whatsapp;
-  // unit (nama master paradiseconnect, fallback snapshot dari backend)
+  
   final String? clusterName;
   final String? productName;
   final String? propertyName;
   final bool isWaitingList;
   final bool isHoek;
-  // status pipeline (dari DEAL)
+  
   final int? statusProspectId;
   final String? statusName;
   final String? statusValue;
-  // sales
+  
   final String? ownerName;
   final String? seName;
   final String? salesTeamName;
   final double dealValue;
-  // tanggal milestone (dari DEAL)
+  
   final String? apptDate;
   final String? visitDate;
   final String? reserveDate;
@@ -101,7 +101,7 @@ class PipelineDeal {
   }
 }
 
-/// Satu halaman hasil paginasi /api/deals.
+
 class PipelineDealsPage {
   final List<PipelineDeal> items;
   final int currentPage;

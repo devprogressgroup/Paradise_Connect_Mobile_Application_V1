@@ -10,9 +10,9 @@ class AttendanceLocationModel extends AttendanceLocation {
     super.typeLocationId,
   });
 
-  // Nullable — kembalikan null (dibuang oleh pemanggil) kalau location_id
-  // tidak ada/tidak valid, daripada assignment dynamic→int non-nullable
-  // meledakkan "Null check operator used on a null value" saat runtime.
+
+
+
   static AttendanceLocationModel? fromJson(Map<String, dynamic> json) {
     final rawId = json['location_id'];
     final id = rawId is int ? rawId : int.tryParse(rawId?.toString() ?? '');

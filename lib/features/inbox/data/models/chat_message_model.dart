@@ -10,7 +10,7 @@ class ChatMessageModel extends ChatMessage {
     required super.timestamp,
     super.senderName,
     super.mediaUrl,
-    super.caption, // <-- Tambahkan ini
+    super.caption, 
   });
 
   factory ChatMessageModel.fromJson(Map<String, dynamic> json) {
@@ -23,7 +23,7 @@ class ChatMessageModel extends ChatMessage {
       timestamp: json['timestamp'] ?? 0,
       senderName: json['sender']?['name'],
       mediaUrl: json['media_url'], 
-      caption: json['caption'], // <-- Parsing dari JSON
+      caption: json['caption'], 
     );
   }
 }

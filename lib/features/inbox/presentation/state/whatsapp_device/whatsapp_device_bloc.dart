@@ -3,11 +3,11 @@ import 'package:progress_group/core/utils/helpers/error_message.dart';
 import 'package:progress_group/features/inbox/domain/entities/whatsapp_device_entity.dart';
 import 'package:progress_group/features/inbox/domain/usecases/get_whatsapp_devices_usecase.dart';
 
-// Events
+
 abstract class WhatsappDeviceEvent {}
 class GetWhatsappDevicesEvent extends WhatsappDeviceEvent {}
 
-// States
+
 abstract class WhatsappDeviceState {}
 class WhatsappDeviceInitial extends WhatsappDeviceState {}
 class WhatsappDeviceLoading extends WhatsappDeviceState {}
@@ -20,7 +20,7 @@ class WhatsappDeviceError extends WhatsappDeviceState {
   WhatsappDeviceError(this.message);
 }
 
-// Bloc
+
 class WhatsappDeviceBloc extends Bloc<WhatsappDeviceEvent, WhatsappDeviceState> {
   final GetWhatsappDevicesUsecase getDevices;
 

@@ -8,7 +8,7 @@ abstract class LostReasonEvent extends Equatable {
 }
 
 class FetchLostReasonsEvent extends LostReasonEvent {
-  final String? type; // optional kalau nanti mau filter
+  final String? type; 
 
   const FetchLostReasonsEvent({this.type});
 

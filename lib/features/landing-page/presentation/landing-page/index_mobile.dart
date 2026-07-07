@@ -60,7 +60,7 @@ class _LandingPageState extends State<LandingPage> {
         listenWhen: (prev, curr) => curr is LandingPageError && prev is! LandingPageError,
         listener: (context, state) {
           if (state is LandingPageError) {
-            // debugPrint('LandingPageError: ${state.message}');
+           
           }
         },
         builder: (context, state) {

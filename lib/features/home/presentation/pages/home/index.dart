@@ -141,13 +141,13 @@ class _HomePageState extends State<HomePage> {
     context.read<WhatsappActivityBloc>().add(const FetchWhatsappUnreadSummaryEvent(0));
     context.read<AttendanceBloc>().add(FetchAttendanceDataEvent());
 
-    // Jika profile belum dimuat, anggap sales agar data tetap dimuat.
-    // Jika sudah dimuat dan bukan sales, lewati API khusus sales.
+    
+    
     final profileState = context.read<ProfileBloc>().state;
     final isSales = profileState is! ProfileLoaded || profileState.profile.salesPersonId != null;
     if (!isSales) return;
 
-    // Upcoming Task — hanya fetch jika belum loaded atau force refresh
+    
     final activityState = context.read<ActivityBloc>().state;
     if (force || activityState.status != ActivityStatus.loaded) {
       context.read<ActivityBloc>().add(
@@ -159,19 +159,19 @@ class _HomePageState extends State<HomePage> {
       );
     }
 
-    // Notifikasi activity — hanya fetch jika belum loaded atau force refresh
+    
     final notifState = context.read<NotifActivityBloc>().state;
     if (force || notifState.status != ActivityStatus.loaded) {
       context.read<NotifActivityBloc>().add(const FetchActivitiesEvent(isRefresh: true));
     }
 
-    // Pending approval untuk upcoming task — hanya GM dan Sales Manager
+    
     final canManageApproval = profileState is ProfileLoaded && const ['General Manager', 'Sales Manager'].contains(profileState.profile.positionName);
     if (canManageApproval) {
       context.read<AttendanceApprovalCubit>().load(status: 'pending');
     }
 
-    // Prospect Status — hanya fetch jika belum loaded atau force refresh
+    
     final prospectState = context.read<ProspectStatusSummaryBloc>().state;
     if (force || prospectState.status != ProspectStatusSummaryStatus.loaded) {
       context.read<ProspectStatusSummaryBloc>().add(
@@ -294,7 +294,7 @@ class _HomePageState extends State<HomePage> {
                 .toList()
               ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
 
-            // Hanya tampil pending approval untuk GM dan Sales Manager
+            
             final homeProfileState = context.read<ProfileBloc>().state;
             final canManageApproval = homeProfileState is ProfileLoaded &&
                 const ['General Manager', 'Sales Manager']
@@ -453,7 +453,7 @@ class _HomePageState extends State<HomePage> {
                       );
                     }),
 
-                  // ── Pending approval items ─────────────────────────────
+                  
                   ...pendingApprovals.asMap().entries.map((entry) {
                     final index = entry.key;
                     final approval = entry.value;
@@ -533,7 +533,7 @@ class _HomePageState extends State<HomePage> {
     return BlocConsumer<ProspectStatusSummaryBloc, ProspectStatusSummaryState>(
       listenWhen: (prev, curr) => curr.status == ProspectStatusSummaryStatus.error && prev.status != ProspectStatusSummaryStatus.error,
       listener: (context, state) {
-        // debugPrint('ProspectStatusSummaryError: ${state.errorMessage}');
+        
         showErrorDialog(context, 'Gagal memuat prospect status');
       },
       builder: (context, state) {
@@ -633,7 +633,7 @@ class _HomePageState extends State<HomePage> {
                         final isLastVisible = index == visibleStatuses.length - 1;
                         final showBottomBorder = !isLastVisible || allStatuses.length > _prospectStatusCollapsedCount;
                         return GestureDetector(
-                          // onTap: () => context.pushNamed('pipeline', extra: {'statusIds': [item.prospectStatusId], 'title': item.statusName}),
+                          
                           onTap: () {
                             final now = AppTime.now();
                             final today = DateTime(now.year, now.month, now.day);
@@ -806,7 +806,7 @@ class _HomePageState extends State<HomePage> {
                 return buildHomeChartShimmer();
               }
               if (state is ReportError) {
-                // debugPrint('ReportError: ${state.message}');
+                
                 return const SizedBox(
                   height: 150,
                   child: Center(
@@ -819,7 +819,7 @@ class _HomePageState extends State<HomePage> {
                 List<double> values = [];
 
                 if (reportData.categories.isEmpty || reportData.series.isEmpty) {
-                  // Jika data kosong, buat label dummy berdasarkan range tanggal yang dipilih
+                  
                   for (int i = 0; i < day; i++) {
                     DateTime date = _chartStartDate.add(Duration(days: i));
                     labels.add(DateFormat('dd/MM').format(date));
@@ -858,7 +858,7 @@ class _HomePageState extends State<HomePage> {
                                 bool isLast = index == 3;
 
                                 return Positioned(
-                                  top: topPos - 6, // Center label Vertically on the line
+                                  top: topPos - 6, 
                                   left: 0,
                                   right: 0,
                                   child: Row(
@@ -920,7 +920,7 @@ class _HomePageState extends State<HomePage> {
                                         ),
                                       ),
                                       
-                                      // BASELINE (GARIS DASAR) - Ditempelkan ke bawah bar
+                                      
                                       Positioned(
                                         bottom: 0,
                                         left: 0,

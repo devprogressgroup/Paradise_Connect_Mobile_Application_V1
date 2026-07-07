@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 /// Banner "update tersedia" — mirip [ImpersonationBanner], nempel di atas
-/// semua halaman. Tidak full-screen/blocking seperti UpdateScreen lama;
-/// cukup kasih tau user untuk uninstall lalu install ulang lewat link resmi.
 class UpdateBanner extends StatelessWidget {
   static const String downloadLink = 'lp.connect.paradise.id';
 
@@ -22,7 +20,7 @@ class UpdateBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: const Color(0xFFDC2626), // merah — menandakan update wajib
+      color: const Color(0xFFDC2626), 
       child: SafeArea(
         bottom: false,
         child: Padding(

@@ -238,7 +238,6 @@ class _SalesKitPageState extends State<SalesKitPage> {
           }
         }
         if (state is SalesKitDetailError) {
-          // debugPrint('SalesKitDetailError: ${state.message}');
         }
       },
       builder: (context, state) {
@@ -407,7 +406,6 @@ class _SalesKitPageState extends State<SalesKitPage> {
     return BlocConsumer<SalesKitTownshipBloc, SalesKitTownshipState>(
       listener: (context, state) {
         if (state is SalesKitTownshipError) {
-          // debugPrint('SalesKitTownshipError: ${state.message}');
         }
       },
       builder: (context, state) {
@@ -531,7 +529,6 @@ class _SalesKitPageState extends State<SalesKitPage> {
           borderRadius: BorderRadius.circular(16),
           child: Stack(
             children: [
-              // Background image — DriveImage pakai <img> tag di web (bypass CORS)
               SizedBox(
                 height: height,
                 width: double.infinity,

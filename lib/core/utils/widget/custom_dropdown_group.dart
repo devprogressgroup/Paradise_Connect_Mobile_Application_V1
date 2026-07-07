@@ -28,7 +28,6 @@ class _CustomDropdownGroupInboxState extends State<CustomDropdownGroupInbox> {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        /// 🔹 FIELD
         GestureDetector(
           onTap: () {
             setState(() {
@@ -59,7 +58,6 @@ class _CustomDropdownGroupInboxState extends State<CustomDropdownGroupInbox> {
           ),
         ),
 
-        /// 🔥 DROPDOWN (tidak ngambang)
         if (isOpen)
           Container(
             margin: const EdgeInsets.only(top: 5),
@@ -78,8 +76,8 @@ class _CustomDropdownGroupInboxState extends State<CustomDropdownGroupInbox> {
                 return InkWell(
                   onTap: () {
                     setState(() {
-                      // selectedItem = item;
-                      // isOpen = false;
+                      
+                      
                     });
                     widget.onChanged?.call(item);
                   },
@@ -87,7 +85,6 @@ class _CustomDropdownGroupInboxState extends State<CustomDropdownGroupInbox> {
                     padding: const EdgeInsets.all(10),
                     child: Row(
                       children: [
-                        /// Image
                         ClipRRect(
                           borderRadius: BorderRadius.circular(8),
                           child: Image.network(
@@ -202,7 +199,7 @@ class CustomDropdownGroupContact extends StatefulWidget {
   final String hint;
   final bool? bg;
   final Function()? onTap;
-  final Widget child; // 🔥 FIX
+  final Widget child; 
 
   const CustomDropdownGroupContact({
     super.key,
@@ -259,7 +256,6 @@ class _CustomDropdownGroupContactState extends State<CustomDropdownGroupContact>
           ),
       
       
-          /// 🔥 CONTENT DINAMIS
           if (isOpen)
             Container(
               width: double.infinity,

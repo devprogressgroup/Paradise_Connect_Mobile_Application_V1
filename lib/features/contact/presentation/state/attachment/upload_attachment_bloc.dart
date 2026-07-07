@@ -19,18 +19,18 @@ class UploadAttachmentBloc extends Bloc<UploadAttachmentEvent, UploadAttachmentS
     SubmitAttachmentEvent event,
     Emitter<UploadAttachmentState> emit,
   ) async {
-    // debugPrint('[UploadAttachmentBloc] _onSubmit isUpdate=${event.attachmentId != null} attachmentId=${event.attachmentId} contactId=${event.params.contactId}');
+   
     emit(UploadAttachmentLoading());
 
     final result = event.attachmentId == null ? await uploadUseCase(event.params): await updateUseCase(contactId: event.params.contactId,attachmentId: event.attachmentId!,params: event.params);
 
     result.fold(
       (error) {
-        // debugPrint('[UploadAttachmentBloc] error: $error');
+       
         emit(UploadAttachmentError(error));
       },
       (_) {
-        // debugPrint('[UploadAttachmentBloc] success');
+       
         emit(UploadAttachmentSuccess());
       },
     );

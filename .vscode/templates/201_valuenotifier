@@ -20,10 +20,10 @@ class _HyperExampleViewState extends State<HyperExampleView> {
   }
 
   void onReady() {
-    // After 1st build() is called
+    
     controller.initializeData();
     
-    // Example of how to listen to state changes
+    
     controller.state.errorMessage.addListener(() {
       if (controller.state.status.value == HyperExampleStatus.error) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -164,7 +164,7 @@ class HyperExampleController {
     state.status.value = HyperExampleStatus.loading;
     
     try {
-      // Simulate API call
+      
       await Future.delayed(const Duration(seconds: 2));
       state.status.value = HyperExampleStatus.loaded;
     } catch (e) {

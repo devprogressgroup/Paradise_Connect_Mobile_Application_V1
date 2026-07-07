@@ -1,6 +1,6 @@
-﻿// Web-only camera implementation using browser getUserMedia API.
-// Loaded via conditional export in index.dart when dart.library.io is false.
-// ignore: avoid_web_libraries_in_flutter, deprecated_member_use
+﻿
+
+
 import 'dart:async';
 import 'dart:html' as html;
 import 'dart:ui_web' as ui_web;
@@ -31,7 +31,7 @@ enum _CameraStatus { requesting, ready, error }
 
 enum _CameraError { permissionDenied, noDevice, inUse, insecure, unknown }
 
-// ── Outer coordinator ────────────────────────────────────────────────────────
+
 
 class CameraPage extends StatefulWidget {
   final AttandanceArgs args;
@@ -60,12 +60,12 @@ class _CameraPageState extends State<CameraPage> {
             context.go('/attandance');
           }
         } else if (state is AttendanceError) {
-          // debugPrint('AttendanceError: ${state.message}');
+          
           showDialog(
             context: context,
             builder: (ctx) => AlertDialog(
               title: const Text('Gagal'),
-              // Tampilkan pesan asli backend (mis. "NIK absensi belum diatur") bukan teks generik.
+              
               content: Text(
                 state.message.replaceFirst('Exception: ', '').trim().isEmpty
                     ? 'Gagal menyimpan data kehadiran'
@@ -114,7 +114,7 @@ class _CameraPageState extends State<CameraPage> {
   }
 }
 
-// ── Camera page ──────────────────────────────────────────────────────────────
+
 
 class _WebCameraPage extends StatefulWidget {
   final AttandanceArgs args;
@@ -158,16 +158,16 @@ class _WebCameraPageState extends State<_WebCameraPage> {
     final video = html.VideoElement()
       ..autoplay = true
       ..muted = true
-      // Wajib buat iOS Safari — tanpa ini video ditahan (nunjukin tombol
-      // play manual bawaan browser) walau stream sudah aktif & autoplay=true.
+      
+      
       ..setAttribute('playsinline', 'true')
       ..setAttribute('webkit-playsinline', 'true')
       ..controls = false
       ..style.width = '100%'
       ..style.height = '100%'
       ..style.objectFit = 'cover';
-    // Jaga-jaga: kalau autoplay tetap ditahan browser, tap di video-nya
-    // sendiri (user gesture asli) akan selalu berhasil memulai playback.
+    
+    
     video.onClick.listen((_) => video.play().catchError((_) {}));
     ui_web.platformViewRegistry.registerViewFactory(_viewId, (_) => video);
     _video = video;
@@ -188,7 +188,7 @@ class _WebCameraPageState extends State<_WebCameraPage> {
       }).timeout(const Duration(seconds: 15));
       _video!.srcObject = stream;
       _stream = stream;
-      // Don't await play() — browser can interrupt it when widget rebuilds
+      
       _video!.play().catchError((_) {});
       await _video!.onCanPlay.first.timeout(const Duration(seconds: 10));
       if (mounted) setState(() => _status = _CameraStatus.ready);
@@ -315,7 +315,7 @@ class _WebCameraPageState extends State<_WebCameraPage> {
     return Stack(
       children: [
         Positioned.fill(child: HtmlElementView(viewType: _viewId)),
-        // Thumbnail strip for multiple photos
+        
         if (_isMultiplePhotosSupported && _imageBytesList.isNotEmpty)
           Positioned(
             top: 12,
@@ -443,7 +443,7 @@ class _WebCameraPageState extends State<_WebCameraPage> {
   }
 }
 
-// ── Submit page ──────────────────────────────────────────────────────────────
+
 
 class _WebSubmitPage extends StatefulWidget {
   final AttandanceArgs args;
@@ -528,8 +528,8 @@ class _WebSubmitPageState extends State<_WebSubmitPage> {
         : (widget.args.location ?? 'Unknown');
 
     final activeLocationId = _selectedPameranLocation?.id ?? widget.args.locationId;
-    // Koordinat yang disimpan = posisi GPS asli device (dibawa dari halaman utama via args),
-    // bukan koordinat statis kantor/pameran. Identitas lokasi tetap via activeLocationId.
+    
+    
     final activeLat = widget.args.latitude;
     final activeLng = widget.args.longitude;
 
@@ -617,7 +617,7 @@ class _WebSubmitPageState extends State<_WebSubmitPage> {
                 color: Color(whiteColor),
                 child: Column(
                   children: [
-                    // Single photo preview
+                    
                     if (!_isMultiplePhotosSupported)
                       Stack(
                         children: [
@@ -644,7 +644,7 @@ class _WebSubmitPageState extends State<_WebSubmitPage> {
                           ),
                         ],
                       )
-                    // Multiple photos preview
+                    
                     else
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,

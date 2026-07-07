@@ -99,8 +99,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'app/router.dart';
 import 'core/network/settings_remote_datasource.dart';
-// import 'core/screens/update_screen.dart'; // full-screen forced update — diganti banner
-import 'core/utils/widget/update_banner.dart';
+
 import 'core/services/version_check_service.dart';
 import 'features/saleskit/data/datasources/saleskit_remote_datasource.dart';
 import 'features/site-plan/data/datasources/siteplan_remote_datasource.dart';
@@ -150,7 +149,7 @@ import 'features/landing-page/presentation/state/landing_page_cubit.dart';
 
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-  // FCM otomatis menampilkan notifikasi saat app di background/terminated
+  
 }
 
 void main() async {
@@ -170,9 +169,9 @@ void main() async {
   await initializeDateFormatting('id_ID', null);
   final prefs = await SharedPreferences.getInstance();
   ApiConstants.loadFromPrefs(prefs);
-  ImpersonationManager.bind(prefs); // rehydrate banner impersonate jika app di-restart saat impersonate
+  ImpersonationManager.bind(prefs); 
 
-  // Fetch settings on startup so version check works before login
+  
   try {
     final localDs = AuthLocalDataSourceImpl(prefs);
     final settings = await SettingsRemoteDataSource(DioClient(localDs).dio).getSettings();
@@ -189,7 +188,7 @@ void main() async {
     debugPrint('[Firebase] Init error: $e');
   }
 
-  // Inisialisasi router pertama kali
+  
   AppRouter.init();
 
   SystemChrome.setSystemUIOverlayStyle(
@@ -239,15 +238,15 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
       if (_updateResult == null) _checkVersion();
-      // Saat app kembali ke depan: refresh permission + profil (owner/hirarki) secara SILENT
-      // agar perubahan hak akses langsung terlihat tanpa harus logout-login. Tanpa flicker.
+      
+      
       _refreshAccessSilently();
     }
   }
 
-  /// Refresh /permissions/me + /me di latar belakang (tanpa state Loading) bila sudah login.
+  
   void _refreshAccessSilently() {
-    if (!AppRouter.authNotifier.value) return; // hanya saat sudah login
+    if (!AppRouter.authNotifier.value) return; 
     final ctx = AppRouter.rootNavigatorKey.currentContext;
     if (ctx == null) return;
     try {
@@ -261,8 +260,8 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
       final result = await VersionCheckService.check();
       if (!mounted || !result.requiresUpdate) return;
       if (kIsWeb) {
-        // Web tidak punya "download APK" — langsung purge cache + reload
-        // supaya PWA otomatis pakai build terbaru tanpa aksi user.
+        
+        
         forcePwaUpdate();
         return;
       }
@@ -281,24 +280,24 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   void _resetApp() {
     DioClient.resetSession();
     setState(() {
-      // 1. Reset status auth notifier agar GoRouter mengarahkan ke /login
+      
       AppRouter.authNotifier.value = false;
-      // 2. Inisialisasi ulang router dengan GlobalKey baru untuk menghindari 'Duplicate GlobalKey' error
+      
       AppRouter.init();
-      // 3. Ganti key untuk membuang semua BLoC lama dan membuat yang baru (Initial State)
+      
       _blocKey = UniqueKey();
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    // Infrastructure
+    
     final localDataSource = AuthLocalDataSourceImpl(widget.prefs);
     final dioClient = DioClient(localDataSource);
     final settingsDs = SettingsRemoteDataSource(dioClient.dio);
-    PushNotificationService.setDio(dioClient.dio); // set dio saja, token dikirim setelah login
+    PushNotificationService.setDio(dioClient.dio); 
     
-    // Auth
+    
     final remoteDataSource = AuthRemoteDataSourceImpl(dioClient.dio);
     final repository = AuthRepositoryImpl(remoteDataSource, localDataSource);
     final loginUseCase = LoginUseCase(repository);
@@ -317,7 +316,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     final impersonateUseCase = ImpersonateUseCase(repository);
     final stopImpersonationUseCase = StopImpersonationUseCase(repository);
 
-    // Inbox & Messages
+    
     final inboxRemoteDataSource = InboxContactRemoteDataSourceImpl(dioClient.dio);
     final inboxRepository = InboxContactRepositoryImpl(inboxRemoteDataSource);
     final getInboxContactsUsecase = GetInboxContactsUsecase(inboxRepository);
@@ -327,16 +326,16 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     final messageRepository = MessageRepositoryImpl(messageRemoteDataSource);
     final getMessagesUseCase = GetMessagesUseCase(messageRepository);
 
-    // Reports
+    
     final reportRemoteDataSource = ReportRemoteDataSourceImpl(dioClient.dio);
     final reportRepository = ReportRepositoryImpl(reportRemoteDataSource);
     final getVolumeReportUseCase = GetVolumeReportUseCase(reportRepository);
     final getProspectStatusSummaryUseCase = GetProspectStatusSummaryUseCase(reportRepository);
 
-    // Contacts & Activities
+    
     final contactRemoteDataSource = ContactRemoteDataSourceImpl(dioClient.dio);
     final contactRepository = ContactRepositoryImpl(contactRemoteDataSource);
-    // Sales Pipeline per-deal/unit (Model A) — datasource hit GET /deals.
+    
     final pipelineRemoteDataSource = PipelineRemoteDataSourceImpl(dioClient.dio);
     final getContactsUseCase = GetContactsUseCase(contactRepository);
     final getContactDetailUseCase = GetContactDetailUseCase(contactRepository);
@@ -364,16 +363,16 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     final getUnitHierarchyUseCase = GetUnitHierarchyUseCase(contactRepository);
     final getUnitLotsUseCase = GetUnitLotsUseCase(contactRepository);
     
-    // SitePlan
+    
     final siteplanRemoteDataSource = SiteplanRemoteDataSourceImpl(dioClient.dio);
     final siteplanRepository = SitePlanRepositoryImpl(siteplanRemoteDataSource);
 
-    // Landing Page
+    
     final landingPageRemoteDataSource = LandingPageRemoteDataSourceImpl();
     final landingPageRepository = LandingPageRepositoryImpl(landingPageRemoteDataSource);
     final getLandingPageUrlUseCase = GetLandingPageUrlUseCase(landingPageRepository);
 
-    // SalesKit / Townships
+    
     final salesKitRemoteDataSource = SalesKitRemoteDataSourceImpl(dioClient.dio);
     final salesKitRepository = SalesKitRepositoryImpl(salesKitRemoteDataSource);
     final getTownshipsUseCase = GetTownshipsUseCase(salesKitRepository);
@@ -381,7 +380,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     final getClustersUseCase = GetClustersUseCase(salesKitRepository);
     final getCommercialsUseCase = GetCommercialsUseCase(salesKitRepository);
 
-    // Attendance
+    
     final attendanceRemoteDataSource = AttendanceRemoteDataSourceImpl(dioClient.dio);
     final attendanceRepository = AttendanceRepositoryImpl(attendanceRemoteDataSource);
     final getAttendanceUseCase = GetAttendanceUseCase(attendanceRepository);
@@ -457,18 +456,18 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
                     context.read<ProfileBloc>().add(GetProfileEvent());
                     context.read<AuthBloc>().add(FetchPermissionsEvent());
                     AppRouter.authNotifier.value = true;
-                    // Kirim FCM token setelah login berhasil (auth token sudah ada)
+                    
                     PushNotificationService.setDio(dioClient.dio);
                     PushNotificationService.sendTokenAfterLogin();
                     PushNotificationService.checkAndShowUpdateBanner();
                   } else if (state is AuthLoggedOut) {
                     debugPrint('[App] AuthLoggedOut — _resetApp dipanggil (keluar dari semua halaman)');
                     web_debug.logDebugError('App: AuthLoggedOut — _resetApp dipanggil (keluar dari semua halaman)');
-                    // Restart aplikasi total seolah-olah baru dibuka pertama kali
+                    
                     _resetApp();
                   } else if (state is ImpersonationStarted || state is ImpersonationStopped) {
-                    // Token sudah ditukar (impersonate / kembali ke admin). Re-init penuh
-                    // via splash: fetch profile (forceRefresh) + permissions user baru → '/'.
+                    
+                    
                     debugPrint('[App] ImpersonationStarted/Stopped — go /splash');
                     web_debug.logDebugError('App: ImpersonationStarted/Stopped — go /splash');
                     AppRouter.router.go('/splash');
@@ -491,7 +490,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
               children: [
                 child!,
                 if (_updateResult != null)
-                  // const Positioned(top: 0, left: 0, right: 0, child: UpdateBanner()),
+                  
                    UpdateScreen(
                     downloadUrl: _updateResult!.downloadUrl,
                     currentVersion: _updateResult!.currentVersion,
@@ -508,4 +507,3 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
 }
 
 
-//versi paradise-connect 1.0.2+1

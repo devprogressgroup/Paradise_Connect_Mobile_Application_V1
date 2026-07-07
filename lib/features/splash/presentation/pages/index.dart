@@ -38,7 +38,7 @@ class _SplashPageState extends State<SplashPage> {
   }
 
   void _checkToken() async {
-    // web_debug.logDebugError('[Splash] _checkToken: start');
+    
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('auth_token');
     web_debug.logDebugError('[Splash] token: ${token != null && token.isNotEmpty ? 'ada (${token.length} chars)' : 'tidak ada'}');
@@ -46,9 +46,9 @@ class _SplashPageState extends State<SplashPage> {
     if (!mounted) return;
 
     if (token != null && token.isNotEmpty) {
-      // web_debug.logDebugError('[Splash] → fetch profile');
-      // forceRefresh: true agar saat re-entry (mis. setelah impersonate token swap)
-      // profil di-fetch ulang dengan token baru, bukan ambil cache user sebelumnya.
+      
+      
+      
       context.read<ProfileBloc>().add(GetProfileEvent(forceRefresh: true));
 
       _fallbackTimer = Timer(const Duration(seconds: 3), () {

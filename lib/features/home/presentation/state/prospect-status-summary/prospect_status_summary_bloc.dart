@@ -9,10 +9,10 @@ class ProspectStatusSummaryBloc extends Bloc<ProspectStatusSummaryEvent, Prospec
 
   ProspectStatusSummaryBloc({required this.getProspectStatusSummaryUseCase})
       : super(const ProspectStatusSummaryState()) {
-    // restartable: fetch baru (mis. ganti filter atau balik dari halaman lain
-    // sementara request "Last 1 Year" default masih jalan) membatalkan yang lama,
-    // supaya hasil query lambat tidak menimpa balik hasil filter yang lebih cepat
-    // dan tidak menumpuk beberapa request berat yang sama ke backend sekaligus.
+    
+    
+    
+    
     on<FetchProspectStatusSummaryEvent>(_onFetch, transformer: restartable());
   }
 

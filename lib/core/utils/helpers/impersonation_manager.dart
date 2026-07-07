@@ -1,13 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-/// State global "sedang impersonate" (superadmin login-as user lain).
-///
-/// - [nameNotifier] dipakai banner global untuk tahu apakah sedang impersonate
-///   dan sebagai siapa. null = tidak sedang impersonate.
-/// - State di-persist ke SharedPreferences agar bertahan saat app restart
-///   (token admin asli juga di-stash di AuthLocalDataSource, key impersonator_token),
-///   sehingga tombol "Keluar" tetap berfungsi setelah app dibuka ulang.
 class ImpersonationManager {
   ImpersonationManager._();
 
@@ -16,13 +9,13 @@ class ImpersonationManager {
 
   static SharedPreferences? _prefs;
 
-  /// Notifier nama user yang sedang di-impersonate (null = tidak aktif).
+
   static final ValueNotifier<String?> nameNotifier = ValueNotifier<String?>(null);
 
   static bool get isActive => nameNotifier.value != null;
   static String? get targetName => nameNotifier.value;
 
-  /// Dipanggil sekali di main() untuk rehydrate state dari prefs.
+
   static void bind(SharedPreferences prefs) {
     _prefs = prefs;
     final active = prefs.getBool(_flagKey) ?? false;

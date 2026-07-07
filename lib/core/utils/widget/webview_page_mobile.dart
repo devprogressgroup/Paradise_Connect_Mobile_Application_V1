@@ -184,7 +184,7 @@ class _PdfViewerWidgetState extends State<PdfViewerWidget> {
         });
       },
       onPageError: (page, e) {
-        // debugPrint('PDF page error $page : $e');
+      
       },
     );
   }
@@ -216,7 +216,7 @@ class _WebViewerWidgetState extends State<WebViewerWidget> {
 
   String _filenameFromTitle() {
     final title = widget.title.trim();
-    // Derive extension from page URL if possible
+   
     final urlLower = widget.url.toLowerCase();
     for (final ext in ['.mp4', '.mov', '.avi', '.mkv', '.webm', '.pdf', '.zip']) {
       if (urlLower.contains(ext)) {

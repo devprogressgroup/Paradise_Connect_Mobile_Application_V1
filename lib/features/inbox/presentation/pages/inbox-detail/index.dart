@@ -92,7 +92,7 @@ class _InboxDetailPageState extends State<InboxDetailPage> {
                   listener: (context, state) {
                     if (state is MessageError) {
                       _isFetchingMore = false;
-                      // debugPrint('MessageError: ${state.message}');
+                   
                       showErrorDialog(context, 'Gagal memuat pesan');
                     }
                   },
@@ -102,10 +102,10 @@ class _InboxDetailPageState extends State<InboxDetailPage> {
                     if (state is MessageLoaded) {
                       _isFetchingMore = state.isFetchingMore;
 
-                      /// 🔥 WA STYLE (NEWEST DI BAWAH)
+                      
                       final messages = state.chatHistory.messages.reversed.toList();
 
-                      /// 🔥 AUTO SCROLL KE PALING BAWAH SAAT PERTAMA
+                      
                       if (_isFirstLoad) {
                         WidgetsBinding.instance.addPostFrameCallback((_) {
                           if (_scrollController.hasClients) {
@@ -130,7 +130,7 @@ class _InboxDetailPageState extends State<InboxDetailPage> {
                         itemCount: messages.length + (state.isFetchingMore ? 1 : 0),
                         itemBuilder: (context, index) {
 
-                          /// 🔥 LOADING PESAN LAMA (DI ATAS)
+                          
                           if (state.isFetchingMore && index == messages.length) {
                             return const ShimmerMessageItem();
                           }
@@ -412,7 +412,7 @@ class _VideoPlayerWidgetState extends State<_VideoPlayerWidget> {
       looping: false,
       aspectRatio: _videoPlayerController.value.aspectRatio,
       errorBuilder: (context, errorMessage) {
-        // debugPrint('VideoPlayerError: $errorMessage');
+     
         return const Center(child: Text('Gagal memuat video', style: TextStyle(color: Colors.white)));
       },
     );

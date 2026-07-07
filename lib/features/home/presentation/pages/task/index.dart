@@ -24,7 +24,7 @@ import 'package:progress_group/features/auth/presentation/state/profile/profile_
 import 'package:progress_group/features/auth/presentation/state/profile/profile_state.dart';
 import 'package:progress_group/features/contact/domain/entities/activity/activity_entity.dart';
 
-// ─── Filter options ───────────────────────────────────────────────────────────
+
 class _ActivityOption {
   final String? value;
   final String label;
@@ -38,7 +38,7 @@ class _ApprovalOption {
   const _ApprovalOption({this.status, this.flag, required this.label});
 }
 
-// ─── Filter list page (contact-dropdown style) ────────────────────────────────
+
 class _FilterListPage<T> extends StatelessWidget {
   final String title;
   final List<({T value, String label})> items;
@@ -114,7 +114,7 @@ class _FilterListPage<T> extends StatelessWidget {
   }
 }
 
-// ─── Unified item ─────────────────────────────────────────────────────────────
+
 enum _ItemType { activity, approval }
 
 class _MixedItem {
@@ -124,7 +124,7 @@ class _MixedItem {
   _MixedItem({required this.type, required this.data, required this.datetime});
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
+
 class TaskPage extends StatefulWidget {
   const TaskPage({super.key});
   @override
@@ -230,7 +230,7 @@ class _TaskPageState extends State<TaskPage> {
             customHeader(context, "Upcoming Task", isBack: true, colorBack: Color(primaryColor)),
             const SizedBox(height: 8),
 
-            // ── Filter buttons ───────────────────────────────────────────────
+             
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Row(
@@ -308,7 +308,7 @@ class _TaskPageState extends State<TaskPage> {
             if (!_isActivityFiltered && _canManageApproval) {
               final approvals = approvalState is AttendanceApprovalLoaded ? approvalState.logs : <AttendanceApprovalEntity>[];
               for (final a in approvals) {
-                // kalau tidak ada filter approval khusus, hanya tampil pending
+                
                 if (!_isApprovalFiltered && (a.isApprove == 1 || a.isReject == 1)) continue;
                 final dt = DateTime.tryParse(a.attendanceDatetime ?? '') ?? DateTime(2000);
                 items.add(_MixedItem(type: _ItemType.approval, data: a, datetime: dt));

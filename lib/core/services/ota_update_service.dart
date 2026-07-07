@@ -36,11 +36,9 @@ class OtaUpdateService {
         savePath,
         cancelToken: _cancelToken,
         onReceiveProgress: (received, total) {
-          // debugPrint('[OTA] received=$received total=$total');
           if (total > 0) {
             onProgress(received / total);
           } else {
-            // Server tidak kirim Content-Length — estimasi dari ukuran APK ~15MB
             const estimatedTotal = 15 * 1024 * 1024;
             onProgress((received / estimatedTotal).clamp(0.0, 0.95));
           }

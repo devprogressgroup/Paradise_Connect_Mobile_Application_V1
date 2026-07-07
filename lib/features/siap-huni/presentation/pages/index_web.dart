@@ -1,4 +1,4 @@
-// ignore: avoid_web_libraries_in_flutter, deprecated_member_use
+
 import 'dart:async';
 import 'dart:html' as html;
 import 'dart:ui_web' as ui_web;
@@ -30,7 +30,7 @@ class _SiapHuniPageState extends State<SiapHuniPage> {
   String _buildUrl(String fullName, String phone) {
     var base = ApiConstants.siapHuniUrl;
     if (base.isEmpty) return '';
-    // Ambil base sampai 'key=' (inklusif), atau tambahkan suffix jika belum ada
+   
     if (base.contains('key=')) {
       base = base.substring(0, base.indexOf('key=') + 4);
     } else {
@@ -85,7 +85,7 @@ class _SiapHuniPageState extends State<SiapHuniPage> {
       url = ApiConstants.siapHuniUrl;
     }
     if (url.isNotEmpty) {
-      // debugPrint('[SiapHuni] URL: $url');
+     
       _initIframe(url);
     }
   }

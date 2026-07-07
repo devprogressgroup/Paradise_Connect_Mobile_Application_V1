@@ -1,9 +1,9 @@
-// Model Unit Picker (Model A: deal = per unit) — inventory paradiseconnect.
-// Hirarki: Township (input) → Cluster(m_project) → Tipe(m_product) → Kavling(m_property_lot).
+
+
 
 class UnitCluster {
-  final int projectId; // m_project.project_id (→ FK cluster_id)
-  final int companyId; // m_project.company_id — disambiguasi multi-company (1 township bisa >1 company)
+  final int projectId; 
+  final int companyId; 
   final int townshipId;
   final String projectName;
   final List<UnitProduct> products;
@@ -28,12 +28,12 @@ class UnitCluster {
 }
 
 class UnitProduct {
-  final int productId; // m_product.product_id
-  final int companyId; // m_product.company_id — dibawa ke request LOTS + payload unit (multi-company)
+  final int productId; 
+  final int companyId; 
   final int townshipId;
   final String? productName;
   final String displayName;
-  final String? spec; // mis. "LB 80m²"
+  final String? spec; 
   final int? productCategoryId;
   final double? luasBangunan;
   final int? jumlahLantai;
@@ -70,12 +70,12 @@ class UnitProduct {
 }
 
 class UnitLot {
-  final int propertyId; // m_property_lot.property_id
-  final String propertyName; // blok_no
-  final double? propTotalArea; // LT
-  final bool isTipeHoek; // tag "Hook"
+  final int propertyId; 
+  final String propertyName; 
+  final double? propTotalArea; 
+  final bool isTipeHoek; 
   final bool isTipeKhusus;
-  final int? statusId; // ketersediaan (m_sellable_unit.status_id)
+  final int? statusId; 
 
   const UnitLot({
     required this.propertyId,
@@ -96,16 +96,16 @@ class UnitLot {
       );
 }
 
-// Hasil pilihan picker yang dikembalikan ke form (1 item = 1 unit = 1 deal).
+
 class SelectedUnit {
-  final int townshipId; // → FK project_id
-  final int companyId; // m_*.company_id — disambiguasi multi-company; dikirim ke backend utk lookup tepat
-  final int clusterId; // m_project.project_id → FK cluster_id
+  final int townshipId; 
+  final int companyId; 
+  final int clusterId; 
   final String clusterName;
-  final int? productId; // m_product.product_id
+  final int? productId; 
   final String? productName;
-  final int? propertyId; // m_property_lot.property_id (null = belum tentu kavling / waiting list)
-  final String? propertyName; // → snapshot blok_no
+  final int? propertyId; 
+  final String? propertyName; 
   final bool isWaitingList;
   final bool isTipeHoek;
 
@@ -124,12 +124,12 @@ class SelectedUnit {
     this.lostDate,
   });
 
-  // Status pipeline unit ini (dari deal) — untuk badge di About. Diabaikan saat picker/toApiJson.
+  
   final int? statusProspectId;
-  // Tanggal Lost deal ini (null = aktif). Dipakai untuk menyaring unit aktif di tampilan mobile.
+  
   final String? lostDate;
 
-  // Parse dari response detail kontak (key `units`) — untuk About + prefill Edit.
+  
   factory SelectedUnit.fromContactJson(Map<String, dynamic> j) => SelectedUnit(
         townshipId: j['township_id'] ?? 0,
         companyId: j['company_id'] ?? 0,
@@ -145,14 +145,14 @@ class SelectedUnit {
         lostDate: j['lost_date']?.toString(),
       );
 
-  // True bila deal unit ini sudah Lost (lost_date terisi).
+  
   bool get isLost => lostDate != null && lostDate!.isNotEmpty;
 
-  // Kunci unik untuk seleksi/dedup (cluster|product|property|waiting).
+  
   String get key =>
       '$clusterId|${productId ?? 0}|${propertyId ?? 0}|${isWaitingList ? 1 : 0}';
 
-  // Label chip/kartu: "Tipe · Kavling" / "Tipe · Waiting list" / "Tipe · Belum tentukan kavling".
+  
   String get label {
     final t = productName ?? '-';
     if (propertyId != null) return '$t · ${propertyName ?? propertyId}';
@@ -162,7 +162,7 @@ class SelectedUnit {
 
   Map<String, dynamic> toApiJson() => {
         'township_id': townshipId,
-        'company_id': companyId, // backend pakai utk lookup unit yang tepat (multi-company)
+        'company_id': companyId, 
         'cluster_id': clusterId,
         'product_id': productId,
         'property_id': propertyId,

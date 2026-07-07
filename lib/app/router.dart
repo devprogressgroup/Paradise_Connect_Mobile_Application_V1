@@ -41,14 +41,14 @@ import '../core/utils/helpers/permissions_helper.dart';
 class AppRouter {
   static GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>();
 
-  /// Notifier ini mengontrol status autentikasi.
-  /// Saat nilainya berubah, GoRouter otomatis mengevaluasi ulang [redirect].
+  
+  
   static final authNotifier = ValueNotifier<bool>(false);
 
   static late GoRouter router;
 
   static void init() {
-    // 🔥 Buat GlobalKey baru setiap kali init dipanggil
+    
     rootNavigatorKey = GlobalKey<NavigatorState>();
     
     router = GoRouter(
@@ -255,7 +255,7 @@ class AppRouter {
             },
             routes: [
               GoRoute(
-                path: 'camera', // ✅ TANPA "/"
+                path: 'camera', 
                 name: 'camera',
                 builder: (context, state) {
                   final args = state.extra as AttandanceArgs;

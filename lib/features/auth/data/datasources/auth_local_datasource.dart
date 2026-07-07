@@ -16,7 +16,7 @@ abstract class AuthLocalDataSource {
   Future<void> saveBiometricEnabled(bool value);
   Future<bool> getBiometricEnabled();
 
-  // Impersonation: stash token admin asli agar bisa dipulihkan saat "Keluar".
+  
   Future<void> saveImpersonatorToken(String token);
   Future<String?> getImpersonatorToken();
   Future<void> clearImpersonatorToken();

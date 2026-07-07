@@ -86,7 +86,7 @@ class _ContactPageState extends State<ContactPage> {
 
     context.read<ProspectStatusBloc>().add(FetchProspectStatusesEvent());
 
-    // Refresh akses (permission + profil/owner) saat masuk menu Contact — silent (tanpa flicker).
+   
     context.read<AuthBloc>().add(FetchPermissionsEvent(silent: true));
     context.read<ProfileBloc>().add(GetProfileEvent(forceRefresh: true, silent: true));
   }
@@ -216,13 +216,13 @@ class _ContactPageState extends State<ContactPage> {
                     ),
                     Expanded(
                       child: BlocConsumer<ContactBloc, ContactState>(
-                        // HANYA reaksi ke error MUAT-LIST (prev=loading). ContactBloc di-share global, jadi
-                        // error simpan/update (prev=creating), hapus (deleting), atau muat-detail (loadingDetail)
-                        // dari layar lain TIDAK boleh memunculkan dialog "Gagal memuat data kontak" di sini.
+                       
+                       
+                       
                         listenWhen: (prev, curr) =>
                             curr.status == ContactStatus.error && prev.status == ContactStatus.loading,
                         listener: (context, state) {
-                          // debugPrint('ContactError: ${state.errorMessage}');
+                         
                           final msg = (state.errorMessage ?? '').replaceFirst('Exception: ', '').trim();
                           showErrorDialog(context, msg.isNotEmpty ? msg : 'Gagal memuat data kontak');
                         },

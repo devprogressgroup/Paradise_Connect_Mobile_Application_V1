@@ -4,12 +4,11 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../../core/constants/colors.dart';
 
-// ─── Model ────────────────────────────────────────────────────────────────────
 class PickedFileResult {
-  /// File path — only populated on non-web platforms.
+  
   final String? path;
 
-  /// Raw bytes — always populated for image preview & upload on all platforms.
+  
   final Uint8List? bytes;
 
   final String name;
@@ -27,10 +26,9 @@ class PickedFileResult {
   bool get hasData => bytes != null || path != null;
 }
 
-// ─── Public API ───────────────────────────────────────────────────────────────
 class CustomFilePicker {
-  /// Shows a bottom-sheet with Camera / Gallery / Document options.
-  /// Works on mobile (Android, iOS) and web.
+  
+  
   static Future<PickedFileResult?> show(
     BuildContext context, {
     bool allowCamera = true,
@@ -50,7 +48,6 @@ class CustomFilePicker {
   }
 }
 
-// ─── Bottom Sheet ─────────────────────────────────────────────────────────────
 class _FilePickerSheet extends StatelessWidget {
   final bool allowCamera;
   final bool allowImages;
@@ -74,7 +71,7 @@ class _FilePickerSheet extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // Drag handle
+          
             Container(
               width: 40,
               height: 4,
@@ -99,7 +96,7 @@ class _FilePickerSheet extends StatelessWidget {
                 if (allowCamera)
                   _OptionButton(
                     icon: Icons.camera_alt_rounded,
-                    // web mobile browser: opens camera; web desktop: file dialog
+                  
                     label: 'Kamera',
                     color: Color(primaryColor),
                     onTap: () => _pick(context, _pickCamera),
@@ -127,7 +124,7 @@ class _FilePickerSheet extends StatelessWidget {
     );
   }
 
-  /// Pick first, then close sheet passing the result back.
+  
   void _pick(
     BuildContext context,
     Future<PickedFileResult?> Function() picker,
@@ -136,16 +133,16 @@ class _FilePickerSheet extends StatelessWidget {
     if (context.mounted) Navigator.pop(context, result);
   }
 
-  // ─ Camera ────────────────────────────────────────────────────────────────────
-  // Mobile (Android/iOS): opens native camera app.
-  // Web mobile browser: triggers <input capture="environment">.
-  // Web desktop browser: falls back to file picker.
+
+
+
+
   Future<PickedFileResult?> _pickCamera() async {
     try {
       if (kIsWeb) {
-        // Web: image_picker_for_web uses <input capture="environment"> —
-        // opens camera on mobile browsers, file dialog on desktop browsers.
-        // imageQuality & preferredCameraDevice are not supported on web.
+      
+      
+      
         final XFile? file = await ImagePicker().pickImage(source: ImageSource.camera);
         if (file == null) return null;
         final bytes = await file.readAsBytes();
@@ -166,14 +163,14 @@ class _FilePickerSheet extends StatelessWidget {
         isPdf: false,
       );
     } catch (e) {
-      // debugPrint('[CustomFilePicker] camera error: $e');
+    
       return null;
     }
   }
 
-  // ─ Gallery ───────────────────────────────────────────────────────────────────
-  // Mobile: uses ImagePicker (native gallery, more reliable).
-  // Web: uses FilePicker (web file dialog for images).
+
+
+
   Future<PickedFileResult?> _pickGallery() async {
     try {
       if (kIsWeb) {
@@ -204,13 +201,13 @@ class _FilePickerSheet extends StatelessWidget {
         );
       }
     } catch (e) {
-      // debugPrint('[CustomFilePicker] gallery error: $e');
+    
       return null;
     }
   }
 
-  // ─ Document ──────────────────────────────────────────────────────────────────
-  // Works on mobile and web via FilePicker.
+
+
   Future<PickedFileResult?> _pickDocument() async {
     try {
       final result = await FilePicker.platform.pickFiles(
@@ -231,13 +228,12 @@ class _FilePickerSheet extends StatelessWidget {
         isPdf: isPdf,
       );
     } catch (e) {
-      // debugPrint('[CustomFilePicker] document error: $e');
+    
       return null;
     }
   }
 }
 
-// ─── Option Button ────────────────────────────────────────────────────────────
 class _OptionButton extends StatelessWidget {
   final IconData icon;
   final String label;
@@ -286,9 +282,8 @@ class _OptionButton extends StatelessWidget {
   }
 }
 
-// ─── File Preview Widget ──────────────────────────────────────────────────────
-/// Thumbnail preview for a [PickedFileResult].
-/// Uses [Image.memory] for cross-platform compatibility (web + mobile).
+
+
 class FilePreviewWidget extends StatelessWidget {
   final PickedFileResult file;
   final VoidCallback? onRemove;

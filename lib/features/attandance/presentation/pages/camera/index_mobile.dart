@@ -97,12 +97,12 @@ class _CameraPageState extends State<CameraPage> {
         return;
       }
 
-      // cari kamera depan
+     
       final frontCameraIndex = _cameras!.indexWhere(
         (camera) => camera.lensDirection == CameraLensDirection.front,
       );
 
-      // kalau ada pakai depan, kalau tidak fallback ke 0
+     
       _cameraIndex = frontCameraIndex != -1 ? frontCameraIndex : 0;
 
       _controller = CameraController(
@@ -120,7 +120,7 @@ class _CameraPageState extends State<CameraPage> {
         setState(() => _cameraError = "Kamera timeout, coba lagi.");
       }
     } catch (e) {
-      // debugPrint("ERROR CAMERA: $e");
+     
       if (mounted) {
         setState(() => _cameraError = "Gagal membuka kamera: $e");
       }
@@ -144,7 +144,7 @@ class _CameraPageState extends State<CameraPage> {
         _isAddingMore = false;
       });
     } catch (e) {
-      // debugPrint("ERROR TAKE PICTURE: $e");
+     
     }
   }
 
@@ -187,8 +187,8 @@ class _CameraPageState extends State<CameraPage> {
     final location = pameranTC.text.isNotEmpty ? pameranTC.text : (widget.args.location ?? "Unknown");
 
     final activeLocationId = _selectedPameranLocation?.id ?? widget.args.locationId;
-    // Koordinat yang disimpan = posisi GPS asli device (dibawa dari halaman utama via args),
-    // bukan koordinat statis kantor/pameran. Identitas lokasi tetap via activeLocationId.
+   
+   
     final activeLat = widget.args.latitude;
     final activeLng = widget.args.longitude;
 
@@ -244,13 +244,13 @@ class _CameraPageState extends State<CameraPage> {
                 context.go('/attandance');
               }
             } else if (state is AttendanceError) {
-              // debugPrint('AttendanceError: ${state.message}');
+             
               if (state.message == 'SESSION_EXPIRED' || state.message.contains('[cancel]')) return;
               showDialog(
                 context: context,
                 builder: (ctx) => AlertDialog(
                   title: const Text('Gagal'),
-                  // Tampilkan pesan asli dari backend (mis. "NIK absensi belum diatur") agar jelas penyebabnya.
+                 
                   content: Text(
                     state.message.replaceFirst('Exception: ', '').trim().isEmpty
                         ? 'Gagal menyimpan data kehadiran'
@@ -524,7 +524,7 @@ class _CameraPageState extends State<CameraPage> {
                              SizedBox(height: 5),
 
                              if (widget.args.flag == 0 || widget.args.flag == 1)
-                               // Clock In / Clock Out — read only, auto-filled
+                              
                                Container(
                                  width: double.infinity,
                                  height: 50,
@@ -542,7 +542,7 @@ class _CameraPageState extends State<CameraPage> {
                                  ),
                                )
                              else
-                               // Check In (flag == 6) — dropdown bisa dipilih
+                              
                                Container(
                                  width: double.infinity,
                                  height: 50,
@@ -716,8 +716,8 @@ class _CameraPageState extends State<CameraPage> {
   }
 }
 
-// widget.args.location ?? "-"
-   // Row(children: [Icon(Icons.access_time_filled, color: Color(greenPercentColor), size: 18), SizedBox(width: 10), Text(widget.args.time ?? "-", style: TextStyle(fontSize: 13, color: Color(grey2Color)))]),
-                // SizedBox(height: 8),
-                // Row(children: [Icon(Icons.calendar_today_sharp, color: Color(primaryColor), size: 18), SizedBox(width: 10), Text(DateHelper.formatDate(AppTime.now()), style: TextStyle(fontSize: 13, color: Color(grey2Color)))]),
-                // SizedBox(height: 8),
+
+  
+               
+               
+               

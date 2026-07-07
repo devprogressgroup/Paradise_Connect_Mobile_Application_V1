@@ -2,7 +2,6 @@ import 'package:dio/dio.dart';
 import 'package:progress_group/core/utils/helpers/error_message.dart';
 import 'package:progress_group/features/contact/data/models/pipeline/pipeline_deal_model.dart';
 
-/// Datasource Sales Pipeline (Model A) — hit GET /deals (envelope {status,message,data:{...paginate}}).
 abstract class PipelineRemoteDataSource {
   Future<PipelineDealsPage> getDeals({
     List<int>? statusIds,

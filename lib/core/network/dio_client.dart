@@ -25,7 +25,7 @@ class DioClient {
 
   static void _printLong(String text, {int chunkSize = 800}) {
     for (var i = 0; i < text.length; i += chunkSize) {
-      // debugPrint(text.substring(i, i + chunkSize > text.length ? text.length : i + chunkSize));
+      
     }
   }
 
@@ -53,11 +53,11 @@ class DioClient {
 
   static bool _certWarningShown = false;
 
-  // HTTPS ditolak (sertifikat dianggap invalid) hampir selalu berarti jam
-  // perangkat salah (sertifikat server valid tapi tampak "belum berlaku"/
-  // "kadaluarsa" di mata device). Ini terjadi SEBELUM ada response sama
-  // sekali, jadi AppTime (yang butuh response utk sync) tidak akan sempat
-  // mendeteksinya — makanya perlu ditangkap terpisah dari drift check di atas.
+  
+  
+  
+  
+  
   static void _checkCertificateError(DioException e) {
     if (e.type != DioExceptionType.badCertificate || _certWarningShown) return;
     _certWarningShown = true;
@@ -97,11 +97,11 @@ class DioClient {
             if (kDebugMode) {
               final rawData = options.data;
               if (rawData is FormData) {
-                // debugPrint('>>> [REQ BODY] ${options.method} ${options.path}');
-                // debugPrint('    fields: ${rawData.fields.map((e) => '${e.key}=${e.value}').join(', ')}');
-                // debugPrint('    files : ${rawData.files.map((e) => '${e.key}=${e.value.filename} (${e.value.length}B)').join(', ')}');
+                
+                
+                
               } else if (rawData != null) {
-                // debugPrint('>>> [REQ BODY] ${options.method} ${options.path}: $rawData');
+                
               }
             }
             dynamic body;
@@ -145,7 +145,7 @@ class DioClient {
           }
 
           if (kDebugMode) {
-            // debugPrint(">>> [${options.method}] ${options.uri}");
+            
             if (options.data is Map) {
               final r = (options.data as Map)['r']?.toString() ?? '';
               _printLong('[REQ ENCRYPTED] $r');
@@ -203,18 +203,18 @@ class DioClient {
 
             final currentToken = await _authLocalDataSource.getToken();
 
-            // Token sudah null = user logout duluan, jangan tampilkan dialog sesi habis
+            
             if (currentToken == null || currentToken.isEmpty) {
               _isHandling401 = false;
               return handler.next(e);
             }
 
-            // Request yang SUDAH pernah di-retry (ditandai via extra) tidak boleh
-            // masuk refresh+retry lagi. Tanpa guard ini: kalau token hasil refresh
-            // tetap 401 (misal saat impersonate, token belum sinkron), retry lewat
-            // _dio.fetch() masuk lagi ke interceptor ini secara rekursif →
-            // refresh+retry tanpa henti → API ditembak berkali-kali sampai tab
-            // kehabisan memori & crash/restart ("looping ke login").
+            
+            
+            
+            
+            
+            
             final alreadyRetried = e.requestOptions.extra['_401Retried'] == true;
 
             if (!alreadyRetried) {
@@ -236,7 +236,7 @@ class DioClient {
                     await _authLocalDataSource.saveToken(newToken, persistent: persistent);
                     _isHandling401 = false;
 
-                    // Retry original request with new token (ditandai, lihat komentar di atas)
+                    
                     e.requestOptions.extra['_401Retried'] = true;
                     e.requestOptions.headers["Authorization"] = "Bearer $newToken";
                     final retryResponse = await _dio.fetch(e.requestOptions);
@@ -268,7 +268,7 @@ class DioClient {
                   actions: [
                     TextButton(
                       onPressed: () {
-                        // debugPrint('[DioClient] LogoutEvent dipicu dari: dialog Sesi Berakhir (tombol OK)');
+                        
                         web_debug.logDebugError('LogoutEvent dipicu dari: dialog Sesi Berakhir (tombol OK)');
                         Navigator.of(dialogContext).pop();
                         context.read<AuthBloc>().add(LogoutEvent());
@@ -279,12 +279,12 @@ class DioClient {
                 ),
               );
             } else {
-              // debugPrint('[DioClient] 401 sesi habis — context null, redirect ke /login. url: ${e.requestOptions.path}');
+              
               web_debug.logDebugError('401 sesi habis (silent redirect /login) — ${e.requestOptions.path}: $apiMessage');
               _isHandling401 = false;
               AppRouter.router.go('/login');
             }
-            // Reject dengan marker khusus agar feature layer tidak tampilkan dialog duplikat
+            
             return handler.reject(DioException(
               requestOptions: e.requestOptions,
               error: 'SESSION_EXPIRED',
@@ -296,12 +296,12 @@ class DioClient {
       ),
     );
 
-    // if (kDebugMode) {
-    //   _dio.interceptors.add(LogInterceptor(
-    //     requestBody: true,
-    //     responseBody: true,
-    //   ));
-    // }
+    
+    
+    
+    
+    
+    
   }
 
   Dio get dio => _dio;

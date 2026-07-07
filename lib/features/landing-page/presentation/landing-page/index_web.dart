@@ -1,4 +1,3 @@
-// ignore: avoid_web_libraries_in_flutter, deprecated_member_use
 import 'dart:async';
 import 'dart:html' as html;
 import 'dart:ui_web' as ui_web;
@@ -139,7 +138,6 @@ class _LandingPageState extends State<LandingPage> {
         listenWhen: (prev, curr) => curr is LandingPageError && prev is! LandingPageError,
         listener: (context, state) {
           if (state is LandingPageError) {
-            // debugPrint('LandingPageError: ${state.message}');
           }
         },
         builder: (context, state) {

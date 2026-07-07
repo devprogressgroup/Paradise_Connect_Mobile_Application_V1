@@ -1,4 +1,4 @@
-// lib/features/inbox/domain/repositories/message_repository.dart
+
 import 'package:progress_group/core/network/base_response.dart';
 import 'package:progress_group/features/inbox/data/datasources/message_remote_datasource.dart';
 import 'package:progress_group/features/inbox/data/models/chat_message_model.dart';
@@ -20,7 +20,7 @@ class MessageRepositoryImpl implements MessageRepository {
   Future<ChatHistory> getMessages(String sessionId, String jid, {int page = 1}) async {
     final result = await remoteDataSource.getMessages(sessionId, jid, page: page);
 
-    // Asumsi BaseResponse Anda bisa menangani struktur {status, message, data, errors}
+  
     final response = BaseResponse<Map<String, dynamic>>.fromJson(result, (data) => data);
 
     if (!response.status) {

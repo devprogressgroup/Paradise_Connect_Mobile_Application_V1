@@ -25,7 +25,7 @@ class ActivityBloc extends Bloc<ActivityEvent, ActivityState> {
     on<MarkActivitiesAsSeenEvent>(_onMarkAsSeen);
     on<LoadSeenActivitiesEvent>(_onLoadSeen);
     
-    // Auto load when created
+    
     add(LoadSeenActivitiesEvent());
   }
 
@@ -72,7 +72,7 @@ class ActivityBloc extends Bloc<ActivityEvent, ActivityState> {
             status: ActivityStatus.loaded,
             activities: List.of(state.activities)..addAll(activities),
             currentPage: state.currentPage + 1,
-            hasReachedMax: activities.length < 15, // matches per_page
+            hasReachedMax: activities.length < 15, 
           ));
         }
       },
@@ -126,7 +126,7 @@ class ActivityBloc extends Bloc<ActivityEvent, ActivityState> {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setStringList('seen_activity_ids', newSeen.map((id) => id.toString()).toList());
     } catch (e) {
-      // ignore
+      
     }
   }
 
@@ -137,7 +137,7 @@ class ActivityBloc extends Bloc<ActivityEvent, ActivityState> {
       final seenSet = seenList.map((id) => int.tryParse(id)).whereType<int>().toSet();
       emit(state.copyWith(seenActivityIds: seenSet));
     } catch (e) {
-      // ignore
+      
     }
   }
 }
@@ -150,7 +150,7 @@ class NotifActivityBloc extends ActivityBloc {
   });
 }
 
-/// Isolated ActivityBloc for ContactDetailPage so it doesn't share state with HomePage.
+
 class ContactDetailActivityBloc extends ActivityBloc {
   ContactDetailActivityBloc({
     required super.getActivitiesUseCase,

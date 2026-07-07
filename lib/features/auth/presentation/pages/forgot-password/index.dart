@@ -160,7 +160,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
 
             if (state is AuthFailure) {
               _hideLoading();
-              // debugPrint('AuthFailure: ${state.error}');
+              
               showSnackbar(context, _step == 1 ? 'Gagal mengirim kode verifikasi' : 'Gagal mereset password', isError: true);
             }
           },

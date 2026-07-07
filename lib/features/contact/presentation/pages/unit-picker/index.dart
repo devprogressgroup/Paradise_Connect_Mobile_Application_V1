@@ -6,7 +6,7 @@ import 'package:progress_group/features/contact/data/models/unit/unit_hierarchy_
 import 'package:progress_group/features/contact/presentation/state/unit_picker/unit_picker_cubit.dart';
 import 'package:progress_group/features/contact/presentation/state/unit_picker/unit_picker_state.dart';
 
-/// Picker unit multi-select (Model A). Buka via Navigator.push, kembalikan List<SelectedUnit> saat konfirmasi.
+
 class UnitPickerScreen extends StatefulWidget {
   final int townshipId;
   final String townshipName;
@@ -56,7 +56,7 @@ class _UnitPickerScreenState extends State<UnitPickerScreen> {
     });
   }
 
-  // Kunci seleksi — HARUS selaras dengan SelectedUnit.key.
+  
   String _key(int clusterId, int productId, int propertyId, bool waiting) =>
       '$clusterId|$productId|$propertyId|${waiting ? 1 : 0}';
 
@@ -213,7 +213,7 @@ class _UnitPickerScreenState extends State<UnitPickerScreen> {
   }
 
   List<Widget> _productTile(UnitPickerCubit cubit, UnitPickerState state, UnitCluster cluster, UnitProduct product) {
-    // Key produk KOMPOSIT (company|product) — cegah bentrok product_id sama beda company dlm 1 township.
+    
     final pkey = UnitPickerCubit.productKey(product);
     final expanded = state.expandedProducts.contains(pkey);
     final loadingLots = state.loadingProductIds.contains(pkey);
@@ -343,7 +343,7 @@ class _UnitPickerScreenState extends State<UnitPickerScreen> {
           SizedBox(
             width: double.infinity,
             child: ElevatedButton.icon(
-              // Boleh konfirmasi KOSONG → kembalikan [] = "Belum menentukan unit" (membersihkan pilihan).
+              
               onPressed: () => Navigator.of(context).pop(selected),
               icon: Icon(selected.isEmpty ? Icons.remove_circle_outline : Icons.check, size: 18),
               style: ElevatedButton.styleFrom(

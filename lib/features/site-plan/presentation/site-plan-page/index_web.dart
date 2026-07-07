@@ -1,11 +1,4 @@
-﻿// Web-only site plan viewer.
-// Menggunakan backend Laravel sebagai proxy (server-to-server) karena
-// browser tidak bisa bypass CORS untuk custom header X-App-Token.
-//
-// Alur:
-//   iframe → http://backend:8000/api/property/siteplan-proxy?...
-//          → Laravel forward ke dynamics.paradise.id + X-App-Token
-// ignore: avoid_web_libraries_in_flutter, deprecated_member_use
+﻿
 import 'dart:async';
 import 'dart:html' as html;
 import 'dart:ui_web' as ui_web;
@@ -64,7 +57,7 @@ class _SitePlanPageState extends State<SitePlanPage> {
     final viewId = 'siteplan-iframe-$_iframeCounter';
 
     final iframe = html.IFrameElement()
-      ..src = site.url  // URL backend proxy sudah diset di repository
+      ..src = site.url  
       ..style.width  = '100%'
       ..style.height = '100%'
       ..style.border = 'none'
@@ -93,7 +86,7 @@ class _SitePlanPageState extends State<SitePlanPage> {
 
   void _resetIframeZoom(html.IFrameElement iframe) {
     try {
-      // postMessage — works if the site plan app listens for this message type
+      
       iframe.contentWindow?.postMessage({'type': 'resetZoom', 'scale': 1}, '*');
     } catch (_) {}
   }
@@ -129,7 +122,7 @@ class _SitePlanPageState extends State<SitePlanPage> {
           _initFromSites(state.sites);
         }
         if (state is SiteplanError) {
-          // debugPrint('SiteplanError: ${state.message}');
+          
         }
       },
       builder: (context, state) {

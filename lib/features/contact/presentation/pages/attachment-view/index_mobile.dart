@@ -93,7 +93,7 @@ class _AttachmentWebViewPageState extends State<AttachmentWebViewPage> {
   }
 
   String _convertDriveUrl(String url) {
-    // Handle /d/FILE_ID format
+   
     final dRegex = RegExp(r'/d/([a-zA-Z0-9_-]+)');
     final dMatch = dRegex.firstMatch(url);
     if (dMatch != null) {
@@ -101,7 +101,7 @@ class _AttachmentWebViewPageState extends State<AttachmentWebViewPage> {
       return "https://drive.google.com/file/d/$fileId/preview";
     }
 
-    // Handle id=FILE_ID format (from uc?export=view or similar)
+   
     final idRegex = RegExp(r'id=([a-zA-Z0-9_-]+)');
     final idMatch = idRegex.firstMatch(url);
     if (idMatch != null) {

@@ -19,8 +19,8 @@ abstract class AuthRepository {
   Future<UserProfileEntity> getProfile();
   Future<PermissionsModel> fetchPermissions();
 
-  // Impersonation (superadmin login-as)
+
   Future<List<ImpersonatableUser>> getImpersonatableUsers({String? search});
-  Future<String> impersonate(int userId); // returns target full_name
+  Future<String> impersonate(int userId); 
   Future<void> stopImpersonation();
 }

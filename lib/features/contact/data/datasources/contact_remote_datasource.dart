@@ -67,7 +67,7 @@ abstract class ContactRemoteDataSource {
   Future<List<PropertyUnitClusterModel>> getPropertyUnits({required int townshipId});
   Future<List<PropertyUnitClusterModel>> getPropertyCommercialUnits({required int townshipId});
 
-  // Unit Picker (Model A) — inventory paradiseconnect.
+  
   Future<List<UnitCluster>> getUnitHierarchy({required int townshipId, String? search});
   Future<List<UnitLot>> getUnitLots({required int productId, int? townshipId, int? companyId, String? search});
   Future<List<PameranAktifModel>> getPameranAktif();
@@ -208,16 +208,16 @@ class ContactRemoteDataSourceImpl implements ContactRemoteDataSource {
   FormData _buildFormData(CreateContactParams params) {
     final data = <String, dynamic>{};
 
-    // Scalar contact fields
+    
     params.toJson().forEach((key, value) {
       if (key == 'properties_json' || key == 'properties' || value == null) return;
       if (value is List || value is Map) return;
       data[key] = value;
     });
 
-    // Build properties_json list — Dio's FormData.fromMap serializes List<Map>
-    // into properties_json[0][property_id], properties_json[0][property_value], etc.
-    // which is exactly what the backend service expects.
+    
+    
+    
     final propertiesList = <Map<String, dynamic>>[];
 
     for (final entry in (params.propertiesJson ?? [])) {
@@ -340,11 +340,11 @@ class ContactRemoteDataSourceImpl implements ContactRemoteDataSource {
         }
       }
 
-      // debugPrint('[createActivityVisit] fields: ${formData.fields.map((e) => '${e.key}=${e.value}').join(', ')}');
-      // debugPrint('[createActivityVisit] files count: ${formData.files.length}');
-      // for (final f in formData.files) {
-      //   debugPrint('[createActivityVisit]   file: ${f.value.filename} (${f.value.length}B)');
-      // }
+      
+      
+      
+      
+      
 
       final response = await dio.post(
         '/activities/visit',
@@ -472,7 +472,7 @@ class ContactRemoteDataSourceImpl implements ContactRemoteDataSource {
   @override
   Future<void> uploadAttachment(UploadAttachmentParams params) async {
     try {
-      // Multiple files (upload baru) — satu request dengan array files (data URI)
+      
       if (params.filesBytesList != null && params.filesBytesList!.isNotEmpty) {
         final filesDataUris = <String>[];
         final fileNamesArray = <String>[];
@@ -503,7 +503,7 @@ class ContactRemoteDataSourceImpl implements ContactRemoteDataSource {
         return;
       }
 
-      // Single file (edit mode)
+      
       final fileBase64 = await _toBase64(params);
       final body = <String, dynamic>{
         if (params.dealId != null) 'deal_id': params.dealId,
@@ -568,7 +568,7 @@ class ContactRemoteDataSourceImpl implements ContactRemoteDataSource {
   @override
   Future<void> updateAttachment({required int contactId, required int attachmentId, required UploadAttachmentParams params}) async {
     try {
-      // debugPrint('[updateAttachment] contactId=$contactId attachmentId=$attachmentId typeId=${params.attachmentTypeId} note=${params.attachmentNote} fileName=${params.fileName} hasFile=${params.file != null} hasBytes=${params.fileBytes != null} bytesLen=${params.fileBytes?.length}');
+      
 
       final fileBase64 = await _toBase64(params);
       final body = <String, dynamic>{
@@ -583,20 +583,20 @@ class ContactRemoteDataSourceImpl implements ContactRemoteDataSource {
         },
       };
 
-      // debugPrint('[updateAttachment] PATCH /contacts/$contactId/attachments/$attachmentId body keys=${body.keys.join(', ')} base64Len=${fileBase64.length}');
+      
 
       final response = await dio.patch(
         '/contacts/$contactId/attachments/$attachmentId',
         data: body,
       );
 
-      // debugPrint('[updateAttachment] response status=${response.statusCode} data=${response.data}');
+      
 
       if (response.data['status'] != true) {
         throw Exception(response.data['message'] ?? 'Failed to update attachment');
       }
     } on DioException catch (e) {
-      // debugPrint('[updateAttachment] DioException type=${e.type} status=${e.response?.statusCode} response=${e.response?.data}');
+      
       throw Exception(getErrorMessage(e, 'Failed to update attachment'));
     }
   }
@@ -661,7 +661,7 @@ class ContactRemoteDataSourceImpl implements ContactRemoteDataSource {
     try {
       final response = await dio.get('/property/units/hierarchy', queryParameters: {
         'product_id': productId,
-        // Multi-company: WAJIB kirim township + company → backend scope LOTS ke unit company yang benar.
+        
         if ((townshipId ?? 0) != 0) 'township_id': townshipId,
         if ((companyId ?? 0) != 0) 'company_id': companyId,
         if (search != null && search.isNotEmpty) 'search': search,
@@ -680,7 +680,7 @@ class ContactRemoteDataSourceImpl implements ContactRemoteDataSource {
   Future<List<PameranAktifModel>> getPameranAktif() async {
     try {
       final response = await dio.get('/pameran/aktif');
-      // debugPrint('[getPameranAktif] response: ${response.data}');
+      
       if (response.data['status'] == true) {
         final List<dynamic> data = response.data['data'];
         return data.map((json) => PameranAktifModel.fromJson(json as Map<String, dynamic>)).toList();

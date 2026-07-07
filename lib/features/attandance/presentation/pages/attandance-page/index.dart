@@ -1995,9 +1995,6 @@ class _AttandancePageState extends State<AttandancePage>
           color: Colors.grey.shade100,
           borderRadius: BorderRadius.circular(height / 2),
         ),
-        // Segmented control lebar-rata (Row + Expanded) — dipilih dibanding Stack
-        // dengan offset "overlap" manual karena hasilnya konsisten di semua lebar
-        // layar (termasuk hp lipat), bukan hasil kalkulasi pixel yang rapuh.
         child: Row(
           children: List.generate(tabs.length, (index) {
             final isActive = selectedIndex == index;
@@ -2135,11 +2132,6 @@ class _AttandancePageState extends State<AttandancePage>
               onTap: () { if (attendance != null) _showAttendanceDialog(attendance, flagParam); },
               child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 5),
-              // Ukuran kartu foto dihitung dari ruang yang benar-benar tersedia
-              // (bukan 200x200 tetap) supaya tidak overflow di layar sempit
-              // (mis. cover screen hp lipat) dan overlay info tidak lagi
-              // pakai offset "top" hardcoded — cukup nempel di bawah (bottom: 0)
-              // sehingga otomatis menyesuaikan berapa pun ukuran kartunya.
               child: LayoutBuilder(
                 builder: (context, constraints) {
                   final maxW = constraints.maxWidth.isFinite ? constraints.maxWidth : 170.0;

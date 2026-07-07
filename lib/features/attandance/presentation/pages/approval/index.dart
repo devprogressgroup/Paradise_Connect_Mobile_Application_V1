@@ -233,7 +233,7 @@ class _ApprovalPageState extends State<ApprovalPage> {
                 listenWhen: (prev, curr) => curr is AttendanceApprovalError && prev is! AttendanceApprovalError,
                 listener: (context, state) {
                   if (state is AttendanceApprovalError) {
-                    // debugPrint('AttendanceApprovalError: ${state.message}');
+                    
                   }
                 },
                 builder: (context, state) {

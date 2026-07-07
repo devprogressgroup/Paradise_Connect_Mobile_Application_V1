@@ -16,11 +16,6 @@ const String certErrorMessage =
     'punya akses" padahal sebenarnya cuma gagal konek. Mohon aktifkan '
     '"Tanggal & waktu otomatis" di pengaturan HP, lalu buka ulang aplikasi.';
 
-/// Peringatan saat jam/tanggal perangkat terdeteksi menyimpang jauh dari
-/// waktu server, ATAU saat koneksi HTTPS ke server gagal karena sertifikat
-/// ditolak (biasanya juga gara-gara jam perangkat salah — lihat
-/// [certErrorMessage]). Tombol "Buka Pengaturan" tidak muncul di web karena
-/// browser tidak punya jalan untuk membuka pengaturan tanggal & waktu OS.
 void showDeviceTimeWarningDialog(BuildContext context, {String message = _defaultDriftMessage}) {
   showDialog(
     context: context,

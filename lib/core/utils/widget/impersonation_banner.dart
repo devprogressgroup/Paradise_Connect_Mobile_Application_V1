@@ -4,14 +4,9 @@ import 'package:progress_group/core/utils/helpers/impersonation_manager.dart';
 import 'package:progress_group/features/auth/presentation/state/auth/auth_bloc.dart';
 import 'package:progress_group/features/auth/presentation/state/auth/auth_event.dart';
 
-/// Banner global "sedang impersonate" — tampil di semua halaman shell saat
-/// superadmin sedang login-as user lain. Berisi nama target + tombol "Keluar".
 class ImpersonationBanner extends StatelessWidget {
   const ImpersonationBanner({super.key});
 
-  // Konfirmasi dulu sebelum benar-benar keluar dari mode impersonate — banner
-  // ini nempel di atas SEMUA halaman, jadi tombol "Keluar" gampang ke-tap
-  // tidak sengaja (misal pas scroll dari dekat area atas layar).
   void _confirmStopImpersonation(BuildContext context) {
     showDialog(
       context: context,
@@ -42,7 +37,7 @@ class ImpersonationBanner extends StatelessWidget {
       builder: (context, name, _) {
         if (name == null) return const SizedBox.shrink();
         return Material(
-          color: const Color(0xFFEA580C), // oranye mencolok
+          color: const Color(0xFFEA580C),
           child: SafeArea(
             bottom: false,
             child: Padding(

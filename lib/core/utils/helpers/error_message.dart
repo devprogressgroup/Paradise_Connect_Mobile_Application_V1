@@ -1,7 +1,5 @@
 import 'package:dio/dio.dart';
 
-/// Strips the "Exception: " prefix that Dart adds when calling .toString()
-/// on a plain Exception object, so SnackBars show a clean message.
 String cleanErrorMessage(Object e) {
   final raw = e.toString();
   if (raw.startsWith('Exception: ')) return raw.substring(11);

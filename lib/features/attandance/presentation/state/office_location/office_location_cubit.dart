@@ -13,7 +13,7 @@ class OfficeLocationCubit extends Cubit<List<AttendanceLocation>> {
       final locations = await getOfficeLocationsUseCase();
       emit(locations);
     } catch (e) {
-      // ignore
+      
     }
   }
 }

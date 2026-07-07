@@ -22,7 +22,7 @@ class _SiapHuniPageState extends State<SiapHuniPage> {
   String _buildUrl(String fullName, String phone) {
     var base = ApiConstants.siapHuniUrl;
     if (base.isEmpty) return '';
-    // Ambil base sampai 'key=' (inklusif), atau tambahkan suffix jika belum ada
+    
     if (base.contains('key=')) {
       base = base.substring(0, base.indexOf('key=') + 4);
     } else {
@@ -41,7 +41,7 @@ class _SiapHuniPageState extends State<SiapHuniPage> {
         onPageFinished: (_) => setState(() => _pageLoading = false),
         onNavigationRequest: (request) {
           final url = request.url;
-          // debugPrint('[SiapHuni NAV] $url');
+          
           if (url.startsWith('whatsapp://') ||
               url.contains('wa.me') ||
               url.contains('api.whatsapp.com')) {
@@ -67,9 +67,9 @@ class _SiapHuniPageState extends State<SiapHuniPage> {
     } else {
       url = ApiConstants.siapHuniUrl;
     }
-// SEMENTARA: simpan untuk ditampilkan di UI
+
     if (url.isNotEmpty) {
-      // debugPrint('[SiapHuni] URL: $url');
+      
       _initController(url);
     }
   }
@@ -80,16 +80,16 @@ class _SiapHuniPageState extends State<SiapHuniPage> {
       bottom: false,
       child: Column(
         children: [
-          // ⚠️ SEMENTARA (debug): tampilkan URL Siap Huni agar bisa diverifikasi/disalin. Hapus nanti.
-          // Container(
-          //   width: double.infinity,
-          //   color: const Color(0xFFFFF3CD),
-          //   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-          //   child: SelectableText(
-          //     _builtUrl.isEmpty ? '(URL belum tersedia)' : _builtUrl,
-          //     style: const TextStyle(fontSize: 11, color: Color(0xFF664D03)),
-          //   ),
-          // ),
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
           Expanded(
             child: _controller == null
                 ? const Center(child: Text('URL belum tersedia'))

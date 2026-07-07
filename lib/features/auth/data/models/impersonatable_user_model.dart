@@ -1,11 +1,11 @@
-/// User yang bisa di-impersonate oleh superadmin (dari GET /auth/impersonate/users).
+
 class ImpersonatableUser {
   final int userId;
   final String fullName;
   final String username;
   final String? email;
   final String? roleName;
-  /// Detail "Sales Team - Jabatan" (sales) atau "Role" (non-sales) — sama dgn dropdown Owner web.
+  
   final String? detail;
 
   ImpersonatableUser({

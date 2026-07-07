@@ -193,7 +193,7 @@ class _InboxPageState extends State<InboxPage> {
                         listenWhen: (prev, curr) => curr is WhatsappDeviceError && prev is! WhatsappDeviceError,
                         listener: (context, state) {
                           if (state is WhatsappDeviceError) {
-                            // debugPrint('WhatsappDeviceError: ${state.message}');
+                           
                             showErrorDialog(context, 'Gagal memuat perangkat WhatsApp');
                           }
                         },
@@ -589,7 +589,7 @@ class _InboxPageState extends State<InboxPage> {
       listener: (context, state) {
         if (state is InboxContactError) {
           _isFetchingMore = false;
-          // debugPrint('InboxContactError: ${state.message}');
+         
           showErrorDialog(context, 'Gagal memuat data inbox');
         }
       },
@@ -806,7 +806,7 @@ class _InboxPageState extends State<InboxPage> {
                     _fetchInbox();
                   }
                   if (state is WhatsappQrError) {
-                    // debugPrint('WhatsappQrError: ${state.message}');
+                   
                   }
                 },
                 builder: (context, state) {

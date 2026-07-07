@@ -38,7 +38,7 @@ class _QrScannerPageState extends State<QrScannerPage> {
     socket.on('qr', (data) {
       if (!mounted) return;
 
-      // Filter berdasarkan sessionId jika wa-server mengirimkannya
+   
       if (data is Map && data['sessionId'] != null && data['sessionId'] != widget.sessionId) {
         return;
       }

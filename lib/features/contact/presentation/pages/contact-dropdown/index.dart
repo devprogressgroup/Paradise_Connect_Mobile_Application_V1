@@ -50,7 +50,7 @@ class _DropdownListContactState extends State<DropdownListContact> {
       body: SafeArea(
         child: Column(
           children: [
-            /// 🔹 HEADER
+           
             Container(
               height: 64,
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
@@ -101,7 +101,7 @@ class _DropdownListContactState extends State<DropdownListContact> {
               ),
             ),
 
-            /// 🔍 SEARCH
+           
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
               child: Container(
@@ -137,7 +137,7 @@ class _DropdownListContactState extends State<DropdownListContact> {
               ),
             ),
 
-            /// SELECT ALL / CLEAR ALL
+           
             if (widget.args.isMultiSelect)
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -182,7 +182,7 @@ class _DropdownListContactState extends State<DropdownListContact> {
                 ),
               ),
 
-            /// 🔥 LIST
+           
             Expanded(
               child: _filteredItems.isEmpty
                   ? Center(

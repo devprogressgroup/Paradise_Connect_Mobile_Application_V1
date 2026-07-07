@@ -3,7 +3,7 @@ import 'package:progress_group/core/utils/helpers/error_message.dart';
 import 'package:progress_group/features/contact/data/datasources/pipeline_remote_datasource.dart';
 import 'pipeline_state.dart';
 
-/// Cubit Sales Pipeline per-deal/unit (Model A). Memuat daftar deal per stage (status_prospect_id).
+
 class PipelineCubit extends Cubit<PipelineState> {
   final PipelineRemoteDataSource dataSource;
   List<int>? _statusIds;

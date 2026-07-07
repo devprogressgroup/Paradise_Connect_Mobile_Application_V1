@@ -182,7 +182,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     try {
       await logoutUseCase();
       PermissionsHelper.clear();
-      await ImpersonationManager.stop(); // bersihkan banner/flag bila logout saat impersonate
+      await ImpersonationManager.stop();
       emit(AuthLoggedOut());
     } catch (e) {
       PermissionsHelper.clear();
@@ -198,14 +198,14 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       PermissionsHelper.init(data);
       emit(PermissionsLoaded(data));
     } catch (e) {
-      // debugPrint('FetchPermissionsError: $e');
-      // Saat silent (refresh latar belakang), JANGAN tampilkan error agar bottom nav
-      // tidak berubah jadi "Gagal memuat" karena blip jaringan; pertahankan state lama.
+     
+     
+     
       if (!event.silent) emit(PermissionsError());
     }
   }
 
-  // ── Impersonation ───────────────────────────────────────────────────
+ 
   Future<void> _onLoadImpersonatableUsers(LoadImpersonatableUsersEvent event, Emitter<AuthState> emit) async {
     emit(ImpersonatableUsersLoading());
     try {

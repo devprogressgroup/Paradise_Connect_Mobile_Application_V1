@@ -3,7 +3,7 @@ import 'package:progress_group/features/contact/data/models/unit/unit_hierarchy_
 import 'package:progress_group/features/contact/domain/usecases/unit/unit_picker_usecase.dart';
 import 'unit_picker_state.dart';
 
-/// Cubit Unit Picker (Model A) — tree cluster→tipe + lazy kavling per tipe + multi-select.
+
 class UnitPickerCubit extends Cubit<UnitPickerState> {
   final GetUnitHierarchyUseCase getHierarchy;
   final GetUnitLotsUseCase getLots;
@@ -13,7 +13,7 @@ class UnitPickerCubit extends Cubit<UnitPickerState> {
 
   UnitPickerCubit(this.getHierarchy, this.getLots) : super(const UnitPickerState());
 
-  /// Mulai picker untuk satu township + seleksi awal (saat edit).
+  
   Future<void> init(int townshipId, {String? townshipName, List<SelectedUnit> initial = const []}) async {
     _townshipId = townshipId;
     this.townshipName = townshipName;
@@ -42,7 +42,7 @@ class UnitPickerCubit extends Cubit<UnitPickerState> {
     emit(state.copyWith(expandedClusters: s));
   }
 
-  /// Key produk KOMPOSIT (company|product) — cegah bentrok product_id sama beda company dlm 1 township.
+  
   static String productKey(UnitProduct p) => '${p.companyId}|${p.productId}';
 
   Future<void> toggleProduct(UnitProduct product) async {
@@ -63,7 +63,7 @@ class UnitPickerCubit extends Cubit<UnitPickerState> {
   Future<void> loadLots(UnitProduct product) async {
     final key = productKey(product);
     emit(state.copyWith(loadingProductIds: {...state.loadingProductIds, key}));
-    // Multi-company: LOTS WAJIB di-scope (township + company) — tanpa ini hasil meledak/lintas-company.
+    
     final res = await getLots(
       productId: product.productId,
       townshipId: product.townshipId != 0 ? product.townshipId : _townshipId,
@@ -80,7 +80,7 @@ class UnitPickerCubit extends Cubit<UnitPickerState> {
     );
   }
 
-  // ── Seleksi ──────────────────────────────────────────────
+  
   bool isSelected(String key) => state.selected.containsKey(key);
   List<SelectedUnit> get selectedList => state.selected.values.toList();
 
@@ -90,7 +90,7 @@ class UnitPickerCubit extends Cubit<UnitPickerState> {
     emit(state.copyWith(selected: m));
   }
 
-  // company unit = company cluster (m_project.company_id) — dikirim ke backend utk lookup tepat (multi-company).
+  
   void toggleLot(UnitCluster cluster, UnitProduct product, UnitLot lot) => _toggle(SelectedUnit(
         townshipId: cluster.townshipId != 0 ? cluster.townshipId : _townshipId,
         companyId: cluster.companyId,

@@ -43,17 +43,13 @@ class _MainLayoutState extends State<MainLayout> {
   }
 
   void _setupPwa() {
-    // Already running as installed PWA — no need to show install prompt
     if (isPwaRunningStandalone()) return;
 
-    // iOS Safari doesn't fire beforeinstallprompt — show manual instruction banner
     if (isIosSafari()) {
       setState(() => _isIosSafariDevice = true);
       return;
     }
 
-    // Register callbacks: browser will call these the moment beforeinstallprompt fires,
-    // even if it fires after Flutter is fully loaded (common on slow connections)
     registerPwaCallbacks(
       onAvailable: () {
         if (mounted) setState(() => _pwaAvailable = true);
@@ -63,7 +59,6 @@ class _MainLayoutState extends State<MainLayout> {
       },
     );
 
-    // Also check immediately in case the event already fired before we registered
     Future.delayed(const Duration(milliseconds: 500), () {
       if (mounted && isPwaInstallAvailable()) {
         setState(() => _pwaAvailable = true);
@@ -245,11 +240,6 @@ class _MainLayoutState extends State<MainLayout> {
       ),
       bottomNavigationBar: location.endsWith('/camera')
           ? null
-          // SafeArea(bottom) — Container biasa tidak otomatis mereservasi ruang
-          // buat bilah navigasi sistem. Sebagian merk Android (Samsung One UI)
-          // melaporkan safe-area-inset-bottom > 0 buat gesture bar-nya, jadi
-          // tanpa ini konten bottom nav ketutup sebagian. Xiaomi kebetulan
-          // melaporkan 0 jadi kelihatan aman walau tanpa SafeArea.
           : SafeArea(
         top: false,
         child: Container(
@@ -413,21 +403,6 @@ class _MainLayoutState extends State<MainLayout> {
                   _buildDrawerItem(context, icNavAttendance, 'Attandance', path: '/attandance', index: 6),
                 const Spacer(),
 
-                // Padding(
-                //   padding: const EdgeInsets.symmetric(horizontal: 40.0),
-                //   child: ElevatedButton.icon(
-                //     onPressed: () {
-                //       // WA Redirect
-                //     },
-                //     icon: Image.asset(icSidebarChatSA, width: 24, height: 24, color: Colors.white),
-                //     label: const Text('Chat SA',style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w700)),
-                //     style: ElevatedButton.styleFrom(
-                //       backgroundColor: Color(primaryColor),
-                //       minimumSize: const Size(double.infinity, 48),
-                //       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                //     ),
-                //   ),
-                // ),
                 const Spacer(),
                  _buildDrawerItem(context, '', 'Info & Panduan', path: '/landing-page', index: 8, iconData: Icons.info),
                 if (_pwaAvailable || _isIosSafariDevice)
@@ -458,8 +433,6 @@ class _MainLayoutState extends State<MainLayout> {
                   padding: const EdgeInsets.symmetric( horizontal: 20),
                   child: GestureDetector(
                     onTap: () {
-                      // debugPrint('[MainLayout] LogoutEvent dipicu dari: tombol Logout di drawer');
-                      // web_debug.logDebugError('LogoutEvent dipicu dari: tombol Logout di drawer');
                       Navigator.of(context).pop();
                       context.read<AuthBloc>().add(LogoutEvent());
                     },
@@ -548,10 +521,6 @@ class _MainLayoutState extends State<MainLayout> {
             padding: const EdgeInsets.symmetric(horizontal: 10),
             child: Container(
               padding: const EdgeInsets.symmetric(vertical: 5,horizontal: 6),
-              // decoration: BoxDecoration(
-              //   color: isActive ? Color(primaryColor).withOpacity(0.08) : Colors.transparent,
-              //   borderRadius: BorderRadius.circular(50),
-              // ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -562,23 +531,6 @@ class _MainLayoutState extends State<MainLayout> {
                     color: isActive ? Color(primaryColor) : Color(grey2Color),
                   ),
                   const SizedBox(width: 5),
-                  // AnimatedSize(
-                  //   duration: const Duration(milliseconds: 200),
-                  //   curve: Curves.easeOut,
-                  //   child: isActive
-                  //       ? Padding(
-                  //           padding: const EdgeInsets.only(top: 4),
-                  //           child: Text(
-                  //             label,
-                  //             style: TextStyle(
-                  //               fontSize: 11,
-                  //               fontWeight: FontWeight.w600,
-                  //               color: Color(primaryColor),
-                  //             ),
-                  //           ),
-                  //         )
-                  //       : const SizedBox.shrink(),
-                  // ),
                 ],
               ),
             ),

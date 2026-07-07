@@ -31,7 +31,7 @@ import 'package:progress_group/features/auth/presentation/state/profile/profile_
 import 'package:progress_group/features/notif/domain/entities/received_notif_entity.dart';
 import 'package:progress_group/features/notif/presentation/state/received_notif_cubit.dart';
 
-// ─── Unified item ─────────────────────────────────────────────────────────────
+
 enum _NotifType { activity, approval, push }
 
 class _NotifItem {
@@ -41,14 +41,14 @@ class _NotifItem {
   _NotifItem({required this.type, required this.data, required this.datetime});
 }
 
-// ─── Activity filter option ───────────────────────────────────────────────────
+
 class _ActivityOption {
   final String? value;
   final String label;
   const _ActivityOption(this.value, this.label);
 }
 
-// ─── Approval filter option ───────────────────────────────────────────────────
+
 class _ApprovalOption {
   final String? status;
   final int? flag;
@@ -56,9 +56,9 @@ class _ApprovalOption {
   const _ApprovalOption({this.status, this.flag, required this.label});
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// GENERIC FILTER LIST PAGE — styled like contact dropdown
-// ═══════════════════════════════════════════════════════════════════════════════
+
+
+
 class _FilterListPage<T> extends StatelessWidget {
   final String title;
   final List<({T value, String label, String? subtitle})> items;
@@ -77,7 +77,7 @@ class _FilterListPage<T> extends StatelessWidget {
       body: SafeArea(
         child: Column(
           children: [
-            // Header
+            
             Container(
               height: 64,
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
@@ -96,7 +96,7 @@ class _FilterListPage<T> extends StatelessWidget {
                 ],
               ),
             ),
-            // List
+            
             Expanded(
               child: ListView.separated(
                 padding: const EdgeInsets.symmetric(vertical: 8),
@@ -151,7 +151,7 @@ class _FilterListPage<T> extends StatelessWidget {
   }
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
+
 class NotifPage extends StatefulWidget {
   const NotifPage({super.key});
   @override
@@ -159,10 +159,10 @@ class NotifPage extends StatefulWidget {
 }
 
 class _NotifPageState extends State<NotifPage> {
-  // Activity filter
+  
   _ActivityOption _selectedActivity = const _ActivityOption(null, 'Activity');
 
-  // Approval filter
+  
   _ApprovalOption _selectedApproval = const _ApprovalOption(label: 'Approval');
 
   static const _activityOptions = [
@@ -221,7 +221,7 @@ class _NotifPageState extends State<NotifPage> {
             customHeader(context, "Notifikasi", isBack: true, colorBack: Color(primaryColor)),
             const SizedBox(height: 8),
 
-            // ── Dropdown filter buttons ──────────────────────────────────────
+            
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Row(
@@ -243,7 +243,7 @@ class _NotifPageState extends State<NotifPage> {
     );
   }
 
-  // ── Activity dropdown ──────────────────────────────────────────────────────
+  
   Widget _buildActivityDropdown() {
     return GestureDetector(
       onTap: () async {
@@ -271,7 +271,7 @@ class _NotifPageState extends State<NotifPage> {
     );
   }
 
-  // ── Approval dropdown ──────────────────────────────────────────────────────
+  
   Widget _buildApprovalDropdown() {
     return GestureDetector(
       onTap: () async {
@@ -299,7 +299,7 @@ class _NotifPageState extends State<NotifPage> {
     );
   }
 
-  // ── Filter chip widget ─────────────────────────────────────────────────────
+  
   Widget _filterChip({required String label, required bool isActive, VoidCallback? onClear}) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
@@ -328,25 +328,25 @@ class _NotifPageState extends State<NotifPage> {
     );
   }
 
-  // ── Mixed feed ─────────────────────────────────────────────────────────────
+  
   Widget _buildMixedFeed() {
     return BlocBuilder<ReceivedNotifCubit, ReceivedNotifState>(
       builder: (context, pushState) {
         return BlocConsumer<NotifActivityBloc, ActivityState>(
           listenWhen: (prev, curr) => curr.status == ActivityStatus.error && prev.status != ActivityStatus.error,
           listener: (context, activityState) {
-            // debugPrint('NotifActivityError: ${activityState.errorMessage}');
+            
           },
           builder: (context, activityState) {
             return BlocConsumer<AttendanceApprovalCubit, AttendanceApprovalState>(
               listenWhen: (prev, curr) => curr is AttendanceApprovalError && prev is! AttendanceApprovalError,
               listener: (context, approvalState) {
                 if (approvalState is AttendanceApprovalError) {
-                  // debugPrint('AttendanceApprovalError: ${approvalState.message}');
+                  
                 }
               },
               builder: (context, approvalState) {
-                // Loading
+                
                 final loadingActivity = activityState.status == ActivityStatus.loading && activityState.activities.isEmpty;
                 final loadingApproval = approvalState is AttendanceApprovalLoading;
                 if ((_isApprovalFiltered && loadingApproval) || (_isActivityFiltered && loadingActivity) ||
@@ -359,12 +359,12 @@ class _NotifPageState extends State<NotifPage> {
 
                 final items = <_NotifItem>[];
 
-                // Push notifications — selalu tampil terlepas dari filter
+                
                 for (final n in pushState.items) {
                   items.add(_NotifItem(type: _NotifType.push, data: n, datetime: n.receivedAt));
                 }
 
-                // Include activity items only when approval is NOT filtered
+                
                 if (!_isApprovalFiltered) {
                   for (final a in activityState.activities) {
                     final dt = DateTime.tryParse(a.activityDate) ?? DateTime.tryParse(a.createdAt) ?? DateTime(2000);
@@ -372,7 +372,7 @@ class _NotifPageState extends State<NotifPage> {
                   }
                 }
 
-                // Include approval items only when activity is NOT filtered AND user can manage
+                
                 if (!_isActivityFiltered && _canManageApproval && approvalState is AttendanceApprovalLoaded) {
                   for (final a in approvalState.logs) {
                     final dt = DateTime.tryParse(a.attendanceDatetime ?? '') ?? DateTime(2000);
@@ -386,7 +386,7 @@ class _NotifPageState extends State<NotifPage> {
                 final showWhatsapp = !_isApprovalFiltered &&
                     (!_isActivityFiltered || _selectedActivity.value == 'whatsapp');
 
-                // Header widgets (jumlahnya kecil/tetap)
+                
                 final List<Widget> headers = [
                   if (showAttendanceAlerts) const AttendanceAlertsWidget(),
                   if (showWhatsapp)
@@ -446,7 +446,7 @@ class _NotifPageState extends State<NotifPage> {
   }
 
 
-  // ── Item builders ──────────────────────────────────────────────────────────
+  
   Widget _activityItem(BuildContext context, ActivityEntity activity) {
     final isCompleted = activity.statusFollow == 1;
     final type = activity.activityType.toLowerCase();

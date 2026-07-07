@@ -62,7 +62,6 @@ class CreateContactParams extends Equatable {
   final Map<int, String>? propertyFileNames;
   final String? periodePameranDate;
   final String? productType;
-  // Model A: daftar unit yang diminati (1 unit = 1 deal). Tiap item = SelectedUnit.toApiJson().
   final List<Map<String, dynamic>>? units;
 
   const CreateContactParams({

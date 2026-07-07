@@ -174,20 +174,20 @@ class _ContactFormPageState extends State<ContactFormPage> {
   bool _isSaving = false;
   String? _highlightedField;
 
-  // Model A — daftar unit yang diminati (1 unit = 1 deal). Diisi dari Unit Picker (create) / prefill deal (edit).
+  
   List<SelectedUnit> _selectedUnits = [];
-  // Semua unit/deal kontak (lintas project, sudah termasuk yg Lost) — sumber untuk filter per-project.
+  
   List<SelectedUnit> _allUnits = [];
   bool _unitsTouched = false;
-  // True bila daftar unit existing SUDAH ter-load (dari detail kontak yang membawa key `units`).
-  // Dipakai sebagai gate kelola unit di EDIT agar reconcile aman (tak menimpa deal yang belum ter-load).
+  
+  
   bool _unitsLoaded = false;
-  // Boleh kelola unit bila CREATE, atau EDIT (page 1) yang daftar unit existing-nya sudah ter-load.
-  // page 2 = tab About (read-only) → baris tampil tapi tak bisa diubah (tap → form Edit).
+  
+  
   bool get _canManageUnits => widget.args.page == 0 || (widget.args.page == 1 && _unitsLoaded);
 
-  // Penyempitan: mobile hanya menampilkan unit AKTIF (belum Lost) dari satu project/township.
-  // Deal project lain tetap ada di t_deals (history) — detail lintas-project dilihat di web.
+  
+  
   List<SelectedUnit> _activeUnitsForTownship(int? townshipId) =>
       _allUnits.where((u) => !u.isLost && (townshipId == null || u.townshipId == townshipId)).toList();
 
@@ -225,17 +225,17 @@ class _ContactFormPageState extends State<ContactFormPage> {
 
   CreateContactParams createContactParams = CreateContactParams();
 
-  // Field gabungan "Produk/Unit yang diminati" (Model A) — gantikan Project Category/Product Type/Product/Blok.
-  // Tampilan = baris field SERAGAM (gaya sama dgn Status Prospect/Project). 1 unit = 1 baris "Produk/Unit".
-  // About (page 2): read-only, tap baris → halaman Edit (form). Edit/Create: tap → halaman Pilih Unit.
+  
+  
+  
   Widget _buildUnitField() {
     final isAbout = widget.args.page == 2;
 
-    // Aksi tap baris: About → beralih ke form edit; selain itu → buka Unit Picker (gate permission).
+    
     final VoidCallback? rowTap = isAbout
         ? () => _goToEdit(focusField: 'Produk/Unit')
         : (_canManageUnits ? _openUnitPicker : _editUnitNotice);
-    // Chevron hanya pada mode yang bisa diubah (Edit/Create & boleh kelola). About = gaya read-only.
+    
     final bool showChevron = !isAbout && _canManageUnits;
 
     if (_selectedUnits.isEmpty) {
@@ -255,8 +255,8 @@ class _ContactFormPageState extends State<ContactFormPage> {
     );
   }
 
-  // Teks tampilan unit: "BB1-1 Ariawood EcoArdence" (kavling · tipe · cluster);
-  // fallback "tipe cluster · Waiting list" / "tipe cluster · Belum tentukan kavling".
+  
+  
   String _unitDisplay(SelectedUnit u) {
     final tail = [u.productName, u.clusterName]
         .where((e) => (e ?? '').toString().trim().isNotEmpty)
@@ -269,8 +269,8 @@ class _ContactFormPageState extends State<ContactFormPage> {
     return tail.isNotEmpty ? '$tail · $status' : status;
   }
 
-  // Satu baris field "Produk/Unit" — meniru gaya _buildFieldDown (label kecil + nilai + garis bawah).
-  // Tidak memakai GlobalKey agar aman saat banyak baris berlabel sama.
+  
+  
   Widget _unitFieldRow({
     required String value,
     required VoidCallback? onTap,
@@ -330,7 +330,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
   }
 
   Future<void> _openUnitPicker() async {
-    // Penyempitan: unit SELALU mengikuti "Project" yang sedang dipilih (selectLast*), fallback first utk create.
+    
     final townshipId = selectLastTownshipId ?? selectFirstTownshipId;
     final townshipName = selectLastProject ?? selectFirstProject;
     if (townshipId == null) {
@@ -437,7 +437,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
       propertyFileBytes: fileBytes,
       propertyFileNames: fileNames,
       periodePameranDate: _pameranIds.contains(selectedSource1Id) ? _periodePameranDateBackend : null,
-      // Model A: kirim units HANYA saat CREATE (page 0). Pada EDIT di-omit agar updateContact tak reconcile/Lost deal lama.
+      
       units: ((widget.args.page == 0 && _selectedUnits.isNotEmpty) || (widget.args.page != 0 && _unitsTouched))
           ? _selectedUnits.map((u) => u.toApiJson()).toList()
           : null,
@@ -507,17 +507,17 @@ class _ContactFormPageState extends State<ContactFormPage> {
     final contactState = context.read<ContactBloc>().state;
     final currentDetail = contactState.contactDetail;
 
-    // Check if we already have the correct detail in state
+    
     final hasLatestDetail =
         currentDetail != null && currentDetail.contactId == contactId;
 
     if (widget.args.page == 1) {
-      // Edit mode: Use latest detail from bloc if available, otherwise fallback to args
+      
       if (hasLatestDetail) {
         await _fillForm(currentDetail);
       } else if (widget.args.dataContact != null) {
         await _fillForm(widget.args.dataContact!);
-        // Data dari list belum membawa `units` → fetch detail agar daftar unit ter-load (gate kelola unit).
+        
         if (!_unitsLoaded && contactId != null) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
             if (mounted) context.read<ContactBloc>().add(FetchContactDetailEvent(contactId));
@@ -537,9 +537,9 @@ class _ContactFormPageState extends State<ContactFormPage> {
         });
       }
     } else if (widget.args.page == 2 && widget.args.dataContact != null) {
-      // About tab (View mode):
-      // If we already have the detail in bloc, just fill form.
-      // If not, fetch it.
+      
+      
+      
       if (hasLatestDetail) {
         await _fillForm(currentDetail);
       } else {
@@ -551,16 +551,16 @@ class _ContactFormPageState extends State<ContactFormPage> {
 
     if (context.read<ProspectStatusBloc>().state.status !=
         ProspectStatusEnum.loaded) {
-      // debugPrint('[ContactForm] fetching ProspectStatuses');
+      
       context.read<ProspectStatusBloc>().add(FetchProspectStatusesEvent());
     } else {
-      // debugPrint('[ContactForm] ProspectStatuses already loaded');
+      
     }
 
-    // Load townships for project dropdown
+    
     final townshipState = context.read<TownshipBloc>().state;
     if (townshipState is! TownshipLoaded) {
-      // debugPrint('[ContactForm] fetching Townships');
+      
       context.read<TownshipBloc>().add(GetTownshipsEvent());
     } else if (widget.args.page == 0 && selectFirstProject == null && townshipState.townships.isNotEmpty) {
       final first = townshipState.townships.first;
@@ -570,17 +570,17 @@ class _ContactFormPageState extends State<ContactFormPage> {
       });
     }
     if (context.read<ContactPropertiesBloc>().state.status != ContactPropertiesStatus.loaded) {
-      // debugPrint('[ContactForm] fetching ContactProperties');
+      
       context.read<ContactPropertiesBloc>().add(FetchContactPropertiesEvent());
     } else {
-      // debugPrint('[ContactForm] ContactProperties already loaded');
+      
     }
     if (context.read<LostReasonBloc>().state.status != LostReasonStatus.loaded) {
-      // debugPrint('[ContactForm] fetching LostReasons');
+      
       context.read<LostReasonBloc>().add(FetchLostReasonsEvent());
     }
 
-    // Auto-select first prospect status for Create mode if already loaded
+    
     if (widget.args.page == 0) {
       final statusState = context.read<ProspectStatusBloc>().state;
       if (statusState.status == ProspectStatusEnum.loaded && statusState.statuses.isNotEmpty) {
@@ -604,7 +604,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
         if (createAdTC.text.isEmpty) createAdTC.text = today;
         if (lastLostDateTC.text.isEmpty) lastLostDateTC.text = today;
 
-        // Defaults for Deal Value and Visit Count
+        
         if (dealValueTC.text.isEmpty) dealValueTC.text = "0";
         if (vCountTC.text.isEmpty) vCountTC.text = "0";
 
@@ -629,8 +629,8 @@ class _ContactFormPageState extends State<ContactFormPage> {
   }
 
   Future<void> _fillForm(ContactEntity contact) async {
-    // Model A: prefill daftar unit dari deal kontak. Mobile hanya tampilkan unit AKTIF dari PROJECT TERAKHIR
-    // (last_project_id); deal project lain tetap utuh di t_deals (history). _allUnits simpan semua utk re-filter.
+    
+    
     if (contact.units != null) {
       _allUnits = List.of(contact.units!);
       _selectedUnits = _activeUnitsForTownship(contact.lastProjectId);
@@ -697,7 +697,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
         }
       }
 
-      // Project / category / product dropdowns
+      
       if ((contact.projectName ?? '').isNotEmpty) selectFirstProject = contact.projectName;
       if ((contact.firstProject ?? '').isNotEmpty) selectFirstProject = contact.firstProject;
       if ((contact.lastProject ?? '').isNotEmpty) selectLastProject = contact.lastProject;
@@ -716,7 +716,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
       selectLastCommercialId = contact.lastCommercialId;
       selectLastProductId = contact.lastProductId;
 
-      // Use stored IDs directly when available, fall back to name lookup
+      
       if (contact.firstProjectId != null) selectFirstTownshipId = contact.firstProjectId;
       if (contact.lastProjectId != null) selectLastTownshipId = contact.lastProjectId;
 
@@ -751,7 +751,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
       if (profileState is ProfileLoaded) {
         final user = profileState.profile;
 
-        // Find name by sales_person_id (for SE, Manager)
+        
         String? findName(int? id) {
           if (id == null) return null;
           if (user.salesPersonId == id) return user.fullName;
@@ -788,7 +788,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
           return null;
         }
 
-        // Find name by user_id (for owner)
+        
         String? findNameByUserId(int? userId) {
           if (userId == null) return null;
           if (user.userId == userId) return user.fullName;
@@ -829,7 +829,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
         selectedSalesExecutiveName = contact.salesExecutiveName ?? findName(selectedSalesExecutiveId);
         selectedSalesManagerName = contact.salesManagerName ?? findName(selectedSalesManagerId);
 
-        // For edit mode: build salesInfoFields directly from contact detail (don't use hierarchy auto-fill)
+        
         if (widget.args.page != 0) {
           salesInfoFields.clear();
           if (contact.salesTeamName != null) {
@@ -860,7 +860,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
             )
             ?.statusProspectName;
       }
-      // Auto-fill property controllers from property_groups if provided in detail response
+      
       try {
         final groups = contact.propertyGroupsJson;
         if (groups != null) {
@@ -878,7 +878,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
           }
         }
       } catch (e) {
-        // ignore parsing errors
+        
       }
 
       try {
@@ -906,7 +906,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
               } catch (_) {}
             }
           } else if (parsed is Map) {
-            // map keyed by property id: {"23": "City"}
+            
             parsed.forEach((k, v) {
               try {
                 final id = int.tryParse(k.toString());
@@ -919,10 +919,10 @@ class _ContactFormPageState extends State<ContactFormPage> {
           }
         }
       } catch (e) {
-        // ignore
+        
       }
 
-      // Auto-fill sales information based on ownerId — only for new contacts
+      
       if (widget.args.page == 0 && selectedOwnerId != null) {
         final profileState = context.read<ProfileBloc>().state;
         if (profileState is ProfileLoaded) {
@@ -959,7 +959,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
 
           addSubs(user.subordinates);
 
-          /// 🔹 AUTO PILIH INDEX PERTAMA
+          
           if (selectedOwnerId == null && ownerItems.isNotEmpty) {
             setState(() {
               selectedOwnerId = ownerItems.first.id;
@@ -987,17 +987,17 @@ class _ContactFormPageState extends State<ContactFormPage> {
       return null;
     }
 
-    // Check if owner is a subordinate
+    
     var subordinatePath = findPath(user.subordinates, ownerUserId);
     if (subordinatePath != null) {
-      // Collect superiors from salesRoles (bottom-up: immediate boss first)
+      
       final superiors = <HierarchyNodeEntity>[];
       if (user.salesRoles.isNotEmpty) {
         HierarchyNodeEntity? current = user.salesRoles.first;
         bool isRoot = true;
         while (current != null) {
-          // Root sales_roles node: salesPersonId is the subordinate's own ID,
-          // salesPersonParentId is the actual supervisor's ID.
+          
+          
           if (isRoot && current.salesPersonParentId != null) {
             superiors.add(HierarchyNodeEntity(
               salesPersonId: current.salesPersonParentId!,
@@ -1014,9 +1014,9 @@ class _ContactFormPageState extends State<ContactFormPage> {
         }
       }
 
-      // Chain top-to-bottom: [GM, ..., User, Sub1, ..., Owner]
-      // reversed later to display bottom-to-top
-      // Skip userNode if sales_person_id is null (e.g. superadmin)
+      
+      
+      
       if (user.salesPersonId != null) {
         final userNode = HierarchyNodeEntity(
           salesPersonId: user.salesPersonId!,
@@ -1028,7 +1028,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
         chain = [...superiors.reversed, ...subordinatePath];
       }
     } else if (user.userId == ownerUserId) {
-      // 3. Case: Selecting themselves. Chain: [User, Boss, Grandboss...]
+      
       final userNode = HierarchyNodeEntity(
         salesPersonId: user.salesPersonId!,
         userId: user.userId,
@@ -1057,7 +1057,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
         }
       }
     } else {
-      // 4. Case: Maybe owner is a superior? Search in salesRoles parent chain
+      
       for (var role in user.salesRoles) {
         HierarchyNodeEntity? current = role;
         List<HierarchyNodeEntity> temp = [];
@@ -1122,7 +1122,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
           } else if (pos.contains('supervisor')) {
             selectedSupervisorId = node.salesPersonId;
           } else {
-            // sales executive or unknown position
+            
             selectedSalesExecutiveId = node.salesPersonId;
           }
         }
@@ -1272,7 +1272,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
     }
     if (!_validateEmail()) return;
 
-    // Status group flags dari backend (field `group`) — sumber tunggal, konsisten dgn contact-add. Tanpa daftar ID hardcoded.
+    
     final group     = _statusGroup(selectedStatusId);
     final isAppt    = group == 'appt';
     final isReserve = group == 'reserve';
@@ -1280,17 +1280,17 @@ class _ContactFormPageState extends State<ContactFormPage> {
     final isSP      = group == 'sp';
     final isLost    = group == 'lost';
 
-    // first* date: kirim hanya jika status cocok DAN existing kosong (atau create mode)
+    
     final existing        = widget.args.dataContact;
     final firstApptEmpty  = isCreate || existing?.firstApptDate == null   || (existing!.firstApptDate?.isEmpty   ?? true);
     final firstVisitEmpty = isCreate || existing?.firstVisitDate == null  || (existing!.firstVisitDate?.isEmpty  ?? true);
     final firstReserveEmpty = isCreate || existing?.firstReserveDate == null || (existing!.firstReserveDate?.isEmpty ?? true);
     final firstSPEmpty    = isCreate || existing?.firstSpDate == null     || (existing!.firstSpDate?.isEmpty     ?? true);
 
-    // Helper: pakai nilai field, fallback ke today jika kosong
+    
     String dateOr(String fieldValue) => fieldValue.isNotEmpty ? fieldValue : today;
 
-    // Mapping Dynamic Properties
+    
     final List<Map<String, dynamic>> propertiesJson = [];
     _propertyControllers.forEach((id, ctrl) {
       if (ctrl.text.isNotEmpty) propertiesJson.add({'property_id': id, 'property_value': ctrl.text});
@@ -1338,28 +1338,28 @@ class _ContactFormPageState extends State<ContactFormPage> {
       lostReasonId: selectedLostReasonId,
       lostReasonNote: lossReasonNoteTC.text.isNotEmpty ? lossReasonNoteTC.text : null,
 
-      // Appt dates — kirim hanya jika status appt
+      
       lastApptDate:  isAppt ? _toBackendDate(dateOr(isUpdate ? lastApptDateTC.text : firstApptDateTC.text)) : null,
       firstApptDate: isAppt && firstApptEmpty ? _toBackendDate(dateOr(firstApptDateTC.text)) : null,
 
-      // Visit dates — kirim hanya jika status visit
+      
       lastVisitDate:  isVisit ? _toBackendDate(dateOr(isUpdate ? lastVisitorDateTC.text : firstVisitorDateTC.text)) : null,
       firstVisitDate: isVisit && firstVisitEmpty ? _toBackendDate(dateOr(firstVisitorDateTC.text)) : null,
 
-      // Reserve dates — kirim hanya jika status reserve
+      
       reserveDate:      isReserve ? _toBackendDate(dateOr(reserveDateTC.text)) : null,
       lastReserveDate:  isReserve ? _toBackendDate(dateOr(reserveDateTC.text)) : null,
       firstReserveDate: isReserve && firstReserveEmpty? _toBackendDate(dateOr(firstReserveDateTC.text.isNotEmpty ? firstReserveDateTC.text : reserveDateTC.text)): null,
 
-      // SP dates — kirim hanya jika status SP
+      
       lastSPDate:  isSP ? _toBackendDate(dateOr(lspTC.text)) : null,
       firstSPDate: isSP && firstSPEmpty ? _toBackendDate(dateOr(fspTC.text)) : null,
 
-      // Akad dates — hanya dikirim saat edit
+      
       lastAkadDate:  isUpdate ? _toBackendDate(lakadTC.text) : null,
       firstAkadDate: isUpdate && (existing?.firstAkadDate == null || (existing!.firstAkadDate?.isEmpty ?? true))? _toBackendDate(fakadTC.text): null,
 
-      // Lost dates — kirim hanya jika status lost
+      
       lostDate:     isLost ? _toBackendDate(dateOr(lastLostDateTC.text)) : null,
       lastLostDate: isLost ? _toBackendDate(dateOr(lastLostDateTC.text)) : null,
 
@@ -1371,11 +1371,11 @@ class _ContactFormPageState extends State<ContactFormPage> {
       ktpAddress: ktpAddressTC.text.isNotEmpty ? ktpAddressTC.text : null,
       propertiesJson: propertiesJson.isNotEmpty ? propertiesJson : null,
       periodePameranDate: _pameranIds.contains(selectedSource1Id) ? _periodePameranDateBackend : null,
-      // Model A: kirim units HANYA saat CREATE (page 0). Pada EDIT di-omit agar updateContact tak reconcile/Lost deal lama.
+      
       units: ((widget.args.page == 0 && _selectedUnits.isNotEmpty) || (widget.args.page != 0 && _unitsTouched)) ? _selectedUnits.map((u) => u.toApiJson()).toList() : null,
     );
 
-    // debugPrint("Param: ${params.toJson()}");
+    
 
     setState(() => _isSaving = true);
     if (isUpdate) {
@@ -1415,7 +1415,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
       listener: (context, state) {
         if (state.status == ContactStatus.createSuccess && widget.args.page == 0) {
           setState(() => _isSaving = false);
-          // debugPrint('[ContactForm] CREATE success — contact_id: ${state.contactDetail?.contactId} ${state.contactDetail?.fullName}');
+          
           if (state.contactDetail?.contactId != null) {
             SalesbookSyncService.syncContact(state.contactDetail!.contactId!);
           }
@@ -1434,7 +1434,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
           });
         } else if (state.status == ContactStatus.updateSuccess && widget.args.page == 1) {
           setState(() => _isSaving = false);
-          // debugPrint('[ContactForm] UPDATE success — contact_id: ${state.contactDetail?.contactId}');
+          
           if (state.contactDetail?.contactId != null) {
             SalesbookSyncService.syncContact(state.contactDetail!.contactId!);
           }
@@ -1455,9 +1455,9 @@ class _ContactFormPageState extends State<ContactFormPage> {
             state.status == ContactStatus.detailLoaded &&
             !_unitsLoaded &&
             state.contactDetail != null) {
-          // Detail PENUH tiba setelah form awalnya terisi dari data LIST yang slim
-          // (GET /contacts hanya kirim id/nama/wa/owner → salutation/email/KTP/sumber informasi/tanggal kosong).
-          // Isi ulang SEMUA field dari detail + daftar unit. Fetch dipicu saat _init (sebelum user mengetik) → aman.
+          
+          
+          
           _fillForm(state.contactDetail!);
         } else if (state.status == ContactStatus.error && widget.args.page != 2) {
           setState(() => _isSaving = false);
@@ -1465,8 +1465,8 @@ class _ContactFormPageState extends State<ContactFormPage> {
             _isDialogShowing = false;
             Navigator.of(this.context).pop();
           }
-          // debugPrint('ContactFormError: ${state.errorMessage}');
-          // Tampilkan pesan ASLI dari backend (mis. "Anda tidak memiliki akses untuk mengubah kontak ini.")
+          
+          
           final msg = (state.errorMessage ?? '').replaceFirst('Exception: ', '').trim();
           ScaffoldMessenger.of(this.context).showSnackBar(
             SnackBar(content: Text(msg.isNotEmpty ? msg : 'Gagal menyimpan data kontak')),
@@ -1536,7 +1536,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
                   curr.status == ContactStatus.error &&
                   prev.status != ContactStatus.error,
               listener: (context, contactState) {
-                // debugPrint('ContactFormDetailError: ${contactState.errorMessage}');
+                
                 showErrorDialog(context, 'Gagal memuat data kontak').then((_) {
                   if (context.mounted) context.pop();
                 });
@@ -1551,7 +1551,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
                 final detailLoading = contactState.status == ContactStatus.loadingDetail ||
                     contactState.status == ContactStatus.initial;
 
-                // page 2 needs detailLoading (fetches fresh); page 1 always has data from args
+                
                 final showDetailLoading = widget.args.page == 2 && detailLoading;
 
                 if ((widget.args.page == 1 || widget.args.page == 2) &&
@@ -1647,7 +1647,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
                             onTap: () async {
                               if (profileState is ProfileLoaded) {
                                 final user = profileState.profile;
-                                // Owner mengikuti scope MODIFY: Own = hanya diri sendiri; Team/Any = + bawahan.
+                                
                                 final modifyScope = PermissionsHelper.scopeLevel('Contacts', 'Modify');
                                 final List<OwnerDropdownItem> ownerItems = [];
                                 ownerItems.add(
@@ -1758,8 +1758,8 @@ class _ContactFormPageState extends State<ContactFormPage> {
                                     selectLastProjectCategory = null;
                                     selectLastProjectProduct = null;
                                     selectProductType = null;
-                                    // Penyempitan: tampilkan unit AKTIF dari project yang dipilih (deal project lain
-                                    // tetap di t_deals). Edit: ambil dari _allUnits; Create: kosong (belum ada deal).
+                                    
+                                    
                                     if (projectChanged) {
                                       _selectedUnits = _activeUnitsForTownship(selected.id);
                                     }
@@ -1777,7 +1777,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
                               }
                             },
                           ),
-                          // Model A: 4 field lama (Project Category/Product Type/Product/Blok No) DIGABUNG → Unit Picker multi-select.
+                          
                           _buildUnitField(),
                           if (_isVisitorWi(selectedStatusId))
                             _buildFieldDown(
@@ -1990,12 +1990,12 @@ class _ContactFormPageState extends State<ContactFormPage> {
                             fieldType: 'date',
                             onViewTap: () => _goEditStatus(group: 'sp'),
                           ),
-                          //  _buildField(
-                          //   label: "Akad Date",
-                          //   controller: lakadTC,
-                          //   focusNode: lakadFN,
-                          //   fieldType: 'date',
-                          // ),
+                          
+                          
+                          
+                          
+                          
+                          
                           _buildField(
                             label: "Lost Date",
                             controller: lastLostDateTC,
@@ -2006,19 +2006,19 @@ class _ContactFormPageState extends State<ContactFormPage> {
                          
 
 
-                          // _buildField(
-                          //   label: "No KTP",
-                          //   controller: noKTPTC,
-                          //   focusNode: noKTPFN,
-                          //   fieldType: 'int',
-                          //   isError: _showValidation && noKTPTC.text.isEmpty,
-                          // ),
-                          // _buildField(
-                          //   label: "KTP Address",
-                          //   controller: ktpAddressTC,
-                          //   focusNode: ktpAddressFN,
-                          //   isError: _showValidation && ktpAddressTC.text.isEmpty,
-                          // ),
+                          
+                          
+                          
+                          
+                          
+                          
+                          
+                          
+                          
+                          
+                          
+                          
+                          
                           
                          
                           
@@ -2127,11 +2127,11 @@ class _ContactFormPageState extends State<ContactFormPage> {
                           return const SizedBox.shrink();
                         }
                         if (state.status == ContactPropertiesStatus.error) {
-                          // debugPrint('ContactPropertiesError: ${state.errorMessage}');
+                          
                           return const Padding(padding: EdgeInsets.all(8.0), child: Text('Gagal memuat properties'));
                         }
 
-                        // Auto-scroll + highlight when arriving from view mode with a focusField
+                        
                         if (state.status == ContactPropertiesStatus.loaded &&
                             widget.args.focusField != null &&
                             widget.args.page == 1 &&
@@ -2196,7 +2196,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
                                     );
                                   }
 
-                                  // default text
+                                  
                                   return _buildField(
                                     label: prop.label,
                                     controller: propCtrl,
@@ -2256,7 +2256,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
                         onTap: () async {
                           if (profileState is ProfileLoaded) {
                             final user = profileState.profile;
-                            // Owner mengikuti scope MODIFY: Own = hanya diri sendiri; Team/Any = + bawahan.
+                            
                             final modifyScope = PermissionsHelper.scopeLevel('Contacts', 'Modify');
                             final List<OwnerDropdownItem> ownerItems = [];
                             ownerItems.add(OwnerDropdownItem(id: user.userId, name: '${user.fullName} (me)', subtitle: user.positionName));
@@ -2649,10 +2649,10 @@ class _ContactFormPageState extends State<ContactFormPage> {
         curve: Curves.easeInOut,
         alignment: 0.3,
       );
-      // Only request focus for plain text/int fields.
-      // Date fields use AbsorbPointer + date picker — focusing them programmatically
-      // shows a stray text keyboard instead of the date picker.
-      // Dropdown fields have no keyboard at all.
+      
+      
+      
+      
       final fn = <String, FocusNode>{
         'Full Name': fullNameFN,
         'Hp/Whatsapp': waFN,
@@ -2691,8 +2691,8 @@ class _ContactFormPageState extends State<ContactFormPage> {
     }
   }
 
-  /// Grup form ('db'|'appt'|'visit'|'reserve'|'sp'|'lost') untuk [id] dari backend (field `group`).
-  /// Sumber tunggal = setting STATUS_PROSPECT_* (lihat ProspectStage::formGroupMap). Fallback 'db'.
+  
+  
   String _statusGroup(int? id) {
     if (id == null) return 'db';
     final st = context.read<ProspectStatusBloc>().state;
@@ -2703,8 +2703,8 @@ class _ContactFormPageState extends State<ContactFormPage> {
     return 'db';
   }
 
-  /// True bila status [id] termasuk "Visitor/WI" (isVisitorWi / STATUS_PROSPECT_VISITOR_WI)
-  /// → tampilkan field berapa kali datang. Menggantikan hardcode [63..69].
+  
+  
   bool _isVisitorWi(int? id) {
     if (id == null) return false;
     final st = context.read<ProspectStatusBloc>().state;
@@ -2715,7 +2715,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
     return false;
   }
 
-  /// prospect_status_id anggota sebuah [group] (dari daftar status backend), urut sesuai daftar (status_value).
+  
   List<int> _statusIdsForGroup(String group) {
     final st = context.read<ProspectStatusBloc>().state;
     if (st.status != ProspectStatusEnum.loaded) return const [];
@@ -2725,19 +2725,19 @@ class _ContactFormPageState extends State<ContactFormPage> {
         .toList();
   }
 
-  /// Buka form Update Status untuk satu [group] milestone (Appt/Visit/Reserve/SP/Lost).
-  /// Daftar status & default-nya diturunkan dari grup backend (tanpa daftar ID hardcoded).
+  
+  
   void _goEditStatus({String? group}) async {
     if (!PermissionsHelper.canEditContact) return;
-    // Pakai detail TERBARU dari bloc (bawa tanggal milestone + units + project terisi) supaya form status
-    // berfungsi sbg "lihat detail yang sudah diinput", bukan data list basi.
+    
+    
     final stateDetail = context.read<ContactBloc>().state.contactDetail;
     final contact = (stateDetail != null && stateDetail.contactId == widget.args.dataContact?.contactId)
         ? stateDetail
         : widget.args.dataContact;
     if (contact == null) return;
 
-    // Status default untuk milestone yang di-tap: status saat ini bila masih dalam grup, selain itu status pertama grup.
+    
     int? resolvedStatusId = selectedStatusId;
     if (group != null) {
       final ids = _statusIdsForGroup(group);
@@ -2749,8 +2749,8 @@ class _ContactFormPageState extends State<ContactFormPage> {
     await context.pushNamed(
       'addContact',
       extra: ContactDetailArgs(
-        // Pakai contact SEGAR apa adanya (last_project + last_project_id + units = satu sumber konsisten).
-        // JANGAN campur dgn state form (selectLastProject bisa basi → nama project ≠ id project).
+        
+        
         dataContact: contact.copyWith(statusProspectId: resolvedStatusId),
         page: 6,
         sourceRoute: 'editContact',
@@ -2841,7 +2841,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
-            // Label kecil di atas (sama seperti _buildFieldDown)
+            
             Text(label, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: isHighlighted ? Color(primaryColor) : Color(grey2Color))),
             const SizedBox(height: 4),
             Row(
@@ -2856,7 +2856,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
                                   if (url != null && url.isNotEmpty) {
                                     context.pushNamed('attachmentWebView', extra: url);
                                   } else if (picked != null) {
-                                    // new picked file — no URL yet, just re-pick
+                                    
                                     _showPropertyFilePicker(propertyId);
                                   }
                                 },
@@ -2934,7 +2934,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
                     children: [
                       Builder(
                         builder: (context) {
-                          // Date field: open date picker and fill controller
+                          
                           if (fieldType == 'date') {
                             return GestureDetector(
                               onTap: isReadOnly
@@ -2974,7 +2974,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
                             );
                           }
 
-                          // Integer field: restrict to digits
+                          
                           if (fieldType == 'int') {
                             return TextFormField(
                               controller: controller,
@@ -3004,7 +3004,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
                             );
                           }
 
-                          // Default: text input
+                          
                           return TextFormField(
                             controller: controller,
                             focusNode: focusNode,

@@ -43,7 +43,12 @@ android {
 
     defaultConfig {
         applicationId = "id.co.progressgroup.connect"
-        minSdk = flutter.minSdkVersion
+        // Di-hardcode (bukan ikut flutter.minSdkVersion) supaya nggak diam-diam naik/turun
+        // kalau Flutter SDK di-upgrade. 24 ini juga batas bawah paling ketat yang ada di
+        // project ini sekarang — dipaksa oleh plugin local_auth (login biometrik/fingerprint),
+        // yang mewajibkan minSdk 24. Turunin di bawah ini bakal gagal build (manifest merger
+        // error) kecuali local_auth dilepas.
+        minSdk = 24
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName

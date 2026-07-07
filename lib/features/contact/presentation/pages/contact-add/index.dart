@@ -94,8 +94,8 @@ class _ContactAddPageState extends State<ContactAddPage> {
   String? selectedStatusValue;
   String? selectedStatusValueProspect;
 
-  // Prefill tanggal milestone (dari grup status) sudah diterapkan — cegah dobel/overwrite.
-  // Diperlukan karena init bisa terjadi sebelum daftar status (grup) selesai dimuat.
+  
+  
   bool _prefillDateApplied = false;
 
   String? selectedProject;
@@ -106,7 +106,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
   String? selectedBlockNo;
   String? selectedProjectCategory;
 
-  // Model A — Produk/Unit (gantikan Project Category/Product Type/Product/Blok). Mengikuti Project terpilih.
+  
   List<SelectedUnit> _selectedUnits = [];
   List<SelectedUnit> _allUnits = [];
   bool _unitsTouched = false;
@@ -118,7 +118,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
   List<File> selectedImages = [];
   List<Uint8List> selectedImageBytes = [];
 
-  // Attachment upload (page 5) — multi-file
+  
   List<File> _attachFiles = [];
   List<Uint8List> _attachFileBytes = [];
   List<String> _attachFileNames = [];
@@ -155,8 +155,8 @@ class _ContactAddPageState extends State<ContactAddPage> {
     _init();
   }
 
-  /// Prefill tanggal yang tampil di form = milestone yang sesuai GRUP status (backend), bukan daftar ID.
-  /// Mengembalikan null bila grup tak punya milestone ('db') atau tanggalnya kosong.
+  
+  
   DateTime? _getSelectedDateByStatus(dynamic data) {
     final group = _resolveStatusGroup(
           context.read<ProspectStatusBloc>().state,
@@ -182,13 +182,13 @@ class _ContactAddPageState extends State<ContactAddPage> {
         raw = data.lastLostDate;
         break;
       default:
-        return null; // 'db' / grup tak dikenal → tidak prefill milestone
+        return null; 
     }
 
     if (raw == null || raw.isEmpty) return null;
     try {
       final d = DateTime.parse(raw);
-      // Khusus Lost: bila tersimpan tanpa jam (00:00), tampilkan dengan jam sekarang (perilaku lama).
+      
       if (group == 'lost') {
         final n = AppTime.now();
         return d.hour == 0 && d.minute == 0
@@ -205,8 +205,8 @@ class _ContactAddPageState extends State<ContactAddPage> {
     if (widget.args.page != 4) return;
     if (statuses.isEmpty) return;
 
-    // Status Visit valid = daftar visit-picker (config-driven). Bila yang terpilih tidak valid,
-    // default ke status visit pertama (urut status_value → mis. WI lebih dulu).
+    
+    
     if (!_isVisitPickerStatus(statuses, selectedStatusId)) {
       final valid = _visitPickerStatuses(statuses);
       if (valid.isNotEmpty) {
@@ -250,28 +250,28 @@ class _ContactAddPageState extends State<ContactAddPage> {
     if ((widget.args.page == 6 || widget.args.page <= 4) &&
         widget.args.dataContact != null) {
       final data = widget.args.dataContact!;
-      // createContactParams hadir ketika dibuka dari edit form (sourceRoute='editContact')
-      // sehingga data yang belum disimpan dari edit form ikut terbawa.
+      
+      
       final params = widget.args.createContactParams;
 
       setState(() {
-        // Prioritas: createContactParams (edit form) > dataContact (server)
-        // Utamakan last_project dari DETAIL SEGAR (data) di atas params (bisa basi dari state form About),
-        // dan last di atas first. Cegah project ke-isi first_project / nama project basi.
+        
+        
+        
         selectedProject = data.lastProject ?? params?.lastProject ?? data.firstProject ?? params?.firstProject;
         selectedProduct = (params?.lastProduct?.isNotEmpty == true)
             ? params!.lastProduct
             : (data.lastProduct?.isNotEmpty == true ? data.lastProduct : null);
 
-        // Page Visit (4): status di-validasi/di-default oleh _autoSelectStatusIfNeeded (config-driven)
-        // begitu daftar status dimuat. Di sini cukup ambil status kontak apa adanya.
+        
+        
         selectedStatusId = data.statusProspectId;
 
         selectedBlockNo = params?.lastBlokNo ?? data.lastBlokNo;
         selectedProjectCategory = params?.lastProjectCategory ?? data.lastProjectCategory;
         selectedProductType = params?.productType ?? data.productType;
         lBlockNoTC.text = params?.lastBlokNo ?? data.lastBlokNo ?? '';
-        // Model A: prefill Produk/Unit dari deal AKTIF project terakhir (deal project lain tetap di t_deals).
+        
         _allUnits = data.units ?? [];
         _selectedUnits = _activeUnitsForTownship(data.lastProjectId);
         jmlDatang = (params?.visitCount ?? data.visitCount)?.toString() ?? "1";
@@ -281,7 +281,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
         selectedLostReasonId = params?.lostReasonId ?? data.lostReasonId;
         lostReasonNoteTC.text = params?.lostReasonNote ?? data.lostReasonNote ?? '';
 
-        // Resolusi Nama Status
+        
         final statusState = context.read<ProspectStatusBloc>().state;
         if (statusState.status == ProspectStatusEnum.loaded) {
           for (final s in statusState.statuses) {
@@ -292,7 +292,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
           }
         }
 
-        // Resolusi Nama Alasan Lost
+        
         final reasonState = context.read<LostReasonBloc>().state;
         if (reasonState.status == LostReasonStatus.loaded) {
           for (final r in reasonState.reasons) {
@@ -309,8 +309,8 @@ class _ContactAddPageState extends State<ContactAddPage> {
         }
       });
 
-      // Bila daftar status sudah ter-cache saat init (mis. dari layar sebelumnya), enforce
-      // default Visit (page 4) sekarang juga; bila belum, listener ProspectStatus menangani saat load.
+      
+      
       final cachedStatus = context.read<ProspectStatusBloc>().state;
       if (cachedStatus.status == ProspectStatusEnum.loaded) {
         _autoSelectStatusIfNeeded(cachedStatus.statuses);
@@ -318,8 +318,8 @@ class _ContactAddPageState extends State<ContactAddPage> {
 
       if (selectedProject != null) _loadTownshipClusters(selectedProject!);
 
-      // Jika createContactParams tersedia, skip fetch server agar data edit form
-      // tidak ditimpa oleh respons server.
+      
+      
       if (params == null) {
         context.read<ContactBloc>().add(FetchContactDetailEvent(data.contactId!));
       }
@@ -353,7 +353,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
     if (result == null) return;
 
     if (isEdit) {
-      // Edit mode: satu file saja
+      
       final picked = result.files.single;
       if (kIsWeb) {
         if (picked.bytes != null) {
@@ -377,7 +377,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
       return;
     }
 
-    // Upload mode: banyak file
+    
     final newFiles = <File>[];
     final newBytes = <Uint8List>[];
     final newNames = <String>[];
@@ -629,7 +629,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
     }
 
     if (isEdit) {
-      // Edit mode: single file
+      
       if (selectedImage == null && selectedFile == null && selectedFileBytes == null) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Pilih file')),
@@ -668,7 +668,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
       return;
     }
 
-    // Upload mode: multiple files
+    
     if (_attachFiles.isEmpty && _attachFileBytes.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Pilih minimal satu file')),
@@ -733,12 +733,12 @@ class _ContactAddPageState extends State<ContactAddPage> {
   Future<void> _submitUpdateStatus(BuildContext context) async {
 
     final contact = widget.args.dataContact;
-    // Field dari edit form yang tidak tampil di UI halaman ini
+    
     final editParams = widget.args.createContactParams;
 
-    // Tanggal milestone disimpan + JAM PERSIS yang dipilih user (realisasi), bukan jam sekarang.
-    // Pemilihan milestone (appt/reserve/visit/sp/lost) BERBASIS GRUP status dari backend — tanpa daftar ID hardcoded.
-    // Lost HANYA terisi saat grup 'lost' (aturan: lost_date hanya boleh diisi ketika status = Lost).
+    
+    
+    
     final group = _currentStatusGroup();
     final d = _buildMilestoneDates(group, contact);
     final firstApptDate    = d['firstApptDate'];
@@ -756,7 +756,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
     if (contact == null) return;
 
     final params = CreateContactParams(
-      // ── Field tersembunyi dari edit form (tidak ada di UI halaman ini) ──
+      
       salutation: editParams?.salutation,
       fullName: editParams?.fullName,
       primaryPhone: editParams?.primaryPhone,
@@ -781,7 +781,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
       firstProjectCategory: editParams?.firstProjectCategory,
       firstProduct: editParams?.firstProduct,
 
-      // ── Field dari UI halaman ini (override edit form) ──
+      
       statusProspectId: selectedStatusId,
       generalNotes: descTC.text.isNotEmpty ? descTC.text : null,
       lastBlokNo: lBlockNoTC.text.isNotEmpty ? lBlockNoTC.text : null,
@@ -790,7 +790,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
       lastProduct: selectedProduct,
       lastProjectCategory: selectedProjectCategory,
       productType: selectedProductType,
-      // Model A: kirim units bila user mengubah pilihan unit (picker). Backend reconcile per-project terakhir.
+      
       units: _unitsTouched ? _selectedUnits.map((u) => u.toApiJson()).toList() : null,
       volumePlan: volumeTC.text.isNotEmpty ? volumeTC.text : null,
       visitCount: _parseVisitCount(jmlDatang),
@@ -798,7 +798,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
       nameSP: nameSPTC.text.isNotEmpty ? nameSPTC.text : null,
       lostReasonNote: lostReasonNoteTC.text.isNotEmpty ? lostReasonNoteTC.text : null,
 
-      // ── Tanggal berdasarkan status ──
+      
       firstApptDate: firstApptDate,
       firstLostDate: firstLostDate,
       firstReserveDate: firstReserveDate,
@@ -812,12 +812,12 @@ class _ContactAddPageState extends State<ContactAddPage> {
       lostDate: lostDate,
     );
 
-    // if (kDebugMode) {
-    //   debugPrint('[_buildUpdateStatusProspect] req body: ${params.toJson()}');
-    // }
+    
+    
+    
 
-    // Alur Visit (buat visit-activity + foto) bila status termasuk GRUP 'visit'. Status Lost-dari-visit
-    // (mis. Lost WI) kini grup 'lost' → hanya update kontak (bukan mencatat kunjungan baru).
+    
+    
     final isVisitStatus = _isVisitGroup(selectedStatusId);
 
     if (isVisitStatus) {
@@ -833,7 +833,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
         filesBytesData: visitImages.bytesData,
       );
       context.read<ActivityVisitBloc>().add(CreateVisitEvent(paramsVisit));
-      // Also update contact-level fields (project, category, notes) that CreateVisitEvent doesn't save
+      
       context.read<ContactBloc>().add(UpdateContactEvent(contact.contactId!, params));
     } else {
       context.read<ContactBloc>().add(UpdateContactEvent(contact.contactId!, params), );
@@ -855,7 +855,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
 
     if (contact == null) return;
 
-    // Simpan tanggal + JAM PERSIS pilihan user (realisasi kedatangan), bukan jam sekarang.
+    
     final firstVisitDate = (contact.firstVisitDate == null && selectedDate != null)
         ? DateFormat('yyyy-MM-dd HH:mm:ss').format(selectedDate!)
         : null;
@@ -866,21 +866,21 @@ class _ContactAddPageState extends State<ContactAddPage> {
     final visitImages = await _compressVisitImages();
     if (!mounted) return;
 
-    // debugPrint('[_submitVisit] selectedImages count  : ${selectedImages.length}');
-    // debugPrint('[_submitVisit] selectedImageBytes count: ${selectedImageBytes.length}');
-    // debugPrint('[_submitVisit] files (non-web)        : ${visitImages.files?.length ?? 0}');
-    // debugPrint('[_submitVisit] bytesData (compressed) : ${visitImages.bytesData?.length ?? 0}');
-    // if (visitImages.bytesData != null) {
-    //   for (var i = 0; i < visitImages.bytesData!.length; i++) {
-    //     debugPrint('[_submitVisit]   image[$i] size: ${visitImages.bytesData![i].lengthInBytes} bytes');
-    //   }
-    // }
+    
+    
+    
+    
+    
+    
+    
+    
+    
 
     final paramsVisit = CreateVisitParams(
       contactId: contact.contactId!,
       statusProspectId: selectedStatusId!,
       visitCount: _parseVisitCount(jmlDatang),
-      // Pakai tanggal + jam PERSIS pilihan user (realisasi).
+      
       activityDate: DateFormat('yyyy-MM-dd HH:mm:ss').format(selectedDate!),
       notes: descTC.text,
       files: visitImages.files,
@@ -919,7 +919,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
       lastProduct: selectedProduct,
       lastProjectCategory: selectedProjectCategory,
       productType: selectedProductType,
-      // Model A: kirim units bila user mengubah pilihan unit (picker). Backend reconcile per-project terakhir.
+      
       units: _unitsTouched ? _selectedUnits.map((u) => u.toApiJson()).toList() : null,
       volumePlan: volumeTC.text.isNotEmpty ? volumeTC.text : null,
       visitCount: _parseVisitCount(jmlDatang),
@@ -930,7 +930,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
     context.read<ActivityVisitBloc>().add(CreateVisitEvent(paramsVisit));
     context.read<ContactBloc>().add(UpdateContactEvent(contact.contactId!, paramsContact));
 
-    // debugPrint('ini params visit ${paramsContact.toJson()}');
+    
   }
 
   @override
@@ -974,7 +974,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
                 context.pop();
               }
             } else if (state.status == ActivityStatus.error) {
-              // debugPrint('ActivityError: ${state.errorMessage}');
+              
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
                   content: Text('Gagal menambahkan activity'),
@@ -989,7 +989,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
             if (state is UploadAttachmentSuccess) {
               context.pop(2);
             } else if (state is UploadAttachmentError) {
-              // debugPrint('UploadAttachmentError: ${state.message}');
+              
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
                   content: Text('Gagal mengunggah lampiran'),
@@ -1002,16 +1002,16 @@ class _ContactAddPageState extends State<ContactAddPage> {
         BlocListener<ContactBloc, ContactState>(
           listener: (ctx, state) {
             if (state.status == ContactStatus.updateSuccess) {
-              // Untuk grup 'visit', pop ditangani listener ActivityVisitBloc (alur visit). Selain itu pop di sini.
+              
               if (!_isVisitGroup(selectedStatusId)) {
-                context.pop(0); // 0 = Activity tab
+                context.pop(0); 
               }
             } else if (state.status == ContactStatus.detailLoaded &&
                 state.contactDetail != null) {
               final data = state.contactDetail!;
               setState(() {
                 selectedProject = data.projectName ?? data.firstProject;
-                // Page Visit (4): di-validasi/di-default oleh _autoSelectStatusIfNeeded (config-driven) di bawah.
+                
                 selectedStatusId = data.statusProspectId;
                 final statusState = context.read<ProspectStatusBloc>().state;
                 if (statusState.status == ProspectStatusEnum.loaded) {
@@ -1041,7 +1041,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
                 selectedProjectCategory = data.lastProjectCategory;
                 selectedProductType = data.productType?.isNotEmpty == true ? data.productType : null;
                 lBlockNoTC.text = data.lastBlokNo ?? '';
-                // Auto-isi Produk/Unit dari deal AKTIF project terakhir (wajib terisi bila t_deal sudah ada unit).
+                
                 _allUnits = data.units ?? [];
                 _selectedUnits = _activeUnitsForTownship(data.lastProjectId);
                 jmlDatang = data.visitCount?.toString() ?? "1";
@@ -1053,14 +1053,14 @@ class _ContactAddPageState extends State<ContactAddPage> {
                   selectedDate = autoDate;
                 }
               });
-              // Enforce default Visit (page 4) bila status kontak bukan status visit (config-driven).
+              
               final ssDetail = context.read<ProspectStatusBloc>().state;
               if (ssDetail.status == ProspectStatusEnum.loaded) {
                 _autoSelectStatusIfNeeded(ssDetail.statuses);
               }
               if (selectedProject != null) _loadTownshipClusters(selectedProject!);
             } else if (state.status == ContactStatus.error) {
-              // debugPrint('ContactStatusError: ${state.errorMessage}');
+              
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
                   content: Text('Gagal memperbarui data kontak'),
@@ -1073,9 +1073,9 @@ class _ContactAddPageState extends State<ContactAddPage> {
         BlocListener<ActivityVisitBloc, VisitState>(
           listener: (ctx, state) {
             if (state is VisitSuccess) {
-              context.pop(0); // 0 = Activity tab
+              context.pop(0); 
             } else if (state is VisitError) {
-              // debugPrint('VisitError: ${state.message}');
+              
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
                   content: Text('Gagal menyimpan data kunjungan'),
@@ -1100,7 +1100,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
             }
             if (state.status == ProspectStatusEnum.loaded) {
               _autoSelectStatusIfNeeded(state.statuses);
-              // Grup status baru tersedia → prefill tanggal milestone SEKALI (init bisa lebih dulu dari load).
+              
               if (!_prefillDateApplied && widget.args.dataContact != null) {
                 _prefillDateApplied = true;
                 final autoDate = _getSelectedDateByStatus(widget.args.dataContact);
@@ -1329,9 +1329,9 @@ class _ContactAddPageState extends State<ContactAddPage> {
     );
   }
 
-  /// Grup form ('db'|'appt'|'visit'|'reserve'|'sp'|'lost') untuk [statusId] dari data backend.
-  /// Sumber tunggal = field `group` tiap status (setting STATUS_PROSPECT_* di backend) → tidak ada lagi
-  /// daftar ID hardcoded. Kembalikan null bila status belum dimuat (caller tampilkan shimmer).
+  
+  
+  
   String? _resolveStatusGroup(ProspectStatusState statusState, int? statusId) {
     if (statusId == null || statusState.status != ProspectStatusEnum.loaded) {
       return null;
@@ -1339,41 +1339,41 @@ class _ContactAddPageState extends State<ContactAddPage> {
     for (final s in statusState.statuses) {
       if (s.statusProspectId == statusId) return s.group;
     }
-    return 'db'; // status tak ditemukan di daftar → default aman
+    return 'db'; 
   }
 
-  /// Grup form status terpilih saat ini (baca state bloc; 'db' bila belum tersedia).
+  
   String _currentStatusGroup() => _resolveStatusGroup(context.read<ProspectStatusBloc>().state, selectedStatusId) ?? 'db';
 
-  /// True bila status [id] termasuk grup 'visit' (penentu alur simpan Visit: buat visit-activity + foto).
+  
   bool _isVisitGroup(int? id) => _resolveStatusGroup(context.read<ProspectStatusBloc>().state, id) == 'visit';
 
-  /// Daftar status yang boleh dipilih saat merekam Visit (page Visit).
-  /// Sumber: flag `isVisitForm` (setting STATUS_PROSPECT_APPOINTMENT_REALIZE di backend) — tanpa daftar ID hardcoded.
-  /// FALLBACK aman: bila belum ada satu pun status ber-flag (setting kosong / server lama), pakai grup 'visit'
-  /// agar picker Visit tidak pernah kosong.
+  
+  
+  
+  
   List<ProspectStatusEntity> _visitPickerStatuses(List<ProspectStatusEntity> all) {
     final flagged = all.where((e) => e.isVisitForm).toList();
     if (flagged.isNotEmpty) return flagged;
     return all.where((e) => e.group == 'visit').toList();
   }
 
-  /// True bila [statusId] valid sebagai status Visit (page Visit) menurut daftar di atas.
+  
   bool _isVisitPickerStatus(List<ProspectStatusEntity> all, int? statusId) {
     if (statusId == null) return false;
     return _visitPickerStatuses(all).any((e) => e.statusProspectId == statusId);
   }
 
-  /// True bila status terpilih adalah status "realisasi visit" (isVisitForm / APPOINTMENT_REALIZE).
-  /// Penanda untuk menampilkan foto kunjungan & berapa kali datang (vs status visit non-realisasi spt Hot Prospect).
+  
+  
   bool _currentIsVisitFormStatus() {
     final st = context.read<ProspectStatusBloc>().state;
     return st.status == ProspectStatusEnum.loaded &&
         _isVisitPickerStatus(st.statuses, selectedStatusId);
   }
 
-  /// True bila status terpilih termasuk "Visitor/WI" (isVisitorWi / STATUS_PROSPECT_VISITOR_WI) →
-  /// berapa kali datang boleh >1 (opsi penuh). Menggantikan hardcode `selectedStatusId == 65`.
+  
+  
   bool _currentIsVisitorWi() {
     final st = context.read<ProspectStatusBloc>().state;
     if (st.status != ProspectStatusEnum.loaded) return false;
@@ -1383,10 +1383,10 @@ class _ContactAddPageState extends State<ContactAddPage> {
     return false;
   }
 
-  /// Bangun tanggal milestone (first/last appt/reserve/visit/sp/lost) sesuai GRUP status — sumber tunggal,
-  /// tanpa daftar ID hardcoded. 'db'/grup tak dikenal → semua null (tidak menyentuh milestone).
-  /// `first*` hanya diisi bila belum pernah ada (preserve tanggal awal). Lost HANYA saat grup 'lost'
-  /// (lihat aturan: lost_date hanya boleh terisi ketika status = Lost).
+  
+  
+  
+  
   Map<String, String?> _buildMilestoneDates(String group, dynamic contact) {
     final picked = selectedDate != null
         ? DateFormat('yyyy-MM-dd HH:mm:ss').format(selectedDate!)
@@ -1418,7 +1418,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
           mainAxisAlignment: MainAxisAlignment.center,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Template form dipilih dari GRUP status (backend), bukan daftar ID hardcoded.
+            
             BlocBuilder<ProspectStatusBloc, ProspectStatusState>(
               builder: (context, statusState) {
                 final group = _resolveStatusGroup(statusState, selectedStatusId);
@@ -1438,7 +1438,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
                     return _buildLostForm();
                   case 'db':
                   default:
-                    return _buildFormDB(); // default aman (status awal / grup tak dikenal)
+                    return _buildFormDB(); 
                 }
               },
             ),
@@ -1537,7 +1537,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
       builder: (context, contactState) {
         return BlocBuilder<ActivityVisitBloc, VisitState>(
           builder: (context, visitState) {
-            // Page Visit (4) selalu alur visit; di Update Status, alur visit bila status grup 'visit'.
+            
             final isVisitFlow = widget.args.page == 4 || _isVisitGroup(selectedStatusId);
 
             final isContactLoading = contactState.status == ContactStatus.creating;
@@ -1710,7 +1710,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
           onTap: () async {
             final statusState = context.read<ProspectStatusBloc>().state;
             if (statusState.status == ProspectStatusEnum.loaded) {
-              // Page Visit (4): batasi pilihan ke daftar visit-picker (config-driven), selain itu semua status.
+              
               final isPage4 = widget.args.page == 4;
               final source = isPage4
                   ? _visitPickerStatuses(statusState.statuses)
@@ -1902,11 +1902,11 @@ class _ContactAddPageState extends State<ContactAddPage> {
     }
   }
 
-  // Unit AKTIF (belum Lost) milik satu township/project — penyempitan: hanya project terakhir yang tampil.
+  
   List<SelectedUnit> _activeUnitsForTownship(int? townshipId) =>
       _allUnits.where((u) => !u.isLost && (townshipId == null || u.townshipId == townshipId)).toList();
 
-  // Teks tampilan unit: "Kavling Tipe Cluster"; fallback "Tipe Cluster · Waiting list/Belum tentukan kavling".
+  
   String _unitDisplay(SelectedUnit u) {
     final tail = [u.productName, u.clusterName]
         .where((e) => (e ?? '').toString().trim().isNotEmpty)
@@ -1944,7 +1944,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
     }
   }
 
-  // Field "Produk/Unit yang Diminati" — gantikan Project Category/Product Type/Product/Blok; selalu di bawah Project.
+  
   Widget _fieldUnitPicker() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -2030,7 +2030,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
                   selectedProduct = null;
                   selectedProductType = null;
                   lBlockNoTC.clear();
-                  // Penyempitan: tampilkan unit AKTIF dari project terpilih (deal project lain tetap di t_deals).
+                  
                   if (projectChanged) {
                     _selectedUnits = _activeUnitsForTownship(selected.id);
                   }
@@ -2102,7 +2102,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
               'detailContactDropdown',
               extra: ContactDropdownArgs(
                 title: 'Pilih berapa kali datang',
-                // Status Visitor/WI (config-driven) → boleh berapa kali datang >1; selain itu hanya 1.
+                
                 items: _currentIsVisitorWi()
                     ? itemsJmlDatang
                     : (itemsJmlDatang.isNotEmpty ? [itemsJmlDatang.first] : []),

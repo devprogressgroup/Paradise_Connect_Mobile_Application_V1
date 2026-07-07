@@ -85,7 +85,7 @@ class AttendanceRemoteDataSourceImpl implements AttendanceRemoteDataSource {
         if (attachmentBase64 != null) 'file_attachment': attachmentBase64,
       });
 
-      // debugPrint('[postAttendance] fields: ${formData.fields.map((e) => '${e.key}=${e.key == 'file_attachment' ? '<base64>' : e.value}').join(', ')}');
+   
 
       final response = await dio.post('/attendance', data: formData);
       return response.data;
@@ -219,7 +219,7 @@ class AttendanceRemoteDataSourceImpl implements AttendanceRemoteDataSource {
   Future<void> downloadAttendanceExcel({int? nikNumber, int? salesPersonId, required String startDate, required String endDate, required String savePath}) async {
     try {
       final params = _excelQueryParams(nikNumber: nikNumber, salesPersonId: salesPersonId, startDate: startDate, endDate: endDate);
-      // debugPrint('[downloadAttendanceExcel MOBILE] endpoint: /attendance/report/excel | params: $params');
+   
       await dio.download(
         '/attendance/report/excel',
         savePath,
@@ -236,7 +236,7 @@ class AttendanceRemoteDataSourceImpl implements AttendanceRemoteDataSource {
   Future<Uint8List> downloadAttendanceExcelBytes({int? nikNumber, int? salesPersonId, required String startDate, required String endDate}) async {
     try {
       final params = _excelQueryParams(nikNumber: nikNumber, salesPersonId: salesPersonId, startDate: startDate, endDate: endDate);
-      // debugPrint('[downloadAttendanceExcelBytes WEB] endpoint: /attendance/report/excel | params: $params');
+   
       final response = await dio.get<List<int>>(
         '/attendance/report/excel',
         queryParameters: params,

@@ -77,10 +77,10 @@ class ContactEntity extends Equatable {
   final int? lastProductId;
   final String? productType;
   final String? nameSP;
-  // Kapabilitas per-kontak dari backend (scope Modify/Delete). null = tak diketahui → UI anggap boleh.
+  
   final bool? canEdit;
   final bool? canDelete;
-  // Model A — daftar unit (deal) kontak; dipakai About tab + prefill Edit picker.
+  
   final List<SelectedUnit>? units;
 
   const ContactEntity({

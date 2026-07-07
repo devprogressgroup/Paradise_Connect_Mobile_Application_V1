@@ -10,8 +10,8 @@ class DriveImage extends StatefulWidget {
   final Widget? errorWidget;
   final VoidCallback? onTap;
   final FilterQuality filterQuality;
-  // Dipanggil sekali saat gambar selesai dimuat ATAU gagal — dipakai carousel
-  // untuk memuat gambar satu-satu berurutan, bukan sekaligus semua.
+  
+  
   final VoidCallback? onLoad;
 
   const DriveImage({
@@ -46,7 +46,7 @@ class _DriveImageState extends State<DriveImage> {
         ? w
         : (h != null && h.isFinite && h > 0 ? h : null);
     if (basis == null) return 1000;
-    // x2 buat layar retina, dibatasi biar tidak minta lebih dari yang perlu.
+    
     return (basis * 2).round().clamp(1, 1600).toInt();
   }
 
@@ -58,10 +58,10 @@ class _DriveImageState extends State<DriveImage> {
       height: widget.height,
       fit: widget.fit,
       filterQuality: widget.filterQuality,
-      // Pengaman tambahan: walau sudah minta thumbnail kecil ke server, ini
-      // maksa Flutter sendiri DECODE di ukuran kecil itu juga — kalau-kalau
-      // server tetap balas gambar lebih besar dari yang diminta, memori
-      // bitmap yang disimpan tetap kecil, bukan ukuran asli respons.
+      
+      
+      
+      
       cacheWidth: _targetWidth(),
       loadingBuilder: (context, child, progress) {
         if (progress == null) {

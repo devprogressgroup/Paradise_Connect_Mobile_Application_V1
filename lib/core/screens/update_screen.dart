@@ -110,10 +110,8 @@ class _UpdateScreenState extends State<UpdateScreen> with SingleTickerProviderSt
           child: Column(
             children: [
               const Spacer(flex: 2),
-              // Logo
               Image.asset(logoSplasShcreen, width: 180),
               const Spacer(flex: 1),
-              // Title
               const Text(
                 'Memperbarui Aplikasi',
                 style: TextStyle(
@@ -126,7 +124,6 @@ class _UpdateScreenState extends State<UpdateScreen> with SingleTickerProviderSt
               
               const SizedBox(height: 40),
 
-              // Progress bar
               if (_phase != _Phase.error) ...[
                 _ProgressBar(progress: _progress, glowAnim: _glowAnim),
                 const SizedBox(height: 14),
@@ -149,7 +146,6 @@ class _UpdateScreenState extends State<UpdateScreen> with SingleTickerProviderSt
                 ),
               ],
 
-              // Error state
               if (_phase == _Phase.error) ...[
                 const Icon(Icons.error_outline, color: Color(redColor), size: 40),
                 const SizedBox(height: 12),
@@ -178,7 +174,6 @@ class _UpdateScreenState extends State<UpdateScreen> with SingleTickerProviderSt
 
               const Spacer(flex: 3),
 
-              // Warning
               const Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -214,7 +209,6 @@ class _ProgressBar extends StatelessWidget {
           final width = constraints.maxWidth;
           return Stack(
             children: [
-              // Track
               Container(
                 width: width,
                 height: 10,
@@ -223,8 +217,6 @@ class _ProgressBar extends StatelessWidget {
                   borderRadius: BorderRadius.circular(5),
                 ),
               ),
-              // Fill — TweenAnimationBuilder animates progress changes smoothly,
-              // AnimatedBuilder handles the glow pulse independently
               TweenAnimationBuilder<double>(
                 tween: Tween(begin: 0, end: progress),
                 duration: const Duration(milliseconds: 250),

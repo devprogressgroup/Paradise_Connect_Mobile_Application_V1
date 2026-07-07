@@ -23,20 +23,20 @@ class SitePlanRepositoryImpl implements SitePlanRepository {
           final companyId = cluster['company_id']?.toString() ?? '';
           final siteplanId = cluster['id']?.toString() ?? '';
 
-          // Suffix query untuk site plan
+          
           const query = 'pdkey=hoaxprogress';
 
           String url;
           Map<String, String> headers;
 
           if (kIsWeb) {
-            // Web: route melalui backend proxy Laravel (server-to-server, tidak ada CORS).
-            // Service Worker tidak bisa bypass CORS untuk custom header X-App-Token.
-            final backendBase = ApiConstants.baseUrl; // http://host:8000/api
+            
+            
+            final backendBase = ApiConstants.baseUrl; 
             url     = '$backendBase/property/siteplan-proxy?$query&company_id=$companyId&siteplan_id=$siteplanId';
             headers = const {};
           } else {
-            // Mobile: URL asli, token dikirim via dart:io local proxy
+            
             url     = '${ApiConstants.siteplanBaseUrl}?$query&company_id=$companyId&siteplan_id=$siteplanId';
             headers = ApiConstants.siteplanWebviewHeaders;
           }

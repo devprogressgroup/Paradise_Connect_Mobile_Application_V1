@@ -19,7 +19,7 @@ class ReceivedNotifCubit extends Cubit<ReceivedNotifState> {
     _load();
   }
 
-  /// Dipanggil dari PushNotificationService saat notif masuk — tidak perlu context.
+  
   static void receive({
     required String title,
     required String body,

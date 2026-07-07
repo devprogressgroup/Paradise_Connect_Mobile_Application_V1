@@ -1,6 +1,6 @@
-// Web-only: tampilkan URL (PDF/website) via <iframe>.
-// flutter_pdfview, path_provider, webview_flutter tidak support web.
-// ignore: avoid_web_libraries_in_flutter, deprecated_member_use
+
+
+
 import 'dart:async';
 import 'dart:html' as html;
 import 'dart:js' as js;
@@ -80,9 +80,9 @@ class _WebViewPageState extends State<WebViewPage> {
   }
 
   void _setupOpenInterceptor() {
-    // Override window.open di parent sehingga ketika iframe membuka URL baru
-    // (misal klik folder/file di Google Drive), kita intercept dan tampilkan
-    // dalam iframe yang sama.
+    
+    
+    
     js.context.callMethod('eval', ['''
       if (!window.__flutterNavIntercepted) {
         window.__flutterNavIntercepted = true;
@@ -123,11 +123,11 @@ class _WebViewPageState extends State<WebViewPage> {
     super.dispose();
   }
 
-  // Prioritas:
-  // 1. Google Drive folder (/folders/ID) → embeddedfolderview
-  // 2. Google Drive file (/d/ID) → /preview
-  // 3. URL dengan ekstensi .pdf → Google Docs viewer
-  // 4. URL biasa → embed langsung di iframe
+  
+  
+  
+  
+  
   String _toEmbedUrl(String url) {
     final folderId = _extractFolderId(url);
     if (folderId != null) {
@@ -180,7 +180,7 @@ class _WebViewPageState extends State<WebViewPage> {
                 iconLeftOnTap: _shareUrl,
               ),
             ),
-          // Banner hanya muncul saat gagal load
+          
           if (_showFallbackBanner)
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),

@@ -158,7 +158,7 @@ class AuthRepositoryImpl implements AuthRepository {
   @override
   Future<void> logout() async {
     await localDataSource.clearToken();
-    // Pastikan jejak impersonate ikut bersih bila logout saat sedang impersonate.
+    
     await localDataSource.clearImpersonatorToken();
   }
 
@@ -213,8 +213,8 @@ class AuthRepositoryImpl implements AuthRepository {
     final newToken = data['access_token'] as String;
     final targetName = (data['user']?['full_name'] ?? 'User').toString();
 
-    // Stash token admin SAAT INI sebelum ditukar, lalu pasang token target.
-    // persistent:true agar token target ditemukan splash & bertahan saat restart.
+    
+    
     final adminToken = await localDataSource.getToken();
     if (adminToken != null && adminToken.isNotEmpty) {
       await localDataSource.saveImpersonatorToken(adminToken);
@@ -230,7 +230,7 @@ class AuthRepositoryImpl implements AuthRepository {
     if (adminToken == null || adminToken.isEmpty) {
       throw Exception('Token admin tidak ditemukan. Silakan login ulang.');
     }
-    // Token admin asli masih valid di active_token server → pulihkan langsung.
+    
     await localDataSource.saveToken(adminToken, persistent: true);
     await localDataSource.clearImpersonatorToken();
   }

@@ -4,7 +4,7 @@ import 'package:progress_group/core/utils/helpers/error_message.dart';
 import 'package:progress_group/features/inbox/domain/usecases/get_qr_session_usecase.dart';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
 
-// Events
+
 abstract class WhatsappQrEvent {}
 
 class StartQrSessionEvent extends WhatsappQrEvent {
@@ -22,7 +22,7 @@ class UpdateConnectionStatusEvent extends WhatsappQrEvent {
   UpdateConnectionStatusEvent(this.status);
 }
 
-// States
+
 abstract class WhatsappQrState {}
 
 class WhatsappQrInitial extends WhatsappQrState {}
@@ -40,7 +40,7 @@ class WhatsappQrError extends WhatsappQrState {
   WhatsappQrError(this.message);
 }
 
-// Bloc
+
 class WhatsappQrBloc extends Bloc<WhatsappQrEvent, WhatsappQrState> {
   final GetQrSessionUsecase getQrSession;
   IO.Socket? _socket;
@@ -54,13 +54,13 @@ class WhatsappQrBloc extends Bloc<WhatsappQrEvent, WhatsappQrState> {
   Future<void> _onStartSession(StartQrSessionEvent event, Emitter<WhatsappQrState> emit) async {
     emit(WhatsappQrLoading());
     try {
-      // 1. Trigger session via API (usecase kamu sudah siap pakai token!)
+      
       await getQrSession(session: event.session);
       
-      // 2. Tampilkan Stream Kosong sambil menunggu Socket
+      
       emit(WhatsappQrStreaming());
 
-      // 3. Connect ke Socket.IO
+      
       _connectSocket(event.session);
     } catch (e) {
       emit(WhatsappQrError(cleanErrorMessage(e)));
@@ -92,8 +92,8 @@ class WhatsappQrBloc extends Bloc<WhatsappQrEvent, WhatsappQrState> {
   void _connectSocket(String session) {
     _socket?.disconnect();
     
-    // PENTING: waServerURL di ApiConstants WAJIB berupa http://192.168.8.21:3000
-    // JANGAN GUNAKAN localhost atau 127.0.0.1 
+    
+    
     _socket = IO.io(ApiConstants.waServerURL, <String, dynamic>{
       'transports': ['websocket'],
       'autoConnect': true,
@@ -104,7 +104,7 @@ class WhatsappQrBloc extends Bloc<WhatsappQrEvent, WhatsappQrState> {
     _socket?.on('qr', (data) {
       if (data is Map && data['sessionId'] == session) {
         String qrFull = data['qr'].toString();
-        // Buang 'data:image/png;base64,' agar sisa string Base64 murni
+        
         String cleanBase64 = qrFull.split(',').last;
         add(UpdateQrCodeEvent(cleanBase64));
       }
@@ -113,8 +113,8 @@ class WhatsappQrBloc extends Bloc<WhatsappQrEvent, WhatsappQrState> {
     _socket?.on('status', (data) {
       if (data is Map && data['status'] == 'CONNECTED') {
         add(UpdateConnectionStatusEvent('CONNECTED'));
-        // Optional: otomatis putuskan socket jika udah sukses sambung
-        // _socket?.disconnect(); 
+        
+        
       }
     });
   }
