@@ -50,7 +50,16 @@ class OtaUpdateService {
       await _channel.invokeMethod('installApk', {'filePath': savePath});
     } on DioException catch (e) {
       if (CancelToken.isCancel(e)) return;
-      onError('Download gagal: ${e.message}');
+      switch (e.type) {
+        case DioExceptionType.connectionTimeout:
+        case DioExceptionType.sendTimeout:
+        case DioExceptionType.receiveTimeout:
+        case DioExceptionType.connectionError:
+          onError('Download gagal: Koneksi bermasalah. Silakan periksa jaringan Anda dan coba lagi.');
+          break;
+        default:
+          onError('Download gagal, silakan coba lagi.');
+      }
     } on PlatformException catch (e) {
       onError('Gagal membuka installer: ${e.message}');
     } catch (e) {

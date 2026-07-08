@@ -6,8 +6,20 @@ String cleanErrorMessage(Object e) {
   return raw.replaceAll('  ', '').trim();
 }
 
+const _kConnectionErrorMessage = 'Koneksi bermasalah. Silakan periksa jaringan Anda dan coba lagi.';
+
 String getErrorMessage(DioException e, String defaultMessage) {
   try {
+    switch (e.type) {
+      case DioExceptionType.connectionTimeout:
+      case DioExceptionType.sendTimeout:
+      case DioExceptionType.receiveTimeout:
+      case DioExceptionType.connectionError:
+        return _kConnectionErrorMessage;
+      default:
+        break;
+    }
+
     final statusCode = e.response?.statusCode;
     final data = e.response?.data;
 

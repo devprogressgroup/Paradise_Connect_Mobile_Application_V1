@@ -194,7 +194,9 @@
         var isFirebaseWarning = reason.indexOf('unsupported-browser') !== -1;
         // Geolocation errors: izin ditolak / GPS mati — bukan crash app, jangan restart
         var isGeoError = /geolocation|user denied|origin does not have permission|position unavailable/i.test(reason);
-        if (isFirebaseWarning || isGeoError) return; // abaikan sepenuhnya
+        // Dio timeout: koneksi/server lambat, bukan crash app — jangan munculkan panel debug
+        var isDioTimeout = /dioexceptiontype\.(connectionTimeout|sendTimeout|receiveTimeout)|took longer than.*to (receive|send) data/i.test(reason);
+        if (isFirebaseWarning || isGeoError || isDioTimeout) return; // abaikan sepenuhnya
         _persist('PROMISE', msg);
         if (window.eruda) {
           eruda.show();
