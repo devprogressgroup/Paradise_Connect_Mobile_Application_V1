@@ -62,7 +62,7 @@ class _CustomDropdownGroupInboxState extends State<CustomDropdownGroupInbox> {
           Container(
             margin: const EdgeInsets.only(top: 5),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: Color(whiteColor),
               borderRadius: BorderRadius.circular(14),
             ),
             child: ListView.separated(
@@ -131,7 +131,7 @@ class _CustomDropdownGroupInboxState extends State<CustomDropdownGroupInbox> {
                                     overflow: TextOverflow.ellipsis,
                                     style: const TextStyle(
                                       fontSize: 14,
-                                      color: Colors.grey,
+                                      color: Color(greyShade500),
                                     ),
                                   ),
                                 ],
@@ -146,7 +146,7 @@ class _CustomDropdownGroupInboxState extends State<CustomDropdownGroupInbox> {
                                         overflow: TextOverflow.ellipsis,
                                         style: const TextStyle(
                                           fontSize: 14,
-                                          color: Colors.grey,
+                                          color: Color(greyShade500),
                                         ),
                                       ),
                                       Container(
@@ -232,7 +232,7 @@ class _CustomDropdownGroupContactState extends State<CustomDropdownGroupContact>
               widget.onTap?.call();
             },
             child: Container(
-              color: widget.bg != null ? Colors.transparent : Color(grey9Color) ,
+              color: widget.bg != null ? Color(transparentColor) : Color(grey9Color) ,
               height: 50,
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Row(

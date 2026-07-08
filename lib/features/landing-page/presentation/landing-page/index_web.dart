@@ -150,7 +150,7 @@ class _LandingPageState extends State<LandingPage> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(Icons.error_outline, size: 48, color: Colors.red),
+                  const Icon(Icons.error_outline, size: 48, color: Color(redAccentColor)),
                   const SizedBox(height: 12),
                   const Text('Gagal memuat halaman', textAlign: TextAlign.center),
                   const SizedBox(height: 12),
@@ -175,12 +175,12 @@ class _LandingPageState extends State<LandingPage> {
                     color: const Color(0xFFE8F5E9),
                     child: Row(
                       children: [
-                        const Icon(Icons.chat, size: 16, color: Colors.green),
+                        const Icon(Icons.chat, size: 16, color: Color(greenMaterialColor)),
                         const SizedBox(width: 8),
-                        const Expanded(
+                        Expanded(
                           child: Text(
                             'Link WhatsApp tidak bisa dibuka di sini.',
-                            style: TextStyle(fontSize: 11, color: Colors.black87),
+                            style: TextStyle(fontSize: 11, color: const Color(blackColor).withAlpha(87)),
                           ),
                         ),
                         const SizedBox(width: 8),
@@ -198,7 +198,7 @@ class _LandingPageState extends State<LandingPage> {
                           onTap: () => setState(() => _showWaBlockedBanner = false),
                           child: const Padding(
                             padding: EdgeInsets.only(left: 4),
-                            child: Icon(Icons.close, size: 14, color: Colors.grey),
+                            child: Icon(Icons.close, size: 14, color: Color(greyShade500)),
                           ),
                         ),
                       ],
@@ -210,12 +210,12 @@ class _LandingPageState extends State<LandingPage> {
                     color: const Color(0xFFFFF8E1),
                     child: Row(
                       children: [
-                        const Icon(Icons.warning_amber_rounded, size: 16, color: Colors.orange),
+                        const Icon(Icons.warning_amber_rounded, size: 16, color: Color(orangeAccentColor)),
                         const SizedBox(width: 8),
-                        const Expanded(
+                        Expanded(
                           child: Text(
                             'Tampilan gagal dimuat. Buka di tab baru untuk melihat halaman.',
-                            style: TextStyle(fontSize: 11, color: Colors.black87),
+                            style: TextStyle(fontSize: 11, color: const Color(blackColor).withAlpha(87)),
                           ),
                         ),
                         const SizedBox(width: 8),
@@ -235,8 +235,8 @@ class _LandingPageState extends State<LandingPage> {
                 if (_isLoading)
                   const LinearProgressIndicator(
                     minHeight: 2,
-                    backgroundColor: Colors.transparent,
-                    valueColor: AlwaysStoppedAnimation<Color>(Colors.blue),
+                    backgroundColor: Color(transparentColor),
+                    valueColor: AlwaysStoppedAnimation<Color>(Color(primaryColor)),
                   ),
                 Expanded(
                   child: HtmlElementView(viewType: _viewId!),

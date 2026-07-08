@@ -56,7 +56,7 @@ class AttendanceAlertsWidget extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: Color(whiteColor),
           border: Border(bottom: BorderSide(color: Color(grey10Color), width: 1)),
           borderRadius: BorderRadius.circular(10),
         ),

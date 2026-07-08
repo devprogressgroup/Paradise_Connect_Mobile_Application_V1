@@ -1,12 +1,13 @@
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:progress_group/core/constants/colors.dart';
 
 
 Widget customHeader(BuildContext context, String title, {bool isBack = false, Color? colorBack, Color? colorBg, Color? colorTitle,IconData? iconLeft, IconData? iconRight,VoidCallback? iconLeftOnTap,VoidCallback? iconRightOnTap, VoidCallback? onBack, Color? colorIconLeft, Color? colorIconRight, bool showBadgeLeft = false, IconData? iconLeft2, Color? colorIconLeft2, VoidCallback? iconLeft2OnTap}) {
   return Container(
     decoration: BoxDecoration(
-      color: colorBg ?? Colors.white,
+      color: colorBg ?? Color(whiteColor),
     ),
     child: Padding(
       padding: EdgeInsets.symmetric(horizontal:iconRight != null?13: 20, vertical: 10),
@@ -73,7 +74,7 @@ Widget customHeader(BuildContext context, String title, {bool isBack = false, Co
                       child: Container(
                         padding: const EdgeInsets.all(4),
                         decoration: const BoxDecoration(
-                          color: Colors.red,
+                          color: Color(redAccentColor),
                           shape: BoxShape.circle,
                         ),
                       ),

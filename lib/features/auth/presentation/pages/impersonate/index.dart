@@ -73,7 +73,7 @@ class _ImpersonatePageState extends State<ImpersonatePage> {
               context.read<AuthBloc>().add(ImpersonateEvent(user.userId));
             },
             style: ElevatedButton.styleFrom(backgroundColor: Color(primaryColor)),
-            child: const Text('Masuk', style: TextStyle(color: Colors.white)),
+            child: const Text('Masuk', style: TextStyle(color: Color(whiteColor))),
           ),
         ],
       ),
@@ -83,11 +83,11 @@ class _ImpersonatePageState extends State<ImpersonatePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey.shade50,
+      backgroundColor: Color(greyShade50),
       appBar: AppBar(
         title: const Text('Login Sebagai User'),
         backgroundColor: Color(primaryColor),
-        foregroundColor: Colors.white,
+        foregroundColor: Color(whiteColor),
       ),
       body: BlocListener<AuthBloc, AuthState>(
         listenWhen: (prev, curr) =>
@@ -127,15 +127,15 @@ class _ImpersonatePageState extends State<ImpersonatePage> {
                   hintText: 'Cari nama / username / email…',
                   prefixIcon: const Icon(Icons.search),
                   filled: true,
-                  fillColor: Colors.white,
+                  fillColor: Color(whiteColor),
                   contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 12),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: Colors.grey.shade300),
+                    borderSide: BorderSide(color: Color(greyShade300)),
                   ),
                   enabledBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: Colors.grey.shade300),
+                    borderSide: BorderSide(color: Color(greyShade300)),
                   ),
                 ),
               ),
@@ -173,7 +173,7 @@ class _ImpersonatePageState extends State<ImpersonatePage> {
     }
     return ListView.separated(
       itemCount: _users.length,
-      separatorBuilder: (_, __) => Divider(height: 1, color: Colors.grey.shade200),
+      separatorBuilder: (_, __) => Divider(height: 1, color: Color(greyShade200)),
       itemBuilder: (context, i) {
         final u = _users[i];
         return ListTile(
@@ -182,7 +182,7 @@ class _ImpersonatePageState extends State<ImpersonatePage> {
             backgroundColor: Color(primaryColor),
             child: Text(
               u.fullName.isNotEmpty ? u.fullName[0].toUpperCase() : '?',
-              style: const TextStyle(color: Colors.white),
+              style: const TextStyle(color: Color(whiteColor)),
             ),
           ),
           title: Text(u.fullName, style: const TextStyle(fontWeight: FontWeight.w600)),
@@ -205,12 +205,12 @@ class _ImpersonatePageState extends State<ImpersonatePage> {
               Text(
                 '@${u.username}'
                 '${u.roleName != null && u.roleName!.isNotEmpty ? ' • ${u.roleName}' : ''}',
-                style: TextStyle(fontSize: 11, color: Colors.grey.shade700),
+                style: TextStyle(fontSize: 11, color: Color(greyShade700)),
               ),
               if ((u.email ?? '').isNotEmpty)
                 Text(
                   u.email!,
-                  style: TextStyle(fontSize: 10.5, color: Colors.grey.shade500),
+                  style: TextStyle(fontSize: 10.5, color: Color(greyShade500)),
                 ),
             ],
           ),

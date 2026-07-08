@@ -174,11 +174,11 @@ class _LoginPageState extends State<LoginPage> {
                     vertical: 40.0,
                   ),
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: Color(whiteColor),
                     borderRadius: BorderRadius.circular(32),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.08),
+                        color: Color(blackColor).withValues(alpha: 0.08),
                         blurRadius: 20,
                         offset: const Offset(0, 10),
                       ),
@@ -230,7 +230,7 @@ class _LoginPageState extends State<LoginPage> {
                             color: Color(grey4Color),
                           ),
                           filled: true,
-                          fillColor: Colors.grey[50],
+                          fillColor: Color(greyShade50),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(14),
                             borderSide: BorderSide(
@@ -269,7 +269,7 @@ class _LoginPageState extends State<LoginPage> {
                           disabledBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(14),
                             borderSide: BorderSide(
-                              color: Colors.grey,
+                              color: Color(greyShade500),
                               width: 1,
                             ),
                           ),
@@ -304,7 +304,7 @@ class _LoginPageState extends State<LoginPage> {
                             fontWeight: FontWeight.w400,
                             color: Color(grey4Color),
                           ),
-                          fillColor: Colors.grey[50],
+                          fillColor: Color(greyShade50),
                           suffixIcon: IconButton(
                             icon: Icon(
                               _isObscure
@@ -355,7 +355,7 @@ class _LoginPageState extends State<LoginPage> {
                           disabledBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(14),
                             borderSide: BorderSide(
-                              color: Colors.grey,
+                              color: Color(greyShade500),
                               width: 1,
                             ),
                           ),
@@ -382,12 +382,12 @@ class _LoginPageState extends State<LoginPage> {
                                     height: 24,
                                     width: 24,
                                     decoration: BoxDecoration(
-                                      color: Colors.transparent,
+                                      color: Color(transparentColor),
                                       borderRadius: BorderRadius.circular(4),
                                       border: Border.all(
                                         color: _rememberMe
                                             ? Color(blackColor)
-                                            : Colors.grey,
+                                            : Color(greyShade500),
                                         width: 1.5,
                                       ),
                                     ),
@@ -479,7 +479,7 @@ class _LoginPageState extends State<LoginPage> {
                                 },
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor:ApiConstants.envLabel =="Production"? Color(primaryColor):Color(redColor),
-                                  foregroundColor: Colors.white,
+                                  foregroundColor: Color(whiteColor),
                                   elevation: 0,
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(16),
@@ -508,7 +508,7 @@ class _LoginPageState extends State<LoginPage> {
                                   onPressed: _loginWithBiometric,
                                   icon: Icon(
                                     _biometricIcon,
-                                    color: Colors.white,
+                                    color: Color(whiteColor),
                                     size: 28,
                                   ),
                                 ),
@@ -524,7 +524,7 @@ class _LoginPageState extends State<LoginPage> {
                           Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Text("Don't have an account? ", style: TextStyle( fontSize: 12, color: Colors.grey),),
+                              Text("Don't have an account? ", style: TextStyle( fontSize: 12, color: Color(greyShade500)),),
                               GestureDetector(
                                 onTap: () async {
                                  context.pushNamed("forgot-password", extra: {'step': 1, 'isRegister': true});
@@ -562,7 +562,7 @@ class _LoginPageState extends State<LoginPage> {
                             textAlign: TextAlign.center,
                             style: TextStyle(
                               fontSize: 10,
-                              color: Colors.grey[400],
+                              color: Color(greyShade400),
                             ),
                           ),
                         ),
@@ -575,8 +575,8 @@ class _LoginPageState extends State<LoginPage> {
                       //     style: TextStyle(
                       //       fontSize: 11,
                       //       color: env == AppEnvironment.production
-                      //           ? Colors.grey[500]
-                      //           : Colors.orange[700],
+                      //           ? Color(greyShade500)
+                      //           : Color(orange700Color),
                       //     ),
                       //   ),
                       // ),

@@ -93,7 +93,7 @@ class _DropdownListContactState extends State<DropdownListContact> {
                       onPressed: () => context.pop(<OwnerDropdownItem>[]),
                       child: Text("Clear",
                           style: TextStyle(
-                              color: Colors.red,
+                              color: Color(redAccentColor),
                               fontWeight: FontWeight.bold,
                               fontSize: 16)),
                     ),
@@ -126,7 +126,7 @@ class _DropdownListContactState extends State<DropdownListContact> {
                           )
                         : null,
                     filled: true,
-                    fillColor: Colors.transparent,
+                    fillColor: Color(transparentColor),
                     contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 12),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(10),
@@ -214,7 +214,7 @@ class _DropdownListContactState extends State<DropdownListContact> {
                                 item.name == widget.args.selectedName);
 
                         return Material(
-                          color: Colors.transparent,
+                          color: Color(transparentColor),
                           child: InkWell(
                             onTap: () {
                               if (widget.args.isMultiSelect) {

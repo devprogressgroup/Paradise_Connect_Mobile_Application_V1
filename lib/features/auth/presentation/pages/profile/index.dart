@@ -300,13 +300,13 @@ class _ProfilePageState extends State<ProfilePage> {
                                             errorBuilder: (_, __, ___) => CircleAvatar(
                                               radius: 27,
                                               backgroundColor: Color(primaryColor),
-                                              child: Icon(Icons.person, color: Colors.white, size: 37),
+                                              child: Icon(Icons.person, color: Color(whiteColor), size: 37),
                                             ),
                                           )
                                         : CircleAvatar(
                                             radius: 27,
                                             backgroundColor: Color(primaryColor),
-                                            child: Icon(Icons.person, color: Colors.white, size: 37),
+                                            child: Icon(Icons.person, color: Color(whiteColor), size: 37),
                                           ),
                               ),
                               Positioned(
@@ -316,9 +316,9 @@ class _ProfilePageState extends State<ProfilePage> {
                                   decoration: BoxDecoration(
                                     color: Color(primaryColor),
                                     shape: BoxShape.circle,
-                                    border: Border.all(color: Colors.white, width: 1.5),
+                                    border: Border.all(color: Color(whiteColor), width: 1.5),
                                   ),
-                                  child: const Icon(Icons.camera_alt, color: Colors.white, size: 12),
+                                  child: const Icon(Icons.camera_alt, color: Color(whiteColor), size: 12),
                                 ),
                               ),
                             ],
@@ -333,12 +333,12 @@ class _ProfilePageState extends State<ProfilePage> {
                               child: Text(user.fullName, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold))),
                             if (user.userRoleId == 3 || user.salesPersonId != null) ...[
                               if (user.positionName != null && user.positionName!.isNotEmpty)
-                                Text(user.positionName!, style: const TextStyle(fontSize: 14, color: Colors.blueAccent)),
+                                Text(user.positionName!, style: const TextStyle(fontSize: 14, color: Color(blueAccentColor))),
                                 if (user.salesTeamName != null && user.salesTeamName!.isNotEmpty)
-                                Text(user.salesTeamName!, style: const TextStyle(fontSize: 14, color: Colors.blueAccent)),
+                                Text(user.salesTeamName!, style: const TextStyle(fontSize: 14, color: Color(blueAccentColor))),
                             ] else ...[
                               if (user.userRoleName != null && user.userRoleName!.isNotEmpty)
-                                Text(user.userRoleName!, style: const TextStyle(fontSize: 14, color: Colors.blueAccent)),
+                                Text(user.userRoleName!, style: const TextStyle(fontSize: 14, color: Color(blueAccentColor))),
                             ],
                           ],
                         ),
@@ -350,13 +350,13 @@ class _ProfilePageState extends State<ProfilePage> {
                     //     children: [
                     //       Text(
                     //         "NIK: ${user.nikNumber}",
-                    //         style: TextStyle(fontSize: 13, color: Colors.grey[600]),
+                    //         style: TextStyle(fontSize: 13, color: Color(greyShade600)),
                     //       ),
                     //     ],
                     //   ),
                     // ],
                     const SizedBox(height: 16),
-                    Divider(color: Colors.grey.shade300),
+                    Divider(color: Color(greyShade300)),
                     const SizedBox(height: 16),
                     _label("Username"),
                     const SizedBox(height: 6),
@@ -416,7 +416,7 @@ class _ProfilePageState extends State<ProfilePage> {
                     ),
                     const SizedBox(height: 20),
                     if (!kIsWeb) ...[
-                    Divider(color: Colors.grey.shade300),
+                    Divider(color: Color(greyShade300)),
                     const SizedBox(height: 12),
                     Row(
                       children: [
@@ -426,12 +426,12 @@ class _ProfilePageState extends State<ProfilePage> {
                           decoration: BoxDecoration(
                             color: _biometricEnabled
                                 ? Color(primaryColor).withValues(alpha: 0.1)
-                                : Colors.grey.shade100,
+                                : Color(greyShade100),
                             borderRadius: BorderRadius.circular(10),
                           ),
                           child: Icon(
                             _biometricIcon,
-                            color: _biometricEnabled ? Color(primaryColor) : Colors.grey,
+                            color: _biometricEnabled ? Color(primaryColor) : Color(greyShade500),
                             size: 24,
                           ),
                         ),
@@ -450,7 +450,7 @@ class _ProfilePageState extends State<ProfilePage> {
                               ),
                               Text(
                                 _biometricSubtitle,
-                                style: TextStyle(fontSize: 12, color: Colors.grey),
+                                style: TextStyle(fontSize: 12, color: Color(greyShade500)),
                               ),
                             ],
                           ),
@@ -592,7 +592,7 @@ class _ProfilePageState extends State<ProfilePage> {
   //     children: [
   //       Text(node.fullName, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
   //       if (node.positionName != null && node.positionName!.isNotEmpty)
-  //         Text(node.positionName!, style: TextStyle(color: Colors.grey[600], fontSize: 12)),
+  //         Text(node.positionName!, style: TextStyle(color: Color(greyShade600), fontSize: 12)),
   //     ],
   //   );
 
@@ -612,7 +612,7 @@ class _ProfilePageState extends State<ProfilePage> {
   //   return Padding(
   //     padding: EdgeInsets.only(left: index == 0 ? 0 : 16.0),
   //     child: Theme(
-  //       data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+  //       data: Theme.of(context).copyWith(dividerColor: Color(transparentColor)),
   //       child: ExpansionTile(
   //         initiallyExpanded: true,
   //         tilePadding: EdgeInsets.zero,
@@ -634,7 +634,7 @@ class _ProfilePageState extends State<ProfilePage> {
   //     children: [
   //       Text(node.fullName, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
   //       if (node.positionName != null && node.positionName!.isNotEmpty)
-  //         Text(node.positionName!, style: TextStyle(color: Colors.grey[600], fontSize: 12)),
+  //         Text(node.positionName!, style: TextStyle(color: Color(greyShade600), fontSize: 12)),
   //     ],
   //   );
 
@@ -654,7 +654,7 @@ class _ProfilePageState extends State<ProfilePage> {
   //   return Padding(
   //     padding: EdgeInsets.only(left: depth * 16.0),
   //     child: Theme(
-  //       data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+  //       data: Theme.of(context).copyWith(dividerColor: Color(transparentColor)),
   //       child: ExpansionTile(
   //         tilePadding: EdgeInsets.zero,
   //         childrenPadding: EdgeInsets.zero,
@@ -679,7 +679,7 @@ class _ProfilePageState extends State<ProfilePage> {
           hintText: hint,
           suffixIcon: suffix,
           filled: true,
-          fillColor: Colors.grey[50],
+          fillColor: Color(greyShade50),
           hintStyle: TextStyle(
             fontSize: 14,
             color: Color(grey4Color),
@@ -753,7 +753,7 @@ class _BiometricPasswordDialogState extends State<_BiometricPasswordDialog> {
         children: [
           Text(
             "Masukkan password untuk akun",
-            style: TextStyle(fontSize: 13, color: Colors.grey[600]),
+            style: TextStyle(fontSize: 13, color: Color(greyShade600)),
           ),
           Text(widget.username, style: const TextStyle(fontWeight: FontWeight.bold)),
           const SizedBox(height: 12),

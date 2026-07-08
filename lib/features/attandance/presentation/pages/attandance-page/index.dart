@@ -211,7 +211,7 @@ class _AttandancePageState extends State<AttandancePage>
       const SnackBar(
         content: Text('Mohon tunggu, sedang mempersiapkan kamera...'),
         duration: Duration(seconds: 30),
-        backgroundColor: Colors.blueGrey,
+        backgroundColor: Color(blueGreyColor),
       ),
     );
 
@@ -234,7 +234,7 @@ class _AttandancePageState extends State<AttandancePage>
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text("Lokasi belum terdeteksi, coba lagi cek permisionnya di pengaturan"),
-              backgroundColor: Colors.orange,
+              backgroundColor: Color(orangeAccentColor),
             ),
           );
         }
@@ -343,7 +343,7 @@ class _AttandancePageState extends State<AttandancePage>
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Gagal membuka kamera mohon cek pengaturan kamera dan coba lagi.'),
-            backgroundColor: Colors.red,
+            backgroundColor: Color(redAccentColor),
           ),
         );
       }
@@ -388,14 +388,14 @@ class _AttandancePageState extends State<AttandancePage>
 
     showDialog(
       context: context,
-      barrierColor: Colors.black87,
+      barrierColor: Color(blackColor).withValues(alpha: 0.87),
       builder: (dialogContext) {
         int currentIndex = initialIndex;
 
         return StatefulBuilder(
           builder: (context, setState) {
             return Dialog(
-              backgroundColor: Colors.transparent,
+              backgroundColor: Color(transparentColor),
               insetPadding: const EdgeInsets.all(10),
               child: Stack(
                 alignment: Alignment.center,
@@ -420,7 +420,7 @@ class _AttandancePageState extends State<AttandancePage>
                       left: 10,
                       child: IconButton(
                         iconSize: 40,
-                        color: Colors.white,
+                        color: Color(whiteColor),
                         icon: const Icon(Icons.arrow_back_ios),
                         onPressed: () {
                           setState(() {
@@ -435,7 +435,7 @@ class _AttandancePageState extends State<AttandancePage>
                       right: 10,
                       child: IconButton(
                         iconSize: 40,
-                        color: Colors.white,
+                        color: Color(whiteColor),
                         icon: const Icon(Icons.arrow_forward_ios),
                         onPressed: () {
                           setState(() {
@@ -451,7 +451,7 @@ class _AttandancePageState extends State<AttandancePage>
                     child: IconButton(
                       icon: const Icon(
                         Icons.close,
-                        color: Colors.white,
+                        color: Color(whiteColor),
                         size: 30,
                       ),
                       onPressed: () => Navigator.pop(dialogContext),
@@ -467,12 +467,12 @@ class _AttandancePageState extends State<AttandancePage>
                           vertical: 6,
                         ),
                         decoration: BoxDecoration(
-                          color: Colors.black54,
+                          color: Color(blackColor).withValues(alpha: 0.54),
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: Text(
                           '${currentIndex + 1} / ${imageUrls.length}',
-                          style: const TextStyle(color: Colors.white),
+                          style: const TextStyle(color: Color(whiteColor)),
                         ),
                       ),
                     ),
@@ -538,13 +538,13 @@ class _AttandancePageState extends State<AttandancePage>
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 7),
           decoration: BoxDecoration(
-            border: Border.all(color: Colors.grey.shade400),
+            border: Border.all(color: Color(greyShade400)),
             borderRadius: BorderRadius.circular(8),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(label, style: TextStyle(fontSize: 10, color: Colors.grey.shade500)),
+              Text(label, style: TextStyle(fontSize: 10, color: Color(greyShade500))),
               const SizedBox(height: 2),
               Text(DateFormat('dd MMM yy', 'id_ID').format(date), style: const TextStyle(fontSize: 12)),
             ],
@@ -580,7 +580,7 @@ class _AttandancePageState extends State<AttandancePage>
                             child: Container(
                               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 7),
                               decoration: BoxDecoration(
-                                border: Border.all(color: Colors.grey.shade400),
+                                border: Border.all(color: Color(greyShade400)),
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               child: Row(
@@ -589,7 +589,7 @@ class _AttandancePageState extends State<AttandancePage>
                                     child: Column(
                                       crossAxisAlignment: CrossAxisAlignment.start,
                                       children: [
-                                        Text('Karyawan', style: TextStyle(fontSize: 10, color: Colors.grey.shade500)),
+                                        Text('Karyawan', style: TextStyle(fontSize: 10, color: Color(greyShade500))),
                                         const SizedBox(height: 2),
                                         Text(selectedOwner.name, style: const TextStyle(fontSize: 12), overflow: TextOverflow.ellipsis),
                                       ],
@@ -598,7 +598,7 @@ class _AttandancePageState extends State<AttandancePage>
                                   Icon(
                                     dropdownOpen ? Icons.expand_less : Icons.expand_more,
                                     size: 16,
-                                    color: Colors.grey.shade600,
+                                    color: Color(greyShade600),
                                   ),
                                 ],
                               ),
@@ -684,7 +684,7 @@ class _AttandancePageState extends State<AttandancePage>
                                       children: [
                                         Text(item.name, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
                                         if (item.subtitle != null)
-                                          Text(item.subtitle!, style: TextStyle(fontSize: 11, color: Colors.grey.shade600)),
+                                          Text(item.subtitle!, style: TextStyle(fontSize: 11, color: Color(greyShade600))),
                                       ],
                                     ),
                                   ),
@@ -757,7 +757,7 @@ class _AttandancePageState extends State<AttandancePage>
                 height: 4,
                 margin: const EdgeInsets.only(bottom: 12),
                 decoration: BoxDecoration(
-                  color: Colors.grey[300],
+                  color: Color(greyShade300),
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -808,7 +808,7 @@ class _AttandancePageState extends State<AttandancePage>
                 height: 4,
                 margin: const EdgeInsets.only(bottom: 12),
                 decoration: BoxDecoration(
-                  color: Colors.grey[300],
+                  color: Color(greyShade300),
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -928,7 +928,7 @@ class _AttandancePageState extends State<AttandancePage>
               const SnackBar(
                 content: Row(
                   children: [
-                    SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)),
+                    SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Color(whiteColor))),
                     SizedBox(width: 12),
                     Text('Mengunduh Excel...'),
                   ],
@@ -1069,13 +1069,13 @@ class _AttandancePageState extends State<AttandancePage>
                   height: 30,
                   decoration: BoxDecoration(
                     color: selectedMenu == 'activity'
-                        ? Colors.blue
-                        : Colors.white,
+                        ? Color(primaryColor)
+                        : Color(whiteColor),
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
                       color: selectedMenu != 'activity'
-                        ? Colors.blue
-                        : Colors.white,
+                        ? Color(primaryColor)
+                        : Color(whiteColor),
                     ),
                   ),
                   alignment: Alignment.center,
@@ -1085,8 +1085,8 @@ class _AttandancePageState extends State<AttandancePage>
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
                       color: selectedMenu == 'activity'
-                          ? Colors.white
-                          : Colors.blue,
+                          ? Color(whiteColor)
+                          : Color(primaryColor),
                     ),
                   ),
                 ),
@@ -1111,11 +1111,11 @@ class _AttandancePageState extends State<AttandancePage>
                   height: 30,
                   decoration: BoxDecoration(
                     color: selectedMenu == 'attendance'
-                        ? Colors.blue
-                        : Colors.white,
+                        ? Color(primaryColor)
+                        : Color(whiteColor),
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
-                      color: Colors.blue,
+                      color: Color(primaryColor),
                     ),
                   ),
                   alignment: Alignment.center,
@@ -1125,8 +1125,8 @@ class _AttandancePageState extends State<AttandancePage>
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
                       color: selectedMenu == 'attendance'
-                          ? Colors.white
-                          : Colors.blue,
+                          ? Color(whiteColor)
+                          : Color(primaryColor),
                     ),
                   ),
                 ),
@@ -1335,7 +1335,7 @@ class _AttandancePageState extends State<AttandancePage>
                 child: Center(
                   child: Text(
                     "Tidak ada data attendance",
-                    style: TextStyle(fontSize: 14, color: Colors.grey),
+                    style: TextStyle(fontSize: 14, color: Color(greyShade500)),
                   ),
                 ),
               );
@@ -1449,19 +1449,19 @@ class _AttandancePageState extends State<AttandancePage>
 
                     for (final item in state.activityLogs) {
                       if (item.clockInDate != null) {
-                        entries.add((fullName: item.fullName, photoUrl: item.photoUrl, date: item.date, type: 'Clock In', typeColor: const Color(0xFF27AE60), datetime: item.clockInDate, location: item.clockInLocation, contactName: null, note: item.clockInNote, images: item.clockInAttachment ?? [], statusValidasi: null, noteValidasi: null, logId: null, salesPersonId: item.salesPersonId));
+                        entries.add((fullName: item.fullName, photoUrl: item.photoUrl, date: item.date, type: 'Clock In', typeColor: const Color(clockInColor), datetime: item.clockInDate, location: item.clockInLocation, contactName: null, note: item.clockInNote, images: item.clockInAttachment ?? [], statusValidasi: null, noteValidasi: null, logId: null, salesPersonId: item.salesPersonId));
                       }
                       if (item.clockOutDate != null) {
-                        entries.add((fullName: item.fullName, photoUrl: item.photoUrl, date: item.date, type: 'Clock Out', typeColor: const Color(0xFFE74C3C), datetime: item.clockOutDate, location: item.clockOutLocation, contactName: null, note: item.clockOutNote, images: item.clockOutAttachment ?? [], statusValidasi: null, noteValidasi: null, logId: null, salesPersonId: item.salesPersonId));
+                        entries.add((fullName: item.fullName, photoUrl: item.photoUrl, date: item.date, type: 'Clock Out', typeColor: const Color(clockOutColor), datetime: item.clockOutDate, location: item.clockOutLocation, contactName: null, note: item.clockOutNote, images: item.clockOutAttachment ?? [], statusValidasi: null, noteValidasi: null, logId: null, salesPersonId: item.salesPersonId));
                       }
                       for (final c in item.checkIns) {
                         if (c.checkInDate != null) {
-                          entries.add((fullName: item.fullName, photoUrl: item.photoUrl, date: item.date, type: 'Check In', typeColor: const Color(0xFF2980B9), datetime: c.checkInDate, location: c.checkInLocation, contactName: null, note: c.checkInNote, images: c.checkInAttachment ?? [], statusValidasi: c.statusValidasi, noteValidasi: c.noteValidasi, logId: c.logId, salesPersonId: item.salesPersonId));
+                          entries.add((fullName: item.fullName, photoUrl: item.photoUrl, date: item.date, type: 'Check In', typeColor: const Color(checkInColor), datetime: c.checkInDate, location: c.checkInLocation, contactName: null, note: c.checkInNote, images: c.checkInAttachment ?? [], statusValidasi: c.statusValidasi, noteValidasi: c.noteValidasi, logId: c.logId, salesPersonId: item.salesPersonId));
                         }
                       }
                       for (final v in item.visits) {
                         if (v.datetime != null) {
-                          entries.add((fullName: item.fullName, photoUrl: item.photoUrl, date: item.date, type: 'Visit', typeColor: const Color(0xFFE67E22), datetime: v.datetime, location: v.lastProject, contactName: v.contactName, note: v.note, images: v.attachment ?? [], statusValidasi: null, noteValidasi: null, logId: null, salesPersonId: item.salesPersonId));
+                          entries.add((fullName: item.fullName, photoUrl: item.photoUrl, date: item.date, type: 'Visit', typeColor: const Color(visitColor), datetime: v.datetime, location: v.lastProject, contactName: v.contactName, note: v.note, images: v.attachment ?? [], statusValidasi: null, noteValidasi: null, logId: null, salesPersonId: item.salesPersonId));
                         }
                       }
                     }
@@ -1650,13 +1650,13 @@ class _AttandancePageState extends State<AttandancePage>
 
     showDialog(
       context: context,
-      barrierColor: Colors.black54,
+      barrierColor: Color(blackColor).withValues(alpha: 0.54),
       builder: (ctx) {
         return StatefulBuilder(
           builder: (ctx, setDialogState) {
             final currentUrl = allImages[selectedIndex];
             return Dialog(
-              backgroundColor: Colors.white,
+              backgroundColor: Color(whiteColor),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
               child: ConstrainedBox(
                 constraints: BoxConstraints(
@@ -1689,10 +1689,10 @@ class _AttandancePageState extends State<AttandancePage>
                               child: Container(
                                 padding: const EdgeInsets.all(4),
                                 decoration: BoxDecoration(
-                                  color: Colors.black.withValues(alpha: 0.45),
+                                  color: Color(blackColor).withValues(alpha: 0.45),
                                   borderRadius: BorderRadius.circular(6),
                                 ),
-                                child: const Icon(Icons.fullscreen, color: Colors.white, size: 18),
+                                child: const Icon(Icons.fullscreen, color: Color(whiteColor), size: 18),
                               ),
                             ),
                           ),
@@ -1713,7 +1713,7 @@ class _AttandancePageState extends State<AttandancePage>
                                   width: 52,
                                   height: 52,
                                   decoration: BoxDecoration(
-                                    color: Colors.grey.shade200,
+                                    color: Color(greyShade200),
                                     borderRadius: BorderRadius.circular(6),
                                   ),
                                   alignment: Alignment.center,
@@ -1731,7 +1731,7 @@ class _AttandancePageState extends State<AttandancePage>
                                   decoration: BoxDecoration(
                                     borderRadius: BorderRadius.circular(8),
                                     border: Border.all(
-                                      color: i == selectedIndex ? Color(primaryColor) : Colors.transparent,
+                                      color: i == selectedIndex ? Color(primaryColor) : Color(transparentColor),
                                       width: 2,
                                     ),
                                   ),
@@ -1871,7 +1871,7 @@ class _AttandancePageState extends State<AttandancePage>
                   const SizedBox(height: 2),
                   if (pendingIn) ...[
                     const Text('-', textAlign: TextAlign.center, style: TextStyle(fontSize: 12)),
-                    _buildInlineBadge('Pending', Colors.orange),
+                    _buildInlineBadge('Pending', Color(orangeAccentColor)),
                   ] else ...[
                     Text(
                       item.clockIn != null ? (DateTime.tryParse(item.clockIn!) != null ? DateHelper.formatTime(DateTime.tryParse(item.clockIn!)!) : item.clockIn!) : '-',
@@ -1879,9 +1879,9 @@ class _AttandancePageState extends State<AttandancePage>
                       style: const TextStyle(fontSize: 12),
                     ),
                     if (item.isApprove0 == 1)
-                      _buildInlineBadge('Approved', const Color(0xFF27AE60))
+                      _buildInlineBadge('Approved', const Color(clockInColor))
                     else if (item.isReject0 == 1)
-                      _buildInlineBadge('Rejected', const Color(0xFFE74C3C)),
+                      _buildInlineBadge('Rejected', const Color(clockOutColor)),
                   ],
                 ],
               ),
@@ -1900,7 +1900,7 @@ class _AttandancePageState extends State<AttandancePage>
                   const SizedBox(height: 2),
                   if (pendingOut) ...[
                     const Text('-', textAlign: TextAlign.center, style: TextStyle(fontSize: 12)),
-                    _buildInlineBadge('Pending', Colors.orange),
+                    _buildInlineBadge('Pending', Color(orangeAccentColor)),
                   ] else ...[
                     Text(
                       item.clockOut != null ? (DateTime.tryParse(item.clockOut!) != null ? DateHelper.formatTime(DateTime.tryParse(item.clockOut!)!) : item.clockOut!) : '-',
@@ -1908,9 +1908,9 @@ class _AttandancePageState extends State<AttandancePage>
                       style: const TextStyle(fontSize: 12),
                     ),
                     if (item.isApprove1 == 1)
-                      _buildInlineBadge('Approved', const Color(0xFF27AE60))
+                      _buildInlineBadge('Approved', const Color(clockInColor))
                     else if (item.isReject1 == 1)
-                      _buildInlineBadge('Rejected', const Color(0xFFE74C3C)),
+                      _buildInlineBadge('Rejected', const Color(clockOutColor)),
                   ],
                 ],
               ),
@@ -1926,7 +1926,7 @@ class _AttandancePageState extends State<AttandancePage>
       margin: const EdgeInsets.only(top: 2),
       padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
       decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(4)),
-      child: Text(label, style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold)),
+      child: Text(label, style: const TextStyle(color: Color(whiteColor), fontSize: 9, fontWeight: FontWeight.bold)),
     );
   }
 
@@ -1992,7 +1992,7 @@ class _AttandancePageState extends State<AttandancePage>
         height: height,
         padding: const EdgeInsets.all(4),
         decoration: BoxDecoration(
-          color: Colors.grey.shade100,
+          color: Color(greyShade100),
           borderRadius: BorderRadius.circular(height / 2),
         ),
         child: Row(
@@ -2006,11 +2006,11 @@ class _AttandancePageState extends State<AttandancePage>
                   alignment: Alignment.center,
                   margin: const EdgeInsets.symmetric(horizontal: 2),
                   decoration: BoxDecoration(
-                    color: isActive ? Color(primaryColor) : Colors.transparent,
+                    color: isActive ? Color(primaryColor) : Color(transparentColor),
                     borderRadius: BorderRadius.circular(height / 2),
                     boxShadow: isActive ? [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
+                        color: Color(blackColor).withValues(alpha: 0.1),
                         blurRadius: 10,
                         offset: const Offset(0, 2),
                       )
@@ -2024,7 +2024,7 @@ class _AttandancePageState extends State<AttandancePage>
                         tabs[index],
                         maxLines: 1,
                         style: TextStyle(
-                          color: isActive ? Colors.white : Colors.grey[700],
+                          color: isActive ? Color(whiteColor) : Color(greyShade700),
                           fontWeight: FontWeight.w600,
                           fontSize: 13,
                         ),
@@ -2091,15 +2091,15 @@ class _AttandancePageState extends State<AttandancePage>
       final IconData badgeIcon;
       final String badgeLabel;
       if (isApprove == 1) {
-        badgeColor = const Color(0xFF27AE60);
+        badgeColor = const Color(clockInColor);
         badgeIcon = Icons.check_circle_outline;
         badgeLabel = 'Approved';
       } else if (isReject == 1) {
-        badgeColor = const Color(0xFFE74C3C);
+        badgeColor = const Color(clockOutColor);
         badgeIcon = Icons.cancel_outlined;
         badgeLabel = 'Rejected';
       } else {
-        badgeColor = Colors.orange;
+        badgeColor = Color(orangeAccentColor);
         badgeIcon = Icons.hourglass_top_rounded;
         badgeLabel = 'Pending';
       }
@@ -2113,9 +2113,9 @@ class _AttandancePageState extends State<AttandancePage>
             Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(badgeIcon, color: Colors.white, size: 12),
+                Icon(badgeIcon, color: Color(whiteColor), size: 12),
                 const SizedBox(width: 4),
-                Text(badgeLabel, style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
+                Text(badgeLabel, style: const TextStyle(color: Color(whiteColor), fontSize: 11, fontWeight: FontWeight.bold)),
               ],
             ),
           ],
@@ -2179,12 +2179,12 @@ class _AttandancePageState extends State<AttandancePage>
                                   Row(children: [
                                     Icon(Icons.access_time_filled, color: flagParam == 0 ? Color(greenPercentColor) : Color(redPeriodColor), size: 10),
                                     const SizedBox(width: 6),
-                                    Text(DateHelper.formatTime(dt), style: const TextStyle(color: Colors.white, fontSize: 10)),
+                                    Text(DateHelper.formatTime(dt), style: const TextStyle(color: Color(whiteColor), fontSize: 10)),
                                   ]),
                                   Row(children: [
                                     Icon(Icons.calendar_today_sharp, color: Color(primaryColor), size: 10),
                                     const SizedBox(width: 6),
-                                    Text(DateHelper.formatDate(dt), style: const TextStyle(color: Colors.white, fontSize: 10)),
+                                    Text(DateHelper.formatDate(dt), style: const TextStyle(color: Color(whiteColor), fontSize: 10)),
                                   ]),
                                   Row(children: [
                                     Icon(Icons.location_on, color: Color(primaryColor), size: 10),
@@ -2192,7 +2192,7 @@ class _AttandancePageState extends State<AttandancePage>
                                     Expanded(
                                       child: Text(
                                         '${flagParam == 0 ? attendance?.location0 : attendance?.location1}',
-                                        style: const TextStyle(color: Colors.white, fontSize: 10),
+                                        style: const TextStyle(color: Color(whiteColor), fontSize: 10),
                                         maxLines: 1,
                                         overflow: TextOverflow.ellipsis,
                                       ),
@@ -2213,7 +2213,7 @@ class _AttandancePageState extends State<AttandancePage>
                                     color: Color(primaryColor),
                                     borderRadius: BorderRadius.circular(8)
                                   ),
-                                  child: const Icon(Icons.refresh, size: 18, color: Colors.white),
+                                  child: const Icon(Icons.refresh, size: 18, color: Color(whiteColor)),
                                  ),
                                )),
                               ],
@@ -2234,7 +2234,7 @@ class _AttandancePageState extends State<AttandancePage>
                   Text(DateHelper.formatDate(AppTime.now()), style: TextStyle(fontSize: 11, color: Color(grey6Color))),
                   const SizedBox(height: 8),
                   Material(
-                    color: Colors.transparent,
+                    color: Color(transparentColor),
                     child: InkWell(
                       borderRadius: BorderRadius.circular(100),
                       onTap: () {
@@ -2258,7 +2258,7 @@ class _AttandancePageState extends State<AttandancePage>
                             alignment: Alignment.center,
                             decoration: BoxDecoration(shape: BoxShape.circle, color: Color(_isCameraOpening || _isClockButtonDisabled(flagParam) ? grey6Color : primaryColor)),
                             child: _isCameraOpening
-                                ? const SizedBox(width: 28, height: 28, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5))
+                                ? const SizedBox(width: 28, height: 28, child: CircularProgressIndicator(color: Color(whiteColor), strokeWidth: 2.5))
                                 : Text(title, textAlign: TextAlign.center, style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Color(whiteColor))),
                           ),
                         ),
@@ -2341,10 +2341,10 @@ class _AttandancePageState extends State<AttandancePage>
 
     showDialog(
       context: context,
-      barrierColor: Colors.black54,
+      barrierColor: Color(blackColor).withValues(alpha: 0.54),
       builder: (context) {
         return Dialog(
-          backgroundColor: Colors.white,
+          backgroundColor: Color(whiteColor),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20),
           ),
@@ -2379,10 +2379,10 @@ class _AttandancePageState extends State<AttandancePage>
                             child: Container(
                               padding: const EdgeInsets.all(4),
                               decoration: BoxDecoration(
-                                color: Colors.black.withValues(alpha: 0.45),
+                                color: Color(blackColor).withValues(alpha: 0.45),
                                 borderRadius: BorderRadius.circular(6),
                               ),
-                              child: const Icon(Icons.fullscreen, color: Colors.white, size: 18),
+                              child: const Icon(Icons.fullscreen, color: Color(whiteColor), size: 18),
                             ),
                           ),
                         ),
@@ -2419,7 +2419,7 @@ class _AttandancePageState extends State<AttandancePage>
                       isApprove == 1
                           ? 'Approved${approveName != null ? ' by $approveName' : ''}'
                           : 'Rejected${rejectName != null ? ' by $rejectName' : ''}',
-                      isApprove == 1 ? const Color(0xFF27AE60) : const Color(0xFFE74C3C),
+                      isApprove == 1 ? const Color(clockInColor) : const Color(clockOutColor),
                     ),
                   ],
                   const SizedBox(height: 20),
@@ -2579,7 +2579,7 @@ class _ActivityCardState extends State<_ActivityCard> {
               );
               widget.onValidated?.call();
             },
-            child: const Text('Kirim', style: TextStyle(color: Color(0xFFE74C3C))),
+            child: const Text('Kirim', style: TextStyle(color: Color(clockOutColor))),
           ),
         ],
       ),
@@ -2591,7 +2591,7 @@ class _ActivityCardState extends State<_ActivityCard> {
       return const Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.thumb_up_rounded, color: Color(0xFF27AE60), size: 18),
+          Icon(Icons.thumb_up_rounded, color: Color(clockInColor), size: 18),
         ],
       );
     } else if (widget.statusValidasi == 0) {
@@ -2601,14 +2601,14 @@ class _ActivityCardState extends State<_ActivityCard> {
           const Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.thumb_down_rounded, color: Color(0xFFE74C3C), size: 18),
+              Icon(Icons.thumb_down_rounded, color: Color(clockOutColor), size: 18),
             ],
           ),
           if (widget.noteValidasi != null && widget.noteValidasi!.isNotEmpty) ...[
             const SizedBox(height: 4),
             Text(
               widget.noteValidasi!,
-              style: const TextStyle(fontSize: 12, color: Colors.grey),
+              style: const TextStyle(fontSize: 12, color: Color(greyShade500)),
               textAlign: TextAlign.center,
             ),
           ],
@@ -2620,9 +2620,9 @@ class _ActivityCardState extends State<_ActivityCard> {
         return const Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.hourglass_empty, color: Colors.orange, size: 16),
+            Icon(Icons.hourglass_empty, color: Color(orangeAccentColor), size: 16),
             SizedBox(width: 6),
-            Text('Menunggu validasi', style: TextStyle(color: Colors.orange, fontSize: 12)),
+            Text('Menunggu validasi', style: TextStyle(color: Color(orangeAccentColor), fontSize: 12)),
           ],
         );
       }
@@ -2634,10 +2634,10 @@ class _ActivityCardState extends State<_ActivityCard> {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
               decoration: BoxDecoration(
-                border: Border.all(color: const Color(0xFFE74C3C)),
+                border: Border.all(color: const Color(clockOutColor)),
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: const Icon(Icons.thumb_down_rounded, color: Color(0xFFE74C3C), size: 16),
+              child: const Icon(Icons.thumb_down_rounded, color: Color(clockOutColor), size: 16),
             ),
           ),
           const SizedBox(width: 8),
@@ -2651,10 +2651,10 @@ class _ActivityCardState extends State<_ActivityCard> {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
               decoration: BoxDecoration(
-                color: const Color(0xFF27AE60),
+                color: const Color(clockInColor),
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: const Icon(Icons.thumb_up_rounded, color: Colors.white, size: 16),
+              child: const Icon(Icons.thumb_up_rounded, color: Color(whiteColor), size: 16),
             ),
           ),
         ],
@@ -2673,7 +2673,7 @@ class _ActivityCardState extends State<_ActivityCard> {
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.06),
+            color: Color(blackColor).withValues(alpha: 0.06),
             blurRadius: 6,
             offset: const Offset(0, 2),
           ),
@@ -2733,10 +2733,10 @@ class _ActivityCardState extends State<_ActivityCard> {
                             if (widget.contactName != null && widget.contactName!.isNotEmpty)
                               Row(
                                 children: [
-                                  const Icon(Icons.person_outline, size: 11, color: Color(0xFFE67E22)),
+                                  const Icon(Icons.person_outline, size: 11, color: Color(visitColor)),
                                   const SizedBox(width: 2),
                                   Expanded(
-                                    child: Text(widget.contactName!, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 11, color: Color(0xFFE67E22))),
+                                    child: Text(widget.contactName!, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 11, color: Color(visitColor))),
                                   ),
                                 ],
                               ),
@@ -2778,7 +2778,7 @@ class _ActivityCardState extends State<_ActivityCard> {
             Container(
               height: 200,
               decoration: BoxDecoration(
-                color: Colors.grey.shade200,
+                color: Color(greyShade200),
                 borderRadius: BorderRadius.circular(8),
               ),
             )
@@ -2802,7 +2802,7 @@ class _ActivityCardState extends State<_ActivityCard> {
                               width: imageWidth,
                               height: 200,
                               decoration: BoxDecoration(
-                                color: Colors.grey.shade200,
+                                color: Color(greyShade200),
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               alignment: Alignment.center,
@@ -2827,7 +2827,7 @@ class _ActivityCardState extends State<_ActivityCard> {
                                 errorWidget: Container(
                                   width: imageWidth,
                                   height: 200,
-                                  color: Colors.grey.shade200,
+                                  color: Color(greyShade200),
                                   child: const Icon(Icons.broken_image, size: 40),
                                 ),
                               ),
@@ -2846,8 +2846,8 @@ class _ActivityCardState extends State<_ActivityCard> {
                           },
                           child: Container(
                             padding: const EdgeInsets.all(8),
-                            decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.4), shape: BoxShape.circle),
-                            child: const Icon(Icons.arrow_back_ios, color: Colors.white, size: 16),
+                            decoration: BoxDecoration(color: Color(blackColor).withValues(alpha: 0.4), shape: BoxShape.circle),
+                            child: const Icon(Icons.arrow_back_ios, color: Color(whiteColor), size: 16),
                           ),
                         ),
                       ),
@@ -2863,8 +2863,8 @@ class _ActivityCardState extends State<_ActivityCard> {
                           },
                           child: Container(
                             padding: const EdgeInsets.all(8),
-                            decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.4), shape: BoxShape.circle),
-                            child: const Icon(Icons.arrow_forward_ios, color: Colors.white, size: 16),
+                            decoration: BoxDecoration(color: Color(blackColor).withValues(alpha: 0.4), shape: BoxShape.circle),
+                            child: const Icon(Icons.arrow_forward_ios, color: Color(whiteColor), size: 16),
                           ),
                         ),
                       ),

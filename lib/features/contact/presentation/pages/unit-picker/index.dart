@@ -64,11 +64,11 @@ class _UnitPickerScreenState extends State<UnitPickerScreen> {
         width: 18,
         height: 18,
         decoration: BoxDecoration(
-          color: checked ? Color(primaryColor) : Colors.transparent,
+          color: checked ? Color(primaryColor) : Color(transparentColor),
           borderRadius: BorderRadius.circular(4),
           border: Border.all(color: checked ? Color(primaryColor) : Color(grey5Color), width: 1.5),
         ),
-        child: checked ? const Icon(Icons.check, size: 13, color: Colors.white) : null,
+        child: checked ? const Icon(Icons.check, size: 13, color: Color(whiteColor)) : null,
       );
 
   @override
@@ -170,7 +170,7 @@ class _UnitPickerScreenState extends State<UnitPickerScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.error_outline, color: Colors.redAccent, size: 40),
+            const Icon(Icons.error_outline, color: Color(redAccentMaterialColor), size: 40),
             const SizedBox(height: 8),
             Text(state.errorMessage ?? 'Gagal memuat unit', textAlign: TextAlign.center),
             const SizedBox(height: 8),
@@ -180,7 +180,7 @@ class _UnitPickerScreenState extends State<UnitPickerScreen> {
       );
     }
     if (state.clusters.isEmpty) {
-      return const Center(child: Text('Tidak ada unit tersedia', style: TextStyle(color: Colors.grey)));
+      return const Center(child: Text('Tidak ada unit tersedia', style: TextStyle(color: Color(greyShade500))));
     }
 
     return ListView(
@@ -348,7 +348,7 @@ class _UnitPickerScreenState extends State<UnitPickerScreen> {
               icon: Icon(selected.isEmpty ? Icons.remove_circle_outline : Icons.check, size: 18),
               style: ElevatedButton.styleFrom(
                 backgroundColor: selected.isEmpty ? Color(grey5Color) : Color(blue3Color),
-                foregroundColor: Colors.white,
+                foregroundColor: Color(whiteColor),
                 padding: const EdgeInsets.symmetric(vertical: 14),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
               ),

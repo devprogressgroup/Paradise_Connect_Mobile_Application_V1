@@ -52,4 +52,36 @@ const int infoColor = 0xFF06B6D4;
 
 const int orangeColor = 0xFFD1A250;
 
+// attendance status colors
+const int clockInColor = 0xFF27AE60;
+const int clockOutColor = 0xFFE74C3C;
+const int checkInColor = 0xFF2980B9;
+const int visitColor = 0xFFE67E22;
+
+// material grey shades
+const int greyShade100 = 0xFFF5F5F5;
+const int greyShade200 = 0xFFEEEEEE;
+const int greyShade300 = 0xFFE0E0E0;
+const int greyShade400 = 0xFFBDBDBD;
+const int greyShade500 = 0xFF9E9E9E;
+const int greyShade600 = 0xFF757575;
+const int greyShade700 = 0xFF616161;
+
+const int blueGreyColor = 0xFF607D8B;
+const int orangeAccentColor = 0xFFFF9800;
+const int redAccentColor = 0xFFF44336;
+const int transparentColor = 0x00000000;
+
+const int greyShade50 = 0xFFFAFAFA;
+const int greenMaterialColor = 0xFF4CAF50;
+const int blueAccentColor = 0xFF448AFF;
+const int redAccentMaterialColor = 0xFFFF5252;
+const int red700Color = 0xFFD32F2F;
+const int redShade50Color = 0xFFFFEBEE;
+const int orange700Color = 0xFFF57C00;
+const int amberMaterialColor = 0xFFFFC107;
+const int blueShade900Color = 0xFF0D47A1;
+const int blueShade800Color = 0xFF1565C0;
+const int blueShade50Color = 0xFFE3F2FD;
+
 //dark

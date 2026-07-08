@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
 import 'package:progress_group/core/network/api_constants.dart';
+import 'package:progress_group/core/constants/colors.dart';
 
 class QrScannerPage extends StatefulWidget {
   final String sessionId; 
@@ -110,12 +111,12 @@ class _QrScannerPageState extends State<QrScannerPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: Color(whiteColor),
       appBar: AppBar(
-        title: const Text("Scan WhatsApp QR", style: TextStyle(color: Colors.black)),
-        backgroundColor: Colors.white,
+        title: const Text("Scan WhatsApp QR", style: TextStyle(color: Color(blackColor))),
+        backgroundColor: Color(whiteColor),
         elevation: 0,
-        iconTheme: const IconThemeData(color: Colors.black),
+        iconTheme: const IconThemeData(color: Color(blackColor)),
       ),
       body: Center(
         child: Padding(
@@ -124,12 +125,12 @@ class _QrScannerPageState extends State<QrScannerPage> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               if (isConnected) ...[
-                const Icon(Icons.check_circle, color: Colors.green, size: 80),
+                const Icon(Icons.check_circle, color: Color(greenMaterialColor), size: 80),
                 const SizedBox(height: 16),
                 const Text("WhatsApp Berhasil Terhubung!", 
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
               ] else if (errorMessage.isNotEmpty) ...[
-                const Icon(Icons.error_outline, color: Colors.red, size: 60),
+                const Icon(Icons.error_outline, color: Color(redAccentColor), size: 60),
                 const SizedBox(height: 16),
                 Text(errorMessage, textAlign: TextAlign.center),
                 const SizedBox(height: 16),
@@ -148,7 +149,7 @@ class _QrScannerPageState extends State<QrScannerPage> {
                   style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
                 const SizedBox(height: 8),
                 const Text("Buka WhatsApp > Perangkat Tertaut > Tautkan Perangkat", 
-                  textAlign: TextAlign.center, style: TextStyle(color: Colors.grey, fontSize: 13)),
+                  textAlign: TextAlign.center, style: TextStyle(color: Color(greyShade500), fontSize: 13)),
                 
                 const SizedBox(height: 40),
 
@@ -156,12 +157,12 @@ class _QrScannerPageState extends State<QrScannerPage> {
                   width: 280,
                   height: 280,
                   decoration: BoxDecoration(
-                    color: Colors.grey[50],
+                    color: Color(greyShade50),
                     borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: Colors.grey[300]!),
+                    border: Border.all(color: Color(greyShade300)!),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.05),
+                        color: Color(blackColor).withOpacity(0.05),
                         blurRadius: 10,
                         spreadRadius: 2,
                       )
@@ -175,7 +176,7 @@ class _QrScannerPageState extends State<QrScannerPage> {
                             children: const [
                               CircularProgressIndicator(strokeWidth: 2),
                               SizedBox(height: 16),
-                              Text("Menunggu QR Code...", style: TextStyle(fontSize: 12, color: Colors.grey))
+                              Text("Menunggu QR Code...", style: TextStyle(fontSize: 12, color: Color(greyShade500)))
                             ],
                           )
                         : Image.memory(
@@ -187,7 +188,7 @@ class _QrScannerPageState extends State<QrScannerPage> {
 
                 const SizedBox(height: 40),
                 
-                const Text("Pastikan HP Anda terhubung ke internet", style: TextStyle(color: Colors.grey, fontSize: 12)),
+                const Text("Pastikan HP Anda terhubung ke internet", style: TextStyle(color: Color(greyShade500), fontSize: 12)),
                 const SizedBox(height: 8),
                 TextButton.icon(
                   onPressed: () {

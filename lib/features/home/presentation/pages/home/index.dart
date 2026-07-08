@@ -328,11 +328,11 @@ class _HomePageState extends State<HomePage> {
             const SizedBox(height: 8),
             Container(
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: Color(whiteColor),
                 borderRadius: BorderRadius.circular(10),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.grey.withValues(alpha: 0.2),
+                    color: Color(greyShade500).withValues(alpha: 0.2),
                     spreadRadius: 2,
                     blurRadius: 5,
                     offset: const Offset(0, 3),
@@ -399,7 +399,7 @@ class _HomePageState extends State<HomePage> {
                         child: Container(
                           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                           decoration: BoxDecoration(
-                            color: Colors.white,
+                            color: Color(whiteColor),
                             borderRadius: isLast
                                 ? const BorderRadius.vertical(bottom: Radius.circular(10))
                                 : BorderRadius.zero,
@@ -416,7 +416,7 @@ class _HomePageState extends State<HomePage> {
                                     isCompleted
                                         ? Icons.check_circle
                                         : Icons.check_circle_outline_rounded,
-                                    color: isCompleted ? Colors.green : Color(primaryColor),
+                                    color: isCompleted ? Color(greenMaterialColor) : Color(primaryColor),
                                     size: 40,
                                   ),
                                   const SizedBox(width: 10),
@@ -469,7 +469,7 @@ class _HomePageState extends State<HomePage> {
                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                         decoration: BoxDecoration(
-                          color: Colors.white,
+                          color: Color(whiteColor),
                           borderRadius: isLastItem
                               ? const BorderRadius.vertical(bottom: Radius.circular(10))
                               : BorderRadius.zero,
@@ -507,11 +507,11 @@ class _HomePageState extends State<HomePage> {
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                               decoration: BoxDecoration(
-                                color: Colors.orange.withValues(alpha: 0.12),
+                                color: Color(orangeAccentColor).withValues(alpha: 0.12),
                                 borderRadius: BorderRadius.circular(8),
-                                border: Border.all(color: Colors.orange.withValues(alpha: 0.4)),
+                                border: Border.all(color: Color(orangeAccentColor).withValues(alpha: 0.4)),
                               ),
-                              child: const Text('Pending', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Colors.orange)),
+                              child: const Text('Pending', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(orangeAccentColor))),
                             ),
                           ],
                         ),
@@ -615,9 +615,9 @@ class _HomePageState extends State<HomePage> {
             else if (state.summary != null) ...[
               Container(
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: Color(whiteColor),
                   borderRadius: BorderRadius.circular(10),
-                  boxShadow: [BoxShadow(color: Colors.grey.withValues(alpha: 0.2), spreadRadius: 2, blurRadius: 5, offset: const Offset(0, 3))],
+                  boxShadow: [BoxShadow(color: Color(greyShade500).withValues(alpha: 0.2), spreadRadius: 2, blurRadius: 5, offset: const Offset(0, 3))],
                 ),
                 child: Column(
                   children: [
@@ -649,7 +649,7 @@ class _HomePageState extends State<HomePage> {
                           child: Container(
                           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                           decoration: BoxDecoration(
-                            color: Colors.white,
+                            color: Color(whiteColor),
                             border: showBottomBorder
                                 ? Border(bottom: BorderSide(color: Color(grey10Color), width: 1))
                                 : null,
@@ -755,11 +755,11 @@ class _HomePageState extends State<HomePage> {
     return Container(
       padding: const EdgeInsets.all(8),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Color(whiteColor),
         borderRadius: BorderRadius.circular(10),
         boxShadow: [
           BoxShadow(
-              color: Colors.grey.withOpacity(0.2),
+              color: Color(greyShade500).withOpacity(0.2),
               spreadRadius: 2,
               blurRadius: 5,
               offset: const Offset(0, 3)),
@@ -779,7 +779,7 @@ class _HomePageState extends State<HomePage> {
                 children: [
                   const Text(
                     "Statistics",
-                    style: TextStyle(fontSize: 10, fontWeight: FontWeight.w400, color: Colors.grey),
+                    style: TextStyle(fontSize: 10, fontWeight: FontWeight.w400, color: Color(greyShade500)),
                   ),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -810,7 +810,7 @@ class _HomePageState extends State<HomePage> {
                 return const SizedBox(
                   height: 150,
                   child: Center(
-                      child: Text('Gagal memuat data laporan', style: TextStyle(color: Colors.red))),
+                      child: Text('Gagal memuat data laporan', style: TextStyle(color: Color(redAccentColor)))),
                 );
               }
               if (state is ReportLoaded) {
@@ -870,7 +870,7 @@ class _HomePageState extends State<HomePage> {
                                            
                                           _formatYAxisLabel(val),
                                           textAlign: TextAlign.left,
-                                          style: TextStyle(fontSize: 10, color: Colors.grey[600]),
+                                          style: TextStyle(fontSize: 10, color: Color(greyShade600)),
                                         ),
                                       ),
                                       Expanded(
@@ -878,7 +878,7 @@ class _HomePageState extends State<HomePage> {
                                             ? const SizedBox.shrink()
                                             : CustomPaint(
                                                 size: const Size(double.infinity, 1),
-                                                painter: DashedLinePainter(color: Colors.grey.withOpacity(0.3)),
+                                                painter: DashedLinePainter(color: Color(greyShade500).withOpacity(0.3)),
                                               ),
                                       ),
                                     ],
@@ -927,7 +927,7 @@ class _HomePageState extends State<HomePage> {
                                         right: 0,
                                         child: Container(
                                           height: 1,
-                                          color: Colors.grey.withOpacity(0.5),
+                                          color: Color(greyShade500).withOpacity(0.5),
                                         ),
                                       ),
                                     ],
@@ -948,7 +948,7 @@ class _HomePageState extends State<HomePage> {
                                 padding: const EdgeInsets.only(top: 8),
                                 child: Text(
                                   label,
-                                  style: TextStyle(fontSize: 10, color: Colors.grey[600], fontWeight: FontWeight.w500),
+                                  style: TextStyle(fontSize: 10, color: Color(greyShade600), fontWeight: FontWeight.w500),
                                   overflow: TextOverflow.ellipsis,
                                 ),
                               );
@@ -1095,7 +1095,7 @@ class TrendLinePainter extends CustomPainter {
       double y = maxHeight - (values[i] / chartMaxValue * maxHeight);
 
       canvas.drawCircle(Offset(x, y), 5, dotPaint);
-      canvas.drawCircle(Offset(x, y), 2.5, Paint()..color = Colors.white);
+      canvas.drawCircle(Offset(x, y), 2.5, Paint()..color = Color(whiteColor));
     }
   }
 

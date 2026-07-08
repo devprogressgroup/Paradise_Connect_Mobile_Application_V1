@@ -79,7 +79,7 @@ class _FilterListPage<T> extends StatelessWidget {
                   final item = items[i];
                   final isSelected = item.value == selectedValue;
                   return Material(
-                    color: Colors.transparent,
+                    color: Color(transparentColor),
                     child: InkWell(
                       onTap: () => Navigator.of(context).pop(item.value),
                       child: Container(
@@ -395,15 +395,15 @@ class _TaskPageState extends State<TaskPage> {
         margin: const EdgeInsets.only(bottom: 10),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: BoxDecoration(
-          color: Colors.white, borderRadius: BorderRadius.circular(10),
-          boxShadow: [BoxShadow(color: Colors.grey.withValues(alpha: 0.1), spreadRadius: 1, blurRadius: 3, offset: const Offset(0, 1))],
+          color: Color(whiteColor), borderRadius: BorderRadius.circular(10),
+          boxShadow: [BoxShadow(color: Color(greyShade500).withValues(alpha: 0.1), spreadRadius: 1, blurRadius: 3, offset: const Offset(0, 1))],
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Row(children: [
               Icon(isCompleted ? Icons.check_circle : Icons.check_circle_outline_rounded,
-                  color: isCompleted ? Colors.green : Color(primaryColor), size: 40),
+                  color: isCompleted ? Color(greenMaterialColor) : Color(primaryColor), size: 40),
               const SizedBox(width: 10),
               Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Text(activity.activityType, style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold,
@@ -431,7 +431,7 @@ class _TaskPageState extends State<TaskPage> {
     final isApproved = item.isApprove == 1;
     final isRejected = item.isReject == 1;
     final statusLabel = isApproved ? 'Approve' : isRejected ? 'Reject' : 'Pending';
-    final statusColor = isApproved ? Colors.green : isRejected ? const Color(0xFFE74C3C) : Colors.orange;
+    final statusColor = isApproved ? Color(greenMaterialColor) : isRejected ? const Color(clockOutColor) : Color(orangeAccentColor);
     final dt = DateTime.tryParse(item.attendanceDatetime ?? '');
 
     return GestureDetector(
@@ -443,8 +443,8 @@ class _TaskPageState extends State<TaskPage> {
         margin: const EdgeInsets.only(bottom: 10),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: BoxDecoration(
-          color: Colors.white, borderRadius: BorderRadius.circular(10),
-          boxShadow: [BoxShadow(color: Colors.grey.withValues(alpha: 0.1), spreadRadius: 1, blurRadius: 3, offset: const Offset(0, 1))],
+          color: Color(whiteColor), borderRadius: BorderRadius.circular(10),
+          boxShadow: [BoxShadow(color: Color(greyShade500).withValues(alpha: 0.1), spreadRadius: 1, blurRadius: 3, offset: const Offset(0, 1))],
         ),
         child: Row(children: [
           Icon(Icons.how_to_reg_outlined, color: Color(primaryColor), size: 36),

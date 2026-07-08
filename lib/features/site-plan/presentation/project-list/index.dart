@@ -9,6 +9,7 @@ import '../../domain/entities/project_site.dart';
 import '../state/siteplan_bloc.dart';
 import '../state/siteplan_event.dart';
 import '../state/siteplan_state.dart';
+import 'package:progress_group/core/constants/colors.dart';
 
 class ProjectListPage extends StatelessWidget {
   final List<ProjectSite> sites;
@@ -42,7 +43,7 @@ class ProjectListPage extends StatelessWidget {
                             ? const Center(
                                 child: Text(
                                   'Tidak ada data site plan',
-                                  style: TextStyle(color: Colors.grey),
+                                  style: TextStyle(color: Color(greyShade500)),
                                 ),
                               )
                             : ListView.builder(
@@ -69,7 +70,7 @@ class ProjectListPage extends StatelessWidget {
                                         style: TextStyle(
                                           fontSize: 12,
                                           fontWeight: FontWeight.bold,
-                                          color: Colors.blue.shade900,
+                                          color: Color(blueShade900Color),
                                         ),
                                       ),
                                     ),
@@ -82,12 +83,12 @@ class ProjectListPage extends StatelessWidget {
                                             ? FontWeight.bold
                                             : FontWeight.normal,
                                         color: isSelected
-                                            ? Colors.blue.shade800
+                                            ? Color(blueShade800Color)
                                             : null,
                                       ),
                                     ),
                                     tileColor: isSelected
-                                        ? Colors.blue.shade50
+                                        ? Color(blueShade50Color)
                                         : null,
                                     shape: RoundedRectangleBorder(
                                       borderRadius: BorderRadius.circular(8),

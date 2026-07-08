@@ -655,7 +655,7 @@ class _ContactPageState extends State<ContactPage> {
                 onPressed: () => context.pushNamed('formContact', extra: ContactDetailArgs(page: 0)),
                 backgroundColor: Color(primaryColor),
                 shape: const CircleBorder(),
-                child: const Icon(Icons.add, color: Colors.white),
+                child: const Icon(Icons.add, color: Color(whiteColor)),
               ),
             )
           : null,
@@ -775,9 +775,9 @@ Widget _buildIconLink(BuildContext context, String asset, String label, VoidCall
       padding: const EdgeInsets.symmetric(vertical: 10),
       child: Row(
         children: [
-          BgIcon(asset: asset, onTap: null, color: disabled ? Colors.grey : color),
+          BgIcon(asset: asset, onTap: null, color: disabled ? Color(greyShade500) : color),
           const SizedBox(width: 10),
-          Text(label, style: TextStyle(fontSize: 16, color: disabled ? Colors.grey : Color(blue2Color), fontWeight: FontWeight.w400)),
+          Text(label, style: TextStyle(fontSize: 16, color: disabled ? Color(greyShade500) : Color(blue2Color), fontWeight: FontWeight.w400)),
         ],
       ),
     ),

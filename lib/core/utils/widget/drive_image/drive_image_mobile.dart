@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:progress_group/core/utils/helpers/image_url.dart';
 import 'package:progress_group/core/utils/widget/shimmer_loading.dart';
+import 'package:progress_group/core/constants/colors.dart';
 
 class DriveImage extends StatefulWidget {
   final String url;
@@ -90,9 +91,9 @@ class _DriveImageState extends State<DriveImage> {
     return Container(
       width: widget.width,
       height: widget.height,
-      color: Colors.grey.shade200,
+      color: Color(greyShade200),
       alignment: Alignment.center,
-      child: const Icon(Icons.broken_image, size: 40, color: Colors.grey),
+      child: const Icon(Icons.broken_image, size: 40, color: Color(greyShade500)),
     );
   }
 }

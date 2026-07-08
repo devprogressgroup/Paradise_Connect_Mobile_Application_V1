@@ -55,7 +55,7 @@ class _AttachmentWebViewPageState extends State<AttachmentWebViewPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: Color(whiteColor),
       body: SafeArea(
         child: Column(
           children: [
@@ -65,8 +65,8 @@ class _AttachmentWebViewPageState extends State<AttachmentWebViewPage> {
               LinearProgressIndicator(
                 value: progress,
                 minHeight: 2,
-                backgroundColor: Colors.transparent,
-                valueColor: const AlwaysStoppedAnimation<Color>(Colors.blue),
+                backgroundColor: Color(transparentColor),
+                valueColor: const AlwaysStoppedAnimation<Color>(Color(primaryColor)),
               ),
 
             Expanded(
@@ -87,7 +87,7 @@ class _AttachmentWebViewPageState extends State<AttachmentWebViewPage> {
   Widget _buildLoadingOverlay() {
     return Center(
       child: CircularProgressIndicator(
-        valueColor: const AlwaysStoppedAnimation<Color>(Colors.blue),
+        valueColor: const AlwaysStoppedAnimation<Color>(Color(primaryColor)),
       ),
     );
   }

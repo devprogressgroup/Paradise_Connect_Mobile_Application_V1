@@ -79,7 +79,7 @@ class _MainLayoutState extends State<MainLayout> {
           children: [
             Container(
               width: 40, height: 4,
-              decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(2)),
+              decoration: BoxDecoration(color: Color(greyShade300), borderRadius: BorderRadius.circular(2)),
             ),
             const SizedBox(height: 20),
             const Text(
@@ -90,7 +90,7 @@ class _MainLayoutState extends State<MainLayout> {
             Text(
               'Tambahkan ke Home Screen untuk pengalaman terbaik.',
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 13, color: Colors.grey[600]),
+              style: TextStyle(fontSize: 13, color: Color(greyShade600)),
             ),
             const SizedBox(height: 24),
             _iosStep(
@@ -163,7 +163,7 @@ class _MainLayoutState extends State<MainLayout> {
     final location = GoRouterState.of(context).uri.path;
     final isAttendance = location.startsWith('/attandance');
 
-    final statusBarStyle = isAttendance  ? const SystemUiOverlayStyle(statusBarColor: Color(primaryColor),statusBarIconBrightness: Brightness.light,statusBarBrightness: Brightness.dark)  : const SystemUiOverlayStyle(statusBarColor: Colors.white,statusBarIconBrightness: Brightness.dark,statusBarBrightness: Brightness.light,);
+    final statusBarStyle = isAttendance  ? const SystemUiOverlayStyle(statusBarColor: Color(primaryColor),statusBarIconBrightness: Brightness.light,statusBarBrightness: Brightness.dark)  : const SystemUiOverlayStyle(statusBarColor: Color(whiteColor),statusBarIconBrightness: Brightness.dark,statusBarBrightness: Brightness.light,);
     
     return AnnotatedRegion<SystemUiOverlayStyle>(
     value: statusBarStyle,
@@ -247,7 +247,7 @@ class _MainLayoutState extends State<MainLayout> {
           color: Color(whiteColor),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.04),
+              color: Color(blackColor).withOpacity(0.04),
               blurRadius: 10,
               offset: const Offset(0, -4),
             ),
@@ -265,9 +265,9 @@ class _MainLayoutState extends State<MainLayout> {
               return Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.wifi_off_rounded, size: 18, color: Colors.grey[400]),
+                  Icon(Icons.wifi_off_rounded, size: 18, color: Color(greyShade400)),
                   const SizedBox(width: 8),
-                  Text('Gagal memuat', style: TextStyle(fontSize: 12, color: Colors.grey[400])),
+                  Text('Gagal memuat', style: TextStyle(fontSize: 12, color: Color(greyShade400))),
                   const SizedBox(width: 8),
                   GestureDetector(
                     onTap: () => context.read<AuthBloc>().add(FetchPermissionsEvent()),
@@ -311,7 +311,7 @@ class _MainLayoutState extends State<MainLayout> {
     return SizedBox(
       width: drawerWidth,
       child: Drawer(
-        backgroundColor: Colors.white,
+        backgroundColor: Color(whiteColor),
         elevation: 7,
         child: SafeArea(
           child: Padding(
@@ -355,13 +355,13 @@ class _MainLayoutState extends State<MainLayout> {
                                           errorBuilder: (_, __, ___) => CircleAvatar(
                                             radius: 27,
                                             backgroundColor: Color(primaryColor),
-                                            child: Icon(Icons.person, color: Colors.white, size: 37),
+                                            child: Icon(Icons.person, color: Color(whiteColor), size: 37),
                                           ),
                                         )
                                       : CircleAvatar(
                                           radius: 27,
                                           backgroundColor: Color(primaryColor),
-                                          child: Icon(Icons.person, color: Colors.white, size: 37),
+                                          child: Icon(Icons.person, color: Color(whiteColor), size: 37),
                                         ),
                                 ),
                                 SizedBox(width: 10),
@@ -472,7 +472,7 @@ class _MainLayoutState extends State<MainLayout> {
                 height: 48,
                 padding: const EdgeInsets.symmetric(horizontal: 12),
                 decoration: BoxDecoration(
-                  color: isActive ? Color(primaryColor).withOpacity(0.08) : Colors.transparent,
+                  color: isActive ? Color(primaryColor).withOpacity(0.08) : Color(transparentColor),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Row(
@@ -499,7 +499,7 @@ class _MainLayoutState extends State<MainLayout> {
               width: 5,
               height: 48,
               decoration: BoxDecoration(
-                color: isActive ? Color(primaryColor) : Colors.transparent,
+                color: isActive ? Color(primaryColor) : Color(transparentColor),
                 borderRadius: BorderRadius.circular(8),
               ),
             ),
@@ -542,13 +542,13 @@ class _MainLayoutState extends State<MainLayout> {
               child: Container(
                 padding: const EdgeInsets.all(4),
                 decoration: const BoxDecoration(
-                  color: Colors.red,
+                  color: Color(redAccentColor),
                   shape: BoxShape.circle,
                 ),
                 child: Text(
                   '$badgeCount',
                   style: const TextStyle(
-                    color: Colors.white,
+                    color: Color(whiteColor),
                     fontSize: 10,
                     fontWeight: FontWeight.bold,
                   ),

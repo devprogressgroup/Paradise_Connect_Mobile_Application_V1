@@ -37,7 +37,7 @@ class CustomFilePicker {
   }) {
     return showModalBottomSheet<PickedFileResult?>(
       context: context,
-      backgroundColor: Colors.transparent,
+      backgroundColor: Color(transparentColor),
       isScrollControlled: true,
       builder: (_) => _FilePickerSheet(
         allowCamera: allowCamera,
@@ -64,7 +64,7 @@ class _FilePickerSheet extends StatelessWidget {
     return SafeArea(
       child: Container(
         decoration: const BoxDecoration(
-          color: Colors.white,
+          color: Color(whiteColor),
           borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
         ),
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
@@ -326,9 +326,9 @@ class FilePreviewWidget extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: Color(redColor),
                   shape: BoxShape.circle,
-                  border: Border.all(color: Colors.white, width: 2),
+                  border: Border.all(color: Color(whiteColor), width: 2),
                 ),
-                child: const Icon(Icons.close, color: Colors.white, size: 11),
+                child: const Icon(Icons.close, color: Color(whiteColor), size: 11),
               ),
             ),
           ),

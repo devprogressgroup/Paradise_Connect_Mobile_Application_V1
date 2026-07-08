@@ -124,12 +124,12 @@ class _ApprovalPageState extends State<ApprovalPage> {
           color: isSelected ? const Color(primaryColor) : const Color(whiteColor),
           borderRadius: BorderRadius.circular(14),
           border: Border.all(
-            color: isSelected ? const Color(primaryColor) : Colors.transparent,
+            color: isSelected ? const Color(primaryColor) : Color(transparentColor),
           ),
           boxShadow: [
             if (!isSelected)
               BoxShadow(
-                color: Colors.black.withValues(alpha: 0.05),
+                color: Color(blackColor).withValues(alpha: 0.05),
                 blurRadius: 4,
                 offset: const Offset(0, 2),
               ),
@@ -142,20 +142,20 @@ class _ApprovalPageState extends State<ApprovalPage> {
               label,
               style: TextStyle(
                 fontSize: 12,
-                color: isSelected ? Colors.white : const Color(blackColor),
+                color: isSelected ? Color(whiteColor) : const Color(blackColor),
               ),
             ),
             const SizedBox(width: 4),
             if (isSelected && onClear != null)
               GestureDetector(
                 onTap: onClear,
-                child: const Icon(Icons.close_rounded, size: 14, color: Colors.white),
+                child: const Icon(Icons.close_rounded, size: 14, color: Color(whiteColor)),
               )
             else
               Icon(
                 Icons.keyboard_arrow_down_rounded,
                 size: 16,
-                color: isSelected ? Colors.white : const Color(blackColor),
+                color: isSelected ? Color(whiteColor) : const Color(blackColor),
               ),
           ],
         ),
@@ -295,8 +295,8 @@ class _ApprovalPageState extends State<ApprovalPage> {
                                             horizontal: 8, vertical: 4),
                                         decoration: BoxDecoration(
                                           color: item.flag == 0
-                                              ? Colors.green.withOpacity(0.1)
-                                              : Colors.orange.withOpacity(0.1),
+                                              ? Color(greenMaterialColor).withOpacity(0.1)
+                                              : Color(orangeAccentColor).withOpacity(0.1),
                                           borderRadius: BorderRadius.circular(8),
                                         ),
                                         child: Text(
@@ -304,8 +304,8 @@ class _ApprovalPageState extends State<ApprovalPage> {
                                           style: TextStyle(
                                             fontSize: 12,
                                             color: item.flag == 0
-                                                ? Colors.green
-                                                : Colors.orange,
+                                                ? Color(greenMaterialColor)
+                                                : Color(orangeAccentColor),
                                             fontWeight: FontWeight.w600,
                                           ),
                                         ),
@@ -315,11 +315,11 @@ class _ApprovalPageState extends State<ApprovalPage> {
                                   const SizedBox(height: 8),
                                   Row(
                                     children: [
-                                      const Icon(Icons.access_time, size: 16, color: Colors.grey),
+                                      const Icon(Icons.access_time, size: 16, color: Color(greyShade500)),
                                       const SizedBox(width: 4),
                                       Text(
                                         item.attendanceDatetime != null ? DateHelper.formatTime(DateTime.parse(item.attendanceDatetime!)) : '-',
-                                        style: const TextStyle(color: Colors.grey),
+                                        style: const TextStyle(color: Color(greyShade500)),
                                       ),
                                     ],
                                   ),
@@ -327,12 +327,12 @@ class _ApprovalPageState extends State<ApprovalPage> {
                                   Row(
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
-                                      const Icon(Icons.location_on, size: 16, color: Colors.grey),
+                                      const Icon(Icons.location_on, size: 16, color: Color(greyShade500)),
                                       const SizedBox(width: 4),
                                       Expanded(
                                         child: Text(
                                           item.locationName ?? '-',
-                                          style: const TextStyle(color: Colors.grey),
+                                          style: const TextStyle(color: Color(greyShade500)),
                                           maxLines: 2,
                                           overflow: TextOverflow.ellipsis,
                                         ),
@@ -343,11 +343,11 @@ class _ApprovalPageState extends State<ApprovalPage> {
                                     const SizedBox(height: 8),
                                     Row(
                                       children: [
-                                        const Icon(Icons.note, size: 16, color: Colors.grey),
+                                        const Icon(Icons.note, size: 16, color: Color(greyShade500)),
                                         const SizedBox(width: 4),
                                         Text(
                                           item.noteValidasi ?? '-',
-                                          style: const TextStyle(color: Colors.grey),
+                                          style: const TextStyle(color: Color(greyShade500)),
                                         ),
                                       ],
                                     ),
@@ -357,22 +357,22 @@ class _ApprovalPageState extends State<ApprovalPage> {
                                   if (item.isApprove == 1)
                                     Row(
                                       children: [
-                                        const Icon(Icons.check_circle, size: 16, color: Colors.green),
+                                        const Icon(Icons.check_circle, size: 16, color: Color(greenMaterialColor)),
                                         const SizedBox(width: 4),
                                         Text(
                                           'Approved by ${item.approveName ?? 'Unknown'}',
-                                          style: const TextStyle(color: Colors.green, fontWeight: FontWeight.w600),
+                                          style: const TextStyle(color: Color(greenMaterialColor), fontWeight: FontWeight.w600),
                                         ),
                                       ],
                                     )
                                   else if (item.isReject == 1)
                                     Row(
                                       children: [
-                                        const Icon(Icons.cancel, size: 16, color: Colors.red),
+                                        const Icon(Icons.cancel, size: 16, color: Color(redAccentColor)),
                                         const SizedBox(width: 4),
                                         Text(
                                           'Rejected by ${item.rejectName ?? 'Unknown'}',
-                                          style: const TextStyle(color: Colors.red, fontWeight: FontWeight.w600),
+                                          style: const TextStyle(color: Color(redAccentColor), fontWeight: FontWeight.w600),
                                         ),
                                       ],
                                     )
@@ -381,11 +381,11 @@ class _ApprovalPageState extends State<ApprovalPage> {
                                       children: [
                                         const Row(
                                           children: [
-                                            Icon(Icons.pending, size: 16, color: Colors.orange),
+                                            Icon(Icons.pending, size: 16, color: Color(orangeAccentColor)),
                                             SizedBox(width: 4),
                                             Text(
                                               'Pending Approval',
-                                              style: TextStyle(color: Colors.orange, fontWeight: FontWeight.w600),
+                                              style: TextStyle(color: Color(orangeAccentColor), fontWeight: FontWeight.w600),
                                             ),
                                           ],
                                         ),
@@ -396,8 +396,8 @@ class _ApprovalPageState extends State<ApprovalPage> {
                                               child: OutlinedButton(
                                                 onPressed: () => _showAttendanceDetailDialog(item),
                                                 style: OutlinedButton.styleFrom(
-                                                  foregroundColor: Colors.red,
-                                                  side: const BorderSide(color: Colors.red),
+                                                  foregroundColor: Color(redAccentColor),
+                                                  side: const BorderSide(color: Color(redAccentColor)),
                                                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                                                 ),
                                                 child: const Text('Reject'),
@@ -408,8 +408,8 @@ class _ApprovalPageState extends State<ApprovalPage> {
                                               child: ElevatedButton(
                                                 onPressed: () => _showAttendanceDetailDialog(item),
                                                 style: ElevatedButton.styleFrom(
-                                                  backgroundColor: Colors.green,
-                                                  foregroundColor: Colors.white,
+                                                  backgroundColor: Color(greenMaterialColor),
+                                                  foregroundColor: Color(whiteColor),
                                                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                                                 ),
                                                 child: const Text('Approve'),
@@ -462,8 +462,8 @@ class _ApprovalPageState extends State<ApprovalPage> {
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
-              backgroundColor: isReject ? Colors.red : Colors.green,
-              foregroundColor: Colors.white,
+              backgroundColor: isReject ? Color(redAccentColor) : Color(greenMaterialColor),
+              foregroundColor: Color(whiteColor),
             ),
             onPressed: () => Navigator.pop(ctx, true),
             child: Text(isReject ? 'Reject' : 'Approve'),
@@ -499,10 +499,10 @@ class _ApprovalPageState extends State<ApprovalPage> {
 
     showDialog(
       context: context,
-      barrierColor: Colors.black54,
+      barrierColor: Color(blackColor).withAlpha(54),
       builder: (ctx) {
         return Dialog(
-          backgroundColor: Colors.white,
+          backgroundColor: Color(whiteColor),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
           child: SizedBox(
             width: MediaQuery.of(context).size.width * 0.9,
@@ -525,8 +525,8 @@ class _ApprovalPageState extends State<ApprovalPage> {
                               )
                             : Container(
                                 height: 180,
-                                color: Colors.grey.shade200,
-                                child: const Center(child: Icon(Icons.image, size: 50, color: Colors.grey)),
+                                color: Color(greyShade200),
+                                child: const Center(child: Icon(Icons.image, size: 50, color: Color(greyShade500))),
                               ),
                       ),
                       if (displayImage != null)
@@ -538,10 +538,10 @@ class _ApprovalPageState extends State<ApprovalPage> {
                             child: Container(
                               padding: const EdgeInsets.all(4),
                               decoration: BoxDecoration(
-                                color: Colors.black.withValues(alpha: 0.45),
+                                color: Color(blackColor).withValues(alpha: 0.45),
                                 borderRadius: BorderRadius.circular(6),
                               ),
-                              child: const Icon(Icons.fullscreen, color: Colors.white, size: 18),
+                              child: const Icon(Icons.fullscreen, color: Color(whiteColor), size: 18),
                             ),
                           ),
                         ),
@@ -568,7 +568,7 @@ class _ApprovalPageState extends State<ApprovalPage> {
                       item.isApprove == 1
                           ? 'Approved${item.approveName != null ? ' by ${item.approveName}' : ''}'
                           : 'Rejected${item.rejectName != null ? ' by ${item.rejectName}' : ''}',
-                      item.isApprove == 1 ? const Color(0xFF27AE60) : const Color(0xFFE74C3C),
+                      item.isApprove == 1 ? const Color(clockInColor) : const Color(clockOutColor),
                     ),
                   ],
                   const SizedBox(height: 20),
@@ -581,8 +581,8 @@ class _ApprovalPageState extends State<ApprovalPage> {
                             _showApprovalNoteDialog(item.logId, 0);
                           },
                           style: OutlinedButton.styleFrom(
-                            foregroundColor: Colors.red,
-                            side: const BorderSide(color: Colors.red),
+                            foregroundColor: Color(redAccentColor),
+                            side: const BorderSide(color: Color(redAccentColor)),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                           ),
                           child: const Text('Reject'),
@@ -596,8 +596,8 @@ class _ApprovalPageState extends State<ApprovalPage> {
                             _showApprovalNoteDialog(item.logId, 1);
                           },
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.green,
-                            foregroundColor: Colors.white,
+                            backgroundColor: Color(greenMaterialColor),
+                            foregroundColor: Color(whiteColor),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                           ),
                           child: const Text('Approve'),
@@ -621,9 +621,9 @@ class _ApprovalPageState extends State<ApprovalPage> {
 
     showDialog(
       context: context,
-      barrierColor: Colors.black87,
+      barrierColor: Color(blackColor).withAlpha(87),
       builder: (ctx) => Dialog(
-        backgroundColor: Colors.transparent,
+        backgroundColor: Color(transparentColor),
         insetPadding: const EdgeInsets.all(10),
         child: Stack(
           alignment: Alignment.center,
@@ -638,7 +638,7 @@ class _ApprovalPageState extends State<ApprovalPage> {
                 Align(
                   alignment: Alignment.topRight,
                   child: IconButton(
-                    icon: const Icon(Icons.close, color: Colors.white, size: 30),
+                    icon: const Icon(Icons.close, color: Color(whiteColor), size: 30),
                     onPressed: () => Navigator.pop(ctx),
                   ),
                 ),

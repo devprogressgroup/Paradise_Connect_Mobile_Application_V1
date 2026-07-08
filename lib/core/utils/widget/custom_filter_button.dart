@@ -31,12 +31,12 @@ class CustomFilterButton extends StatelessWidget {
             color: isSelected ? Color(primaryColor) : Color(whiteColor),
             borderRadius: BorderRadius.circular(14),
             border: Border.all(
-              color: isSelected ? Color(primaryColor) : Colors.transparent,
+              color: isSelected ? Color(primaryColor) : Color(transparentColor),
             ),
             boxShadow: [
               if (!isSelected)
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.05),
+                  color: Color(blackColor).withValues(alpha: 0.05),
                   blurRadius: 4,
                   offset: const Offset(0, 2),
                 ),
@@ -52,7 +52,7 @@ class CustomFilterButton extends StatelessWidget {
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
                   fontSize: 12,
-                  color: isSelected ? Colors.white : Color(blackColor),
+                  color: isSelected ? Color(whiteColor) : Color(blackColor),
                 ),
               ),
               ),
@@ -60,13 +60,13 @@ class CustomFilterButton extends StatelessWidget {
               if (isSelected && onClear != null)
                 GestureDetector(
                   onTap: onClear,
-                  child: const Icon(Icons.close_rounded, size: 14, color: Colors.white),
+                  child: const Icon(Icons.close_rounded, size: 14, color: Color(whiteColor)),
                 )
               else
                 Icon(
                   Icons.keyboard_arrow_down_rounded,
                   size: 16,
-                  color: isSelected ? Colors.white : Color(blackColor),
+                  color: isSelected ? Color(whiteColor) : Color(blackColor),
                 ),
             ],
           ),

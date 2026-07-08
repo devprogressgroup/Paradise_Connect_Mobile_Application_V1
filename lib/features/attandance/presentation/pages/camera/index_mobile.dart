@@ -309,12 +309,12 @@ class _CameraPageState extends State<CameraPage> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.camera_alt_outlined, size: 60, color: Colors.grey),
+              const Icon(Icons.camera_alt_outlined, size: 60, color: Color(greyShade500)),
               const SizedBox(height: 16),
               Text(
                 _cameraError!,
                 textAlign: TextAlign.center,
-                style: const TextStyle(color: Colors.grey, fontSize: 14),
+                style: const TextStyle(color: Color(greyShade500), fontSize: 14),
               ),
               const SizedBox(height: 24),
               ElevatedButton.icon(
@@ -370,11 +370,11 @@ class _CameraPageState extends State<CameraPage> {
         children: [
           Text(
             widget.args.location ?? "",
-            style: const TextStyle(color: Colors.white),
+            style: const TextStyle(color: Color(whiteColor)),
           ),
           Text(
             widget.args.time ?? "",
-            style: const TextStyle(color: Colors.white),
+            style: const TextStyle(color: Color(whiteColor)),
           ),
           const SizedBox(height: 20),
           _buildCaptureButton(),
@@ -398,7 +398,7 @@ class _CameraPageState extends State<CameraPage> {
                 shape: BoxShape.circle,
                 color: Color(primaryColor),
               ),
-              child: Icon(Icons.camera_alt, color: Colors.white, size: 30),
+              child: Icon(Icons.camera_alt, color: Color(whiteColor), size: 30),
             ),
           ),
         ],
@@ -435,11 +435,11 @@ class _CameraPageState extends State<CameraPage> {
                               padding: EdgeInsets.all(16),
                               child: Column(
                                 children: [
-                                  Row(children: [Icon(Icons.access_time_filled, color: Color(greenPercentColor), size: 25), SizedBox(width: 10), Text(widget.args.time ?? "-", style: TextStyle(color: Colors.white))]),
+                                  Row(children: [Icon(Icons.access_time_filled, color: Color(greenPercentColor), size: 25), SizedBox(width: 10), Text(widget.args.time ?? "-", style: TextStyle(color: Color(whiteColor)))]),
                                   SizedBox(height: 10),
-                                  Row(children: [Icon(Icons.calendar_today_sharp, color: Color(primaryColor), size: 25), SizedBox(width: 10), Text(DateHelper.formatDate(AppTime.now()), style: TextStyle(color: Colors.white))]),
+                                  Row(children: [Icon(Icons.calendar_today_sharp, color: Color(primaryColor), size: 25), SizedBox(width: 10), Text(DateHelper.formatDate(AppTime.now()), style: TextStyle(color: Color(whiteColor)))]),
                                   SizedBox(height: 10),
-                                  Row(children: [Icon(Icons.location_on, color: Color(primaryColor), size: 25), SizedBox(width: 10), SizedBox(width: 250, child: Text(widget.args.location ?? "-", style: TextStyle(color: Colors.white), overflow: TextOverflow.ellipsis))]),
+                                  Row(children: [Icon(Icons.location_on, color: Color(primaryColor), size: 25), SizedBox(width: 10), SizedBox(width: 250, child: Text(widget.args.location ?? "-", style: TextStyle(color: Color(whiteColor)), overflow: TextOverflow.ellipsis))]),
                                 ],
                               ),
                             ),
@@ -493,8 +493,8 @@ class _CameraPageState extends State<CameraPage> {
                                       child: GestureDetector(
                                         onTap: () => setState(() => _imageFiles.removeAt(index)),
                                         child: Container(
-                                          decoration: const BoxDecoration(color: Colors.black54, shape: BoxShape.circle),
-                                          child: const Icon(Icons.close, color: Colors.white, size: 20),
+                                          decoration:  BoxDecoration(color: Color(blackColor).withAlpha(54), shape: BoxShape.circle),
+                                          child: const Icon(Icons.close, color: Color(whiteColor), size: 20),
                                         ),
                                       ),
                                     ),
@@ -647,12 +647,12 @@ class _CameraPageState extends State<CameraPage> {
                                       const SizedBox(height: 8),
                                       Row(
                                         children: const [
-                                          Icon(Icons.warning_amber_rounded, color: Colors.orange, size: 16),
+                                          Icon(Icons.warning_amber_rounded, color: Color(orangeAccentColor), size: 16),
                                           SizedBox(width: 6),
                                           Expanded(
                                             child: Text(
                                               'Absensi diluar lokasi kerja memerlukan approval atasan',
-                                              style: TextStyle(color: Colors.orange, fontSize: 12),
+                                              style: TextStyle(color: Color(orangeAccentColor), fontSize: 12),
                                             ),
                                           ),
                                         ],
@@ -682,7 +682,7 @@ class _CameraPageState extends State<CameraPage> {
             if (isLoading)
               Positioned.fill(
                 child: Container(
-                  color: Colors.black.withValues(alpha: 0.4),
+                  color: Color(blackColor).withValues(alpha: 0.4),
                   child: const Center(child: CircularProgressIndicator()),
                 ),
               ),

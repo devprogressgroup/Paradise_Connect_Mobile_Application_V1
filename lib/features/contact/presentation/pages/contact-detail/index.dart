@@ -246,7 +246,7 @@ class _ContactDetailPageState extends State<ContactDetailPage>with TickerProvide
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text(state.errorMessage ?? 'Gagal memuat kontak'),
-                backgroundColor: Colors.red,
+                backgroundColor: Color(redAccentColor),
               ),
             );
             if (context.canPop()) context.pop();
@@ -266,7 +266,7 @@ class _ContactDetailPageState extends State<ContactDetailPage>with TickerProvide
                 onPressed: () => showCustomBottomSheet(context: context, child: _buildContentBSAdd()),
                 backgroundColor: Color(primaryColor),
                 shape: const CircleBorder(),
-                child: const Icon(Icons.add, color: Colors.white),
+                child: const Icon(Icons.add, color: Color(whiteColor)),
               ),
             )
           : null,
@@ -623,12 +623,12 @@ class _ContactDetailPageState extends State<ContactDetailPage>with TickerProvide
           decoration: BoxDecoration(
             color: isActive ? Color(primaryColor) : Color(grey10Color),
             borderRadius: BorderRadius.circular(height / 2),
-            boxShadow: isActive? [BoxShadow(color: Colors.black.withOpacity(0.1),blurRadius: 10,offset: const Offset(0, 2),),]: [],
+            boxShadow: isActive? [BoxShadow(color: Color(blackColor).withOpacity(0.1),blurRadius: 10,offset: const Offset(0, 2),),]: [],
           ),
           child: Text(
             tabs[index],
             style: TextStyle(
-              color: isActive ? Colors.white : Colors.grey[700],
+              color: isActive ? Color(whiteColor) : Color(greyShade700),
               fontWeight: FontWeight.w600,
               fontSize: 13,
             ),
@@ -756,7 +756,7 @@ class _ContactDetailPageState extends State<ContactDetailPage>with TickerProvide
                                       child: Center(
                                         child: Text(
                                           'Tidak ada data aktivitas',
-                                          style: TextStyle(color: Colors.grey),
+                                          style: TextStyle(color: Color(greyShade500)),
                                         ),
                                       ),
                                     ),
@@ -846,9 +846,9 @@ class _ContactDetailPageState extends State<ContactDetailPage>with TickerProvide
         margin: const EdgeInsets.only(bottom: 10),
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: Color(whiteColor),
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.grey.shade200),
+          border: Border.all(color: Color(greyShade200)),
         ),
         child: Row(
           children: [
@@ -1017,7 +1017,7 @@ class _ContactDetailPageState extends State<ContactDetailPage>with TickerProvide
               borderRadius: BorderRadius.circular(16),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.08),
+                  color: Color(blackColor).withOpacity(0.08),
                   blurRadius: 12,
                 ),
               ],
@@ -1035,7 +1035,7 @@ class _ContactDetailPageState extends State<ContactDetailPage>with TickerProvide
                       ),
                     );
                   } : null,
-                  color: PermissionsHelper.canUploadAttachment ? Color(primaryColor) : Colors.grey,
+                  color: PermissionsHelper.canUploadAttachment ? Color(primaryColor) : Color(greyShade500),
                 ),
                 SizedBox(width: 10),
                 Column(
@@ -1045,7 +1045,7 @@ class _ContactDetailPageState extends State<ContactDetailPage>with TickerProvide
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w700,
-                        color: PermissionsHelper.canUploadAttachment ? Color(primaryColor) : Colors.grey,
+                        color: PermissionsHelper.canUploadAttachment ? Color(primaryColor) : Color(greyShade500),
                       ),
                     ),
                     Text(
@@ -1053,7 +1053,7 @@ class _ContactDetailPageState extends State<ContactDetailPage>with TickerProvide
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w400,
-                        color: PermissionsHelper.canUploadAttachment ? Color(grey5Color) : Colors.grey,
+                        color: PermissionsHelper.canUploadAttachment ? Color(grey5Color) : Color(greyShade500),
                       ),
                     ),
                   ],
@@ -1141,7 +1141,7 @@ class _ContactDetailPageState extends State<ContactDetailPage>with TickerProvide
                                 borderRadius: BorderRadius.circular(16),
                                 boxShadow: [
                                   BoxShadow(
-                                    color: Colors.black.withOpacity(0.08),
+                                    color: Color(blackColor).withOpacity(0.08),
                                     blurRadius: 12,
                                   ),
                                 ],
@@ -1153,7 +1153,7 @@ class _ContactDetailPageState extends State<ContactDetailPage>with TickerProvide
                                     width: 44,
                                     height: 44,
                                     decoration: BoxDecoration(
-                                      color: Colors.grey[300],
+                                      color: Color(greyShade300),
                                       borderRadius: BorderRadius.circular(12),
                                     ),
                                     child: ClipRRect(
@@ -1260,7 +1260,7 @@ class _ContactDetailPageState extends State<ContactDetailPage>with TickerProvide
                                           value: 'delete',
                                           child: Row(
                                             children: const [
-                                              Icon(Icons.delete, size: 18, color: Colors.red),
+                                              Icon(Icons.delete, size: 18, color: Color(redAccentColor)),
                                               SizedBox(width: 8),
                                               Text('Delete'),
                                             ],
@@ -1360,13 +1360,13 @@ class _ContactDetailPageState extends State<ContactDetailPage>with TickerProvide
         padding: const EdgeInsets.symmetric(vertical: 10),
         child: Row(
           children: [
-            BgIcon(asset: asset, onTap: null, color: disabled ? Colors.grey : color),
+            BgIcon(asset: asset, onTap: null, color: disabled ? Color(greyShade500) : color),
             const SizedBox(width: 10),
             Text(
               label,
               style: TextStyle(
                 fontSize: 16,
-                color: disabled ? Colors.grey : Color(blue2Color),
+                color: disabled ? Color(greyShade500) : Color(blue2Color),
                 fontWeight: FontWeight.w400,
               ),
             ),
@@ -1385,14 +1385,14 @@ class _ContactDetailPageState extends State<ContactDetailPage>with TickerProvide
 
   showDialog(
     context: context,
-    barrierColor: Colors.black87,
+    barrierColor: Color(blackColor).withAlpha(87),
     builder: (dialogContext) {
       int currentIndex = initialIndex;
 
       return StatefulBuilder(
         builder: (context, setState) {
           return Dialog(
-            backgroundColor: Colors.transparent,
+            backgroundColor: Color(transparentColor),
             insetPadding: const EdgeInsets.all(10),
             child: Stack(
               alignment: Alignment.center,
@@ -1417,7 +1417,7 @@ class _ContactDetailPageState extends State<ContactDetailPage>with TickerProvide
                     left: 10,
                     child: IconButton(
                       iconSize: 40,
-                      color: Colors.white,
+                      color: Color(whiteColor),
                       icon: const Icon(Icons.arrow_back_ios),
                       onPressed: () {
                         setState(() {
@@ -1432,7 +1432,7 @@ class _ContactDetailPageState extends State<ContactDetailPage>with TickerProvide
                     right: 10,
                     child: IconButton(
                       iconSize: 40,
-                      color: Colors.white,
+                      color: Color(whiteColor),
                       icon: const Icon(Icons.arrow_forward_ios),
                       onPressed: () {
                         setState(() {
@@ -1448,7 +1448,7 @@ class _ContactDetailPageState extends State<ContactDetailPage>with TickerProvide
                   child: IconButton(
                     icon: const Icon(
                       Icons.close,
-                      color: Colors.white,
+                      color: Color(whiteColor),
                       size: 30,
                     ),
                     onPressed: () => Navigator.pop(dialogContext),
@@ -1463,13 +1463,13 @@ class _ContactDetailPageState extends State<ContactDetailPage>with TickerProvide
                       vertical: 6,
                     ),
                     decoration: BoxDecoration(
-                      color: Colors.black54,
+                      color: Color(blackColor).withAlpha(54),
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Text(
                       '${currentIndex + 1} / ${imageUrls.length}',
                       style: const TextStyle(
-                        color: Colors.white,
+                        color: Color(whiteColor),
                       ),
                     ),
                   ),
@@ -1499,7 +1499,7 @@ class _ContactDetailPageState extends State<ContactDetailPage>with TickerProvide
                 attachmentId: item.contactAttachmentId,
               );
             },
-            child: Text("Delete", style: TextStyle(color: Colors.red)),
+            child: Text("Delete", style: TextStyle(color: Color(redAccentColor))),
           ),
         ],
       ),
@@ -1593,11 +1593,11 @@ class _ActivityItemState extends State<ActivityItem> {
   Widget _arrowButton(IconData icon) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.black.withOpacity(0.4),
+        color: Color(blackColor).withOpacity(0.4),
         shape: BoxShape.circle,
       ),
       padding: const EdgeInsets.all(8),
-      child: Icon(icon, color: Colors.white, size: 16),
+      child: Icon(icon, color: Color(whiteColor), size: 16),
     );
   }
 
@@ -1664,7 +1664,7 @@ class _ActivityItemState extends State<ActivityItem> {
                     decoration: BoxDecoration(
                       border: Border(
                         left: BorderSide(
-                          color: item.statusFollow == 1 ? Colors.grey : Color(purpleColor),
+                          color: item.statusFollow == 1 ? Color(greyShade500) : Color(purpleColor),
                           width: 5,
                         ),
                       ),
@@ -1677,7 +1677,7 @@ class _ActivityItemState extends State<ActivityItem> {
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 12,
-                            color: item.statusFollow == 1 ? Colors.grey : null,
+                            color: item.statusFollow == 1 ? Color(greyShade500) : null,
                             decoration: item.statusFollow == 1 ? TextDecoration.lineThrough : null,
                           ),
                         ),
@@ -1706,19 +1706,19 @@ class _ActivityItemState extends State<ActivityItem> {
                     margin: const EdgeInsets.only(left: 8),
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                     decoration: BoxDecoration(
-                      color: Colors.green.withValues(alpha: 0.1),
+                      color: Color(greenMaterialColor).withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: Colors.green, width: 1),
+                      border: Border.all(color: Color(greenMaterialColor), width: 1),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(Icons.check_circle, color: Colors.green, size: 12),
+                        Icon(Icons.check_circle, color: Color(greenMaterialColor), size: 12),
                         SizedBox(width: 4),
                         Text(
                           'Complete',
                           style: TextStyle(
-                            color: Colors.green,
+                            color: Color(greenMaterialColor),
                             fontSize: 11,
                             fontWeight: FontWeight.bold,
                           ),

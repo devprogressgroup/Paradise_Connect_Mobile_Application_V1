@@ -106,7 +106,7 @@ class _FilterListPage<T> extends StatelessWidget {
                   final item = items[index];
                   final isSelected = item.value == selectedValue;
                   return Material(
-                    color: Colors.transparent,
+                    color: Color(transparentColor),
                     child: InkWell(
                       onTap: () => Navigator.of(context).pop(item.value),
                       child: Container(
@@ -304,25 +304,25 @@ class _NotifPageState extends State<NotifPage> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
       decoration: BoxDecoration(
-        color: isActive ? Color(primaryColor) : Colors.white,
+        color: isActive ? Color(primaryColor) : Color(whiteColor),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: isActive ? Color(primaryColor) : Colors.transparent),
+        border: Border.all(color: isActive ? Color(primaryColor) : Color(transparentColor)),
         boxShadow: [
-          if (!isActive) BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 4, offset: const Offset(0, 2)),
+          if (!isActive) BoxShadow(color: Color(blackColor).withValues(alpha: 0.05), blurRadius: 4, offset: const Offset(0, 2)),
         ],
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(label, style: TextStyle(fontSize: 12, color: isActive ? Colors.white : Color(blackColor))),
+          Text(label, style: TextStyle(fontSize: 12, color: isActive ? Color(whiteColor) : Color(blackColor))),
           const SizedBox(width: 4),
           if (isActive && onClear != null)
             GestureDetector(
               onTap: onClear,
-              child: const Icon(Icons.close_rounded, size: 14, color: Colors.white),
+              child: const Icon(Icons.close_rounded, size: 14, color: Color(whiteColor)),
             )
           else
-            Icon(Icons.keyboard_arrow_down_rounded, size: 16, color: isActive ? Colors.white : Color(blackColor)),
+            Icon(Icons.keyboard_arrow_down_rounded, size: 16, color: isActive ? Color(whiteColor) : Color(blackColor)),
         ],
       ),
     );
@@ -485,7 +485,7 @@ class _NotifPageState extends State<NotifPage> {
         children: [
           Row(children: [
             Icon(isCompleted ? Icons.check_circle : Icons.check_circle_outline_rounded,
-                color: isCompleted ? Colors.green : Color(primaryColor), size: 40),
+                color: isCompleted ? Color(greenMaterialColor) : Color(primaryColor), size: 40),
             const SizedBox(width: 10),
             Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Text(activity.activityType, style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold,
@@ -512,7 +512,7 @@ class _NotifPageState extends State<NotifPage> {
     final isApproved = item.isApprove == 1;
     final isRejected = item.isReject == 1;
     final statusLabel = isApproved ? 'Approve' : isRejected ? 'Reject' : 'Pending';
-    final statusColor = isApproved ? Colors.green : isRejected ? const Color(0xFFE74C3C) : Colors.orange;
+    final statusColor = isApproved ? Color(greenMaterialColor) : isRejected ? const Color(clockOutColor) : Color(orangeAccentColor);
     final dt = DateTime.tryParse(item.attendanceDatetime ?? '');
 
     return GestureDetector(
@@ -586,14 +586,14 @@ class _NotifPageState extends State<NotifPage> {
         icon: Icons.person,
       )),
       child: _cardWrap(Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Container(height: 40, width: 5, decoration: BoxDecoration(color: Colors.green, borderRadius: BorderRadius.circular(16))),
+        Container(height: 40, width: 5, decoration: BoxDecoration(color: Color(greenMaterialColor), borderRadius: BorderRadius.circular(16))),
         const SizedBox(width: 10),
         Expanded(child: RichText(text: TextSpan(
-          style: const TextStyle(color: Colors.black, fontSize: 13),
+          style: const TextStyle(color: Color(blackColor), fontSize: 13),
           children: [
             TextSpan(text: item.contactName, style: const TextStyle(fontWeight: FontWeight.bold)),
             const TextSpan(text: " mengirim "),
-            TextSpan(text: "${item.unreadCount} pesan belum dibaca", style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.green)),
+            TextSpan(text: "${item.unreadCount} pesan belum dibaca", style: const TextStyle(fontWeight: FontWeight.bold, color: Color(greenMaterialColor))),
             const TextSpan(text: "."),
           ],
         ))),
@@ -605,9 +605,9 @@ class _NotifPageState extends State<NotifPage> {
     margin: const EdgeInsets.only(bottom: 10),
     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
     decoration: BoxDecoration(
-      color: Colors.white,
+      color: Color(whiteColor),
       borderRadius: BorderRadius.circular(10),
-      boxShadow: [BoxShadow(color: Colors.grey.withValues(alpha: 0.1), spreadRadius: 1, blurRadius: 3, offset: const Offset(0, 1))],
+      boxShadow: [BoxShadow(color: Color(greyShade500).withValues(alpha: 0.1), spreadRadius: 1, blurRadius: 3, offset: const Offset(0, 1))],
     ),
     child: child,
   );

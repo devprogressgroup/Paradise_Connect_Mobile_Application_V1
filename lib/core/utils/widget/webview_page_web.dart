@@ -187,12 +187,12 @@ class _WebViewPageState extends State<WebViewPage> {
               color: const Color(0xFFFFF8E1),
               child: Row(
                 children: [
-                  const Icon(Icons.warning_amber_rounded, size: 16, color: Colors.orange),
+                  const Icon(Icons.warning_amber_rounded, size: 16, color: Color(orangeAccentColor)),
                   const SizedBox(width: 8),
-                  const Expanded(
+                  Expanded(
                     child: Text(
                       'Tampilan gagal dimuat. Buka di tab baru untuk melihat file.',
-                      style: TextStyle(fontSize: 11, color: Colors.black87),
+                      style: TextStyle(fontSize: 11, color: Color(blackColor).withAlpha(87)),
                     ),
                   ),
                   const SizedBox(width: 8),
@@ -213,8 +213,8 @@ class _WebViewPageState extends State<WebViewPage> {
           if (_isLoading)
             const LinearProgressIndicator(
               minHeight: 2,
-              backgroundColor: Colors.transparent,
-              valueColor: AlwaysStoppedAnimation<Color>(Colors.blue),
+              backgroundColor: Color(transparentColor),
+              valueColor: AlwaysStoppedAnimation<Color>(Color(primaryColor)),
             ),
           Expanded(
             child: HtmlElementView(viewType: _viewId),

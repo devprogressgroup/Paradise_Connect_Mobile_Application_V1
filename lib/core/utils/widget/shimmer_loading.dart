@@ -15,7 +15,7 @@ class _ShimmerBox extends StatelessWidget {
       width: width,
       height: height,
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Color(whiteColor),
         borderRadius: BorderRadius.circular(borderRadius),
       ),
     );
@@ -40,7 +40,7 @@ class ShimmerContactItem extends StatelessWidget {
       child: Container(
         height: 70,
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: Color(whiteColor),
           borderRadius: BorderRadius.circular(12),
         ),
         padding: const EdgeInsets.all(10),
@@ -112,7 +112,7 @@ Widget buildContactPageShimmer() {
           child: Container(
             height: 70,
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: Color(whiteColor),
               borderRadius: BorderRadius.circular(12),
             ),
             padding: const EdgeInsets.all(10),
@@ -221,7 +221,7 @@ class ShimmerAttachmentItem extends StatelessWidget {
         margin: const EdgeInsets.only(bottom: 8),
         padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 10),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: Color(whiteColor),
           borderRadius: BorderRadius.circular(16),
         ),
         child: Row(
@@ -309,14 +309,14 @@ class ShimmerInboxItem extends StatelessWidget {
 Widget buildInboxShimmer() {
   return Container(
     decoration: BoxDecoration(
-      color: Colors.white,
+      color: Color(whiteColor),
       borderRadius: BorderRadius.circular(14),
     ),
     child: ListView.separated(
       physics: const NeverScrollableScrollPhysics(),
       shrinkWrap: true,
       itemCount: 10,
-      separatorBuilder: (_, __) => Divider(height: 1, color: Colors.grey.shade100),
+      separatorBuilder: (_, __) => Divider(height: 1, color: Color(greyShade100)),
       itemBuilder: (_, __) => const ShimmerInboxItem(),
     ),
   );
@@ -339,11 +339,11 @@ Widget buildHomeTaskShimmer() {
       Container(
         height: 240,
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: Color(whiteColor),
           borderRadius: BorderRadius.circular(10),
           boxShadow: [
             BoxShadow(
-              color: Colors.grey.withValues(alpha: 0.2),
+              color: Color(greyShade500).withValues(alpha: 0.2),
               spreadRadius: 2,
               blurRadius: 5,
               offset: const Offset(0, 3),
@@ -357,7 +357,7 @@ Widget buildHomeTaskShimmer() {
               margin: const EdgeInsets.symmetric(horizontal: 6,vertical: 10),
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: Color(whiteColor),
                 borderRadius: BorderRadius.circular(8),
               ),
              
@@ -383,7 +383,7 @@ Widget buildProspectStatusShimmer() {
             children: List.generate(6, (i) => Container(
               height: 44,
               margin: EdgeInsets.only(left: 14, right: 14, top: i == 0 ? 8 : 0, bottom: 8),
-              decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(6)),
+              decoration: BoxDecoration(color: Color(whiteColor), borderRadius: BorderRadius.circular(6)),
             )),
           ),
         ),
@@ -431,7 +431,7 @@ class ShimmerSaleskitCard extends StatelessWidget {
           child: Container(
             height: 141,
             width: double.infinity,
-            color: Colors.white,
+            color: Color(whiteColor),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
@@ -469,7 +469,7 @@ Widget buildActivityLogShimmer() {
       child: Container(
         margin: const EdgeInsets.only(bottom: 20),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: Color(whiteColor),
           borderRadius: BorderRadius.circular(12),
         ),
         child: IntrinsicHeight(
@@ -477,7 +477,7 @@ Widget buildActivityLogShimmer() {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               
-              Container(width: 5, decoration: BoxDecoration(color: Colors.white, borderRadius: const BorderRadius.only(topLeft: Radius.circular(12), bottomLeft: Radius.circular(12)))),
+              Container(width: 5, decoration: BoxDecoration(color: Color(whiteColor), borderRadius: const BorderRadius.only(topLeft: Radius.circular(12), bottomLeft: Radius.circular(12)))),
               const SizedBox(width: 12),
               Expanded(
                 child: Padding(
@@ -549,7 +549,7 @@ Widget buildAttendanceFloatingCardShimmer() {
           child: Container(
             height: 45,
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: Color(whiteColor),
               borderRadius: BorderRadius.circular(22.5),
             ),
           ),
@@ -587,7 +587,7 @@ Widget buildDashboardTopShimmer() {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: Color(whiteColor),
             borderRadius: BorderRadius.circular(10),
           ),
           child: Row(
@@ -645,7 +645,7 @@ Widget buildInboxTabBarShimmer() {
       height: 30,
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Color(whiteColor),
         borderRadius: BorderRadius.circular(30),
       ),
       child: Row(
@@ -654,7 +654,7 @@ Widget buildInboxTabBarShimmer() {
             child: Container(
               margin: const EdgeInsets.all(3),
               decoration: BoxDecoration(
-                color: Colors.grey.shade300,
+                color: Color(greyShade300),
                 borderRadius: BorderRadius.circular(27),
               ),
             ),
@@ -663,7 +663,7 @@ Widget buildInboxTabBarShimmer() {
             child: Container(
               margin: const EdgeInsets.all(3),
               decoration: BoxDecoration(
-                color: Colors.grey.shade300,
+                color: Color(greyShade300),
                 borderRadius: BorderRadius.circular(27),
               ),
             ),
@@ -729,7 +729,7 @@ Widget buildAttendanceShimmer() {
                 ],
               ),
             ),
-            Container(width: 2, height: 40, color: Colors.white),
+            Container(width: 2, height: 40, color: Color(whiteColor)),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.center,
@@ -759,7 +759,7 @@ Widget buildProfileShimmer() {
         width: double.infinity,
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: Color(whiteColor),
           borderRadius: BorderRadius.circular(24),
         ),
         child: Column(
@@ -786,7 +786,7 @@ Widget buildProfileShimmer() {
             const SizedBox(height: 8),
             _ShimmerBox(width: 180, height: 12),
             const SizedBox(height: 16),
-            Container(height: 1, color: Colors.white),
+            Container(height: 1, color: Color(whiteColor)),
             const SizedBox(height: 16),
             ...List.generate(4, (_) => Padding(
               padding: const EdgeInsets.only(bottom: 12),
@@ -826,7 +826,7 @@ Widget buildNotifShimmer() {
         margin: const EdgeInsets.only(bottom: 10),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: Color(whiteColor),
           borderRadius: BorderRadius.circular(10),
         ),
         child: Row(
@@ -865,7 +865,7 @@ Widget buildSiteplanShimmer() {
           margin: const EdgeInsets.all(16),
           height: 500,
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: Color(whiteColor),
             borderRadius: BorderRadius.circular(12),
           ),
         ),
@@ -913,7 +913,7 @@ class ShimmerMessageItem extends StatelessWidget {
               width: 180,
               height: 36,
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: Color(whiteColor),
                 borderRadius: BorderRadius.circular(12).copyWith(topLeft: Radius.zero),
               ),
             ),
@@ -942,7 +942,7 @@ class ShimmerMessageItem extends StatelessWidget {
             width: 180,
             height: 36,
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: Color(whiteColor),
               borderRadius: BorderRadius.circular(12).copyWith(topRight: Radius.zero),
             ),
           ),
@@ -973,7 +973,7 @@ Widget buildActivityPageShimmer() {
           margin: const EdgeInsets.only(bottom: 10, left: 16, right: 16),
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: Color(whiteColor),
             borderRadius: BorderRadius.circular(10),
           ),
           child: Row(
@@ -1014,7 +1014,7 @@ Widget buildTaskShimmer() {
         (_) => Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 5),
           decoration: BoxDecoration(
-            border: Border(bottom: BorderSide(color: Colors.white)),
+            border: Border(bottom: BorderSide(color: Color(whiteColor))),
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1109,7 +1109,7 @@ Widget buildApprovalShimmer() {
         margin: const EdgeInsets.only(bottom: 12),
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: Color(whiteColor),
           borderRadius: BorderRadius.circular(12),
         ),
         child: Column(
@@ -1204,7 +1204,7 @@ Widget buildFormShimmer({bool showHeader = true}) {
         _shimmerWrap(
           child: Container(
             height: 64,
-            color: Colors.white,
+            color: Color(whiteColor),
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
             child: Row(
               children: [

@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:progress_group/core/utils/helpers/impersonation_manager.dart';
 import 'package:progress_group/features/auth/presentation/state/auth/auth_bloc.dart';
 import 'package:progress_group/features/auth/presentation/state/auth/auth_event.dart';
+import 'package:progress_group/core/constants/colors.dart';
 
 class ImpersonationBanner extends StatelessWidget {
   const ImpersonationBanner({super.key});
@@ -44,7 +45,7 @@ class ImpersonationBanner extends StatelessWidget {
               padding: const EdgeInsets.fromLTRB(12, 6, 8, 6),
               child: Row(
                 children: [
-                  const Icon(Icons.visibility, color: Colors.white, size: 18),
+                  const Icon(Icons.visibility, color: Color(whiteColor), size: 18),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
@@ -52,7 +53,7 @@ class ImpersonationBanner extends StatelessWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
-                        color: Colors.white,
+                        color: Color(whiteColor),
                         fontSize: 13,
                         fontWeight: FontWeight.w600,
                       ),
@@ -60,13 +61,13 @@ class ImpersonationBanner extends StatelessWidget {
                   ),
                   TextButton.icon(
                     onPressed: () => _confirmStopImpersonation(context),
-                    icon: const Icon(Icons.logout, color: Colors.white, size: 16),
-                    label: const Text('Keluar', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                    icon: const Icon(Icons.logout, color: Color(whiteColor), size: 16),
+                    label: const Text('Keluar', style: TextStyle(color: Color(whiteColor), fontWeight: FontWeight.bold)),
                     style: TextButton.styleFrom(
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
                       minimumSize: const Size(0, 32),
                       tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                      backgroundColor: Colors.white.withValues(alpha: 0.18),
+                      backgroundColor: Color(whiteColor).withValues(alpha: 0.18),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                     ),
                   ),

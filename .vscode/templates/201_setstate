@@ -74,13 +74,13 @@ class _HyperExampleViewState extends State<HyperExampleView> {
                     controller.decrement();
                     setState(() {});
                   },
-                  icon: const Icon(Icons.remove, color: Colors.grey),
+                  icon: const Icon(Icons.remove, color: Color(greyShade500)),
                 ),
                 Text(
                   "$counter",
                   style: const TextStyle(
                     fontSize: 20.0,
-                    color: Colors.grey,
+                    color: Color(greyShade500),
                   ),
                 ),
                 IconButton(
@@ -88,7 +88,7 @@ class _HyperExampleViewState extends State<HyperExampleView> {
                     controller.increment();
                     setState(() {});
                   },
-                  icon: const Icon(Icons.add, color: Colors.grey),
+                  icon: const Icon(Icons.add, color: Color(greyShade500)),
                 ),
               ],
             ),
@@ -97,8 +97,8 @@ class _HyperExampleViewState extends State<HyperExampleView> {
             ),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.black,
-                foregroundColor: Colors.white,
+                backgroundColor: Color(blackColor),
+                foregroundColor: Color(whiteColor),
               ),
               onPressed: () {
                 controller.initializeData(() {

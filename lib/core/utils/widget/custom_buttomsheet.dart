@@ -5,14 +5,14 @@ void showCustomBottomSheet({ required BuildContext context, required Widget chil
   showModalBottomSheet(
     context: context,
     isScrollControlled: true,
-    backgroundColor: Colors.transparent,
+    backgroundColor: Color(transparentColor),
     builder: (context) {
       return Container(
         child: Container(
           width: double.infinity, 
           padding: const EdgeInsets.all(16),
           decoration: const BoxDecoration(
-            color: Colors.white,
+            color: Color(whiteColor),
             borderRadius: BorderRadius.vertical(
               top: Radius.circular(20),
             ),

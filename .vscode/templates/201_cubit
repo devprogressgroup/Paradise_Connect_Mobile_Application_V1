@@ -78,18 +78,18 @@ class _HyperExampleViewState extends State<HyperExampleView> {
                       children: [
                         IconButton(
                           onPressed: () => context.read<HyperExampleCubit>().decrement(),
-                          icon: const Icon(Icons.remove, color: Colors.grey),
+                          icon: const Icon(Icons.remove, color: Color(greyShade500)),
                         ),
                         Text(
                           "${state.counter}",
                           style: const TextStyle(
                             fontSize: 20.0,
-                            color: Colors.grey,
+                            color: Color(greyShade500),
                           ),
                         ),
                         IconButton(
                           onPressed: () => context.read<HyperExampleCubit>().increment(),
-                          icon: const Icon(Icons.add, color: Colors.grey),
+                          icon: const Icon(Icons.add, color: Color(greyShade500)),
                         ),
                       ],
                     ),
@@ -98,8 +98,8 @@ class _HyperExampleViewState extends State<HyperExampleView> {
                     ),
                     ElevatedButton(
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.black,
-                        foregroundColor: Colors.white,
+                        backgroundColor: Color(blackColor),
+                        foregroundColor: Color(whiteColor),
                       ),
                       onPressed: () => context.read<HyperExampleCubit>().initialize(),
                       child: const Text("Reload"),
@@ -201,7 +201,7 @@ class HyperExampleListener extends StatelessWidget {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(state.errorMessage),
-              backgroundColor: Colors.red,
+              backgroundColor: Color(redAccentColor),
             ),
           );
         }

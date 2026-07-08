@@ -217,11 +217,11 @@ class _FloatingDownloadWidgetState extends State<FloatingDownloadWidget>
         child: Material(
           elevation: 10,
           borderRadius: BorderRadius.circular(16),
-          shadowColor: Colors.black26,
+          shadowColor: Color(blackColor).withAlpha(26),
           child: Container(
             padding: const EdgeInsets.fromLTRB(14, 12, 12, 14),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: Color(whiteColor),
               borderRadius: BorderRadius.circular(16),
               border: Border.all(color: const Color(0xFFE0E0E0)),
             ),
@@ -260,10 +260,10 @@ class _FloatingDownloadWidgetState extends State<FloatingDownloadWidget>
                             style: TextStyle(
                               fontSize: 11,
                               color: _error != null
-                                  ? Colors.red
+                                  ? Color(redAccentColor)
                                   : _isDone
-                                  ? Colors.green
-                                  : Colors.grey,
+                                  ? Color(greenMaterialColor)
+                                  : Color(greyShade500),
                             ),
                           ),
                         ],
@@ -277,7 +277,7 @@ class _FloatingDownloadWidgetState extends State<FloatingDownloadWidget>
                       },
                       child: const Padding(
                         padding: EdgeInsets.all(4),
-                        child: Icon(Icons.close, size: 18, color: Colors.grey),
+                        child: Icon(Icons.close, size: 18, color: Color(greyShade500)),
                       ),
                     ),
                   ],
@@ -344,8 +344,8 @@ class _StatusIcon extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (isError) return const Icon(Icons.error_outline, color: Colors.red, size: 22);
-    if (isDone) return const Icon(Icons.check_circle, color: Colors.green, size: 22);
+    if (isError) return const Icon(Icons.error_outline, color: Color(redAccentColor), size: 22);
+    if (isDone) return const Icon(Icons.check_circle, color: Color(greenMaterialColor), size: 22);
     return SizedBox(
       width: 22,
       height: 22,
@@ -402,7 +402,7 @@ class _ActionButton extends StatelessWidget {
       onPressed: onTap,
       style: ElevatedButton.styleFrom(
         backgroundColor: color,
-        foregroundColor: Colors.white,
+        foregroundColor: Color(whiteColor),
         padding: const EdgeInsets.symmetric(vertical: 8),
         elevation: 0,
         shape: shape,
@@ -461,10 +461,10 @@ class _VideoPlayerPageState extends State<_VideoPlayerPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: Color(blackColor),
       appBar: AppBar(
-        backgroundColor: Colors.black,
-        foregroundColor: Colors.white,
+        backgroundColor: Color(blackColor),
+        foregroundColor: Color(whiteColor),
         title: Text(
           widget.title,
           maxLines: 1,
@@ -483,10 +483,10 @@ class _VideoPlayerPageState extends State<_VideoPlayerPage> {
       ),
       body: Center(
         child: _error != null
-            ? Text(_error!, style: const TextStyle(color: Colors.white))
+            ? Text(_error!, style: const TextStyle(color: Color(whiteColor)))
             : _chewieController != null
             ? Chewie(controller: _chewieController!)
-            : const CircularProgressIndicator(color: Colors.white),
+            : const CircularProgressIndicator(color: Color(whiteColor)),
       ),
     );
   }
@@ -550,10 +550,10 @@ class _ImageViewerPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: Color(blackColor),
       appBar: AppBar(
-        backgroundColor: Colors.black,
-        foregroundColor: Colors.white,
+        backgroundColor: Color(blackColor),
+        foregroundColor: Color(whiteColor),
         title: Text(
           title,
           maxLines: 1,
@@ -578,7 +578,7 @@ class _ImageViewerPage extends StatelessWidget {
             File(filePath),
             errorBuilder: (_, __, ___) => const Icon(
               Icons.broken_image,
-              color: Colors.white,
+              color: Color(whiteColor),
               size: 64,
             ),
           ),

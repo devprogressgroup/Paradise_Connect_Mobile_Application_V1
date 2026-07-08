@@ -6,6 +6,7 @@ import 'package:progress_group/features/auth/presentation/state/profile/profile_
 import 'package:progress_group/features/auth/presentation/state/profile/profile_state.dart';
 import '../state/landing_page_cubit.dart';
 import '../state/landing_page_state.dart';
+import 'package:progress_group/core/constants/colors.dart';
 
 class LandingPage extends StatefulWidget {
   const LandingPage({super.key});
@@ -73,7 +74,7 @@ class _LandingPageState extends State<LandingPage> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(Icons.error_outline, size: 48, color: Colors.red),
+                  const Icon(Icons.error_outline, size: 48, color: Color(redAccentColor)),
                   const SizedBox(height: 12),
                   const Text('Gagal memuat halaman', textAlign: TextAlign.center),
                   const SizedBox(height: 12),

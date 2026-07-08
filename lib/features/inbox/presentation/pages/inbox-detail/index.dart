@@ -119,7 +119,7 @@ class _InboxDetailPageState extends State<InboxDetailPage> {
                         return const Center(
                           child: Text(
                             'Tidak ada pesan',
-                            style: TextStyle(color: Colors.grey),
+                            style: TextStyle(color: Color(greyShade500)),
                           ),
                         );
                       }
@@ -196,7 +196,7 @@ class _InboxDetailPageState extends State<InboxDetailPage> {
               children: [
                 Text(data.name, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold), maxLines: 1, overflow: TextOverflow.ellipsis),
                 if (data.ownerName != null && data.ownerName!.isNotEmpty)
-                  Text(data.ownerName!, style: TextStyle(fontSize: 12, color: Colors.grey[600]), maxLines: 1, overflow: TextOverflow.ellipsis),
+                  Text(data.ownerName!, style: TextStyle(fontSize: 12, color: Color(greyShade600)), maxLines: 1, overflow: TextOverflow.ellipsis),
               ],
             ),
           ),
@@ -210,7 +210,7 @@ class _InboxDetailPageState extends State<InboxDetailPage> {
       width: 40,
       height: 40,
       decoration: BoxDecoration(color: Color(primaryColor), borderRadius: BorderRadius.circular(20)),
-      child: Center(child: Text(initials, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14))),
+      child: Center(child: Text(initials, style: const TextStyle(color: Color(whiteColor), fontWeight: FontWeight.bold, fontSize: 14))),
     );
   }
 
@@ -300,7 +300,7 @@ class _InboxDetailPageState extends State<InboxDetailPage> {
                 msg.mediaUrl!,
                 width: MediaQuery.of(context).size.width * 0.6,
                 fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => const Icon(Icons.broken_image, size: 40, color: Colors.grey),
+                errorBuilder: (_, __, ___) => const Icon(Icons.broken_image, size: 40, color: Color(greyShade500)),
               ),
             ),
           ),
@@ -317,10 +317,10 @@ class _InboxDetailPageState extends State<InboxDetailPage> {
       context,
       MaterialPageRoute(
         builder: (_) => Scaffold(
-          backgroundColor: Colors.black,
+          backgroundColor: Color(blackColor),
           appBar: AppBar(
-            backgroundColor: Colors.black,
-            iconTheme: const IconThemeData(color: Colors.white),
+            backgroundColor: Color(blackColor),
+            iconTheme: const IconThemeData(color: Color(whiteColor)),
             elevation: 0,
           ),
           body: Center(
@@ -332,8 +332,8 @@ class _InboxDetailPageState extends State<InboxDetailPage> {
                 fit: BoxFit.contain,
                 loadingBuilder: (_, child, progress) => progress == null
                     ? child
-                    : const Center(child: CircularProgressIndicator(color: Colors.white)),
-                errorBuilder: (_, __, ___) => const Icon(Icons.broken_image, color: Colors.white, size: 60),
+                    : const Center(child: CircularProgressIndicator(color: Color(whiteColor))),
+                errorBuilder: (_, __, ___) => const Icon(Icons.broken_image, color: Color(whiteColor), size: 60),
               ),
             ),
           ),
@@ -355,16 +355,16 @@ class _InboxDetailPageState extends State<InboxDetailPage> {
         width: MediaQuery.of(context).size.width * 0.55,
         padding: const EdgeInsets.all(10),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: Color(whiteColor),
           borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: Colors.grey.shade200),
+          border: Border.all(color: Color(greyShade200)),
         ),
         child: Row(
           children: [
             Container(
               padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(color: Colors.red.shade50, borderRadius: BorderRadius.circular(8)),
-              child: const Icon(Icons.picture_as_pdf, color: Colors.red, size: 28),
+              decoration: BoxDecoration(color: Color(redShade50Color), borderRadius: BorderRadius.circular(8)),
+              child: const Icon(Icons.picture_as_pdf, color: Color(redAccentColor), size: 28),
             ),
             const SizedBox(width: 10),
             Expanded(
@@ -373,7 +373,7 @@ class _InboxDetailPageState extends State<InboxDetailPage> {
                 children: [
                   Text(fileName, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
                   const SizedBox(height: 2),
-                  Text('Tap untuk buka', style: TextStyle(fontSize: 10, color: Colors.grey[500])),
+                  Text('Tap untuk buka', style: TextStyle(fontSize: 10, color: Color(greyShade500))),
                 ],
               ),
             ),
@@ -413,7 +413,7 @@ class _VideoPlayerWidgetState extends State<_VideoPlayerWidget> {
       aspectRatio: _videoPlayerController.value.aspectRatio,
       errorBuilder: (context, errorMessage) {
      
-        return const Center(child: Text('Gagal memuat video', style: TextStyle(color: Colors.white)));
+        return const Center(child: Text('Gagal memuat video', style: TextStyle(color: Color(whiteColor))));
       },
     );
     setState(() {});
@@ -432,7 +432,7 @@ class _VideoPlayerWidgetState extends State<_VideoPlayerWidget> {
       width: MediaQuery.of(context).size.width * 0.6,
       height: 200,
       decoration: BoxDecoration(
-        color: Colors.black,
+        color: Color(blackColor),
         borderRadius: BorderRadius.circular(8),
       ),
       child: _chewieController != null && _chewieController!.videoPlayerController.value.isInitialized

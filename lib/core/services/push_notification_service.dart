@@ -13,6 +13,7 @@ import 'package:progress_group/features/contact/data/arguments/contact_detail_ar
 import 'package:progress_group/features/contact/domain/entities/activity/activity_entity.dart';
 import 'package:progress_group/features/contact/domain/entities/contact/contact_entity.dart';
 import 'package:progress_group/features/notif/presentation/state/received_notif_cubit.dart';
+import 'package:progress_group/core/constants/colors.dart';
 import 'web_notification_stub.dart'
     if (dart.library.js_interop) 'web_notification.dart';
 
@@ -227,7 +228,7 @@ class PushNotificationService {
         action: onTap != null
             ? SnackBarAction(
                 label: 'Lihat',
-                textColor: Colors.amber,
+                textColor: Color(amberMaterialColor),
                 onPressed: () {
                   messenger.hideCurrentSnackBar();
                   onTap();

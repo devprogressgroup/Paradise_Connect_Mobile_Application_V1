@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:progress_group/core/constants/colors.dart';
 
 /// Banner "update tersedia" — mirip [ImpersonationBanner], nempel di atas
 class UpdateBanner extends StatelessWidget {
@@ -28,7 +29,7 @@ class UpdateBanner extends StatelessWidget {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Icon(Icons.system_update_alt, color: Colors.white, size: 18),
+              const Icon(Icons.system_update_alt, color: Color(whiteColor), size: 18),
               const SizedBox(width: 8),
               Expanded(
                 child: Column(
@@ -37,7 +38,7 @@ class UpdateBanner extends StatelessWidget {
                     const Text(
                       'Versi baru tersedia. Silakan uninstall aplikasi Anda, lalu download ulang di link:',
                       style: TextStyle(
-                        color: Colors.white,
+                        color: Color(whiteColor),
                         fontSize: 12.5,
                         fontWeight: FontWeight.w600,
                         height: 1.3,
@@ -49,12 +50,12 @@ class UpdateBanner extends StatelessWidget {
                       child: const Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(Icons.copy_rounded, color: Colors.white, size: 14),
+                          Icon(Icons.copy_rounded, color: Color(whiteColor), size: 14),
                           SizedBox(width: 4),
                           Text(
                             downloadLink,
                             style: TextStyle(
-                              color: Colors.white,
+                              color: Color(whiteColor),
                               fontSize: 13,
                               fontWeight: FontWeight.bold,
                               decoration: TextDecoration.underline,

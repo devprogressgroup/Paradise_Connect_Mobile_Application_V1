@@ -56,11 +56,11 @@ class _PipelineScreenState extends State<PipelineScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey.shade50,
+      backgroundColor: Color(greyShade50),
       appBar: AppBar(
         title: Text(widget.title?.isNotEmpty == true ? widget.title! : 'Sales Pipeline'),
         backgroundColor: Color(primaryColor),
-        foregroundColor: Colors.white,
+        foregroundColor: Color(whiteColor),
       ),
       body: Column(
         children: [
@@ -74,10 +74,10 @@ class _PipelineScreenState extends State<PipelineScreen> {
                 prefixIcon: const Icon(Icons.search),
                 isDense: true,
                 filled: true,
-                fillColor: Colors.white,
+                fillColor: Color(whiteColor),
                 contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 12),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade300)),
-                enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade300)),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Color(greyShade300))),
+                enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Color(greyShade300))),
               ),
             ),
           ),
@@ -160,9 +160,9 @@ class _PipelineScreenState extends State<PipelineScreen> {
       child: Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: Color(whiteColor),
           borderRadius: BorderRadius.circular(12),
-          boxShadow: [BoxShadow(color: Colors.grey.withValues(alpha: 0.12), blurRadius: 8, offset: const Offset(0, 2))],
+          boxShadow: [BoxShadow(color: Color(greyShade500).withValues(alpha: 0.12), blurRadius: 8, offset: const Offset(0, 2))],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -189,7 +189,7 @@ class _PipelineScreenState extends State<PipelineScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(unitPath.isNotEmpty ? unitPath : '–', style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w500)),
-                      if (unitSub.isNotEmpty) Text(unitSub, style: TextStyle(fontSize: 11, color: Colors.grey.shade600)),
+                      if (unitSub.isNotEmpty) Text(unitSub, style: TextStyle(fontSize: 11, color: Color(greyShade600))),
                     ],
                   ),
                 ),
@@ -214,9 +214,9 @@ class _PipelineScreenState extends State<PipelineScreen> {
   Widget _meta(IconData ic, String text) => Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(ic, size: 13, color: Colors.grey.shade500),
+          Icon(ic, size: 13, color: Color(greyShade500)),
           const SizedBox(width: 3),
-          Text(text, style: TextStyle(fontSize: 11, color: Colors.grey.shade700)),
+          Text(text, style: TextStyle(fontSize: 11, color: Color(greyShade700))),
         ],
       );
 
@@ -249,8 +249,8 @@ class _PipelineScreenState extends State<PipelineScreen> {
       bg = const Color(0xFFE8F1FF);
       fg = Color(blue3Color);
     } else {
-      bg = Colors.grey.shade100;
-      fg = Colors.grey.shade700;
+      bg = Color(greyShade100);
+      fg = Color(greyShade700);
     }
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),

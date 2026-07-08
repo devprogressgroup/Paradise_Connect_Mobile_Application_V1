@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:progress_group/core/constants/assets.dart';
 import 'package:progress_group/core/services/ota_update_service.dart';
+import 'package:progress_group/core/constants/colors.dart';
 
 enum _UpdateState { idle, downloading, installing, error }
 
@@ -61,7 +62,7 @@ class _UpdateDialogState extends State<UpdateDialog> {
       canPop: false,
       child: Dialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        backgroundColor: Colors.white,
+        backgroundColor: Color(whiteColor),
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
           child: Column(
@@ -106,8 +107,8 @@ class _UpdateDialogState extends State<UpdateDialog> {
             label: const Text('Download & Install', style: TextStyle(fontSize: 15)),
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF1565C0),
-              foregroundColor: Colors.white,
-              disabledBackgroundColor: Colors.grey[300],
+              foregroundColor: Color(whiteColor),
+              disabledBackgroundColor: Color(greyShade300),
               padding: const EdgeInsets.symmetric(vertical: 14),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             ),
@@ -141,7 +142,7 @@ class _UpdateDialogState extends State<UpdateDialog> {
                 OtaUpdateService.cancel();
                 setState(() => _state = _UpdateState.idle);
               },
-              child: const Text('Batalkan', style: TextStyle(color: Colors.grey)),
+              child: const Text('Batalkan', style: TextStyle(color: Color(greyShade500))),
             ),
           ],
         );
@@ -160,7 +161,7 @@ class _UpdateDialogState extends State<UpdateDialog> {
           children: [
             Text(
               _errorMessage,
-              style: const TextStyle(fontSize: 12, color: Colors.red),
+              style: const TextStyle(fontSize: 12, color: Color(redAccentColor)),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 12),
@@ -172,7 +173,7 @@ class _UpdateDialogState extends State<UpdateDialog> {
                 label: const Text('Coba Lagi', style: TextStyle(fontSize: 15)),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF1565C0),
-                  foregroundColor: Colors.white,
+                  foregroundColor: Color(whiteColor),
                   padding: const EdgeInsets.symmetric(vertical: 14),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 ),

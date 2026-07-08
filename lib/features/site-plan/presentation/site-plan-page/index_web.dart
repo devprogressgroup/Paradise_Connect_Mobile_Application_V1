@@ -127,7 +127,7 @@ class _SitePlanPageState extends State<SitePlanPage> {
       },
       builder: (context, state) {
         return Scaffold(
-          backgroundColor: Colors.white,
+          backgroundColor: Color(whiteColor),
           body: SafeArea(
             child: Column(
               children: [
@@ -145,7 +145,7 @@ class _SitePlanPageState extends State<SitePlanPage> {
                           children: [
                             const Text('Gagal memuat data site plan',
                                 textAlign: TextAlign.center,
-                                style: TextStyle(color: Colors.red)),
+                                style: TextStyle(color: Color(redAccentColor))),
                             const SizedBox(height: 16),
                             ElevatedButton(
                               onPressed: () =>
@@ -166,12 +166,12 @@ class _SitePlanPageState extends State<SitePlanPage> {
                       color: const Color(0xFFFFF8E1),
                       child: Row(
                         children: [
-                          const Icon(Icons.warning_amber_rounded, size: 16, color: Colors.orange),
+                          const Icon(Icons.warning_amber_rounded, size: 16, color: Color(orangeAccentColor)),
                           const SizedBox(width: 8),
-                          const Expanded(
+                          Expanded(
                             child: Text(
                               'Gagal dimuat. Buka di tab baru.',
-                              style: TextStyle(fontSize: 11, color: Colors.black87),
+                              style: TextStyle(fontSize: 11, color: Color(blackColor).withAlpha(87)),
                             ),
                           ),
                           TextButton.icon(
@@ -191,8 +191,8 @@ class _SitePlanPageState extends State<SitePlanPage> {
                   if (_isLoading)
                     const LinearProgressIndicator(
                       minHeight: 2,
-                      backgroundColor: Colors.transparent,
-                      valueColor: AlwaysStoppedAnimation<Color>(Colors.blue),
+                      backgroundColor: Color(transparentColor),
+                      valueColor: AlwaysStoppedAnimation<Color>(Color(primaryColor)),
                     ),
 
                   if (_currentViewId != null)
@@ -223,7 +223,7 @@ class _SitePlanPageState extends State<SitePlanPage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(_selectedSite!.groupName,
-                      style: const TextStyle(fontSize: 10, color: Colors.grey)),
+                      style: const TextStyle(fontSize: 10, color: Color(greyShade500))),
                   Text(_selectedSite!.unitName,
                       style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                 ],

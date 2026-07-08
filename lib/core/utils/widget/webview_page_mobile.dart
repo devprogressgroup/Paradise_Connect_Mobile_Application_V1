@@ -146,7 +146,7 @@ class _PdfViewerWidgetState extends State<PdfViewerWidget> {
           child: Text(
             error!,
             textAlign: TextAlign.center,
-            style: const TextStyle(color: Colors.red),
+            style: const TextStyle(color: Color(redAccentColor)),
           ),
         ),
       );

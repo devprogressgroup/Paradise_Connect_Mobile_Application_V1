@@ -12,6 +12,7 @@ import 'proxy_cipher.dart';
 import '../../core/utils/web_debug_util.dart' as web_debug;
 import '../../core/utils/helpers/app_time.dart';
 import '../../core/utils/widget/device_time_warning_dialog.dart';
+import 'package:progress_group/core/constants/colors.dart';
 
 class DioClient {
   final AuthLocalDataSource _authLocalDataSource;
@@ -35,7 +36,7 @@ class DioClient {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
-        backgroundColor: Colors.red[700],
+        backgroundColor: Color(red700Color),
         behavior: SnackBarBehavior.floating,
         margin: const EdgeInsets.all(16),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),

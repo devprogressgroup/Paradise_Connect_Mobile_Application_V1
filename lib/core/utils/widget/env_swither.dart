@@ -91,10 +91,10 @@ class _EnvOption extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         decoration: BoxDecoration(
-          color: isSelected ? color.withValues(alpha: 0.08) : Colors.grey.withValues(alpha: 0.06),
+          color: isSelected ? color.withValues(alpha: 0.08) : Color(greyShade500).withValues(alpha: 0.06),
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: isSelected ? color : Colors.transparent,
+            color: isSelected ? color : Color(transparentColor),
             width: 1.5,
           ),
         ),
@@ -110,8 +110,8 @@ class _EnvOption extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(label, style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: isSelected ? color : Colors.black87)),
-                  Text(subtitle, style: TextStyle(fontSize: 12, color: Colors.grey[600])),
+                  Text(label, style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: isSelected ? color : Color(blackColor).withAlpha(87))),
+                  Text(subtitle, style: TextStyle(fontSize: 12, color: Color(greyShade600))),
                 ],
               ),
             ),

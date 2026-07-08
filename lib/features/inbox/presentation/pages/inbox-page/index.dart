@@ -563,13 +563,13 @@ class _InboxPageState extends State<InboxPage> {
       height: 30,
       margin: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       decoration: BoxDecoration(
-        color: Colors.grey.shade100, 
+        color: Color(greyShade100), 
         borderRadius: BorderRadius.circular(30),
       ),
       child: TabBar(
-        dividerColor: Colors.transparent, 
-        labelColor: Colors.white,
-        unselectedLabelColor: Colors.grey,
+        dividerColor: Color(transparentColor), 
+        labelColor: Color(whiteColor),
+        unselectedLabelColor: Color(greyShade500),
         indicator: BoxDecoration(
           color: Color(primaryColor), 
           borderRadius: BorderRadius.circular(30),
@@ -625,7 +625,7 @@ class _InboxPageState extends State<InboxPage> {
               child: Center(
                 child: Text(
                   "Tidak ada data",
-                  style: TextStyle(color: Colors.grey, fontSize: 14),
+                  style: TextStyle(color: Color(greyShade500), fontSize: 14),
                 ),
               ),
             ),
@@ -644,14 +644,14 @@ class _InboxPageState extends State<InboxPage> {
         Container(
           margin: const EdgeInsets.only(top: 5),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: Color(whiteColor),
             borderRadius: BorderRadius.circular(14),
           ),
           child: ListView.separated(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
             itemCount: items.length,
-            separatorBuilder: (_, __) => Container(height: 1, color: Colors.grey.shade100),
+            separatorBuilder: (_, __) => Container(height: 1, color: Color(greyShade100)),
             itemBuilder: (context, index) {
               final item = items[index];
 
@@ -707,7 +707,7 @@ class _InboxPageState extends State<InboxPage> {
                                     overflow: TextOverflow.ellipsis,
                                     style: const TextStyle(
                                       fontSize: 14,
-                                      color: Colors.grey,
+                                      color: Color(greyShade500),
                                     ),
                                   ),
                                 ],
@@ -722,7 +722,7 @@ class _InboxPageState extends State<InboxPage> {
                                     DateHelper().formatInboxDate(item.lastConversationDate),
                                     style: const TextStyle(
                                       fontSize: 12,
-                                      color: Colors.grey,
+                                      color: Color(greyShade500),
                                     ),
                                   ),
                                 const SizedBox(height: 4),
@@ -738,7 +738,7 @@ class _InboxPageState extends State<InboxPage> {
                                       child: Text(
                                         '${NumberHelper.thousands(item.unreadCount)}',
                                         style: const TextStyle(
-                                          color: Colors.white,
+                                          color: Color(whiteColor),
                                           fontSize: 10,
                                           fontWeight: FontWeight.bold,
                                         ),
@@ -783,10 +783,10 @@ class _InboxPageState extends State<InboxPage> {
     bool hasPopped = false;
     showDialog(
       context: context,
-      barrierColor: Colors.black54, 
+      barrierColor: Color(blackColor).withAlpha(54), 
       builder: (dialogContext) {
         return Dialog(
-          backgroundColor: Colors.white,
+          backgroundColor: Color(whiteColor),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12), 
           ),
@@ -799,7 +799,7 @@ class _InboxPageState extends State<InboxPage> {
                   if (state is WhatsappQrStreaming && state.status == 'CONNECTED' && !hasPopped) {
                     hasPopped = true;
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('WhatsApp Terhubung!'), backgroundColor: Colors.green),
+                      const SnackBar(content: Text('WhatsApp Terhubung!'), backgroundColor: Color(greenMaterialColor)),
                     );
                     Navigator.pop(dialogContext);
                     this.context.read<WhatsappDeviceBloc>().add(GetWhatsappDevicesEvent());
@@ -827,12 +827,12 @@ class _InboxPageState extends State<InboxPage> {
                         ),
                       ),
                       SizedBox(height: 10),
-                      Text("Buka WhatsApp > Perangkat Tertaut > Tautkan Perangkat",textAlign: TextAlign.center, style: TextStyle(fontSize: 12, color: Colors.grey)),
+                      Text("Buka WhatsApp > Perangkat Tertaut > Tautkan Perangkat",textAlign: TextAlign.center, style: TextStyle(fontSize: 12, color: Color(greyShade500))),
                       SizedBox(height: 16),
                       if (state is WhatsappQrError)
                         const Padding(
                           padding: EdgeInsets.only(bottom: 8.0),
-                          child: Text('Gagal memuat QR code', style: TextStyle(color: Colors.red, fontSize: 10), textAlign: TextAlign.center),
+                          child: Text('Gagal memuat QR code', style: TextStyle(color: Color(redAccentColor), fontSize: 10), textAlign: TextAlign.center),
                         ),
                       customButton((){ Navigator.pop(context); }, "Tutup", colorBg: Color(primaryColor), colorText: Color(whiteColor)),
                       SizedBox(height: 10),
@@ -859,7 +859,7 @@ class _InboxPageState extends State<InboxPage> {
           width: 180,
           height: 180,
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: Color(whiteColor),
             borderRadius: BorderRadius.circular(12),
           ),
         ),

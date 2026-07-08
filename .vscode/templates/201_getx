@@ -51,18 +51,18 @@ class HyperExampleView extends StatelessWidget {
                 children: [
                   IconButton(
                     onPressed: () => controller.decrement(),
-                    icon: const Icon(Icons.remove, color: Colors.grey),
+                    icon: const Icon(Icons.remove, color: Color(greyShade500)),
                   ),
                   Obx(() => Text(
                     "${controller.counter.value}",
                     style: const TextStyle(
                       fontSize: 20.0,
-                      color: Colors.grey,
+                      color: Color(greyShade500),
                     ),
                   )),
                   IconButton(
                     onPressed: () => controller.increment(),
-                    icon: const Icon(Icons.add, color: Colors.grey),
+                    icon: const Icon(Icons.add, color: Color(greyShade500)),
                   ),
                 ],
               ),
@@ -71,8 +71,8 @@ class HyperExampleView extends StatelessWidget {
               ),
               ElevatedButton(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.black,
-                  foregroundColor: Colors.white,
+                  backgroundColor: Color(blackColor),
+                  foregroundColor: Color(whiteColor),
                 ),
                 onPressed: () => controller.initializeData(),
                 child: const Text("Reload"),

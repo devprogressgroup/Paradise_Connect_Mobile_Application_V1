@@ -196,7 +196,7 @@ class _SitePlanPageState extends State<SitePlanPage> {
       },
       builder: (context, state) {
         return Scaffold(
-          backgroundColor: Colors.white,
+          backgroundColor: Color(whiteColor),
           body: SafeArea(
             child: Column(
               children: [
@@ -204,7 +204,7 @@ class _SitePlanPageState extends State<SitePlanPage> {
                 if (state is SiteplanLoading || state is SiteplanInitial) ...[
                   Expanded(
                     child: Container(
-                      color: Colors.white,
+                      color: Color(whiteColor),
                       child: Center(child: CircularProgressIndicator()),
                     ),
                   ),
@@ -219,7 +219,7 @@ class _SitePlanPageState extends State<SitePlanPage> {
                             const Text(
                               'Gagal memuat data site plan',
                               textAlign: TextAlign.center,
-                              style: TextStyle(color: Colors.red),
+                              style: TextStyle(color: Color(redAccentColor)),
                             ),
                             const SizedBox(height: 16),
                             ElevatedButton(
@@ -239,9 +239,9 @@ class _SitePlanPageState extends State<SitePlanPage> {
                     LinearProgressIndicator(
                       value: _loadingProgress,
                       minHeight: 2,
-                      backgroundColor: Colors.transparent,
+                      backgroundColor: Color(transparentColor),
                       valueColor: const AlwaysStoppedAnimation<Color>(
-                        Colors.blue,
+                        Color(primaryColor),
                       ),
                     ),
                   Expanded(
@@ -256,7 +256,7 @@ class _SitePlanPageState extends State<SitePlanPage> {
                 ] else ...[
                   Expanded(
                     child: Container(
-                      color: Colors.white,
+                      color: Color(whiteColor),
                       child: Center(child: CircularProgressIndicator()),
                     ),
                   ),
@@ -283,7 +283,7 @@ class _SitePlanPageState extends State<SitePlanPage> {
                 children: [
                   Text(
                     _selectedSite!.groupName,
-                    style: const TextStyle(fontSize: 10, color: Colors.grey),
+                    style: const TextStyle(fontSize: 10, color: Color(greyShade500)),
                   ),
                   Text(
                     _selectedSite!.unitName,
@@ -308,7 +308,7 @@ class _SitePlanPageState extends State<SitePlanPage> {
 
   Widget _buildLoadingOverlay() {
     return Container(
-      color: Colors.white,
+      color: Color(whiteColor),
       child: Center(child: CircularProgressIndicator()),
     );
   }

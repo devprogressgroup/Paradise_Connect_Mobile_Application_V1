@@ -303,9 +303,9 @@ class _WebCameraPageState extends State<_WebCameraPage> {
         children: [
           CircularProgressIndicator(),
           SizedBox(height: 20),
-          Text('Meminta akses kamera...', style: TextStyle(fontSize: 14, color: Colors.grey)),
+          Text('Meminta akses kamera...', style: TextStyle(fontSize: 14, color: Color(greyShade500))),
           SizedBox(height: 8),
-          Text('Izinkan akses kamera di popup browser.', style: TextStyle(fontSize: 12, color: Colors.grey)),
+          Text('Izinkan akses kamera di popup browser.', style: TextStyle(fontSize: 12, color: Color(greyShade500))),
         ],
       ),
     );
@@ -342,8 +342,8 @@ class _WebCameraPageState extends State<_WebCameraPage> {
           right: 0,
           child: Column(
             children: [
-              Text(widget.args.location ?? '', style: const TextStyle(color: Colors.white)),
-              Text(widget.args.time ?? '', style: const TextStyle(color: Colors.white)),
+              Text(widget.args.location ?? '', style: const TextStyle(color: Color(whiteColor))),
+              Text(widget.args.time ?? '', style: const TextStyle(color: Color(whiteColor))),
               const SizedBox(height: 20),
               GestureDetector(
                 onTap: _takePicture,
@@ -353,9 +353,9 @@ class _WebCameraPageState extends State<_WebCameraPage> {
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     color: Color(primaryColor),
-                    boxShadow: const [BoxShadow(color: Colors.black38, blurRadius: 8)],
+                    boxShadow: [BoxShadow(color: const Color(blackColor).withAlpha(38), blurRadius: 8)],
                   ),
-                  child: const Icon(Icons.camera_alt, color: Colors.white, size: 30),
+                  child: const Icon(Icons.camera_alt, color: Color(whiteColor), size: 30),
                 ),
               ),
               if (_isMultiplePhotosSupported && _imageBytesList.isNotEmpty) ...[
@@ -366,7 +366,7 @@ class _WebCameraPageState extends State<_WebCameraPage> {
                     List.from(_imageDataUrls),
                   ),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.white,
+                    backgroundColor: Color(whiteColor),
                     foregroundColor: Color(primaryColor),
                     padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 10),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
@@ -389,17 +389,17 @@ class _WebCameraPageState extends State<_WebCameraPage> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(info.icon, size: 64, color: Colors.grey.shade400),
+            Icon(info.icon, size: 64, color: Color(greyShade400)),
             const SizedBox(height: 20),
             Text(info.title, textAlign: TextAlign.center, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
             const SizedBox(height: 10),
-            Text(info.message, textAlign: TextAlign.center, style: TextStyle(fontSize: 13, color: Colors.grey.shade600, height: 1.5)),
+            Text(info.message, textAlign: TextAlign.center, style: TextStyle(fontSize: 13, color: Color(greyShade600), height: 1.5)),
             if (info.steps != null) ...[
               const SizedBox(height: 16),
               Container(
                 padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(color: Colors.grey.shade100, borderRadius: BorderRadius.circular(10)),
-                child: Text(info.steps!, style: TextStyle(fontSize: 12, color: Colors.grey.shade700, height: 1.6)),
+                decoration: BoxDecoration(color: Color(greyShade100), borderRadius: BorderRadius.circular(10)),
+                child: Text(info.steps!, style: TextStyle(fontSize: 12, color: Color(greyShade700), height: 1.6)),
               ),
             ],
             if (error != _CameraError.insecure) ...[
@@ -410,7 +410,7 @@ class _WebCameraPageState extends State<_WebCameraPage> {
                 label: const Text('Coba Lagi'),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Color(primaryColor),
-                  foregroundColor: Colors.white,
+                  foregroundColor: Color(whiteColor),
                   padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                 ),
@@ -633,11 +633,11 @@ class _WebSubmitPageState extends State<_WebSubmitPage> {
                               padding: const EdgeInsets.all(16),
                               child: Column(
                                 children: [
-                                  Row(children: [Icon(Icons.access_time_filled, color: Color(greenPercentColor), size: 25), const SizedBox(width: 10), Text(widget.args.time ?? '-', style: const TextStyle(color: Colors.white))]),
+                                  Row(children: [Icon(Icons.access_time_filled, color: Color(greenPercentColor), size: 25), const SizedBox(width: 10), Text(widget.args.time ?? '-', style: const TextStyle(color: Color(whiteColor)))]),
                                   const SizedBox(height: 10),
-                                  Row(children: [Icon(Icons.calendar_today_sharp, color: Color(primaryColor), size: 25), const SizedBox(width: 10), Text(DateHelper.formatDate(AppTime.now()), style: const TextStyle(color: Colors.white))]),
+                                  Row(children: [Icon(Icons.calendar_today_sharp, color: Color(primaryColor), size: 25), const SizedBox(width: 10), Text(DateHelper.formatDate(AppTime.now()), style: const TextStyle(color: Color(whiteColor)))]),
                                   const SizedBox(height: 10),
-                                  Row(children: [Icon(Icons.location_on, color: Color(primaryColor), size: 25), const SizedBox(width: 10), SizedBox(width: 250, child: Text(widget.args.location ?? '-', style: const TextStyle(color: Colors.white), overflow: TextOverflow.ellipsis))]),
+                                  Row(children: [Icon(Icons.location_on, color: Color(primaryColor), size: 25), const SizedBox(width: 10), SizedBox(width: 250, child: Text(widget.args.location ?? '-', style: const TextStyle(color: Color(whiteColor)), overflow: TextOverflow.ellipsis))]),
                                 ],
                               ),
                             ),
@@ -692,8 +692,8 @@ class _WebSubmitPageState extends State<_WebSubmitPage> {
                                         _imageDataUrls.removeAt(index);
                                       }),
                                       child: Container(
-                                        decoration: const BoxDecoration(color: Colors.black54, shape: BoxShape.circle),
-                                        child: const Icon(Icons.close, color: Colors.white, size: 20),
+                                        decoration: BoxDecoration(color: Color(blackColor).withAlpha(54), shape: BoxShape.circle),
+                                        child: const Icon(Icons.close, color: Color(whiteColor), size: 20),
                                       ),
                                     ),
                                   ),
@@ -830,12 +830,12 @@ class _WebSubmitPageState extends State<_WebSubmitPage> {
                                       const SizedBox(height: 8),
                                       Row(
                                         children: const [
-                                          Icon(Icons.warning_amber_rounded, color: Colors.orange, size: 16),
+                                          Icon(Icons.warning_amber_rounded, color: Color(orangeAccentColor), size: 16),
                                           SizedBox(width: 6),
                                           Expanded(
                                             child: Text(
                                               'Absensi diluar lokasi kerja memerlukan approval atasan',
-                                              style: TextStyle(color: Colors.orange, fontSize: 12),
+                                              style: TextStyle(color: Color(orangeAccentColor), fontSize: 12),
                                             ),
                                           ),
                                         ],
@@ -863,7 +863,7 @@ class _WebSubmitPageState extends State<_WebSubmitPage> {
             if (isLoading)
               Positioned.fill(
                 child: Container(
-                  color: Colors.black.withValues(alpha: 0.4),
+                  color: Color(blackColor).withValues(alpha: 0.4),
                   child: const Center(child: CircularProgressIndicator()),
                 ),
               ),

@@ -317,7 +317,7 @@ class _SalesKitPageState extends State<SalesKitPage> {
       return const Center(
         child: Text(
           'Tidak ada data produk',
-          style: TextStyle(color: Colors.grey),
+          style: TextStyle(color: Color(greyShade500)),
         ),
       );
     }
@@ -376,7 +376,7 @@ class _SalesKitPageState extends State<SalesKitPage> {
                       height: constraints.maxHeight,
                       fit: BoxFit.contain,
                       onTap: onTap,
-                      errorWidget: const Icon(Icons.broken_image, size: 40, color: Colors.grey),
+                      errorWidget: const Icon(Icons.broken_image, size: 40, color: Color(greyShade500)),
                     ),
                   ),
                 ),
@@ -482,7 +482,7 @@ class _SalesKitPageState extends State<SalesKitPage> {
             child: Center(
               child: Text(
                 'Tidak ada data project',
-                style: TextStyle(color: Colors.grey),
+                style: TextStyle(color: Color(greyShade500)),
               ),
             ),
           ),
@@ -552,7 +552,7 @@ class _SalesKitPageState extends State<SalesKitPage> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     ColorFiltered(
-                      colorFilter: const ColorFilter.mode(Colors.white, BlendMode.srcATop),
+                      colorFilter: const ColorFilter.mode(Color(whiteColor), BlendMode.srcATop),
                       child: DriveImage(
                         url: logoImageUrl,
                         height: 140,
@@ -560,7 +560,7 @@ class _SalesKitPageState extends State<SalesKitPage> {
                         fit: BoxFit.contain,
                         filterQuality: FilterQuality.high,
                         onTap: ontap,
-                        errorWidget: const Icon(Icons.broken_image, color: Colors.white),
+                        errorWidget: const Icon(Icons.broken_image, color: Color(whiteColor)),
                       ),
                     ),
                   ],

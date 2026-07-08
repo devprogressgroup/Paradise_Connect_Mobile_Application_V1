@@ -94,10 +94,10 @@ mixin AttendanceLocationMixin<T extends StatefulWidget> on State<T> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: const Text('GPS tidak aktif. Aktifkan GPS untuk melanjutkan.'),
-            backgroundColor: Colors.orange,
+            backgroundColor: Color(orangeAccentColor),
             action: SnackBarAction(
               label: 'Aktifkan',
-              textColor: Colors.white,
+              textColor: Color(whiteColor),
               onPressed: () => Geolocator.openLocationSettings(),
             ),
           ),
@@ -118,7 +118,7 @@ mixin AttendanceLocationMixin<T extends StatefulWidget> on State<T> {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text('Izin lokasi ditolak. Izinkan lokasi di browser untuk melanjutkan.'),
-              backgroundColor: Colors.orange,
+              backgroundColor: Color(orangeAccentColor),
             ),
           );
         }
@@ -153,7 +153,7 @@ mixin AttendanceLocationMixin<T extends StatefulWidget> on State<T> {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text('Izin lokasi ditolak permanen. Buka settings untuk mengaktifkan.'),
-              backgroundColor: Colors.red,
+              backgroundColor: Color(redAccentColor),
             ),
           );
           await Geolocator.openAppSettings();

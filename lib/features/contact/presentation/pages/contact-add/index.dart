@@ -978,7 +978,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
                   content: Text('Gagal menambahkan activity'),
-                  backgroundColor: Colors.red,
+                  backgroundColor: Color(redAccentColor),
                 ),
               );
             }
@@ -993,7 +993,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
                   content: Text('Gagal mengunggah lampiran'),
-                  backgroundColor: Colors.red,
+                  backgroundColor: Color(redAccentColor),
                 ),
               );
             }
@@ -1064,7 +1064,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
                   content: Text('Gagal memperbarui data kontak'),
-                  backgroundColor: Colors.red,
+                  backgroundColor: Color(redAccentColor),
                 ),
               );
             }
@@ -1079,7 +1079,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
                   content: Text('Gagal menyimpan data kunjungan'),
-                  backgroundColor: Colors.red,
+                  backgroundColor: Color(redAccentColor),
                 ),
               );
             }
@@ -1174,7 +1174,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
                   if (isLoading)
                     Positioned.fill(
                       child: Container(
-                        color: Colors.white,
+                        color: Color(whiteColor),
                         child: Center(child: CircularProgressIndicator()),
                       ),
                     ),
@@ -1223,7 +1223,6 @@ class _ContactAddPageState extends State<ContactAddPage> {
         SizedBox(height: 12),
         _fieldNote(),
         SizedBox(height: 12),
-
         _buildButtonSave(),
       ],
     );
@@ -1259,11 +1258,10 @@ class _ContactAddPageState extends State<ContactAddPage> {
         SizedBox(height: 12),
         _fieldDate(),
         SizedBox(height: 12),
-        _fieldNote(),
-        SizedBox(height: 12),
         _fieldVolume(),
         SizedBox(height: 12),
-
+        _fieldNote(),
+        SizedBox(height: 12),
         _buildButtonSave(),
       ],
     );
@@ -1501,7 +1499,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                       fontSize: 14,
-                      color: volumeTC.text.isEmpty ? Color(grey2Color) : Colors.black,
+                      color: volumeTC.text.isEmpty ? Color(grey2Color) : Color(blackColor),
                     ),
                   ),
                 ),
@@ -1782,7 +1780,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
                       fontSize: 14,
                       color: selectedStatusName == "Select status"
                           ? Color(grey2Color)
-                          : Colors.black,
+                          : Color(blackColor),
                     ),
                   ),
                 ),
@@ -1871,7 +1869,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
                       fontSize: 14,
                       color: selectedLostReasonName == null
                           ? Color(grey2Color)
-                          : Colors.black,
+                          : Color(blackColor),
                     ),
                   ),
                 ),
@@ -1979,7 +1977,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
                               Padding(
                                 padding: const EdgeInsets.symmetric(vertical: 2),
                                 child: Text(_unitDisplay(u),
-                                    style: const TextStyle(fontSize: 14, color: Colors.black)),
+                                    style: const TextStyle(fontSize: 14, color: Color(blackColor))),
                               ),
                           ],
                         ),
@@ -2066,7 +2064,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
                       fontSize: 14,
                       color: selectedProject == null
                           ? Color(grey2Color)
-                          : Colors.black,
+                          : Color(blackColor),
                     ),
                   ),
                 ),
@@ -2132,7 +2130,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
                     "${jmlDatang}",
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: TextStyle(fontSize: 14, color: Colors.black),
+                    style: TextStyle(fontSize: 14, color: Color(blackColor)),
                   ),
                 ),
                 const Icon(Icons.arrow_drop_down, size: 28),
@@ -2241,7 +2239,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.picture_as_pdf, size: 36, color: Colors.red),
+                        Icon(Icons.picture_as_pdf, size: 36, color: Color(redAccentColor)),
                         SizedBox(height: 4),
                         Padding(
                           padding: EdgeInsets.symmetric(horizontal: 4),
@@ -2297,11 +2295,11 @@ class _ContactAddPageState extends State<ContactAddPage> {
                           });
                         },
                         child: Container(
-                          decoration: const BoxDecoration(
-                            color: Colors.black54,
+                          decoration:  BoxDecoration(
+                            color: Color(blackColor).withAlpha(54),
                             shape: BoxShape.circle,
                           ),
-                          child: const Icon(Icons.close, color: Colors.white, size: 20),
+                          child:  Icon(Icons.close, color: Color(whiteColor), size: 20),
                         ),
                       ),
                     ),
@@ -2345,7 +2343,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
                               ? Column(
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
-                                    const Icon(Icons.picture_as_pdf, size: 60, color: Colors.red),
+                                    const Icon(Icons.picture_as_pdf, size: 60, color: Color(redAccentColor)),
                                     const SizedBox(height: 8),
                                     Text(selectedFileName ?? "PDF File", textAlign: TextAlign.center),
                                   ],
@@ -2449,7 +2447,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
                               fontSize: 14,
                               color: selectedTypeName == "Select type"
                                   ? Color(grey2Color)
-                                  : Colors.black,
+                                  : Color(blackColor),
                             ),
                           ),
                         ),
@@ -2563,19 +2561,19 @@ class _ContactAddPageState extends State<ContactAddPage> {
               ),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(color: _noteError ? Colors.red : Color(grey7Color)),
+                borderSide: BorderSide(color: _noteError ? Color(redAccentColor) : Color(grey7Color)),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(color: _noteError ? Colors.red : Color(primaryColor)),
+                borderSide: BorderSide(color: _noteError ? Color(redAccentColor) : Color(primaryColor)),
               ),
               errorBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: Colors.red),
+                borderSide: const BorderSide(color: Color(redAccentColor)),
               ),
               focusedErrorBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: Colors.red),
+                borderSide: const BorderSide(color: Color(redAccentColor)),
               ),
             ),
           ),
@@ -2785,19 +2783,19 @@ class _ContactAddPageState extends State<ContactAddPage> {
               ),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(color: _noteError ? Colors.red : Color(grey7Color)),
+                borderSide: BorderSide(color: _noteError ? Color(redAccentColor) : Color(grey7Color)),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(color: _noteError ? Colors.red : Color(primaryColor)),
+                borderSide: BorderSide(color: _noteError ? Color(redAccentColor) : Color(primaryColor)),
               ),
               errorBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: Colors.red),
+                borderSide: const BorderSide(color: Color(redAccentColor)),
               ),
               focusedErrorBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: Colors.red),
+                borderSide: const BorderSide(color: Color(redAccentColor)),
               ),
             ),
           ),
@@ -2907,13 +2905,13 @@ class _ContactAddPageState extends State<ContactAddPage> {
                           });
                         },
                         child: Container(
-                          decoration: const BoxDecoration(
-                            color: Colors.black54,
+                          decoration: BoxDecoration(
+                            color: Color(blackColor).withAlpha(54),
                             shape: BoxShape.circle,
                           ),
-                          child: const Icon(
+                          child: Icon(
                             Icons.close,
-                            color: Colors.white,
+                            color: Color(whiteColor),
                             size: 20,
                           ),
                         ),

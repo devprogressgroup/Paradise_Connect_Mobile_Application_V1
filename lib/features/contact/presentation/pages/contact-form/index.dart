@@ -2535,7 +2535,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
                           height: 18,
                           child: CircularProgressIndicator(
                             strokeWidth: 2,
-                            color: Colors.white,
+                            color: Color(whiteColor),
                           ),
                         )
                       : Text("Save",

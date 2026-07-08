@@ -205,10 +205,10 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
     return Container(
         padding: const EdgeInsets.symmetric(horizontal: 24.0,vertical: 40.0),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: Color(whiteColor),
           borderRadius: BorderRadius.circular(32),
           boxShadow: [
-            BoxShadow(color: Colors.black.withOpacity(0.08),blurRadius: 20,offset: const Offset(0, 10))
+            BoxShadow(color: Color(blackColor).withOpacity(0.08),blurRadius: 20,offset: const Offset(0, 10))
           ],
         ),
         child: Form(
@@ -235,13 +235,13 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
                       decoration: InputDecoration(
                         counterText: "",
                         filled: true,
-                        fillColor: Colors.grey[50],
+                        fillColor: Color(greyShade50),
                         border: OutlineInputBorder(borderRadius: BorderRadius.circular(14),borderSide: BorderSide(color: Color(grey8Color),width: 1)),
                         enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14),borderSide: BorderSide(color: Color(grey8Color),width: 1)),
                         focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14),borderSide: BorderSide(color: Color(primaryColor),width: 1.5)),
                         errorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14),borderSide: BorderSide(color: Color(redPeriodColor),width: 1.5)),
                         focusedErrorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14),borderSide: BorderSide(color: Color(redPeriodColor),width: 1.5)),
-                        disabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14),borderSide: BorderSide(color: Colors.grey, width: 1)),
+                        disabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14),borderSide: BorderSide(color: Color(greyShade500), width: 1)),
                       ),
                       onChanged: (value) {
                         if (value.isNotEmpty) {
@@ -281,7 +281,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
                   hintText: '••••••••',
                   filled: true,
                   hintStyle: TextStyle(fontSize: 14,fontWeight: FontWeight.w400,color: Color(grey4Color)),
-                  fillColor: Colors.grey[50],
+                  fillColor: Color(greyShade50),
                   suffixIcon: IconButton(
                     icon: Icon(_isObscure ? Icons.visibility_off_outlined : Icons.visibility_outlined),
                     onPressed: () {
@@ -295,7 +295,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
                   focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14),borderSide: BorderSide(color: Color(primaryColor),width: 1.5)),
                   errorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14),borderSide: BorderSide(color: Color(redPeriodColor),width: 1.5)),
                   focusedErrorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14),borderSide: BorderSide(color: Color(redPeriodColor),width: 1.5)),
-                  disabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14),borderSide: BorderSide(color: Colors.grey, width: 1)),
+                  disabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14),borderSide: BorderSide(color: Color(greyShade500), width: 1)),
                 ),
               ),
               const SizedBox(height: 20),
@@ -319,7 +319,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
                   hintText: '••••••••',
                   filled: true,
                   hintStyle: TextStyle(fontSize: 14,fontWeight: FontWeight.w400,color: Color(grey4Color)),
-                  fillColor: Colors.grey[50],
+                  fillColor: Color(greyShade50),
                   suffixIcon: IconButton(
                     icon: Icon(_isObscure2 ? Icons.visibility_off_outlined : Icons.visibility_outlined),
                     onPressed: () {
@@ -333,7 +333,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
                   focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14),borderSide: BorderSide(color: Color(primaryColor),width: 1.5)),
                   errorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14),borderSide: BorderSide(color: Color(redPeriodColor),width: 1.5)),
                   focusedErrorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14),borderSide: BorderSide(color: Color(redPeriodColor),width: 1.5)),
-                  disabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14),borderSide: BorderSide(color: Colors.grey, width: 1)),
+                  disabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14),borderSide: BorderSide(color: Color(greyShade500), width: 1)),
                 ),
               ),
               const SizedBox(height: 32),
@@ -343,7 +343,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Color(primaryColor),
-                  foregroundColor: Colors.white,
+                  foregroundColor: Color(whiteColor),
                   minimumSize: const Size(double.infinity, 56),
                   elevation: 0,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -372,7 +372,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
             ),
             child: Text(
               '$number',
-              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Colors.white),
+              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(whiteColor)),
             ),
           ),
           const SizedBox(width: 10),
@@ -391,10 +391,10 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
     return Container(
        padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 40.0),
        decoration: BoxDecoration(
-         color: Colors.white,
+         color: Color(whiteColor),
          borderRadius: BorderRadius.circular(32),
          boxShadow: [
-           BoxShadow(color: Colors.black.withOpacity(0.08),blurRadius: 20,offset: const Offset(0, 10))
+           BoxShadow(color: Color(blackColor).withOpacity(0.08),blurRadius: 20,offset: const Offset(0, 10))
          ],
        ),
        child: Column(
@@ -443,7 +443,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
                   color: Color(blackColor),
                 ),
                 filled: true,
-                fillColor: Colors.grey[50],
+                fillColor: Color(greyShade50),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(14),
                   borderSide: BorderSide(color: Color(grey8Color), width: 1),
@@ -458,7 +458,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
              },
              style: ElevatedButton.styleFrom(
                backgroundColor: Color(primaryColor),
-               foregroundColor: Colors.white,
+               foregroundColor: Color(whiteColor),
                minimumSize: const Size(double.infinity, 56),
                elevation: 0,
                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),

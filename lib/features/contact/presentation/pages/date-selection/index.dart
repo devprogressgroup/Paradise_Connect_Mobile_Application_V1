@@ -220,7 +220,7 @@ class _DateFilterPageState extends State<DateFilterPage> {
 
   Widget _buildItem({required String label, required bool isSelected, required VoidCallback onTap}) {
     return Material(
-      color: isSelected ? Color(grey10Color) : Colors.transparent,
+      color: isSelected ? Color(grey10Color) : Color(transparentColor),
       child: InkWell(
         onTap: onTap,
         child: Container(
@@ -245,7 +245,7 @@ class _DateFilterPageState extends State<DateFilterPage> {
 
   Widget _buildCustomItem() {
     return Material(
-      color: Colors.transparent,
+      color: Color(transparentColor),
       child: InkWell(
         onTap: () async {
           final picked = await showDateRangePicker(
@@ -257,7 +257,7 @@ class _DateFilterPageState extends State<DateFilterPage> {
                 data: Theme.of(context).copyWith(
                   colorScheme: ColorScheme.light(
                     primary: Color(primaryColor),
-                    onPrimary: Colors.white,
+                    onPrimary: Color(whiteColor),
                     onSurface: Color(blue2Color),
                   ),
                 ),
