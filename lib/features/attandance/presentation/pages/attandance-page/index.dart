@@ -21,6 +21,8 @@ import 'package:progress_group/core/utils/widget/drive_image/drive_image.dart';
 import 'package:progress_group/core/utils/helpers/initial_name_helper.dart';
 import 'package:progress_group/core/utils/widget/custom_filter_button.dart';
 import 'package:progress_group/features/attandance/domain/entities/attandance_entity.dart';
+import 'package:progress_group/features/contact/data/arguments/contact_detail_args.dart';
+import 'package:progress_group/features/contact/domain/entities/contact/contact_entity.dart';
 import 'package:progress_group/features/attandance/presentation/state/attandance/attendance_bloc.dart';
 import 'package:progress_group/features/attandance/presentation/state/attandance/attendance_event.dart';
 import 'package:progress_group/features/attandance/presentation/state/attandance/attendance_state.dart';
@@ -1445,23 +1447,23 @@ class _AttandancePageState extends State<AttandancePage>
                     final canVerify = PermissionsHelper.canCheckInVerify;
                     final currentSalesPersonId = profileState is ProfileLoaded ? profileState.profile.salesPersonId : null;
 
-                    final List<({String fullName, String? photoUrl, String date, String type, Color typeColor, String? datetime, String? location, String? contactName, String? note, List<String> images, int? statusValidasi, String? noteValidasi, int? logId, int salesPersonId})> entries = [];
+                    final List<({String fullName, String? photoUrl, String date, String type, Color typeColor, String? datetime, String? location, String? contactName, String? note, List<String> images, int? statusValidasi, String? noteValidasi, int? logId, int salesPersonId, int? contactId})> entries = [];
 
                     for (final item in state.activityLogs) {
                       if (item.clockInDate != null) {
-                        entries.add((fullName: item.fullName, photoUrl: item.photoUrl, date: item.date, type: 'Clock In', typeColor: const Color(clockInColor), datetime: item.clockInDate, location: item.clockInLocation, contactName: null, note: item.clockInNote, images: item.clockInAttachment ?? [], statusValidasi: null, noteValidasi: null, logId: null, salesPersonId: item.salesPersonId));
+                        entries.add((fullName: item.fullName, photoUrl: item.photoUrl, date: item.date, type: 'Clock In', typeColor: const Color(clockInColor), datetime: item.clockInDate, location: item.clockInLocation, contactName: null, note: item.clockInNote, images: item.clockInAttachment ?? [], statusValidasi: null, noteValidasi: null, logId: null, salesPersonId: item.salesPersonId, contactId: null));
                       }
                       if (item.clockOutDate != null) {
-                        entries.add((fullName: item.fullName, photoUrl: item.photoUrl, date: item.date, type: 'Clock Out', typeColor: const Color(clockOutColor), datetime: item.clockOutDate, location: item.clockOutLocation, contactName: null, note: item.clockOutNote, images: item.clockOutAttachment ?? [], statusValidasi: null, noteValidasi: null, logId: null, salesPersonId: item.salesPersonId));
+                        entries.add((fullName: item.fullName, photoUrl: item.photoUrl, date: item.date, type: 'Clock Out', typeColor: const Color(clockOutColor), datetime: item.clockOutDate, location: item.clockOutLocation, contactName: null, note: item.clockOutNote, images: item.clockOutAttachment ?? [], statusValidasi: null, noteValidasi: null, logId: null, salesPersonId: item.salesPersonId, contactId: null));
                       }
                       for (final c in item.checkIns) {
                         if (c.checkInDate != null) {
-                          entries.add((fullName: item.fullName, photoUrl: item.photoUrl, date: item.date, type: 'Check In', typeColor: const Color(checkInColor), datetime: c.checkInDate, location: c.checkInLocation, contactName: null, note: c.checkInNote, images: c.checkInAttachment ?? [], statusValidasi: c.statusValidasi, noteValidasi: c.noteValidasi, logId: c.logId, salesPersonId: item.salesPersonId));
+                          entries.add((fullName: item.fullName, photoUrl: item.photoUrl, date: item.date, type: 'Check In', typeColor: const Color(checkInColor), datetime: c.checkInDate, location: c.checkInLocation, contactName: null, note: c.checkInNote, images: c.checkInAttachment ?? [], statusValidasi: c.statusValidasi, noteValidasi: c.noteValidasi, logId: c.logId, salesPersonId: item.salesPersonId, contactId: null));
                         }
                       }
                       for (final v in item.visits) {
                         if (v.datetime != null) {
-                          entries.add((fullName: item.fullName, photoUrl: item.photoUrl, date: item.date, type: 'Visit', typeColor: const Color(visitColor), datetime: v.datetime, location: v.lastProject, contactName: v.contactName, note: v.note, images: v.attachment ?? [], statusValidasi: null, noteValidasi: null, logId: null, salesPersonId: item.salesPersonId));
+                          entries.add((fullName: item.fullName, photoUrl: item.photoUrl, date: item.date, type: 'Visit', typeColor: const Color(visitColor), datetime: v.datetime, location: v.lastProject, contactName: v.contactName, note: v.note, images: v.attachment ?? [], statusValidasi: null, noteValidasi: null, logId: null, salesPersonId: item.salesPersonId, contactId: v.contactId));
                         }
                       }
                     }
@@ -1480,13 +1482,13 @@ class _AttandancePageState extends State<AttandancePage>
                       );
                     }
 
-                    final Map<String, List<({String fullName, String? photoUrl, String date, String type, Color typeColor, String? datetime, String? location, String? contactName, String? note, List<String> images, int? statusValidasi, String? noteValidasi, int? logId, int salesPersonId})>> grouped = {};
+                    final Map<String, List<({String fullName, String? photoUrl, String date, String type, Color typeColor, String? datetime, String? location, String? contactName, String? note, List<String> images, int? statusValidasi, String? noteValidasi, int? logId, int salesPersonId, int? contactId})>> grouped = {};
                     for (final e in entries) {
                       grouped.putIfAbsent(e.date, () => []).add(e);
                     }
                     final dates = grouped.keys.toList();
 
-                    final List<({bool isHeader, String date, ({String fullName, String? photoUrl, String date, String type, Color typeColor, String? datetime, String? location, String? contactName, String? note, List<String> images, int? statusValidasi, String? noteValidasi, int? logId, int salesPersonId})? entry, int? cardIndex})> rows = [];
+                    final List<({bool isHeader, String date, ({String fullName, String? photoUrl, String date, String type, Color typeColor, String? datetime, String? location, String? contactName, String? note, List<String> images, int? statusValidasi, String? noteValidasi, int? logId, int salesPersonId, int? contactId})? entry, int? cardIndex})> rows = [];
                     int cardCounter = 0;
                     for (final date in dates) {
                       rows.add((isHeader: true, date: date, entry: null, cardIndex: null));
@@ -1542,6 +1544,7 @@ class _AttandancePageState extends State<AttandancePage>
                                     datetime: e.datetime,
                                     location: e.location,
                                     contactName: e.contactName,
+                                    contactId: e.contactId,
                                     note: e.note,
                                     images: e.images,
                                     statusValidasi: e.statusValidasi,
@@ -1593,6 +1596,7 @@ class _AttandancePageState extends State<AttandancePage>
     required String? datetime,
     required String? location,
     required String? contactName,
+    int? contactId,
     required String? note,
     required List<String> images,
     int? statusValidasi,
@@ -1612,6 +1616,7 @@ class _AttandancePageState extends State<AttandancePage>
       datetime: datetime,
       location: location,
       contactName: contactName,
+      contactId: contactId,
       note: note,
       images: images,
       statusValidasi: statusValidasi,
@@ -2461,6 +2466,7 @@ class _ActivityCard extends StatefulWidget {
   final String? datetime;
   final String? location;
   final String? contactName;
+  final int? contactId;
   final String? note;
   final List<String> images;
   final void Function(String url) onImageTap;
@@ -2481,6 +2487,7 @@ class _ActivityCard extends StatefulWidget {
     required this.datetime,
     required this.location,
     required this.contactName,
+    this.contactId,
     required this.note,
     required this.images,
     required this.onImageTap,
@@ -2662,10 +2669,21 @@ class _ActivityCardState extends State<_ActivityCard> {
     }
   }
 
+  void _openContactActivity(BuildContext context) {
+    print("debug contact ${widget.contactId} ${widget.contactName}");
+    context.pushNamed(
+      'detailContact',
+      extra: ContactDetailArgs(
+        dataContact: ContactEntity(contactId: widget.contactId, fullName: widget.contactName ?? widget.fullName),
+        initialTab: 0,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final deferImageLoad = Scrollable.recommendDeferredLoadingForContext(context);
-    return Container(
+    final card = Container(
       margin: const EdgeInsets.only(bottom: 15),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -2883,5 +2901,13 @@ class _ActivityCardState extends State<_ActivityCard> {
         ],
       ),
     );
+
+    if (widget.type == 'Visit' && widget.contactId != null) {
+      return GestureDetector(
+        onTap: () => _openContactActivity(context),
+        child: card,
+      );
+    }
+    return card;
   }
 }

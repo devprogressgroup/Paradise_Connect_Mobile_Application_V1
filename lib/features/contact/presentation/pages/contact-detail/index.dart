@@ -723,12 +723,11 @@ class _ContactDetailPageState extends State<ContactDetailPage>with TickerProvide
                         }
 
 
-                        bool _isCreate(ActivityTimelineItem t) =>
-                            t.type == 'activity' && (t.data.activityType == 'Created contact');
+                        bool _isCreate(ActivityTimelineItem t) =>t.type == 'activity' && (t.data.activityType == 'Created contact');
                         timeline.sort((a, b) {
                           final aC = _isCreate(a), bC = _isCreate(b);
-                        
-                        
+                          if (aC && !bC) return 1;
+                          if (bC && !aC) return -1;
                           return b.date.compareTo(a.date);
                         });
 
@@ -739,9 +738,7 @@ class _ContactDetailPageState extends State<ContactDetailPage>with TickerProvide
                           final key = DateFormat(
                             'dd MMM yyyy',
                           ).format(item.date);
-
                           grouped.putIfAbsent(key, () => []);
-
                           grouped[key]!.add(item);
                         }
 

@@ -2,6 +2,7 @@ class AttendanceActivityVisit {
   final String? datetime;
   final String? lastProject;
   final String? contactName;
+  final int? contactId;
   final String? note;
   final List<String>? attachment;
 
@@ -9,6 +10,7 @@ class AttendanceActivityVisit {
     this.datetime,
     this.lastProject,
     this.contactName,
+    this.contactId,
     this.note,
     this.attachment,
   });

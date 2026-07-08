@@ -5,6 +5,7 @@ class AttendanceActivityVisitModel extends AttendanceActivityVisit {
     super.datetime,
     super.lastProject,
     super.contactName,
+    super.contactId,
     super.note,
     super.attachment,
   });
@@ -14,10 +15,9 @@ class AttendanceActivityVisitModel extends AttendanceActivityVisit {
       datetime: json['activity_date'],
       lastProject: json['last_project'],
       contactName: json['contact_name'],
+      contactId: json['contact_id'],
       note: json['note'],
-      attachment: json['image_paths'] != null
-          ? List<String>.from(json['image_paths'])
-          : null,
+      attachment: json['image_paths'] != null? List<String>.from(json['image_paths']): null,
     );
   }
 }
@@ -40,9 +40,7 @@ class AttendanceActivityCheckInModel extends AttendanceActivityCheckIn {
       checkInDate: json['check_in_date'],
       checkInLocation: json['check_in_location'],
       checkInNote: json['check_in_note'],
-      checkInAttachment: json['check_in_attachment'] != null
-          ? List<String>.from(json['check_in_attachment'])
-          : null,
+      checkInAttachment: json['check_in_attachment'] != null? List<String>.from(json['check_in_attachment']): null,
       statusValidasi: json['status_validasi'],
       statusValidasiLabel: json['status_validasi_label'],
       noteValidasi: json['note_validasi'],
@@ -85,9 +83,7 @@ class AttendanceActivityModel extends AttendanceActivityEntity {
       clockOutDate: json['clock_out_date'],
       clockOutLocation: json['clock_out_location'],
       clockOutNote: json['clock_out_note'],
-      clockOutAttachment: json['clock_out_attachment'] != null
-          ? List<String>.from(json['clock_out_attachment'])
-          : null,
+      clockOutAttachment: json['clock_out_attachment'] != null? List<String>.from(json['clock_out_attachment']): null,
       checkIns: checkInsList,
       visits: visitsList,
     );
