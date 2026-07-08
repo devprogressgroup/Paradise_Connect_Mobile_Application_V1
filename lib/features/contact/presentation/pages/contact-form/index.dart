@@ -1,4 +1,5 @@
 ﻿import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:progress_group/core/services/analytics_service.dart';
 import 'package:progress_group/core/utils/helpers/permissions_helper.dart';
 import 'package:progress_group/core/services/salesbook_sync_service.dart';
 import 'package:flutter/material.dart';
@@ -330,7 +331,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
   }
 
   Future<void> _openUnitPicker() async {
-    
+    AnalyticsService.logEvent('contact_form_select_unit');
     final townshipId = selectLastTownshipId ?? selectFirstTownshipId;
     final townshipName = selectLastProject ?? selectFirstProject;
     if (townshipId == null) {
@@ -496,6 +497,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
   @override
   void initState() {
     super.initState();
+    AnalyticsService.logScreenView('contact_form');
     _init();
   }
 
@@ -1291,6 +1293,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
   }
 
   Future<void> _importFromContacts() async {
+    AnalyticsService.logEvent('contact_form_import_from_contacts');
     final granted = await FlutterContacts.requestPermission(readonly: true);
     if (!granted) {
       if (mounted) {
@@ -1462,6 +1465,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
     }
 
     setState(() => _isSaving = true);
+    AnalyticsService.logEvent('contact_form_save_contact', parameters: {'mode': isUpdate ? 'update' : 'create'});
     if (isUpdate) {
       context.read<ContactBloc>().add(UpdateContactEvent(widget.args.dataContact!.contactId!, params));
     } else {
@@ -1680,6 +1684,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
                             isError: _showValidation && (selectedSalutation?.isEmpty ?? true),
                             errorText: (_showValidation && (selectedSalutation?.isEmpty ?? true)) ? 'Wajib diisi' : null,
                             onTap: () async {
+                              AnalyticsService.logEvent('contact_form_select_salutation');
                               final items = [
                                 OwnerDropdownItem(id: 1, name: 'Bapak'),
                                 OwnerDropdownItem(id: 2, name: 'Ibu'),
@@ -1729,9 +1734,10 @@ class _ContactFormPageState extends State<ContactFormPage> {
                             isError: _showValidation && selectedOwnerId == null,
                             errorText: (_showValidation && selectedOwnerId == null) ? 'Wajib diisi' : null,
                             onTap: () async {
+                              AnalyticsService.logEvent('contact_form_select_owner');
                               if (profileState is ProfileLoaded) {
                                 final user = profileState.profile;
-                                
+
                                 final modifyScope = PermissionsHelper.scopeLevel('Contacts', 'Modify');
                                 final List<OwnerDropdownItem> ownerItems = [];
                                 ownerItems.add(
@@ -1782,6 +1788,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
                             value: selectedStatusProspectName,
                             isError: _showValidation && selectedStatusId == null,
                             onTap: () async {
+                              AnalyticsService.logEvent('contact_form_select_status_prospect');
                               final statusState = context.read<ProspectStatusBloc>().state;
                               if (statusState.status == ProspectStatusEnum.loaded) {
                                 final statusItems = statusState.statuses.map((e) => OwnerDropdownItem(id: e.statusProspectId, name: e.statusProspectName)).toList();
@@ -1822,6 +1829,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
                             isError: _showValidation && selectLastProject == null,
                             errorText: (_showValidation && selectLastProject == null) ? 'Wajib diisi' : null,
                             onTap: () async {
+                              AnalyticsService.logEvent('contact_form_select_project');
                               final townshipState = context.read<TownshipBloc>().state;
                               if (townshipState is TownshipLoaded) {
                                 final items = townshipState.townships .map((t) => OwnerDropdownItem(id: t.id, name: t.name)) .toList();
@@ -1915,6 +1923,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
                             isError: _showValidation && (selectedSource1Id == null || selectedSource1Id == 0),
                             errorText: (_showValidation && (selectedSource1Id == null || selectedSource1Id == 0)) ? 'Wajib diisi' : null,
                             onTap: () async {
+                              AnalyticsService.logEvent('contact_form_select_info_source', parameters: {'field': 'sales_channel'});
                               final sourceState = context.read<InfoSourceBloc>().state;
                               final sources = sourceState.sourcesMap[1];
                               if (sources != null) {
@@ -1955,6 +1964,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
                             isError: _showValidation && (selectedSource2Id == null || selectedSource2Id == 0),
                             errorText: (_showValidation && (selectedSource2Id == null || selectedSource2Id == 0)) ? 'Wajib diisi' : null,
                             onTap: () async {
+                              AnalyticsService.logEvent('contact_form_select_info_source', parameters: {'field': 'sales_channel_detail'});
                               final sourceState = context.read<InfoSourceBloc>().state;
                               final sources = sourceState.sourcesMap[2];
                               if (sources != null) {
@@ -2011,6 +2021,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
                             label: "Lost Reason",
                             value: selectedLostReasonName,
                             onTap: () async {
+                              AnalyticsService.logEvent('contact_form_select_lost_reason');
                               final state = context.read<LostReasonBloc>().state;
 
                               if (state.status == LostReasonStatus.loaded) {
@@ -2320,6 +2331,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
                        isError: _showValidation && (selectedSalutation?.isEmpty ?? true),
                        errorText: (_showValidation && (selectedSalutation?.isEmpty ?? true)) ? 'Wajib diisi' : null,
                        onTap: () async {
+                         AnalyticsService.logEvent('contact_form_select_salutation');
                          final items = [OwnerDropdownItem(id: 1, name: 'Bapak'),OwnerDropdownItem(id: 2, name: 'Ibu'),];
                          final result = await context.pushNamed('detailContactDropdown',extra: ContactDropdownArgs(title: 'Pilih Salutation',items: items,selectedId: selectedSalutation == 'Ibu'? 2: selectedSalutation == 'Bapak'? 1: null));
                          if (result != null) {
@@ -2338,9 +2350,10 @@ class _ContactFormPageState extends State<ContactFormPage> {
                         isError: _showValidation && selectedOwnerId == null,
                         errorText: (_showValidation && selectedOwnerId == null) ? 'Wajib diisi' : null,
                         onTap: () async {
+                          AnalyticsService.logEvent('contact_form_select_owner');
                           if (profileState is ProfileLoaded) {
                             final user = profileState.profile;
-                            
+
                             final modifyScope = PermissionsHelper.scopeLevel('Contacts', 'Modify');
                             final List<OwnerDropdownItem> ownerItems = [];
                             ownerItems.add(OwnerDropdownItem(id: user.userId, name: '${user.fullName} (me)', subtitle: user.positionName));
@@ -2376,6 +2389,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
                        isError: _showValidation && selectFirstProject == null,
                        errorText: (_showValidation && selectFirstProject == null) ? 'Wajib diisi' : null,
                        onTap: () async {
+                         AnalyticsService.logEvent('contact_form_select_project');
                          final townshipState = context.read<TownshipBloc>().state;
                          if (townshipState is TownshipLoaded) {
                            final items = townshipState.townships
@@ -2413,6 +2427,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
                         isError: _showValidation && (selectedSource1Id == null || selectedSource1Id == 0),
                         errorText: (_showValidation && (selectedSource1Id == null || selectedSource1Id == 0)) ? 'Wajib diisi' : null,
                         onTap: () async {
+                          AnalyticsService.logEvent('contact_form_select_info_source', parameters: {'field': 'sales_channel'});
                           final sourceState = context.read<InfoSourceBloc>().state;
                           final sources = sourceState.sourcesMap[1];
                           if (sources != null) {
@@ -2453,6 +2468,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
                         isError: _showValidation && (selectedSource2Id == null || selectedSource2Id == 0),
                         errorText: (_showValidation && (selectedSource2Id == null || selectedSource2Id == 0)) ? 'Wajib diisi' : null,
                         onTap: () async {
+                          AnalyticsService.logEvent('contact_form_select_info_source', parameters: {'field': 'sales_channel_detail'});
                           final sourceState = context.read<InfoSourceBloc>().state;
                           final sources = sourceState.sourcesMap[2];
                           if (sources != null) {
@@ -2577,7 +2593,10 @@ class _ContactFormPageState extends State<ContactFormPage> {
           Row(
             children: [
               GestureDetector(
-                onTap: () => context.pop(),
+                onTap: () {
+                  AnalyticsService.logEvent('contact_form_back');
+                  context.pop();
+                },
                 child: Icon(Icons.arrow_back, color: Color(primaryColor), size: 27),
               ),
               const SizedBox(width: 10),
@@ -2720,6 +2739,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
   }
 
   void _showPropertyFilePicker(int propertyId) async {
+    AnalyticsService.logEvent('contact_form_upload_property_file');
     final result = await CustomFilePicker.show(context);
     if (result != null && mounted) setState(() => _propertyFiles[propertyId] = result);
   }
@@ -2759,6 +2779,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
 
   void _goEditForm({String? focusField}) async {
     if (!PermissionsHelper.canEditContact) return;
+    AnalyticsService.logEvent('contact_form_navigate_to_edit_field');
     await context.pushNamed(
       'formContact',
       extra: ContactDetailArgs(
@@ -2963,10 +2984,13 @@ class _ContactFormPageState extends State<ContactFormPage> {
                 if (!canNavigate) ...[
                   if (hasFile)
                     GestureDetector(
-                      onTap: () => setState(() {
-                        _propertyFiles[propertyId] = null;
-                        _getOrCreatePropertyController(propertyId).clear();
-                      }),
+                      onTap: () {
+                        AnalyticsService.logEvent('contact_form_remove_property_file');
+                        setState(() {
+                          _propertyFiles[propertyId] = null;
+                          _getOrCreatePropertyController(propertyId).clear();
+                        });
+                      },
                       child: Icon(Icons.close, color: Color(redColor), size: 20),
                     ),
                   const SizedBox(width: 8),

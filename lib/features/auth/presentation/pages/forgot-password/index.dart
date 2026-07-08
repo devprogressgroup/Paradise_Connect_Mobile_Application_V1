@@ -10,6 +10,7 @@ import '../../../../../core/constants/colors.dart';
 import '../../../../../core/utils/widget/custom_snackbar.dart';
 import '../../../data/models/forgot_password_data_model.dart';
 import '../../state/auth/auth_bloc.dart';
+import 'package:progress_group/core/services/analytics_service.dart';
 
 class ForgotPasswordPage extends StatefulWidget {
   final int step;
@@ -60,6 +61,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
   
 
   void _forgotPassword() {
+    AnalyticsService.logEvent('forgot_password_request_otp');
     final phone = "62"+_whatsaappController.text.trim();
 
     if (phone.isEmpty) {
@@ -73,6 +75,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
 
   void _resetPassword() {
     if (!_formKey.currentState!.validate()) return;
+    AnalyticsService.logEvent('forgot_password_reset_password');
     final otp = otpControllers.map((c) => c.text).join();
     if (otp.length < 4) {
       showSnackbar(context, "OTP tidak lengkap", isError: true);
@@ -177,9 +180,14 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
                       Padding(
                         padding: const EdgeInsets.only(left: 8.0, top: 4.0),
                         child: IconButton(
-                          onPressed: _step == 1
-                              ? () => context.go('/')
-                              : () => setState(() => _step = 1),
+                          onPressed: () {
+                            AnalyticsService.logEvent('forgot_password_back');
+                            if (_step == 1) {
+                              context.go('/');
+                            } else {
+                              setState(() => _step = 1);
+                            }
+                          },
                           icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Color(primaryColor)),
                         ),
                       ),
@@ -285,6 +293,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
                   suffixIcon: IconButton(
                     icon: Icon(_isObscure ? Icons.visibility_off_outlined : Icons.visibility_outlined),
                     onPressed: () {
+                      AnalyticsService.logEvent('forgot_password_toggle_password_visibility');
                       setState(() {
                         _isObscure = !_isObscure;
                       });
@@ -323,6 +332,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
                   suffixIcon: IconButton(
                     icon: Icon(_isObscure2 ? Icons.visibility_off_outlined : Icons.visibility_outlined),
                     onPressed: () {
+                      AnalyticsService.logEvent('forgot_password_toggle_confirm_password_visibility');
                       setState(() {
                         _isObscure2 = !_isObscure2;
                       });

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:progress_group/core/constants/assets.dart';
 import 'package:progress_group/core/constants/colors.dart';
 import 'package:progress_group/core/services/ota_update_service.dart';
+import 'package:progress_group/core/services/analytics_service.dart';
 
 enum _Phase { preparing, downloading, installing, error }
 
@@ -36,6 +37,7 @@ class _UpdateScreenState extends State<UpdateScreen> with SingleTickerProviderSt
   @override
   void initState() {
     super.initState();
+    AnalyticsService.logScreenView('update_screen');
 
     _glowController = AnimationController(
       vsync: this,
@@ -157,6 +159,7 @@ class _UpdateScreenState extends State<UpdateScreen> with SingleTickerProviderSt
                 const SizedBox(height: 20),
                 TextButton.icon(
                   onPressed: () {
+                    AnalyticsService.logEvent('update_screen_retry_update_download');
                     setState(() {
                       _phase = _Phase.preparing;
                       _progress = 0;

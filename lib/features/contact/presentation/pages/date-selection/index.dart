@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import 'package:progress_group/core/constants/colors.dart';
 import 'package:progress_group/features/contact/data/models/dropdown/date_filter.dart';
 import 'package:progress_group/core/utils/helpers/app_time.dart';
+import 'package:progress_group/core/services/analytics_service.dart';
 
 class DateFilterPage extends StatefulWidget {
   final String? selectedLabel;
@@ -27,6 +28,7 @@ class _DateFilterPageState extends State<DateFilterPage> {
   @override
   void initState() {
     super.initState();
+    AnalyticsService.logScreenView('date_filter');
     final now = AppTime.now();
     _today = DateTime(now.year, now.month, now.day);
     final yesterday = _today.subtract(const Duration(days: 1));
@@ -78,6 +80,7 @@ class _DateFilterPageState extends State<DateFilterPage> {
   }
 
   void _selectPreset(_DateOption opt) {
+    AnalyticsService.logEvent('date_filter_select_preset_range');
     setState(() {
       _isSelectAll = false;
       if (_selectedLabel == opt.label) {
@@ -91,6 +94,7 @@ class _DateFilterPageState extends State<DateFilterPage> {
   }
 
   void _selectAll() {
+    AnalyticsService.logEvent('date_filter_select_all_presets');
     setState(() {
       _isSelectAll = true;
       _selectedLabel = 'Select All';
@@ -99,6 +103,7 @@ class _DateFilterPageState extends State<DateFilterPage> {
   }
 
   void _clearAll() {
+    AnalyticsService.logEvent('date_filter_clear_date_filter');
     setState(() {
       _isSelectAll = false;
       _selectedLabel = null;
@@ -107,6 +112,7 @@ class _DateFilterPageState extends State<DateFilterPage> {
   }
 
   void _save() {
+    AnalyticsService.logEvent('date_filter_save_date_filter');
     if (_selectedResult != null) {
       context.pop(_selectedResult);
     } else {
@@ -132,7 +138,10 @@ class _DateFilterPageState extends State<DateFilterPage> {
               child: Row(
                 children: [
                   GestureDetector(
-                    onTap: () => context.pop(),
+                    onTap: () {
+                      AnalyticsService.logEvent('date_filter_back');
+                      context.pop();
+                    },
                     child: Icon(Icons.arrow_back, color: Color(primaryColor), size: 27),
                   ),
                   const SizedBox(width: 10),
@@ -248,6 +257,7 @@ class _DateFilterPageState extends State<DateFilterPage> {
       color: Color(transparentColor),
       child: InkWell(
         onTap: () async {
+          AnalyticsService.logEvent('date_filter_open_custom_range');
           final picked = await showDateRangePicker(
             context: context,
             firstDate: DateTime(2020),

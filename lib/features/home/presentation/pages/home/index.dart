@@ -39,6 +39,7 @@ import '../../../../../core/utils/widget/custom_filter_button.dart';
 import '../../../../../core/utils/widget/error_dialog.dart';
 import '../../../../../core/utils/route_observer.dart';
 import '../../../../contact/data/models/dropdown/date_filter.dart';
+import 'package:progress_group/core/services/analytics_service.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -134,12 +135,13 @@ class _HomePageState extends State<HomePage> with RouteAware {
         return;
       }
 
+      AnalyticsService.logEvent('home_select_date_range');
       setState(() {
         _chartStartDate = picked.start;
         _chartEndDate = picked.end;
         day = calculatedDays;
       });
-      
+
       _loadData(force: true);
     }
   }
@@ -211,10 +213,14 @@ class _HomePageState extends State<HomePage> with RouteAware {
                     context, 
                     'Dashboard',
                     iconRight: Icons.menu,
-                    iconRightOnTap: () => Scaffold.of(context).openDrawer(), 
-                    iconLeft: Icons.notifications_none_rounded, 
+                    iconRightOnTap: () {
+                      AnalyticsService.logEvent('home_open_menu');
+                      Scaffold.of(context).openDrawer();
+                    },
+                    iconLeft: Icons.notifications_none_rounded,
                     showBadgeLeft: showBadge,
                     iconLeftOnTap: () {
+                      AnalyticsService.logEvent('home_open_notifications');
                       context.pushNamed('notif');
                     }
                   );
@@ -226,6 +232,7 @@ class _HomePageState extends State<HomePage> with RouteAware {
           Expanded(
             child: RefreshIndicator(
               onRefresh: () async {
+                AnalyticsService.logEvent('home_refresh_dashboard');
                 await _loadData(force: true);
               },
               child: SingleChildScrollView(
@@ -324,7 +331,10 @@ class _HomePageState extends State<HomePage> with RouteAware {
                   style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                 ),
                 GestureDetector(
-                  onTap: () => context.pushNamed("taskHome"),
+                  onTap: () {
+                    AnalyticsService.logEvent('home_see_all_tasks');
+                    context.pushNamed("taskHome");
+                  },
                   child: Text(
                     "See All",
                     style: TextStyle(
@@ -369,6 +379,7 @@ class _HomePageState extends State<HomePage> with RouteAware {
 
                       return GestureDetector(
                         onTap: () async {
+                          AnalyticsService.logEvent('home_open_task_item');
                           if (isCompleted) {
                             await context.pushNamed(
                               'detailContact',
@@ -474,6 +485,7 @@ class _HomePageState extends State<HomePage> with RouteAware {
                     final dt = DateTime.tryParse(approval.attendanceDatetime ?? '');
                     return GestureDetector(
                       onTap: () async {
+                        AnalyticsService.logEvent('home_open_pending_approval');
                         await context.pushNamed('approval');
                         if (context.mounted) _loadData(force: true);
                       },
@@ -565,6 +577,7 @@ class _HomePageState extends State<HomePage> with RouteAware {
               label: _prospectDateLabel ?? 'Create Date',
               isSelected: _prospectStartDate != null,
               onTap: () async {
+                AnalyticsService.logEvent('home_filter_prospect_by_date');
                 final result = await context.pushNamed<DateFilterResult>(
                   'dateFilter',
                   extra: {
@@ -601,9 +614,12 @@ class _HomePageState extends State<HomePage> with RouteAware {
             ),
                 if (state.status == ProspectStatusSummaryStatus.error)
                   GestureDetector(
-                    onTap: () => context.read<ProspectStatusSummaryBloc>().add(
-                      FetchProspectStatusSummaryEvent(startDate: _prospectStartDate, endDate: _prospectEndDate),
-                    ),
+                    onTap: () {
+                      AnalyticsService.logEvent('home_retry_prospect_status');
+                      context.read<ProspectStatusSummaryBloc>().add(
+                        FetchProspectStatusSummaryEvent(startDate: _prospectStartDate, endDate: _prospectEndDate),
+                      );
+                    },
                     child: Text(
                       "Retry",
                       style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(primaryColor)),
@@ -716,7 +732,10 @@ class _HomePageState extends State<HomePage> with RouteAware {
                     }(),
                     if (state.summary!.statuses.length > _prospectStatusCollapsedCount)
                       GestureDetector(
-                        onTap: () => setState(() => _prospectStatusExpanded = !_prospectStatusExpanded),
+                        onTap: () {
+                          AnalyticsService.logEvent('home_toggle_prospect_status_expand');
+                          setState(() => _prospectStatusExpanded = !_prospectStatusExpanded);
+                        },
                         child: Container(
                           width: double.infinity,
                           padding: const EdgeInsets.symmetric(vertical: 10),

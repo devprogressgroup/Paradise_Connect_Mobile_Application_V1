@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
 import 'package:progress_group/core/network/api_constants.dart';
 import 'package:progress_group/core/constants/colors.dart';
+import 'package:progress_group/core/services/analytics_service.dart';
 
 class QrScannerPage extends StatefulWidget {
   final String sessionId; 
@@ -24,6 +25,7 @@ class _QrScannerPageState extends State<QrScannerPage> {
   @override
   void initState() {
     super.initState();
+    AnalyticsService.logScreenView('qr_scanner');
     initSocket();
     triggerLaravelQR();
   }
@@ -136,12 +138,13 @@ class _QrScannerPageState extends State<QrScannerPage> {
                 const SizedBox(height: 16),
                 ElevatedButton(
                   onPressed: () {
+                    AnalyticsService.logEvent('qr_scanner_retry_qr');
                     setState(() {
                       errorMessage = '';
                       isTriggering = true;
                     });
                     triggerLaravelQR();
-                  }, 
+                  },
                   child: const Text("Coba Lagi")
                 )
               ] else ...[
@@ -192,9 +195,10 @@ class _QrScannerPageState extends State<QrScannerPage> {
                 const SizedBox(height: 8),
                 TextButton.icon(
                   onPressed: () {
+                    AnalyticsService.logEvent('qr_scanner_regenerate_qr');
                     setState(() => qrBase64 = null);
                     triggerLaravelQR();
-                  }, 
+                  },
                   icon: const Icon(Icons.refresh, size: 18),
                   label: const Text("Refresh QR Code")
                 )

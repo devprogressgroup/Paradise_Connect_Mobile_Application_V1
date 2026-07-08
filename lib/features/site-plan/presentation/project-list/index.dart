@@ -10,6 +10,7 @@ import '../state/siteplan_bloc.dart';
 import '../state/siteplan_event.dart';
 import '../state/siteplan_state.dart';
 import 'package:progress_group/core/constants/colors.dart';
+import 'package:progress_group/core/services/analytics_service.dart';
 
 class ProjectListPage extends StatelessWidget {
   final List<ProjectSite> sites;
@@ -93,7 +94,10 @@ class ProjectListPage extends StatelessWidget {
                                     shape: RoundedRectangleBorder(
                                       borderRadius: BorderRadius.circular(8),
                                     ),
-                                    onTap: () => context.pop(site),
+                                    onTap: () {
+                                      AnalyticsService.logEvent('project_list_select_project_site');
+                                      context.pop(site);
+                                    },
                                   ),
                                 ],
                               );

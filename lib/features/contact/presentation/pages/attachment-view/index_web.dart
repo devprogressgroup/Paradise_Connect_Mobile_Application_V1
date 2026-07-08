@@ -9,6 +9,7 @@ import 'dart:ui_web' as ui_web;
 import 'package:flutter/material.dart';
 import 'package:progress_group/core/constants/colors.dart';
 import 'package:progress_group/core/utils/widget/custom_header.dart';
+import 'package:progress_group/core/services/analytics_service.dart';
 
 class AttachmentWebViewPage extends StatefulWidget {
   final String url;
@@ -32,6 +33,7 @@ class _AttachmentWebViewPageState extends State<AttachmentWebViewPage> {
   @override
   void initState() {
     super.initState();
+    AnalyticsService.logScreenView('attachment_view');
     _counter++;
     _viewId = 'attachment-iframe-$_counter';
     _previewUrl = _toPreviewUrl(widget.url);
@@ -89,7 +91,10 @@ class _AttachmentWebViewPageState extends State<AttachmentWebViewPage> {
     return null;
   }
 
-  void _openInNewTab() => html.window.open(_openUrl, '_blank');
+  void _openInNewTab() {
+    AnalyticsService.logEvent('attachment_view_open_in_new_tab');
+    html.window.open(_openUrl, '_blank');
+  }
 
   @override
   Widget build(BuildContext context) {

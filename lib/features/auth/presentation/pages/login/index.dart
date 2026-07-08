@@ -1,6 +1,7 @@
 ﻿import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import '../../../../../core/utils/web_debug_util.dart' as web_debug;
+import 'package:progress_group/core/services/analytics_service.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:progress_group/core/constants/colors.dart';
@@ -66,6 +67,7 @@ class _LoginPageState extends State<LoginPage> {
 
 
   Future<void> _loginWithBiometric() async {
+    AnalyticsService.logEvent('login_biometric_login');
     try {
       final isSupported = await _auth.isDeviceSupported();
 
@@ -104,6 +106,7 @@ class _LoginPageState extends State<LoginPage> {
   
 
   void _login() {
+    AnalyticsService.logEvent('login_sign_in');
     final email = _emailController.text.trim();
     final password = _passwordController.text.trim();
     if (email.isEmpty || password.isEmpty) {
@@ -194,7 +197,10 @@ class _LoginPageState extends State<LoginPage> {
                     children: [
                       // Header
                       GestureDetector(
-                        onTap: () => showEnvSwitcher(context),
+                        onTap: () {
+                          AnalyticsService.logEvent('login_env_switcher');
+                          showEnvSwitcher(context);
+                        },
                         child: const Text(
                           'Sign In',
                           textAlign: TextAlign.center,
@@ -316,6 +322,7 @@ class _LoginPageState extends State<LoginPage> {
                                   : Icons.visibility_outlined,
                             ),
                             onPressed: () {
+                              AnalyticsService.logEvent('login_toggle_password_visibility');
                               setState(() {
                                 _isObscure = !_isObscure;
                               });
@@ -374,6 +381,7 @@ class _LoginPageState extends State<LoginPage> {
                               children: [
                                 GestureDetector(
                                   onTap: () {
+                                    AnalyticsService.logEvent('login_remember_me');
                                     setState(() {
                                       _rememberMe = !_rememberMe;
                                     });
@@ -417,7 +425,8 @@ class _LoginPageState extends State<LoginPage> {
                           ),
                           TextButton(
                             onPressed: () {
-                              context.pushNamed("forgot-password", extra: 1);
+                              AnalyticsService.logEvent('login_forgot_password');
+                              context.pushNamed("forgot_password", extra: 1);
                             },
                             style: TextButton.styleFrom(
                               padding: EdgeInsets.zero,
@@ -531,7 +540,8 @@ class _LoginPageState extends State<LoginPage> {
                               Text("Don't have an account? ", style: TextStyle( fontSize: 12, color: Color(greyShade500)),),
                               GestureDetector(
                                 onTap: () async {
-                                 context.pushNamed("forgot-password", extra: {'step': 1, 'isRegister': true});
+                                 AnalyticsService.logEvent('login_sign_up');
+                                 context.pushNamed("forgot_password", extra: {'step': 1, 'isRegister': true});
                                 },
                                 child: Text("Sign Up", style: TextStyle( fontSize: 12, fontWeight: FontWeight.w700, color: Color(primaryColor), decoration: TextDecoration.underline, decorationColor: Color(primaryColor), decorationThickness: 1,),textAlign: TextAlign.center,)),
                             ],
@@ -539,6 +549,7 @@ class _LoginPageState extends State<LoginPage> {
                         
                           GestureDetector(
                             onTap: () async {
+                              AnalyticsService.logEvent('login_contact_support');
                               final msg = ApiConstants.loginHelpMessage.isNotEmpty
                                   ? ApiConstants.loginHelpMessage
                                   : 'Halo, saya mengalami masalah saat login di aplikasi Progress Group. Mohon bantuannya.';
@@ -560,7 +571,10 @@ class _LoginPageState extends State<LoginPage> {
                       if (kIsWeb) ...[
                         const SizedBox(height: 8),
                         GestureDetector(
-                          onTap: web_debug.showDebugPanel,
+                          onTap: () {
+                            AnalyticsService.logEvent('login_debug_info');
+                            web_debug.showDebugPanel();
+                          },
                           child: Text(
                             'Debug Info',
                             textAlign: TextAlign.center,

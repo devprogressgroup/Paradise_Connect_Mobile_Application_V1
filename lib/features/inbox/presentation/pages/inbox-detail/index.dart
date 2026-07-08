@@ -13,6 +13,7 @@ import 'package:progress_group/features/inbox/presentation/state/message/message
 import 'package:video_player/video_player.dart';
 import '../../../../../core/utils/widget/error_dialog.dart';
 import '../../../../../core/utils/helpers/app_time.dart';
+import 'package:progress_group/core/services/analytics_service.dart';
 
 class InboxDetailPage extends StatefulWidget {
   final InboxDetailArgs args;
@@ -31,6 +32,7 @@ class _InboxDetailPageState extends State<InboxDetailPage> {
   @override
   void initState() {
     super.initState();
+    AnalyticsService.logScreenView('inbox_detail');
     _scrollController = ScrollController()..addListener(_onScroll);
     _fetchMessages();
   }
@@ -175,7 +177,13 @@ class _InboxDetailPageState extends State<InboxDetailPage> {
       padding: const EdgeInsets.all(16),
       child: Row(
         children: [
-          GestureDetector(onTap: () => Navigator.pop(context), child: Icon(Icons.arrow_back, color: Color(primaryColor))),
+          GestureDetector(
+            onTap: () {
+              AnalyticsService.logEvent('inbox_detail_back');
+              Navigator.pop(context);
+            },
+            child: Icon(Icons.arrow_back, color: Color(primaryColor)),
+          ),
           const SizedBox(width: 10),
           ClipRRect(
             borderRadius: BorderRadius.circular(20),
@@ -293,7 +301,10 @@ class _InboxDetailPageState extends State<InboxDetailPage> {
           _pdfCard(msg.mediaUrl!, msg.caption ?? msg.body),
         if (hasMedia && !_isPdf(msg))
           GestureDetector(
-            onTap: () => _openImageViewer(msg.mediaUrl!),
+            onTap: () {
+              AnalyticsService.logEvent('inbox_detail_view_media');
+              _openImageViewer(msg.mediaUrl!);
+            },
             child: ClipRRect(
               borderRadius: BorderRadius.circular(8),
               child: Image.network(
@@ -346,6 +357,7 @@ class _InboxDetailPageState extends State<InboxDetailPage> {
     final fileName = Uri.tryParse(url)?.pathSegments.lastOrNull ?? 'document.pdf';
     return GestureDetector(
       onTap: () {
+        AnalyticsService.logEvent('inbox_detail_open_document');
         Navigator.push(
           context,
           MaterialPageRoute(builder: (_) => AttachmentWebViewPage(url: url)),

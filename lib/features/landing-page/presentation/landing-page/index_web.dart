@@ -9,6 +9,7 @@ import 'package:progress_group/features/auth/presentation/state/profile/profile_
 import 'package:progress_group/features/auth/presentation/state/profile/profile_state.dart';
 import '../state/landing_page_cubit.dart';
 import '../state/landing_page_state.dart';
+import 'package:progress_group/core/services/analytics_service.dart';
 
 class LandingPage extends StatefulWidget {
   const LandingPage({super.key});
@@ -33,6 +34,7 @@ class _LandingPageState extends State<LandingPage> {
   @override
   void initState() {
     super.initState();
+    AnalyticsService.logScreenView('landing_page');
     final profileState = context.read<ProfileBloc>().state;
     String? username;
     String? roleName;
@@ -155,7 +157,10 @@ class _LandingPageState extends State<LandingPage> {
                   const Text('Gagal memuat halaman', textAlign: TextAlign.center),
                   const SizedBox(height: 12),
                   ElevatedButton(
-                    onPressed: () => context.read<LandingPageCubit>().fetchUrl(),
+                    onPressed: () {
+                      AnalyticsService.logEvent('landing_page_retry_load_landing');
+                      context.read<LandingPageCubit>().fetchUrl();
+                    },
                     child: const Text('Coba Lagi'),
                   ),
                 ],
@@ -185,7 +190,10 @@ class _LandingPageState extends State<LandingPage> {
                         ),
                         const SizedBox(width: 8),
                         TextButton.icon(
-                          onPressed: () => html.window.open(_fullUrl, '_blank'),
+                          onPressed: () {
+                            AnalyticsService.logEvent('landing_page_open_in_browser');
+                            html.window.open(_fullUrl, '_blank');
+                          },
                           icon: const Icon(Icons.open_in_browser, size: 14),
                           label: const Text('Buka di browser', style: TextStyle(fontSize: 12)),
                           style: TextButton.styleFrom(
@@ -195,7 +203,10 @@ class _LandingPageState extends State<LandingPage> {
                           ),
                         ),
                         GestureDetector(
-                          onTap: () => setState(() => _showWaBlockedBanner = false),
+                          onTap: () {
+                            AnalyticsService.logEvent('landing_page_dismiss_wa_banner');
+                            setState(() => _showWaBlockedBanner = false);
+                          },
                           child: const Padding(
                             padding: EdgeInsets.only(left: 4),
                             child: Icon(Icons.close, size: 14, color: Color(greyShade500)),
@@ -220,7 +231,10 @@ class _LandingPageState extends State<LandingPage> {
                         ),
                         const SizedBox(width: 8),
                         TextButton.icon(
-                          onPressed: () => html.window.open(_fullUrl, '_blank'),
+                          onPressed: () {
+                            AnalyticsService.logEvent('landing_page_open_in_browser');
+                            html.window.open(_fullUrl, '_blank');
+                          },
                           icon: const Icon(Icons.open_in_new, size: 14),
                           label: const Text('Buka', style: TextStyle(fontSize: 12)),
                           style: TextButton.styleFrom(

@@ -1,6 +1,7 @@
 ﻿import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:progress_group/core/services/analytics_service.dart';
 import 'package:progress_group/core/utils/helpers/app_time.dart';
 import 'package:progress_group/core/utils/helpers/number_helper.dart';
 import 'package:progress_group/core/utils/helpers/permissions_helper.dart';
@@ -67,6 +68,7 @@ class _ContactPageState extends State<ContactPage> {
   @override
   void initState() {
     super.initState();
+    AnalyticsService.logScreenView('contact_list');
     _contactBloc = context.read<ContactBloc>();
 
     _searchController.clear();
@@ -212,6 +214,7 @@ class _ContactPageState extends State<ContactPage> {
                       onChanged: (value) {
                         if (_debounce?.isActive ?? false) _debounce?.cancel();
                         _debounce = Timer(const Duration(milliseconds: 500), () {
+                          AnalyticsService.logEvent('contact_list_search_contacts');
                           contactEntity.clear();
                           context.read<ContactBloc>().add(
                             FetchContactsEvent(search: _normalizeSearch(value), isRefresh: true),
@@ -306,6 +309,7 @@ class _ContactPageState extends State<ContactPage> {
                                                 label: label,
                                                 isSelected: isSelected,
                                                 onTap: () async {
+                                                  AnalyticsService.logEvent('contact_list_filter_owner');
                                                   if (profileState is ProfileLoaded) {
                                                     final user = profileState.profile;
                                                     final List<OwnerDropdownItem> ownerItems = [];
@@ -397,6 +401,7 @@ class _ContactPageState extends State<ContactPage> {
                                                 label: label,
                                                 isSelected: isSelected,
                                                 onTap: () async {
+                                                  AnalyticsService.logEvent('contact_list_filter_status');
                                                   if (statusState.status == ProspectStatusEnum.loaded) {
                                                     final List<OwnerDropdownItem> statusItems = statusState.statuses.map((e) => OwnerDropdownItem(id: e.statusProspectId, name: e.statusProspectName,)).toList();
 
@@ -434,6 +439,7 @@ class _ContactPageState extends State<ContactPage> {
                                             label: label,
                                             isSelected: isSelected,
                                             onTap: () async {
+                                              AnalyticsService.logEvent('contact_list_filter_date', parameters: {'filter': 'create_date'});
                                               final result = await context.pushNamed<DateFilterResult>(
                                                 'dateFilter',
                                                 extra: {
@@ -475,6 +481,7 @@ class _ContactPageState extends State<ContactPage> {
                                             label: label,
                                             isSelected: isSelected,
                                             onTap: () async {
+                                              AnalyticsService.logEvent('contact_list_filter_date', parameters: {'filter': 'appt_date'});
                                               final result = await context.pushNamed<DateFilterResult>(
                                                 'dateFilter',
                                                 extra: {
@@ -508,6 +515,7 @@ class _ContactPageState extends State<ContactPage> {
                                             label: label,
                                             isSelected: isSelected,
                                             onTap: () async {
+                                              AnalyticsService.logEvent('contact_list_filter_date', parameters: {'filter': 'visit_date'});
                                               final result = await context.pushNamed<DateFilterResult>(
                                                 'dateFilter',
                                                 extra: {
@@ -541,6 +549,7 @@ class _ContactPageState extends State<ContactPage> {
                                             label: label,
                                             isSelected: isSelected,
                                             onTap: () async {
+                                              AnalyticsService.logEvent('contact_list_filter_date', parameters: {'filter': 'reserve_date'});
                                               final result = await context.pushNamed<DateFilterResult>(
                                                 'dateFilter',
                                                 extra: {
@@ -574,6 +583,7 @@ class _ContactPageState extends State<ContactPage> {
                                             label: label,
                                             isSelected: isSelected,
                                             onTap: () async {
+                                              AnalyticsService.logEvent('contact_list_filter_date', parameters: {'filter': 'sp_date'});
                                               final result = await context.pushNamed<DateFilterResult>(
                                                 'dateFilter',
                                                 extra: {
@@ -717,7 +727,10 @@ class _ContactPageState extends State<ContactPage> {
           ? Padding(
               padding: const EdgeInsets.only(bottom: 10),
               child: FloatingActionButton(
-                onPressed: () => context.pushNamed('formContact', extra: ContactDetailArgs(page: 0)),
+                onPressed: () {
+                  AnalyticsService.logEvent('contact_list_add_contact');
+                  context.pushNamed('formContact', extra: ContactDetailArgs(page: 0));
+                },
                 backgroundColor: Color(primaryColor),
                 shape: const CircleBorder(),
                 child: const Icon(Icons.add, color: Color(whiteColor)),
@@ -738,6 +751,7 @@ String _normalizePhone(String phone) {
 Widget _buildListContacts(BuildContext context, ContactEntity contact) {
   return GestureDetector(
     onTap: () {
+      AnalyticsService.logEvent('contact_list_open_contact_detail');
       context.pushNamed(
         'detailContact',
         extra: ContactDetailArgs(dataContact: contact, page: 2),
@@ -783,6 +797,7 @@ Widget _buildListContacts(BuildContext context, ContactEntity contact) {
           ),
           GestureDetector(
             onTap: () {
+              AnalyticsService.logEvent('contact_list_open_contact_options');
               showCustomBottomSheet(context: context,child: _buildContactOptions(context, contact),);
             },
             child: Icon(Icons.more_vert, size: 27, color: Color(blackColor)),
@@ -800,18 +815,24 @@ Widget _buildContactOptions(BuildContext context, ContactEntity contact) {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _buildIconLink(context, icEdit, "Edit Contact", () {
+            AnalyticsService.logEvent('contact_list_edit_contact');
             context.pushNamed('formContact', extra: ContactDetailArgs(dataContact: contact, page: 1));
           }, hidden: !(PermissionsHelper.canEditContact && (contact.canEdit ?? true))),
         _buildIconLink(context, icDelete, "Delete Contact", () {
+            AnalyticsService.logEvent('contact_list_delete_contact');
             showDialog(
               context: context,
               builder: (ctx) => AlertDialog(
                 title: Text('Confirm'),
                 content: Text('Delete this contact?'),
                 actions: [
-                  TextButton(onPressed: () => Navigator.pop(ctx), child: Text('Cancel')),
+                  TextButton(onPressed: () {
+                    AnalyticsService.logEvent('contact_list_cancel_delete_contact');
+                    Navigator.pop(ctx);
+                  }, child: Text('Cancel')),
                   TextButton(
                     onPressed: () {
+                      AnalyticsService.logEvent('contact_list_confirm_delete_contact');
                       Navigator.pop(ctx);
                       context.read<ContactBloc>().add(DeleteContactEvent(contact.contactId!));
                     },

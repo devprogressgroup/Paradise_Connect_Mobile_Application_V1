@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:progress_group/core/utils/widget/custom_header.dart';
 import 'package:progress_group/core/constants/colors.dart';
+import 'package:progress_group/core/services/analytics_service.dart';
 
 class AttachmentWebViewPage extends StatefulWidget {
   final String url;
@@ -21,6 +22,7 @@ class _AttachmentWebViewPageState extends State<AttachmentWebViewPage> {
   @override
   void initState() {
     super.initState();
+    AnalyticsService.logScreenView('attachment_view');
 
     final fixedUrl = _convertDriveUrl(widget.url);
 

@@ -36,6 +36,7 @@ import '../features/splash/presentation/pages/index.dart';
 import '../features/siap-huni/presentation/pages/index.dart';
 import '../features/contact/presentation/pages/pipeline/index.dart';
 import 'main_layout.dart';
+import '../core/services/analytics_service.dart';
 import '../core/utils/helpers/permissions_helper.dart';
 import '../core/utils/route_observer.dart';
 
@@ -76,11 +77,12 @@ class AppRouter {
       ),
       GoRoute(
         path: '/login',
+        name: 'login',
         builder: (context, state) => const LoginPage(),
       ),
       GoRoute(
         path: '/forgot-password',
-        name: 'forgot-password',
+        name: 'forgot_password',
           builder: (context, state) {
           final extra = state.extra;
           if (extra is Map) {
@@ -100,6 +102,7 @@ class AppRouter {
         routes: [
           GoRoute(
             path: '/',
+            name: 'home',
             builder: (context, state) => const HomePage(),
             routes: [
               GoRoute(
@@ -215,12 +218,13 @@ class AppRouter {
           ),
           GoRoute(
             path: '/site-plan',
+            name: 'site_plan',
             redirect: (context, state) =>
                 PermissionsHelper.canAccessSitePlan ? null : '/',
             builder: (context, state) => const SitePlanPage(),
             routes: [
               GoRoute(
-                name: 'projectList',
+                name: 'project_list',
                 path: 'project-list',
                 builder: (context, state) {
                   final extra = state.extra as Map<String, dynamic>?;
@@ -233,7 +237,7 @@ class AppRouter {
           ),
           GoRoute(
             path: '/sales-kit',
-            name: "salesKit",
+            name: "sales_kit",
             redirect: (context, state) =>
                 PermissionsHelper.canAccessSalesKit ? null : '/',
             builder: (context, state) {
@@ -243,6 +247,7 @@ class AppRouter {
           ),
           GoRoute(
             path: '/attandance',
+            name: 'attendance',
             redirect: (context, state) {
               if (!PermissionsHelper.canAccessAttendance) {
                 debugPrint('[Router] /attandance redirect → "/" (canAccessAttendance=false)');
@@ -291,12 +296,12 @@ class AppRouter {
           ),
           GoRoute(
             path: '/landing-page',
-            name: 'landingPage',
+            name: 'landing_page',
             builder: (context, state) => const LandingPage(),
           ),
           GoRoute(
             path: '/siap-huni',
-            name: 'siapHuni',
+            name: 'siap_huni',
             redirect: (context, state) =>
                 PermissionsHelper.canAccessSiapHuni ? null : '/',
             builder: (context, state) => const SiapHuniPage(),
@@ -324,5 +329,19 @@ class AppRouter {
       ),
     ],
   );
-}
+
+    // Track setiap perpindahan route ke Firebase Analytics
+    String lastScreen = '';
+    router.routerDelegate.addListener(() {
+      final config = router.routerDelegate.currentConfiguration;
+      final matches = config.matches;
+      if (matches.isEmpty) return;
+      final lastRoute = matches.last.route;
+      final screen = (lastRoute is GoRoute && lastRoute.name != null) ? lastRoute.name! : config.uri.path;
+      if (screen.isNotEmpty && screen != lastScreen) {
+        lastScreen = screen;
+        AnalyticsService.logScreenView(screen);
+      }
+    });
+  }
 }

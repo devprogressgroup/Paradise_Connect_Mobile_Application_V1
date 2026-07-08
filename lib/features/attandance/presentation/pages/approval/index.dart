@@ -15,6 +15,7 @@ import '../../../../../core/constants/colors.dart';
 import '../../../../../core/utils/widget/custom_header.dart';
 import '../../../../../core/utils/widget/custom_search_field.dart';
 import '../../../../../core/utils/widget/shimmer_loading.dart';
+import 'package:progress_group/core/services/analytics_service.dart';
 
 
 class ApprovalPage extends StatefulWidget {
@@ -62,6 +63,7 @@ class _ApprovalPageState extends State<ApprovalPage> {
   }
 
   Future<void> _openStatusFilter() async {
+    AnalyticsService.logEvent('approval_filter_status');
     final items = [
       OwnerDropdownItem(id: 1, name: 'Pending'),
       OwnerDropdownItem(id: 2, name: 'Approved'),
@@ -86,6 +88,7 @@ class _ApprovalPageState extends State<ApprovalPage> {
   }
 
   Future<void> _openFlagFilter() async {
+    AnalyticsService.logEvent('approval_filter_type');
     final items = [
       OwnerDropdownItem(id: 0, name: 'Clock In'),
       OwnerDropdownItem(id: 1, name: 'Clock Out'),
@@ -187,7 +190,10 @@ class _ApprovalPageState extends State<ApprovalPage> {
               colorBack: const Color(whiteColor),
               colorTitle: const Color(whiteColor),
               iconRight: Icons.arrow_back,
-              iconRightOnTap: () => context.pop(),
+              iconRightOnTap: () {
+                AnalyticsService.logEvent('approval_back');
+                context.pop();
+              },
               colorIconRight: const Color(whiteColor),
             ),
             Padding(
@@ -202,6 +208,7 @@ class _ApprovalPageState extends State<ApprovalPage> {
                       onChanged: (value) {
                         if (_debounce?.isActive ?? false) _debounce?.cancel();
                         _debounce = Timer(const Duration(milliseconds: 500), () {
+                          AnalyticsService.logEvent('approval_search_approvals');
                           _applyFilters();
                         });
                       },
@@ -213,7 +220,11 @@ class _ApprovalPageState extends State<ApprovalPage> {
                     isSelected: _selectedStatus != null,
                     onTap: _openStatusFilter,
                     onClear: _selectedStatus != null
-                        ? () { setState(() => _selectedStatus = null); _applyFilters(); }
+                        ? () {
+                            AnalyticsService.logEvent('approval_clear_status_filter');
+                            setState(() => _selectedStatus = null);
+                            _applyFilters();
+                          }
                         : null,
                   ),
                   const SizedBox(width: 8),
@@ -222,7 +233,11 @@ class _ApprovalPageState extends State<ApprovalPage> {
                     isSelected: _selectedFlag != null,
                     onTap: _openFlagFilter,
                     onClear: _selectedFlag != null
-                        ? () { setState(() => _selectedFlag = null); _applyFilters(); }
+                        ? () {
+                            AnalyticsService.logEvent('approval_clear_type_filter');
+                            setState(() => _selectedFlag = null);
+                            _applyFilters();
+                          }
                         : null,
                   ),
                 ],
@@ -457,7 +472,10 @@ class _ApprovalPageState extends State<ApprovalPage> {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
+            onPressed: () {
+              AnalyticsService.logEvent('approval_cancel_approval_note');
+              Navigator.pop(ctx, false);
+            },
             child: const Text('Batal'),
           ),
           ElevatedButton(
@@ -465,7 +483,10 @@ class _ApprovalPageState extends State<ApprovalPage> {
               backgroundColor: isReject ? Color(redAccentColor) : Color(greenMaterialColor),
               foregroundColor: Color(whiteColor),
             ),
-            onPressed: () => Navigator.pop(ctx, true),
+            onPressed: () {
+              AnalyticsService.logEvent('approval_confirm_approval_note');
+              Navigator.pop(ctx, true);
+            },
             child: Text(isReject ? 'Reject' : 'Approve'),
           ),
         ],
@@ -487,6 +508,7 @@ class _ApprovalPageState extends State<ApprovalPage> {
   }
 
   void _showAttendanceDetailDialog(AttendanceApprovalEntity item, {int? button}) {
+    AnalyticsService.logEvent('approval_open_approval_detail');
     final String? displayImage = (item.fileAttachment != null && item.fileAttachment!.isNotEmpty)
         ? item.fileAttachment!.first
         : null;
@@ -577,6 +599,7 @@ class _ApprovalPageState extends State<ApprovalPage> {
                       Expanded(
                         child: OutlinedButton(
                           onPressed: () {
+                            AnalyticsService.logEvent('approval_reject_attendance');
                             Navigator.pop(ctx);
                             _showApprovalNoteDialog(item.logId, 0);
                           },
@@ -592,6 +615,7 @@ class _ApprovalPageState extends State<ApprovalPage> {
                       Expanded(
                         child: ElevatedButton(
                           onPressed: () {
+                            AnalyticsService.logEvent('approval_approve_attendance');
                             Navigator.pop(ctx);
                             _showApprovalNoteDialog(item.logId, 1);
                           },
@@ -615,6 +639,7 @@ class _ApprovalPageState extends State<ApprovalPage> {
   }
 
   void _showImagePreview(String url) {
+    AnalyticsService.logEvent('approval_view_image_fullscreen');
     final screen = MediaQuery.of(context).size;
     final imgW = screen.width - 20;
     final imgH = screen.height - 120;

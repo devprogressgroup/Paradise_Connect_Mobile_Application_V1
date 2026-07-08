@@ -23,6 +23,7 @@ import '../../../../core/constants/colors.dart';
 import '../../../../core/utils/widget/custom_search_field.dart';
 import '../../../../core/utils/widget/shimmer_loading.dart';
 import '../../data/arguments/saleskit_detail_args.dart';
+import 'package:progress_group/core/services/analytics_service.dart';
 
 class SalesKitPage extends StatefulWidget {
   final SalesKitDetailArgs args;
@@ -83,7 +84,10 @@ class _SalesKitPageState extends State<SalesKitPage> {
           content: const Text('Dokumen belum tersedia untuk produk ini.'),
           actions: [
             TextButton(
-              onPressed: () => Navigator.pop(dialogContext),
+              onPressed: () {
+                AnalyticsService.logEvent('sales_kit_error_dialog_ok');
+                Navigator.pop(dialogContext);
+              },
               child: const Text('OK'),
             ),
           ],
@@ -91,7 +95,7 @@ class _SalesKitPageState extends State<SalesKitPage> {
       );
       return;
     }
-    context.pushNamed('salesKit', extra: args);
+    context.pushNamed('sales_kit', extra: args);
   }
 
   void _openUrl(String? url, String title) {
@@ -128,7 +132,10 @@ class _SalesKitPageState extends State<SalesKitPage> {
                       colorBg: whiteColor,
                       colorTitle: primaryColor,
                       logo: icPriceList,
-                      onTap: () => _openUrl(args.priceList, "Price List ${args.title ?? ''}".trim()),
+                      onTap: () {
+                        AnalyticsService.logEvent('sales_kit_open_price_list');
+                        _openUrl(args.priceList, "Price List ${args.title ?? ''}".trim());
+                      },
                     ),
                   ],
                   if (args.brochure != null && args.brochure!.isNotEmpty) ...[
@@ -138,7 +145,10 @@ class _SalesKitPageState extends State<SalesKitPage> {
                       colorBg: whiteColor,
                       colorTitle: primaryColor,
                       logo: icEBrouchure,
-                      onTap: () => _openUrl(args.brochure, "E Brochure ${args.title ?? ''}".trim()),
+                      onTap: () {
+                        AnalyticsService.logEvent('sales_kit_open_e_brochure');
+                        _openUrl(args.brochure, "E Brochure ${args.title ?? ''}".trim());
+                      },
                     ),
                   ],
                   if (args.productKnowledge != null && args.productKnowledge!.isNotEmpty) ...[
@@ -148,7 +158,10 @@ class _SalesKitPageState extends State<SalesKitPage> {
                       colorBg: whiteColor,
                       colorTitle: primaryColor,
                       logo: icProductKnowlage,
-                      onTap: () => _openUrl(args.productKnowledge, "Product Knowledge ${args.title ?? ''}".trim()),
+                      onTap: () {
+                        AnalyticsService.logEvent('sales_kit_open_product_knowledge');
+                        _openUrl(args.productKnowledge, "Product Knowledge ${args.title ?? ''}".trim());
+                      },
                     ),
                   ],
                   if (args.other != null && args.other!.isNotEmpty) ...[
@@ -158,7 +171,10 @@ class _SalesKitPageState extends State<SalesKitPage> {
                       colorBg: whiteColor,
                       colorTitle: primaryColor,
                       logo: icAttacment,
-                      onTap: () => _openUrl(args.other, "Promotion Kit ${args.title ?? ''}".trim()),
+                      onTap: () {
+                        AnalyticsService.logEvent('sales_kit_open_promotion_kit');
+                        _openUrl(args.other, "Promotion Kit ${args.title ?? ''}".trim());
+                      },
                     ),
                   ],
 
@@ -227,6 +243,7 @@ class _SalesKitPageState extends State<SalesKitPage> {
                 actions: [
                   TextButton(
                     onPressed: () {
+                      AnalyticsService.logEvent('sales_kit_confirm_leave_dialog');
                       Navigator.pop(dialogContext);
                       Navigator.pop(context);
                     },
@@ -270,7 +287,10 @@ class _SalesKitPageState extends State<SalesKitPage> {
             const Text('Gagal memuat data saleskit', textAlign: TextAlign.center),
             SizedBox(height: 12),
             ElevatedButton(
-              onPressed: _onRefresh,
+              onPressed: () {
+                AnalyticsService.logEvent('sales_kit_retry_load_saleskit');
+                _onRefresh();
+              },
               child: const Text("Coba Lagi"),
             ),
           ],
@@ -448,8 +468,10 @@ class _SalesKitPageState extends State<SalesKitPage> {
             const Text('Gagal memuat data project', textAlign: TextAlign.center),
             SizedBox(height: 12),
             ElevatedButton(
-              onPressed: () =>
-                  context.read<SalesKitTownshipBloc>().add(GetSalesKitTownshipsEvent()),
+              onPressed: () {
+                AnalyticsService.logEvent('sales_kit_retry_load_saleskit');
+                context.read<SalesKitTownshipBloc>().add(GetSalesKitTownshipsEvent());
+              },
               child: const Text("Coba Lagi"),
             ),
           ],
@@ -497,8 +519,9 @@ class _SalesKitPageState extends State<SalesKitPage> {
               township.logo,
             ),
             ontap: () {
+              AnalyticsService.logEvent('sales_kit_select_township');
               context.pushNamed(
-                "salesKit",
+                "sales_kit",
                 extra: SalesKitDetailArgs(
                   page: 1,
                   title: township.name,

@@ -7,6 +7,7 @@ import 'package:progress_group/features/auth/presentation/state/profile/profile_
 import '../state/landing_page_cubit.dart';
 import '../state/landing_page_state.dart';
 import 'package:progress_group/core/constants/colors.dart';
+import 'package:progress_group/core/services/analytics_service.dart';
 
 class LandingPage extends StatefulWidget {
   const LandingPage({super.key});
@@ -22,6 +23,7 @@ class _LandingPageState extends State<LandingPage> {
   @override
   void initState() {
     super.initState();
+    AnalyticsService.logScreenView('landing_page');
     final profileState = context.read<ProfileBloc>().state;
     String? username;
     String? roleName;
@@ -79,7 +81,10 @@ class _LandingPageState extends State<LandingPage> {
                   const Text('Gagal memuat halaman', textAlign: TextAlign.center),
                   const SizedBox(height: 12),
                   ElevatedButton(
-                    onPressed: () => context.read<LandingPageCubit>().fetchUrl(),
+                    onPressed: () {
+                      AnalyticsService.logEvent('landing_page_retry_load_landing');
+                      context.read<LandingPageCubit>().fetchUrl();
+                    },
                     child: const Text('Coba Lagi'),
                   ),
                 ],

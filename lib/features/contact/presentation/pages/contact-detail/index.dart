@@ -1,6 +1,7 @@
 ﻿import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:progress_group/core/constants/assets.dart';
+import 'package:progress_group/core/services/analytics_service.dart';
 import 'package:progress_group/core/utils/widget/drive_image/drive_image.dart';
 import 'package:progress_group/core/utils/widget/shimmer_loading.dart';
 import 'package:progress_group/core/constants/colors.dart';
@@ -75,6 +76,7 @@ class _ContactDetailPageState extends State<ContactDetailPage>with TickerProvide
   @override
   void initState() {
     super.initState();
+    AnalyticsService.logScreenView('contact_detail');
     _contactDetailActivityBloc = context.read<ContactDetailActivityBloc>();
     _activityProspectStatusBloc = context.read<ActivityProspectStatusBloc>();
     _attachmentCubit = context.read<AttachmentCubit>();
@@ -263,7 +265,10 @@ class _ContactDetailPageState extends State<ContactDetailPage>with TickerProvide
           ? Padding(
               padding: const EdgeInsets.only(bottom: 10),
               child: FloatingActionButton(
-                onPressed: () => showCustomBottomSheet(context: context, child: _buildContentBSAdd()),
+                onPressed: () {
+                  AnalyticsService.logEvent('contact_detail_add_activity_or_attachment');
+                  showCustomBottomSheet(context: context, child: _buildContentBSAdd());
+                },
                 backgroundColor: Color(primaryColor),
                 shape: const CircleBorder(),
                 child: const Icon(Icons.add, color: Color(whiteColor)),
@@ -308,7 +313,10 @@ class _ContactDetailPageState extends State<ContactDetailPage>with TickerProvide
                                   child: Row(
                                     children: [
                                       GestureDetector(
-                                        onTap: () => context.pop(),
+                                        onTap: () {
+                                          AnalyticsService.logEvent('contact_detail_back');
+                                          context.pop();
+                                        },
                                         child: Icon(
                                           Icons.arrow_back,
                                           color: Color(primaryColor),
@@ -356,6 +364,7 @@ class _ContactDetailPageState extends State<ContactDetailPage>with TickerProvide
                                       BgIcon(
                                         asset: icContactDetailPhone,
                                         onTap: () async {
+                                          AnalyticsService.logEvent('contact_detail_call_contact');
                                           final phone = widget.args.dataContact?.primaryPhone;
                                           if (phone != null && phone.isNotEmpty) {
                                             await launchUrl(Uri(scheme: 'tel', path: phone));
@@ -365,6 +374,7 @@ class _ContactDetailPageState extends State<ContactDetailPage>with TickerProvide
                                       BgIcon(
                                         asset: icContactDetailWA,
                                         onTap: () async {
+                                          AnalyticsService.logEvent('contact_detail_chat_whatsapp');
                                           var phone = widget.args.dataContact?.whatsappNumber
                                               ?? widget.args.dataContact?.primaryPhone;
                                           if (phone != null && phone.isNotEmpty) {
@@ -382,6 +392,7 @@ class _ContactDetailPageState extends State<ContactDetailPage>with TickerProvide
                                       BgIcon(
                                         asset: null,
                                         onTap: () {
+                                          AnalyticsService.logEvent('contact_detail_open_contact_options');
                                           showCustomBottomSheet(
                                             context: context,
                                             child: _buildContactOptions(
@@ -610,6 +621,7 @@ class _ContactDetailPageState extends State<ContactDetailPage>with TickerProvide
       left: left,
       child: GestureDetector(
         onTap: () {
+          AnalyticsService.logEvent('contact_detail_switch_tab');
           setState(() {
             currentTab = index;
             _tabController.animateTo(index);
@@ -837,6 +849,7 @@ class _ContactDetailPageState extends State<ContactDetailPage>with TickerProvide
 
     return GestureDetector(
       onTap: () {
+        AnalyticsService.logEvent('contact_detail_open_whatsapp_chat_item');
         context.pushNamed('detailInbox', extra: InboxDetailArgs(data: item));
       },
       child: Container(
@@ -1024,6 +1037,7 @@ class _ContactDetailPageState extends State<ContactDetailPage>with TickerProvide
                 BgIcon(
                   asset: icUpload,
                   onTap: PermissionsHelper.canUploadAttachment ? () {
+                    AnalyticsService.logEvent('contact_detail_upload_attachment');
                     _navigateToAddContact(
                       ContactDetailArgs(
                         dataContact: widget.args.dataContact,
@@ -1110,7 +1124,9 @@ class _ContactDetailPageState extends State<ContactDetailPage>with TickerProvide
                           final item = list[index];
                           return GestureDetector(
                             onTap: () {
+                              AnalyticsService.logEvent('contact_detail_open_attachment');
                               if (item.attachmentUrl.isNotEmpty) {
+                                AnalyticsService.logEvent('contact_detail_view_attachment_webview');
                                 context.pushNamed(
                                   'attachmentWebView',
                                   extra: item.attachmentUrl,
@@ -1162,6 +1178,7 @@ class _ContactDetailPageState extends State<ContactDetailPage>with TickerProvide
                                         fit: BoxFit.cover,
                                         onTap: () {
                                           if (item.attachmentUrl.isNotEmpty) {
+                                            AnalyticsService.logEvent('contact_detail_view_attachment_webview');
                                             context.pushNamed('attachmentWebView', extra: item.attachmentUrl);
                                           }
                                         },
@@ -1313,11 +1330,15 @@ class _ContactDetailPageState extends State<ContactDetailPage>with TickerProvide
                 content: Text('Delete this contact?'),
                 actions: [
                   TextButton(
-                    onPressed: () => Navigator.pop(ctx),
+                    onPressed: () {
+                      AnalyticsService.logEvent('contact_detail_delete_contact_confirm');
+                      Navigator.pop(ctx);
+                    },
                     child: Text('Cancel'),
                   ),
                   TextButton(
                     onPressed: () {
+                      AnalyticsService.logEvent('contact_detail_delete_contact_confirm');
                       context.replace("/contact");
                       context.pop();
                       context.read<ContactBloc>().add(
@@ -1417,6 +1438,7 @@ class _ContactDetailPageState extends State<ContactDetailPage>with TickerProvide
                       color: Color(whiteColor),
                       icon: const Icon(Icons.arrow_back_ios),
                       onPressed: () {
+                        AnalyticsService.logEvent('contact_detail_image_preview_prev');
                         setState(() {
                           currentIndex--;
                         });
@@ -1432,6 +1454,7 @@ class _ContactDetailPageState extends State<ContactDetailPage>with TickerProvide
                       color: Color(whiteColor),
                       icon: const Icon(Icons.arrow_forward_ios),
                       onPressed: () {
+                        AnalyticsService.logEvent('contact_detail_image_preview_next');
                         setState(() {
                           currentIndex++;
                         });
@@ -1448,7 +1471,10 @@ class _ContactDetailPageState extends State<ContactDetailPage>with TickerProvide
                       color: Color(whiteColor),
                       size: 30,
                     ),
-                    onPressed: () => Navigator.pop(dialogContext),
+                    onPressed: () {
+                      AnalyticsService.logEvent('contact_detail_close_image_preview');
+                      Navigator.pop(dialogContext);
+                    },
                   ),
                 ),
 
@@ -1490,6 +1516,7 @@ class _ContactDetailPageState extends State<ContactDetailPage>with TickerProvide
           TextButton(onPressed: () => context.pop(), child: Text("Cancel")),
           TextButton(
             onPressed: () {
+              AnalyticsService.logEvent('contact_detail_delete_attachment_confirm');
               context.pop();
               _deleteAttachment(
                 contactId: item.contactId,
@@ -1562,6 +1589,7 @@ class _ActivityItemState extends State<ActivityItem> {
   }
 
   void _scrollLeft() {
+    AnalyticsService.logEvent('contact_detail_scroll_gallery_left');
     final newOffset = (_scrollController.offset - 250).clamp(
       0.0,
       _scrollController.position.maxScrollExtent,
@@ -1575,6 +1603,7 @@ class _ActivityItemState extends State<ActivityItem> {
   }
 
   void _scrollRight() {
+    AnalyticsService.logEvent('contact_detail_scroll_gallery_right');
     final newOffset = (_scrollController.offset + 250).clamp(
       0.0,
       _scrollController.position.maxScrollExtent,
@@ -1605,6 +1634,8 @@ class _ActivityItemState extends State<ActivityItem> {
     return GestureDetector(
       onTap: () {
         if (item.statusFollow == 1) return;
+
+        AnalyticsService.logEvent('contact_detail_mark_status_follow');
 
         final type = item.activityType.toLowerCase();
         int page = 6;

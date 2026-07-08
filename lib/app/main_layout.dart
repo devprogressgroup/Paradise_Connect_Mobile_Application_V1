@@ -18,6 +18,7 @@ import 'package:progress_group/core/utils/helpers/permissions_helper.dart';
 import 'package:progress_group/features/auth/presentation/state/auth/auth_state.dart';
 import 'package:progress_group/core/utils/widget/shimmer_loading.dart';
 import 'package:progress_group/core/utils/widget/impersonation_banner.dart';
+import 'package:progress_group/core/services/analytics_service.dart';
 import 'package:progress_group/core/utils/widget/old_app_banner.dart';
 
 class MainLayout extends StatefulWidget {
@@ -39,9 +40,29 @@ class _MainLayoutState extends State<MainLayout> {
   @override
   void initState() {
     super.initState();
+    AnalyticsService.logScreenView('main_layout');
     context.read<WhatsappActivityBloc>().add(const FetchWhatsappUnreadSummaryEvent(0));
     _setupPwa();
   }
+
+  static const _navEventByPath = {
+    '/': 'main_layout_nav_home',
+    '/contact': 'main_layout_nav_contact',
+    '/attandance': 'main_layout_nav_attendance',
+    '/inbox': 'main_layout_nav_inbox',
+    '/site-plan': 'main_layout_nav_site_plan',
+  };
+
+  static const _drawerNavEventByPath = {
+    '/': 'main_layout_drawer_nav_dashboard',
+    '/contact': 'main_layout_drawer_nav_contacts',
+    '/inbox': 'main_layout_drawer_nav_inbox',
+    '/site-plan': 'main_layout_drawer_nav_site_plan',
+    '/sales-kit': 'main_layout_drawer_nav_sales_kit',
+    '/siap-huni': 'main_layout_drawer_nav_siap_huni',
+    '/attandance': 'main_layout_drawer_nav_attendance',
+    '/landing-page': 'main_layout_drawer_nav_info',
+  };
 
   void _setupPwa() {
     if (isPwaRunningStandalone()) return;
@@ -200,6 +221,7 @@ class _MainLayoutState extends State<MainLayout> {
             ),
           );
         } else {
+          AnalyticsService.logEvent('main_layout_exit_app_confirm');
           SystemNavigator.pop();
         }
       },
@@ -228,6 +250,7 @@ class _MainLayoutState extends State<MainLayout> {
                           behavior: HitTestBehavior.translucent,
                           onHorizontalDragUpdate: (details) {
                             if (details.delta.dx > 12) {
+                              AnalyticsService.logEvent('main_layout_open_drawer');
                               Scaffold.of(context).openDrawer();
                             }
                           },
@@ -272,7 +295,10 @@ class _MainLayoutState extends State<MainLayout> {
                   Text('Gagal memuat', style: TextStyle(fontSize: 12, color: Color(greyShade400))),
                   const SizedBox(width: 8),
                   GestureDetector(
-                    onTap: () => context.read<AuthBloc>().add(FetchPermissionsEvent()),
+                    onTap: () {
+                      AnalyticsService.logEvent('main_layout_retry_permissions');
+                      context.read<AuthBloc>().add(FetchPermissionsEvent());
+                    },
                     child: Text('Coba lagi', style: TextStyle(fontSize: 12, color: Color(primaryColor), fontWeight: FontWeight.w600)),
                   ),
                 ],
@@ -324,6 +350,7 @@ class _MainLayoutState extends State<MainLayout> {
               children: [
                 GestureDetector(
                   onTap: () {
+                    AnalyticsService.logEvent('main_layout_drawer_open_profile');
                     context.push('/profile');
                   },
                   child: Padding(
@@ -412,6 +439,7 @@ class _MainLayoutState extends State<MainLayout> {
                     padding: const EdgeInsets.symmetric(horizontal: 20),
                     child: GestureDetector(
                       onTap: () {
+                        AnalyticsService.logEvent('main_layout_install_app');
                         Navigator.of(context).pop();
                         if (_isIosSafariDevice) {
                           _showIosInstallInstructions();
@@ -435,6 +463,7 @@ class _MainLayoutState extends State<MainLayout> {
                   padding: const EdgeInsets.symmetric( horizontal: 20),
                   child: GestureDetector(
                     onTap: () {
+                      AnalyticsService.logEvent('main_layout_logout');
                       Navigator.of(context).pop();
                       context.read<AuthBloc>().add(LogoutEvent());
                     },
@@ -462,6 +491,8 @@ class _MainLayoutState extends State<MainLayout> {
 
     return InkWell(
       onTap: () {
+        final event = _drawerNavEventByPath[path];
+        if (event != null) AnalyticsService.logEvent(event);
         context.go(path);
         Navigator.pop(context);
       },
@@ -514,6 +545,8 @@ class _MainLayoutState extends State<MainLayout> {
   Widget _buildNavItem(BuildContext context, {required String path, required String icon, required String label, required bool isActive, int badgeCount = 0}) {
     return GestureDetector(
       onTap: () {
+        final event = _navEventByPath[path];
+        if (event != null) AnalyticsService.logEvent(event);
         context.go(path);
       },
       child: Stack(

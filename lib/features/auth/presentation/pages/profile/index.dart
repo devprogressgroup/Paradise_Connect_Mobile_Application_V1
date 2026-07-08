@@ -20,6 +20,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../../../../core/constants/colors.dart';
 import '../../../../../core/utils/widget/custom_header.dart';
 import '../../../domain/entities/user_profile.dart';
+import 'package:progress_group/core/services/analytics_service.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -63,6 +64,7 @@ class _ProfilePageState extends State<ProfilePage> {
   final ImagePicker _imagePicker = ImagePicker();
 
   Future<void> _pickPhoto() async {
+    AnalyticsService.logEvent('profile_change_photo');
     final picked = await _imagePicker.pickImage(
       source: ImageSource.gallery,
       imageQuality: 80,
@@ -102,6 +104,7 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Future<void> _onBiometricToggle(bool value) async {
+    AnalyticsService.logEvent('profile_biometric_toggle');
     if (value) {
       try {
         final isSupported = await _localAuth.isDeviceSupported();
@@ -130,6 +133,7 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   void _submit(String originalEmail, String originalPhone) {
+    AnalyticsService.logEvent('profile_submit_profile');
     final email = emailTC.text.trim();
     final phone = phoneTC.text.trim();
     final password = passwordTC.text.trim();
@@ -217,7 +221,10 @@ class _ProfilePageState extends State<ProfilePage> {
         body: SafeArea(
           child: Column(
             children: [
-              customHeader(context, "My Profile", isBack: true, colorBack: Color(primaryColor), onBack: () => context.go('/')),
+              customHeader(context, "My Profile", isBack: true, colorBack: Color(primaryColor), onBack: () {
+                AnalyticsService.logEvent('profile_back');
+                context.go('/');
+              }),
               Expanded(child: _buildBody()),
             ],
           ),
@@ -390,6 +397,7 @@ class _ProfilePageState extends State<ProfilePage> {
                       suffix: IconButton(
                         icon: Icon(_isObscure ? Icons.visibility_off_outlined : Icons.visibility_outlined),
                         onPressed: () {
+                          AnalyticsService.logEvent('profile_toggle_password_visibility');
                           setState(() {
                             _isObscure = !_isObscure;
                           });
@@ -408,6 +416,7 @@ class _ProfilePageState extends State<ProfilePage> {
                       suffix: IconButton(
                         icon: Icon(_isObscureConfirm ? Icons.visibility_off_outlined : Icons.visibility_outlined),
                         onPressed: () {
+                          AnalyticsService.logEvent('profile_toggle_confirm_password_visibility');
                           setState(() {
                             _isObscureConfirm = !_isObscureConfirm;
                           });
@@ -486,6 +495,7 @@ class _ProfilePageState extends State<ProfilePage> {
                         Expanded(
                           child: customButton(
                             () {
+                              AnalyticsService.logEvent('profile_logout');
                               debugPrint('[Profile] LogoutEvent dipicu dari: tombol Logout di halaman Profile');
                               web_debug.logDebugError('LogoutEvent dipicu dari: tombol Logout di halaman Profile');
                               context.read<AuthBloc>().add(LogoutEvent());
@@ -503,7 +513,10 @@ class _ProfilePageState extends State<ProfilePage> {
                       SizedBox(
                         width: double.infinity,
                         child: OutlinedButton.icon(
-                          onPressed: () => context.push('/impersonate'),
+                          onPressed: () {
+                            AnalyticsService.logEvent('profile_login_as_user');
+                            context.push('/impersonate');
+                          },
                           icon: const Icon(Icons.people_alt_outlined, size: 18),
                           label: const Text('Login Sebagai User'),
                           style: OutlinedButton.styleFrom(

@@ -12,6 +12,7 @@ import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:progress_group/core/constants/assets.dart';
+import 'package:progress_group/core/services/analytics_service.dart';
 import 'package:progress_group/core/utils/widget/drive_image/drive_image.dart';
 import 'package:progress_group/core/utils/widget/custom_button.dart';
 import 'package:progress_group/features/attandance/data/arguments/attandance_args.dart';
@@ -148,6 +149,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
   @override
   void initState() {
     super.initState();
+    AnalyticsService.logScreenView('contact_add');
     selectedDate = AppTime.now();
     if (widget.args.dataActivity?.notes != null) {
       descFormActivityTC.text = widget.args.dataActivity!.notes!;
@@ -342,6 +344,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
   }
 
   Future<void> pickFile() async {
+    AnalyticsService.logEvent('contact_add_add_attachment');
     final isEdit = widget.args.page == 7;
     final result = await FilePicker.platform.pickFiles(
       type: FileType.custom,
@@ -409,6 +412,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
   }
 
   Future<void> _openCamera() async {
+    AnalyticsService.logEvent('contact_add_take_photo');
     final result = await context.pushNamed(
       'camera',
       extra: AttandanceArgs(
@@ -431,6 +435,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
   }
 
   Future<void> _pickFromGallery() async {
+    AnalyticsService.logEvent('contact_add_upload_from_gallery');
     final List<XFile> results = await picker.pickMultiImage(imageQuality: 80);
     if (results.isNotEmpty) {
       if (kIsWeb) {
@@ -491,6 +496,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
   }
 
   Future<void> pickDateTime(BuildContext context) async {
+    AnalyticsService.logEvent('contact_add_pick_datetime');
     final now = AppTime.now();
 
     final date = await showDatePicker(
@@ -590,6 +596,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
     required bool isFollowUp,
     required DateTime? followUpDate,
   }) {
+    AnalyticsService.logEvent('contact_add_save_activity');
     final contactId = widget.args.dataContact?.contactId;
     if (contactId == null) return;
 
@@ -1146,6 +1153,10 @@ class _ContactAddPageState extends State<ContactAddPage> {
                         widget.args.page == 0? "Call": widget.args.page == 1? "WhatsApp": widget.args.page == 2? "Meeting": widget.args.page == 3? "Reminder": widget.args.page == 4? "Visit": (widget.args.page == 5 || widget.args.page == 7)? "Attachment": selectedStatusName,
                         isBack: true,
                         colorBack: Color(primaryColor),
+                        onBack: () {
+                          AnalyticsService.logEvent('contact_add_back');
+                          context.pop();
+                        },
                       ),
                       SizedBox(height: 16),
                       Expanded(
@@ -1462,6 +1473,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
         SizedBox(height: 6),
         GestureDetector(
           onTap: () async {
+            AnalyticsService.logEvent('contact_add_select_volume');
             final selectedItem = itemsVolume.firstWhere(
               (e) => e.name == volumeTC.text,
               orElse: () => OwnerDropdownItem(id: 0, name: ''),
@@ -1543,9 +1555,12 @@ class _ContactAddPageState extends State<ContactAddPage> {
             final isLoading = isVisitFlow ? isVisitLoading : isContactLoading;
 
             return customButton(
-              isLoading ? null : () => widget.args.page == 4
-                  ? _submitVisit(context)
-                  : _submitUpdateStatus(context),
+              isLoading ? null : () {
+                AnalyticsService.logEvent('contact_add_save_activity');
+                widget.args.page == 4
+                    ? _submitVisit(context)
+                    : _submitUpdateStatus(context);
+              },
               widget.args.buttonLabel ?? 'Save',
             );
           },
@@ -1706,6 +1721,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
         SizedBox(height: 6),
         GestureDetector(
           onTap: () async {
+            AnalyticsService.logEvent('contact_add_select_status_prospect');
             final statusState = context.read<ProspectStatusBloc>().state;
             if (statusState.status == ProspectStatusEnum.loaded) {
               
@@ -1808,6 +1824,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
         const SizedBox(height: 6),
         GestureDetector(
           onTap: () async {
+            AnalyticsService.logEvent('contact_add_select_lost_reason');
             final state = context.read<LostReasonBloc>().state;
 
             if (state.status == LostReasonStatus.loaded) {
@@ -1925,6 +1942,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
       );
       return;
     }
+    AnalyticsService.logEvent('contact_add_select_unit');
     final result = await Navigator.of(context).push<List<SelectedUnit>>(
       MaterialPageRoute(
         builder: (_) => UnitPickerScreen(
@@ -2006,6 +2024,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
         SizedBox(height: 6),
         GestureDetector(
           onTap: () async {
+            AnalyticsService.logEvent('contact_add_select_township');
             final townshipState = context.read<TownshipBloc>().state;
             if (townshipState is TownshipLoaded) {
               final items = townshipState.townships
@@ -2092,6 +2111,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
         SizedBox(height: 6),
         GestureDetector(
           onTap: () async {
+            AnalyticsService.logEvent('contact_add_select_visit_count');
             final selectedItem = itemsJmlDatang.firstWhere(
               (e) => e.name == jmlDatang,
               orElse: () => OwnerDropdownItem(id: 0, name: ''),
@@ -2284,6 +2304,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
                       right: 8,
                       child: GestureDetector(
                         onTap: () {
+                          AnalyticsService.logEvent('contact_add_remove_attachment');
                           setState(() {
                             if (kIsWeb) {
                               _attachFileBytes.removeAt(index);
@@ -2393,6 +2414,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
               builder: (context, state) {
                 return GestureDetector(
                   onTap: () async {
+                    AnalyticsService.logEvent('contact_add_select_attachment_type');
                     if (state is AttachmentTypeLoaded) {
                       final items = state.data
                           .map((e) => OwnerDropdownItem(id: e.id, name: e.name))
@@ -2896,6 +2918,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
                       right: 8,
                       child: GestureDetector(
                         onTap: () {
+                          AnalyticsService.logEvent('contact_add_remove_photo');
                           setState(() {
                             if (isFileBased) {
                               selectedImages.removeAt(index);

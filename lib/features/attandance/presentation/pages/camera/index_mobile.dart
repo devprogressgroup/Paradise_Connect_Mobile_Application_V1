@@ -9,6 +9,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:progress_group/core/utils/helpers/app_time.dart';
 import 'package:progress_group/core/utils/helpers/date_helper.dart';
+import 'package:progress_group/core/services/analytics_service.dart';
 import 'package:progress_group/core/utils/widget/custom_button.dart';
 import 'package:progress_group/features/attandance/data/arguments/attandance_args.dart';
 import 'package:progress_group/features/attandance/presentation/state/attandance/attendance_bloc.dart';
@@ -132,6 +133,7 @@ class _CameraPageState extends State<CameraPage> {
     if (_controller!.value.isTakingPicture) return;
 
     try {
+      AnalyticsService.logEvent('camera_capture_photo');
       final file = await _controller!.takePicture();
       if (widget.args.skipPreview == true) {
         if (mounted) {
@@ -149,6 +151,7 @@ class _CameraPageState extends State<CameraPage> {
   }
 
   void _takeMorePhotos() {
+    AnalyticsService.logEvent('camera_take_more_photos');
     setState(() {
       _isAddingMore = true;
     });
@@ -176,6 +179,7 @@ class _CameraPageState extends State<CameraPage> {
 
   Future<void> _handleSubmit() async {
     if (_imageFiles.isEmpty) return;
+    AnalyticsService.logEvent('camera_submit_attendance');
 
     if (widget.args.isReturnImage == true) {
       context.pop(_imageFiles.first.path);
@@ -258,7 +262,10 @@ class _CameraPageState extends State<CameraPage> {
                   ),
                   actions: [
                     TextButton(
-                      onPressed: () => Navigator.of(ctx).pop(),
+                      onPressed: () {
+                        AnalyticsService.logEvent('camera_error_dialog_ok');
+                        Navigator.of(ctx).pop();
+                      },
                       child: const Text('OK'),
                     ),
                   ],
@@ -283,6 +290,7 @@ class _CameraPageState extends State<CameraPage> {
                     ? (_isAddingMore ? Icons.close : null)
                     : (_imageFiles.isNotEmpty ? Icons.history : null),
                 iconLeftOnTap: () {
+                  if (!_isAddingMore) AnalyticsService.logEvent('camera_retake_photo');
                   setState(() {
                     if (_isAddingMore) {
                       _isAddingMore = false;
@@ -319,6 +327,7 @@ class _CameraPageState extends State<CameraPage> {
               const SizedBox(height: 24),
               ElevatedButton.icon(
                 onPressed: () {
+                  AnalyticsService.logEvent('camera_retry_camera');
                   setState(() => _cameraError = null);
                   _initCamera();
                 },
@@ -491,7 +500,10 @@ class _CameraPageState extends State<CameraPage> {
                                       top: 0,
                                       right: 8,
                                       child: GestureDetector(
-                                        onTap: () => setState(() => _imageFiles.removeAt(index)),
+                                        onTap: () {
+                                          AnalyticsService.logEvent('camera_remove_photo');
+                                          setState(() => _imageFiles.removeAt(index));
+                                        },
                                         child: Container(
                                           decoration:  BoxDecoration(color: Color(blackColor).withAlpha(54), shape: BoxShape.circle),
                                           child: const Icon(Icons.close, color: Color(whiteColor), size: 20),
@@ -553,6 +565,7 @@ class _CameraPageState extends State<CameraPage> {
                                  ),
                                  child: InkWell(
                                    onTap: () async {
+                                     AnalyticsService.logEvent('camera_select_pameran_location');
                                      final locationList = context.read<PameranLocationCubit>().state;
                                      if (locationList.isEmpty) {
                                        ScaffoldMessenger.of(context).showSnackBar(

@@ -14,6 +14,7 @@ import 'package:progress_group/features/auth/presentation/state/profile/profile_
 import 'package:progress_group/features/auth/presentation/state/profile/profile_state.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:progress_group/core/utils/web_debug_util.dart' as web_debug;
+import 'package:progress_group/core/services/analytics_service.dart';
 
 class SplashPage extends StatefulWidget {
   const SplashPage({super.key});
@@ -28,6 +29,7 @@ class _SplashPageState extends State<SplashPage> {
   @override
   void initState() {
     super.initState();
+    AnalyticsService.logScreenView('splash');
     _checkToken();
   }
 

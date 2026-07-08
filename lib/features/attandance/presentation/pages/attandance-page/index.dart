@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart' show kIsWeb, debugPrint;
 import 'package:progress_group/core/utils/web_debug_util.dart' as web_debug;
+import 'package:progress_group/core/services/analytics_service.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:progress_group/core/utils/widget/shimmer_loading.dart';
@@ -406,6 +407,7 @@ class _AttandancePageState extends State<AttandancePage>
     List<String> imageUrls,
     int initialIndex,
   ) {
+    AnalyticsService.logEvent('attendance_view_image_fullscreen');
     final screenSize = MediaQuery.of(context).size;
 
     showDialog(
@@ -641,7 +643,10 @@ class _AttandancePageState extends State<AttandancePage>
                               firstDate: DateTime(2020),
                               lastDate: DateTime(now.year + 1, 12, 31),
                             );
-                            if (picked != null) setStateDialog(() => startDate = picked);
+                            if (picked != null) {
+                              AnalyticsService.logEvent('attendance_select_export_date_range');
+                              setStateDialog(() => startDate = picked);
+                            }
                           },
                         ),
                       ),
@@ -658,7 +663,10 @@ class _AttandancePageState extends State<AttandancePage>
                               firstDate: startDate,
                               lastDate: DateTime(now.year + 1, 12, 31),
                             );
-                            if (picked != null) setStateDialog(() => endDate = picked);
+                            if (picked != null) {
+                              AnalyticsService.logEvent('attendance_select_export_date_range');
+                              setStateDialog(() => endDate = picked);
+                            }
                           },
                         ),
                       ),
@@ -689,12 +697,15 @@ class _AttandancePageState extends State<AttandancePage>
                           final isSelected = selectedOwner.id == item.id && selectedOwner.name == item.name;
                           final color = Theme.of(ctx).colorScheme.primary;
                           return InkWell(
-                            onTap: () => setStateDialog(() {
-                              selectedOwner = item;
-                              dropdownOpen = false;
-                              searchController.clear();
-                              searchQuery = '';
-                            }),
+                            onTap: () {
+                              AnalyticsService.logEvent('attendance_select_export_employee');
+                              setStateDialog(() {
+                                selectedOwner = item;
+                                dropdownOpen = false;
+                                searchController.clear();
+                                searchQuery = '';
+                              });
+                            },
                             child: Container(
                               color: isSelected ? color.withAlpha(25) : null,
                               padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 10),
@@ -738,7 +749,10 @@ class _AttandancePageState extends State<AttandancePage>
                   backgroundColor: const Color(primaryColor),
                   foregroundColor: const Color(whiteColor),
                 ),
-                onPressed: () => Navigator.of(ctx).pop(true),
+                onPressed: () {
+                  AnalyticsService.logEvent('attendance_confirm_download_excel');
+                  Navigator.of(ctx).pop(true);
+                },
                 child: const Text('Download'),
               ),
             ],
@@ -794,6 +808,7 @@ class _AttandancePageState extends State<AttandancePage>
                 leading: const Icon(Icons.save_alt),
                 title: const Text('Simpan ke Penyimpanan'),
                 onTap: () {
+                  AnalyticsService.logEvent('attendance_save_exported_file');
                   Navigator.of(ctx).pop();
                   _savePdfToStorage(filePath);
                 },
@@ -802,6 +817,7 @@ class _AttandancePageState extends State<AttandancePage>
                 leading: const Icon(Icons.share),
                 title: const Text('Bagikan'),
                 onTap: () {
+                  AnalyticsService.logEvent('attendance_share_exported_file');
                   Navigator.of(ctx).pop();
                   Share.shareXFiles([XFile(filePath)], text: 'Laporan Kehadiran');
                 },
@@ -845,6 +861,7 @@ class _AttandancePageState extends State<AttandancePage>
                 leading: const Icon(Icons.download),
                 title: const Text('Download'),
                 onTap: () {
+                  AnalyticsService.logEvent('attendance_save_exported_file');
                   Navigator.of(ctx).pop();
                   downloadPdfOnWeb(bytes, fileName);
                 },
@@ -1021,17 +1038,24 @@ class _AttandancePageState extends State<AttandancePage>
                         colorBack: Color(whiteColor),
                         colorTitle: Color(whiteColor),
                         iconRight: Icons.arrow_back,
-                        iconRightOnTap: () => context.go('/'),
+                        iconRightOnTap: () {
+                          AnalyticsService.logEvent('attendance_back');
+                          context.go('/');
+                        },
                         colorIconRight: Color(whiteColor),
                         iconLeft: isAtasan && PermissionsHelper.canApproveRejectAttendance ? Icons.checklist : null,
                         colorIconLeft: Color(whiteColor),
                         iconLeftOnTap: isAtasan && PermissionsHelper.canApproveRejectAttendance ? () {
+                          AnalyticsService.logEvent('attendance_open_approval');
                           context.pushNamed('approval');
                         } : null,
                         showBadgeLeft: isAtasan && hasPending,
                         iconLeft2: Icons.download,
                         colorIconLeft2: Color(whiteColor),
-                        iconLeft2OnTap: _showPdfDatePickerDialog,
+                        iconLeft2OnTap: () {
+                          AnalyticsService.logEvent('attendance_download_attendance_excel');
+                          _showPdfDatePickerDialog();
+                        },
                       );
                     },
                   );
@@ -1106,6 +1130,7 @@ class _AttandancePageState extends State<AttandancePage>
             Expanded(
               child: GestureDetector(
                 onTap: () {
+                  AnalyticsService.logEvent('attendance_switch_menu_tab', parameters: {'tab': 'activity'});
                   setState(() {
                     selectedMenu = 'activity';
                   });
@@ -1142,6 +1167,7 @@ class _AttandancePageState extends State<AttandancePage>
             Expanded(
               child: GestureDetector(
                 onTap: () {
+                  AnalyticsService.logEvent('attendance_switch_menu_tab', parameters: {'tab': 'attendance'});
                   setState(() => selectedMenu = 'attendance');
                   if (!_attendanceLogLoaded) {
                     _attendanceLogLoaded = true;
@@ -1353,6 +1379,7 @@ class _AttandancePageState extends State<AttandancePage>
   }
 
   Future<void> _openActivityUserFilter() async {
+    AnalyticsService.logEvent('attendance_filter_activity_owner');
     final profileState = context.read<ProfileBloc>().state;
     if (profileState is! ProfileLoaded) return;
     final user = profileState.profile;
@@ -1507,6 +1534,7 @@ class _AttandancePageState extends State<AttandancePage>
           isSelected: isSelected,
           maxWidth: 130,
           onTap: () async {
+            AnalyticsService.logEvent('attendance_filter_attendance_owner');
             if (profileState is ProfileLoaded) {
               final user = profileState.profile;
               final List<OwnerDropdownItem> ownerItems = [];
@@ -1932,7 +1960,7 @@ class _AttandancePageState extends State<AttandancePage>
     String? type,
     String? serial,
   }) {
-   
+    AnalyticsService.logEvent('attendance_view_activity_detail');
     int selectedIndex = allImages.indexOf(tappedUrl);
     if (selectedIndex < 0) selectedIndex = 0;
 
@@ -2290,7 +2318,10 @@ class _AttandancePageState extends State<AttandancePage>
             final isActive = selectedIndex == index;
             return Expanded(
               child: GestureDetector(
-                onTap: () => _onTabChanged(index),
+                onTap: () {
+                  AnalyticsService.logEvent('attendance_switch_clock_tab', parameters: {'tab': tabs[index]});
+                  _onTabChanged(index);
+                },
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 250),
                   alignment: Alignment.center,
@@ -2496,7 +2527,10 @@ class _AttandancePageState extends State<AttandancePage>
                             Positioned(top: 8, left: 8, child: statusBadge),
                            if (isReject == 1) ...[
                                Positioned(top: 8, right: 8, child: GestureDetector(
-                                  onTap: _isCameraOpening ? null : () => _handleMoveCamera(title, flagParam),
+                                  onTap: _isCameraOpening ? null : () {
+                                    AnalyticsService.logEvent('attendance_retry_rejected_clock');
+                                    _handleMoveCamera(title, flagParam);
+                                  },
                                  child: Container(
                                   padding: EdgeInsets.all(4),
                                   decoration: BoxDecoration(
@@ -2534,6 +2568,11 @@ class _AttandancePageState extends State<AttandancePage>
                           return;
                         }
                         if (_isCameraOpening) return;
+                        AnalyticsService.logEvent(switch (flagParam) {
+                          0 => 'attendance_clock_in',
+                          1 => 'attendance_clock_out',
+                          _ => 'attendance_check_in_activity',
+                        });
                         _handleMoveCamera(title, flagParam);
                       },
                       child: Container(
@@ -2617,6 +2656,7 @@ class _AttandancePageState extends State<AttandancePage>
   }
 
   void _showAttendanceDialog(AttendanceEntity item, int flag) {
+    AnalyticsService.logEvent('attendance_view_attendance_detail');
     final String timeValue = flag == 0 ? item.clockIn ?? "-" : item.clockOut ?? "-";
     final List<String>? images =flag == 0 ? item.fileAttchment0 : item.fileAttchment1;
     final String note = flag == 0 ? item.note0 ?? "-" : item.note1 ?? "-";
@@ -2883,6 +2923,7 @@ class _ActivityCardState extends State<_ActivityCard> {
           ),
           TextButton(
             onPressed: () {
+              AnalyticsService.logEvent('attendance_validate_checkin_reject');
               Navigator.of(dialogContext).pop();
               context.read<AttendanceActivityBloc>().add(
                 ValidasiCheckInEvent(
@@ -2957,6 +2998,7 @@ class _ActivityCardState extends State<_ActivityCard> {
           const SizedBox(width: 8),
           GestureDetector(
             onTap: () {
+              AnalyticsService.logEvent('attendance_validate_checkin_approve');
               context.read<AttendanceActivityBloc>().add(
                 ValidasiCheckInEvent(logId: widget.logId!, statusValidasi: 1),
               );

@@ -8,6 +8,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:progress_group/core/constants/colors.dart';
 import '../../../../core/utils/widget/custom_header.dart';
+import 'package:progress_group/core/services/analytics_service.dart';
 import '../../domain/entities/project_site.dart';
 import '../state/siteplan_bloc.dart';
 import '../state/siteplan_event.dart';
@@ -34,6 +35,7 @@ class _SitePlanPageState extends State<SitePlanPage> {
   @override
   void initState() {
     super.initState();
+    AnalyticsService.logScreenView('site_plan');
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final state = context.read<SiteplanBloc>().state;
       if (state is SiteplanLoaded && state.sites.isNotEmpty) {
@@ -92,7 +94,8 @@ class _SitePlanPageState extends State<SitePlanPage> {
   }
 
   void _openProjectList() async {
-    final result = await context.pushNamed('projectList', extra: {
+    AnalyticsService.logEvent('site_plan_open_project_list');
+    final result = await context.pushNamed('project_list', extra: {
       'sites': _sites,
       'selected': _selectedSite,
     });
@@ -103,7 +106,10 @@ class _SitePlanPageState extends State<SitePlanPage> {
   }
 
   void _openInNewTab() {
-    if (_selectedSite != null) html.window.open(_selectedSite!.url, '_blank');
+    if (_selectedSite != null) {
+      AnalyticsService.logEvent('site_plan_open_in_new_tab');
+      html.window.open(_selectedSite!.url, '_blank');
+    }
   }
 
   @override
@@ -148,8 +154,10 @@ class _SitePlanPageState extends State<SitePlanPage> {
                                 style: TextStyle(color: Color(redAccentColor))),
                             const SizedBox(height: 16),
                             ElevatedButton(
-                              onPressed: () =>
-                                  context.read<SiteplanBloc>().add(LoadSiteplanEvent()),
+                              onPressed: () {
+                                AnalyticsService.logEvent('site_plan_retry_load_siteplan');
+                                context.read<SiteplanBloc>().add(LoadSiteplanEvent());
+                              },
                               child: const Text('Coba Lagi'),
                             ),
                           ],

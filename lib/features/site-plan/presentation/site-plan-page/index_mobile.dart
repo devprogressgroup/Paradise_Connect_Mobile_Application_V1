@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:progress_group/core/constants/colors.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import '../../../../core/utils/widget/custom_header.dart';
+import 'package:progress_group/core/services/analytics_service.dart';
 import '../../domain/entities/project_site.dart';
 import '../state/siteplan_bloc.dart';
 import '../state/siteplan_event.dart';
@@ -85,6 +86,7 @@ class _SitePlanPageState extends State<SitePlanPage> {
   @override
   void initState() {
     super.initState();
+    AnalyticsService.logScreenView('site_plan');
     _initWebViewController();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       setState(() {
@@ -165,7 +167,8 @@ class _SitePlanPageState extends State<SitePlanPage> {
   }
 
   void _openProjectList() async {
-    final result = await context.pushNamed('projectList', extra: {
+    AnalyticsService.logEvent('site_plan_open_project_list');
+    final result = await context.pushNamed('project_list', extra: {
       'sites': _sites,
       'selected': _selectedSite,
     });
@@ -223,9 +226,12 @@ class _SitePlanPageState extends State<SitePlanPage> {
                             ),
                             const SizedBox(height: 16),
                             ElevatedButton(
-                              onPressed: () => context.read<SiteplanBloc>().add(
-                                LoadSiteplanEvent(),
-                              ),
+                              onPressed: () {
+                                AnalyticsService.logEvent('site_plan_retry_load_siteplan');
+                                context.read<SiteplanBloc>().add(
+                                  LoadSiteplanEvent(),
+                                );
+                              },
                               child: const Text('Coba Lagi'),
                             ),
                           ],

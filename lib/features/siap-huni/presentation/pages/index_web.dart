@@ -10,6 +10,7 @@ import 'package:progress_group/core/network/api_constants.dart';
 import 'package:progress_group/core/network/proxy_cipher.dart';
 import 'package:progress_group/features/auth/presentation/state/profile/profile_bloc.dart';
 import 'package:progress_group/features/auth/presentation/state/profile/profile_state.dart';
+import 'package:progress_group/core/services/analytics_service.dart';
 
 class SiapHuniPage extends StatefulWidget {
   const SiapHuniPage({super.key});
@@ -125,7 +126,10 @@ class _SiapHuniPageState extends State<SiapHuniPage> {
                   ),
                   const SizedBox(width: 8),
                   TextButton.icon(
-                    onPressed: () => html.window.open(_fullUrl, '_blank'),
+                    onPressed: () {
+                      AnalyticsService.logEvent('siap_huni_open_in_new_tab');
+                      html.window.open(_fullUrl, '_blank');
+                    },
                     icon: const Icon(Icons.open_in_new, size: 14),
                     label: const Text('Buka', style: TextStyle(fontSize: 12)),
                     style: TextButton.styleFrom(

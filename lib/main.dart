@@ -13,6 +13,7 @@ import 'core/utils/web_update.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:progress_group/core/network/dio_client.dart';
+import 'package:progress_group/core/services/analytics_service.dart';
 import 'package:progress_group/core/services/push_notification_service.dart';
 import 'package:progress_group/features/attandance/domain/usecase/get_attendance_approval_today.dart';
 import 'package:progress_group/firebase_options.dart';
@@ -188,13 +189,16 @@ void main() async {
   await initializeDateFormatting('id_ID', null);
   final prefs = await SharedPreferences.getInstance();
   ApiConstants.loadFromPrefs(prefs);
-  ImpersonationManager.bind(prefs); 
+  AnalyticsService.loadFromPrefs(prefs);
+  ImpersonationManager.bind(prefs);
 
-  
+
   try {
     final localDs = AuthLocalDataSourceImpl(prefs);
-    final settings = await SettingsRemoteDataSource(DioClient(localDs).dio).getSettings();
+    final dio = DioClient(localDs).dio;
+    final settings = await SettingsRemoteDataSource(dio).getSettings();
     if (settings.isNotEmpty) ApiConstants.applySettings(settings);
+    await AnalyticsService.refreshEnabledEvents(dio);
   } catch (_) {}
 
   try {
@@ -481,10 +485,11 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
                     PushNotificationService.setDio(dioClient.dio);
                     PushNotificationService.sendTokenAfterLogin();
                     PushNotificationService.checkAndShowUpdateBanner();
+                    AnalyticsService.logLogin();
                   } else if (state is AuthLoggedOut) {
                     debugPrint('[App] AuthLoggedOut — _resetApp dipanggil (keluar dari semua halaman)');
                     web_debug.logDebugError('App: AuthLoggedOut — _resetApp dipanggil (keluar dari semua halaman)');
-                    
+                    AnalyticsService.clearUser();
                     _resetApp();
                   } else if (state is ImpersonationStarted || state is ImpersonationStopped) {
                     
@@ -499,6 +504,10 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
               BlocListener<ProfileBloc, ProfileState>(
                 listener: (context, state) {
                   if (state is ProfileLoaded) {
+                    AnalyticsService.setUserProperties(
+                      userId: state.profile.userId.toString(),
+                      role: state.profile.userRoleName,
+                    );
                     settingsDs.getSettings().then((s) {
                       if (s.isNotEmpty) ApiConstants.applySettings(s);
                       _checkVersion();

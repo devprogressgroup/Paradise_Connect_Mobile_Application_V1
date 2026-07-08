@@ -30,6 +30,7 @@ import 'package:progress_group/features/auth/presentation/state/profile/profile_
 import 'package:progress_group/features/auth/presentation/state/profile/profile_state.dart';
 import 'package:progress_group/features/notif/domain/entities/received_notif_entity.dart';
 import 'package:progress_group/features/notif/presentation/state/received_notif_cubit.dart';
+import 'package:progress_group/core/services/analytics_service.dart';
 
 
 enum _NotifType { activity, approval, push }
@@ -186,6 +187,7 @@ class _NotifPageState extends State<NotifPage> {
   @override
   void initState() {
     super.initState();
+    AnalyticsService.logScreenView('notif');
     _loadAll();
   }
 
@@ -218,7 +220,10 @@ class _NotifPageState extends State<NotifPage> {
       body: SafeArea(
         child: Column(
           children: [
-            customHeader(context, "Notifikasi", isBack: true, colorBack: Color(primaryColor)),
+            customHeader(context, "Notifikasi", isBack: true, colorBack: Color(primaryColor), onBack: () {
+              AnalyticsService.logEvent('notif_back');
+              context.pop();
+            }),
             const SizedBox(height: 8),
 
             
@@ -247,6 +252,7 @@ class _NotifPageState extends State<NotifPage> {
   Widget _buildActivityDropdown() {
     return GestureDetector(
       onTap: () async {
+        AnalyticsService.logEvent('notif_filter_activity');
         final result = await Navigator.push<_ActivityOption>(
           context,
           MaterialPageRoute(builder: (_) => _FilterListPage<_ActivityOption>(
@@ -264,6 +270,7 @@ class _NotifPageState extends State<NotifPage> {
         label: _isActivityFiltered ? _selectedActivity.label : 'Activity',
         isActive: _isActivityFiltered,
         onClear: _isActivityFiltered ? () {
+          AnalyticsService.logEvent('notif_clear_filter');
           setState(() => _selectedActivity = const _ActivityOption(null, 'Activity'));
           context.read<NotifActivityBloc>().add(const FetchActivitiesEvent(isRefresh: true));
         } : null,
@@ -275,6 +282,7 @@ class _NotifPageState extends State<NotifPage> {
   Widget _buildApprovalDropdown() {
     return GestureDetector(
       onTap: () async {
+        AnalyticsService.logEvent('notif_filter_approval');
         final result = await Navigator.push<_ApprovalOption>(
           context,
           MaterialPageRoute(builder: (_) => _FilterListPage<_ApprovalOption>(
@@ -292,6 +300,7 @@ class _NotifPageState extends State<NotifPage> {
         label: _isApprovalFiltered ? _selectedApproval.label : 'Approval',
         isActive: _isApprovalFiltered,
         onClear: _isApprovalFiltered ? () {
+          AnalyticsService.logEvent('notif_clear_filter');
           setState(() => _selectedApproval = const _ApprovalOption(label: 'Approval'));
           context.read<AttendanceApprovalCubit>().load();
         } : null,
@@ -460,6 +469,7 @@ class _NotifPageState extends State<NotifPage> {
 
     return GestureDetector(
       onTap: () async {
+        AnalyticsService.logEvent('notif_open_activity_item');
         if (isCreatedContact || isCompleted) {
           await context.pushNamed('detailContact', extra: ContactDetailArgs(
             dataContact: ContactEntity(contactId: activity.contactId, fullName: activity.contactName),
@@ -517,6 +527,7 @@ class _NotifPageState extends State<NotifPage> {
 
     return GestureDetector(
       onTap: () async {
+        AnalyticsService.logEvent('notif_open_pending_approval');
         await context.pushNamed('approval');
         if (mounted) _loadAll();
       },
@@ -551,7 +562,10 @@ class _NotifPageState extends State<NotifPage> {
         : Icons.notifications_outlined;
 
     return GestureDetector(
-      onTap: () => PushNotificationService.navigateFromData(notif.data),
+      onTap: () {
+        AnalyticsService.logEvent('notif_open_notification');
+        PushNotificationService.navigateFromData(notif.data);
+      },
       child: _cardWrap(Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -576,7 +590,9 @@ class _NotifPageState extends State<NotifPage> {
 
   Widget _whatsappItem(WhatsappUnreadSummaryEntity item) {
     return GestureDetector(
-      onTap: () => AppRouter.rootNavigatorKey.currentContext!.pushNamed('detailInbox', extra: InboxDetailArgs(
+      onTap: () {
+        AnalyticsService.logEvent('notif_open_whatsapp_unread');
+        AppRouter.rootNavigatorKey.currentContext!.pushNamed('detailInbox', extra: InboxDetailArgs(
         data: InboxContact(
           id: item.contactId ?? 0, name: item.contactName, jid: item.jid,
           isGroup: item.jid.endsWith('@g.us'),
@@ -584,7 +600,8 @@ class _NotifPageState extends State<NotifPage> {
           sessionCode: item.sessionId, photo: item.photoProfile,
         ),
         icon: Icons.person,
-      )),
+      ));
+      },
       child: _cardWrap(Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Container(height: 40, width: 5, decoration: BoxDecoration(color: Color(greenMaterialColor), borderRadius: BorderRadius.circular(16))),
         const SizedBox(width: 10),

@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:progress_group/core/constants/colors.dart';
+import 'package:progress_group/core/services/analytics_service.dart';
 import 'package:progress_group/features/contact/data/models/unit/unit_hierarchy_model.dart';
 import 'package:progress_group/features/contact/presentation/state/unit_picker/unit_picker_cubit.dart';
 import 'package:progress_group/features/contact/presentation/state/unit_picker/unit_picker_state.dart';
@@ -35,6 +36,7 @@ class _UnitPickerScreenState extends State<UnitPickerScreen> {
   @override
   void initState() {
     super.initState();
+    AnalyticsService.logScreenView('unit_picker');
     context.read<UnitPickerCubit>().init(
           widget.townshipId,
           townshipName: widget.townshipName,
@@ -103,7 +105,10 @@ class _UnitPickerScreenState extends State<UnitPickerScreen> {
         children: [
           IconButton(
             icon: Icon(Icons.arrow_back, color: Color(blue2Color)),
-            onPressed: () => Navigator.of(context).pop(),
+            onPressed: () {
+              AnalyticsService.logEvent('unit_picker_back');
+              Navigator.of(context).pop();
+            },
           ),
           const Text('Pilih unit', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
           const Spacer(),
@@ -151,6 +156,7 @@ class _UnitPickerScreenState extends State<UnitPickerScreen> {
                 : IconButton(
                     icon: const Icon(Icons.close, size: 18),
                     onPressed: () {
+                      AnalyticsService.logEvent('unit_picker_clear_search');
                       _searchCtrl.clear();
                       context.read<UnitPickerCubit>().setSearch('');
                       setState(() {});
@@ -174,7 +180,13 @@ class _UnitPickerScreenState extends State<UnitPickerScreen> {
             const SizedBox(height: 8),
             Text(state.errorMessage ?? 'Gagal memuat unit', textAlign: TextAlign.center),
             const SizedBox(height: 8),
-            TextButton(onPressed: cubit.loadTree, child: const Text('Coba lagi')),
+            TextButton(
+              onPressed: () {
+                AnalyticsService.logEvent('unit_picker_retry_load_units');
+                cubit.loadTree();
+              },
+              child: const Text('Coba lagi'),
+            ),
           ],
         ),
       );
@@ -194,7 +206,10 @@ class _UnitPickerScreenState extends State<UnitPickerScreen> {
     final expanded = state.expandedClusters.contains(cluster.projectId);
     return [
       InkWell(
-        onTap: () => cubit.toggleCluster(cluster.projectId),
+        onTap: () {
+          AnalyticsService.logEvent('unit_picker_toggle_cluster');
+          cubit.toggleCluster(cluster.projectId);
+        },
         child: Container(
           padding: const EdgeInsets.fromLTRB(14, 13, 14, 13),
           decoration: const BoxDecoration(border: Border(top: BorderSide(color: Color(0x14000000)))),
@@ -220,7 +235,10 @@ class _UnitPickerScreenState extends State<UnitPickerScreen> {
     final lots = state.lotsByProduct[pkey] ?? const [];
     return [
       InkWell(
-        onTap: () => cubit.toggleProduct(product),
+        onTap: () {
+          AnalyticsService.logEvent('unit_picker_toggle_product');
+          cubit.toggleProduct(product);
+        },
         child: Container(
           color: const Color(0xFFF7FAFE),
           padding: const EdgeInsets.fromLTRB(36, 11, 14, 11),
@@ -248,14 +266,20 @@ class _UnitPickerScreenState extends State<UnitPickerScreen> {
           italic: true,
           color: Color(grey5Color),
           checked: cubit.isSelected(_key(cluster.projectId, product.productId, 0, false)),
-          onTap: () => cubit.toggleUndecided(cluster, product),
+          onTap: () {
+            AnalyticsService.logEvent('unit_picker_select_undecided_unit');
+            cubit.toggleUndecided(cluster, product);
+          },
         ),
         _selectRow(
           label: 'Waiting list',
           italic: true,
           color: _amber,
           checked: cubit.isSelected(_key(cluster.projectId, product.productId, 0, true)),
-          onTap: () => cubit.toggleWaiting(cluster, product),
+          onTap: () {
+            AnalyticsService.logEvent('unit_picker_select_waiting_unit');
+            cubit.toggleWaiting(cluster, product);
+          },
         ),
         if (loadingLots)
           const Padding(padding: EdgeInsets.symmetric(vertical: 12), child: Center(child: SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))))
@@ -265,7 +289,10 @@ class _UnitPickerScreenState extends State<UnitPickerScreen> {
               label: lot.propertyName,
               checked: cubit.isSelected(_key(cluster.projectId, product.productId, lot.propertyId, false)),
               hook: lot.isTipeHoek,
-              onTap: () => cubit.toggleLot(cluster, product, lot),
+              onTap: () {
+                AnalyticsService.logEvent('unit_picker_select_lot_unit');
+                cubit.toggleLot(cluster, product, lot);
+              },
             ),
       ],
     ];
@@ -344,7 +371,10 @@ class _UnitPickerScreenState extends State<UnitPickerScreen> {
             width: double.infinity,
             child: ElevatedButton.icon(
               
-              onPressed: () => Navigator.of(context).pop(selected),
+              onPressed: () {
+                AnalyticsService.logEvent('unit_picker_confirm_unit_selection');
+                Navigator.of(context).pop(selected);
+              },
               icon: Icon(selected.isEmpty ? Icons.remove_circle_outline : Icons.check, size: 18),
               style: ElevatedButton.styleFrom(
                 backgroundColor: selected.isEmpty ? Color(grey5Color) : Color(blue3Color),

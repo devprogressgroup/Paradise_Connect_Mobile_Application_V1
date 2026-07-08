@@ -37,6 +37,7 @@ import 'package:progress_group/features/inbox/presentation/state/whatsapp_qr/wha
 import '../../../../../core/constants/assets.dart';
 import '../../../../../core/utils/widget/custom_button.dart';
 import '../../../../../core/utils/widget/error_dialog.dart';
+import 'package:progress_group/core/services/analytics_service.dart';
 
 class InboxPage extends StatefulWidget {
   const InboxPage({super.key});
@@ -72,6 +73,7 @@ class _InboxPageState extends State<InboxPage> {
   @override
   void initState() {
     super.initState();
+    AnalyticsService.logScreenView('inbox');
     _personalScrollController = ScrollController()..addListener(_onScroll);
     _groupScrollController = ScrollController()..addListener(_onScroll);
     _fetchInbox();
@@ -159,6 +161,7 @@ class _InboxPageState extends State<InboxPage> {
                       SizedBox(width: 10),
                       GestureDetector(
                         onTap: () {
+                          AnalyticsService.logEvent('inbox_toggle_phone_filter');
                           setState(() {
                             isFilterPhone = !isFilterPhone;
                             if (isFilterPhone) {
@@ -221,6 +224,7 @@ class _InboxPageState extends State<InboxPage> {
                                               : Color(primaryColor),
                                           onTap: () {
                                             if (device.status != "CONNECTED") {
+                                              AnalyticsService.logEvent('inbox_connect_device');
                                               context.read<WhatsappQrBloc>().add(
                                                     StartQrSessionEvent(device.sessionCode),
                                                   );
@@ -314,6 +318,7 @@ class _InboxPageState extends State<InboxPage> {
                                       label: label,
                                       isSelected: isSelected,
                                       onTap: () async {
+                                        AnalyticsService.logEvent('inbox_filter_owner');
                                         if (profileState is ProfileLoaded) {
                                           final user = profileState.profile;
                                           final List<OwnerDropdownItem> ownerItems = [];
@@ -389,6 +394,7 @@ class _InboxPageState extends State<InboxPage> {
                                   label: label,
                                   isSelected: isSelected,
                                   onTap: () async {
+                                    AnalyticsService.logEvent('inbox_filter_date');
                                     final result = await context.pushNamed<DateFilterResult>(
                                       'dateFilter',
                                       extra: {
@@ -437,6 +443,7 @@ class _InboxPageState extends State<InboxPage> {
                                   label: label,
                                   isSelected: isSelected,
                                   onTap: () async {
+                                    AnalyticsService.logEvent('inbox_filter_status');
                                     final statusState = context.read<ProspectStatusBloc>().state;
                     
                                     if (statusState.status == ProspectStatusEnum.loaded) {
@@ -657,6 +664,7 @@ class _InboxPageState extends State<InboxPage> {
 
               return RepaintBoundary(child: InkWell(
                 onTap: () async {
+                  AnalyticsService.logEvent('inbox_open_conversation');
                   await context.pushNamed(
                     'detailInbox',
                     extra: InboxDetailArgs(

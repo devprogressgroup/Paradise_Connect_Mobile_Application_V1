@@ -13,6 +13,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:progress_group/core/utils/helpers/app_time.dart';
 import 'package:progress_group/core/utils/helpers/date_helper.dart';
+import 'package:progress_group/core/services/analytics_service.dart';
 import 'package:progress_group/core/utils/widget/custom_button.dart';
 import 'package:progress_group/features/attandance/data/arguments/attandance_args.dart';
 import 'package:progress_group/features/attandance/domain/entities/location_entity.dart';
@@ -72,7 +73,13 @@ class _CameraPageState extends State<CameraPage> {
                     : state.message.replaceFirst('Exception: ', '').trim(),
               ),
               actions: [
-                TextButton(onPressed: () => Navigator.of(ctx).pop(), child: const Text('OK')),
+                TextButton(
+                  onPressed: () {
+                    AnalyticsService.logEvent('camera_error_dialog_ok');
+                    Navigator.of(ctx).pop();
+                  },
+                  child: const Text('OK'),
+                ),
               ],
             ),
           );
@@ -225,6 +232,7 @@ class _WebCameraPageState extends State<_WebCameraPage> {
   void _takePicture() {
     final video = _video;
     if (video == null || video.videoWidth == 0) return;
+    AnalyticsService.logEvent('camera_capture_photo');
 
     final canvas = html.CanvasElement(width: video.videoWidth, height: video.videoHeight);
     canvas.context2D.drawImage(video, 0, 0);
@@ -272,6 +280,7 @@ class _WebCameraPageState extends State<_WebCameraPage> {
           isBack: true,
           iconLeft: _isMultiplePhotosSupported && _imageBytesList.isNotEmpty ? Icons.close : null,
           iconLeftOnTap: () {
+            AnalyticsService.logEvent('camera_clear_photos');
             setState(() {
               _imageBytesList.clear();
               _imageDataUrls.clear();
@@ -361,10 +370,13 @@ class _WebCameraPageState extends State<_WebCameraPage> {
               if (_isMultiplePhotosSupported && _imageBytesList.isNotEmpty) ...[
                 const SizedBox(height: 16),
                 ElevatedButton(
-                  onPressed: () => widget.onCapture(
-                    List.from(_imageBytesList),
-                    List.from(_imageDataUrls),
-                  ),
+                  onPressed: () {
+                    AnalyticsService.logEvent('camera_done_multi_photo');
+                    widget.onCapture(
+                      List.from(_imageBytesList),
+                      List.from(_imageDataUrls),
+                    );
+                  },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Color(whiteColor),
                     foregroundColor: Color(primaryColor),
@@ -405,7 +417,10 @@ class _WebCameraPageState extends State<_WebCameraPage> {
             if (error != _CameraError.insecure) ...[
               const SizedBox(height: 24),
               ElevatedButton.icon(
-                onPressed: _requestCamera,
+                onPressed: () {
+                  AnalyticsService.logEvent('camera_retry_camera');
+                  _requestCamera();
+                },
                 icon: const Icon(Icons.refresh),
                 label: const Text('Coba Lagi'),
                 style: ElevatedButton.styleFrom(
@@ -513,8 +528,7 @@ class _WebSubmitPageState extends State<_WebSubmitPage> {
 
   void _handleSubmit() {
     if (_imageBytesList.isEmpty) return;
-
-    
+    AnalyticsService.logEvent('camera_submit_attendance');
 
     if (widget.args.isReturnImage == true) {
       context.pop(_imageBytesList.first);
@@ -596,7 +610,10 @@ class _WebSubmitPageState extends State<_WebSubmitPage> {
             colorTitle: Color(whiteColor),
             isBack: true,
             iconLeft: Icons.history,
-            iconLeftOnTap: widget.onRetake,
+            iconLeftOnTap: () {
+              AnalyticsService.logEvent('camera_retake_photo');
+              widget.onRetake();
+            },
             colorIconLeft: Color(whiteColor),
           ),
           Expanded(child: _buildContent()),
@@ -657,10 +674,13 @@ class _WebSubmitPageState extends State<_WebSubmitPage> {
                                 Text('Check In Photos', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(grey2Color))),
                                 if (widget.onAddMore != null)
                                   IconButton(
-                                    onPressed: () => widget.onAddMore!(
-                                      List.from(_imageBytesList),
-                                      List.from(_imageDataUrls),
-                                    ),
+                                    onPressed: () {
+                                      AnalyticsService.logEvent('camera_take_more_photos');
+                                      widget.onAddMore!(
+                                        List.from(_imageBytesList),
+                                        List.from(_imageDataUrls),
+                                      );
+                                    },
                                     icon: Icon(Icons.camera_alt, color: Color(primaryColor)),
                                     iconSize: 20,
                                     padding: EdgeInsets.zero,
@@ -687,10 +707,13 @@ class _WebSubmitPageState extends State<_WebSubmitPage> {
                                   Positioned(
                                     top: 0, right: 8,
                                     child: GestureDetector(
-                                      onTap: () => setState(() {
-                                        _imageBytesList.removeAt(index);
-                                        _imageDataUrls.removeAt(index);
-                                      }),
+                                      onTap: () {
+                                        AnalyticsService.logEvent('camera_remove_photo');
+                                        setState(() {
+                                          _imageBytesList.removeAt(index);
+                                          _imageDataUrls.removeAt(index);
+                                        });
+                                      },
                                       child: Container(
                                         decoration: BoxDecoration(color: Color(blackColor).withAlpha(54), shape: BoxShape.circle),
                                         child: const Icon(Icons.close, color: Color(whiteColor), size: 20),
@@ -748,6 +771,7 @@ class _WebSubmitPageState extends State<_WebSubmitPage> {
                                 ),
                                 child: InkWell(
                                   onTap: () async {
+                                    AnalyticsService.logEvent('camera_select_pameran_location');
                                     final locationList = context.read<PameranLocationCubit>().state;
                                     if (locationList.isEmpty) {
                                       ScaffoldMessenger.of(context).showSnackBar(

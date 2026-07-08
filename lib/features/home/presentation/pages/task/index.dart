@@ -23,6 +23,7 @@ import 'package:progress_group/features/auth/presentation/state/auth/auth_event.
 import 'package:progress_group/features/auth/presentation/state/profile/profile_bloc.dart';
 import 'package:progress_group/features/auth/presentation/state/profile/profile_state.dart';
 import 'package:progress_group/features/contact/domain/entities/activity/activity_entity.dart';
+import 'package:progress_group/core/services/analytics_service.dart';
 
 
 class _ActivityOption {
@@ -62,7 +63,10 @@ class _FilterListPage<T> extends StatelessWidget {
               child: Row(
                 children: [
                   GestureDetector(
-                    onTap: () => Navigator.of(context).pop(),
+                    onTap: () {
+                      AnalyticsService.logEvent('task_back_filter_list');
+                      Navigator.of(context).pop();
+                    },
                     child: Icon(Icons.arrow_back, color: Color(primaryColor), size: 27),
                   ),
                   const SizedBox(width: 10),
@@ -81,7 +85,10 @@ class _FilterListPage<T> extends StatelessWidget {
                   return Material(
                     color: Color(transparentColor),
                     child: InkWell(
-                      onTap: () => Navigator.of(context).pop(item.value),
+                      onTap: () {
+                        AnalyticsService.logEvent('task_select_filter_option');
+                        Navigator.of(context).pop(item.value);
+                      },
                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                         color: isSelected ? Color(grey10Color) : Color(whiteColor),
@@ -165,6 +172,7 @@ class _TaskPageState extends State<TaskPage> {
   @override
   void initState() {
     super.initState();
+    AnalyticsService.logScreenView('task');
     _loadAll();
   }
 
@@ -186,6 +194,7 @@ class _TaskPageState extends State<TaskPage> {
   }
 
   void _openActivityFilter() async {
+    AnalyticsService.logEvent('task_filter_activity');
     final result = await Navigator.push<_ActivityOption>(
       context,
       MaterialPageRoute(builder: (_) => _FilterListPage<_ActivityOption>(
@@ -207,6 +216,7 @@ class _TaskPageState extends State<TaskPage> {
   }
 
   void _openApprovalFilter() async {
+    AnalyticsService.logEvent('task_filter_approval');
     final result = await Navigator.push<_ApprovalOption>(
       context,
       MaterialPageRoute(builder: (_) => _FilterListPage<_ApprovalOption>(
@@ -240,6 +250,7 @@ class _TaskPageState extends State<TaskPage> {
                     isActive: _isActivityFiltered,
                     onTap: _openActivityFilter,
                     onClear: _isActivityFiltered ? () {
+                      AnalyticsService.logEvent('task_clear_activity_filter');
                       setState(() => _selectedActivity = const _ActivityOption(null, 'Activity'));
                       _loadAll();
                     } : null,
@@ -251,6 +262,7 @@ class _TaskPageState extends State<TaskPage> {
                       isActive: _isApprovalFiltered,
                       onTap: _openApprovalFilter,
                       onClear: _isApprovalFiltered ? () {
+                        AnalyticsService.logEvent('task_clear_approval_filter');
                         setState(() => _selectedApproval = const _ApprovalOption(label: 'Approval'));
                         context.read<AttendanceApprovalCubit>().load(status: 'pending');
                       } : null,
@@ -371,6 +383,7 @@ class _TaskPageState extends State<TaskPage> {
 
     return GestureDetector(
       onTap: () async {
+        AnalyticsService.logEvent('task_open_task_item');
         if (isCompleted) {
           await context.pushNamed('detailContact', extra: ContactDetailArgs(
             dataContact: ContactEntity(contactId: activity.contactId, fullName: activity.contactName),
@@ -436,6 +449,7 @@ class _TaskPageState extends State<TaskPage> {
 
     return GestureDetector(
       onTap: () async {
+        AnalyticsService.logEvent('task_open_pending_approval');
         await context.pushNamed('approval');
         if (mounted) _loadAll();
       },

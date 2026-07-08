@@ -102,6 +102,7 @@ class ApiConstants {
   static String get baseUrl => _config.baseUrl;
   static String get storageUrl => _config.storageUrl;
   static String get serverUrl => _config.serverUrl;
+  static const String analyticsEventsEndpoint = '/analytics-events';
 
 
   static String _waServerUrl = '';

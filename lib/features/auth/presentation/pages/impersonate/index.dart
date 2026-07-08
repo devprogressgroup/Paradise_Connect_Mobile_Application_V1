@@ -8,6 +8,7 @@ import 'package:progress_group/features/auth/data/models/impersonatable_user_mod
 import 'package:progress_group/features/auth/presentation/state/auth/auth_bloc.dart';
 import 'package:progress_group/features/auth/presentation/state/auth/auth_event.dart';
 import 'package:progress_group/features/auth/presentation/state/auth/auth_state.dart';
+import 'package:progress_group/core/services/analytics_service.dart';
 
 
 
@@ -50,6 +51,7 @@ class _ImpersonatePageState extends State<ImpersonatePage> {
   }
 
   void _confirmImpersonate(ImpersonatableUser user) {
+    AnalyticsService.logEvent('impersonate_select_user');
     showDialog(
       context: context,
       builder: (dialogCtx) => AlertDialog(
@@ -64,11 +66,15 @@ class _ImpersonatePageState extends State<ImpersonatePage> {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(dialogCtx).pop(),
+            onPressed: () {
+              AnalyticsService.logEvent('impersonate_cancel_impersonate');
+              Navigator.of(dialogCtx).pop();
+            },
             child: const Text('Batal'),
           ),
           ElevatedButton(
             onPressed: () {
+              AnalyticsService.logEvent('impersonate_confirm_impersonate');
               Navigator.of(dialogCtx).pop();
               context.read<AuthBloc>().add(ImpersonateEvent(user.userId));
             },
@@ -160,8 +166,11 @@ class _ImpersonatePageState extends State<ImpersonatePage> {
             Text(_listError!, textAlign: TextAlign.center),
             const SizedBox(height: 10),
             ElevatedButton(
-              onPressed: () => context.read<AuthBloc>().add(
-                  LoadImpersonatableUsersEvent(search: _searchTC.text.trim())),
+              onPressed: () {
+                AnalyticsService.logEvent('impersonate_retry_load_users');
+                context.read<AuthBloc>().add(
+                    LoadImpersonatableUsersEvent(search: _searchTC.text.trim()));
+              },
               child: const Text('Coba lagi'),
             ),
           ],

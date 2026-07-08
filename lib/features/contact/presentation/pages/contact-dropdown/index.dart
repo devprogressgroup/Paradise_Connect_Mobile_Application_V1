@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:progress_group/core/constants/colors.dart';
+import 'package:progress_group/core/services/analytics_service.dart';
 import 'package:progress_group/features/contact/data/arguments/contact_dropdown_args.dart';
 
 class DropdownListContact extends StatefulWidget {
@@ -19,6 +20,7 @@ class _DropdownListContactState extends State<DropdownListContact> {
   @override
   void initState() {
     super.initState();
+    AnalyticsService.logScreenView('contact_dropdown');
     if (widget.args.isMultiSelect) {
       _tempSelectedIds = List.from(widget.args.selectedIds ?? []);
     } else if (widget.args.selectedId != null) {
@@ -63,7 +65,10 @@ class _DropdownListContactState extends State<DropdownListContact> {
               child: Row(
                 children: [
                   GestureDetector(
-                    onTap: () => context.pop(),
+                    onTap: () {
+                      AnalyticsService.logEvent('contact_dropdown_back');
+                      context.pop();
+                    },
                     child: Icon(Icons.arrow_back, color: Color(primaryColor), size: 27),
                   ),
                   const SizedBox(width: 10),
@@ -77,6 +82,7 @@ class _DropdownListContactState extends State<DropdownListContact> {
                   if (widget.args.isMultiSelect)
                     TextButton(
                       onPressed: () {
+                        AnalyticsService.logEvent('contact_dropdown_done_multiselect');
                         final selectedItems = widget.args.items
                             .where((item) => _tempSelectedIds.contains(item.id))
                             .toList();
@@ -90,7 +96,10 @@ class _DropdownListContactState extends State<DropdownListContact> {
                     )
                   else if (widget.args.allowClear && _tempSelectedIds.isNotEmpty)
                     TextButton(
-                      onPressed: () => context.pop(<OwnerDropdownItem>[]),
+                      onPressed: () {
+                        AnalyticsService.logEvent('contact_dropdown_clear_selection');
+                        context.pop(<OwnerDropdownItem>[]);
+                      },
                       child: Text("Clear",
                           style: TextStyle(
                               color: Color(redAccentColor),
@@ -119,6 +128,7 @@ class _DropdownListContactState extends State<DropdownListContact> {
                     suffixIcon: _searchQuery.isNotEmpty
                         ? GestureDetector(
                             onTap: () {
+                              AnalyticsService.logEvent('contact_dropdown_clear_search');
                               _searchController.clear();
                               setState(() => _searchQuery = '');
                             },
@@ -150,6 +160,7 @@ class _DropdownListContactState extends State<DropdownListContact> {
                       children: [
                         TextButton(
                           onPressed: () {
+                            AnalyticsService.logEvent('contact_dropdown_select_all');
                             setState(() {
                               _tempSelectedIds = widget.args.items
                                   .where((e) => e.id != null)
@@ -167,7 +178,10 @@ class _DropdownListContactState extends State<DropdownListContact> {
                         ),
                         Text('|', style: TextStyle(color: Color(grey5Color))),
                         TextButton(
-                          onPressed: () => setState(() => _tempSelectedIds = []),
+                          onPressed: () {
+                            AnalyticsService.logEvent('contact_dropdown_clear_selection');
+                            setState(() => _tempSelectedIds = []);
+                          },
                           style: TextButton.styleFrom(
                             minimumSize: Size.zero,
                             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -217,6 +231,7 @@ class _DropdownListContactState extends State<DropdownListContact> {
                           color: Color(transparentColor),
                           child: InkWell(
                             onTap: () {
+                              AnalyticsService.logEvent('contact_dropdown_select_item');
                               if (widget.args.isMultiSelect) {
                                 setState(() {
                                   if (isSelected) {
@@ -271,6 +286,7 @@ class _DropdownListContactState extends State<DropdownListContact> {
                                       activeColor: Color(primaryColor),
                                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
                                       onChanged: (val) {
+                                        AnalyticsService.logEvent('contact_dropdown_select_item');
                                         setState(() {
                                           if (val == true) {
                                             if (item.id != null) _tempSelectedIds.add(item.id!);
