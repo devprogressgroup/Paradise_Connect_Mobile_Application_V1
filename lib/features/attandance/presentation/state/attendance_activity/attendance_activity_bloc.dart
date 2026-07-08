@@ -91,7 +91,11 @@ class AttendanceActivityBloc extends Bloc<AttendanceActivityEvent, AttendanceAct
        
        
        
-        final newPage = [...result.data]..sort((a, b) => b.date.compareTo(a.date));
+        final newPage = [...result.data]..sort((a, b) {
+          final dateCompare = b.date.compareTo(a.date);
+          if (dateCompare != 0) return dateCompare;
+          return _latestActivityTime(b).compareTo(_latestActivityTime(a));
+        });
 
         emit(AttendanceActivityLoaded(
           activityLogs: [...existingLogs, ...newPage],
@@ -104,4 +108,17 @@ class AttendanceActivityBloc extends Bloc<AttendanceActivityEvent, AttendanceAct
       }
     });
   }
+}
+
+String _latestActivityTime(AttendanceActivityEntity item) {
+  final times = <String>[
+    if (item.clockInDate != null) item.clockInDate!,
+    if (item.clockOutDate != null) item.clockOutDate!,
+    for (final c in item.checkIns)
+      if (c.checkInDate != null) c.checkInDate!,
+    for (final v in item.visits)
+      if (v.datetime != null) v.datetime!,
+  ];
+  if (times.isEmpty) return '';
+  return times.reduce((a, b) => a.compareTo(b) >= 0 ? a : b);
 }

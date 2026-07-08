@@ -45,6 +45,20 @@ class DioClient {
     );
   }
 
+  static bool _timeSyncLogged = false;
+
+  static void _syncAppTime(String? dateHeader, dynamic rawResponseData) {
+    AppTime.syncFromHeader(dateHeader);
+    if (rawResponseData is Map && rawResponseData['t'] is int) {
+      AppTime.syncFromServerMillis(rawResponseData['t'] as int);
+    }
+    if (!kIsWeb || _timeSyncLogged) return;
+    _timeSyncLogged = true;
+    web_debug.logDebugInfo(AppTime.hasSynced
+        ? '[AppTime] Sinkron waktu server berhasil.'
+        : '[AppTime] Sinkron waktu server GAGAL - AppTime jatuh ke jam device/browser tanpa koreksi.');
+  }
+
   static void _checkDeviceTimeDrift() {
     if (!AppTime.consumeSuspiciousDriftFlag()) return;
     final context = AppRouter.rootNavigatorKey.currentContext;
@@ -136,7 +150,7 @@ class DioClient {
               'path': options.path,
               'query': Map<String, dynamic>.from(options.queryParameters),
               'body': body,
-              'ts': AppTime.now().millisecondsSinceEpoch,
+              'ts': AppTime.nowUtcInstant().millisecondsSinceEpoch,
             };
             if (kDebugMode) {
               _printLong('[REQ DECRYPT] ${payload['method']} ${payload['path']} => ${jsonEncode(payload)}');
@@ -158,7 +172,7 @@ class DioClient {
           return handler.next(options);
         },
         onResponse: (response, handler) {
-          AppTime.syncFromHeader(response.headers.value('date'));
+          _syncAppTime(response.headers.value('date'), response.data);
           _checkDeviceTimeDrift();
           final isFileDownload = response.requestOptions.responseType == ResponseType.bytes ||
               response.requestOptions.responseType == ResponseType.stream;
@@ -179,7 +193,7 @@ class DioClient {
           return handler.next(response);
         },
         onError: (DioException e, handler) async {
-          AppTime.syncFromHeader(e.response?.headers.value('date'));
+          _syncAppTime(e.response?.headers.value('date'), e.response?.data);
           _checkDeviceTimeDrift();
           _checkCertificateError(e);
           if (e.response != null) {

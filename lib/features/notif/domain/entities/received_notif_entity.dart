@@ -1,5 +1,7 @@
 import 'dart:convert';
 
+import '../../../../core/utils/helpers/app_time.dart';
+
 class ReceivedNotifEntity {
   final String id;
   final String title;
@@ -42,7 +44,7 @@ class ReceivedNotifEntity {
       body: json['body'] as String? ?? '',
       type: json['type'] as String?,
       data: dataMap,
-      receivedAt: DateTime.tryParse(json['receivedAt'] as String? ?? '') ?? DateTime.now(),
+      receivedAt: DateTime.tryParse(json['receivedAt'] as String? ?? '') ?? AppTime.now(),
     );
   }
 }
