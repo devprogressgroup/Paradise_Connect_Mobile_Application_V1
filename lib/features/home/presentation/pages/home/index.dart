@@ -37,6 +37,7 @@ import '../../../../../core/utils/widget/custom_header.dart';
 import '../../../../../core/utils/widget/attendance_alerts_widget.dart';
 import '../../../../../core/utils/widget/custom_filter_button.dart';
 import '../../../../../core/utils/widget/error_dialog.dart';
+import '../../../../../core/utils/route_observer.dart';
 import '../../../../contact/data/models/dropdown/date_filter.dart';
 
 class HomePage extends StatefulWidget {
@@ -46,7 +47,7 @@ class HomePage extends StatefulWidget {
   State<HomePage> createState() => _HomePageState();
 }
 
-class _HomePageState extends State<HomePage> {
+class _HomePageState extends State<HomePage> with RouteAware {
 
   DateTime _chartEndDate = AppTime.now();
   DateTime _chartStartDate = AppTime.now().subtract(const Duration(days: 6));
@@ -67,6 +68,26 @@ class _HomePageState extends State<HomePage> {
     _prospectStartDate = DateFormat('yyyy-MM-dd').format(DateTime(now.year - 1, now.month, now.day));
     _prospectEndDate   = DateFormat('yyyy-MM-dd').format(now);
     _prospectDateLabel = 'Last 1 Year';
+    _loadData(force: true);
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final route = ModalRoute.of(context);
+    if (route is PageRoute) {
+      appRouteObserver.subscribe(this, route);
+    }
+  }
+
+  @override
+  void dispose() {
+    appRouteObserver.unsubscribe(this);
+    super.dispose();
+  }
+
+  @override
+  void didPopNext() {
     _loadData(force: true);
   }
 
@@ -125,6 +146,7 @@ class _HomePageState extends State<HomePage> {
 
   Future<void> _loadData({bool force = false}) async {
     final now = AppTime.now();
+    context.read<ProspectStatusSummaryBloc>().add(FetchProspectStatusSummaryEvent(startDate: _prospectStartDate, endDate: _prospectEndDate));
     if (!force && _lastLoadTime != null && now.difference(_lastLoadTime!).inSeconds < 10) return;
     _lastLoadTime = now;
     context.read<AuthBloc>().add(FetchPermissionsEvent());
@@ -141,13 +163,10 @@ class _HomePageState extends State<HomePage> {
     context.read<WhatsappActivityBloc>().add(const FetchWhatsappUnreadSummaryEvent(0));
     context.read<AttendanceBloc>().add(FetchAttendanceDataEvent());
 
-    
-    
     final profileState = context.read<ProfileBloc>().state;
     final isSales = profileState is! ProfileLoaded || profileState.profile.salesPersonId != null;
     if (!isSales) return;
 
-    
     final activityState = context.read<ActivityBloc>().state;
     if (force || activityState.status != ActivityStatus.loaded) {
       context.read<ActivityBloc>().add(
@@ -159,25 +178,17 @@ class _HomePageState extends State<HomePage> {
       );
     }
 
-    
     final notifState = context.read<NotifActivityBloc>().state;
     if (force || notifState.status != ActivityStatus.loaded) {
       context.read<NotifActivityBloc>().add(const FetchActivitiesEvent(isRefresh: true));
     }
 
-    
     final canManageApproval = profileState is ProfileLoaded && const ['General Manager', 'Sales Manager'].contains(profileState.profile.positionName);
     if (canManageApproval) {
       context.read<AttendanceApprovalCubit>().load(status: 'pending');
     }
 
     
-    final prospectState = context.read<ProspectStatusSummaryBloc>().state;
-    if (force || prospectState.status != ProspectStatusSummaryStatus.loaded) {
-      context.read<ProspectStatusSummaryBloc>().add(
-        FetchProspectStatusSummaryEvent(startDate: _prospectStartDate, endDate: _prospectEndDate),
-      );
-    }
   }
 
   @override

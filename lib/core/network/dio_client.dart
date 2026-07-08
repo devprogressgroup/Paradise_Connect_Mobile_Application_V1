@@ -88,6 +88,9 @@ class DioClient {
           if (token != null && token.isNotEmpty) {
             options.headers["Authorization"] = "Bearer $token";
           }
+          if (kDebugMode && options.method.toUpperCase() == 'GET') {
+            // debugPrint('[API GET] ${options.baseUrl}${options.path}${options.queryParameters.isNotEmpty ? '?${options.queryParameters}' : ''}');
+          }
           final isFileDownload = options.responseType == ResponseType.bytes ||
               options.responseType == ResponseType.stream;
           if (isFileDownload) {

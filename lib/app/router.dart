@@ -37,6 +37,7 @@ import '../features/siap-huni/presentation/pages/index.dart';
 import '../features/contact/presentation/pages/pipeline/index.dart';
 import 'main_layout.dart';
 import '../core/utils/helpers/permissions_helper.dart';
+import '../core/utils/route_observer.dart';
 
 class AppRouter {
   static GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>();
@@ -55,6 +56,7 @@ class AppRouter {
       initialLocation: '/splash',
       navigatorKey: rootNavigatorKey,
       refreshListenable: authNotifier,
+      observers: [appRouteObserver],
       redirect: (context, state) {
         final isLoggedIn = authNotifier.value;
         final location = state.matchedLocation;
@@ -111,8 +113,7 @@ class AppRouter {
           ),
           GoRoute(
             path: '/contact',
-            redirect: (context, state) =>
-                PermissionsHelper.canAccessContacts ? null : '/',
+            redirect: (context, state) => PermissionsHelper.canAccessContacts ? null : '/',
             builder: (context, state) {
               final extra = state.extra;
               List<int>? initialStatusIds;
