@@ -16,11 +16,13 @@ class FetchContactsEvent extends ContactEvent {
   final String? endDate;
   final List<int>? ownerIds;
   final List<int>? statusProspectIds;
+  final List<int>? salesChannelIds;
   final bool isRefresh;
   final bool clearSearch;
   final bool clearDates;
   final bool clearOwner;
   final bool clearStatus;
+  final bool clearSalesChannel;
   final String? apptStartDate;
   final String? apptEndDate;
   final String? visitStartDate;
@@ -42,11 +44,13 @@ class FetchContactsEvent extends ContactEvent {
     this.endDate,
     this.ownerIds,
     this.statusProspectIds,
+    this.salesChannelIds,
     this.isRefresh = false,
     this.clearSearch = false,
     this.clearDates = false,
     this.clearOwner = false,
     this.clearStatus = false,
+    this.clearSalesChannel = false,
     this.apptStartDate,
     this.apptEndDate,
     this.visitStartDate,
@@ -70,11 +74,13 @@ class FetchContactsEvent extends ContactEvent {
     endDate,
     ownerIds,
     statusProspectIds,
+    salesChannelIds,
     isRefresh,
     clearSearch,
     clearDates,
     clearOwner,
     clearStatus,
+    clearSalesChannel,
     apptStartDate,
     apptEndDate,
     visitStartDate,
@@ -128,6 +134,9 @@ class DeleteContactEvent extends ContactEvent {
 }
 class ClearContactDetailEvent extends ContactEvent {}
 class ClearContactsEvent extends ContactEvent {}
+class FetchDuplicateCheckContactsEvent extends ContactEvent {
+  const FetchDuplicateCheckContactsEvent();
+}
 class ResetContactFiltersEvent extends ContactEvent {
   const ResetContactFiltersEvent();
 }

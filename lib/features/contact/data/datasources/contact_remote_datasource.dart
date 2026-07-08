@@ -25,7 +25,9 @@ import 'package:progress_group/features/contact/domain/entities/attachment/uploa
 import 'package:progress_group/features/contact/domain/entities/contact/create_contact_params.dart';
 
 abstract class ContactRemoteDataSource {
-  Future<ContactResponseModel> getContacts({int page = 1, int perPage = 10, String? search, String? startDate, String? endDate, List<int>? ownerIds, List<int>? statusProspectIds, String? apptStartDate, String? apptEndDate, String? visitStartDate, String? visitEndDate, String? reserveStartDate, String? reserveEndDate, String? spStartDate, String? spEndDate});
+  Future<ContactResponseModel> getContacts({int page = 1, int perPage = 10, String? search, String? startDate, String? endDate, List<int>? ownerIds, List<int>? statusProspectIds, List<int>? salesChannelIds, String? apptStartDate, String? apptEndDate, String? visitStartDate, String? visitEndDate, String? reserveStartDate, String? reserveEndDate, String? spStartDate, String? spEndDate});
+
+  Future<List<ContactModel>> getAllContactsForDuplicateCheck();
 
   Future<ContactModel> getContactDetail(int id);
 
@@ -82,7 +84,7 @@ class ContactRemoteDataSourceImpl implements ContactRemoteDataSource {
  
 
   @override
-  Future<ContactResponseModel> getContacts({int page = 1, int perPage = 10, String? search, String? startDate, String? endDate, List<int>? ownerIds, List<int>? statusProspectIds, String? apptStartDate, String? apptEndDate, String? visitStartDate, String? visitEndDate, String? reserveStartDate, String? reserveEndDate, String? spStartDate, String? spEndDate}) async {
+  Future<ContactResponseModel> getContacts({int page = 1, int perPage = 10, String? search, String? startDate, String? endDate, List<int>? ownerIds, List<int>? statusProspectIds, List<int>? salesChannelIds, String? apptStartDate, String? apptEndDate, String? visitStartDate, String? visitEndDate, String? reserveStartDate, String? reserveEndDate, String? spStartDate, String? spEndDate}) async {
     try {
       final response = await dio.get(
         '/contacts',
@@ -94,6 +96,7 @@ class ContactRemoteDataSourceImpl implements ContactRemoteDataSource {
           if (endDate != null && endDate.isNotEmpty) 'end_date': endDate,
           if (ownerIds != null && ownerIds.isNotEmpty) 'owner_id': ownerIds.join(','),
           if (statusProspectIds != null && statusProspectIds.isNotEmpty) 'status_prospect_id': statusProspectIds.join(','),
+          if (salesChannelIds != null && salesChannelIds.isNotEmpty) 'sales_channel_id': salesChannelIds.join(','),
           if (apptStartDate != null && apptStartDate.isNotEmpty) 'appt_start_date': apptStartDate,
           if (apptEndDate != null && apptEndDate.isNotEmpty) 'appt_end_date': apptEndDate,
           if (visitStartDate != null && visitStartDate.isNotEmpty) 'visit_start_date': visitStartDate,
@@ -107,6 +110,22 @@ class ContactRemoteDataSourceImpl implements ContactRemoteDataSource {
 
       if (response.data['status'] == true) {
         return ContactResponseModel.fromJson(response.data['data']);
+      }
+
+      throw Exception(response.data['message'] ?? 'Failed to load contacts');
+    } on DioException catch (e) {
+      throw Exception(getErrorMessage(e, 'Failed to load contacts'));
+    }
+  }
+
+  @override
+  Future<List<ContactModel>> getAllContactsForDuplicateCheck() async {
+    try {
+      final response = await dio.get('/contacts');
+
+      if (response.data['status'] == true) {
+        final List<dynamic> list = response.data['data']?['data'] ?? [];
+        return list.map((json) => ContactModel.fromJson(json)).toList();
       }
 
       throw Exception(response.data['message'] ?? 'Failed to load contacts');

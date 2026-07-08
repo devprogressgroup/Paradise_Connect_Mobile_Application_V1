@@ -26,7 +26,7 @@ class ContactRepositoryImpl implements ContactRepository {
   ContactRepositoryImpl(this.remoteDataSource);
 
   @override
-  Future<Either<String, ContactResponse>> getContacts({int page = 1, int perPage = 10, String? search, String? startDate, String? endDate, List<int>? ownerIds, List<int>? statusProspectIds, String? apptStartDate, String? apptEndDate, String? visitStartDate, String? visitEndDate, String? reserveStartDate, String? reserveEndDate, String? spStartDate, String? spEndDate}) async {
+  Future<Either<String, ContactResponse>> getContacts({int page = 1, int perPage = 10, String? search, String? startDate, String? endDate, List<int>? ownerIds, List<int>? statusProspectIds, List<int>? salesChannelIds, String? apptStartDate, String? apptEndDate, String? visitStartDate, String? visitEndDate, String? reserveStartDate, String? reserveEndDate, String? spStartDate, String? spEndDate}) async {
     try {
       final result = await remoteDataSource.getContacts(
         page: page,
@@ -36,6 +36,7 @@ class ContactRepositoryImpl implements ContactRepository {
         endDate: endDate,
         ownerIds: ownerIds,
         statusProspectIds: statusProspectIds,
+        salesChannelIds: salesChannelIds,
         apptStartDate: apptStartDate,
         apptEndDate: apptEndDate,
         visitStartDate: visitStartDate,
@@ -45,6 +46,16 @@ class ContactRepositoryImpl implements ContactRepository {
         spStartDate: spStartDate,
         spEndDate: spEndDate,
       );
+      return Right(result);
+    } catch (e) {
+      return Left(e.toString());
+    }
+  }
+
+  @override
+  Future<Either<String, List<ContactEntity>>> getAllContactsForDuplicateCheck() async {
+    try {
+      final result = await remoteDataSource.getAllContactsForDuplicateCheck();
       return Right(result);
     } catch (e) {
       return Left(e.toString());

@@ -32,6 +32,10 @@ import '../../state/contact/contact_state.dart';
 import '../../state/prospect_status/prospect_status_bloc.dart';
 import '../../state/prospect_status/prospect_status_event.dart';
 import '../../state/prospect_status/prospect_status_state.dart';
+import '../../state/info_source/info_source_bloc.dart';
+import '../../state/info_source/info_source_event.dart';
+import '../../state/info_source/info_source_state.dart';
+import '../../../domain/entities/info_source/info_source.dart';
 import '../../../../../core/utils/widget/custom_filter_button.dart';
 import '../../../../../core/utils/widget/error_dialog.dart';
 import '../../../domain/entities/prospect/prospect_status.dart';
@@ -85,8 +89,9 @@ class _ContactPageState extends State<ContactPage> {
     ));
 
     context.read<ProspectStatusBloc>().add(FetchProspectStatusesEvent());
+    context.read<InfoSourceBloc>().add(const FetchInfoSourcesEvent(type: 1));
 
-   
+
     context.read<AuthBloc>().add(FetchPermissionsEvent(silent: true));
     context.read<ProfileBloc>().add(GetProfileEvent(forceRefresh: true, silent: true));
   }
@@ -237,7 +242,7 @@ class _ContactPageState extends State<ContactPage> {
                                 height: 50,
                                 child: ListView.separated(
                                   scrollDirection: Axis.horizontal,
-                                  itemCount: 7,
+                                  itemCount: 8,
                                   separatorBuilder: (_, __) => const SizedBox(width: 10),
                                   itemBuilder: (context, index) {
                                     if (index == 0) {
@@ -587,6 +592,66 @@ class _ContactPageState extends State<ContactPage> {
                                                   setState(() => selectedSpDateLabel = result.label);
                                                 }
                                               }
+                                            },
+                                          );
+                                        },
+                                      );
+                                    }
+
+                                    if (index == 7) {
+                                      return BlocBuilder<ContactBloc, ContactState>(
+                                        builder: (context, contactState) {
+                                          return BlocBuilder<InfoSourceBloc, InfoSourceState>(
+                                            builder: (context, sourceState) {
+                                              String label = 'Sales Channel';
+                                              bool isSelected = contactState.salesChannelIds != null && contactState.salesChannelIds!.isNotEmpty;
+
+                                              if (isSelected) {
+                                                final sources = sourceState.sourcesMap[1];
+                                                if (contactState.salesChannelIds!.length == 1 && sources != null) {
+                                                  final found = sources.cast<InfoSource?>().firstWhere(
+                                                        (e) => e?.id == contactState.salesChannelIds!.first,
+                                                        orElse: () => null,
+                                                      );
+                                                  if (found != null) label = found.name;
+                                                } else {
+                                                  label = "${contactState.salesChannelIds!.length} Sales Channels";
+                                                }
+                                              }
+
+                                              return CustomFilterButton(
+                                                label: label,
+                                                isSelected: isSelected,
+                                                onTap: () async {
+                                                  final sources = sourceState.sourcesMap[1];
+                                                  if (sources != null) {
+                                                    final sourceItems = sources.map((e) => OwnerDropdownItem(id: e.id, name: e.name)).toList();
+                                                    final result = await context.pushNamed(
+                                                      'detailContactDropdown',
+                                                      extra: ContactDropdownArgs(
+                                                        title: 'Pilih Sales Channel',
+                                                        items: sourceItems,
+                                                        selectedIds: contactState.salesChannelIds,
+                                                        isMultiSelect: true,
+                                                      ),
+                                                    );
+                                                    if (result != null) {
+                                                      final selected = result as List<OwnerDropdownItem>;
+                                                      if (context.mounted) {
+                                                        context.read<ContactBloc>().add(
+                                                          FetchContactsEvent(
+                                                            salesChannelIds: selected.map((e) => e.id!).toList(),
+                                                            isRefresh: true,
+                                                            clearSalesChannel: selected.isEmpty,
+                                                          ),
+                                                        );
+                                                      }
+                                                    }
+                                                  } else {
+                                                    context.read<InfoSourceBloc>().add(const FetchInfoSourcesEvent(type: 1));
+                                                  }
+                                                },
+                                              );
                                             },
                                           );
                                         },

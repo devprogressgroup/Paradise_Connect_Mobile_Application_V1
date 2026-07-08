@@ -26,6 +26,7 @@ class ContactState extends Equatable {
   final String? endDate;
   final List<int>? ownerIds;
   final List<int>? statusProspectIds;
+  final List<int>? salesChannelIds;
   final ContactEntity? contactDetail;
   final String? apptStartDate;
   final String? apptEndDate;
@@ -36,6 +37,7 @@ class ContactState extends Equatable {
   final String? spStartDate;
   final String? spEndDate;
   final int? totalContacts;
+  final List<ContactEntity> duplicateCheckContacts;
 
   const ContactState({
     this.status = ContactStatus.initial,
@@ -48,6 +50,7 @@ class ContactState extends Equatable {
     this.endDate,
     this.ownerIds,
     this.statusProspectIds,
+    this.salesChannelIds,
     this.contactDetail,
     this.apptStartDate,
     this.apptEndDate,
@@ -58,6 +61,7 @@ class ContactState extends Equatable {
     this.spStartDate,
     this.spEndDate,
     this.totalContacts,
+    this.duplicateCheckContacts = const [],
   });
 
   ContactState copyWith({
@@ -71,10 +75,12 @@ class ContactState extends Equatable {
     String? endDate,
     List<int>? ownerIds,
     List<int>? statusProspectIds,
+    List<int>? salesChannelIds,
     bool clearSearch = false,
     bool clearDates = false,
     bool clearOwner = false,
     bool clearStatus = false,
+    bool clearSalesChannel = false,
     ContactEntity? contactDetail,
     String? apptStartDate,
     String? apptEndDate,
@@ -89,6 +95,7 @@ class ContactState extends Equatable {
     bool clearReserveDates = false,
     bool clearSpDates = false,
     int? totalContacts,
+    List<ContactEntity>? duplicateCheckContacts,
   }) {
     return ContactState(
       status: status ?? this.status,
@@ -101,6 +108,7 @@ class ContactState extends Equatable {
       endDate: clearDates ? null : (endDate ?? this.endDate),
       ownerIds: clearOwner ? null : (ownerIds ?? this.ownerIds),
       statusProspectIds: clearStatus ? null : (statusProspectIds ?? this.statusProspectIds),
+      salesChannelIds: clearSalesChannel ? null : (salesChannelIds ?? this.salesChannelIds),
       contactDetail: contactDetail ?? this.contactDetail,
       apptStartDate: clearApptDates ? null : (apptStartDate ?? this.apptStartDate),
       apptEndDate: clearApptDates ? null : (apptEndDate ?? this.apptEndDate),
@@ -111,6 +119,7 @@ class ContactState extends Equatable {
       spStartDate: clearSpDates ? null : (spStartDate ?? this.spStartDate),
       spEndDate: clearSpDates ? null : (spEndDate ?? this.spEndDate),
       totalContacts: totalContacts ?? this.totalContacts,
+      duplicateCheckContacts: duplicateCheckContacts ?? this.duplicateCheckContacts,
     );
   }
 
@@ -126,6 +135,7 @@ class ContactState extends Equatable {
     endDate,
     ownerIds,
     statusProspectIds,
+    salesChannelIds,
     contactDetail,
     apptStartDate,
     apptEndDate,
@@ -136,5 +146,6 @@ class ContactState extends Equatable {
     spStartDate,
     spEndDate,
     totalContacts,
+    duplicateCheckContacts,
   ];
 }

@@ -6,6 +6,7 @@ import 'package:progress_group/features/contact/domain/usecases/contact/delete_c
 import '../../../domain/usecases/contact/get_contacts_usecase.dart';
 import '../../../domain/usecases/contact/create_contact_usecase.dart';
 import '../../../domain/usecases/contact/get_contact_detail_usecase.dart';
+import '../../../domain/usecases/contact/get_all_contacts_for_duplicate_check_usecase.dart';
 import 'contact_event.dart';
 import 'contact_state.dart';
 
@@ -15,6 +16,7 @@ class ContactBloc extends Bloc<ContactEvent, ContactState> {
   final UpdateContactUseCase updateContactUseCase;
   final DeleteContactUseCase deleteContactUseCase;
   final GetContactDetailUseCase getContactDetailUseCase;
+  final GetAllContactsForDuplicateCheckUseCase getAllContactsForDuplicateCheckUseCase;
 
   ContactBloc({
     required this.getContactsUseCase,
@@ -22,12 +24,14 @@ class ContactBloc extends Bloc<ContactEvent, ContactState> {
     required this.updateContactUseCase,
     required this.deleteContactUseCase,
     required this.getContactDetailUseCase,
+    required this.getAllContactsForDuplicateCheckUseCase,
   }) : super(const ContactState()) {
     on<FetchContactsEvent>(_onFetchContacts, transformer: droppable());
     on<CreateContactEvent>(_onCreateContact);
     on<FetchContactDetailEvent>(_onFetchContactDetail);
     on<UpdateContactEvent>(_onUpdateContact);
     on<DeleteContactEvent>(_onDeleteContact);
+    on<FetchDuplicateCheckContactsEvent>(_onFetchDuplicateCheckContacts, transformer: droppable());
     on<ClearContactDetailEvent>((event, emit) => emit(state.copyWith(
           contactDetail: null,
           status: ContactStatus.initial,
@@ -37,6 +41,7 @@ class ContactBloc extends Bloc<ContactEvent, ContactState> {
           clearDates: true,
           clearOwner: true,
           clearStatus: true,
+          clearSalesChannel: true,
           clearApptDates: true,
           clearVisitDates: true,
           clearReserveDates: true,
@@ -62,10 +67,12 @@ class ContactBloc extends Bloc<ContactEvent, ContactState> {
           endDate: event.endDate,
           ownerIds: event.ownerIds,
           statusProspectIds: event.statusProspectIds,
+          salesChannelIds: event.salesChannelIds,
           clearSearch: event.clearSearch,
           clearDates: event.clearDates,
           clearOwner: event.clearOwner,
           clearStatus: event.clearStatus,
+          clearSalesChannel: event.clearSalesChannel,
           apptStartDate: event.apptStartDate,
           apptEndDate: event.apptEndDate,
           visitStartDate: event.visitStartDate,
@@ -96,6 +103,7 @@ class ContactBloc extends Bloc<ContactEvent, ContactState> {
       endDate: event.clearDates ? null : (event.endDate ?? state.endDate),
       ownerIds: event.clearOwner ? null : (event.ownerIds ?? state.ownerIds),
       statusProspectIds: event.clearStatus ? null : (event.statusProspectIds ?? state.statusProspectIds),
+      salesChannelIds: event.clearSalesChannel ? null : (event.salesChannelIds ?? state.salesChannelIds),
       apptStartDate: event.clearApptDates ? null : (event.apptStartDate ?? state.apptStartDate),
       apptEndDate: event.clearApptDates ? null : (event.apptEndDate ?? state.apptEndDate),
       visitStartDate: event.clearVisitDates ? null : (event.visitStartDate ?? state.visitStartDate),
@@ -198,6 +206,17 @@ class ContactBloc extends Bloc<ContactEvent, ContactState> {
         emit(state.copyWith(status: ContactStatus.deleteSuccess));
         add(const FetchContactsEvent(isRefresh: true));
       },
+    );
+  }
+
+  Future<void> _onFetchDuplicateCheckContacts(
+    FetchDuplicateCheckContactsEvent event,
+    Emitter<ContactState> emit,
+  ) async {
+    final result = await getAllContactsForDuplicateCheckUseCase();
+    result.fold(
+      (failure) {},
+      (contacts) => emit(state.copyWith(duplicateCheckContacts: contacts)),
     );
   }
 }
