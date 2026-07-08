@@ -10,6 +10,7 @@ class GetAttendanceActivityUseCase {
     String? startDate,
     String? endDate,
     String? location,
+    List<String>? types,
     int page = 1,
     int perPage = 20,
   }) {
@@ -18,6 +19,7 @@ class GetAttendanceActivityUseCase {
       startDate: startDate,
       endDate: endDate,
       location: location,
+      types: types,
       page: page,
       perPage: perPage,
     );

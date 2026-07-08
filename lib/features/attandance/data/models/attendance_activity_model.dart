@@ -1,91 +1,51 @@
 import 'package:progress_group/features/attandance/domain/entities/attendance_activity_entity.dart';
 
-class AttendanceActivityVisitModel extends AttendanceActivityVisit {
-  AttendanceActivityVisitModel({
-    super.datetime,
-    super.lastProject,
-    super.contactName,
-    super.contactId,
-    super.note,
-    super.attachment,
-  });
-
-  factory AttendanceActivityVisitModel.fromJson(Map<String, dynamic> json) {
-    return AttendanceActivityVisitModel(
-      datetime: json['activity_date'],
-      lastProject: json['last_project'],
-      contactName: json['contact_name'],
-      contactId: json['contact_id'],
-      note: json['note'],
-      attachment: json['image_paths'] != null? List<String>.from(json['image_paths']): null,
-    );
-  }
-}
-
-class AttendanceActivityCheckInModel extends AttendanceActivityCheckIn {
-  AttendanceActivityCheckInModel({
-    super.logId,
-    super.checkInDate,
-    super.checkInLocation,
-    super.checkInNote,
-    super.checkInAttachment,
-    super.statusValidasi,
-    super.statusValidasiLabel,
-    super.noteValidasi,
-  });
-
-  factory AttendanceActivityCheckInModel.fromJson(Map<String, dynamic> json) {
-    return AttendanceActivityCheckInModel(
-      logId: json['log_id'],
-      checkInDate: json['check_in_date'],
-      checkInLocation: json['check_in_location'],
-      checkInNote: json['check_in_note'],
-      checkInAttachment: json['check_in_attachment'] != null? List<String>.from(json['check_in_attachment']): null,
-      statusValidasi: json['status_validasi'],
-      statusValidasiLabel: json['status_validasi_label'],
-      noteValidasi: json['note_validasi'],
-    );
-  }
-}
-
 class AttendanceActivityModel extends AttendanceActivityEntity {
   AttendanceActivityModel({
-    required super.date,
+    required super.userId,
     required super.salesPersonId,
     required super.fullName,
     super.photoUrl,
-    super.clockInDate,
-    super.clockInLocation,
-    super.clockInNote,
-    super.clockInAttachment,
-    super.clockOutDate,
-    super.clockOutLocation,
-    super.clockOutNote,
-    super.clockOutAttachment,
-    super.checkIns,
-    super.visits,
+    required super.activityType,
+    required super.activityDatetime,
+    super.activityId,
+    super.logId,
+    super.contactId,
+    super.contactName,
+    super.projectName,
+    super.location,
+    super.note,
+    super.statusValidasi,
+    super.statusValidasiLabel,
+    super.noteValidasi,
+    super.isApprove,
+    super.approveUserId,
+    super.approveDatetime,
+    super.attachments,
   });
 
   factory AttendanceActivityModel.fromJson(Map<String, dynamic> json) {
-    final visitsList = (json['visits'] as List? ?? []).map((v) => AttendanceActivityVisitModel.fromJson(v as Map<String, dynamic>)).toList();
-
-    final checkInsList = (json['check_ins'] as List? ?? []) .map((c) => AttendanceActivityCheckInModel.fromJson(c as Map<String, dynamic>)) .toList();
-
     return AttendanceActivityModel(
-      date: json['date'] ?? '',
+      userId: json['user_id'] ?? 0,
       salesPersonId: json['sales_person_id'] ?? 0,
       fullName: json['full_name'] ?? '',
       photoUrl: json['photo_url'],
-      clockInDate: json['clock_in_date'],
-      clockInLocation: json['clock_in_location'],
-      clockInNote: json['clock_in_note'],
-      clockInAttachment: json['clock_in_attachment'] != null? List<String>.from(json['clock_in_attachment']): null,
-      clockOutDate: json['clock_out_date'],
-      clockOutLocation: json['clock_out_location'],
-      clockOutNote: json['clock_out_note'],
-      clockOutAttachment: json['clock_out_attachment'] != null? List<String>.from(json['clock_out_attachment']): null,
-      checkIns: checkInsList,
-      visits: visitsList,
+      activityType: json['activity_type'] ?? '',
+      activityDatetime: json['activity_datetime'] ?? '',
+      activityId: json['activity_id'],
+      logId: json['log_id'],
+      contactId: json['contact_id'],
+      contactName: json['contact_name'],
+      projectName: json['project_name'],
+      location: json['location'],
+      note: json['note'],
+      statusValidasi: json['status_validasi'],
+      statusValidasiLabel: json['status_validasi_label'],
+      noteValidasi: json['note_validasi'],
+      isApprove: json['is_approve'],
+      approveUserId: json['approve_user_id'],
+      approveDatetime: json['approve_datetime'],
+      attachments: json['attachments'] != null ? List<String>.from(json['attachments']) : [],
     );
   }
 }

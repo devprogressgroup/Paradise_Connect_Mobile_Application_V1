@@ -16,7 +16,7 @@ abstract class AttendanceRepository {
   Future<List<AttendanceLocation>> getOfficeLocations();
   Future<void> submitAttendance({required String datetime,required int flag,required String location,String? note,String? filePath,Uint8List? fileBytes,int? locationId,String? latitude,String? longitude,});
   Future<void> submitAttendanceActivity({required String datetime,required int flag,required String location,String? note,required List<String> filePaths,List<Uint8List>? fileBytesData,int? locationId,String? latitude,String? longitude,});
-  Future<({List<AttendanceActivityEntity> data, int lastPage})> getAttendanceActivity({List<int>? salesPersonIds, String? startDate, String? endDate, String? location, int page, int perPage});
+  Future<({List<AttendanceActivityEntity> data, int lastPage})> getAttendanceActivity({List<int>? salesPersonIds, String? startDate, String? endDate, String? location, List<String>? types, int page, int perPage});
   Future<void> validasiCheckIn({required int logId, required int statusValidasi, String? noteValidasi});
   Future<({List<AttendanceApprovalEntity> data, int lastPage})> getAttendanceApprovalToday({String? search, String? status, int? flag, int page = 1, int perPage = 10});
   Future<void> postAttendanceApproval({required int logId, required int approve, String? note});
@@ -208,12 +208,13 @@ class AttendanceRepositoryImpl implements AttendanceRepository {
   }
 
   @override
-  Future<({List<AttendanceActivityEntity> data, int lastPage})> getAttendanceActivity({List<int>? salesPersonIds, String? startDate, String? endDate, String? location, int page = 1, int perPage =5}) async {
+  Future<({List<AttendanceActivityEntity> data, int lastPage})> getAttendanceActivity({List<int>? salesPersonIds, String? startDate, String? endDate, String? location, List<String>? types, int page = 1, int perPage =5}) async {
     final result = await remote.getAttendanceActivity(
       salesPersonIds: salesPersonIds,
       startDate: startDate,
       endDate: endDate,
       location: location,
+      types: types,
       page: page,
       perPage: perPage,
     );

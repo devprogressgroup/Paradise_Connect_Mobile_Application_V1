@@ -21,6 +21,7 @@ import 'package:progress_group/core/utils/widget/drive_image/drive_image.dart';
 import 'package:progress_group/core/utils/helpers/initial_name_helper.dart';
 import 'package:progress_group/core/utils/widget/custom_filter_button.dart';
 import 'package:progress_group/features/attandance/domain/entities/attandance_entity.dart';
+import 'package:progress_group/features/attandance/domain/entities/attendance_activity_entity.dart';
 import 'package:progress_group/features/contact/data/arguments/contact_detail_args.dart';
 import 'package:progress_group/features/contact/domain/entities/contact/contact_entity.dart';
 import 'package:progress_group/features/attandance/presentation/state/attandance/attendance_bloc.dart';
@@ -41,6 +42,7 @@ import 'package:progress_group/features/auth/presentation/state/auth/auth_bloc.d
 import 'package:progress_group/features/auth/presentation/state/auth/auth_event.dart';
 import 'package:progress_group/features/auth/presentation/state/auth/auth_state.dart';
 import 'package:progress_group/features/contact/data/arguments/contact_dropdown_args.dart';
+import 'package:progress_group/features/contact/data/models/dropdown/date_filter.dart';
 import '../../../../../core/utils/helpers/date_helper.dart';
 import '../../../../../core/utils/helpers/error_message.dart';
 import 'package:progress_group/core/utils/web_download.dart';
@@ -69,6 +71,7 @@ class _AttandancePageState extends State<AttandancePage>
   bool _attendanceLogLoaded = false;
   bool _hasSetInitialTab = false;
   bool _isButtonPinned = false;
+  bool _showScrollToTop = false;
   bool _permissionsReady = false;
   AttendanceLoaded? _pendingInitialTabState;
   List<int>? _attendanceOwnerIds;
@@ -78,11 +81,15 @@ class _AttandancePageState extends State<AttandancePage>
   List<int>? _activityOwnerIds;
   String? _activityStartDate;
   String? _activityEndDate;
+  String? _activityDateLabel;
+  List<String>? _activityTypes;
+  final GlobalKey _activityFilterButtonKey = GlobalKey();
+
+  List<AttendanceActivityEntity>? _activityRowsSourceRef;
+  List<_ActivityRow> _activityRowsCache = const [];
 
   Timer? _loadMoreDebounce;
   StreamSubscription? _officeLocationSub;
-
-  final ValueNotifier<int> _loadedActivityCardCount = ValueNotifier(1);
 
 
   @override
@@ -108,6 +115,7 @@ class _AttandancePageState extends State<AttandancePage>
           _computeNearestLocation(_currentPosition!);
         }
       });
+      _initLocation();
 
       final profileState = context.read<ProfileBloc>().state;
       if (profileState is ProfileLoaded) {
@@ -117,12 +125,7 @@ class _AttandancePageState extends State<AttandancePage>
         }
       }
 
-      context.read<AttendanceActivityBloc>().add(GetAttendanceActivityEvent(
-        salesPersonIds: _activityOwnerIds,
-        startDate: _activityDateRange.start,
-        endDate: _activityDateRange.end,
-        perPage: 35,
-      ));
+      _fetchActivityLogs();
 
       Future.delayed(const Duration(milliseconds: 500), () {
         if (!mounted) return;
@@ -136,7 +139,6 @@ class _AttandancePageState extends State<AttandancePage>
     _loadMoreDebounce?.cancel();
     _positionStream?.cancel();
     _officeLocationSub?.cancel();
-    _loadedActivityCardCount.dispose();
     _pageController.dispose();
     _scrollController.removeListener(_onScroll);
     _scrollController.dispose();
@@ -149,6 +151,11 @@ class _AttandancePageState extends State<AttandancePage>
     final isPinned = _scrollController.position.pixels > 275;
     if (isPinned != _isButtonPinned) {
       setState(() => _isButtonPinned = isPinned);
+    }
+
+    final showScrollToTop = _scrollController.position.pixels > 400;
+    if (showScrollToTop != _showScrollToTop) {
+      setState(() => _showScrollToTop = showScrollToTop);
     }
 
     final atBottom = _scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 300;
@@ -168,8 +175,9 @@ class _AttandancePageState extends State<AttandancePage>
         salesPersonIds: _activityOwnerIds,
         startDate: _activityDateRange.start,
         endDate: _activityDateRange.end,
+        types: _activityTypes,
         page: activityState.activityPage + 1,
-        perPage: 35,
+        perPage: 8,
         isLoadMore: true,
       ));
     } else if (selectedMenu == 'attendance') {
@@ -362,8 +370,25 @@ class _AttandancePageState extends State<AttandancePage>
     );
   }
 
+  int get _activityActiveFilterCount {
+    int count = 0;
+    if (_activityOwnerIds != null && _activityOwnerIds!.isNotEmpty) count++;
+    if (_activityTypes != null && _activityTypes!.isNotEmpty) count++;
+    if (_activityStartDate != null && _activityEndDate != null) count++;
+    return count;
+  }
+
+  void _fetchActivityLogs() {
+    context.read<AttendanceActivityBloc>().add(GetAttendanceActivityEvent(
+      salesPersonIds: _activityOwnerIds,
+      startDate: _activityDateRange.start,
+      endDate: _activityDateRange.end,
+      types: _activityTypes,
+      perPage: 8,
+    ));
+  }
+
   Future<void> _getLog() async {
-    _loadedActivityCardCount.value = 1;
     if (_attendanceLogLoaded) {
       context.read<AttendanceBloc>().add(FetchAttendanceDataEvent(
         salesPersonIds: _attendanceOwnerIds,
@@ -373,12 +398,7 @@ class _AttandancePageState extends State<AttandancePage>
     } else {
       context.read<AttendanceBloc>().add(LoadTodayAttendanceEvent());
     }
-    context.read<AttendanceActivityBloc>().add(GetAttendanceActivityEvent(
-      salesPersonIds: _activityOwnerIds,
-      startDate: _activityDateRange.start,
-      endDate: _activityDateRange.end,
-      perPage: 35,
-    ));
+    _fetchActivityLogs();
   }
 
   void _showImagePreview(
@@ -912,6 +932,29 @@ class _AttandancePageState extends State<AttandancePage>
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Color(grey11Color),
+      floatingActionButton: AnimatedSlide(
+        duration: const Duration(milliseconds: 200),
+        offset: _showScrollToTop ? Offset.zero : const Offset(0, 2),
+        child: AnimatedOpacity(
+          duration: const Duration(milliseconds: 200),
+          opacity: _showScrollToTop ? 1 : 0,
+          child: IgnorePointer(
+            ignoring: !_showScrollToTop,
+            child: FloatingActionButton.small(
+              heroTag: 'activity-scroll-to-top',
+              backgroundColor: Color(primaryColor),
+              onPressed: () {
+                _scrollController.animateTo(
+                  0,
+                  duration: const Duration(milliseconds: 400),
+                  curve: Curves.easeOutCubic,
+                );
+              },
+              child: const Icon(Icons.keyboard_arrow_up_rounded, color: Color(whiteColor)),
+            ),
+          ),
+        ),
+      ),
       body: BlocListener<AuthBloc, AuthState>(
         listener: (context, state) {
           if (state is PermissionsLoaded) {
@@ -1143,6 +1186,267 @@ class _AttandancePageState extends State<AttandancePage>
     );
   }
 
+  static const List<({String value, String label})> _activityTypeOptions = [
+    (value: 'clock_in', label: 'Clock In'),
+    (value: 'clock_out', label: 'Clock Out'),
+    (value: 'check_in', label: 'Check In'),
+    (value: 'visit', label: 'Visit'),
+  ];
+
+  String _activityTypeLabel(String type) {
+    for (final opt in _activityTypeOptions) {
+      if (opt.value == type) return opt.label;
+    }
+    return type;
+  }
+
+  Color _activityTypeColor(String type) {
+    switch (type) {
+      case 'clock_in':
+        return const Color(clockInColor);
+      case 'clock_out':
+        return const Color(clockOutColor);
+      case 'check_in':
+        return const Color(checkInColor);
+      case 'visit':
+        return const Color(visitColor);
+      default:
+        return const Color(greyShade500);
+    }
+  }
+
+  Widget _buildActivityFilterButton() {
+    final activeCount = _activityActiveFilterCount;
+    return CustomFilterButton(
+      key: _activityFilterButtonKey,
+      label: activeCount > 0 ? 'Filter ($activeCount)' : 'Filter',
+      isSelected: activeCount > 0,
+      onTap: _showActivityFilterMenu,
+    );
+  }
+
+  Future<void> _showActivityFilterMenu() async {
+    final renderBox = _activityFilterButtonKey.currentContext?.findRenderObject() as RenderBox?;
+    final overlayBox = Overlay.of(context).context.findRenderObject() as RenderBox?;
+    if (renderBox == null || overlayBox == null) return;
+
+    final topLeft = renderBox.localToGlobal(Offset(0, renderBox.size.height + 6), ancestor: overlayBox);
+    final bottomRight = renderBox.localToGlobal(renderBox.size.bottomRight(const Offset(0, 6)), ancestor: overlayBox);
+
+    final selected = await showMenu<String>(
+      context: context,
+      color: Color(whiteColor),
+      position: RelativeRect.fromRect(Rect.fromPoints(topLeft, bottomRight), Offset.zero & overlayBox.size),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      items: [
+        _buildActivityFilterMenuItem(
+          value: 'user',
+          label: 'User',
+          isActive: _activityOwnerIds != null && _activityOwnerIds!.isNotEmpty,
+          clearValue: 'user_clear',
+        ),
+        _buildActivityFilterMenuItem(
+          value: 'type',
+          label: 'Type',
+          isActive: _activityTypes != null && _activityTypes!.isNotEmpty,
+          clearValue: 'type_clear',
+        ),
+        _buildActivityFilterMenuItem(
+          value: 'date',
+          label: 'Date',
+          isActive: _activityStartDate != null && _activityEndDate != null,
+          clearValue: 'date_clear',
+        ),
+      ],
+    );
+
+    if (!mounted || selected == null) return;
+    switch (selected) {
+      case 'user':
+        await _openActivityUserFilter();
+      case 'type':
+        await _openActivityTypeFilter();
+      case 'date':
+        await _openActivityDateFilter();
+      case 'user_clear':
+        _clearActivityUserFilter();
+      case 'type_clear':
+        _clearActivityTypeFilter();
+      case 'date_clear':
+        _clearActivityDateFilter();
+    }
+  }
+
+  PopupMenuItem<String> _buildActivityFilterMenuItem({
+    required String value,
+    required String label,
+    required bool isActive,
+    required String clearValue,
+  }) {
+    return PopupMenuItem<String>(
+      value: value,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label),
+          if (isActive)
+            GestureDetector(
+              onTap: () => Navigator.of(context).pop(clearValue),
+              child: Padding(
+                padding: const EdgeInsets.all(4),
+                child: Icon(Icons.close_rounded, size: 16, color: Color(greyShade500)),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  void _clearActivityUserFilter() {
+    if (_activityOwnerIds == null) return;
+    setState(() => _activityOwnerIds = null);
+    _fetchActivityLogs();
+  }
+
+  void _clearActivityTypeFilter() {
+    if (_activityTypes == null) return;
+    setState(() => _activityTypes = null);
+    _fetchActivityLogs();
+  }
+
+  void _clearActivityDateFilter() {
+    if (_activityStartDate == null && _activityEndDate == null) return;
+    setState(() {
+      _activityStartDate = null;
+      _activityEndDate = null;
+      _activityDateLabel = null;
+    });
+    _fetchActivityLogs();
+  }
+
+  Future<void> _openActivityTypeFilter() async {
+    final items = List<OwnerDropdownItem>.generate(
+      _activityTypeOptions.length,
+      (i) => OwnerDropdownItem(id: i, name: _activityTypeOptions[i].label),
+    );
+    final selectedIds = (_activityTypes ?? const <String>[])
+        .map((v) => _activityTypeOptions.indexWhere((opt) => opt.value == v))
+        .where((i) => i >= 0)
+        .toList();
+
+    final result = await context.pushNamed(
+      'attendanceOwnerDropdown',
+      extra: ContactDropdownArgs(
+        title: 'Pilih Tipe',
+        items: items,
+        selectedIds: selectedIds,
+        isMultiSelect: true,
+        allowClear: false,
+      ),
+    );
+
+    if (result == null || !mounted) return;
+    final List<OwnerDropdownItem> selected = result is List<OwnerDropdownItem> ? result : [result as OwnerDropdownItem];
+    final values = selected.where((e) => e.id != null).map((e) => _activityTypeOptions[e.id!].value).toList();
+    setState(() => _activityTypes = values.isEmpty ? null : values);
+    _fetchActivityLogs();
+  }
+
+  Future<void> _openActivityUserFilter() async {
+    final profileState = context.read<ProfileBloc>().state;
+    if (profileState is! ProfileLoaded) return;
+    final user = profileState.profile;
+    final List<OwnerDropdownItem> ownerItems = [];
+
+    ownerItems.add(OwnerDropdownItem(
+      id: user.userId,
+      name: user.fullName,
+      subtitle: user.positionName,
+    ));
+
+    if (user.subordinates.isNotEmpty) {
+      void addSubs(List<HierarchyNodeEntity> subs) {
+        for (var s in subs) {
+          ownerItems.add(OwnerDropdownItem(
+            id: s.userId,
+            name: s.fullName,
+            subtitle: s.positionName,
+          ));
+          if (s.subordinates.isNotEmpty) addSubs(s.subordinates);
+        }
+      }
+      addSubs(user.subordinates);
+    } else {
+      final seen = <int>{user.userId};
+      void addGroupUsers(List<GroupHierarchyEntity> groups) {
+        for (final g in groups) {
+          for (final u in g.users) {
+            if (seen.contains(u.userId)) continue;
+            seen.add(u.userId);
+            ownerItems.add(OwnerDropdownItem(id: u.userId, name: u.fullName, subtitle: g.groupName));
+          }
+          if (g.children.isNotEmpty) addGroupUsers(g.children);
+        }
+      }
+      addGroupUsers(user.groupHierarchy);
+      void addTeamMembers(List<SalesTeamMemberEntity> members, String teamName) {
+        for (final m in members) {
+          if (m.userId != null && !seen.contains(m.userId!)) {
+            seen.add(m.userId!);
+            ownerItems.add(OwnerDropdownItem(id: m.userId, name: m.fullName, subtitle: '$teamName - ${m.positionName ?? ''}'));
+          }
+          if (m.subordinates.isNotEmpty) addTeamMembers(m.subordinates, teamName);
+        }
+      }
+      for (final team in user.salesTeamHierarchy) {
+        addTeamMembers(team.members, team.salesTeamName);
+      }
+    }
+
+    final result = await context.pushNamed(
+      'attendanceOwnerDropdown',
+      extra: ContactDropdownArgs(
+        title: 'Pilih User',
+        items: ownerItems,
+        selectedIds: _activityOwnerIds,
+        isMultiSelect: true,
+        allowClear: false,
+      ),
+    );
+
+    if (result == null || !mounted) return;
+    final List<OwnerDropdownItem> selected = result is List<OwnerDropdownItem> ? result : [result as OwnerDropdownItem];
+    final newIds = selected.map((e) => e.id!).toList();
+    setState(() => _activityOwnerIds = newIds.isNotEmpty ? newIds : null);
+    _fetchActivityLogs();
+  }
+
+  Future<void> _openActivityDateFilter() async {
+    final result = await context.pushNamed<DateFilterResult>(
+      'dateFilter',
+      extra: {
+        'label': _activityDateLabel,
+        'startDate': _activityStartDate,
+        'endDate': _activityEndDate,
+        'isSingleSelect': true,
+      },
+    );
+
+    if (result == null || !mounted) return;
+    setState(() {
+      if (result.isClear) {
+        _activityStartDate = null;
+        _activityEndDate = null;
+        _activityDateLabel = null;
+      } else {
+        _activityStartDate = result.startDate;
+        _activityEndDate = result.endDate;
+        _activityDateLabel = result.label;
+      }
+    });
+    _fetchActivityLogs();
+  }
+
   Widget _filterOwner({bool isMultiSelect = true, String section = 'activity'}) {
     final isAttendance = section == 'attendance';
 
@@ -1291,12 +1595,12 @@ class _AttandancePageState extends State<AttandancePage>
                     endDate: _attendanceEndDate,
                   ));
                 } else {
-                  _loadedActivityCardCount.value = 1;
                   context.read<AttendanceActivityBloc>().add(GetAttendanceActivityEvent(
                     salesPersonIds: _activityOwnerIds,
                     startDate: _activityStartDate,
                     endDate: _activityEndDate,
-                    perPage: 35,
+                    types: _activityTypes,
+                    perPage: 8,
                   ));
                 }
               }
@@ -1393,6 +1697,34 @@ class _AttandancePageState extends State<AttandancePage>
     );
   }
 
+  List<_ActivityRow> _buildActivityRows(List<AttendanceActivityEntity> logs) {
+    if (logs.isEmpty) return const [];
+
+    final Map<String, List<AttendanceActivityEntity>> grouped = {};
+    for (final item in logs) {
+      grouped.putIfAbsent(item.date, () => []).add(item);
+    }
+
+    final rows = <_ActivityRow>[];
+    int cardCounter = 0;
+    for (final group in grouped.entries) {
+      rows.add(_ActivityRow(date: group.key, entry: null));
+      for (final item in group.value) {
+        rows.add(_ActivityRow(
+          date: group.key,
+          entry: _ActivityEntry(
+            item: item,
+            typeLabel: _activityTypeLabel(item.activityType),
+            typeColor: _activityTypeColor(item.activityType),
+            cardIndex: cardCounter,
+          ),
+        ));
+        cardCounter++;
+      }
+    }
+    return rows;
+  }
+
   List<Widget> _buildActivityLogSlivers() {
     final header = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1403,7 +1735,7 @@ class _AttandancePageState extends State<AttandancePage>
             Text("Activity", style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
             Row(
               children: [
-                _filterOwner(isMultiSelect: true, section: 'activity'),
+                _buildActivityFilterButton(),
               ],
             ),
           ],
@@ -1447,33 +1779,13 @@ class _AttandancePageState extends State<AttandancePage>
                     final canVerify = PermissionsHelper.canCheckInVerify;
                     final currentSalesPersonId = profileState is ProfileLoaded ? profileState.profile.salesPersonId : null;
 
-                    final List<({String fullName, String? photoUrl, String date, String type, Color typeColor, String? datetime, String? location, String? contactName, String? note, List<String> images, int? statusValidasi, String? noteValidasi, int? logId, int salesPersonId, int? contactId})> entries = [];
-
-                    for (final item in state.activityLogs) {
-                      final itemEntries = <({String fullName, String? photoUrl, String date, String type, Color typeColor, String? datetime, String? location, String? contactName, String? note, List<String> images, int? statusValidasi, String? noteValidasi, int? logId, int salesPersonId, int? contactId})>[];
-
-                      if (item.clockInDate != null) {
-                        itemEntries.add((fullName: item.fullName, photoUrl: item.photoUrl, date: item.date, type: 'Clock In', typeColor: const Color(clockInColor), datetime: item.clockInDate, location: item.clockInLocation, contactName: null, note: item.clockInNote, images: item.clockInAttachment ?? [], statusValidasi: null, noteValidasi: null, logId: null, salesPersonId: item.salesPersonId, contactId: null));
-                      }
-                      if (item.clockOutDate != null) {
-                        itemEntries.add((fullName: item.fullName, photoUrl: item.photoUrl, date: item.date, type: 'Clock Out', typeColor: const Color(clockOutColor), datetime: item.clockOutDate, location: item.clockOutLocation, contactName: null, note: item.clockOutNote, images: item.clockOutAttachment ?? [], statusValidasi: null, noteValidasi: null, logId: null, salesPersonId: item.salesPersonId, contactId: null));
-                      }
-                      for (final c in item.checkIns) {
-                        if (c.checkInDate != null) {
-                          itemEntries.add((fullName: item.fullName, photoUrl: item.photoUrl, date: item.date, type: 'Check In', typeColor: const Color(checkInColor), datetime: c.checkInDate, location: c.checkInLocation, contactName: null, note: c.checkInNote, images: c.checkInAttachment ?? [], statusValidasi: c.statusValidasi, noteValidasi: c.noteValidasi, logId: c.logId, salesPersonId: item.salesPersonId, contactId: null));
-                        }
-                      }
-                      for (final v in item.visits) {
-                        if (v.datetime != null) {
-                          itemEntries.add((fullName: item.fullName, photoUrl: item.photoUrl, date: item.date, type: 'Visit', typeColor: const Color(visitColor), datetime: v.datetime, location: v.lastProject, contactName: v.contactName, note: v.note, images: v.attachment ?? [], statusValidasi: null, noteValidasi: null, logId: null, salesPersonId: item.salesPersonId, contactId: v.contactId));
-                        }
-                      }
-
-                      itemEntries.sort((a, b) => (b.datetime ?? '').compareTo(a.datetime ?? ''));
-                      entries.addAll(itemEntries);
+                    if (!identical(_activityRowsSourceRef, state.activityLogs)) {
+                      _activityRowsSourceRef = state.activityLogs;
+                      _activityRowsCache = _buildActivityRows(state.activityLogs);
                     }
+                    final rows = _activityRowsCache;
 
-                    if (entries.isEmpty) {
+                    if (rows.isEmpty) {
                       return SliverMainAxisGroup(
                         slivers: [
                           SliverToBoxAdapter(child: header),
@@ -1487,83 +1799,51 @@ class _AttandancePageState extends State<AttandancePage>
                       );
                     }
 
-                    final Map<String, List<({String fullName, String? photoUrl, String date, String type, Color typeColor, String? datetime, String? location, String? contactName, String? note, List<String> images, int? statusValidasi, String? noteValidasi, int? logId, int salesPersonId, int? contactId})>> grouped = {};
-                    for (final e in entries) {
-                      grouped.putIfAbsent(e.date, () => []).add(e);
-                    }
-                    final dates = grouped.keys.toList();
-
-                    final List<({bool isHeader, String date, ({String fullName, String? photoUrl, String date, String type, Color typeColor, String? datetime, String? location, String? contactName, String? note, List<String> images, int? statusValidasi, String? noteValidasi, int? logId, int salesPersonId, int? contactId})? entry, int? cardIndex})> rows = [];
-                    int cardCounter = 0;
-                    for (final date in dates) {
-                      rows.add((isHeader: true, date: date, entry: null, cardIndex: null));
-                      for (final e in grouped[date]!) {
-                        rows.add((isHeader: false, date: date, entry: e, cardIndex: cardCounter));
-                        cardCounter++;
-                      }
-                    }
-
                     return SliverMainAxisGroup(
                       slivers: [
                         SliverToBoxAdapter(child: header),
-                        ValueListenableBuilder<int>(
-                          valueListenable: _loadedActivityCardCount,
-                          builder: (context, loadedCount, _) {
-                            return SliverList.builder(
-                              itemCount: rows.length,
-                              itemBuilder: (_, i) {
-                                final row = rows[i];
-                                if (row.isHeader) {
-                                  final parsedDate = DateTime.tryParse(row.date);
-                                  final dateLabel = parsedDate != null
-                                      ? DateHelper.formatToIndonesian(parsedDate)
-                                      : row.date;
-                                  return Padding(
-                                    key: ValueKey('activity-date-header-${row.date}'),
-                                    padding: const EdgeInsets.only(top: 12, bottom: 10),
-                                    child: Text(
-                                      dateLabel,
-                                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                                    ),
-                                  );
-                                }
+                        SliverList.builder(
+                          itemCount: rows.length,
+                          itemBuilder: (_, i) {
+                            final row = rows[i];
+                            final entry = row.entry;
+                            if (entry == null) {
+                              final parsedDate = DateTime.tryParse(row.date);
+                              final dateLabel = parsedDate != null
+                                  ? DateHelper.formatToIndonesian(parsedDate)
+                                  : row.date;
+                              return Padding(
+                                key: ValueKey('activity-date-header-${row.date}'),
+                                padding: const EdgeInsets.only(top: 12, bottom: 10),
+                                child: Text(
+                                  dateLabel,
+                                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                                ),
+                              );
+                            }
 
-                                final e = row.entry!;
-                                final cardIndex = row.cardIndex!;
-                                final cardKey = ValueKey('${e.salesPersonId}_${e.date}_${e.type}_${e.datetime}_${e.logId ?? ''}');
+                            final item = entry.item;
+                            final cardKey = ValueKey('${item.salesPersonId}_${item.date}_${entry.typeLabel}_${item.activityDatetime}_${item.logId ?? ''}');
 
-                                if (cardIndex >= loadedCount) {
-                                  return KeyedSubtree(
-                                    key: cardKey,
-                                    child: const ShimmerActivityItem(),
-                                  );
-                                }
-
-                                return RepaintBoundary(
-                                  key: cardKey,
-                                  child: _buildCardActivityNew(
-                                    fullName: e.fullName,
-                                    photoUrl: e.photoUrl,
-                                    type: e.type,
-                                    typeColor: e.typeColor,
-                                    datetime: e.datetime,
-                                    location: e.location,
-                                    contactName: e.contactName,
-                                    contactId: e.contactId,
-                                    note: e.note,
-                                    images: e.images,
-                                    statusValidasi: e.statusValidasi,
-                                    noteValidasi: e.noteValidasi,
-                                    logId: e.logId,
-                                    canVerify: canVerify,
-                                    isSelf: currentSalesPersonId != null && e.salesPersonId == currentSalesPersonId,
-                                    onFullyLoaded: () {
-                                      if (cardIndex != _loadedActivityCardCount.value - 1) return;
-                                      _loadedActivityCardCount.value = cardIndex + 2;
-                                    },
-                                  ),
-                                );
-                              },
+                            return RepaintBoundary(
+                              key: cardKey,
+                              child: _buildCardActivityNew(
+                                fullName: item.fullName,
+                                photoUrl: item.photoUrl,
+                                type: entry.typeLabel,
+                                typeColor: entry.typeColor,
+                                datetime: item.activityDatetime,
+                                location: item.projectName ?? item.location,
+                                contactName: item.contactName,
+                                contactId: item.contactId,
+                                note: item.note,
+                                images: item.attachments,
+                                statusValidasi: item.statusValidasi,
+                                noteValidasi: item.noteValidasi,
+                                logId: item.logId,
+                                canVerify: canVerify,
+                                isSelf: currentSalesPersonId != null && item.salesPersonId == currentSalesPersonId,
+                              ),
                             );
                           },
                         ),
@@ -2235,7 +2515,8 @@ class _AttandancePageState extends State<AttandancePage>
               ),
             ),
             )
-          : SingleChildScrollView(
+          : 
+          SingleChildScrollView(
               reverse: true,
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -2461,6 +2742,27 @@ class _AttandancePageState extends State<AttandancePage>
       ],
     );
   }
+}
+
+class _ActivityEntry {
+  final AttendanceActivityEntity item;
+  final String typeLabel;
+  final Color typeColor;
+  final int cardIndex;
+
+  const _ActivityEntry({
+    required this.item,
+    required this.typeLabel,
+    required this.typeColor,
+    required this.cardIndex,
+  });
+}
+
+class _ActivityRow {
+  final String date;
+  final _ActivityEntry? entry;
+
+  const _ActivityRow({required this.date, this.entry});
 }
 
 class _ActivityCard extends StatefulWidget {

@@ -10,7 +10,7 @@ abstract class AttendanceRemoteDataSource {
   Future<Map<String, dynamic>> postAttendanceActivity({required String attendanceDatetime, required int flag, required String locationName, String? note, required List<String> filePaths, List<Uint8List>? fileBytesData, int? locationId, String? latitude, String? longitude});
   Future<Map<String, dynamic>> getLocations();
   Future<Map<String, dynamic>> getOfficeLocations();
-  Future<Map<String, dynamic>> getAttendanceActivity({List<int>? salesPersonIds, String? startDate, String? endDate, String? location, int page, int perPage});
+  Future<Map<String, dynamic>> getAttendanceActivity({List<int>? salesPersonIds, String? startDate, String? endDate, String? location, List<String>? types, int page, int perPage});
   Future<void> postValidasiCheckIn({required int logId, required int statusValidasi, String? noteValidasi});
   Future<Map<String, dynamic>> getAttendanceApprovalToday({String? search, String? status, int? flag, int page = 1, int perPage = 10});
   Future<void> postAttendanceApproval({required int logId, required int approve, String? note});
@@ -96,7 +96,7 @@ class AttendanceRemoteDataSourceImpl implements AttendanceRemoteDataSource {
   }
 
   @override
-  Future<Map<String, dynamic>> getAttendanceActivity({List<int>? salesPersonIds, String? startDate, String? endDate, String? location, int page = 1, int perPage = 20}) async {
+  Future<Map<String, dynamic>> getAttendanceActivity({List<int>? salesPersonIds, String? startDate, String? endDate, String? location, List<String>? types, int page = 1, int perPage = 20}) async {
     final response = await dio.get(
       '/attendance/activity',
       queryParameters: {
@@ -107,6 +107,7 @@ class AttendanceRemoteDataSourceImpl implements AttendanceRemoteDataSource {
         if (startDate != null) 'start_date': startDate,
         if (endDate != null) 'end_date': endDate,
         if (location != null && location.isNotEmpty) 'location': location,
+        if (types != null && types.isNotEmpty) 'type': types.join(','),
       },
     );
     return response.data;

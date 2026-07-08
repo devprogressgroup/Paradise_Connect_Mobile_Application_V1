@@ -1,76 +1,76 @@
-class AttendanceActivityVisit {
-  final String? datetime;
-  final String? lastProject;
-  final String? contactName;
-  final int? contactId;
-  final String? note;
-  final List<String>? attachment;
-
-  AttendanceActivityVisit({
-    this.datetime,
-    this.lastProject,
-    this.contactName,
-    this.contactId,
-    this.note,
-    this.attachment,
-  });
-}
-
-class AttendanceActivityCheckIn {
-  final int? logId;
-  final String? checkInDate;
-  final String? checkInLocation;
-  final String? checkInNote;
-  final List<String>? checkInAttachment;
-  final int? statusValidasi;
-  final String? statusValidasiLabel;
-  final String? noteValidasi;
-
-  AttendanceActivityCheckIn({
-    this.logId,
-    this.checkInDate,
-    this.checkInLocation,
-    this.checkInNote,
-    this.checkInAttachment,
-    this.statusValidasi,
-    this.statusValidasiLabel,
-    this.noteValidasi,
-  });
-}
-
 class AttendanceActivityEntity {
-  final String date;
+  final int userId;
   final int salesPersonId;
   final String fullName;
   final String? photoUrl;
-
-  final String? clockInDate;
-  final String? clockInLocation;
-  final String? clockInNote;
-  final List<String>? clockInAttachment;
-
-  final String? clockOutDate;
-  final String? clockOutLocation;
-  final String? clockOutNote;
-  final List<String>? clockOutAttachment;
-
-  final List<AttendanceActivityCheckIn> checkIns;
-  final List<AttendanceActivityVisit> visits;
+  final String activityType;
+  final String activityDatetime;
+  final int? activityId;
+  final int? logId;
+  final int? contactId;
+  final String? contactName;
+  final String? projectName;
+  final String? location;
+  final String? note;
+  final int? statusValidasi;
+  final String? statusValidasiLabel;
+  final String? noteValidasi;
+  final int? isApprove;
+  final int? approveUserId;
+  final String? approveDatetime;
+  final List<String> attachments;
 
   AttendanceActivityEntity({
-    required this.date,
+    required this.userId,
     required this.salesPersonId,
     required this.fullName,
     this.photoUrl,
-    this.clockInDate,
-    this.clockInLocation,
-    this.clockInNote,
-    this.clockInAttachment,
-    this.clockOutDate,
-    this.clockOutLocation,
-    this.clockOutNote,
-    this.clockOutAttachment,
-    this.checkIns = const [],
-    this.visits = const [],
+    required this.activityType,
+    required this.activityDatetime,
+    this.activityId,
+    this.logId,
+    this.contactId,
+    this.contactName,
+    this.projectName,
+    this.location,
+    this.note,
+    this.statusValidasi,
+    this.statusValidasiLabel,
+    this.noteValidasi,
+    this.isApprove,
+    this.approveUserId,
+    this.approveDatetime,
+    this.attachments = const [],
   });
+
+  String get date => activityDatetime.split(' ').first;
+
+  AttendanceActivityEntity copyWith({
+    int? statusValidasi,
+    String? statusValidasiLabel,
+    String? noteValidasi,
+  }) {
+    return AttendanceActivityEntity(
+      userId: userId,
+      salesPersonId: salesPersonId,
+      fullName: fullName,
+      photoUrl: photoUrl,
+      activityType: activityType,
+      activityDatetime: activityDatetime,
+      activityId: activityId,
+      logId: logId,
+      contactId: contactId,
+      contactName: contactName,
+      projectName: projectName,
+      location: location,
+      note: note,
+      statusValidasi: statusValidasi ?? this.statusValidasi,
+      statusValidasiLabel: statusValidasiLabel ?? this.statusValidasiLabel,
+      noteValidasi: noteValidasi ?? this.noteValidasi,
+      isApprove: isApprove,
+      approveUserId: approveUserId,
+      approveDatetime: approveDatetime,
+      attachments: attachments,
+    );
+  }
 }

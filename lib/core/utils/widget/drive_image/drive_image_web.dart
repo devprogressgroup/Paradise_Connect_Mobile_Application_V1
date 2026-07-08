@@ -38,7 +38,10 @@ class _DriveImageWebState extends State<DriveImage> {
   void _fireOnLoad() {
     if (_onLoadFired) return;
     _onLoadFired = true;
-    widget.onLoad?.call();
+    if (widget.onLoad == null) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) widget.onLoad?.call();
+    });
   }
 
   int? _targetPixelSize() {

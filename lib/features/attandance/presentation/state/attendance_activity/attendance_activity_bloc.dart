@@ -17,35 +17,11 @@ class AttendanceActivityBloc extends Bloc<AttendanceActivityEvent, AttendanceAct
       try {
         await validasiCheckInUseCase(logId: event.logId, statusValidasi: event.statusValidasi, noteValidasi: event.noteValidasi);
         final updatedLogs = loaded.activityLogs.map((activity) {
-          final updatedCheckIns = activity.checkIns.map((c) {
-            if (c.logId == event.logId) {
-              return AttendanceActivityCheckIn(
-                logId: c.logId,
-                checkInDate: c.checkInDate,
-                checkInLocation: c.checkInLocation,
-                checkInNote: c.checkInNote,
-                checkInAttachment: c.checkInAttachment,
-                statusValidasi: event.statusValidasi,
-                statusValidasiLabel: event.statusValidasi == 1 ? 'Valid' : 'Invalid',
-                noteValidasi: event.noteValidasi,
-              );
-            }
-            return c;
-          }).toList();
-          return AttendanceActivityEntity(
-            date: activity.date,
-            salesPersonId: activity.salesPersonId,
-            fullName: activity.fullName,
-            clockInDate: activity.clockInDate,
-            clockInLocation: activity.clockInLocation,
-            clockInNote: activity.clockInNote,
-            clockInAttachment: activity.clockInAttachment,
-            clockOutDate: activity.clockOutDate,
-            clockOutLocation: activity.clockOutLocation,
-            clockOutNote: activity.clockOutNote,
-            clockOutAttachment: activity.clockOutAttachment,
-            checkIns: updatedCheckIns,
-            visits: activity.visits,
+          if (activity.logId != event.logId) return activity;
+          return activity.copyWith(
+            statusValidasi: event.statusValidasi,
+            statusValidasiLabel: event.statusValidasi == 1 ? 'Valid' : 'Invalid',
+            noteValidasi: event.noteValidasi,
           );
         }).toList();
         emit(AttendanceActivityLoaded(
@@ -77,6 +53,7 @@ class AttendanceActivityBloc extends Bloc<AttendanceActivityEvent, AttendanceAct
           startDate: event.startDate,
           endDate: event.endDate,
           location: event.location,
+          types: event.types,
           page: event.page,
           perPage: event.perPage,
         );
@@ -86,16 +63,7 @@ class AttendanceActivityBloc extends Bloc<AttendanceActivityEvent, AttendanceAct
                 ? currentState.activityLogs
                 : [];
 
-       
-       
-       
-       
-       
-        final newPage = [...result.data]..sort((a, b) {
-          final dateCompare = b.date.compareTo(a.date);
-          if (dateCompare != 0) return dateCompare;
-          return _latestActivityTime(b).compareTo(_latestActivityTime(a));
-        });
+        final newPage = [...result.data]..sort((a, b) => b.activityDatetime.compareTo(a.activityDatetime));
 
         emit(AttendanceActivityLoaded(
           activityLogs: [...existingLogs, ...newPage],
@@ -108,17 +76,4 @@ class AttendanceActivityBloc extends Bloc<AttendanceActivityEvent, AttendanceAct
       }
     });
   }
-}
-
-String _latestActivityTime(AttendanceActivityEntity item) {
-  final times = <String>[
-    if (item.clockInDate != null) item.clockInDate!,
-    if (item.clockOutDate != null) item.clockOutDate!,
-    for (final c in item.checkIns)
-      if (c.checkInDate != null) c.checkInDate!,
-    for (final v in item.visits)
-      if (v.datetime != null) v.datetime!,
-  ];
-  if (times.isEmpty) return '';
-  return times.reduce((a, b) => a.compareTo(b) >= 0 ? a : b);
 }

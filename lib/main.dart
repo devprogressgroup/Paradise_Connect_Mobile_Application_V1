@@ -156,7 +156,24 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  if (!kIsWeb) {
+    // Native only: raise Flutter's in-memory image cache ceiling (default 100MB/1000
+    // images) so photos already viewed (e.g. attendance activity cards) survive scroll
+    // and don't get re-fetched from Google Drive every time they scroll back into view.
+    // Left untouched on web/PWA — iOS Safari has previously killed this app's tab under
+    // memory pressure on the attendance page (see project_attendance_crash memory note).
+    PaintingBinding.instance.imageCache.maximumSize = 2000;
+    PaintingBinding.instance.imageCache.maximumSizeBytes = 200 << 20;
+  }
+
   if (kIsWeb) {
+    // Deliberately more conservative than Flutter's own default (100MB/1000 images) —
+    // iOS Safari has previously killed this app's tab under memory pressure on the
+    // attendance page (see project_attendance_crash memory note). Trading a bit more
+    // re-fetching for a smaller peak memory footprint on the fragile platform.
+    PaintingBinding.instance.imageCache.maximumSize = 300;
+    PaintingBinding.instance.imageCache.maximumSizeBytes = 60 << 20;
+
     FlutterError.onError = (details) {
       FlutterError.presentError(details);
       web_debug.logDebugError('Flutter: ${details.exceptionAsString()}');

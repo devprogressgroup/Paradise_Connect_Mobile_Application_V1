@@ -13,6 +13,7 @@ class GetAttendanceActivityEvent extends AttendanceActivityEvent {
   final String? startDate;
   final String? endDate;
   final String? location;
+  final List<String>? types;
   final int page;
   final int perPage;
   final bool isLoadMore;
@@ -22,6 +23,7 @@ class GetAttendanceActivityEvent extends AttendanceActivityEvent {
     this.startDate,
     this.endDate,
     this.location,
+    this.types,
     this.page = 1,
     this.perPage = 20,
     this.isLoadMore = false,
