@@ -18,6 +18,7 @@ import 'package:progress_group/core/utils/helpers/permissions_helper.dart';
 import 'package:progress_group/features/auth/presentation/state/auth/auth_state.dart';
 import 'package:progress_group/core/utils/widget/shimmer_loading.dart';
 import 'package:progress_group/core/utils/widget/impersonation_banner.dart';
+import 'package:progress_group/core/utils/widget/old_app_banner.dart';
 
 class MainLayout extends StatefulWidget {
   final Widget child;
@@ -210,6 +211,7 @@ class _MainLayoutState extends State<MainLayout> {
       body: Column(
         children: [
           const ImpersonationBanner(),
+          const OldAppBanner(),
           Expanded(
             child: Builder(
               builder: (context) {

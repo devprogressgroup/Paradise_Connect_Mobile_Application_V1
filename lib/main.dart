@@ -5,12 +5,13 @@ import 'dart:ui' show PlatformDispatcher;
 import 'package:flutter/foundation.dart' show kIsWeb, debugPrint;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:progress_group/core/constants/colors.dart';
 import 'package:progress_group/core/screens/update_screen.dart';
+import 'package:progress_group/core/services/old_app_check_service.dart';
 import 'core/utils/web_debug_util.dart' as web_debug;
 import 'core/utils/web_update.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/date_symbol_data_local.dart';
-import 'package:progress_group/core/constants/colors.dart';
 import 'package:progress_group/core/network/dio_client.dart';
 import 'package:progress_group/core/services/push_notification_service.dart';
 import 'package:progress_group/features/attandance/domain/usecase/get_attendance_approval_today.dart';
@@ -223,6 +224,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       PushNotificationService.processPendingMessage();
       _checkVersion();
+      OldAppCheckService.check();
     });
   }
 
@@ -238,8 +240,8 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
       if (_updateResult == null) _checkVersion();
-      
-      
+      OldAppCheckService.check();
+
       _refreshAccessSilently();
     }
   }

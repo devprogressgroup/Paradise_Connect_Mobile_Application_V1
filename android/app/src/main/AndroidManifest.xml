@@ -84,5 +84,14 @@
             <category android:name="android.intent.category.BROWSABLE"/>
             <data android:scheme="https"/>
         </intent>
+        <!-- Aplikasi lama (applicationId sebelum migrasi) — dicek supaya bisa minta
+             user uninstall manual, karena signature baru menolak update in-place. -->
+        <package android:name="com.example.progress_group"/>
+        <!-- Dibutuhkan supaya halaman App Info (Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
+             bisa di-resolve di Android 11+ (package visibility filtering). -->
+        <intent>
+            <action android:name="android.settings.APPLICATION_DETAILS_SETTINGS"/>
+            <data android:scheme="package"/>
+        </intent>
     </queries>
 </manifest>

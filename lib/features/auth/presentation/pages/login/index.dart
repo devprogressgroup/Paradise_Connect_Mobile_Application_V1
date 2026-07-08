@@ -7,6 +7,7 @@ import 'package:progress_group/core/constants/colors.dart';
 import 'package:progress_group/core/network/api_constants.dart';
 import 'package:local_auth/local_auth.dart';
 import 'package:progress_group/core/utils/widget/env_swither.dart';
+import 'package:progress_group/core/utils/widget/old_app_banner.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../../../core/utils/widget/custom_snackbar.dart';
 import '../../state/auth/auth_bloc.dart';
@@ -160,15 +161,18 @@ class _LoginPageState extends State<LoginPage> {
         }
       },
       child: Scaffold(
-        body: Container(
-          height: size.height,
-          width: size.width,
-          color: Color(backgroundColor),
-          child: Container(
-            child: Center(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 24.0),
+        body: Column(
+          children: [
+            const OldAppBanner(),
+            Expanded(
+              child: Container(
+                width: size.width,
+                color: Color(backgroundColor),
                 child: Container(
+                  child: Center(
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                      child: Container(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 24.0,
                     vertical: 40.0,
@@ -586,6 +590,9 @@ class _LoginPageState extends State<LoginPage> {
               ),
             ),
           ),
+        ),
+            ),
+          ],
         ),
       ),
     );

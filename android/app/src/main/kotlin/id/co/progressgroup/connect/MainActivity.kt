@@ -1,8 +1,10 @@
 package id.co.progressgroup.connect
 
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
+import android.provider.Settings
 import androidx.core.content.FileProvider
 import io.flutter.embedding.android.FlutterFragmentActivity
 import io.flutter.embedding.engine.FlutterEngine
@@ -37,6 +39,34 @@ class MainActivity : FlutterFragmentActivity() {
                         result.success(true)
                     } catch (e: Exception) {
                         result.error("INSTALL_FAILED", e.message, null)
+                    }
+                } else if (call.method == "isPackageInstalled") {
+                    val packageName = call.argument<String>("packageName")
+                    if (packageName == null) {
+                        result.error("INVALID_ARG", "packageName is null", null)
+                        return@setMethodCallHandler
+                    }
+                    val installed = try {
+                        packageManager.getPackageInfo(packageName, 0)
+                        true
+                    } catch (e: PackageManager.NameNotFoundException) {
+                        false
+                    }
+                    result.success(installed)
+                } else if (call.method == "uninstallPackage") {
+                    val packageName = call.argument<String>("packageName")
+                    if (packageName == null) {
+                        result.error("INVALID_ARG", "packageName is null", null)
+                        return@setMethodCallHandler
+                    }
+                    try {
+                        val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
+                        intent.data = Uri.fromParts("package", packageName, null)
+                        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        startActivity(intent)
+                        result.success(true)
+                    } catch (e: Exception) {
+                        result.error("UNINSTALL_FAILED", e.message, null)
                     }
                 } else {
                     result.notImplemented()
