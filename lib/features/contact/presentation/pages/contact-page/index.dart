@@ -43,9 +43,10 @@ import '../../../domain/entities/prospect/prospect_status.dart';
 
 class ContactPage extends StatefulWidget {
   final List<int>? initialStatusIds;
+  final List<int>? initialSalesChannelIds;
   final String? initialStartDate;
   final String? initialEndDate;
-  const ContactPage({super.key, this.initialStatusIds, this.initialStartDate, this.initialEndDate});
+  const ContactPage({super.key, this.initialStatusIds, this.initialSalesChannelIds, this.initialStartDate, this.initialEndDate});
 
   @override
   State<ContactPage> createState() => _ContactPageState();
@@ -86,6 +87,7 @@ class _ContactPageState extends State<ContactPage> {
       search: '',
       isRefresh: true,
       statusProspectIds: widget.initialStatusIds,
+      salesChannelIds: widget.initialSalesChannelIds,
       startDate: widget.initialStartDate,
       endDate: widget.initialEndDate,
     ));
@@ -106,7 +108,14 @@ class _ContactPageState extends State<ContactPage> {
     final statusChanged = newIds != null &&
         newIds.isNotEmpty &&
         newIds.toString() != (oldIds ?? []).toString();
-    if (statusChanged) {
+
+    final newChannelIds = widget.initialSalesChannelIds;
+    final oldChannelIds = oldWidget.initialSalesChannelIds;
+    final salesChannelChanged = newChannelIds != null &&
+        newChannelIds.isNotEmpty &&
+        newChannelIds.toString() != (oldChannelIds ?? []).toString();
+
+    if (statusChanged || salesChannelChanged) {
       _searchController.clear();
       final newLabel = widget.initialStartDate != null
           ? _resolveDateLabel(
@@ -119,6 +128,7 @@ class _ContactPageState extends State<ContactPage> {
         search: '',
         isRefresh: true,
         statusProspectIds: newIds,
+        salesChannelIds: newChannelIds,
         startDate: widget.initialStartDate,
         endDate: widget.initialEndDate,
       ));

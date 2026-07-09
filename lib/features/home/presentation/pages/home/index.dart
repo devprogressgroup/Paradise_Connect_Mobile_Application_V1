@@ -19,6 +19,9 @@ import 'package:progress_group/features/home/presentation/state/report-whatsapp/
 import 'package:progress_group/features/home/presentation/state/prospect-status-summary/prospect_status_summary_bloc.dart';
 import 'package:progress_group/features/home/presentation/state/prospect-status-summary/prospect_status_summary_event.dart';
 import 'package:progress_group/features/home/presentation/state/prospect-status-summary/prospect_status_summary_state.dart';
+import 'package:progress_group/features/home/presentation/state/sales-channel-summary/sales_channel_summary_bloc.dart';
+import 'package:progress_group/features/home/presentation/state/sales-channel-summary/sales_channel_summary_event.dart';
+import 'package:progress_group/features/home/presentation/state/sales-channel-summary/sales_channel_summary_state.dart';
 import 'package:progress_group/features/auth/presentation/state/auth/auth_bloc.dart';
 import 'package:progress_group/features/auth/presentation/state/auth/auth_event.dart';
 import 'package:progress_group/features/auth/presentation/state/auth/auth_state.dart';
@@ -61,6 +64,12 @@ class _HomePageState extends State<HomePage> with RouteAware {
   String? _prospectStartDate;
   String? _prospectEndDate;
 
+  bool _salesChannelExpanded = false;
+  static const int _salesChannelCollapsedCount = 5;
+  String? _salesChannelDateLabel;
+  String? _salesChannelStartDate;
+  String? _salesChannelEndDate;
+
   @override
   void initState() {
     super.initState();
@@ -69,6 +78,9 @@ class _HomePageState extends State<HomePage> with RouteAware {
     _prospectStartDate = DateFormat('yyyy-MM-dd').format(DateTime(now.year - 1, now.month, now.day));
     _prospectEndDate   = DateFormat('yyyy-MM-dd').format(now);
     _prospectDateLabel = 'Last 1 Year';
+    _salesChannelStartDate = DateFormat('yyyy-MM-dd').format(DateTime(now.year - 1, now.month, now.day));
+    _salesChannelEndDate   = DateFormat('yyyy-MM-dd').format(now);
+    _salesChannelDateLabel = 'Last 1 Year';
     _loadData(force: true);
   }
 
@@ -149,6 +161,7 @@ class _HomePageState extends State<HomePage> with RouteAware {
   Future<void> _loadData({bool force = false}) async {
     final now = AppTime.now();
     context.read<ProspectStatusSummaryBloc>().add(FetchProspectStatusSummaryEvent(startDate: _prospectStartDate, endDate: _prospectEndDate));
+    context.read<SalesChannelSummaryBloc>().add(FetchSalesChannelsSummaryEvent(startDate: _salesChannelStartDate, endDate: _salesChannelEndDate));
     if (!force && _lastLoadTime != null && now.difference(_lastLoadTime!).inSeconds < 10) return;
     _lastLoadTime = now;
     context.read<AuthBloc>().add(FetchPermissionsEvent());
@@ -280,6 +293,8 @@ class _HomePageState extends State<HomePage> with RouteAware {
                     RepaintBoundary(child: _buildComingTask()),
                     SizedBox(height: 12),
                     RepaintBoundary(child: _buildProspectStatusSection()),
+                    SizedBox(height: 12),
+                    RepaintBoundary(child: _buildSalesChannelSection()),
                     SizedBox(height: 12),
                     Text("WhatsApp", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                     SizedBox(height: 5),
@@ -770,7 +785,222 @@ class _HomePageState extends State<HomePage> with RouteAware {
     );
   }
 
-  
+  Widget _buildSalesChannelSection() {
+    return BlocConsumer<SalesChannelSummaryBloc, SalesChannelSummaryState>(
+      listenWhen: (prev, curr) => curr.status == SalesChannelSummaryStatus.error && prev.status != SalesChannelSummaryStatus.error,
+      listener: (context, state) {
+        showErrorDialog(context, 'Gagal memuat sales channel');
+      },
+      builder: (context, state) {
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (state.status == SalesChannelSummaryStatus.loading)
+              buildLogHeaderShimmer()
+            else
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  "Sales Channel",
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                ),
+                 CustomFilterButton(
+              label: _salesChannelDateLabel ?? 'Create Date',
+              isSelected: _salesChannelStartDate != null,
+              onTap: () async {
+                AnalyticsService.logEvent('home_filter_sales_channel_by_date');
+                final result = await context.pushNamed<DateFilterResult>(
+                  'dateFilter',
+                  extra: {
+                    'label': _salesChannelDateLabel,
+                    'startDate': _salesChannelStartDate,
+                    'endDate': _salesChannelEndDate,
+                    'isSingleSelect': true,
+                  },
+                );
+                if (result != null) {
+                  if (result.isClear) {
+                    setState(() {
+                      _salesChannelDateLabel = null;
+                      _salesChannelStartDate = null;
+                      _salesChannelEndDate = null;
+                    });
+                    if (context.mounted) {
+                      context.read<SalesChannelSummaryBloc>().add(FetchSalesChannelsSummaryEvent());
+                    }
+                  } else {
+                    setState(() {
+                      _salesChannelDateLabel = result.label;
+                      _salesChannelStartDate = result.startDate;
+                      _salesChannelEndDate = result.endDate;
+                    });
+                    if (context.mounted) {
+                      context.read<SalesChannelSummaryBloc>().add(
+                        FetchSalesChannelsSummaryEvent(startDate: result.startDate, endDate: result.endDate),
+                      );
+                    }
+                  }
+                }
+              },
+            ),
+                if (state.status == SalesChannelSummaryStatus.error)
+                  GestureDetector(
+                    onTap: () {
+                      AnalyticsService.logEvent('home_retry_sales_channel');
+                      context.read<SalesChannelSummaryBloc>().add(
+                        FetchSalesChannelsSummaryEvent(startDate: _salesChannelStartDate, endDate: _salesChannelEndDate),
+                      );
+                    },
+                    child: Text(
+                      "Retry",
+                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(primaryColor)),
+                    ),
+                  ),
+
+              ],
+            ),
+            if (state.summary != null)
+              Padding(
+                padding: const EdgeInsets.only(top: 4),
+                child: Text(
+                  'Total: ${NumberHelper.thousands(state.summary!.totalContacts)} contacts',
+                  style: TextStyle(fontSize: 12, color: Color(grey5Color)),
+                ),
+              ),
+            const SizedBox(height: 8),
+            if (state.status == SalesChannelSummaryStatus.loading)
+              buildProspectStatusShimmer()
+            else if (state.summary != null) ...[
+              Container(
+                decoration: BoxDecoration(
+                  color: Color(whiteColor),
+                  borderRadius: BorderRadius.circular(10),
+                  boxShadow: [BoxShadow(color: Color(greyShade500).withValues(alpha: 0.2), spreadRadius: 2, blurRadius: 5, offset: const Offset(0, 3))],
+                ),
+                child: Column(
+                  children: [
+                    ...() {
+                      final allChannels = state.summary!.channels;
+                      final visibleChannels = _salesChannelExpanded
+                          ? allChannels
+                          : allChannels.take(_salesChannelCollapsedCount).toList();
+                      return visibleChannels.asMap().entries.map((entry) {
+                        final index = entry.key;
+                        final item = entry.value;
+                        final hasActivity = item.totalContacts > 0 ;
+                        final isLastVisible = index == visibleChannels.length - 1;
+                        final showBottomBorder = !isLastVisible || allChannels.length > _salesChannelCollapsedCount;
+                        return GestureDetector(
+
+                          onTap: () {
+                            final now = AppTime.now();
+                            final today = DateTime(now.year, now.month, now.day);
+                            final fmt = DateFormat('yyyy-MM-dd');
+                            final defaultStart = fmt.format(DateTime(today.year - 1, today.month, today.day));
+                            final defaultEnd = fmt.format(today);
+                            context.go('/contact', extra: {
+                              'salesChannelIds': [item.salesChannelId],
+                              'startDate': _salesChannelStartDate ?? defaultStart,
+                              'endDate': _salesChannelEndDate ?? defaultEnd,
+                            });
+                          },
+                          child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                          decoration: BoxDecoration(
+                            color: Color(whiteColor),
+                            border: showBottomBorder
+                                ? Border(bottom: BorderSide(color: Color(grey10Color), width: 1))
+                                : null,
+                          ),
+                          child: Row(
+                            children: [
+                              Container(
+                                width: 44,
+                                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 3),
+                                decoration: BoxDecoration(
+                                  color:hasActivity ?Color(primaryColor): Color(grey10Color),
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: Text(
+                                  item.channelCode,
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.bold,
+                                    color: hasActivity ? Color(whiteColor) : Color(grey2Color),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Text(
+                                  item.channelName,
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: hasActivity ? FontWeight.w600 : FontWeight.normal,
+                                    color: Color(hasActivity ? blackColor : grey2Color),
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Row(
+                                children: [
+                                  Icon(Icons.people_outline, size: 14, color: Color(grey2Color)),
+                                  const SizedBox(width: 2),
+                                  Text(
+                                    NumberHelper.thousands(item.totalContacts),
+                                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(hasActivity ? blackColor : grey2Color)),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                        );
+                      }).toList();
+                    }(),
+                    if (state.summary!.channels.length > _salesChannelCollapsedCount)
+                      GestureDetector(
+                        onTap: () {
+                          AnalyticsService.logEvent('home_toggle_sales_channel_expand');
+                          setState(() => _salesChannelExpanded = !_salesChannelExpanded);
+                        },
+                        child: Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.symmetric(vertical: 10),
+                          decoration: const BoxDecoration(
+                            borderRadius: BorderRadius.vertical(bottom: Radius.circular(10)),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                _salesChannelExpanded ? "Sembunyikan" : "Lihat semua",
+                                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(primaryColor)),
+                              ),
+                              const SizedBox(width: 4),
+                              AnimatedRotation(
+                                turns: _salesChannelExpanded ? 0.5 : 0,
+                                duration: const Duration(milliseconds: 250),
+                                child: Icon(Icons.keyboard_arrow_down_rounded, size: 18, color: Color(primaryColor)),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ] else
+              buildProspectStatusShimmer(),
+          ],
+        );
+      },
+    );
+  }
 
   Widget _buildWhatsAppChart() {
     const double maxHeight = 110.0;

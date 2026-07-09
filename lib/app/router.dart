@@ -120,10 +120,12 @@ class AppRouter {
             builder: (context, state) {
               final extra = state.extra;
               List<int>? initialStatusIds;
+              List<int>? initialSalesChannelIds;
               String? initialStartDate;
               String? initialEndDate;
               if (extra is Map<String, dynamic>) {
                 initialStatusIds = (extra['statusIds'] as List?)?.cast<int>();
+                initialSalesChannelIds = (extra['salesChannelIds'] as List?)?.cast<int>();
                 initialStartDate = extra['startDate'] as String?;
                 initialEndDate = extra['endDate'] as String?;
               } else if (extra is List<int>) {
@@ -131,6 +133,7 @@ class AppRouter {
               }
               return ContactPage(
                 initialStatusIds: initialStatusIds,
+                initialSalesChannelIds: initialSalesChannelIds,
                 initialStartDate: initialStartDate,
                 initialEndDate: initialEndDate,
               );
