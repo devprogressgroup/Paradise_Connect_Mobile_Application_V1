@@ -12,6 +12,7 @@ abstract class AuthRemoteDataSource {
   Future<Map<String, dynamic>> getPermissions();
   Future<Map<String, dynamic>> getImpersonatableUsers({String? search});
   Future<Map<String, dynamic>> impersonate(int userId);
+  Future<Map<String, dynamic>> logout();
 }
 
 class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
@@ -122,6 +123,20 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
           if (search != null && search.isNotEmpty) 'search': search,
         },
       );
+      return response.data;
+    } on DioException catch (e) {
+      if (e.response != null) {
+        return e.response!.data;
+      } else {
+        throw Exception("Tidak dapat terhubung ke server");
+      }
+    }
+  }
+
+  @override
+  Future<Map<String, dynamic>> logout() async {
+    try {
+      final response = await dio.post('/logout');
       return response.data;
     } on DioException catch (e) {
       if (e.response != null) {

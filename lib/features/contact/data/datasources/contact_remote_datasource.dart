@@ -1,7 +1,6 @@
 ﻿
 
 import 'dart:convert';
-import 'dart:typed_data';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:progress_group/core/utils/helpers/error_message.dart';
@@ -30,6 +29,8 @@ abstract class ContactRemoteDataSource {
   Future<List<ContactModel>> getAllContactsForDuplicateCheck();
 
   Future<ContactModel> getContactDetail(int id);
+
+  Future<ContactModel?> checkDuplicateContact({required int ownerId, required String phone});
 
   Future<List<InfoSourceModel>> getInfoSources({int? type});
 
@@ -146,6 +147,28 @@ class ContactRemoteDataSourceImpl implements ContactRemoteDataSource {
       throw Exception(response.data['message'] ?? 'Failed to load contact details');
     } on DioException catch (e) {
       throw Exception(getErrorMessage(e, 'Failed to load contact details'));
+    }
+  }
+
+  @override
+  Future<ContactModel?> checkDuplicateContact({required int ownerId, required String phone}) async {
+    try {
+      final response = await dio.get(
+        '/contacts/check-duplicate',
+        queryParameters: {'owner_id': ownerId, 'phone': phone},
+      );
+
+      debugPrint('[checkDuplicateContact] response: ${response.data}');
+
+      if (response.data['status'] == true) {
+        final data = response.data['data'];
+        return data == null ? null : ContactModel.fromJson(data);
+      }
+
+      throw Exception(response.data['message'] ?? 'Gagal memeriksa duplikat kontak');
+    } on DioException catch (e) {
+      debugPrint('[checkDuplicateContact] error status: ${e.response?.statusCode}, body: ${e.response?.data}');
+      throw Exception(getErrorMessage(e, 'Gagal memeriksa duplikat kontak'));
     }
   }
 

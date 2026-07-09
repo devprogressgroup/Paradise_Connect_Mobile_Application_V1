@@ -128,6 +128,7 @@ import 'features/contact/domain/repositories/contact_repository_impl.dart';
 import 'features/contact/domain/usecases/contact/get_contacts_usecase.dart';
 import 'features/contact/domain/usecases/contact/get_contact_detail_usecase.dart';
 import 'features/contact/domain/usecases/contact/get_all_contacts_for_duplicate_check_usecase.dart';
+import 'features/contact/domain/usecases/contact/check_duplicate_contact_usecase.dart';
 import 'features/contact/domain/usecases/contact/create_contact_usecase.dart';
 import 'features/contact/presentation/state/contact/contact_bloc.dart';
 import 'features/contact/domain/usecases/activity/get_activities_usecase.dart';
@@ -321,9 +322,9 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     final localDataSource = AuthLocalDataSourceImpl(widget.prefs);
     final dioClient = DioClient(localDataSource);
     final settingsDs = SettingsRemoteDataSource(dioClient.dio);
-    PushNotificationService.setDio(dioClient.dio); 
-    
-    
+    PushNotificationService.setDio(dioClient.dio);
+    PushNotificationService.setAuthLocalDataSource(localDataSource);
+
     final remoteDataSource = AuthRemoteDataSourceImpl(dioClient.dio);
     final repository = AuthRepositoryImpl(remoteDataSource, localDataSource);
     final loginUseCase = LoginUseCase(repository);
@@ -367,6 +368,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     final getContactsUseCase = GetContactsUseCase(contactRepository);
     final getContactDetailUseCase = GetContactDetailUseCase(contactRepository);
     final getAllContactsForDuplicateCheckUseCase = GetAllContactsForDuplicateCheckUseCase(contactRepository);
+    final checkDuplicateContactUseCase = CheckDuplicateContactUseCase(contactRepository);
     final getProspectStatusesUseCase = GetProspectStatusesUseCase(contactRepository);
     final getActivitiesUseCase = GetActivitiesUseCase(contactRepository);
     final createActivityUseCase = CreateActivityUseCase(contactRepository);
@@ -445,7 +447,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
             BlocProvider(create: (_) => ReportBloc(getVolumeReportUseCase)),
             BlocProvider(create: (_) => ProspectStatusSummaryBloc(getProspectStatusSummaryUseCase: getProspectStatusSummaryUseCase)),
             BlocProvider(create: (_) => SalesChannelSummaryBloc(getSalesChannelsSummaryUseCase: getSalesChannelsSummaryUseCase)),
-            BlocProvider(create: (_) => ContactBloc(getContactsUseCase: getContactsUseCase, createContactUseCase: createContactUseCase, updateContactUseCase: updateContactUseCase, deleteContactUseCase: deleteContactUseCase, getContactDetailUseCase: getContactDetailUseCase, getAllContactsForDuplicateCheckUseCase: getAllContactsForDuplicateCheckUseCase)),
+            BlocProvider(create: (_) => ContactBloc(getContactsUseCase: getContactsUseCase, createContactUseCase: createContactUseCase, updateContactUseCase: updateContactUseCase, deleteContactUseCase: deleteContactUseCase, getContactDetailUseCase: getContactDetailUseCase, getAllContactsForDuplicateCheckUseCase: getAllContactsForDuplicateCheckUseCase, checkDuplicateContactUseCase: checkDuplicateContactUseCase)),
             BlocProvider(create: (_) => ProspectStatusBloc(getProspectStatusesUseCase: getProspectStatusesUseCase)),
             BlocProvider(create: (_) => ContactPropertiesBloc(getContactPropertiesUseCase: getContactPropertiesUseCase)),
             BlocProvider(create: (_) => PipelineCubit(pipelineRemoteDataSource)),

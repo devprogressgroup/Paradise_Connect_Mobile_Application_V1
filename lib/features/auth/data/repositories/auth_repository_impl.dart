@@ -157,8 +157,12 @@ class AuthRepositoryImpl implements AuthRepository {
 
   @override
   Future<void> logout() async {
+    try {
+      await remoteDataSource.logout();
+    } catch (_) {}
+
     await localDataSource.clearToken();
-    
+
     await localDataSource.clearImpersonatorToken();
   }
 

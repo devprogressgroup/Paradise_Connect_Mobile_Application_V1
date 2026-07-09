@@ -73,6 +73,16 @@ class ContactRepositoryImpl implements ContactRepository {
   }
 
   @override
+  Future<Either<String, ContactEntity?>> checkDuplicateContact({required int ownerId, required String phone}) async {
+    try {
+      final result = await remoteDataSource.checkDuplicateContact(ownerId: ownerId, phone: phone);
+      return Right(result);
+    } catch (e) {
+      return Left(e.toString());
+    }
+  }
+
+  @override
   Future<Either<String, List<InfoSource>>> getInfoSources({int? type}) async {
     try {
       final result = await remoteDataSource.getInfoSources(type: type);

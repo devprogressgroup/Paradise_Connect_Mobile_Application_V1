@@ -23,6 +23,7 @@ abstract class ContactRepository {
   Future<Either<String, ContactResponse>> getContacts({int page = 1, int perPage = 10, String? search, String? startDate, String? endDate, List<int>? ownerIds, List<int>? statusProspectIds, List<int>? salesChannelIds, String? apptStartDate, String? apptEndDate, String? visitStartDate, String? visitEndDate, String? reserveStartDate, String? reserveEndDate, String? spStartDate, String? spEndDate});
   Future<Either<String, List<ContactEntity>>> getAllContactsForDuplicateCheck();
   Future<Either<String, ContactEntity>> getContactDetail(int id);
+  Future<Either<String, ContactEntity?>> checkDuplicateContact({required int ownerId, required String phone});
     Future<Either<String, List<InfoSource>>> getInfoSources({int? type});
   Future<Either<String, List<ProspectStatusEntity>>> getProspectStatuses({String? type});
   Future<Either<String, List<LostReasonEntity>>> getLostReasons();

@@ -50,6 +50,8 @@ import '../../state/activity/activity_bloc.dart';
 import '../../state/activity/activity_event.dart';
 import '../../state/pameran_aktif/pameran_aktif_cubit.dart';
 
+enum _DuplicateAction { cancel, proceed, openExisting }
+
 class ContactFormPage extends StatefulWidget {
   final ContactDetailArgs args;
   const ContactFormPage({super.key, required this.args});
@@ -582,11 +584,6 @@ class _ContactFormPageState extends State<ContactFormPage> {
       context.read<LostReasonBloc>().add(FetchLostReasonsEvent());
     }
 
-    if (context.read<ContactBloc>().state.duplicateCheckContacts.isEmpty) {
-      context.read<ContactBloc>().add(const FetchDuplicateCheckContactsEvent());
-    }
-
-    
     if (widget.args.page == 0) {
       final statusState = context.read<ProspectStatusBloc>().state;
       if (statusState.status == ProspectStatusEnum.loaded && statusState.statuses.isNotEmpty) {
@@ -1210,79 +1207,33 @@ class _ContactFormPageState extends State<ContactFormPage> {
     return cleaned;
   }
 
-  List<ContactEntity> _findDuplicateContacts(String rawPhone) {
-    if (rawPhone.isEmpty) return [];
-    final normalizedInput = _normalizePhone(rawPhone);
-    final selfId = widget.args.dataContact?.contactId;
-    final allContacts = context.read<ContactBloc>().state.duplicateCheckContacts;
-    return allContacts.where((c) {
-      if (selfId != null && c.contactId == selfId) return false;
-      final wa = c.whatsappNumber;
-      if (wa == null || wa.isEmpty) return false;
-      return _normalizePhone(wa) == normalizedInput;
-    }).toList();
-  }
-
-  Future<bool?> _showDuplicateContactDialog(List<ContactEntity> duplicates) {
-    return showDialog<bool>(
+  Future<_DuplicateAction> _showDuplicateContactDialog(ContactEntity duplicate) async {
+    final result = await showDialog<_DuplicateAction>(
       context: context,
       builder: (dialogContext) => AlertDialog(
         title: const Text('Nomor HP Sudah Terdaftar'),
-        content: SizedBox(
-          width: double.maxFinite,
-          child: duplicates.length == 1
-              ? Text(
-                  'Nomor HP ini sudah terdaftar atas nama "${duplicates.first.fullName ?? '-'}" '
-                  '(Pemilik: ${duplicates.first.ownerName ?? '-'}). Tetap lanjutkan simpan?',
-                )
-              : Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('Nomor HP ini sudah terdaftar pada ${duplicates.length} kontak berikut:'),
-                    const SizedBox(height: 8),
-                    ConstrainedBox(
-                      constraints: const BoxConstraints(maxHeight: 260),
-                      child: ListView.builder(
-                        shrinkWrap: true,
-                        itemCount: duplicates.length,
-                        itemBuilder: (context, index) {
-                          final c = duplicates[index];
-                          return ListTile(
-                            contentPadding: EdgeInsets.zero,
-                            dense: true,
-                            title: Text(c.fullName ?? '-'),
-                            subtitle: Text('Pemilik: ${c.ownerName ?? '-'}'),
-                            trailing: const Icon(Icons.chevron_right),
-                            onTap: () {
-                              Navigator.of(dialogContext).pop(false);
-                              context.pushNamed(
-                                'detailContact',
-                                extra: ContactDetailArgs(dataContact: c, page: 2),
-                              );
-                            },
-                          );
-                        },
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    const Text('Tetap lanjutkan simpan?'),
-                  ],
-                ),
+        content: Text(
+          'Nomor HP ini sudah terdaftar atas nama "${duplicate.fullName ?? '-'}". '
+          'Apa yang ingin dilakukan?',
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(false),
+            onPressed: () => Navigator.of(dialogContext).pop(_DuplicateAction.cancel),
             child: const Text('Batal'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(_DuplicateAction.openExisting),
+            child: const Text('Buka Kontak'),
           ),
           FilledButton(
             style: FilledButton.styleFrom(backgroundColor: Color(primaryColor)),
-            onPressed: () => Navigator.of(dialogContext).pop(true),
-            child: const Text('Tetap Lanjut'),
+            onPressed: () => Navigator.of(dialogContext).pop(_DuplicateAction.proceed),
+            child: const Text('Tetap Lanjutkan'),
           ),
         ],
       ),
     );
+    return result ?? _DuplicateAction.cancel;
   }
 
   bool _validateEmail() {
@@ -1457,11 +1408,23 @@ class _ContactFormPageState extends State<ContactFormPage> {
       units: ((widget.args.page == 0 && _selectedUnits.isNotEmpty) || (widget.args.page != 0 && _unitsTouched)) ? _selectedUnits.map((u) => u.toApiJson()).toList() : null,
     );
 
-    final duplicates = _findDuplicateContacts(waTC.text);
-    if (duplicates.isNotEmpty) {
-      final proceed = await _showDuplicateContactDialog(duplicates);
-      if (proceed != true) return;
+    if (selectedOwnerId != null && waTC.text.isNotEmpty) {
+      final duplicate = await context.read<ContactBloc>().checkDuplicateContact(
+            ownerId: selectedOwnerId!,
+            phone: _normalizePhone(waTC.text),
+          );
       if (!mounted) return;
+
+      if (duplicate != null && duplicate.contactId != widget.args.dataContact?.contactId) {
+        final action = await _showDuplicateContactDialog(duplicate);
+        if (action != _DuplicateAction.proceed) {
+          if (action == _DuplicateAction.openExisting && mounted) {
+            context.pushNamed('detailContact', extra: ContactDetailArgs(dataContact: duplicate, page: 2));
+          }
+          return;
+        }
+        if (!mounted) return;
+      }
     }
 
     setState(() => _isSaving = true);

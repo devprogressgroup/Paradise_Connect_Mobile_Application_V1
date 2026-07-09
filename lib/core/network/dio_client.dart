@@ -273,6 +273,8 @@ class DioClient {
                 ? data401['message'].toString()
                 : 'Sesi Anda telah habis. Silakan login kembali.';
 
+            const uiMessage = 'Sesi Anda telah habis. Silakan login kembali.';
+
             final context = AppRouter.rootNavigatorKey.currentContext;
             if (context != null && context.mounted) {
               debugPrint('[DioClient] 401 sesi habis — tampilkan dialog. url: ${e.requestOptions.path}');
@@ -282,7 +284,7 @@ class DioClient {
                 barrierDismissible: false,
                 builder: (dialogContext) => AlertDialog(
                   title: const Text("Sesi Berakhir"),
-                  content: Text(apiMessage),
+                  content: Text(uiMessage),
                   actions: [
                     TextButton(
                       onPressed: () {

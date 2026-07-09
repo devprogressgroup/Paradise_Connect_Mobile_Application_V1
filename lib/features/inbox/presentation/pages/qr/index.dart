@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
 import 'package:progress_group/core/network/api_constants.dart';
+import 'package:progress_group/core/network/proxy_cipher.dart';
 import 'package:progress_group/core/constants/colors.dart';
 import 'package:progress_group/core/services/analytics_service.dart';
 
@@ -76,7 +77,7 @@ class _QrScannerPageState extends State<QrScannerPage> {
   Future<void> triggerLaravelQR() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final token = prefs.getString('auth_token');
+      final token = ProxyCipher.decryptString(prefs.getString('auth_token'));
 
       if (token == null) {
         setState(() {

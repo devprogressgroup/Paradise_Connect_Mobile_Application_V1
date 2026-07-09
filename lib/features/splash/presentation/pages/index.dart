@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import 'package:progress_group/app/router.dart';
 import 'package:progress_group/core/constants/assets.dart';
 import 'package:progress_group/core/constants/colors.dart';
+import 'package:progress_group/core/network/proxy_cipher.dart';
 import 'package:progress_group/features/auth/presentation/state/auth/auth_bloc.dart';
 import 'package:progress_group/features/auth/presentation/state/auth/auth_event.dart';
 import 'package:progress_group/features/auth/presentation/state/profile/profile_bloc.dart';
@@ -42,7 +43,7 @@ class _SplashPageState extends State<SplashPage> {
   void _checkToken() async {
     
     final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('auth_token');
+    final token = ProxyCipher.decryptString(prefs.getString('auth_token'));
     web_debug.logDebugError('[Splash] token: ${token != null && token.isNotEmpty ? 'ada (${token.length} chars)' : 'tidak ada'}');
 
     if (!mounted) return;

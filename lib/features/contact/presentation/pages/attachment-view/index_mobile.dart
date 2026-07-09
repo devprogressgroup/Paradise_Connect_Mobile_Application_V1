@@ -29,6 +29,7 @@ class _AttachmentWebViewPageState extends State<AttachmentWebViewPage> {
     controller = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
       ..setBackgroundColor(const Color(0xFFFFFFFF))
+      ..enableZoom(true)
       ..setNavigationDelegate(
         NavigationDelegate(
           onProgress: (p) {
@@ -43,6 +44,20 @@ class _AttachmentWebViewPageState extends State<AttachmentWebViewPage> {
           },
           onPageFinished: (url) {
             setState(() => isLoading = false);
+            // Google Drive's preview page sets user-scalable=no on its viewport meta
+            // to drive its own in-page zoom UI, which blocks native pinch-to-zoom
+            // inside our WebView. Override it so pinch gestures work as expected.
+            controller.runJavaScript('''
+              (function() {
+                var meta = document.querySelector('meta[name="viewport"]');
+                if (!meta) {
+                  meta = document.createElement('meta');
+                  meta.name = 'viewport';
+                  document.head.appendChild(meta);
+                }
+                meta.content = 'width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes';
+              })();
+            ''');
           },
           onWebResourceError: (error) {
             setState(() {

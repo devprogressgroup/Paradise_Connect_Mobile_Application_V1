@@ -1,6 +1,8 @@
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../../../core/network/proxy_cipher.dart';
+
 abstract class AuthLocalDataSource {
   Future<void> saveToken(String token, {bool persistent = false});
   Future<String?> getToken();
@@ -39,7 +41,7 @@ class AuthLocalDataSourceImpl implements AuthLocalDataSource {
   Future<void> saveToken(String token, {bool persistent = false}) async {
     _sessionToken = token;
     if (persistent || kIsWeb) {
-      await sharedPreferences.setString(_tokenKey, token);
+      await sharedPreferences.setString(_tokenKey, ProxyCipher.encryptString(token));
     } else {
       await sharedPreferences.remove(_tokenKey);
     }
@@ -47,7 +49,9 @@ class AuthLocalDataSourceImpl implements AuthLocalDataSource {
 
   @override
   Future<String?> getToken() async {
-    return _sessionToken ?? sharedPreferences.getString(_tokenKey);
+    if (_sessionToken != null) return _sessionToken;
+    final stored = sharedPreferences.getString(_tokenKey);
+    return ProxyCipher.decryptString(stored);
   }
 
   @override
@@ -59,14 +63,14 @@ class AuthLocalDataSourceImpl implements AuthLocalDataSource {
 
   @override
   Future<void> saveRememberMe(String username, String password) async {
-    await sharedPreferences.setString(_rememberUsernameKey, username);
-    await sharedPreferences.setString(_rememberPasswordKey, password);
+    await sharedPreferences.setString(_rememberUsernameKey, ProxyCipher.encryptString(username));
+    await sharedPreferences.setString(_rememberPasswordKey, ProxyCipher.encryptString(password));
   }
 
   @override
   Future<(String, String)?> getRememberMe() async {
-    final username = sharedPreferences.getString(_rememberUsernameKey);
-    final password = sharedPreferences.getString(_rememberPasswordKey);
+    final username = ProxyCipher.decryptString(sharedPreferences.getString(_rememberUsernameKey));
+    final password = ProxyCipher.decryptString(sharedPreferences.getString(_rememberPasswordKey));
     if (username != null && password != null) {
       return (username, password);
     }
@@ -101,12 +105,12 @@ class AuthLocalDataSourceImpl implements AuthLocalDataSource {
 
   @override
   Future<void> saveImpersonatorToken(String token) async {
-    await sharedPreferences.setString(_impersonatorTokenKey, token);
+    await sharedPreferences.setString(_impersonatorTokenKey, ProxyCipher.encryptString(token));
   }
 
   @override
   Future<String?> getImpersonatorToken() async {
-    return sharedPreferences.getString(_impersonatorTokenKey);
+    return ProxyCipher.decryptString(sharedPreferences.getString(_impersonatorTokenKey));
   }
 
   @override

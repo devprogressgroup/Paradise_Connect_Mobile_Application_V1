@@ -253,65 +253,41 @@ class _ContactPageState extends State<ContactPage> {
                             children: [
                               SizedBox(
                                 height: 50,
-                                child: ListView.separated(
+                                child: BlocBuilder<ProfileBloc, ProfileState>(
+                                  builder: (context, profileState) {
+                                    final availableRoles = profileState is ProfileLoaded
+                                        ? _collectOwnerCandidates(profileState.profile)
+                                            .map((c) => _classifyPosition(c.positionName))
+                                            .whereType<String>()
+                                            .toSet()
+                                        : const <String>{};
+
+                                    final slots = <int>[0, 1, 2, 3, 4, 5, 6, 7];
+                                    if (availableRoles.contains('se')) slots.add(8);
+                                    if (availableRoles.contains('spv')) slots.add(9);
+                                    if (availableRoles.contains('sm')) slots.add(10);
+                                    if (availableRoles.contains('gm')) slots.add(11);
+
+                                    return ListView.separated(
                                   scrollDirection: Axis.horizontal,
-                                  itemCount: 8,
+                                  itemCount: slots.length,
                                   separatorBuilder: (_, __) => const SizedBox(width: 10),
-                                  itemBuilder: (context, index) {
+                                  itemBuilder: (context, i) {
+                                    final index = slots[i];
                                     if (index == 0) {
                                       return BlocBuilder<ContactBloc, ContactState>(
                                         builder: (context, contactState) {
                                           return BlocBuilder<ProfileBloc, ProfileState>(
                                             builder: (context, profileState) {
                                               String label = 'Owner';
-                                              bool isSelected = contactState.ownerIds != null && contactState.ownerIds!.isNotEmpty;
+                                              final ownerIds = contactState.ownerIds ?? const <int>[];
+                                              bool isSelected = ownerIds.isNotEmpty;
 
                                               if (isSelected && profileState is ProfileLoaded) {
-                                                if (contactState.ownerIds!.length == 1) {
-                                                  final id = contactState.ownerIds!.first;
-                                                  final user = profileState.profile;
-                                                  if (user.userId == id) {
-                                                    label = user.fullName;
-                                                  } else {
-                                                    HierarchyNodeEntity? found;
-                                                    void search(List<HierarchyNodeEntity> nodes) {
-                                                      for (var n in nodes) {
-                                                        if (n.userId == id) found = n;
-                                                        if (found == null && n.subordinates.isNotEmpty)
-                                                          search(n.subordinates);
-                                                      }
-                                                    }
-                                                    search(user.subordinates);
-                                                    if (found != null) {
-                                                      label = found!.fullName;
-                                                    } else {
-                                                      String? foundLabel;
-                                                      void searchGroup(List<GroupHierarchyEntity> groups) {
-                                                        for (final g in groups) {
-                                                          for (final u in g.users) {
-                                                            if (u.userId == id) { foundLabel = u.fullName; return; }
-                                                          }
-                                                          if (foundLabel == null && g.children.isNotEmpty) searchGroup(g.children);
-                                                        }
-                                                      }
-                                                      searchGroup(user.groupHierarchy);
-                                                      if (foundLabel == null) {
-                                                        void searchTeam(List<SalesTeamMemberEntity> members) {
-                                                          for (final m in members) {
-                                                            if (m.userId == id) { foundLabel = m.fullName; return; }
-                                                            if (foundLabel == null && m.subordinates.isNotEmpty) searchTeam(m.subordinates);
-                                                          }
-                                                        }
-                                                        for (final team in user.salesTeamHierarchy) {
-                                                          if (foundLabel != null) break;
-                                                          searchTeam(team.members);
-                                                        }
-                                                      }
-                                                      if (foundLabel != null) label = foundLabel!;
-                                                    }
-                                                  }
+                                                if (ownerIds.length == 1) {
+                                                  label = _resolveNameById(profileState.profile, ownerIds.first) ?? label;
                                                 } else {
-                                                  label = "${contactState.ownerIds!.length} Owners";
+                                                  label = "${ownerIds.length} Owners";
                                                 }
                                               }
 
@@ -321,54 +297,9 @@ class _ContactPageState extends State<ContactPage> {
                                                 onTap: () async {
                                                   AnalyticsService.logEvent('contact_list_filter_owner');
                                                   if (profileState is ProfileLoaded) {
-                                                    final user = profileState.profile;
-                                                    final List<OwnerDropdownItem> ownerItems = [];
-
-                                                    ownerItems.add(OwnerDropdownItem(
-                                                      id: user.userId,
-                                                      name: user.fullName,
-                                                      subtitle: user.positionName,
-                                                    ));
-
-                                                    if (user.subordinates.isNotEmpty) {
-                                                      void addSubs(List<HierarchyNodeEntity> subs) {
-                                                        for (var s in subs) {
-                                                          ownerItems.add(OwnerDropdownItem(
-                                                            id: s.userId,
-                                                            name: s.fullName,
-                                                            subtitle: s.positionName,
-                                                          ));
-                                                          if (s.subordinates.isNotEmpty)
-                                                            addSubs(s.subordinates);
-                                                        }
-                                                      }
-                                                      addSubs(user.subordinates);
-                                                    } else {
-                                                      final seen = <int>{user.userId};
-                                                      void addGroupUsers(List<GroupHierarchyEntity> groups) {
-                                                        for (final g in groups) {
-                                                          for (final u in g.users) {
-                                                            if (seen.contains(u.userId)) continue;
-                                                            seen.add(u.userId);
-                                                            ownerItems.add(OwnerDropdownItem(id: u.userId, name: u.fullName, subtitle: g.groupName));
-                                                          }
-                                                          if (g.children.isNotEmpty) addGroupUsers(g.children);
-                                                        }
-                                                      }
-                                                      addGroupUsers(user.groupHierarchy);
-                                                      void addTeamMembers(List<SalesTeamMemberEntity> members, String teamName) {
-                                                        for (final m in members) {
-                                                          if (m.userId != null && !seen.contains(m.userId!)) {
-                                                            seen.add(m.userId!);
-                                                            ownerItems.add(OwnerDropdownItem(id: m.userId, name: m.fullName, subtitle: '$teamName - ${m.positionName ?? ''}'));
-                                                          }
-                                                          if (m.subordinates.isNotEmpty) addTeamMembers(m.subordinates, teamName);
-                                                        }
-                                                      }
-                                                      for (final team in user.salesTeamHierarchy) {
-                                                        addTeamMembers(team.members, team.salesTeamName);
-                                                      }
-                                                    }
+                                                    final ownerItems = _collectOwnerCandidates(profileState.profile)
+                                                        .map((c) => OwnerDropdownItem(id: c.id, name: c.name, subtitle: c.subtitle))
+                                                        .toList();
 
                                                     final result = await context.pushNamed('detailContactDropdown',extra: ContactDropdownArgs(title: 'Pilih Owner',items: ownerItems,selectedIds: contactState.ownerIds,isMultiSelect: true,),);
 
@@ -376,7 +307,7 @@ class _ContactPageState extends State<ContactPage> {
                                                       final selected = result as List<OwnerDropdownItem>;
                                                       context.read<ContactBloc>().add(
                                                         FetchContactsEvent(
-                                                          ownerIds: selected.map((e) => e.id!).toList(),
+                                                          ownerIds: selected.map((e) => e.id).whereType<int>().toList(),
                                                           isRefresh: true,
                                                           clearOwner: selected.isEmpty,
                                                         ),
@@ -422,7 +353,7 @@ class _ContactPageState extends State<ContactPage> {
                                                       if (context.mounted) {
                                                         context.read<ContactBloc>().add(
                                                           FetchContactsEvent(
-                                                            statusProspectIds: selected.map((e) => e.id!).toList(),
+                                                            statusProspectIds: selected.map((e) => e.id).whereType<int>().toList(),
                                                             isRefresh: true,
                                                             clearStatus: selected.isEmpty,
                                                           ),
@@ -660,7 +591,7 @@ class _ContactPageState extends State<ContactPage> {
                                                       if (context.mounted) {
                                                         context.read<ContactBloc>().add(
                                                           FetchContactsEvent(
-                                                            salesChannelIds: selected.map((e) => e.id!).toList(),
+                                                            salesChannelIds: selected.map((e) => e.id).whereType<int>().toList(),
                                                             isRefresh: true,
                                                             clearSalesChannel: selected.isEmpty,
                                                           ),
@@ -678,7 +609,46 @@ class _ContactPageState extends State<ContactPage> {
                                       );
                                     }
 
+                                    if (index == 8) {
+                                      return _buildRolePositionFilter(
+                                        context,
+                                        role: 'se',
+                                        label: 'Sales Executive',
+                                        pluralLabel: 'Sales Executives',
+                                        analyticsEvent: 'contact_list_filter_sales_executive',
+                                      );
+                                    }
+                                    if (index == 9) {
+                                      return _buildRolePositionFilter(
+                                        context,
+                                        role: 'spv',
+                                        label: 'Sales Supervisor',
+                                        pluralLabel: 'Sales Supervisors',
+                                        analyticsEvent: 'contact_list_filter_sales_supervisor',
+                                      );
+                                    }
+                                    if (index == 10) {
+                                      return _buildRolePositionFilter(
+                                        context,
+                                        role: 'sm',
+                                        label: 'Sales Manager',
+                                        pluralLabel: 'Sales Managers',
+                                        analyticsEvent: 'contact_list_filter_sales_manager',
+                                      );
+                                    }
+                                    if (index == 11) {
+                                      return _buildRolePositionFilter(
+                                        context,
+                                        role: 'gm',
+                                        label: 'General Manager',
+                                        pluralLabel: 'General Managers',
+                                        analyticsEvent: 'contact_list_filter_general_manager',
+                                      );
+                                    }
+
                                     return null;
+                                  },
+                                    );
                                   },
                                 ),
                               ),
@@ -758,6 +728,193 @@ String _normalizePhone(String phone) {
   return cleaned;
 }
 
+class _OwnerCandidate {
+  final int? id;
+  final String name;
+  final String? subtitle;
+  final String? positionName;
+  const _OwnerCandidate({this.id, required this.name, this.subtitle, this.positionName});
+}
+
+List<_OwnerCandidate> _collectOwnerCandidates(UserProfileEntity user) {
+  final List<_OwnerCandidate> items = [
+    _OwnerCandidate(id: user.userId, name: user.fullName, subtitle: user.positionName, positionName: user.positionName),
+  ];
+
+  if (user.subordinates.isNotEmpty) {
+    void addSubs(List<HierarchyNodeEntity> subs) {
+      for (final s in subs) {
+        items.add(_OwnerCandidate(id: s.userId, name: s.fullName, subtitle: s.positionName, positionName: s.positionName));
+        if (s.subordinates.isNotEmpty) addSubs(s.subordinates);
+      }
+    }
+    addSubs(user.subordinates);
+  } else {
+    final seen = <int>{user.userId};
+    void addGroupUsers(List<GroupHierarchyEntity> groups) {
+      for (final g in groups) {
+        for (final u in g.users) {
+          if (seen.contains(u.userId)) continue;
+          seen.add(u.userId);
+          items.add(_OwnerCandidate(id: u.userId, name: u.fullName, subtitle: g.groupName, positionName: null));
+        }
+        if (g.children.isNotEmpty) addGroupUsers(g.children);
+      }
+    }
+    addGroupUsers(user.groupHierarchy);
+
+    void addTeamMembers(List<SalesTeamMemberEntity> members, String teamName) {
+      for (final m in members) {
+        if (m.userId != null && !seen.contains(m.userId!)) {
+          seen.add(m.userId!);
+          items.add(_OwnerCandidate(
+            id: m.userId,
+            name: m.fullName,
+            subtitle: '$teamName - ${m.positionName ?? ''}',
+            positionName: m.positionName,
+          ));
+        }
+        if (m.subordinates.isNotEmpty) addTeamMembers(m.subordinates, teamName);
+      }
+    }
+    for (final team in user.salesTeamHierarchy) {
+      addTeamMembers(team.members, team.salesTeamName);
+    }
+  }
+
+  return items;
+}
+
+// Position names are free-text from the backend (e.g. "Sales Executive - Jakarta 1"),
+// so roles are detected via keyword match. "general manager" must be checked before
+// "manager" since it also contains that word.
+String? _classifyPosition(String? positionName) {
+  if (positionName == null) return null;
+  final p = positionName.toLowerCase();
+  if (p.contains('general manager')) return 'gm';
+  if (p.contains('supervisor')) return 'spv';
+  if (p.contains('manager')) return 'sm';
+  if (p.contains('executive')) return 'se';
+  return null;
+}
+
+String? _resolveNameById(UserProfileEntity user, int id) {
+  if (user.userId == id) return user.fullName;
+
+  HierarchyNodeEntity? found;
+  void search(List<HierarchyNodeEntity> nodes) {
+    for (final n in nodes) {
+      if (n.userId == id) found = n;
+      if (found == null && n.subordinates.isNotEmpty) search(n.subordinates);
+    }
+  }
+  search(user.subordinates);
+  if (found != null) return found!.fullName;
+
+  String? foundLabel;
+  void searchGroup(List<GroupHierarchyEntity> groups) {
+    for (final g in groups) {
+      for (final u in g.users) {
+        if (u.userId == id) {
+          foundLabel = u.fullName;
+          return;
+        }
+      }
+      if (foundLabel == null && g.children.isNotEmpty) searchGroup(g.children);
+    }
+  }
+  searchGroup(user.groupHierarchy);
+  if (foundLabel != null) return foundLabel;
+
+  void searchTeam(List<SalesTeamMemberEntity> members) {
+    for (final m in members) {
+      if (m.userId == id) {
+        foundLabel = m.fullName;
+        return;
+      }
+      if (foundLabel == null && m.subordinates.isNotEmpty) searchTeam(m.subordinates);
+    }
+  }
+  for (final team in user.salesTeamHierarchy) {
+    if (foundLabel != null) break;
+    searchTeam(team.members);
+  }
+  return foundLabel;
+}
+
+Widget _buildRolePositionFilter(
+  BuildContext context, {
+  required String role,
+  required String label,
+  required String pluralLabel,
+  required String analyticsEvent,
+}) {
+  return BlocBuilder<ContactBloc, ContactState>(
+    builder: (context, contactState) {
+      return BlocBuilder<ProfileBloc, ProfileState>(
+        builder: (context, profileState) {
+          String displayLabel = label;
+          bool isSelected = false;
+          List<_OwnerCandidate> candidates = const [];
+
+          if (profileState is ProfileLoaded) {
+            candidates = _collectOwnerCandidates(profileState.profile)
+                .where((c) => _classifyPosition(c.positionName) == role)
+                .toList();
+            final candidateIds = candidates.map((c) => c.id).whereType<int>().toSet();
+            final roleSelectedIds = (contactState.ownerIds ?? []).where(candidateIds.contains).toList();
+
+            if (roleSelectedIds.isNotEmpty) {
+              isSelected = true;
+              displayLabel = roleSelectedIds.length == 1
+                  ? (_resolveNameById(profileState.profile, roleSelectedIds.first) ?? label)
+                  : '${roleSelectedIds.length} $pluralLabel';
+            }
+          }
+
+          return CustomFilterButton(
+            label: displayLabel,
+            isSelected: isSelected,
+            onTap: () async {
+              AnalyticsService.logEvent(analyticsEvent);
+              if (profileState is! ProfileLoaded) return;
+
+              final candidateIds = candidates.map((c) => c.id).whereType<int>().toSet();
+              final currentRoleSelected = (contactState.ownerIds ?? []).where(candidateIds.contains).toList();
+              final items = candidates.map((c) => OwnerDropdownItem(id: c.id, name: c.name, subtitle: c.subtitle)).toList();
+
+              final result = await context.pushNamed(
+                'detailContactDropdown',
+                extra: ContactDropdownArgs(
+                  title: 'Pilih $label',
+                  items: items,
+                  selectedIds: currentRoleSelected,
+                  isMultiSelect: true,
+                ),
+              );
+
+              if (result != null && context.mounted) {
+                final selected = result as List<OwnerDropdownItem>;
+                final selectedIds = selected.map((e) => e.id).whereType<int>().toSet();
+                final others = (contactState.ownerIds ?? []).where((id) => !candidateIds.contains(id));
+                final merged = {...others, ...selectedIds}.toList();
+
+                context.read<ContactBloc>().add(
+                  FetchContactsEvent(
+                    ownerIds: merged,
+                    isRefresh: true,
+                    clearOwner: merged.isEmpty,
+                  ),
+                );
+              }
+            },
+          );
+        },
+      );
+    },
+  );
+}
+
 Widget _buildListContacts(BuildContext context, ContactEntity contact) {
   return GestureDetector(
     onTap: () {
@@ -805,6 +962,8 @@ Widget _buildListContacts(BuildContext context, ContactEntity contact) {
               ],
             ),
           ),
+          _buildContactBadges(context, contact),
+          const SizedBox(width: 8),
           GestureDetector(
             onTap: () {
               AnalyticsService.logEvent('contact_list_open_contact_options');
@@ -814,6 +973,94 @@ Widget _buildListContacts(BuildContext context, ContactEntity contact) {
           ),
         ],
       ),
+    ),
+  );
+}
+
+Widget _buildContactBadges(BuildContext context, ContactEntity contact) {
+  return BlocBuilder<ProspectStatusBloc, ProspectStatusState>(
+    builder: (context, statusState) {
+      return BlocBuilder<InfoSourceBloc, InfoSourceState>(
+        builder: (context, sourceState) {
+          ProspectStatusEntity? status;
+          if (statusState.status == ProspectStatusEnum.loaded) {
+            status = statusState.statuses.cast<ProspectStatusEntity?>().firstWhere(
+                  (e) => e?.statusProspectId == contact.statusProspectId,
+                  orElse: () => null,
+                );
+          }
+
+          final sources = sourceState.sourcesMap[1];
+          InfoSource? channel;
+          if (sources != null) {
+            channel = sources.cast<InfoSource?>().firstWhere(
+                  (e) => e?.id == contact.salesChannelId,
+                  orElse: () => null,
+                );
+          }
+
+          final statusLabel = status == null
+              ? null
+              : (status.statusValue.isNotEmpty ? status.statusValue : status.statusProspectName);
+          final isLost = status?.group == 'lost';
+
+          final channelLabel = channel?.name.split('-').first.trim();
+
+          final hasStatus = statusLabel != null && statusLabel.isNotEmpty;
+          final hasChannel = channelLabel != null && channelLabel.isNotEmpty;
+
+          if (!hasStatus && !hasChannel) return const SizedBox.shrink();
+
+          return SizedBox(
+            width:50,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                if (hasStatus) _statusChip(statusLabel, isLost: isLost),
+                if (hasStatus && hasChannel) const SizedBox(height: 6),
+                if (hasChannel) _channelChip(channelLabel),
+              ],
+            ),
+          );
+        },
+      );
+    },
+  );
+}
+
+Widget _statusChip(String label, {required bool isLost}) {
+  final color = Color(isLost ? redColor : primaryColor);
+  return Container(
+    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+    alignment: Alignment.center,
+    decoration: BoxDecoration(
+      borderRadius: BorderRadius.circular(6),
+      border: Border.all(color: color, width: 1),
+    ),
+    child: Text(
+      label,
+      textAlign: TextAlign.center,
+      style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.w600),
+      overflow: TextOverflow.ellipsis,
+    ),
+  );
+}
+
+Widget _channelChip(String label) {
+  const color = Color(purpleColor);
+  return Container(
+    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+    alignment: Alignment.center,
+    decoration: BoxDecoration(
+      borderRadius: BorderRadius.circular(6),
+      border: Border.all(color: color, width: 1),
+    ),
+    child: Text(
+      label,
+      textAlign: TextAlign.center,
+      style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.w600),
+      overflow: TextOverflow.ellipsis,
     ),
   );
 }

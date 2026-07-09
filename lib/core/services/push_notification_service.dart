@@ -1,5 +1,7 @@
 ﻿import 'dart:convert';
+import 'dart:io' show Platform;
 
+import 'package:device_info_plus/device_info_plus.dart';
 import 'package:dio/dio.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart' show debugPrint, kIsWeb;
@@ -9,6 +11,9 @@ import 'package:progress_group/core/utils/helpers/app_time.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:progress_group/app/router.dart';
+import 'package:progress_group/features/auth/data/datasources/auth_local_datasource.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:uuid/uuid.dart';
 import 'package:progress_group/features/contact/data/arguments/contact_detail_args.dart';
 import 'package:progress_group/features/contact/domain/entities/activity/activity_entity.dart';
 import 'package:progress_group/features/contact/domain/entities/contact/contact_entity.dart';
@@ -25,6 +30,7 @@ final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =   Flutte
 
 class PushNotificationService {
   static Dio? _dio;
+  static AuthLocalDataSource? _authLocalDataSource;
   static RemoteMessage? _pendingMessage;
   static final FirebaseMessaging _messaging = FirebaseMessaging.instance;
 
@@ -36,6 +42,10 @@ class PushNotificationService {
 
   static void setDio(Dio dio) {
     _dio = dio;
+  }
+
+  static void setAuthLocalDataSource(AuthLocalDataSource authLocalDataSource) {
+    _authLocalDataSource = authLocalDataSource;
   }
 
   static Future<void> checkAndShowUpdateBanner() async {
@@ -108,11 +118,15 @@ class PushNotificationService {
   }
 
   static void sendTokenAfterLogin() {
-    if (!_supported) return;
+    if (!_supported) {
+      _registerDevice(null);
+      return;
+    }
     _messaging.getToken(vapidKey: kIsWeb ? _vapidKey : null).then((token) {
-      if (token != null) _sendTokenToBackend(token);
+      _sendTokenToBackend(token);
     }).catchError((e) {
       debugPrint('[FCM] getToken failed: $e');
+      _registerDevice(null);
     });
   }
 
@@ -196,14 +210,118 @@ class PushNotificationService {
   }
 
 
-  static Future<void> _sendTokenToBackend(String token) async {
+  static Future<void> _sendTokenToBackend(String? token) async {
+    if (_dio != null && token != null && token.isNotEmpty) {
+      try {
+        await _dio!.post('/fcm-token', data: {
+          'fcm_token': token,
+          'platform': kIsWeb ? 'web' : 'mobile',
+        });
+      } catch (_) {}
+    }
+    await _registerDevice(token);
+  }
+
+  static Future<String> _getOrCreateDeviceUuid() async {
+    final prefs = await SharedPreferences.getInstance();
+    var deviceUuid = prefs.getString('device_uuid');
+    if (deviceUuid == null || deviceUuid.isEmpty) {
+      deviceUuid = const Uuid().v4();
+      await prefs.setString('device_uuid', deviceUuid);
+    }
+    return deviceUuid;
+  }
+
+  static Future<Map<String, dynamic>> _buildDevicePayload(String? fcmToken) async {
+    final deviceUuid = await _getOrCreateDeviceUuid();
+    final packageInfo = await PackageInfo.fromPlatform();
+    final deviceInfoPlugin = DeviceInfoPlugin();
+
+    var platform = 'web';
+    var brand = '';
+    var manufacturer = '';
+    var model = '';
+    var deviceName = '';
+    var osName = 'Web';
+    var osVersion = '';
+
+    try {
+      if (kIsWeb) {
+        final webInfo = await deviceInfoPlugin.webBrowserInfo;
+        final ua = webInfo.userAgent ?? '';
+        brand = webInfo.browserName.name;
+        manufacturer = webInfo.vendor ?? '';
+        deviceName = webInfo.browserName.name;
+
+        final rawPlatform = webInfo.platform ?? '';
+        osName = rawPlatform.contains('Win')
+            ? 'Windows'
+            : rawPlatform.contains('Mac')
+                ? 'macOS'
+                : rawPlatform.contains('Linux')
+                    ? 'Linux'
+                    : rawPlatform.isNotEmpty
+                        ? rawPlatform
+                        : 'Web';
+
+        final browserVersion = RegExp(r'(Chrome|Firefox|Edg|OPR|Version)/([\d.]+)').firstMatch(ua)?.group(2) ?? '';
+        model = '${webInfo.browserName.name} $browserVersion'.trim();
+
+        final winVersion = RegExp(r'Windows NT ([\d.]+)').firstMatch(ua)?.group(1);
+        final macVersion = RegExp(r'Mac OS X ([\d_.]+)').firstMatch(ua)?.group(1)?.replaceAll('_', '.');
+        osVersion = winVersion ?? macVersion ?? '';
+      } else if (Platform.isAndroid) {
+        final androidInfo = await deviceInfoPlugin.androidInfo;
+        platform = 'android';
+        brand = androidInfo.brand;
+        manufacturer = androidInfo.manufacturer;
+        model = androidInfo.model;
+        deviceName = androidInfo.device;
+        osName = 'Android';
+        osVersion = androidInfo.version.release;
+      } else if (Platform.isIOS) {
+        final iosInfo = await deviceInfoPlugin.iosInfo;
+        platform = 'ios';
+        brand = 'Apple';
+        manufacturer = 'Apple';
+        model = iosInfo.utsname.machine;
+        deviceName = iosInfo.name;
+        osName = 'iOS';
+        osVersion = iosInfo.systemVersion;
+      }
+    } catch (e) {
+      debugPrint('[Devices] gagal membaca device info: $e');
+    }
+
+    final activeToken = await _authLocalDataSource?.getToken();
+
+    String truncate(String s, int max) => s.length > max ? s.substring(0, max) : s;
+
+    return {
+      'device_uuid': deviceUuid,
+      'platform': platform,
+      'brand': truncate(brand, 100),
+      'manufacturer': truncate(manufacturer, 100),
+      'model': truncate(model, 100),
+      'device_name': truncate(deviceName, 100),
+      'os_name': truncate(osName, 50),
+      'os_version': truncate(osVersion, 50),
+      'app_version': packageInfo.version,
+      'build_number': packageInfo.buildNumber,
+      'fcm_token': kIsWeb ? null : fcmToken,
+      'web_fcm_token': kIsWeb ? fcmToken : null,
+      'active_token': activeToken,
+    };
+  }
+
+  static Future<void> _registerDevice(String? fcmToken) async {
     if (_dio == null) return;
     try {
-      await _dio!.post('/fcm-token', data: {
-        'fcm_token': token,
-        'platform': kIsWeb ? 'web' : 'mobile',
-      });
-    } catch (_) {}
+      final payload = await _buildDevicePayload(fcmToken);
+      await _dio!.post('/devices', data: payload);
+    } catch (e) {
+      debugPrint('[Devices] register failed: $e');
+    }
   }
 
   static void _showWebBanner(String? title, String? body, {VoidCallback? onTap}) {

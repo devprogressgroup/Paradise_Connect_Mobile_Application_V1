@@ -25,4 +25,24 @@ class ProxyCipher {
       return data;
     }
   }
+
+  static String encryptString(String plain) {
+    final iv = enc.IV.fromSecureRandom(16);
+    final encrypter = enc.Encrypter(enc.AES(_key, mode: enc.AESMode.cbc));
+    final encrypted = encrypter.encrypt(plain, iv: iv);
+    return '${iv.base64}:${encrypted.base64}';
+  }
+
+  static String? decryptString(String? cipherText) {
+    if (cipherText == null || cipherText.isEmpty) return null;
+    try {
+      final parts = cipherText.split(':');
+      if (parts.length != 2) return null;
+      final iv = enc.IV.fromBase64(parts[0]);
+      final encrypter = enc.Encrypter(enc.AES(_key, mode: enc.AESMode.cbc));
+      return encrypter.decrypt(enc.Encrypted.fromBase64(parts[1]), iv: iv);
+    } catch (_) {
+      return null;
+    }
+  }
 }

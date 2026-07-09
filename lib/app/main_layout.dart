@@ -88,6 +88,29 @@ class _MainLayoutState extends State<MainLayout> {
     });
   }
 
+  void _showLogoutConfirmation() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('Konfirmasi Logout'),
+        content: Text('Apakah Anda yakin ingin logout?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text('Batal'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              context.read<AuthBloc>().add(LogoutEvent());
+            },
+            child: Text('Logout', style: TextStyle(color: Color(redAccentColor))),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _showIosInstallInstructions() {
     showModalBottomSheet(
       context: context,
@@ -465,7 +488,7 @@ class _MainLayoutState extends State<MainLayout> {
                     onTap: () {
                       AnalyticsService.logEvent('main_layout_logout');
                       Navigator.of(context).pop();
-                      context.read<AuthBloc>().add(LogoutEvent());
+                      _showLogoutConfirmation();
                     },
                     child: Row(
                       children: [

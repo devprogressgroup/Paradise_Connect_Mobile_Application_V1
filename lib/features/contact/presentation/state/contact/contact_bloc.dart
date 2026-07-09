@@ -1,7 +1,9 @@
 import 'package:bloc_concurrency/bloc_concurrency.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:progress_group/features/contact/domain/entities/contact/contact_entity.dart';
 import 'package:progress_group/features/contact/domain/usecases/contact/update_contact_usecase.dart';
 import 'package:progress_group/features/contact/domain/usecases/contact/delete_contact_usecase.dart';
+import 'package:progress_group/features/contact/domain/usecases/contact/check_duplicate_contact_usecase.dart';
 
 import '../../../domain/usecases/contact/get_contacts_usecase.dart';
 import '../../../domain/usecases/contact/create_contact_usecase.dart';
@@ -17,6 +19,7 @@ class ContactBloc extends Bloc<ContactEvent, ContactState> {
   final DeleteContactUseCase deleteContactUseCase;
   final GetContactDetailUseCase getContactDetailUseCase;
   final GetAllContactsForDuplicateCheckUseCase getAllContactsForDuplicateCheckUseCase;
+  final CheckDuplicateContactUseCase checkDuplicateContactUseCase;
 
   ContactBloc({
     required this.getContactsUseCase,
@@ -25,6 +28,7 @@ class ContactBloc extends Bloc<ContactEvent, ContactState> {
     required this.deleteContactUseCase,
     required this.getContactDetailUseCase,
     required this.getAllContactsForDuplicateCheckUseCase,
+    required this.checkDuplicateContactUseCase,
   }) : super(const ContactState()) {
     on<FetchContactsEvent>(_onFetchContacts, transformer: droppable());
     on<CreateContactEvent>(_onCreateContact);
@@ -49,6 +53,10 @@ class ContactBloc extends Bloc<ContactEvent, ContactState> {
         )));
   }
 
+  Future<ContactEntity?> checkDuplicateContact({required int ownerId, required String phone}) async {
+    final result = await checkDuplicateContactUseCase(ownerId: ownerId, phone: phone);
+    return result.fold((_) => null, (contact) => contact);
+  }
 
 
   Future<void> _onFetchContacts(

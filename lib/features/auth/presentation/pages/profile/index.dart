@@ -132,6 +132,32 @@ class _ProfilePageState extends State<ProfilePage> {
     }
   }
 
+  void _showLogoutConfirmation() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('Konfirmasi Logout'),
+        content: Text('Apakah Anda yakin ingin logout?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text('Batal'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              AnalyticsService.logEvent('profile_logout');
+              debugPrint('[Profile] LogoutEvent dipicu dari: tombol Logout di halaman Profile');
+              web_debug.logDebugError('LogoutEvent dipicu dari: tombol Logout di halaman Profile');
+              context.read<AuthBloc>().add(LogoutEvent());
+            },
+            child: Text('Logout', style: TextStyle(color: Color(redAccentColor))),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _submit(String originalEmail, String originalPhone) {
     AnalyticsService.logEvent('profile_submit_profile');
     final email = emailTC.text.trim();
@@ -494,12 +520,7 @@ class _ProfilePageState extends State<ProfilePage> {
                         const SizedBox(width: 20),
                         Expanded(
                           child: customButton(
-                            () {
-                              AnalyticsService.logEvent('profile_logout');
-                              debugPrint('[Profile] LogoutEvent dipicu dari: tombol Logout di halaman Profile');
-                              web_debug.logDebugError('LogoutEvent dipicu dari: tombol Logout di halaman Profile');
-                              context.read<AuthBloc>().add(LogoutEvent());
-                            },
+                            () => _showLogoutConfirmation(),
                             "Logout",
                             colorBg: Color(whiteColor),
                             colorText: Color(primaryColor),
