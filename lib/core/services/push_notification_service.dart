@@ -19,11 +19,20 @@ import 'package:progress_group/features/contact/domain/entities/activity/activit
 import 'package:progress_group/features/contact/domain/entities/contact/contact_entity.dart';
 import 'package:progress_group/features/notif/presentation/state/received_notif_cubit.dart';
 import 'package:progress_group/core/constants/colors.dart';
+import 'package:progress_group/core/utils/widget/attendance_feedback_dialog.dart';
 import 'web_notification_stub.dart'
     if (dart.library.js_interop) 'web_notification.dart';
 
 const String _channelId = 'upcoming_task_channel';
 const String _channelName = 'Upcoming Tasks';
+
+const Map<String, String> _feedbackCategoryLabels = {
+  'foto_tidak_jelas': 'Foto Tidak Jelas',
+  'foto_tidak_sesuai': 'Foto Tidak Sesuai Aturan',
+  'foto_perlu_jarak': 'Foto Perlu Jarak',
+  'lokasi_tidak_teridentifikasi': 'Lokasi Tidak Teridentifikasi',
+  'lokasi_tidak_sesuai': 'Lokasi Tidak Sesuai',
+};
 const String _vapidKey =  'BGIeIvkhfZzClnpnsLcZLyggcadQqTf_g996DoCZ1hJGeLcd0Tn8gHHuUnmjhvFA62wHqFLVDLaJjmZeGHC95PQ';
 
 final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =   FlutterLocalNotificationsPlugin();
@@ -360,6 +369,14 @@ class PushNotificationService {
   static void _handleForegroundMessage(RemoteMessage message) {
     _saveToNotifList(message);
 
+    if (message.data['type'] == 'attendance_feedback') {
+      final context = AppRouter.rootNavigatorKey.currentContext;
+      if (context != null && context.mounted) {
+        _showAttendanceFeedbackDialog(context, message.data);
+      }
+      return;
+    }
+
     final notification = message.notification;
 
     if (kIsWeb) {
@@ -440,6 +457,11 @@ class PushNotificationService {
       return;
     }
 
+    if (type == 'attendance_feedback') {
+      _showAttendanceFeedbackDialog(context, data);
+      return;
+    }
+
     if (type == 'upcoming_task') {
       final activityIdStr = data['activity_id'] as String?;
       final contactIdStr  = data['contact_id'] as String?;
@@ -490,5 +512,36 @@ class PushNotificationService {
     }
 
     AppRouter.router.go('/task-home');
+  }
+
+  static void _showAttendanceFeedbackDialog(BuildContext context, Map<String, dynamic> data) {
+    final logId = int.tryParse(data['log_id']?.toString() ?? '');
+    final isOk = data['verdict']?.toString() == '1';
+    final categoryLabels = (data['categories']?.toString() ?? '')
+        .split(',')
+        .map((c) => c.trim())
+        .where((c) => c.isNotEmpty)
+        .map((c) => _feedbackCategoryLabels[c] ?? c)
+        .toList();
+    final note = data['note']?.toString() ?? '';
+    final photoUrl = data['photo_url']?.toString() ?? '';
+
+    showAttendanceFeedbackDialog(
+      context,
+      isOk: isOk,
+      categoryLabels: categoryLabels,
+      note: note,
+      photoUrl: photoUrl,
+      onAcknowledge: () {
+        if (logId != null) _acknowledgeFeedback(logId);
+        AppRouter.router.go('/attandance');
+      },
+    );
+  }
+
+  static Future<void> _acknowledgeFeedback(int logId) async {
+    try {
+      await _dio?.post('/attendance/feedback/ack', data: {'log_id': logId});
+    } catch (_) {}
   }
 }
