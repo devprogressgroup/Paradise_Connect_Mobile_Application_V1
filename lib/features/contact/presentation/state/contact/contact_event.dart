@@ -17,12 +17,14 @@ class FetchContactsEvent extends ContactEvent {
   final List<int>? ownerIds;
   final List<int>? statusProspectIds;
   final List<int>? salesChannelIds;
+  final List<int>? salesTeamIds;
   final bool isRefresh;
   final bool clearSearch;
   final bool clearDates;
   final bool clearOwner;
   final bool clearStatus;
   final bool clearSalesChannel;
+  final bool clearSalesTeam;
   final String? apptStartDate;
   final String? apptEndDate;
   final String? visitStartDate;
@@ -45,12 +47,14 @@ class FetchContactsEvent extends ContactEvent {
     this.ownerIds,
     this.statusProspectIds,
     this.salesChannelIds,
+    this.salesTeamIds,
     this.isRefresh = false,
     this.clearSearch = false,
     this.clearDates = false,
     this.clearOwner = false,
     this.clearStatus = false,
     this.clearSalesChannel = false,
+    this.clearSalesTeam = false,
     this.apptStartDate,
     this.apptEndDate,
     this.visitStartDate,
@@ -75,12 +79,14 @@ class FetchContactsEvent extends ContactEvent {
     ownerIds,
     statusProspectIds,
     salesChannelIds,
+    salesTeamIds,
     isRefresh,
     clearSearch,
     clearDates,
     clearOwner,
     clearStatus,
     clearSalesChannel,
+    clearSalesTeam,
     apptStartDate,
     apptEndDate,
     visitStartDate,

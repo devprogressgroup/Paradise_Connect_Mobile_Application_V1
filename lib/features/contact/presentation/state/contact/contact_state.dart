@@ -27,6 +27,7 @@ class ContactState extends Equatable {
   final List<int>? ownerIds;
   final List<int>? statusProspectIds;
   final List<int>? salesChannelIds;
+  final List<int>? salesTeamIds;
   final ContactEntity? contactDetail;
   final String? apptStartDate;
   final String? apptEndDate;
@@ -51,6 +52,7 @@ class ContactState extends Equatable {
     this.ownerIds,
     this.statusProspectIds,
     this.salesChannelIds,
+    this.salesTeamIds,
     this.contactDetail,
     this.apptStartDate,
     this.apptEndDate,
@@ -76,11 +78,13 @@ class ContactState extends Equatable {
     List<int>? ownerIds,
     List<int>? statusProspectIds,
     List<int>? salesChannelIds,
+    List<int>? salesTeamIds,
     bool clearSearch = false,
     bool clearDates = false,
     bool clearOwner = false,
     bool clearStatus = false,
     bool clearSalesChannel = false,
+    bool clearSalesTeam = false,
     ContactEntity? contactDetail,
     String? apptStartDate,
     String? apptEndDate,
@@ -109,6 +113,7 @@ class ContactState extends Equatable {
       ownerIds: clearOwner ? null : (ownerIds ?? this.ownerIds),
       statusProspectIds: clearStatus ? null : (statusProspectIds ?? this.statusProspectIds),
       salesChannelIds: clearSalesChannel ? null : (salesChannelIds ?? this.salesChannelIds),
+      salesTeamIds: clearSalesTeam ? null : (salesTeamIds ?? this.salesTeamIds),
       contactDetail: contactDetail ?? this.contactDetail,
       apptStartDate: clearApptDates ? null : (apptStartDate ?? this.apptStartDate),
       apptEndDate: clearApptDates ? null : (apptEndDate ?? this.apptEndDate),
@@ -136,6 +141,7 @@ class ContactState extends Equatable {
     ownerIds,
     statusProspectIds,
     salesChannelIds,
+    salesTeamIds,
     contactDetail,
     apptStartDate,
     apptEndDate,

@@ -16,8 +16,10 @@ import 'package:progress_group/features/contact/data/models/unit/unit_hierarchy_
 import 'package:progress_group/features/contact/presentation/pages/unit-picker/index.dart';
 import 'package:go_router/go_router.dart';
 import 'package:progress_group/features/contact/domain/entities/prospect/prospect_status.dart';
+import 'package:progress_group/features/contact/domain/entities/info_source/info_source.dart';
 import 'package:progress_group/features/contact/presentation/state/info_source/info_source_bloc.dart';
 import 'package:progress_group/features/contact/presentation/state/info_source/info_source_event.dart';
+import 'package:progress_group/features/contact/presentation/state/info_source/info_source_state.dart';
 import 'package:progress_group/features/contact/presentation/state/lost_reason/lost_reason_block.dart';
 import 'package:progress_group/features/contact/presentation/state/lost_reason/lost_reason_event.dart';
 import 'package:progress_group/features/contact/presentation/state/lost_reason/lost_reason_state.dart';
@@ -48,6 +50,7 @@ import '../../../../../core/utils/widget/error_dialog.dart';
 import '../../../../../core/utils/widget/custom_file_picker.dart';
 import '../../state/activity/activity_bloc.dart';
 import '../../state/activity/activity_event.dart';
+import '../../../domain/entities/pameran/pameran_aktif_entity.dart';
 import '../../state/pameran_aktif/pameran_aktif_cubit.dart';
 
 enum _DuplicateAction { cancel, proceed, openExisting }
@@ -170,7 +173,6 @@ class _ContactFormPageState extends State<ContactFormPage> {
   FocusNode nameSPFN = FocusNode();
 
   String? _periodePameranDateBackend;
-  static const List<int> _pameranIds = [29, 30, 31, 32];
   static const Set<String> _requiredLabels = {'Salutation', 'Full Name', 'Hp/Whatsapp', 'Owner', 'Project', 'Sales Channel', 'Sales Channel Detail', 'Note'};
 
   bool _showValidation = false;
@@ -439,8 +441,9 @@ class _ContactFormPageState extends State<ContactFormPage> {
       propertiesJson: propertiesJson.isNotEmpty ? propertiesJson : null,
       propertyFileBytes: fileBytes,
       propertyFileNames: fileNames,
-      periodePameranDate: _pameranIds.contains(selectedSource1Id) ? _periodePameranDateBackend : null,
-      
+      periodePameranDate: _isPameranSource2(selectedSource2Id) ? _periodePameranDateBackend : null,
+      periodePameranId: _isPameranSource2(selectedSource2Id) ? _resolvePeriodePameranId() : null,
+
       units: ((widget.args.page == 0 && _selectedUnits.isNotEmpty) || (widget.args.page != 0 && _unitsTouched))
           ? _selectedUnits.map((u) => u.toApiJson()).toList()
           : null,
@@ -481,6 +484,46 @@ class _ContactFormPageState extends State<ContactFormPage> {
     final now = AppTime.now();
     final combined = DateTime(parsed.year, parsed.month, parsed.day, now.hour, now.minute, now.second);
     _periodePameranDateBackend = '${DateHelper.formatNumericCompact(combined)} ${DateFormat('HH:mm:ss').format(combined)}';
+  }
+
+  InfoSource? _findInfoSource(int type, int? id) {
+    if (id == null) return null;
+    final sources = context.read<InfoSourceBloc>().state.sourcesMap[type];
+    if (sources == null) return null;
+    return sources.cast<InfoSource?>().firstWhere((e) => e?.id == id, orElse: () => null);
+  }
+
+  bool _isPameranSource2(int? sourceId) => _findInfoSource(2, sourceId)?.periodePameranId != null;
+
+  List<InfoSource> _dedupeByName(List<InfoSource> sources) {
+    final seen = <String>{};
+    return sources.where((s) => seen.add(s.name)).toList();
+  }
+
+  DateTime _clampToPameranRange(DateTime date, List<PameranAktifEntity> list) {
+    if (list.isEmpty) return date;
+    final firstDate = list.map((e) => e.startDate).reduce((a, b) => a.isBefore(b) ? a : b);
+    final lastDate = list.map((e) => e.endDate).reduce((a, b) => a.isAfter(b) ? a : b);
+    if (date.isBefore(firstDate)) return firstDate;
+    if (date.isAfter(lastDate)) return lastDate;
+    return date;
+  }
+
+  int? _resolvePeriodePameranId() {
+    final text = periodePameranDateTC.text;
+    if (text.isEmpty) return null;
+    final picked = _parseDateOrToday(text);
+    final pickedDate = DateTime(picked.year, picked.month, picked.day);
+    final ps = context.read<PameranAktifCubit>().state;
+    if (ps is! PameranAktifLoaded) return null;
+    for (final e in ps.data) {
+      final start = DateTime(e.startDate.year, e.startDate.month, e.startDate.day);
+      final end = DateTime(e.endDate.year, e.endDate.month, e.endDate.day);
+      if (!pickedDate.isBefore(start) && !pickedDate.isAfter(end)) {
+        return e.periodeId;
+      }
+    }
+    return null;
   }
 
   TextEditingController _getOrCreatePropertyController(int propertyId) {
@@ -555,13 +598,17 @@ class _ContactFormPageState extends State<ContactFormPage> {
 
     if (context.read<ProspectStatusBloc>().state.status !=
         ProspectStatusEnum.loaded) {
-      
+
       context.read<ProspectStatusBloc>().add(FetchProspectStatusesEvent());
     } else {
-      
+
     }
 
-    
+    if (context.read<InfoSourceBloc>().state.sourcesMap[2] == null) {
+      context.read<InfoSourceBloc>().add(const FetchInfoSourcesEvent(type: 2));
+    }
+
+
     final townshipState = context.read<TownshipBloc>().state;
     if (townshipState is! TownshipLoaded) {
       
@@ -653,12 +700,21 @@ class _ContactFormPageState extends State<ContactFormPage> {
     selectedSource1Id = contact.salesChannelId;
     selectedSource2Name = contact.sumberInformasi2Name;
     selectedSource2Id = int.tryParse(contact.sumberInformasi2 ?? '');
-    if (_pameranIds.contains(selectedSource1Id)) {
-      final now = AppTime.now();
-      _periodePameranDateBackend = '${DateHelper.formatNumericCompact(now)} ${DateFormat('HH:mm:ss').format(now)}';
-      periodePameranDateTC.text = DateHelper.formatDate(now);
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) context.read<PameranAktifCubit>().load();
+    final source2ForPrefill = _findInfoSource(2, selectedSource2Id);
+    if (source2ForPrefill?.periodePameranId != null) {
+      final fallbackNow = AppTime.now();
+      periodePameranDateTC.text = DateHelper.formatDate(fallbackNow);
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
+        if (!mounted) return;
+        await context.read<PameranAktifCubit>().load(lokasiPameran: source2ForPrefill!.name);
+        if (!mounted) return;
+        final ps = context.read<PameranAktifCubit>().state;
+        final list = ps is PameranAktifLoaded ? ps.data : <PameranAktifEntity>[];
+        final clamped = _clampToPameranRange(fallbackNow, list);
+        setState(() {
+          periodePameranDateTC.text = DateHelper.formatDate(clamped);
+          _syncPameranBackendDate();
+        });
       });
     }
     volumePlanTC.text = contact.volumePlan?.toString() ?? '';
@@ -975,6 +1031,18 @@ class _ContactFormPageState extends State<ContactFormPage> {
       }
     }
   
+  bool _guardSalesChain(List<bool> priorFilled, List<String> priorLabels) {
+    for (var i = 0; i < priorFilled.length; i++) {
+      if (!priorFilled[i]) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Isi ${priorLabels[i]} terlebih dahulu')),
+        );
+        return false;
+      }
+    }
+    return true;
+  }
+
   void _updateSalesInformation(int ownerUserId, UserProfileEntity user) {
     List<HierarchyNodeEntity> chain = [];
 
@@ -1403,8 +1471,9 @@ class _ContactFormPageState extends State<ContactFormPage> {
       noKtp: noKTPTC.text.isNotEmpty ? noKTPTC.text : null,
       ktpAddress: ktpAddressTC.text.isNotEmpty ? ktpAddressTC.text : null,
       propertiesJson: propertiesJson.isNotEmpty ? propertiesJson : null,
-      periodePameranDate: _pameranIds.contains(selectedSource1Id) ? _periodePameranDateBackend : null,
-      
+      periodePameranDate: _isPameranSource2(selectedSource2Id) ? _periodePameranDateBackend : null,
+      periodePameranId: _isPameranSource2(selectedSource2Id) ? _resolvePeriodePameranId() : null,
+
       units: ((widget.args.page == 0 && _selectedUnits.isNotEmpty) || (widget.args.page != 0 && _unitsTouched)) ? _selectedUnits.map((u) => u.toApiJson()).toList() : null,
     );
 
@@ -1563,6 +1632,14 @@ class _ContactFormPageState extends State<ContactFormPage> {
                   final contact = context.read<ContactBloc>().state.contactDetail ?? widget.args.dataContact;
                   if (contact != null) _fillForm(contact);
                 }
+              }
+            },
+          ),
+          BlocListener<InfoSourceBloc, InfoSourceState>(
+            listener: (context, state) {
+              if (widget.args.page != 0 && state.sourcesMap[2] != null) {
+                final contact = context.read<ContactBloc>().state.contactDetail ?? widget.args.dataContact;
+                if (contact != null) _fillForm(contact);
               }
             },
           ),
@@ -1737,9 +1814,23 @@ class _ContactFormPageState extends State<ContactFormPage> {
                                 );
                                 if (result != null) {
                                   final owner = result as OwnerDropdownItem;
+                                  final ownerChanged = selectedOwnerId != owner.id;
                                   setState(() {
                                     selectedOwnerId = owner.id;
                                     selectedOwnerName = owner.name;
+                                    if (ownerChanged) {
+                                      selectLastProject = null;
+                                      selectLastTownshipId = null;
+                                      selectLastProjectCategory = null;
+                                      selectLastProjectProduct = null;
+                                      selectProductType = null;
+                                      selectedSource1Id = null;
+                                      selectedSource1Name = null;
+                                      selectedSource2Id = null;
+                                      selectedSource2Name = null;
+                                      _periodePameranDateBackend = null;
+                                      periodePameranDateTC.text = '';
+                                    }
                                   });
                                   _updateSalesInformation(owner.id ?? 0, user);
                                 }
@@ -1793,6 +1884,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
                             errorText: (_showValidation && selectLastProject == null) ? 'Wajib diisi' : null,
                             onTap: () async {
                               AnalyticsService.logEvent('contact_form_select_project');
+                              if (!_guardSalesChain([selectedOwnerId != null], ['Owner'])) return;
                               final townshipState = context.read<TownshipBloc>().state;
                               if (townshipState is TownshipLoaded) {
                                 final items = townshipState.townships .map((t) => OwnerDropdownItem(id: t.id, name: t.name)) .toList();
@@ -1813,10 +1905,16 @@ class _ContactFormPageState extends State<ContactFormPage> {
                                     selectLastProjectCategory = null;
                                     selectLastProjectProduct = null;
                                     selectProductType = null;
-                                    
-                                    
+
+
                                     if (projectChanged) {
                                       _selectedUnits = _activeUnitsForTownship(selected.id);
+                                      selectedSource1Id = null;
+                                      selectedSource1Name = null;
+                                      selectedSource2Id = null;
+                                      selectedSource2Name = null;
+                                      _periodePameranDateBackend = null;
+                                      periodePameranDateTC.text = '';
                                     }
                                   });
                                   context.read<PropertyUnitCubit>().load(
@@ -1887,6 +1985,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
                             errorText: (_showValidation && (selectedSource1Id == null || selectedSource1Id == 0)) ? 'Wajib diisi' : null,
                             onTap: () async {
                               AnalyticsService.logEvent('contact_form_select_info_source', parameters: {'field': 'sales_channel'});
+                              if (!_guardSalesChain([selectedOwnerId != null, selectLastTownshipId != null], ['Owner', 'Project'])) return;
                               final sourceState = context.read<InfoSourceBloc>().state;
                               final sources = sourceState.sourcesMap[1];
                               if (sources != null) {
@@ -1901,19 +2000,16 @@ class _ContactFormPageState extends State<ContactFormPage> {
                                 );
                                 if (result != null) {
                                   final selected = result as OwnerDropdownItem;
-                                  final isPameran = _pameranIds.contains(selected.id);
-                                  if (isPameran) {
-                                    final now = AppTime.now();
-                                    _periodePameranDateBackend = '${DateHelper.formatNumericCompact(now)} ${DateFormat('HH:mm:ss').format(now)}';
-                                    periodePameranDateTC.text = DateHelper.formatDate(now);
-                                    context.read<PameranAktifCubit>().load();
-                                  } else {
-                                    _periodePameranDateBackend = null;
-                                    periodePameranDateTC.text = '';
-                                  }
+                                  final channelChanged = selectedSource1Id != selected.id;
                                   setState(() {
                                     selectedSource1Id = selected.id;
                                     selectedSource1Name = selected.name;
+                                    if (channelChanged) {
+                                      selectedSource2Id = null;
+                                      selectedSource2Name = null;
+                                      _periodePameranDateBackend = null;
+                                      periodePameranDateTC.text = '';
+                                    }
                                   });
                                 }
                               } else {
@@ -1928,10 +2024,11 @@ class _ContactFormPageState extends State<ContactFormPage> {
                             errorText: (_showValidation && (selectedSource2Id == null || selectedSource2Id == 0)) ? 'Wajib diisi' : null,
                             onTap: () async {
                               AnalyticsService.logEvent('contact_form_select_info_source', parameters: {'field': 'sales_channel_detail'});
+                              if (!_guardSalesChain([selectedOwnerId != null, selectLastTownshipId != null, selectedSource1Id != null && selectedSource1Id != 0], ['Owner', 'Project', 'Sales Channel'])) return;
                               final sourceState = context.read<InfoSourceBloc>().state;
                               final sources = sourceState.sourcesMap[2];
                               if (sources != null) {
-                                final sourceItems = sources.map((e) => OwnerDropdownItem(id: e.id, name: e.name)).toList();
+                                final sourceItems = _dedupeByName(sources).map((e) => OwnerDropdownItem(id: e.id, name: e.name)).toList();
                                 final result = await context.pushNamed(
                                   'detailContactDropdown',
                                   extra: ContactDropdownArgs(
@@ -1942,6 +2039,20 @@ class _ContactFormPageState extends State<ContactFormPage> {
                                 );
                                 if (result != null) {
                                   final selected = result as OwnerDropdownItem;
+                                  final matched = sources.cast<InfoSource?>().firstWhere((e) => e?.id == selected.id, orElse: () => null);
+                                  final isPameran = matched?.periodePameranId != null;
+                                  if (isPameran) {
+                                    final fallbackNow = AppTime.now();
+                                    await context.read<PameranAktifCubit>().load(lokasiPameran: matched!.name);
+                                    if (!mounted) return;
+                                    final ps = context.read<PameranAktifCubit>().state;
+                                    final list = ps is PameranAktifLoaded ? ps.data : <PameranAktifEntity>[];
+                                    periodePameranDateTC.text = DateHelper.formatDate(_clampToPameranRange(fallbackNow, list));
+                                    _syncPameranBackendDate();
+                                  } else {
+                                    _periodePameranDateBackend = null;
+                                    periodePameranDateTC.text = '';
+                                  }
                                   setState(() {
                                     selectedSource2Id = selected.id;
                                     selectedSource2Name = selected.name;
@@ -1952,7 +2063,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
                               }
                             },
                           ),
-                          if (_pameranIds.contains(selectedSource1Id))
+                          if (_isPameranSource2(selectedSource2Id))
                             Builder(builder: (context) {
                               final ps = context.watch<PameranAktifCubit>().state;
                               final list = ps is PameranAktifLoaded ? ps.data : [];
@@ -1965,6 +2076,10 @@ class _ContactFormPageState extends State<ContactFormPage> {
                                 fieldType: 'date',
                                 dateFirstDate: firstDate,
                                 dateLastDate: lastDate,
+                                guard: () => _guardSalesChain(
+                                  [selectedOwnerId != null, selectLastTownshipId != null, selectedSource1Id != null && selectedSource1Id != 0, selectedSource2Id != null && selectedSource2Id != 0],
+                                  ['Owner', 'Project', 'Sales Channel', 'Sales Channel Detail'],
+                                ),
                               );
                             }),
                            _buildField(
@@ -2337,9 +2452,23 @@ class _ContactFormPageState extends State<ContactFormPage> {
                             final result = await context.pushNamed('detailContactDropdown',extra: ContactDropdownArgs(title: 'Pilih Owner', items: ownerItems, selectedId: selectedOwnerId),);
                             if (result != null) {
                               final owner = result as OwnerDropdownItem;
+                              final ownerChanged = selectedOwnerId != owner.id;
                               setState(() {
                                 selectedOwnerId = owner.id;
                                 selectedOwnerName = owner.name;
+                                if (ownerChanged) {
+                                  selectFirstProject = null;
+                                  selectFirstTownshipId = null;
+                                  selectFirstProjectCategory = null;
+                                  selectFirstProjectProduct = null;
+                                  selectProductType = null;
+                                  selectedSource1Id = null;
+                                  selectedSource1Name = null;
+                                  selectedSource2Id = null;
+                                  selectedSource2Name = null;
+                                  _periodePameranDateBackend = null;
+                                  periodePameranDateTC.text = '';
+                                }
                               });
                               _updateSalesInformation(owner.id ?? 0, user);
                             }
@@ -2353,6 +2482,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
                        errorText: (_showValidation && selectFirstProject == null) ? 'Wajib diisi' : null,
                        onTap: () async {
                          AnalyticsService.logEvent('contact_form_select_project');
+                         if (!_guardSalesChain([selectedOwnerId != null], ['Owner'])) return;
                          final townshipState = context.read<TownshipBloc>().state;
                          if (townshipState is TownshipLoaded) {
                            final items = townshipState.townships
@@ -2368,12 +2498,21 @@ class _ContactFormPageState extends State<ContactFormPage> {
                            );
                            if (result != null) {
                              final selected = result as OwnerDropdownItem;
+                             final projectChanged = selectFirstTownshipId != selected.id;
                              setState(() {
                                selectFirstProject = selected.name;
                                selectFirstTownshipId = selected.id;
                                selectFirstProjectCategory = null;
                                selectFirstProjectProduct = null;
                                selectProductType = null;
+                               if (projectChanged) {
+                                 selectedSource1Id = null;
+                                 selectedSource1Name = null;
+                                 selectedSource2Id = null;
+                                 selectedSource2Name = null;
+                                 _periodePameranDateBackend = null;
+                                 periodePameranDateTC.text = '';
+                               }
                              });
                            }
                          } else {
@@ -2391,6 +2530,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
                         errorText: (_showValidation && (selectedSource1Id == null || selectedSource1Id == 0)) ? 'Wajib diisi' : null,
                         onTap: () async {
                           AnalyticsService.logEvent('contact_form_select_info_source', parameters: {'field': 'sales_channel'});
+                          if (!_guardSalesChain([selectedOwnerId != null, selectFirstTownshipId != null], ['Owner', 'Project'])) return;
                           final sourceState = context.read<InfoSourceBloc>().state;
                           final sources = sourceState.sourcesMap[1];
                           if (sources != null) {
@@ -2405,19 +2545,16 @@ class _ContactFormPageState extends State<ContactFormPage> {
                             );
                             if (result != null) {
                               final selected = result as OwnerDropdownItem;
-                              final isPameran = _pameranIds.contains(selected.id);
-                              if (isPameran) {
-                                final now = AppTime.now();
-                                _periodePameranDateBackend = '${DateHelper.formatNumericCompact(now)} ${DateFormat('HH:mm:ss').format(now)}';
-                                periodePameranDateTC.text = DateHelper.formatDate(now);
-                                context.read<PameranAktifCubit>().load();
-                              } else {
-                                _periodePameranDateBackend = null;
-                                periodePameranDateTC.text = '';
-                              }
+                              final channelChanged = selectedSource1Id != selected.id;
                               setState(() {
                                 selectedSource1Id = selected.id;
                                 selectedSource1Name = selected.name;
+                                if (channelChanged) {
+                                  selectedSource2Id = null;
+                                  selectedSource2Name = null;
+                                  _periodePameranDateBackend = null;
+                                  periodePameranDateTC.text = '';
+                                }
                               });
                             }
                           } else {
@@ -2432,10 +2569,11 @@ class _ContactFormPageState extends State<ContactFormPage> {
                         errorText: (_showValidation && (selectedSource2Id == null || selectedSource2Id == 0)) ? 'Wajib diisi' : null,
                         onTap: () async {
                           AnalyticsService.logEvent('contact_form_select_info_source', parameters: {'field': 'sales_channel_detail'});
+                          if (!_guardSalesChain([selectedOwnerId != null, selectFirstTownshipId != null, selectedSource1Id != null && selectedSource1Id != 0], ['Owner', 'Project', 'Sales Channel'])) return;
                           final sourceState = context.read<InfoSourceBloc>().state;
                           final sources = sourceState.sourcesMap[2];
                           if (sources != null) {
-                            final sourceItems = sources.map((e) => OwnerDropdownItem(id: e.id, name: e.name)).toList();
+                            final sourceItems = _dedupeByName(sources).map((e) => OwnerDropdownItem(id: e.id, name: e.name)).toList();
                             final result = await context.pushNamed(
                               'detailContactDropdown',
                               extra: ContactDropdownArgs(
@@ -2446,6 +2584,20 @@ class _ContactFormPageState extends State<ContactFormPage> {
                             );
                             if (result != null) {
                               final selected = result as OwnerDropdownItem;
+                              final matched = sources.cast<InfoSource?>().firstWhere((e) => e?.id == selected.id, orElse: () => null);
+                              final isPameran = matched?.periodePameranId != null;
+                              if (isPameran) {
+                                final fallbackNow = AppTime.now();
+                                await context.read<PameranAktifCubit>().load(lokasiPameran: matched!.name);
+                                if (!mounted) return;
+                                final ps = context.read<PameranAktifCubit>().state;
+                                final list = ps is PameranAktifLoaded ? ps.data : <PameranAktifEntity>[];
+                                periodePameranDateTC.text = DateHelper.formatDate(_clampToPameranRange(fallbackNow, list));
+                                _syncPameranBackendDate();
+                              } else {
+                                _periodePameranDateBackend = null;
+                                periodePameranDateTC.text = '';
+                              }
                               setState(() {
                                 selectedSource2Id = selected.id;
                                 selectedSource2Name = selected.name;
@@ -2456,7 +2608,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
                           }
                         },
                       ),
-                      if (_pameranIds.contains(selectedSource1Id))
+                      if (_isPameranSource2(selectedSource2Id))
                         Builder(builder: (context) {
                           final ps = context.watch<PameranAktifCubit>().state;
                           final list = ps is PameranAktifLoaded ? ps.data : [];
@@ -2469,6 +2621,10 @@ class _ContactFormPageState extends State<ContactFormPage> {
                             fieldType: 'date',
                             dateFirstDate: firstDate,
                             dateLastDate: lastDate,
+                            guard: () => _guardSalesChain(
+                              [selectedOwnerId != null, selectFirstTownshipId != null, selectedSource1Id != null && selectedSource1Id != 0, selectedSource2Id != null && selectedSource2Id != 0],
+                              ['Owner', 'Project', 'Sales Channel', 'Sales Channel Detail'],
+                            ),
                           );
                         }),
                      _buildField(
@@ -2482,7 +2638,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
                    ],
                  ),
                ),
-             
+
                CustomDropdownGroupContact(
                  hint: "Sales Information",
                  child: Column(
@@ -2973,7 +3129,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
 
   
 
-  Widget _buildField({required String label,required TextEditingController controller,required FocusNode focusNode,String fieldType = 'text',bool isError = false,String? errorText,bool? readOnly, int? minLines, DateTime? dateFirstDate, DateTime? dateLastDate, VoidCallback? onViewTap,}) {
+  Widget _buildField({required String label,required TextEditingController controller,required FocusNode focusNode,String fieldType = 'text',bool isError = false,String? errorText,bool? readOnly, int? minLines, DateTime? dateFirstDate, DateTime? dateLastDate, VoidCallback? onViewTap, bool Function()? guard,}) {
     final bool isRequired = _requiredLabels.contains(label);
     final bool isReadOnly = readOnly == true || widget.args.page == 2;
     final bool isDisplayGrey = widget.args.page == 2;
@@ -3011,6 +3167,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
                               onTap: isReadOnly
                                   ? null
                                   : () async {
+                                      if (guard != null && !guard()) return;
                                       focusNode.unfocus();
                                       final DateTime? picked = await showDatePicker(
                                         context: context,

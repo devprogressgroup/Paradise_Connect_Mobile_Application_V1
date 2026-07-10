@@ -13,12 +13,14 @@ class PameranAktifLoaded extends PameranAktifState {
 
 class PameranAktifCubit extends Cubit<PameranAktifState> {
   final ContactRepository repository;
+  String? _loadedLokasiPameran;
 
   PameranAktifCubit(this.repository) : super(PameranAktifInitial());
 
-  Future<void> load() async {
-    if (state is PameranAktifLoaded) return;
-    final result = await repository.getPameranAktif();
+  Future<void> load({String? lokasiPameran}) async {
+    if (state is PameranAktifLoaded && _loadedLokasiPameran == lokasiPameran) return;
+    _loadedLokasiPameran = lokasiPameran;
+    final result = await repository.getPameranAktif(lokasiPameran: lokasiPameran);
     result.fold(
       (_) => emit(PameranAktifLoaded([])),
       (data) => emit(PameranAktifLoaded(data)),

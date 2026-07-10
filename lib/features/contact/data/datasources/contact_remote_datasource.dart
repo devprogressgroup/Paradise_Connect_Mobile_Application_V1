@@ -24,7 +24,7 @@ import 'package:progress_group/features/contact/domain/entities/attachment/uploa
 import 'package:progress_group/features/contact/domain/entities/contact/create_contact_params.dart';
 
 abstract class ContactRemoteDataSource {
-  Future<ContactResponseModel> getContacts({int page = 1, int perPage = 10, String? search, String? startDate, String? endDate, List<int>? ownerIds, List<int>? statusProspectIds, List<int>? salesChannelIds, String? apptStartDate, String? apptEndDate, String? visitStartDate, String? visitEndDate, String? reserveStartDate, String? reserveEndDate, String? spStartDate, String? spEndDate});
+  Future<ContactResponseModel> getContacts({int page = 1, int perPage = 10, String? search, String? startDate, String? endDate, List<int>? ownerIds, List<int>? statusProspectIds, List<int>? salesChannelIds, List<int>? salesTeamIds, String? apptStartDate, String? apptEndDate, String? visitStartDate, String? visitEndDate, String? reserveStartDate, String? reserveEndDate, String? spStartDate, String? spEndDate});
 
   Future<List<ContactModel>> getAllContactsForDuplicateCheck();
 
@@ -73,7 +73,7 @@ abstract class ContactRemoteDataSource {
   
   Future<List<UnitCluster>> getUnitHierarchy({required int townshipId, String? search});
   Future<List<UnitLot>> getUnitLots({required int productId, int? townshipId, int? companyId, String? search});
-  Future<List<PameranAktifModel>> getPameranAktif();
+  Future<List<PameranAktifModel>> getPameranAktif({String? lokasiPameran});
   Future<List<String>> getProductTypes();
 }
 
@@ -85,7 +85,7 @@ class ContactRemoteDataSourceImpl implements ContactRemoteDataSource {
  
 
   @override
-  Future<ContactResponseModel> getContacts({int page = 1, int perPage = 10, String? search, String? startDate, String? endDate, List<int>? ownerIds, List<int>? statusProspectIds, List<int>? salesChannelIds, String? apptStartDate, String? apptEndDate, String? visitStartDate, String? visitEndDate, String? reserveStartDate, String? reserveEndDate, String? spStartDate, String? spEndDate}) async {
+  Future<ContactResponseModel> getContacts({int page = 1, int perPage = 10, String? search, String? startDate, String? endDate, List<int>? ownerIds, List<int>? statusProspectIds, List<int>? salesChannelIds, List<int>? salesTeamIds, String? apptStartDate, String? apptEndDate, String? visitStartDate, String? visitEndDate, String? reserveStartDate, String? reserveEndDate, String? spStartDate, String? spEndDate}) async {
     try {
       final response = await dio.get(
         '/contacts',
@@ -98,6 +98,7 @@ class ContactRemoteDataSourceImpl implements ContactRemoteDataSource {
           if (ownerIds != null && ownerIds.isNotEmpty) 'owner_id': ownerIds.join(','),
           if (statusProspectIds != null && statusProspectIds.isNotEmpty) 'status_prospect_id': statusProspectIds.join(','),
           if (salesChannelIds != null && salesChannelIds.isNotEmpty) 'sales_channel_id': salesChannelIds.join(','),
+          if (salesTeamIds != null && salesTeamIds.isNotEmpty) 'sales_team_id': salesTeamIds.join(','),
           if (apptStartDate != null && apptStartDate.isNotEmpty) 'appt_start_date': apptStartDate,
           if (apptEndDate != null && apptEndDate.isNotEmpty) 'appt_end_date': apptEndDate,
           if (visitStartDate != null && visitStartDate.isNotEmpty) 'visit_start_date': visitStartDate,
@@ -286,6 +287,7 @@ class ContactRemoteDataSourceImpl implements ContactRemoteDataSource {
 
   Future<ContactModel> createContact(CreateContactParams params) async {
     try {
+      debugPrint('[createContact] request body: ${jsonEncode(params.toJson())}');
       final response = await dio.post('/contacts/create', data: _buildFormData(params));
 
       if (response.data['status'] == true) {
@@ -301,6 +303,7 @@ class ContactRemoteDataSourceImpl implements ContactRemoteDataSource {
   Future<ContactModel> updateContact(int id, CreateContactParams params) async {
     try {
       final hasFiles = params.propertyFileBytes?.isNotEmpty == true;
+      debugPrint('[updateContact] request body: ${jsonEncode(params.toJson())}');
       final response = await dio.patch(
         '/contacts/$id',
         data: hasFiles ? _buildFormData(params) : params.toJson(),
@@ -719,10 +722,15 @@ class ContactRemoteDataSourceImpl implements ContactRemoteDataSource {
   }
 
   @override
-  Future<List<PameranAktifModel>> getPameranAktif() async {
+  Future<List<PameranAktifModel>> getPameranAktif({String? lokasiPameran}) async {
     try {
-      final response = await dio.get('/pameran/aktif');
-      
+      final response = await dio.get(
+        '/pameran/aktif',
+        queryParameters: {
+          if (lokasiPameran != null && lokasiPameran.isNotEmpty) 'lokasi_pameran': lokasiPameran,
+        },
+      );
+
       if (response.data['status'] == true) {
         final List<dynamic> data = response.data['data'];
         return data.map((json) => PameranAktifModel.fromJson(json as Map<String, dynamic>)).toList();

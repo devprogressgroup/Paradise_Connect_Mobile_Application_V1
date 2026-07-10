@@ -262,11 +262,16 @@ class _ContactPageState extends State<ContactPage> {
                                             .toSet()
                                         : const <String>{};
 
+                                    final teamCandidates = profileState is ProfileLoaded
+                                        ? _collectSalesTeamCandidates(profileState.profile)
+                                        : const <_TeamCandidate>[];
+
                                     final slots = <int>[0, 1, 2, 3, 4, 5, 6, 7];
                                     if (availableRoles.contains('se')) slots.add(8);
                                     if (availableRoles.contains('spv')) slots.add(9);
                                     if (availableRoles.contains('sm')) slots.add(10);
                                     if (availableRoles.contains('gm')) slots.add(11);
+                                    if (teamCandidates.isNotEmpty) slots.add(12);
 
                                     return ListView.separated(
                                   scrollDirection: Axis.horizontal,
@@ -646,6 +651,10 @@ class _ContactPageState extends State<ContactPage> {
                                       );
                                     }
 
+                                    if (index == 12) {
+                                      return _buildSalesTeamFilter(context);
+                                    }
+
                                     return null;
                                   },
                                     );
@@ -734,6 +743,38 @@ class _OwnerCandidate {
   final String? subtitle;
   final String? positionName;
   const _OwnerCandidate({this.id, required this.name, this.subtitle, this.positionName});
+}
+
+class _TeamCandidate {
+  final int id;
+  final String name;
+  const _TeamCandidate({required this.id, required this.name});
+}
+
+List<_TeamCandidate> _collectSalesTeamCandidates(UserProfileEntity user) {
+  final Map<int, String> teams = {};
+
+  void addTeam(int? id, String? name) {
+    if (id != null && name != null && name.isNotEmpty) {
+      teams[id] = name;
+    }
+  }
+
+  addTeam(user.salesTeamId, user.salesTeamName);
+
+  void walkSubordinates(List<HierarchyNodeEntity> nodes) {
+    for (final n in nodes) {
+      addTeam(n.salesTeamId, n.salesTeamName);
+      if (n.subordinates.isNotEmpty) walkSubordinates(n.subordinates);
+    }
+  }
+  walkSubordinates(user.subordinates);
+
+  for (final t in user.salesTeamHierarchy) {
+    addTeam(t.salesTeamId, t.salesTeamName);
+  }
+
+  return teams.entries.map((e) => _TeamCandidate(id: e.key, name: e.value)).toList();
 }
 
 List<_OwnerCandidate> _collectOwnerCandidates(UserProfileEntity user) {
@@ -904,6 +945,64 @@ Widget _buildRolePositionFilter(
                     ownerIds: merged,
                     isRefresh: true,
                     clearOwner: merged.isEmpty,
+                  ),
+                );
+              }
+            },
+          );
+        },
+      );
+    },
+  );
+}
+
+Widget _buildSalesTeamFilter(BuildContext context) {
+  return BlocBuilder<ContactBloc, ContactState>(
+    builder: (context, contactState) {
+      return BlocBuilder<ProfileBloc, ProfileState>(
+        builder: (context, profileState) {
+          String label = 'Sales Team';
+          bool isSelected = false;
+          List<_TeamCandidate> candidates = const [];
+
+          if (profileState is ProfileLoaded) {
+            candidates = _collectSalesTeamCandidates(profileState.profile);
+            final salesTeamIds = contactState.salesTeamIds ?? const <int>[];
+
+            if (salesTeamIds.isNotEmpty) {
+              isSelected = true;
+              label = salesTeamIds.length == 1
+                  ? (candidates.cast<_TeamCandidate?>().firstWhere((e) => e?.id == salesTeamIds.first, orElse: () => null)?.name ?? label)
+                  : '${salesTeamIds.length} Sales Teams';
+            }
+          }
+
+          return CustomFilterButton(
+            label: label,
+            isSelected: isSelected,
+            onTap: () async {
+              AnalyticsService.logEvent('contact_list_filter_sales_team');
+              if (candidates.isEmpty) return;
+
+              final items = candidates.map((c) => OwnerDropdownItem(id: c.id, name: c.name)).toList();
+
+              final result = await context.pushNamed(
+                'detailContactDropdown',
+                extra: ContactDropdownArgs(
+                  title: 'Pilih Sales Team',
+                  items: items,
+                  selectedIds: contactState.salesTeamIds,
+                  isMultiSelect: true,
+                ),
+              );
+
+              if (result != null && context.mounted) {
+                final selected = result as List<OwnerDropdownItem>;
+                context.read<ContactBloc>().add(
+                  FetchContactsEvent(
+                    salesTeamIds: selected.map((e) => e.id).whereType<int>().toList(),
+                    isRefresh: true,
+                    clearSalesTeam: selected.isEmpty,
                   ),
                 );
               }

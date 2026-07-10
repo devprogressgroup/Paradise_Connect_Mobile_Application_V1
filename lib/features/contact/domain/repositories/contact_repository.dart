@@ -20,7 +20,7 @@ import '../entities/attachment/attachment_type.dart';
 
 abstract class ContactRepository {
   Future<Either<String, List<AttachmentType>>> getAttachmentTypes();
-  Future<Either<String, ContactResponse>> getContacts({int page = 1, int perPage = 10, String? search, String? startDate, String? endDate, List<int>? ownerIds, List<int>? statusProspectIds, List<int>? salesChannelIds, String? apptStartDate, String? apptEndDate, String? visitStartDate, String? visitEndDate, String? reserveStartDate, String? reserveEndDate, String? spStartDate, String? spEndDate});
+  Future<Either<String, ContactResponse>> getContacts({int page = 1, int perPage = 10, String? search, String? startDate, String? endDate, List<int>? ownerIds, List<int>? statusProspectIds, List<int>? salesChannelIds, List<int>? salesTeamIds, String? apptStartDate, String? apptEndDate, String? visitStartDate, String? visitEndDate, String? reserveStartDate, String? reserveEndDate, String? spStartDate, String? spEndDate});
   Future<Either<String, List<ContactEntity>>> getAllContactsForDuplicateCheck();
   Future<Either<String, ContactEntity>> getContactDetail(int id);
   Future<Either<String, ContactEntity?>> checkDuplicateContact({required int ownerId, required String phone});
@@ -45,6 +45,6 @@ abstract class ContactRepository {
   Future<Either<String, List<PropertyUnitCluster>>> getPropertyCommercialUnits({required int townshipId});
   Future<Either<String, List<UnitCluster>>> getUnitHierarchy({required int townshipId, String? search});
   Future<Either<String, List<UnitLot>>> getUnitLots({required int productId, int? townshipId, int? companyId, String? search});
-  Future<Either<String, List<PameranAktifEntity>>> getPameranAktif();
+  Future<Either<String, List<PameranAktifEntity>>> getPameranAktif({String? lokasiPameran});
   Future<Either<String, List<String>>> getProductTypes();
 }

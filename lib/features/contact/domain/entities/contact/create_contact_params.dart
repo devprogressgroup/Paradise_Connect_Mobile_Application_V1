@@ -61,6 +61,7 @@ class CreateContactParams extends Equatable {
   final Map<int, Uint8List>? propertyFileBytes;
   final Map<int, String>? propertyFileNames;
   final String? periodePameranDate;
+  final int? periodePameranId;
   final String? productType;
   final List<Map<String, dynamic>>? units;
 
@@ -124,6 +125,7 @@ class CreateContactParams extends Equatable {
     this.propertyFileBytes,
     this.propertyFileNames,
     this.periodePameranDate,
+    this.periodePameranId,
     this.productType,
     this.units,
   });
@@ -187,6 +189,7 @@ class CreateContactParams extends Equatable {
       if (firstProductId != null) 'first_product_id': firstProductId,
       if (lastProductId != null) 'last_product_id': lastProductId,
       if (periodePameranDate != null) 'periode_pameran_date': periodePameranDate,
+      if (periodePameranId != null) 'periode_pameran_id': periodePameranId,
       'product_type': productType,
       if (units != null) 'units': units,
     };
@@ -253,6 +256,7 @@ class CreateContactParams extends Equatable {
     propertyFileBytes,
     propertyFileNames,
     periodePameranDate,
+    periodePameranId,
     productType,
     units,
   ];
