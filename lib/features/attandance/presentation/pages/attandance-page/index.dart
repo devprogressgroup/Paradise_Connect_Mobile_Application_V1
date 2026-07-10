@@ -392,14 +392,16 @@ class _AttandancePageState extends State<AttandancePage>
   }
 
   Future<void> _getLog() async {
+    // Always refresh "today" data via the lightweight event first so the
+    // Clock In/Check In/Clock Out tab updates immediately, instead of being
+    // gated behind the much heavier full-history fetch below.
+    context.read<AttendanceBloc>().add(LoadTodayAttendanceEvent());
     if (_attendanceLogLoaded) {
       context.read<AttendanceBloc>().add(FetchAttendanceDataEvent(
         salesPersonIds: _attendanceOwnerIds,
         startDate: _attendanceStartDate,
         endDate: _attendanceEndDate,
       ));
-    } else {
-      context.read<AttendanceBloc>().add(LoadTodayAttendanceEvent());
     }
     _fetchActivityLogs();
   }
