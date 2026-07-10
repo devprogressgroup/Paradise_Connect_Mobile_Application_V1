@@ -1,3 +1,4 @@
+import 'package:progress_group/features/attandance/data/models/attendance_feedback_model.dart';
 import 'package:progress_group/features/attandance/domain/entities/attendance_activity_entity.dart';
 
 class AttendanceActivityModel extends AttendanceActivityEntity {
@@ -22,6 +23,7 @@ class AttendanceActivityModel extends AttendanceActivityEntity {
     super.approveUserId,
     super.approveDatetime,
     super.attachments,
+    super.feedback,
   });
 
   factory AttendanceActivityModel.fromJson(Map<String, dynamic> json) {
@@ -46,6 +48,7 @@ class AttendanceActivityModel extends AttendanceActivityEntity {
       approveUserId: json['approve_user_id'],
       approveDatetime: json['approve_datetime'],
       attachments: json['attachments'] != null ? List<String>.from(json['attachments']) : [],
+      feedback: json['feedback'] != null ? AttendanceFeedbackModel.fromJson(json['feedback']) : null,
     );
   }
 }

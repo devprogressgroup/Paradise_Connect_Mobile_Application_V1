@@ -22,7 +22,9 @@ import 'package:progress_group/core/utils/widget/drive_image/drive_image.dart';
 import 'package:progress_group/core/utils/helpers/initial_name_helper.dart';
 import 'package:progress_group/core/utils/widget/custom_filter_button.dart';
 import 'package:progress_group/features/attandance/domain/entities/attandance_entity.dart';
+import 'package:progress_group/core/constants/attendance_feedback_labels.dart';
 import 'package:progress_group/features/attandance/domain/entities/attendance_activity_entity.dart';
+import 'package:progress_group/features/attandance/domain/entities/attendance_feedback_entity.dart';
 import 'package:progress_group/features/contact/data/arguments/contact_detail_args.dart';
 import 'package:progress_group/features/contact/domain/entities/contact/contact_entity.dart';
 import 'package:progress_group/features/attandance/presentation/state/attandance/attendance_bloc.dart';
@@ -1871,6 +1873,7 @@ class _AttandancePageState extends State<AttandancePage>
                                 logId: item.logId,
                                 canVerify: canVerify,
                                 isSelf: currentSalesPersonId != null && item.salesPersonId == currentSalesPersonId,
+                                feedback: item.feedback,
                               ),
                             );
                           },
@@ -1918,6 +1921,7 @@ class _AttandancePageState extends State<AttandancePage>
     bool canVerify = false,
     bool isSelf = false,
     VoidCallback? onFullyLoaded,
+    AttendanceFeedbackEntity? feedback,
   }) {
     return _ActivityCard(
       key: key,
@@ -1937,6 +1941,7 @@ class _AttandancePageState extends State<AttandancePage>
       logId: logId,
       canVerify: canVerify,
       isSelf: isSelf,
+      feedback: feedback,
       onValidated: _getLog,
       onImageTap: (url) => _showActivityDetailDialog(
         tappedUrl: url,
@@ -2824,6 +2829,7 @@ class _ActivityCard extends StatefulWidget {
   final bool isSelf;
   final VoidCallback? onValidated;
   final VoidCallback? onFullyLoaded;
+  final AttendanceFeedbackEntity? feedback;
 
   const _ActivityCard({
     super.key,
@@ -2845,6 +2851,7 @@ class _ActivityCard extends StatefulWidget {
     this.isSelf = false,
     this.onValidated,
     this.onFullyLoaded,
+    this.feedback,
   });
 
   @override
@@ -3016,6 +3023,66 @@ class _ActivityCardState extends State<_ActivityCard> {
         ],
       );
     }
+  }
+
+  Widget _buildFeedbackSection() {
+    final feedback = widget.feedback;
+    if (feedback == null) return const SizedBox();
+
+    final isOk = feedback.verdict == 1;
+    final color = isOk ? const Color(clockInColor) : const Color(clockOutColor);
+    final icon = isOk ? Icons.check_circle_rounded : Icons.error_rounded;
+    final label = feedback.verdictLabel ?? (isOk ? 'Sesuai' : 'Perlu Perbaikan');
+    final categoryLabels = feedback.categories.map((c) => attendanceFeedbackCategoryLabels[c] ?? c).toList();
+
+    return Container(
+      margin: const EdgeInsets.only(top: 10),
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.06),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: color.withValues(alpha: 0.25)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, color: color, size: 16),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  'Feedback: $label',
+                  style: TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.w700),
+                ),
+              ),
+            ],
+          ),
+          if (categoryLabels.isNotEmpty) ...[
+            const SizedBox(height: 6),
+            Wrap(
+              spacing: 6,
+              runSpacing: 6,
+              children: categoryLabels.map((label) => Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Text(label, style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.w600)),
+              )).toList(),
+            ),
+          ],
+          if (feedback.note != null && feedback.note!.isNotEmpty) ...[
+            const SizedBox(height: 6),
+            Text(
+              feedback.note!,
+              style: const TextStyle(fontSize: 12, color: Color(greyShade500)),
+            ),
+          ],
+        ],
+      ),
+    );
   }
 
   void _openContactActivity(BuildContext context) {
@@ -3247,6 +3314,7 @@ class _ActivityCardState extends State<_ActivityCard> {
             const SizedBox(height: 10),
             _buildValidasiBottom(),
           ],
+          if (widget.feedback != null) _buildFeedbackSection(),
         ],
       ),
     );

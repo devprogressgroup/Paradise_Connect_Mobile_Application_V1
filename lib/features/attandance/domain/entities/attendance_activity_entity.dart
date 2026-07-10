@@ -1,3 +1,5 @@
+import 'package:progress_group/features/attandance/domain/entities/attendance_feedback_entity.dart';
+
 class AttendanceActivityEntity {
   final int userId;
   final int salesPersonId;
@@ -19,6 +21,7 @@ class AttendanceActivityEntity {
   final int? approveUserId;
   final String? approveDatetime;
   final List<String> attachments;
+  final AttendanceFeedbackEntity? feedback;
 
   AttendanceActivityEntity({
     required this.userId,
@@ -41,6 +44,7 @@ class AttendanceActivityEntity {
     this.approveUserId,
     this.approveDatetime,
     this.attachments = const [],
+    this.feedback,
   });
 
   String get date => activityDatetime.split(' ').first;
@@ -71,6 +75,7 @@ class AttendanceActivityEntity {
       approveUserId: approveUserId,
       approveDatetime: approveDatetime,
       attachments: attachments,
+      feedback: feedback,
     );
   }
 }

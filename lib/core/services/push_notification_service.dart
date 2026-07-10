@@ -18,6 +18,7 @@ import 'package:progress_group/features/contact/data/arguments/contact_detail_ar
 import 'package:progress_group/features/contact/domain/entities/activity/activity_entity.dart';
 import 'package:progress_group/features/contact/domain/entities/contact/contact_entity.dart';
 import 'package:progress_group/features/notif/presentation/state/received_notif_cubit.dart';
+import 'package:progress_group/core/constants/attendance_feedback_labels.dart';
 import 'package:progress_group/core/constants/colors.dart';
 import 'package:progress_group/core/utils/widget/attendance_feedback_dialog.dart';
 import 'package:progress_group/core/utils/widget/global_notification_dialog.dart';
@@ -27,13 +28,6 @@ import 'web_notification_stub.dart'
 const String _channelId = 'upcoming_task_channel';
 const String _channelName = 'Upcoming Tasks';
 
-const Map<String, String> _feedbackCategoryLabels = {
-  'foto_tidak_jelas': 'Foto Tidak Jelas',
-  'foto_tidak_sesuai': 'Foto Tidak Sesuai Aturan',
-  'foto_perlu_jarak': 'Foto Perlu Jarak',
-  'lokasi_tidak_teridentifikasi': 'Lokasi Tidak Teridentifikasi',
-  'lokasi_tidak_sesuai': 'Lokasi Tidak Sesuai',
-};
 const String _vapidKey =  'BGIeIvkhfZzClnpnsLcZLyggcadQqTf_g996DoCZ1hJGeLcd0Tn8gHHuUnmjhvFA62wHqFLVDLaJjmZeGHC95PQ';
 
 final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =   FlutterLocalNotificationsPlugin();
@@ -530,9 +524,20 @@ class PushNotificationService {
     WidgetsBinding.instance.addPostFrameCallback((_) => action());
   }
 
-  static void _showAttendanceFeedbackDialog(Map<String, dynamic> data) {
+  static Future<void> _showAttendanceFeedbackDialog(Map<String, dynamic> data) async {
     final context = AppRouter.rootNavigatorKey.currentContext;
     if (context == null || !context.mounted) return;
+
+    // Device yang sama bisa saja pernah dipakai login user lain (fcm_token ke-reuse di HP
+    // testing/shared) — pastikan notifikasi ini memang untuk user yang SEDANG login sebelum
+    // ditampilkan, jangan asal percaya token yang menerima push-nya.
+    final targetUserId = data['user_id']?.toString();
+    if (targetUserId != null && targetUserId.isNotEmpty) {
+      final currentUserId = await _currentUserId();
+      if (currentUserId != null && currentUserId != targetUserId) {
+        return;
+      }
+    }
 
     final logId = int.tryParse(data['log_id']?.toString() ?? '');
     final isOk = data['verdict']?.toString() == '1';
@@ -540,7 +545,7 @@ class PushNotificationService {
         .split(',')
         .map((c) => c.trim())
         .where((c) => c.isNotEmpty)
-        .map((c) => _feedbackCategoryLabels[c] ?? c)
+        .map((c) => attendanceFeedbackCategoryLabels[c] ?? c)
         .toList();
     final note = data['note']?.toString() ?? '';
     final photoUrl = data['photo_url']?.toString() ?? '';
@@ -564,16 +569,38 @@ class PushNotificationService {
     } catch (_) {}
   }
 
+  /// Ambil user_id dari klaim `uid` di JWT yang sedang tersimpan (tanpa perlu call API) —
+  /// dipakai buat validasi bahwa notifikasi yang sampai di device ini memang untuk user
+  /// yang sekarang login.
+  static Future<String?> _currentUserId() async {
+    try {
+      final token = await _authLocalDataSource?.getToken();
+      if (token == null || token.isEmpty) return null;
+
+      final parts = token.split('.');
+      if (parts.length != 3) return null;
+
+      var payload = parts[1];
+      payload += '=' * ((4 - payload.length % 4) % 4);
+      final decoded = utf8.decode(base64Url.decode(payload));
+      final map = jsonDecode(decoded) as Map<String, dynamic>;
+      return (map['uid'] ?? map['sub'])?.toString();
+    } catch (_) {
+      return null;
+    }
+  }
+
   static void _showGlobalNotificationDialogFromData(Map<String, dynamic> data) {
     final context = AppRouter.rootNavigatorKey.currentContext;
     if (context == null || !context.mounted) return;
 
     showGlobalNotificationDialog(
       context,
-      title: data['title']?.toString() ?? 'Notifikasi',
+      title: data['title']?.toString() ?? '',
       description: data['description']?.toString() ?? '',
       mediaType: data['media_type']?.toString(),
       mediaUrl: data['media_url']?.toString(),
+      linkUrl: data['link_url']?.toString(),
     );
   }
 }
