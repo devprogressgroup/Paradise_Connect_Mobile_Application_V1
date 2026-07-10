@@ -20,6 +20,7 @@ import 'package:progress_group/features/contact/domain/entities/contact/contact_
 import 'package:progress_group/features/notif/presentation/state/received_notif_cubit.dart';
 import 'package:progress_group/core/constants/colors.dart';
 import 'package:progress_group/core/utils/widget/attendance_feedback_dialog.dart';
+import 'package:progress_group/core/utils/widget/global_notification_dialog.dart';
 import 'web_notification_stub.dart'
     if (dart.library.js_interop) 'web_notification.dart';
 
@@ -370,10 +371,12 @@ class PushNotificationService {
     _saveToNotifList(message);
 
     if (message.data['type'] == 'attendance_feedback') {
-      final context = AppRouter.rootNavigatorKey.currentContext;
-      if (context != null && context.mounted) {
-        _showAttendanceFeedbackDialog(context, message.data);
-      }
+      _showDialogAfterFrame(() => _showAttendanceFeedbackDialog(message.data));
+      return;
+    }
+
+    if (message.data['type'] == 'global_notification') {
+      _showDialogAfterFrame(() => _showGlobalNotificationDialogFromData(message.data));
       return;
     }
 
@@ -458,7 +461,12 @@ class PushNotificationService {
     }
 
     if (type == 'attendance_feedback') {
-      _showAttendanceFeedbackDialog(context, data);
+      _showDialogAfterFrame(() => _showAttendanceFeedbackDialog(data));
+      return;
+    }
+
+    if (type == 'global_notification') {
+      _showDialogAfterFrame(() => _showGlobalNotificationDialogFromData(data));
       return;
     }
 
@@ -514,7 +522,18 @@ class PushNotificationService {
     AppRouter.router.go('/task-home');
   }
 
-  static void _showAttendanceFeedbackDialog(BuildContext context, Map<String, dynamic> data) {
+  /// Tunda pemanggilan [action] sampai frame yang sedang berjalan selesai. showDialog yang
+  /// dipanggil langsung dari callback async (listener FCM, dsb.) bisa beradu dengan siklus
+  /// build/layout Flutter saat ini — hasilnya cuma barrier gelap muncul tanpa isi dialog.
+  /// addPostFrameCallback memastikan dialog di-push setelah frame saat ini benar-benar selesai.
+  static void _showDialogAfterFrame(VoidCallback action) {
+    WidgetsBinding.instance.addPostFrameCallback((_) => action());
+  }
+
+  static void _showAttendanceFeedbackDialog(Map<String, dynamic> data) {
+    final context = AppRouter.rootNavigatorKey.currentContext;
+    if (context == null || !context.mounted) return;
+
     final logId = int.tryParse(data['log_id']?.toString() ?? '');
     final isOk = data['verdict']?.toString() == '1';
     final categoryLabels = (data['categories']?.toString() ?? '')
@@ -543,5 +562,18 @@ class PushNotificationService {
     try {
       await _dio?.post('/attendance/feedback/ack', data: {'log_id': logId});
     } catch (_) {}
+  }
+
+  static void _showGlobalNotificationDialogFromData(Map<String, dynamic> data) {
+    final context = AppRouter.rootNavigatorKey.currentContext;
+    if (context == null || !context.mounted) return;
+
+    showGlobalNotificationDialog(
+      context,
+      title: data['title']?.toString() ?? 'Notifikasi',
+      description: data['description']?.toString() ?? '',
+      mediaType: data['media_type']?.toString(),
+      mediaUrl: data['media_url']?.toString(),
+    );
   }
 }

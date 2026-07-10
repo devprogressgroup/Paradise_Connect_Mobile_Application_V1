@@ -1,5 +1,6 @@
 ﻿import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:progress_group/core/services/analytics_service.dart';
+import 'package:progress_group/core/utils/widget/custom_button.dart';
 import 'package:progress_group/core/utils/helpers/permissions_helper.dart';
 import 'package:progress_group/core/services/salesbook_sync_service.dart';
 import 'package:flutter/material.dart';
@@ -1275,34 +1276,138 @@ class _ContactFormPageState extends State<ContactFormPage> {
     return cleaned;
   }
 
-  Future<_DuplicateAction> _showDuplicateContactDialog(ContactEntity duplicate) async {
-    final result = await showDialog<_DuplicateAction>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Nomor HP Sudah Terdaftar'),
-        content: Text(
-          'Nomor HP ini sudah terdaftar atas nama "${duplicate.fullName ?? '-'}". '
-          'Apa yang ingin dilakukan?',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(_DuplicateAction.cancel),
-            child: const Text('Batal'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(_DuplicateAction.openExisting),
-            child: const Text('Buka Kontak'),
-          ),
-          FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: Color(primaryColor)),
-            onPressed: () => Navigator.of(dialogContext).pop(_DuplicateAction.proceed),
-            child: const Text('Tetap Lanjutkan'),
-          ),
-        ],
+ Future<_DuplicateAction> _showDuplicateContactDialog(ContactEntity duplicate) async {
+  final result = await showDialog<_DuplicateAction>(
+    context: context,
+    builder: (dialogContext) => Dialog(
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(24),
       ),
-    );
-    return result ?? _DuplicateAction.cancel;
-  }
+      insetPadding: const EdgeInsets.symmetric(horizontal: 28),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(24, 28, 24, 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            /// Icon
+            Container(
+              width: 64,
+              height: 64,
+              decoration: BoxDecoration(
+                color: Color(primaryColor).withValues(alpha: .1),
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: .05),
+                    blurRadius: 12,
+                    offset: const Offset(0, 6),
+                  ),
+                ],
+              ),
+              child: Icon(
+                Icons.person_search_rounded,
+                color: Color(primaryColor),
+                size: 30,
+              ),
+            ),
+
+            const SizedBox(height: 20),
+
+            /// Title
+            Text(
+              'Nomor HP Sudah Terdaftar',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 19,
+                fontWeight: FontWeight.bold,
+                color: Color(blackColor),
+              ),
+            ),
+
+            const SizedBox(height: 18),
+
+            /// Description Box
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 14,
+              ),
+              decoration: BoxDecoration(
+                color: Colors.grey.shade50,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(
+                  color: Colors.grey.shade300,
+                ),
+              ),
+              child: Text.rich(
+                TextSpan(
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Color(grey2Color),
+                    height: 1.5,
+                  ),
+                  children: [
+                    const TextSpan(
+                      text: 'Nomor HP ini sudah terdaftar atas nama ',
+                    ),
+                    TextSpan(
+                      text: '"${duplicate.fullName ?? '-'}"',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w700,
+                        color: Color(blackColor),
+                      ),
+                    ),
+                    const TextSpan(
+                      text: '.\n\nApa yang ingin dilakukan?',
+                    ),
+                  ],
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ),
+
+            const SizedBox(height: 24),
+
+            /// Tetap Lanjutkan
+            customButton(
+              () => Navigator.of(dialogContext).pop(
+                _DuplicateAction.proceed,
+              ),
+              'Tetap Lanjutkan',
+            ),
+
+            const SizedBox(height: 12),
+
+            /// Buka Kontak
+            customButton(
+              () => Navigator.of(dialogContext).pop(
+                _DuplicateAction.openExisting,
+              ),
+              'Buka Kontak',
+              colorBg: Color(whiteColor),
+              colorText: Color(primaryColor),
+            ),
+
+            const SizedBox(height: 12),
+
+            /// Batal
+            customButton(
+              () => Navigator.of(dialogContext).pop(
+                _DuplicateAction.cancel,
+              ),
+              'Batal',
+              colorBg: Colors.grey.shade100,
+              colorText: Color(grey5Color),
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
+
+  return result ?? _DuplicateAction.cancel;
+}
 
   bool _validateEmail() {
     final email = emailTC.text.trim();
