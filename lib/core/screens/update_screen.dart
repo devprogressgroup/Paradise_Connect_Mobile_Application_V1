@@ -139,6 +139,78 @@ class _UpdateScreenState extends State<UpdateScreen>
 
   @override
   Widget build(BuildContext context) {
+    if (_phase == _Phase.needsPermission) return _buildPermissionDialog();
+    return _buildFullScreen();
+  }
+
+  Widget _buildPermissionDialog() {
+    return PopScope(
+      canPop: false,
+      child: Material(
+        color: Colors.black54,
+        child: Center(
+          child: Dialog(
+            backgroundColor: const Color(whiteColor),
+            insetPadding: const EdgeInsets.symmetric(horizontal: 28, vertical: 24),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(28, 32, 28, 24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Image.asset(logoSplasShcreen, width: 140),
+                  const SizedBox(height: 24),
+                  const Text(
+                    'Memperbarui Aplikasi',
+                    style: TextStyle(
+                      color: Color(blackColor),
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+
+                  const SizedBox(height: 32),
+
+                  const Icon(Icons.lock_outline_rounded, color: Color(primaryColor), size: 40),
+                  const SizedBox(height: 12),
+                  const Text(
+                    'Izinkan instal aplikasi dari sumber ini terlebih dahulu untuk melanjutkan update.',
+                    style: TextStyle(color: Color(grey2Color), fontSize: 13, height: 1.5),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 20),
+                  TextButton.icon(
+                    onPressed: _openPermissionSettings,
+                    icon: const Icon(Icons.settings_rounded, color: Color(primaryColor)),
+                    label: const Text('Izinkan', style: TextStyle(color: Color(primaryColor), fontSize: 15)),
+                  ),
+
+                  const SizedBox(height: 28),
+
+                  const Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.warning_amber_rounded, color: Color(warningColor), size: 16),
+                      SizedBox(width: 6),
+                      Flexible(
+                        child: Text(
+                          'Jangan tutup aplikasi selama pembaruan',
+                          style: TextStyle(color: Color(warningColor), fontSize: 12),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFullScreen() {
     return Scaffold(
       backgroundColor: const Color(whiteColor),
       body: SafeArea(
@@ -158,10 +230,10 @@ class _UpdateScreenState extends State<UpdateScreen>
                   letterSpacing: 0.5,
                 ),
               ),
-              
+
               const SizedBox(height: 40),
 
-              if (_phase != _Phase.error && _phase != _Phase.needsPermission) ...[
+              if (_phase != _Phase.error) ...[
                 _ProgressBar(progress: _progress, glowAnim: _glowAnim),
                 const SizedBox(height: 14),
                 Row(
@@ -180,22 +252,6 @@ class _UpdateScreenState extends State<UpdateScreen>
                       ),
                     ),
                   ],
-                ),
-              ],
-
-              if (_phase == _Phase.needsPermission) ...[
-                const Icon(Icons.lock_outline_rounded, color: Color(primaryColor), size: 40),
-                const SizedBox(height: 12),
-                const Text(
-                  'Izinkan instal aplikasi dari sumber ini terlebih dahulu untuk melanjutkan update.',
-                  style: TextStyle(color: Color(grey2Color), fontSize: 13, height: 1.5),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 20),
-                TextButton.icon(
-                  onPressed: _openPermissionSettings,
-                  icon: const Icon(Icons.settings_rounded, color: Color(primaryColor)),
-                  label: const Text('Izinkan', style: TextStyle(color: Color(primaryColor), fontSize: 15)),
                 ),
               ],
 
