@@ -33,6 +33,8 @@ import 'package:progress_group/features/attandance/presentation/state/attendance
 import 'package:progress_group/features/attandance/presentation/state/attendance_approval/attendance_approval_cubit.dart';
 import 'package:progress_group/features/attandance/presentation/state/attendance_excel/attendance_excel_cubit.dart';
 import 'package:progress_group/features/notif/presentation/state/received_notif_cubit.dart';
+import 'package:progress_group/features/notif/data/datasources/global_notification_remote_datasource.dart';
+import 'package:progress_group/features/notif/presentation/state/global_notification/global_notification_cubit.dart';
 import 'package:progress_group/features/attandance/presentation/state/pameran_location/pameran_location_cubit.dart';
 import 'package:progress_group/features/attandance/presentation/state/office_location/office_location_cubit.dart';
 import 'package:progress_group/features/auth/data/datasources/auth_local_datasource.dart';
@@ -365,6 +367,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     final contactRepository = ContactRepositoryImpl(contactRemoteDataSource);
     
     final pipelineRemoteDataSource = PipelineRemoteDataSourceImpl(dioClient.dio);
+    final globalNotificationRemoteDataSource = GlobalNotificationRemoteDataSourceImpl(dioClient.dio);
     final getContactsUseCase = GetContactsUseCase(contactRepository);
     final getContactDetailUseCase = GetContactDetailUseCase(contactRepository);
     final getAllContactsForDuplicateCheckUseCase = GetAllContactsForDuplicateCheckUseCase(contactRepository);
@@ -466,6 +469,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
             BlocProvider(create: (_) => AttendanceApprovalCubit(getAttendanceApprovalTodayUseCase, postAttendanceApprovalUseCase)),
             BlocProvider(create: (_) => AttendanceExcelCubit(attendanceRepository)),
             BlocProvider(create: (_) => ReceivedNotifCubit()),
+            BlocProvider(create: (_) => GlobalNotificationCubit(globalNotificationRemoteDataSource)),
             BlocProvider(create: (_) => WhatsappActivityBloc(getWhatsappActivityUseCase)),
             BlocProvider(create: (_) => InfoSourceBloc(getInfoSourcesUseCase: getInfoSourcesUseCase)),
             BlocProvider(create: (_) => LostReasonBloc(getLostReasonsUseCase: getLostReasonsUseCase)),

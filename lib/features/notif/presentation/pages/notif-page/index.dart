@@ -30,10 +30,14 @@ import 'package:progress_group/features/auth/presentation/state/profile/profile_
 import 'package:progress_group/features/auth/presentation/state/profile/profile_state.dart';
 import 'package:progress_group/features/notif/domain/entities/received_notif_entity.dart';
 import 'package:progress_group/features/notif/presentation/state/received_notif_cubit.dart';
+import 'package:progress_group/features/notif/data/models/global_notification_model.dart';
+import 'package:progress_group/features/notif/presentation/state/global_notification/global_notification_cubit.dart';
+import 'package:progress_group/features/notif/presentation/state/global_notification/global_notification_state.dart';
+import 'package:progress_group/core/utils/widget/global_notification_dialog.dart';
 import 'package:progress_group/core/services/analytics_service.dart';
 
 
-enum _NotifType { activity, approval, push }
+enum _NotifType { activity, approval, push, globalNotif }
 
 class _NotifItem {
   final _NotifType type;
@@ -198,6 +202,7 @@ class _NotifPageState extends State<NotifPage> {
       isRefresh: true,
     ));
     context.read<WhatsappActivityBloc>().add(const FetchWhatsappUnreadSummaryEvent(0));
+    context.read<GlobalNotificationCubit>().load();
     if (_canManageApproval) {
       context.read<AttendanceApprovalCubit>().load(
         status: _selectedApproval.status,
@@ -341,21 +346,23 @@ class _NotifPageState extends State<NotifPage> {
   Widget _buildMixedFeed() {
     return BlocBuilder<ReceivedNotifCubit, ReceivedNotifState>(
       builder: (context, pushState) {
+        return BlocBuilder<GlobalNotificationCubit, GlobalNotificationState>(
+          builder: (context, globalNotifState) {
         return BlocConsumer<NotifActivityBloc, ActivityState>(
           listenWhen: (prev, curr) => curr.status == ActivityStatus.error && prev.status != ActivityStatus.error,
           listener: (context, activityState) {
-            
+
           },
           builder: (context, activityState) {
             return BlocConsumer<AttendanceApprovalCubit, AttendanceApprovalState>(
               listenWhen: (prev, curr) => curr is AttendanceApprovalError && prev is! AttendanceApprovalError,
               listener: (context, approvalState) {
                 if (approvalState is AttendanceApprovalError) {
-                  
+
                 }
               },
               builder: (context, approvalState) {
-                
+
                 final loadingActivity = activityState.status == ActivityStatus.loading && activityState.activities.isEmpty;
                 final loadingApproval = approvalState is AttendanceApprovalLoading;
                 if ((_isApprovalFiltered && loadingApproval) || (_isActivityFiltered && loadingActivity) ||
@@ -368,12 +375,19 @@ class _NotifPageState extends State<NotifPage> {
 
                 final items = <_NotifItem>[];
 
-                
+
                 for (final n in pushState.items) {
                   items.add(_NotifItem(type: _NotifType.push, data: n, datetime: n.receivedAt));
                 }
 
-                
+
+                if (!_isApprovalFiltered) {
+                  for (final n in globalNotifState.items) {
+                    items.add(_NotifItem(type: _NotifType.globalNotif, data: n, datetime: n.createdAt));
+                  }
+                }
+
+
                 if (!_isApprovalFiltered) {
                   for (final a in activityState.activities) {
                     final dt = DateTime.tryParse(a.activityDate) ?? DateTime.tryParse(a.createdAt) ?? DateTime(2000);
@@ -381,7 +395,7 @@ class _NotifPageState extends State<NotifPage> {
                   }
                 }
 
-                
+
                 if (!_isActivityFiltered && _canManageApproval && approvalState is AttendanceApprovalLoaded) {
                   for (final a in approvalState.logs) {
                     final dt = DateTime.tryParse(a.attendanceDatetime ?? '') ?? DateTime(2000);
@@ -439,6 +453,8 @@ class _NotifPageState extends State<NotifPage> {
                         child = _activityItem(context, item.data as ActivityEntity);
                       } else if (item.type == _NotifType.approval) {
                         child = _approvalItem(item.data as AttendanceApprovalEntity);
+                      } else if (item.type == _NotifType.globalNotif) {
+                        child = _globalNotifItem(context, item.data as GlobalNotificationEntity);
                       } else {
                         child = _pushNotifItem(item.data as ReceivedNotifEntity);
                       }
@@ -448,6 +464,8 @@ class _NotifPageState extends State<NotifPage> {
                 );
               },
             );
+          },
+        );
           },
         );
       },
@@ -580,6 +598,55 @@ class _NotifPageState extends State<NotifPage> {
                   Text(notif.body, style: TextStyle(fontSize: 12, color: Color(grey2Color))),
                 const SizedBox(height: 2),
                 Text(DateHelper.formatDate(notif.receivedAt), style: TextStyle(fontSize: 11, color: Color(grey4Color))),
+              ],
+            ),
+          ),
+        ],
+      )),
+    );
+  }
+
+  Widget _globalNotifItem(BuildContext context, GlobalNotificationEntity notif) {
+    final hasImage = notif.mediaType == 'image' && (notif.mediaUrl?.isNotEmpty ?? false);
+    final title = notif.title.isNotEmpty ? notif.title : 'Notifikasi';
+
+    return GestureDetector(
+      onTap: () {
+        AnalyticsService.logEvent('notif_open_global_notification');
+        showGlobalNotificationDialog(
+          context,
+          title: notif.title,
+          description: notif.description ?? '',
+          mediaType: notif.mediaType,
+          mediaUrl: notif.mediaUrl,
+          linkUrl: notif.linkUrl,
+        );
+      },
+      child: _cardWrap(Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          hasImage
+              ? ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: Image.network(
+                    notif.mediaUrl!,
+                    width: 36,
+                    height: 36,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => Icon(Icons.notifications_outlined, color: Color(primaryColor), size: 36),
+                  ),
+                )
+              : Icon(Icons.notifications_outlined, color: Color(primaryColor), size: 36),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+                if ((notif.description ?? '').isNotEmpty)
+                  Text(notif.description!, style: TextStyle(fontSize: 12, color: Color(grey2Color))),
+                const SizedBox(height: 2),
+                Text(DateHelper.formatDate(notif.createdAt), style: TextStyle(fontSize: 11, color: Color(grey4Color))),
               ],
             ),
           ),

@@ -174,36 +174,22 @@ class PushNotificationService {
     if (_pendingMessage != null) {
       final msg = _pendingMessage!;
       _pendingMessage = null;
-      final data = _safeData(msg);
-      _saveToNotifList(msg, data);
-      _navigateFromData(data);
+      _navigateFromData(_safeData(msg));
     }
   }
 
   static void navigateFromData(Map<String, dynamic> data) => _navigateFromData(data);
 
   // Pesan yang direlay oleh service worker (web/firebase-messaging-sw.js) lewat
-  // postMessage: push yang masuk saat tab terbuka tapi tidak fokus (background),
-  // dan klik notifikasi OS. Tanpa relay ini, push yang masuk saat tab background
-  // tidak pernah tersimpan ke daftar notifikasi in-app, dan klik notifikasi
-  // memicu client.navigate() yang me-reload seluruh app (terasa lambat).
+  // postMessage saat notifikasi OS diklik. client.navigate() sebelumnya me-reload
+  // seluruh app dari nol (itu penyebab notifikasi terasa lambat saat diklik) — sekarang
+  // SW cukup fokuskan tab yang sudah terbuka lalu SPA-nya sendiri yang pindah halaman.
   static void _handleServiceWorkerMessage(String jsonMessage) {
     try {
       final msg = jsonDecode(jsonMessage) as Map<String, dynamic>;
-      final type = msg['type'] as String?;
+      if (msg['type'] != 'fcm_notification_click') return;
       final data = (msg['data'] as Map?)?.cast<String, dynamic>() ?? <String, dynamic>{};
-
-      if (type == 'fcm_background_message') {
-        final title = msg['title'] as String? ?? '';
-        final body = msg['body'] as String? ?? '';
-        if (title.isEmpty && body.isEmpty) return;
-        ReceivedNotifCubit.receive(title: title, body: body, type: data['type'] as String?, data: data);
-        return;
-      }
-
-      if (type == 'fcm_notification_click') {
-        _navigateFromData(data);
-      }
+      _navigateFromData(data);
     } catch (e) {
       debugPrint('[FCM] gagal memproses pesan dari service worker: $e');
     }
@@ -220,14 +206,6 @@ class PushNotificationService {
       debugPrint('[FCM] gagal membaca data notifikasi: $e');
       return <String, dynamic>{};
     }
-  }
-
-  static void _saveToNotifList(RemoteMessage message, Map<String, dynamic> data) {
-    final title = message.notification?.title ?? data['title'] as String? ?? '';
-    final body  = message.notification?.body  ?? data['body']  as String? ?? '';
-    final type  = data['type'] as String?;
-    if (title.isEmpty && body.isEmpty) return;
-    ReceivedNotifCubit.receive(title: title, body: body, type: type, data: data);
   }
 
   static Future<void> _requestPermission() async {
@@ -415,7 +393,6 @@ class PushNotificationService {
 
   static void _handleForegroundMessage(RemoteMessage message) {
     final data = _safeData(message);
-    _saveToNotifList(message, data);
 
     if (data['type'] == 'attendance_feedback') {
       _showDialogAfterFrame(() => _showAttendanceFeedbackDialog(data));
@@ -461,7 +438,6 @@ class PushNotificationService {
 
   static void _handleNotificationTap(RemoteMessage message) {
     final data = _safeData(message);
-    _saveToNotifList(message, data);
     _navigateFromData(data);
   }
 

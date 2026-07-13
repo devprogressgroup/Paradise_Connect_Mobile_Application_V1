@@ -30,12 +30,12 @@ class ApiConstants {
     ),
 
 
-    AppEnvironment.development: _EnvConfig(
-      label: 'Development IP',
-      baseUrl: 'http://192.168.8.36:8000/api',
-      storageUrl: 'http://192.168.8.36:8000/storage',
-      serverUrl: 'http://192.168.8.36:8000',
-    ),
+    // AppEnvironment.development: _EnvConfig(
+    //   label: 'Development IP',
+    //   baseUrl: 'http://192.168.8.36:8000/api',
+    //   storageUrl: 'http://192.168.8.36:8000/storage',
+    //   serverUrl: 'http://192.168.8.36:8000',
+    // ),
 
     // AppEnvironment.development2: _EnvConfig(
     //   label: 'Development 2',
@@ -45,12 +45,12 @@ class ApiConstants {
     // ),
 
 
-    AppEnvironment.developmnetDomain: _EnvConfig(
-      label: 'Development',
-      baseUrl: 'https://apidevconnect.paradise.id/api',
-      storageUrl: 'https://apidevconnect.paradise.id/storage',
-      serverUrl: 'https://apidevconnect.paradise.id',
-    ),
+    // AppEnvironment.developmnetDomain: _EnvConfig(
+    //   label: 'Development',
+    //   baseUrl: 'https://apidevconnect.paradise.id/api',
+    //   storageUrl: 'https://apidevconnect.paradise.id/storage',
+    //   serverUrl: 'https://apidevconnect.paradise.id',
+    // ),
   };
 
 
