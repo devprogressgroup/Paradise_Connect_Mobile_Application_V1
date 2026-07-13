@@ -12,6 +12,13 @@ firebase.initializeApp({
 
 const messaging = firebase.messaging();
 
+// Kirim pesan ke semua tab yang sedang terbuka (termasuk yang tidak fokus)
+function postToClients(message) {
+  return self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function(clientList) {
+    clientList.forEach(function(client) { client.postMessage(message); });
+  });
+}
+
 // Handles background / terminated notifications on web
 messaging.onBackgroundMessage(function(payload) {
   const title = (payload.notification && payload.notification.title)
@@ -21,6 +28,11 @@ messaging.onBackgroundMessage(function(payload) {
   const body = (payload.notification && payload.notification.body)
     || (payload.data && payload.data.body)
     || '';
+
+  // Relay ke tab yang sedang terbuka (tapi tidak fokus) supaya notifikasi ini juga
+  // tersimpan ke daftar notifikasi di dalam app — tanpa ini, push yang masuk saat
+  // tab background cuma tampil sebagai notifikasi OS dan hilang dari list.
+  postToClients({ type: 'fcm_background_message', title: title, body: body, data: payload.data || {} });
 
   return self.registration.showNotification(title, {
     body: body,
@@ -52,21 +64,19 @@ self.addEventListener('notificationclick', function(event) {
   const data      = event.notification.data || {};
   const targetUrl = getTargetUrl(data);
 
-
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function(clientList) {
-      // Focus existing open tab and navigate to target URL
+      // Tab Flutter sudah terbuka: cukup fokuskan lalu suruh SPA-nya sendiri yang
+      // pindah halaman lewat postMessage. client.navigate() sebelumnya me-reload
+      // seluruh app dari nol (itu penyebab notifikasi terasa lambat saat diklik).
       for (let i = 0; i < clientList.length; i++) {
         const client = clientList[i];
         if (client.url && 'focus' in client) {
-          return client.navigate(targetUrl).then(function(c) {
-            return c ? c.focus() : client.focus();
-          }).catch(function() {
-            return client.focus();
-          });
+          client.postMessage({ type: 'fcm_notification_click', data: data });
+          return client.focus();
         }
       }
-      // Otherwise open a new tab at the target URL
+      // Tidak ada tab yang terbuka sama sekali: baru buka tab baru ke target URL.
       if (clients.openWindow) {
         return clients.openWindow(targetUrl);
       }

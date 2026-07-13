@@ -24,7 +24,7 @@ abstract class ContactRepository {
   Future<Either<String, List<ContactEntity>>> getAllContactsForDuplicateCheck();
   Future<Either<String, ContactEntity>> getContactDetail(int id);
   Future<Either<String, ContactEntity?>> checkDuplicateContact({required int ownerId, required String phone});
-    Future<Either<String, List<InfoSource>>> getInfoSources({int? type});
+    Future<Either<String, List<InfoSource>>> getInfoSources({int? type, int? userId});
   Future<Either<String, List<ProspectStatusEntity>>> getProspectStatuses({String? type});
   Future<Either<String, List<LostReasonEntity>>> getLostReasons();
   Future<Either<String, List<ContactPropertyGroup>>> getContactProperties();
@@ -45,6 +45,6 @@ abstract class ContactRepository {
   Future<Either<String, List<PropertyUnitCluster>>> getPropertyCommercialUnits({required int townshipId});
   Future<Either<String, List<UnitCluster>>> getUnitHierarchy({required int townshipId, String? search});
   Future<Either<String, List<UnitLot>>> getUnitLots({required int productId, int? townshipId, int? companyId, String? search});
-  Future<Either<String, List<PameranAktifEntity>>> getPameranAktif({String? lokasiPameran});
+  Future<Either<String, List<PameranAktifEntity>>> getPameranAktif({String? lokasiPameran, int? userId});
   Future<Either<String, List<String>>> getProductTypes();
 }

@@ -9,6 +9,18 @@ class InfoSourceBloc extends Bloc<InfoSourceEvent, InfoSourceState> {
 
   InfoSourceBloc({required this.getInfoSourcesUseCase}) : super(const InfoSourceState()) {
     on<FetchInfoSourcesEvent>(_onFetchInfoSources);
+    on<ResetInfoSourcesEvent>(_onResetInfoSources);
+  }
+
+  void _onResetInfoSources(
+    ResetInfoSourcesEvent event,
+    Emitter<InfoSourceState> emit,
+  ) {
+    final newSourcesMap = Map<int, List<InfoSource>>.from(state.sourcesMap);
+    for (final type in event.types) {
+      newSourcesMap.remove(type);
+    }
+    emit(state.copyWith(sourcesMap: newSourcesMap));
   }
 
   Future<void> _onFetchInfoSources(
@@ -17,7 +29,7 @@ class InfoSourceBloc extends Bloc<InfoSourceEvent, InfoSourceState> {
   ) async {
     emit(state.copyWith(status: InfoSourceStatus.loading));
 
-    final result = await getInfoSourcesUseCase(type: event.type);
+    final result = await getInfoSourcesUseCase(type: event.type, userId: event.userId);
 
     result.fold(
       (failure) => emit(state.copyWith(

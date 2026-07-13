@@ -336,6 +336,21 @@
       return isIos && isSafari && !isStandalone;
     };
 
+    // Called from Flutter via js_interop to receive FCM messages relayed by the
+    // service worker (background push arrival + notification click), so the
+    // running app can save them to the in-app notif list / route instantly
+    // instead of relying only on the (web-unreliable) onMessageOpenedApp stream.
+    window.registerFcmServiceWorkerCallback = function (onMessage) {
+      if (!('serviceWorker' in navigator) || typeof onMessage !== 'function') return;
+      navigator.serviceWorker.addEventListener('message', function (event) {
+        var msg = event.data;
+        if (!msg || typeof msg !== 'object') return;
+        try {
+          onMessage(JSON.stringify(msg));
+        } catch (_) { }
+      });
+    };
+
     // Registrasi service worker sudah ditangani oleh flutter_bootstrap.js
     // (lewat _flutter.loader.load({ serviceWorker: {...} })) yang otomatis
     // pakai cache-busting query (?v=hash). Di sini kita cuma "menumpang"

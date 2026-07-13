@@ -143,11 +143,22 @@ class PushNotificationService {
       return;
     }
     if (!kIsWeb) await _setupLocalNotifications();
+    if (kIsWeb) registerFcmServiceWorkerMessages(_handleServiceWorkerMessage);
 
     try {
       _messaging.onTokenRefresh.listen(_sendTokenToBackend);
-      FirebaseMessaging.onMessage.listen(_handleForegroundMessage);
-      FirebaseMessaging.onMessageOpenedApp.listen(_handleNotificationTap);
+      // onError di sini menangkap kegagalan konversi JS->Dart milik plugin sendiri
+      // (mis. bug interop firebase_messaging_web pada payload push tertentu) yang lolos
+      // dari try/catch di dalam _handleForegroundMessage karena terjadi sebelum RemoteMessage
+      // selesai dibentuk, supaya tidak jadi uncaught error yang membekukan stream ini.
+      FirebaseMessaging.onMessage.listen(
+        _handleForegroundMessage,
+        onError: (e, st) => debugPrint('[FCM] onMessage stream error: $e'),
+      );
+      FirebaseMessaging.onMessageOpenedApp.listen(
+        _handleNotificationTap,
+        onError: (e, st) => debugPrint('[FCM] onMessageOpenedApp stream error: $e'),
+      );
 
       final initialMessage = await _messaging.getInitialMessage();
       if (initialMessage != null) {
@@ -163,19 +174,60 @@ class PushNotificationService {
     if (_pendingMessage != null) {
       final msg = _pendingMessage!;
       _pendingMessage = null;
-      _saveToNotifList(msg);
-      _navigateFromData(msg.data);
+      final data = _safeData(msg);
+      _saveToNotifList(msg, data);
+      _navigateFromData(data);
     }
   }
 
   static void navigateFromData(Map<String, dynamic> data) => _navigateFromData(data);
 
-  static void _saveToNotifList(RemoteMessage message) {
-    final title = message.notification?.title ?? message.data['title'] as String? ?? '';
-    final body  = message.notification?.body  ?? message.data['body']  as String? ?? '';
-    final type  = message.data['type'] as String?;
+  // Pesan yang direlay oleh service worker (web/firebase-messaging-sw.js) lewat
+  // postMessage: push yang masuk saat tab terbuka tapi tidak fokus (background),
+  // dan klik notifikasi OS. Tanpa relay ini, push yang masuk saat tab background
+  // tidak pernah tersimpan ke daftar notifikasi in-app, dan klik notifikasi
+  // memicu client.navigate() yang me-reload seluruh app (terasa lambat).
+  static void _handleServiceWorkerMessage(String jsonMessage) {
+    try {
+      final msg = jsonDecode(jsonMessage) as Map<String, dynamic>;
+      final type = msg['type'] as String?;
+      final data = (msg['data'] as Map?)?.cast<String, dynamic>() ?? <String, dynamic>{};
+
+      if (type == 'fcm_background_message') {
+        final title = msg['title'] as String? ?? '';
+        final body = msg['body'] as String? ?? '';
+        if (title.isEmpty && body.isEmpty) return;
+        ReceivedNotifCubit.receive(title: title, body: body, type: data['type'] as String?, data: data);
+        return;
+      }
+
+      if (type == 'fcm_notification_click') {
+        _navigateFromData(data);
+      }
+    } catch (e) {
+      debugPrint('[FCM] gagal memproses pesan dari service worker: $e');
+    }
+  }
+
+  // firebase_messaging_web kadang mengembalikan RemoteMessage.data yang bukan Map Dart
+  // asli (masih objek JS mentah dari interop), sehingga indexing biasa (data['x']) bisa
+  // lempar "TypeError: map[$_get] is not a function" dan memutus alur sebelum dialog notifikasi
+  // sempat tampil. Bungkus konversinya supaya gagal dengan aman ke map kosong, bukan crash.
+  static Map<String, dynamic> _safeData(RemoteMessage message) {
+    try {
+      return Map<String, dynamic>.from(message.data);
+    } catch (e) {
+      debugPrint('[FCM] gagal membaca data notifikasi: $e');
+      return <String, dynamic>{};
+    }
+  }
+
+  static void _saveToNotifList(RemoteMessage message, Map<String, dynamic> data) {
+    final title = message.notification?.title ?? data['title'] as String? ?? '';
+    final body  = message.notification?.body  ?? data['body']  as String? ?? '';
+    final type  = data['type'] as String?;
     if (title.isEmpty && body.isEmpty) return;
-    ReceivedNotifCubit.receive(title: title, body: body, type: type, data: message.data);
+    ReceivedNotifCubit.receive(title: title, body: body, type: type, data: data);
   }
 
   static Future<void> _requestPermission() async {
@@ -362,24 +414,25 @@ class PushNotificationService {
   }
 
   static void _handleForegroundMessage(RemoteMessage message) {
-    _saveToNotifList(message);
+    final data = _safeData(message);
+    _saveToNotifList(message, data);
 
-    if (message.data['type'] == 'attendance_feedback') {
-      _showDialogAfterFrame(() => _showAttendanceFeedbackDialog(message.data));
+    if (data['type'] == 'attendance_feedback') {
+      _showDialogAfterFrame(() => _showAttendanceFeedbackDialog(data));
       return;
     }
 
-    if (message.data['type'] == 'global_notification') {
-      _showDialogAfterFrame(() => _showGlobalNotificationDialogFromData(message.data));
+    if (data['type'] == 'global_notification') {
+      _showDialogAfterFrame(() => _showGlobalNotificationDialogFromData(data));
       return;
     }
 
     final notification = message.notification;
 
     if (kIsWeb) {
-      final title = notification?.title ?? message.data['title'] as String?;
-      final body  = notification?.body  ?? message.data['body']  as String?;
-      final onTap = () => _navigateFromData(message.data);
+      final title = notification?.title ?? data['title'] as String?;
+      final body  = notification?.body  ?? data['body']  as String?;
+      final onTap = () => _navigateFromData(data);
       _showWebBanner(title, body, onTap: onTap);
       showWebNotification(title, body);
       return;
@@ -402,13 +455,14 @@ class PushNotificationService {
         ),
         iOS: DarwinNotificationDetails(),
       ),
-      payload: jsonEncode(message.data),
+      payload: jsonEncode(data),
     );
   }
 
   static void _handleNotificationTap(RemoteMessage message) {
-    _saveToNotifList(message);
-    _navigateFromData(message.data);
+    final data = _safeData(message);
+    _saveToNotifList(message, data);
+    _navigateFromData(data);
   }
 
   static void _navigateFromData(Map<String, dynamic> data) {

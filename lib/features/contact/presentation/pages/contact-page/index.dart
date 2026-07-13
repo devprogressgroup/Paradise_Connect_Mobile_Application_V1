@@ -1101,7 +1101,7 @@ Widget _buildContactBadges(BuildContext context, ContactEntity contact) {
           final statusLabel = status == null
               ? null
               : (status.statusValue.isNotEmpty ? status.statusValue : status.statusProspectName);
-          final isLost = status?.group == 'lost';
+          final group = status?.group ?? 'db';
 
           final channelLabel = channel?.name.split('-').first.trim();
 
@@ -1116,7 +1116,7 @@ Widget _buildContactBadges(BuildContext context, ContactEntity contact) {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                if (hasStatus) _statusChip(statusLabel, isLost: isLost),
+                if (hasStatus) _statusChip(statusLabel, group: group),
                 if (hasStatus && hasChannel) const SizedBox(height: 6),
                 if (hasChannel) _channelChip(channelLabel),
               ],
@@ -1128,14 +1128,32 @@ Widget _buildContactBadges(BuildContext context, ContactEntity contact) {
   );
 }
 
-Widget _statusChip(String label, {required bool isLost}) {
-  final color = Color(isLost ? redColor : primaryColor);
+Color _statusGroupColor(String group) {
+  switch (group) {
+    case 'lost':
+      return Color(redColor);
+    case 'appt':
+      return Color(primaryColor);
+    case 'visitor':
+      return Color(warningColor);
+    case 'reserve':
+      return Color(lightGreenColor);
+    case 'sp':
+      return Color(darkGreenColor);
+    case 'db':
+    default:
+      return Color(purpleColor);
+  }
+}
+
+Widget _statusChip(String label, {required String group}) {
+  final color = _statusGroupColor(group);
   return Container(
     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
     alignment: Alignment.center,
     decoration: BoxDecoration(
-      borderRadius: BorderRadius.circular(6),
-      border: Border.all(color: color, width: 1),
+      color: color.withValues(alpha: 0.15),
+      borderRadius: BorderRadius.circular(20),
     ),
     child: Text(
       label,
@@ -1147,18 +1165,15 @@ Widget _statusChip(String label, {required bool isLost}) {
 }
 
 Widget _channelChip(String label) {
-  const color = Color(purpleColor);
+  const color = Color(grey4Color);
   return Container(
     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
     alignment: Alignment.center,
-    decoration: BoxDecoration(
-      borderRadius: BorderRadius.circular(6),
-      border: Border.all(color: color, width: 1),
-    ),
+    
     child: Text(
       label,
       textAlign: TextAlign.center,
-      style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.w600),
+      style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.bold),
       overflow: TextOverflow.ellipsis,
     ),
   );

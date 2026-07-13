@@ -15,3 +15,12 @@ Future<void> showWebNotification(String? title, String? body) async {
     _JSNotification(title, options);
   }
 }
+
+@JS('registerFcmServiceWorkerCallback')
+external void _registerFcmServiceWorkerCallback(JSFunction onMessage);
+
+void registerFcmServiceWorkerMessages(void Function(String jsonMessage) onMessage) {
+  try {
+    _registerFcmServiceWorkerCallback(onMessage.toJS);
+  } catch (_) {}
+}

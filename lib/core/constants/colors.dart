@@ -50,6 +50,9 @@ const int successColor = 0xFF22C55E;
 const int warningColor = 0xFFF59E0B;
 const int infoColor = 0xFF06B6D4;
 
+const int lightGreenColor = 0xFF8BC34A;
+const int darkGreenColor = 0xFF2E7D32;
+
 const int orangeColor = 0xFFD1A250;
 
 // attendance status colors
