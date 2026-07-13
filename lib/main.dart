@@ -251,6 +251,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       PushNotificationService.processPendingMessage();
       _checkVersion();
+      PushNotificationService.checkAndShowUpdateBanner();
       OldAppCheckService.check();
     });
   }
@@ -267,6 +268,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
       if (_updateResult == null) _checkVersion();
+      PushNotificationService.checkAndShowUpdateBanner();
       OldAppCheckService.check();
 
       _refreshAccessSilently();

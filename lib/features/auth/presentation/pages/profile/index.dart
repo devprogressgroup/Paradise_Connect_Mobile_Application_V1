@@ -16,10 +16,8 @@ import 'package:progress_group/features/auth/presentation/state/auth/auth_state.
 import 'package:progress_group/features/auth/presentation/state/profile/profile_bloc.dart';
 import 'package:progress_group/features/auth/presentation/state/profile/profile_event.dart';
 import 'package:progress_group/features/auth/presentation/state/profile/profile_state.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import '../../../../../core/constants/colors.dart';
 import '../../../../../core/utils/widget/custom_header.dart';
-import '../../../domain/entities/user_profile.dart';
 import 'package:progress_group/core/services/analytics_service.dart';
 
 class ProfilePage extends StatefulWidget {

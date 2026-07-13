@@ -1,4 +1,4 @@
-﻿import 'dart:async';
+import 'dart:async';
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:dio/dio.dart';
@@ -107,7 +107,10 @@ class _AttandancePageState extends State<AttandancePage>
     _pageController = PageController(initialPage: selectedIndex);
     _scrollController = ScrollController();
     _scrollController.addListener(_onScroll);
-
+    Future.delayed(const Duration(milliseconds: 500), () {
+            if (!mounted) return;
+            context.read<AttendanceBloc>().add(LoadTodayAttendanceEvent());
+          });
     Future.microtask(() {
       context.read<AuthBloc>().add(FetchPermissionsEvent(silent: true));
       context.read<ProfileBloc>().add(GetProfileEvent(forceRefresh: true, silent: true));
@@ -130,10 +133,7 @@ class _AttandancePageState extends State<AttandancePage>
 
       _fetchActivityLogs();
 
-      Future.delayed(const Duration(milliseconds: 500), () {
-        if (!mounted) return;
-        context.read<AttendanceBloc>().add(LoadTodayAttendanceEvent());
-      });
+     
     });
   }
 
@@ -208,6 +208,12 @@ class _AttandancePageState extends State<AttandancePage>
         duration: const Duration(milliseconds: 300),
         curve: Curves.easeOutCubic,
       );
+    } else {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (_pageController.hasClients) {
+          _pageController.jumpToPage(index);
+        }
+      });
     }
   }
 
@@ -392,6 +398,11 @@ class _AttandancePageState extends State<AttandancePage>
   }
 
   Future<void> _getLog() async {
+    if (mounted) {
+      setState(() {
+        _hasSetInitialTab = false;
+      });
+    }
     // Always refresh "today" data via the lightweight event first so the
     // Clock In/Check In/Clock Out tab updates immediately, instead of being
     // gated behind the much heavier full-history fetch below.
@@ -2505,7 +2516,7 @@ class _AttandancePageState extends State<AttandancePage>
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Row(children: [
-                                    Icon(Icons.access_time_filled, color: flagParam == 0 ? Color(greenPercentColor) : Color(redPeriodColor), size: 10),
+                                    Icon(Icons.access_time_filled, color: flagParam == 0 ? Color(greenPercentColor) : flagParam == 1 ? Color(redPeriodColor) : Color(checkInColor), size: 10),
                                     const SizedBox(width: 6),
                                     Text(DateHelper.formatTime(dt), style: const TextStyle(color: Color(whiteColor), fontSize: 10)),
                                   ]),
@@ -2519,7 +2530,7 @@ class _AttandancePageState extends State<AttandancePage>
                                     const SizedBox(width: 6),
                                     Expanded(
                                       child: Text(
-                                        '${flagParam == 0 ? attendance?.location0 : attendance?.location1}',
+                                        '${flagParam == 0 ? attendance?.location0 : flagParam == 1 ? attendance?.location1 : attendance?.location6}',
                                         style: const TextStyle(color: Color(whiteColor), fontSize: 10),
                                         maxLines: 1,
                                         overflow: TextOverflow.ellipsis,
@@ -2664,18 +2675,36 @@ class _AttandancePageState extends State<AttandancePage>
 
   void _showAttendanceDialog(AttendanceEntity item, int flag) {
     AnalyticsService.logEvent('attendance_view_attendance_detail');
-    final String timeValue = flag == 0 ? item.clockIn ?? "-" : item.clockOut ?? "-";
-    final List<String>? images =flag == 0 ? item.fileAttchment0 : item.fileAttchment1;
-    final String note = flag == 0 ? item.note0 ?? "-" : item.note1 ?? "-";
-    final String location =flag == 0 ? item.location0 ?? "-" : item.location1 ?? "-";
-    final int? isApprove = flag == 0 ? item.isApprove0 : item.isApprove1;
-    final int? isReject = flag == 0 ? item.isReject0 : item.isReject1;
-    final String? approveName = flag == 0 ? item.approveName0 : item.approveName1;
-    final String? rejectName = flag == 0 ? item.rejectName0 : item.rejectName1;
-    final String? serial = flag == 0 ? item.serial0 : item.serial1;
+    final String timeValue = flag == 0
+        ? item.clockIn ?? "-"
+        : flag == 1
+            ? item.clockOut ?? "-"
+            : item.checkInActivity ?? "-";
+    final List<String>? images = flag == 0
+        ? item.fileAttchment0
+        : flag == 1
+            ? item.fileAttchment1
+            : item.fileAttchment6;
+    final String note = flag == 0
+        ? item.note0 ?? "-"
+        : flag == 1
+            ? item.note1 ?? "-"
+            : item.note6 ?? "-";
+    final String location = flag == 0
+        ? item.location0 ?? "-"
+        : flag == 1
+            ? item.location1 ?? "-"
+            : item.location6 ?? "-";
+    final int? isApprove = flag == 0 ? item.isApprove0 : flag == 1 ? item.isApprove1 : null;
+    final int? isReject = flag == 0 ? item.isReject0 : flag == 1 ? item.isReject1 : null;
+    final String? approveName = flag == 0 ? item.approveName0 : flag == 1 ? item.approveName1 : null;
+    final String? rejectName = flag == 0 ? item.rejectName0 : flag == 1 ? item.rejectName1 : null;
+    final String? serial = flag == 0 ? item.serial0 : flag == 1 ? item.serial1 : item.serial6;
 
     final String displayTime = (timeValue != '-') ? (DateTime.tryParse(timeValue) != null ? DateHelper.formatTime(DateTime.tryParse(timeValue)!) : timeValue) : '-';
-    final String? displayImage =  (images != null && images.isNotEmpty)       ? (flag == 0 ? images.first : images.last)       : null;
+    final String? displayImage = (images != null && images.isNotEmpty)
+        ? (flag == 1 ? images.last : images.first)
+        : null;
 
     showDialog(
       context: context,
@@ -2704,7 +2733,7 @@ class _AttandancePageState extends State<AttandancePage>
                                 height: 180,
                                 fit: BoxFit.cover,
                                 errorWidget: _buildImageErrorWidget(serial: serial),
-                                onTap: () => _showImagePreview(context, images!, flag == 0 ? 0 : images.length - 1),
+                                onTap: () => _showImagePreview(context, images!, flag == 1 ? images.length - 1 : 0),
                               )
                             : _buildImageErrorWidget(serial: serial),
                       ),
@@ -2713,7 +2742,7 @@ class _AttandancePageState extends State<AttandancePage>
                           top: 8,
                           right: 8,
                           child: GestureDetector(
-                            onTap: () => _showImagePreview(context, images!, flag == 0 ? 0 : images.length - 1),
+                            onTap: () => _showImagePreview(context, images!, flag == 1 ? images.length - 1 : 0),
                             child: Container(
                               padding: const EdgeInsets.all(4),
                               decoration: BoxDecoration(
@@ -2730,7 +2759,7 @@ class _AttandancePageState extends State<AttandancePage>
                   _buildInfoRow(
                     Icons.access_time_filled,
                     displayTime,
-                    Color(flag == 0 ? greenPercentColor : redPeriodColor),
+                    Color(flag == 0 ? greenPercentColor : flag == 1 ? redPeriodColor : checkInColor),
                   ),
                   const SizedBox(height: 8),
                   _buildInfoRow(
