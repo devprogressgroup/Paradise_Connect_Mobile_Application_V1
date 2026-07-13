@@ -163,7 +163,7 @@ class _QrScannerPageState extends State<QrScannerPage> {
                   decoration: BoxDecoration(
                     color: Color(greyShade50),
                     borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: Color(greyShade300)!),
+                    border: Border.all(color: Color(greyShade300)),
                     boxShadow: [
                       BoxShadow(
                         color: Color(blackColor).withOpacity(0.05),

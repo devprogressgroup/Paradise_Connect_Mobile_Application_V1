@@ -6,6 +6,7 @@ class InfoSourceModel extends InfoSource {
     required super.name,
     required super.typeData,
     super.periodePameranId,
+    super.isPameran,
   });
 
   factory InfoSourceModel.fromJson(Map<String, dynamic> json) {
@@ -14,6 +15,7 @@ class InfoSourceModel extends InfoSource {
       name: json['name'] as String,
       typeData: json['type_data'] as String,
       periodePameranId: json['periode_pameran_id'] as int?,
+      isPameran: json['is_pameran'] as bool? ?? false,
     );
   }
 
@@ -23,6 +25,7 @@ class InfoSourceModel extends InfoSource {
       'name': name,
       'type_data': typeData,
       if (periodePameranId != null) 'periode_pameran_id': periodePameranId,
+      'is_pameran': isPameran,
     };
   }
 }

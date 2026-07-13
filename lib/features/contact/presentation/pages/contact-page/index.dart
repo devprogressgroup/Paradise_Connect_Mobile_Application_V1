@@ -1169,7 +1169,11 @@ Widget _channelChip(String label) {
   return Container(
     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
     alignment: Alignment.center,
-    
+    decoration: BoxDecoration(
+      // color: color.withValues(alpha: 0.15),
+      border: Border.all(color:color.withValues(alpha: 0.15)),
+      borderRadius: BorderRadius.circular(20),
+    ),
     child: Text(
       label,
       textAlign: TextAlign.center,

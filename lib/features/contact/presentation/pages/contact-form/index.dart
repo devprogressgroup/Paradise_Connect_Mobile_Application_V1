@@ -442,8 +442,8 @@ class _ContactFormPageState extends State<ContactFormPage> {
       propertiesJson: propertiesJson.isNotEmpty ? propertiesJson : null,
       propertyFileBytes: fileBytes,
       propertyFileNames: fileNames,
-      periodePameranDate: _isPameranSource2(selectedSource2Id) ? _periodePameranDateBackend : null,
-      periodePameranId: _isPameranSource2(selectedSource2Id) ? _resolvePeriodePameranId() : null,
+      periodePameranDate: _isPameranSource1(selectedSource1Id) ? _periodePameranDateBackend : null,
+      periodePameranId: _isPameranSource1(selectedSource1Id) ? _resolvePeriodePameranId() : null,
 
       units: ((widget.args.page == 0 && _selectedUnits.isNotEmpty) || (widget.args.page != 0 && _unitsTouched))
           ? _selectedUnits.map((u) => u.toApiJson()).toList()
@@ -494,7 +494,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
     return sources.cast<InfoSource?>().firstWhere((e) => e?.id == id, orElse: () => null);
   }
 
-  bool _isPameranSource2(int? sourceId) => _findInfoSource(2, sourceId)?.periodePameranId != null;
+  bool _isPameranSource1(int? sourceId) => _findInfoSource(1, sourceId)?.isPameran ?? false;
 
   List<InfoSource> _dedupeByName(List<InfoSource> sources) {
     final seen = <String>{};
@@ -622,8 +622,12 @@ class _ContactFormPageState extends State<ContactFormPage> {
 
     }
 
+    if (context.read<InfoSourceBloc>().state.sourcesMap[1] == null) {
+      context.read<InfoSourceBloc>().add(const FetchInfoSourcesEvent(type: 1));
+    }
+
     if (context.read<InfoSourceBloc>().state.sourcesMap[2] == null) {
-      context.read<InfoSourceBloc>().add(FetchInfoSourcesEvent(type: 2, userId: selectedOwnerId));
+      context.read<InfoSourceBloc>().add(FetchInfoSourcesEvent(type: 2, userId: selectedOwnerId, salesChannel: selectedSource1Name));
     }
 
 
@@ -1592,8 +1596,8 @@ class _ContactFormPageState extends State<ContactFormPage> {
       noKtp: noKTPTC.text.isNotEmpty ? noKTPTC.text : null,
       ktpAddress: ktpAddressTC.text.isNotEmpty ? ktpAddressTC.text : null,
       propertiesJson: propertiesJson.isNotEmpty ? propertiesJson : null,
-      periodePameranDate: _isPameranSource2(selectedSource2Id) ? _periodePameranDateBackend : null,
-      periodePameranId: _isPameranSource2(selectedSource2Id) ? _resolvePeriodePameranId() : null,
+      periodePameranDate: _isPameranSource1(selectedSource1Id) ? _periodePameranDateBackend : null,
+      periodePameranId: _isPameranSource1(selectedSource1Id) ? _resolvePeriodePameranId() : null,
 
       units: ((widget.args.page == 0 && _selectedUnits.isNotEmpty) || (widget.args.page != 0 && _unitsTouched)) ? _selectedUnits.map((u) => u.toApiJson()).toList() : null,
     );
@@ -2136,6 +2140,10 @@ class _ContactFormPageState extends State<ContactFormPage> {
                                       periodePameranDateTC.text = '';
                                     }
                                   });
+                                  if (channelChanged) {
+                                    context.read<InfoSourceBloc>().add(const ResetInfoSourcesEvent([2]));
+                                    context.read<PameranAktifCubit>().reset();
+                                  }
                                 }
                               } else {
                                 context.read<InfoSourceBloc>().add(const FetchInfoSourcesEvent(type: 1));
@@ -2190,12 +2198,12 @@ class _ContactFormPageState extends State<ContactFormPage> {
                                   });
                                 }
                               } else {
-                                context.read<InfoSourceBloc>().add(FetchInfoSourcesEvent(type: 2, userId: selectedOwnerId));
+                                context.read<InfoSourceBloc>().add(FetchInfoSourcesEvent(type: 2, userId: selectedOwnerId, salesChannel: selectedSource1Name));
                               }
                             },
                             );
                           }),
-                          if (_isPameranSource2(selectedSource2Id))
+                          if (_isPameranSource1(selectedSource1Id))
                             Builder(builder: (context) {
                               final ps = context.watch<PameranAktifCubit>().state;
                               final list = ps is PameranAktifLoaded ? ps.data : [];
@@ -2695,6 +2703,10 @@ class _ContactFormPageState extends State<ContactFormPage> {
                                   periodePameranDateTC.text = '';
                                 }
                               });
+                              if (channelChanged) {
+                                context.read<InfoSourceBloc>().add(const ResetInfoSourcesEvent([2]));
+                                context.read<PameranAktifCubit>().reset();
+                              }
                             }
                           } else {
                             context.read<InfoSourceBloc>().add(const FetchInfoSourcesEvent(type: 1));
@@ -2749,12 +2761,12 @@ class _ContactFormPageState extends State<ContactFormPage> {
                               });
                             }
                           } else {
-                            context.read<InfoSourceBloc>().add(FetchInfoSourcesEvent(type: 2, userId: selectedOwnerId));
+                            context.read<InfoSourceBloc>().add(FetchInfoSourcesEvent(type: 2, userId: selectedOwnerId, salesChannel: selectedSource1Name));
                           }
                         },
                         );
                       }),
-                      if (_isPameranSource2(selectedSource2Id))
+                      if (_isPameranSource1(selectedSource1Id))
                         Builder(builder: (context) {
                           final ps = context.watch<PameranAktifCubit>().state;
                           final list = ps is PameranAktifLoaded ? ps.data : [];

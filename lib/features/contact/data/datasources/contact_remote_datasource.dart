@@ -32,7 +32,7 @@ abstract class ContactRemoteDataSource {
 
   Future<ContactModel?> checkDuplicateContact({required int ownerId, required String phone});
 
-  Future<List<InfoSourceModel>> getInfoSources({int? type, int? userId});
+  Future<List<InfoSourceModel>> getInfoSources({int? type, int? userId, String? salesChannel});
 
   Future<List<ProspectStatusModel>> getProspectStatuses({String? type});
   Future<List<LostReasonModel>> getLostReasons();
@@ -174,13 +174,14 @@ class ContactRemoteDataSourceImpl implements ContactRemoteDataSource {
   }
 
   @override
-  Future<List<InfoSourceModel>> getInfoSources({int? type, int? userId}) async {
+  Future<List<InfoSourceModel>> getInfoSources({int? type, int? userId, String? salesChannel}) async {
     try {
       final response = await dio.get(
         '/sumber-informasi',
         queryParameters: {
           if (type != null) 'type': type,
           if (userId != null) 'user_id': userId,
+          if (salesChannel != null && salesChannel.isNotEmpty) 'sales_channel': salesChannel,
         },
       );
 

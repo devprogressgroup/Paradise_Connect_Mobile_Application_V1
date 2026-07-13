@@ -10,10 +10,11 @@ abstract class InfoSourceEvent extends Equatable {
 class FetchInfoSourcesEvent extends InfoSourceEvent {
   final int? type;
   final int? userId;
-  const FetchInfoSourcesEvent({this.type, this.userId});
+  final String? salesChannel;
+  const FetchInfoSourcesEvent({this.type, this.userId, this.salesChannel});
 
   @override
-  List<Object> get props => [type ?? 0, userId ?? 0];
+  List<Object> get props => [type ?? 0, userId ?? 0, salesChannel ?? ''];
 }
 
 class ResetInfoSourcesEvent extends InfoSourceEvent {
