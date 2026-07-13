@@ -3,7 +3,7 @@ import 'package:progress_group/core/constants/assets.dart';
 import 'package:progress_group/core/services/ota_update_service.dart';
 import 'package:progress_group/core/constants/colors.dart';
 
-enum _UpdateState { idle, downloading, installing, error }
+enum _UpdateState { idle, needsPermission, downloading, installing, error }
 
 class UpdateDialog extends StatefulWidget {
   final String currentVersion;
@@ -21,13 +21,36 @@ class UpdateDialog extends StatefulWidget {
   State<UpdateDialog> createState() => _UpdateDialogState();
 }
 
-class _UpdateDialogState extends State<UpdateDialog> {
+class _UpdateDialogState extends State<UpdateDialog> with WidgetsBindingObserver {
   _UpdateState _state = _UpdateState.idle;
   double _progress = 0;
   String _errorMessage = '';
+  bool _awaitingPermissionResult = false;
 
-  void _startDownload() {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && _awaitingPermissionResult) {
+      _awaitingPermissionResult = false;
+      _startDownload();
+    }
+  }
+
+  Future<void> _startDownload() async {
     if (widget.downloadUrl.isEmpty) return;
+
+    final canInstall = await OtaUpdateService.canInstallPackages();
+    if (!canInstall) {
+      if (mounted) setState(() => _state = _UpdateState.needsPermission);
+      return;
+    }
+
+    if (!mounted) return;
     setState(() {
       _state = _UpdateState.downloading;
       _progress = 0;
@@ -50,9 +73,15 @@ class _UpdateDialogState extends State<UpdateDialog> {
     );
   }
 
+  Future<void> _openPermissionSettings() async {
+    _awaitingPermissionResult = true;
+    await OtaUpdateService.openInstallPermissionSettings();
+  }
+
   @override
   void dispose() {
     if (_state == _UpdateState.downloading) OtaUpdateService.cancel();
+    WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
 
@@ -113,6 +142,32 @@ class _UpdateDialogState extends State<UpdateDialog> {
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             ),
           ),
+        );
+
+      case _UpdateState.needsPermission:
+        return Column(
+          children: [
+            const Text(
+              'Izinkan instal aplikasi dari sumber ini terlebih dahulu untuk melanjutkan update.',
+              style: TextStyle(fontSize: 13, color: Color(0xFF444444), height: 1.5),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: _openPermissionSettings,
+                icon: const Icon(Icons.settings_rounded),
+                label: const Text('Izinkan', style: TextStyle(fontSize: 15)),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF1565C0),
+                  foregroundColor: Color(whiteColor),
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+              ),
+            ),
+          ],
         );
 
       case _UpdateState.downloading:

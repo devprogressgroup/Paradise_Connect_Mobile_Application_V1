@@ -71,4 +71,25 @@ class OtaUpdateService {
     _cancelToken?.cancel();
     _cancelToken = null;
   }
+
+  static Future<bool> canInstallPackages() async {
+    if (kIsWeb || !Platform.isAndroid) return true;
+    try {
+      final result = await _channel.invokeMethod<bool>('canInstallPackages');
+      return result ?? true;
+    } catch (e) {
+      // MissingPluginException kalau native belum di-rebuild, atau error lain — jangan blokir alur update
+      debugPrint('[OtaUpdateService] canInstallPackages gagal: $e');
+      return true;
+    }
+  }
+
+  static Future<void> openInstallPermissionSettings() async {
+    if (kIsWeb || !Platform.isAndroid) return;
+    try {
+      await _channel.invokeMethod('openInstallPermissionSettings');
+    } catch (e) {
+      debugPrint('[OtaUpdateService] openInstallPermissionSettings gagal: $e');
+    }
+  }
 }

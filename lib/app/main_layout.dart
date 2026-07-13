@@ -452,7 +452,7 @@ class _MainLayoutState extends State<MainLayout> {
                   child: Divider(),
                 ),
                 if (PermissionsHelper.canAccessAttendance)
-                  _buildDrawerItem(context, icNavAttendance, 'Attandance', path: '/attandance', index: 6),
+                  _buildDrawerItem(context, icNavAttendance, 'Attendance', path: '/attandance', index: 6),
                 const Spacer(),
 
                 const Spacer(),

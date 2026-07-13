@@ -1,4 +1,5 @@
 ﻿import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import '../network/api_constants.dart';
 
 class SalesbookSyncService {
@@ -16,7 +17,7 @@ class SalesbookSyncService {
       );
       // debugPrint('[SalesbookSync] contact_id=$contactId → ${response.statusCode} ${response.data}');
     } catch (e) {
-      // debugPrint('[SalesbookSync] ERROR contact_id=$contactId → $e');
+      debugPrint('[SalesbookSync] ERROR contact_id=$contactId → $e');
     }
   }
 }

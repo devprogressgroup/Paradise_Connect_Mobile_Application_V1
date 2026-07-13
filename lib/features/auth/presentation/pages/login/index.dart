@@ -568,23 +568,23 @@ class _LoginPageState extends State<LoginPage> {
                               ),)),
                         ],
                       ),
-                      if (kIsWeb) ...[
-                        const SizedBox(height: 8),
-                        GestureDetector(
-                          onTap: () {
-                            AnalyticsService.logEvent('login_debug_info');
-                            web_debug.showDebugPanel();
-                          },
-                          child: Text(
-                            'Debug Info',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              fontSize: 10,
-                              color: Color(greyShade400),
-                            ),
-                          ),
-                        ),
-                      ],
+                      // if (kIsWeb) ...[
+                      //   const SizedBox(height: 8),
+                      //   GestureDetector(
+                      //     onTap: () {
+                      //       AnalyticsService.logEvent('login_debug_info');
+                      //       web_debug.showDebugPanel();
+                      //     },
+                      //     child: Text(
+                      //       'Debug Info',
+                      //       textAlign: TextAlign.center,
+                      //       style: TextStyle(
+                      //         fontSize: 10,
+                      //         color: Color(greyShade400),
+                      //       ),
+                      //     ),
+                      //   ),
+                      // ],
                       // ValueListenableBuilder<AppEnvironment>(
                       //   valueListenable: ApiConstants.envNotifier,
                       //   builder: (_, env, __) => Text(

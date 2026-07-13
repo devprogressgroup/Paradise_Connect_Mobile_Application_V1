@@ -5,7 +5,7 @@ import 'package:progress_group/core/constants/colors.dart';
 import 'package:progress_group/core/services/ota_update_service.dart';
 import 'package:progress_group/core/services/analytics_service.dart';
 
-enum _Phase { preparing, downloading, installing, error }
+enum _Phase { preparing, needsPermission, downloading, installing, error }
 
 class UpdateScreen extends StatefulWidget {
   final String downloadUrl;
@@ -23,10 +23,12 @@ class UpdateScreen extends StatefulWidget {
   State<UpdateScreen> createState() => _UpdateScreenState();
 }
 
-class _UpdateScreenState extends State<UpdateScreen> with SingleTickerProviderStateMixin {
+class _UpdateScreenState extends State<UpdateScreen>
+    with SingleTickerProviderStateMixin, WidgetsBindingObserver {
   _Phase _phase = _Phase.preparing;
   double _progress = 0;
   String _errorMsg = '';
+  bool _awaitingPermissionResult = false;
 
   Timer? _dotsTimer;
   int _dots = 0;
@@ -38,6 +40,7 @@ class _UpdateScreenState extends State<UpdateScreen> with SingleTickerProviderSt
   void initState() {
     super.initState();
     AnalyticsService.logScreenView('update_screen');
+    WidgetsBinding.instance.addObserver(this);
 
     _glowController = AnimationController(
       vsync: this,
@@ -54,7 +57,36 @@ class _UpdateScreenState extends State<UpdateScreen> with SingleTickerProviderSt
     WidgetsBinding.instance.addPostFrameCallback((_) => _startDownload());
   }
 
-  void _startDownload() {
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && _awaitingPermissionResult) {
+      _awaitingPermissionResult = false;
+      _startDownload();
+    }
+  }
+
+  Future<void> _openPermissionSettings() async {
+    AnalyticsService.logEvent('update_screen_open_install_permission_settings');
+    _awaitingPermissionResult = true;
+    await OtaUpdateService.openInstallPermissionSettings();
+  }
+
+  Future<void> _startDownload() async {
+    final canInstall = await OtaUpdateService.canInstallPackages();
+    if (!canInstall) {
+      _dotsTimer?.cancel();
+      if (mounted) setState(() => _phase = _Phase.needsPermission);
+      return;
+    }
+
+    if (!mounted) return;
+    if (_phase == _Phase.needsPermission) {
+      _dotsTimer = Timer.periodic(const Duration(milliseconds: 450), (_) {
+        if (mounted) setState(() => _dots = (_dots + 1) % 4);
+      });
+    }
+    setState(() => _phase = _Phase.preparing);
+
     OtaUpdateService.downloadAndInstall(
       downloadUrl: widget.downloadUrl,
       onProgress: (p) {
@@ -84,6 +116,7 @@ class _UpdateScreenState extends State<UpdateScreen> with SingleTickerProviderSt
   void dispose() {
     _dotsTimer?.cancel();
     _glowController.dispose();
+    WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
 
@@ -93,6 +126,8 @@ class _UpdateScreenState extends State<UpdateScreen> with SingleTickerProviderSt
     switch (_phase) {
       case _Phase.preparing:
         return 'Mempersiapkan$_dotsStr';
+      case _Phase.needsPermission:
+        return 'Menunggu izin instal';
       case _Phase.downloading:
         return 'Mengunduh pembaruan$_dotsStr';
       case _Phase.installing:
@@ -126,7 +161,7 @@ class _UpdateScreenState extends State<UpdateScreen> with SingleTickerProviderSt
               
               const SizedBox(height: 40),
 
-              if (_phase != _Phase.error) ...[
+              if (_phase != _Phase.error && _phase != _Phase.needsPermission) ...[
                 _ProgressBar(progress: _progress, glowAnim: _glowAnim),
                 const SizedBox(height: 14),
                 Row(
@@ -145,6 +180,22 @@ class _UpdateScreenState extends State<UpdateScreen> with SingleTickerProviderSt
                       ),
                     ),
                   ],
+                ),
+              ],
+
+              if (_phase == _Phase.needsPermission) ...[
+                const Icon(Icons.lock_outline_rounded, color: Color(primaryColor), size: 40),
+                const SizedBox(height: 12),
+                const Text(
+                  'Izinkan instal aplikasi dari sumber ini terlebih dahulu untuk melanjutkan update.',
+                  style: TextStyle(color: Color(grey2Color), fontSize: 13, height: 1.5),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 20),
+                TextButton.icon(
+                  onPressed: _openPermissionSettings,
+                  icon: const Icon(Icons.settings_rounded, color: Color(primaryColor)),
+                  label: const Text('Izinkan', style: TextStyle(color: Color(primaryColor), fontSize: 15)),
                 ),
               ],
 
