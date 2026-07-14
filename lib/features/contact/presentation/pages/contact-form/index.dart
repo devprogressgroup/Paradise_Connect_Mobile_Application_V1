@@ -732,7 +732,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
         if (!mounted) return;
         final ps = context.read<PameranAktifCubit>().state;
         final list = ps is PameranAktifLoaded ? ps.data : <PameranAktifEntity>[];
-        _notifyIfNoPameranAktif(list);
+        // _notifyIfNoPameranAktif(list);
         setState(() {
           _applyPameranDate(list, fallbackNow);
         });
@@ -2158,8 +2158,8 @@ class _ContactFormPageState extends State<ContactFormPage> {
                             value: selectedSource2Name,
                             isError: _showValidation && (selectedSource2Id == null || selectedSource2Id == 0),
                             readOnly: noSalesChannelDetail,
-                            errorText: noSalesChannelDetail
-                                ? 'Tidak ada data'
+                            errorText: noSalesChannelDetail 
+                                ? 'Tidak ada pameran aktif'
                                 : (_showValidation && (selectedSource2Id == null || selectedSource2Id == 0)) ? 'Wajib diisi' : null,
                             onTap: () async {
                               AnalyticsService.logEvent('contact_form_select_info_source', parameters: {'field': 'sales_channel_detail'});
@@ -2722,7 +2722,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
                         isError: _showValidation && (selectedSource2Id == null || selectedSource2Id == 0),
                         readOnly: noSalesChannelDetail,
                         errorText: noSalesChannelDetail
-                            ? 'Tidak ada data'
+                            ? 'Tidak ada pameran aktif'
                             : (_showValidation && (selectedSource2Id == null || selectedSource2Id == 0)) ? 'Wajib diisi' : null,
                         onTap: () async {
                           AnalyticsService.logEvent('contact_form_select_info_source', parameters: {'field': 'sales_channel_detail'});
