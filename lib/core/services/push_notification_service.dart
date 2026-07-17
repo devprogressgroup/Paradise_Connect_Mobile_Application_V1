@@ -136,7 +136,12 @@ class PushNotificationService {
 
   static Future<void> initialize() async {
     try {
-      await _requestPermission();
+      // Di web, minta izin notifikasi harus dipicu oleh gesture user asli (klik) —
+      // dipanggil otomatis di sini (sebelum runApp, tanpa gesture) bikin Chrome diam-diam
+      // auto-deny permintaannya, dan di Safari malah bisa menggantung selamanya menunggu
+      // gesture yang tidak pernah datang, memblokir seluruh app boot. Di web, permintaan
+      // izin notifikasi sekarang didelegasikan ke DevicePermissionGate (tombol di layar gate).
+      if (!kIsWeb) await _requestPermission();
     } catch (e) {
       debugPrint('[FCM] Browser tidak mendukung Firebase Messaging: $e');
       _supported = false;

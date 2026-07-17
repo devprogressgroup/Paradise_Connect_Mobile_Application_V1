@@ -33,6 +33,7 @@ import '../features/site-plan/presentation/project-list/index.dart';
 import '../features/site-plan/presentation/site-plan-page/index.dart';
 import '../features/landing-page/presentation/landing-page/index.dart';
 import '../features/splash/presentation/pages/index.dart';
+import '../features/permission-gate/presentation/pages/index.dart';
 import '../features/siap-huni/presentation/pages/index.dart';
 import '../features/contact/presentation/pages/pipeline/index.dart';
 import 'main_layout.dart';
@@ -54,7 +55,7 @@ class AppRouter {
     rootNavigatorKey = GlobalKey<NavigatorState>();
     
     router = GoRouter(
-      initialLocation: '/splash',
+      initialLocation: '/permission-gate',
       navigatorKey: rootNavigatorKey,
       refreshListenable: authNotifier,
       observers: [appRouteObserver],
@@ -62,6 +63,7 @@ class AppRouter {
         final isLoggedIn = authNotifier.value;
         final location = state.matchedLocation;
 
+        if (location == '/permission-gate') return null;
         if (location == '/splash') return null;
         if (location.startsWith('/forgot-password')) return null;
 
@@ -71,6 +73,10 @@ class AppRouter {
         return null;
       },
       routes: [
+      GoRoute(
+        path: '/permission-gate',
+        builder: (context, state) => const PermissionGatePage(),
+      ),
       GoRoute(
         path: '/splash',
         builder: (context, state) => const SplashPage(),

@@ -211,7 +211,14 @@ void main() async {
     if (!kIsWeb) {
       FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
     }
-    await PushNotificationService.initialize();
+    // Timeout jaga-jaga: init ini jalan sebelum runApp(), jadi kalau ada panggilan di
+    // dalamnya yang menggantung (mis. permission/service-worker API browser yang tidak
+    // pernah resolve di Safari), seluruh app ikut macet di splash bawaan browser tanpa
+    // batas waktu. Lebih baik lanjut tanpa push notification daripada app tidak bisa dibuka.
+    await PushNotificationService.initialize().timeout(
+      const Duration(seconds: 8),
+      onTimeout: () => debugPrint('[Firebase] PushNotificationService.initialize() timeout, lanjut tanpa push notification'),
+    );
   } catch (e) {
     debugPrint('[Firebase] Init error: $e');
   }
