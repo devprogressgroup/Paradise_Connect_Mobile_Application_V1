@@ -51,6 +51,7 @@ class ContactBloc extends Bloc<ContactEvent, ContactState> {
           clearVisitDates: true,
           clearReserveDates: true,
           clearSpDates: true,
+          clearSort: true,
         )));
   }
 
@@ -96,6 +97,8 @@ class ContactBloc extends Bloc<ContactEvent, ContactState> {
           clearVisitDates: event.clearVisitDates,
           clearReserveDates: event.clearReserveDates,
           clearSpDates: event.clearSpDates,
+          sort: event.sort,
+          clearSort: event.clearSort,
         ),
       );
     } else {
@@ -124,6 +127,7 @@ class ContactBloc extends Bloc<ContactEvent, ContactState> {
       reserveEndDate: event.clearReserveDates ? null : (event.reserveEndDate ?? state.reserveEndDate),
       spStartDate: event.clearSpDates ? null : (event.spStartDate ?? state.spStartDate),
       spEndDate: event.clearSpDates ? null : (event.spEndDate ?? state.spEndDate),
+      sort: event.clearSort ? null : (event.sort ?? state.sort),
     );
 
     result.fold(

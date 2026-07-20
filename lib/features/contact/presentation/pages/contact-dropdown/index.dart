@@ -36,6 +36,7 @@ class _DropdownListContactState extends State<DropdownListContact> {
             return item.name.toLowerCase().contains(q) ||
                 (item.subtitle?.toLowerCase().contains(q) ?? false);
           }).toList();
+    if (widget.args.preserveOrder) return items;
     return items..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
   }
 

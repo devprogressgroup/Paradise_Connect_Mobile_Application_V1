@@ -7,7 +7,7 @@ class GetContactsUseCase {
 
   GetContactsUseCase(this.repository);
 
-  Future<Either<String, ContactResponse>> call({int page = 1, int perPage = 10, String? search, String? startDate, String? endDate, List<int>? ownerIds, List<int>? statusProspectIds, List<int>? salesChannelIds, List<int>? salesTeamIds, String? apptStartDate, String? apptEndDate, String? visitStartDate, String? visitEndDate, String? reserveStartDate, String? reserveEndDate, String? spStartDate, String? spEndDate}) {
+  Future<Either<String, ContactResponse>> call({int page = 1, int perPage = 10, String? search, String? startDate, String? endDate, List<int>? ownerIds, List<int>? statusProspectIds, List<int>? salesChannelIds, List<int>? salesTeamIds, String? apptStartDate, String? apptEndDate, String? visitStartDate, String? visitEndDate, String? reserveStartDate, String? reserveEndDate, String? spStartDate, String? spEndDate, String? sort}) {
     return repository.getContacts(
       page: page,
       perPage: perPage,
@@ -26,6 +26,7 @@ class GetContactsUseCase {
       reserveEndDate: reserveEndDate,
       spStartDate: spStartDate,
       spEndDate: spEndDate,
+      sort: sort,
     );
   }
 }

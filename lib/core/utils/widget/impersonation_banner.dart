@@ -42,7 +42,7 @@ class ImpersonationBanner extends StatelessWidget {
           child: SafeArea(
             bottom: false,
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(12, 6, 8, 6),
+              padding: const EdgeInsets.fromLTRB(6, 6, 8, 6),
               child: Row(
                 children: [
                   const Icon(Icons.visibility, color: Color(whiteColor), size: 18),

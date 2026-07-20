@@ -266,7 +266,7 @@ class _ContactPageState extends State<ContactPage> {
                                         ? _collectSalesTeamCandidates(profileState.profile)
                                         : const <_TeamCandidate>[];
 
-                                    final slots = <int>[0, 1, 2, 3, 4, 5, 6, 7];
+                                    final slots = <int>[13, 0, 1, 2, 3, 4, 5, 6, 7];
                                     if (availableRoles.contains('se')) slots.add(8);
                                     if (availableRoles.contains('spv')) slots.add(9);
                                     if (availableRoles.contains('sm')) slots.add(10);
@@ -655,6 +655,10 @@ class _ContactPageState extends State<ContactPage> {
                                       return _buildSalesTeamFilter(context);
                                     }
 
+                                    if (index == 13) {
+                                      return _buildSortFilter(context);
+                                    }
+
                                     return null;
                                   },
                                     );
@@ -1008,6 +1012,88 @@ Widget _buildSalesTeamFilter(BuildContext context) {
               }
             },
           );
+        },
+      );
+    },
+  );
+}
+
+const List<MapEntry<String, String>> _sortOptions = [
+  MapEntry('created_desc', 'Dibuat: Terbaru'),
+  MapEntry('created_asc', 'Dibuat: Terlama'),
+  MapEntry('name_asc', 'Nama: A-Z'),
+  MapEntry('name_desc', 'Nama: Z-A'),
+  MapEntry('appt_desc', 'Appt: Terbaru'),
+  MapEntry('appt_asc', 'Appt: Terlama'),
+  MapEntry('visit_desc', 'Visit: Terbaru'),
+  MapEntry('visit_asc', 'Visit: Terlama'),
+  MapEntry('reserve_desc', 'Reserve: Terbaru'),
+  MapEntry('reserve_asc', 'Reserve: Terlama'),
+  MapEntry('sp_desc', 'SP: Terbaru'),
+  MapEntry('sp_asc', 'SP: Terlama'),
+  MapEntry('lost_desc', 'Lost: Terbaru'),
+  MapEntry('lost_asc', 'Lost: Terlama'),
+];
+
+Widget _buildSortFilter(BuildContext context) {
+  return BlocBuilder<ContactBloc, ContactState>(
+    builder: (context, contactState) {
+      final currentSort = contactState.sort ?? 'created_desc';
+      final isSelected = currentSort != 'created_desc';
+      final selectedIndex = _sortOptions.indexWhere((e) => e.key == currentSort);
+      final label = selectedIndex >= 0 ? _sortOptions[selectedIndex].value : 'Urutkan';
+
+      return CustomFilterButton(
+        label: label,
+        isSelected: isSelected,
+        onClear: isSelected
+            ? () {
+                AnalyticsService.logEvent('contact_list_clear_sort_filter');
+                context.read<ContactBloc>().add(
+                  const FetchContactsEvent(isRefresh: true, clearSort: true),
+                );
+              }
+            : null,
+        onTap: () async {
+          AnalyticsService.logEvent('contact_list_filter_sort');
+          final items = List.generate(
+            _sortOptions.length,
+            (i) => OwnerDropdownItem(id: i, name: _sortOptions[i].value),
+          );
+
+          final result = await context.pushNamed(
+            'detailContactDropdown',
+            extra: ContactDropdownArgs(
+              title: 'Urutkan',
+              items: items,
+              selectedId: selectedIndex >= 0 ? selectedIndex : 0,
+              isMultiSelect: false,
+              allowClear: isSelected,
+              preserveOrder: true,
+            ),
+          );
+
+          if (result is List) {
+            if (context.mounted) {
+              AnalyticsService.logEvent('contact_list_clear_sort_filter');
+              context.read<ContactBloc>().add(
+                const FetchContactsEvent(isRefresh: true, clearSort: true),
+              );
+            }
+            return;
+          }
+
+          if (result != null && context.mounted) {
+            final selected = result as OwnerDropdownItem;
+            final key = _sortOptions[selected.id!].key;
+            context.read<ContactBloc>().add(
+              FetchContactsEvent(
+                isRefresh: true,
+                sort: key == 'created_desc' ? null : key,
+                clearSort: key == 'created_desc',
+              ),
+            );
+          }
         },
       );
     },

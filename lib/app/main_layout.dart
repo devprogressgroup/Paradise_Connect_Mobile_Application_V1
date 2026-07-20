@@ -20,6 +20,7 @@ import 'package:progress_group/core/utils/widget/shimmer_loading.dart';
 import 'package:progress_group/core/utils/widget/impersonation_banner.dart';
 import 'package:progress_group/core/services/analytics_service.dart';
 import 'package:progress_group/core/utils/widget/old_app_banner.dart';
+import 'package:progress_group/core/utils/widget/environment_banner.dart';
 
 class MainLayout extends StatefulWidget {
   final Widget child;
@@ -255,6 +256,7 @@ class _MainLayoutState extends State<MainLayout> {
       drawerScrimColor: Color(background2Color).withOpacity(0.16),
       body: Column(
         children: [
+          const EnvironmentBanner(),
           const ImpersonationBanner(),
           const OldAppBanner(),
           Expanded(

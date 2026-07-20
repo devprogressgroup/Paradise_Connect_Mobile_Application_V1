@@ -37,6 +37,8 @@ class FetchContactsEvent extends ContactEvent {
   final bool clearVisitDates;
   final bool clearReserveDates;
   final bool clearSpDates;
+  final String? sort;
+  final bool clearSort;
 
   const FetchContactsEvent({
     this.page = 1,
@@ -67,6 +69,8 @@ class FetchContactsEvent extends ContactEvent {
     this.clearVisitDates = false,
     this.clearReserveDates = false,
     this.clearSpDates = false,
+    this.sort,
+    this.clearSort = false,
   });
 
   @override
@@ -99,6 +103,8 @@ class FetchContactsEvent extends ContactEvent {
     clearVisitDates,
     clearReserveDates,
     clearSpDates,
+    sort,
+    clearSort,
   ];
 }
 

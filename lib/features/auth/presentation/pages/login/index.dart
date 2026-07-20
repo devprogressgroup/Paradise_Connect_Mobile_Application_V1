@@ -9,6 +9,7 @@ import 'package:progress_group/core/network/api_constants.dart';
 import 'package:local_auth/local_auth.dart';
 import 'package:progress_group/core/utils/widget/env_swither.dart';
 import 'package:progress_group/core/utils/widget/old_app_banner.dart';
+import 'package:progress_group/core/utils/widget/environment_banner.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../../../core/utils/widget/custom_snackbar.dart';
 import '../../state/auth/auth_bloc.dart';
@@ -166,6 +167,7 @@ class _LoginPageState extends State<LoginPage> {
       child: Scaffold(
         body: Column(
           children: [
+            const EnvironmentBanner(),
             const OldAppBanner(),
             Expanded(
               child: Container(

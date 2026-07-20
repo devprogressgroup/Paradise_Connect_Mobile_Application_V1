@@ -18,6 +18,7 @@ class ContactDropdownArgs {
   final List<int>? selectedIds;
   final bool isMultiSelect;
   final bool allowClear;
+  final bool preserveOrder;
 
   ContactDropdownArgs({
     required this.title,
@@ -27,5 +28,6 @@ class ContactDropdownArgs {
     this.selectedIds,
     this.isMultiSelect = false,
     this.allowClear = false,
+    this.preserveOrder = false,
   });
 }

@@ -39,6 +39,7 @@ class ContactState extends Equatable {
   final String? spEndDate;
   final int? totalContacts;
   final List<ContactEntity> duplicateCheckContacts;
+  final String? sort;
 
   const ContactState({
     this.status = ContactStatus.initial,
@@ -64,6 +65,7 @@ class ContactState extends Equatable {
     this.spEndDate,
     this.totalContacts,
     this.duplicateCheckContacts = const [],
+    this.sort,
   });
 
   ContactState copyWith({
@@ -100,6 +102,8 @@ class ContactState extends Equatable {
     bool clearSpDates = false,
     int? totalContacts,
     List<ContactEntity>? duplicateCheckContacts,
+    String? sort,
+    bool clearSort = false,
   }) {
     return ContactState(
       status: status ?? this.status,
@@ -125,6 +129,7 @@ class ContactState extends Equatable {
       spEndDate: clearSpDates ? null : (spEndDate ?? this.spEndDate),
       totalContacts: totalContacts ?? this.totalContacts,
       duplicateCheckContacts: duplicateCheckContacts ?? this.duplicateCheckContacts,
+      sort: clearSort ? null : (sort ?? this.sort),
     );
   }
 
@@ -153,5 +158,6 @@ class ContactState extends Equatable {
     spEndDate,
     totalContacts,
     duplicateCheckContacts,
+    sort,
   ];
 }
