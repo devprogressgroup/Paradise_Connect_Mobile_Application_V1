@@ -1250,6 +1250,8 @@ class _ContactAddPageState extends State<ContactAddPage> {
         SizedBox(height: 12),
         _fieldUnitPicker(),
         SizedBox(height: 12),
+        _fieldNameSP(),
+        SizedBox(height: 12),
         _fieldNote(),
         SizedBox(height: 12),
 
