@@ -4,6 +4,7 @@ import 'package:progress_group/core/constants/assets.dart';
 import 'package:progress_group/core/constants/colors.dart';
 import 'package:progress_group/core/services/ota_update_service.dart';
 import 'package:progress_group/core/services/analytics_service.dart';
+import 'package:progress_group/features/permission-gate/presentation/pages/index.dart';
 
 enum _Phase { preparing, needsPermission, downloading, installing, error }
 
@@ -139,7 +140,9 @@ class _UpdateScreenState extends State<UpdateScreen>
 
   @override
   Widget build(BuildContext context) {
-    if (_phase == _Phase.needsPermission) return _buildPermissionDialog();
+    if (_phase == _Phase.needsPermission) {
+      return PermissionGatePage(onAllGranted: () => _startDownload());
+    }
     return _buildFullScreen();
   }
 

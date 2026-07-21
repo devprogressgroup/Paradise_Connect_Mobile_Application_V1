@@ -17,9 +17,16 @@ class OtaUpdateService {
   }) async {
     if (kIsWeb || !Platform.isAndroid) return;
 
+    if (downloadUrl.isEmpty) {
+      debugPrint('[OtaUpdateService] downloadUrl kosong, batal download');
+      onError('URL unduhan tidak tersedia. Hubungi admin.');
+      return;
+    }
+
     _cancelToken = CancelToken();
 
     try {
+      debugPrint('[OtaUpdateService] mulai download dari $downloadUrl');
       final dir = await getTemporaryDirectory();
       final savePath = '${dir.path}/pg_update.apk';
 
@@ -45,11 +52,13 @@ class OtaUpdateService {
         },
       );
 
+      debugPrint('[OtaUpdateService] download selesai, buka installer: $savePath');
       onInstalling();
 
       await _channel.invokeMethod('installApk', {'filePath': savePath});
     } on DioException catch (e) {
       if (CancelToken.isCancel(e)) return;
+      debugPrint('[OtaUpdateService] DioException: ${e.type} - ${e.message}');
       switch (e.type) {
         case DioExceptionType.connectionTimeout:
         case DioExceptionType.sendTimeout:
@@ -61,8 +70,10 @@ class OtaUpdateService {
           onError('Download gagal, silakan coba lagi.');
       }
     } on PlatformException catch (e) {
+      debugPrint('[OtaUpdateService] PlatformException: ${e.code} - ${e.message}');
       onError('Gagal membuka installer: ${e.message}');
     } catch (e) {
+      debugPrint('[OtaUpdateService] Error tak terduga: $e');
       onError('Error: $e');
     }
   }

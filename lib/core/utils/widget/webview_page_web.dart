@@ -129,6 +129,10 @@ class _WebViewPageState extends State<WebViewPage> {
   
   
   String _toEmbedUrl(String url) {
+    final youtubeId = _extractYoutubeId(url);
+    if (youtubeId != null) {
+      return 'https://www.youtube.com/embed/$youtubeId?rel=0';
+    }
     final folderId = _extractFolderId(url);
     if (folderId != null) {
       return 'https://drive.google.com/embeddedfolderview?id=$folderId#list';
@@ -142,6 +146,13 @@ class _WebViewPageState extends State<WebViewPage> {
       return 'https://docs.google.com/viewer?url=$encoded&embedded=true';
     }
     return url;
+  }
+
+  String? _extractYoutubeId(String url) {
+    final m = RegExp(
+      r'(?:youtube(?:-nocookie)?\.com\/(?:watch\?v=|shorts\/|embed\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})',
+    ).firstMatch(url);
+    return m?.group(1);
   }
 
   String? _extractFolderId(String url) {

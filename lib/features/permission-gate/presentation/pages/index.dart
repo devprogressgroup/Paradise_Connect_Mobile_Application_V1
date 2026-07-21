@@ -6,7 +6,13 @@ import 'package:progress_group/core/constants/colors.dart';
 import 'package:progress_group/core/utils/helpers/device_permission_gate.dart';
 
 class PermissionGatePage extends StatefulWidget {
-  const PermissionGatePage({super.key});
+  /// Called instead of the default `context.go('/splash')` redirect once every
+  /// required permission is granted. Pass this when pushing the page on top of
+  /// an existing flow (e.g. mid-session from the update screen) so granting
+  /// permission resumes that flow instead of jumping away to splash.
+  final VoidCallback? onAllGranted;
+
+  const PermissionGatePage({super.key, this.onAllGranted});
 
   @override
   State<PermissionGatePage> createState() => _PermissionGatePageState();
@@ -55,7 +61,12 @@ class _PermissionGatePageState extends State<PermissionGatePage> with WidgetsBin
     if (_allGranted && !_navigated) {
       _navigated = true;
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) context.go('/splash');
+        if (!mounted) return;
+        if (widget.onAllGranted != null) {
+          widget.onAllGranted!();
+        } else {
+          context.go('/splash');
+        }
       });
     }
   }

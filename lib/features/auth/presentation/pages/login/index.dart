@@ -1,5 +1,6 @@
 ﻿import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import '../../../../../core/utils/web_debug_util.dart' as web_debug;
 import 'package:progress_group/core/services/analytics_service.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -31,6 +32,7 @@ class _LoginPageState extends State<LoginPage> {
   bool _isObscure = true;
   bool _biometricEnabled = false;
   List<BiometricType> _availableBiometrics = [];
+  String _appVersion = '';
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _emailFN = FocusNode();
@@ -44,8 +46,18 @@ class _LoginPageState extends State<LoginPage> {
     context.read<AuthBloc>().add(CheckRememberMeEvent());
     context.read<AuthBloc>().add(CheckBiometricEnabledEvent());
     _loadAvailableBiometrics();
+    _loadAppVersion();
   }
 
+
+  Future<void> _loadAppVersion() async {
+    try {
+      final info = await PackageInfo.fromPlatform();
+      if (mounted) setState(() => _appVersion = info.version);
+    } catch (_) {}
+  }
+
+  
   Future<void> _loadAvailableBiometrics() async {
     if (kIsWeb) return;
     final isSupported = await _auth.isDeviceSupported();
@@ -568,6 +580,16 @@ class _LoginPageState extends State<LoginPage> {
                                 fontSize: 12,
                                 fontWeight: FontWeight.w400,
                               ),)),
+                            if (_appVersion.isNotEmpty)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 12),
+                              child: Center(
+                                child: Text(
+                                  'v$_appVersion',
+                                  style: TextStyle(color: Color(grey4Color), fontSize: 11),
+                                ),
+                              ),
+                            ),
                         ],
                       ),
                       // if (kIsWeb) ...[
@@ -600,13 +622,13 @@ class _LoginPageState extends State<LoginPage> {
                       //     ),
                       //   ),
                       // ),
-                    ],
+                          ],
+                        ),
+                      ),
+                    ),
                   ),
                 ),
               ),
-            ),
-          ),
-        ),
             ),
           ],
         ),

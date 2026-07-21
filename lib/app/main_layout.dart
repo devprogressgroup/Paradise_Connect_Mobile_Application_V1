@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:progress_group/core/constants/assets.dart';
 import 'package:progress_group/core/constants/colors.dart';
 import 'package:progress_group/core/utils/pwa_install.dart';
@@ -37,6 +38,7 @@ class _MainLayoutState extends State<MainLayout> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   bool _pwaAvailable = false;
   bool _isIosSafariDevice = false;
+  String _appVersion = '';
 
   @override
   void initState() {
@@ -44,6 +46,14 @@ class _MainLayoutState extends State<MainLayout> {
     AnalyticsService.logScreenView('main_layout');
     context.read<WhatsappActivityBloc>().add(const FetchWhatsappUnreadSummaryEvent(0));
     _setupPwa();
+    _loadAppVersion();
+  }
+
+  Future<void> _loadAppVersion() async {
+    try {
+      final info = await PackageInfo.fromPlatform();
+      if (mounted) setState(() => _appVersion = info.version);
+    } catch (_) {}
   }
 
   static const _navEventByPath = {
@@ -501,6 +511,16 @@ class _MainLayoutState extends State<MainLayout> {
                     ),
                   ),
                 ),
+                if (_appVersion.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 12),
+                    child: Center(
+                      child: Text(
+                        'v$_appVersion',
+                        style: TextStyle(color: Color(grey4Color), fontSize: 11),
+                      ),
+                    ),
+                  ),
                 const SizedBox(height: 16),
               ],
             ),

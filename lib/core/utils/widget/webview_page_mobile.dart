@@ -214,6 +214,21 @@ class _WebViewerWidgetState extends State<WebViewerWidget> {
       url.contains('uc?id=') ||
       url.contains('drive.usercontent.google.com/download');
 
+  String? _extractYoutubeId(String url) {
+    final m = RegExp(
+      r'(?:youtube(?:-nocookie)?\.com\/(?:watch\?v=|shorts\/|embed\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})',
+    ).firstMatch(url);
+    return m?.group(1);
+  }
+
+  String _resolveLoadUrl(String url) {
+    final youtubeId = _extractYoutubeId(url);
+    if (youtubeId != null) {
+      return 'https://www.youtube.com/embed/$youtubeId?rel=0';
+    }
+    return url;
+  }
+
   String _filenameFromTitle() {
     final title = widget.title.trim();
    
@@ -255,7 +270,7 @@ class _WebViewerWidgetState extends State<WebViewerWidget> {
           },
         ),
       )
-      ..loadRequest(Uri.parse(widget.url));
+      ..loadRequest(Uri.parse(_resolveLoadUrl(widget.url)));
   }
 
   @override

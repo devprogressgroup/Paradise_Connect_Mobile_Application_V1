@@ -113,13 +113,17 @@ import 'features/site-plan/domain/repositories/site_plan_repository_impl.dart';
 import 'features/site-plan/presentation/state/siteplan_bloc.dart';
 import 'features/site-plan/presentation/state/siteplan_event.dart';
 import 'features/saleskit/domain/repositories/saleskit_repository.dart';
+import 'features/saleskit/domain/usecase/get_cluster_media_usecase.dart';
 import 'features/saleskit/domain/usecase/get_clusters_usecase.dart';
 import 'features/saleskit/domain/usecase/get_commercials_usecase.dart';
 import 'features/saleskit/domain/usecase/get_townships_saleskit_usecase.dart';
 import 'features/saleskit/domain/usecase/get_townships_usecase.dart';
+import 'features/saleskit/domain/usecase/share_caption_usecase.dart';
 import 'features/saleskit/presentation/state/saleskit_detail/saleskit_detail_bloc.dart';
 import 'features/saleskit/presentation/state/saleskit_township/saleskit_township_bloc.dart';
 import 'features/saleskit/presentation/state/saleskit_township/saleskit_township_event.dart';
+import 'features/saleskit/presentation/state/cluster_media_overview/cluster_media_overview_bloc.dart';
+import 'features/saleskit/presentation/state/cluster_media_list/cluster_media_list_bloc.dart';
 import 'features/saleskit/presentation/state/township/township_bloc.dart';
 import 'features/saleskit/presentation/state/township/township_event.dart';
 import 'core/utils/theme.dart';
@@ -421,6 +425,8 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     final getTownshipsSalesKitUseCase = GetTownshipsSalesKitUseCase(salesKitRepository);
     final getClustersUseCase = GetClustersUseCase(salesKitRepository);
     final getCommercialsUseCase = GetCommercialsUseCase(salesKitRepository);
+    final getClusterMediaUseCase = GetClusterMediaUseCase(salesKitRepository);
+    final shareCaptionUseCase = ShareCaptionUseCase(salesKitRepository);
 
     
     final attendanceRemoteDataSource = AttendanceRemoteDataSourceImpl(dioClient.dio);
@@ -491,6 +497,8 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
             BlocProvider(create: (_) => TownshipBloc(getTownshipsUseCase)..add(GetTownshipsEvent())),
             BlocProvider(create: (_) => SalesKitTownshipBloc(getTownshipsSalesKitUseCase)..add(GetSalesKitTownshipsEvent())),
             BlocProvider(create: (_) => SalesKitDetailBloc(getClustersUseCase: getClustersUseCase, getCommercialsUseCase: getCommercialsUseCase)),
+            BlocProvider(create: (_) => ClusterMediaOverviewBloc(getClusterMediaUseCase, shareCaptionUseCase)),
+            BlocProvider(create: (_) => ClusterMediaListBloc(getClusterMediaUseCase, shareCaptionUseCase)),
           ],
           child: MultiBlocListener(
             listeners: [
