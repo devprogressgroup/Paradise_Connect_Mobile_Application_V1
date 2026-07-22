@@ -120,14 +120,17 @@ class _PermissionGatePageState extends State<PermissionGatePage> with WidgetsBin
 
     setState(() => _requesting = true);
     // Request permission wajib (lokasi/notifikasi) dulu selagi masih dalam jendela user
-    // gesture dari tap tombol ini — primeWebCamera() (getUserMedia, bisa nunggu s/d 10 detik)
-    // taruh paling akhir supaya tidak menghabiskan jendela gesture itu di browser yang ketat.
+    // gesture dari tap tombol ini — kamera (getUserMedia, bisa nunggu s/d 10 detik) diminta
+    // paling akhir supaya tidak menghabiskan jendela gesture itu di browser yang ketat.
     for (final item in _items) {
+      if (item.type == DevicePermissionType.camera) continue;
       if (_granted[item.type] != true) {
         await DevicePermissionGate.request(item.type);
       }
     }
-    await DevicePermissionGate.primeWebCamera();
+    if (_granted[DevicePermissionType.camera] != true) {
+      await DevicePermissionGate.request(DevicePermissionType.camera);
+    }
     if (!mounted) return;
     setState(() => _requesting = false);
     await _refresh();
@@ -164,10 +167,6 @@ class _PermissionGatePageState extends State<PermissionGatePage> with WidgetsBin
     }
 
     setState(() => _requesting = true);
-
-    if (type == DevicePermissionType.camera) {
-      await DevicePermissionGate.primeWebCamera();
-    }
 
     await DevicePermissionGate.request(type);
 

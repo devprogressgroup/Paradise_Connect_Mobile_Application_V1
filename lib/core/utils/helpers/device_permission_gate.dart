@@ -63,11 +63,14 @@ class DevicePermissionGate {
   /// Kontak tidak tersedia di web (flutter_contacts mobile-only), dan galeri
   /// di web ditangani file picker browser tanpa izin OS terpisah, jadi keduanya
   /// tidak di-gate di web. Instal pembaruan (APK sideload) cuma konsep Android,
-  /// jadi tidak relevan di web maupun iOS.
+  /// jadi tidak relevan di web maupun iOS. Kamera DI-gate di web juga (lewat
+  /// getUserMedia, lihat [request]) supaya diminta di awal sekali di gate ini,
+  /// bukan mendadak nanti pas user pertama kali buka kamera absensi.
   static List<DevicePermissionItem> requiredItems() {
     if (kIsWeb) {
       return _items
           .where((i) =>
+              i.type == DevicePermissionType.camera ||
               i.type == DevicePermissionType.location ||
               i.type == DevicePermissionType.notification)
           .toList();
@@ -78,8 +81,26 @@ class DevicePermissionGate {
     return _items;
   }
 
+  /// Safari (terutama iOS, dan Web Push umumnya butuh PWA terinstal) kadang tidak
+  /// pernah menyelesaikan promise dari geolocator/firebase_messaging web interop
+  /// (API tidak didukung, service worker tidak pernah teregistrasi, dst) alih-alih
+  /// melempar error — tanpa guard ini, gate permission bisa macet selamanya di
+  /// loading spinner. Timeout + fallback memastikan `_refresh()` di halaman gate
+  /// selalu selesai, browser mana pun.
+  static Future<T> _guard<T>(
+    Future<T> Function() action,
+    T fallback, {
+    Duration timeout = const Duration(seconds: 8),
+  }) async {
+    try {
+      return await action().timeout(timeout);
+    } catch (_) {
+      return fallback;
+    }
+  }
+
   static Future<bool> isLocationServiceEnabled() {
-    return Geolocator.isLocationServiceEnabled();
+    return _guard(() => Geolocator.isLocationServiceEnabled(), true);
   }
 
   static int? _androidSdkInt;
@@ -99,22 +120,43 @@ class DevicePermissionGate {
     return sdkInt >= 33 ? ph.Permission.photos : ph.Permission.storage;
   }
 
+  /// Diisi [primeWebCamera] setelah getUserMedia sukses — dipakai [isGranted] sebagai
+  /// fallback di browser yang tidak mendukung query Permissions API 'camera' (Safari, Firefox).
+  static bool _webCameraGranted = false;
+
   static Future<bool> isGranted(DevicePermissionType type) async {
     switch (type) {
       case DevicePermissionType.location:
-        if (!await Geolocator.isLocationServiceEnabled()) return false;
-        final status = await Geolocator.checkPermission();
-        return status == LocationPermission.always ||
-            status == LocationPermission.whileInUse;
+        return _guard(() async {
+          if (!await Geolocator.isLocationServiceEnabled()) return false;
+          final status = await Geolocator.checkPermission();
+          return status == LocationPermission.always ||
+              status == LocationPermission.whileInUse;
+        }, false);
       case DevicePermissionType.notification:
         if (kIsWeb) {
-          final settings = await FirebaseMessaging.instance.getNotificationSettings();
-          return settings.authorizationStatus == AuthorizationStatus.authorized ||
-              settings.authorizationStatus == AuthorizationStatus.provisional;
+          // Fail-open: notifikasi bukan syarat mutlak jalannya app, dan Safari (khususnya
+          // iOS di luar PWA terinstal) tidak selalu mendukung Web Push — kalau checknya
+          // gagal/timeout, jangan sampai user Safari terkunci permanen di gate ini.
+          return _guard(() async {
+            final settings = await FirebaseMessaging.instance.getNotificationSettings();
+            return settings.authorizationStatus == AuthorizationStatus.authorized ||
+                settings.authorizationStatus == AuthorizationStatus.provisional;
+          }, true);
         }
         return (await ph.Permission.notification.status).isGranted;
       case DevicePermissionType.camera:
-        if (kIsWeb) return true;
+        if (kIsWeb) {
+          // Permissions API 'camera' cuma dikenal browser Chromium — di Safari/Firefox
+          // query-nya balas null (unsupported). Kalau begitu, andalkan _webCameraGranted
+          // (diisi [primeWebCamera] setelah getUserMedia sukses) alih-alih selalu bilang
+          // "belum" — tanpa ini, tap "Izinkan" sukses tapi _refresh() sesudahnya bilang
+          // tetap belum granted, dan gate ini macet permanen walau user sudah mengizinkan.
+          return _guard(() async {
+            final state = await queryCameraPermissionState();
+            return state == null ? _webCameraGranted : state == 'granted';
+          }, _webCameraGranted);
+        }
         return (await ph.Permission.camera.status).isGranted;
       case DevicePermissionType.gallery:
         if (kIsWeb) return true;
@@ -135,15 +177,22 @@ class DevicePermissionGate {
     if (kIsWeb) {
       // Browser tidak punya "buka pengaturan app" via JS — begitu user klik Block di
       // dialog native browser, statusnya permanen sampai user ubah manual lewat site
-      // settings browser. Location & notification-lah satu-satunya yang bisa dideteksi
-      // (lihat toLocationPermission di geolocator_web: browser state 'denied' → deniedForever).
+      // settings browser. Location, notification, dan kamera (lewat Permissions API,
+      // kalau didukung) yang bisa dideteksi (lihat toLocationPermission di geolocator_web:
+      // browser state 'denied' → deniedForever).
       switch (type) {
         case DevicePermissionType.location:
-          return await Geolocator.checkPermission() == LocationPermission.deniedForever;
+          return _guard(
+            () async => await Geolocator.checkPermission() == LocationPermission.deniedForever,
+            false,
+          );
         case DevicePermissionType.notification:
-          final settings = await FirebaseMessaging.instance.getNotificationSettings();
-          return settings.authorizationStatus == AuthorizationStatus.denied;
+          return _guard(() async {
+            final settings = await FirebaseMessaging.instance.getNotificationSettings();
+            return settings.authorizationStatus == AuthorizationStatus.denied;
+          }, false);
         case DevicePermissionType.camera:
+          return _guard(() async => await queryCameraPermissionState() == 'denied', false);
         case DevicePermissionType.gallery:
         case DevicePermissionType.contacts:
         case DevicePermissionType.installPackages:
@@ -152,7 +201,10 @@ class DevicePermissionGate {
     }
     switch (type) {
       case DevicePermissionType.location:
-        return await Geolocator.checkPermission() == LocationPermission.deniedForever;
+        return _guard(
+          () async => await Geolocator.checkPermission() == LocationPermission.deniedForever,
+          false,
+        );
       case DevicePermissionType.notification:
         return (await ph.Permission.notification.status).isPermanentlyDenied;
       case DevicePermissionType.camera:
@@ -190,7 +242,7 @@ class DevicePermissionGate {
         }
         return (await ph.Permission.notification.request()).isGranted;
       case DevicePermissionType.camera:
-        if (kIsWeb) return true;
+        if (kIsWeb) return primeWebCamera();
         return (await ph.Permission.camera.request()).isGranted;
       case DevicePermissionType.gallery:
         if (kIsWeb) return true;
@@ -216,12 +268,13 @@ class DevicePermissionGate {
     await ph.openAppSettings();
   }
 
-  /// Browser tidak punya API status kamera yang didukung semua browser, jadi kamera
-  /// tidak dijadikan item ter-gate di web (lihat [requiredItems]) — ini hanya memicu
-  /// prompt izin kamera browser lebih awal (best-effort, sama seperti dipakai halaman
-  /// absensi sebelum membuka kamera) supaya user tidak kaget diminta lagi nanti.
-  static Future<void> primeWebCamera() async {
-    if (!kIsWeb) return;
-    await primeCameraPermission();
+  /// Backing implementation [request] untuk kamera di web — getUserMedia adalah satu-satunya
+  /// cara memicu dialog izin kamera yang didukung semua browser (lihat [isGranted]/
+  /// [isPermanentlyDenied] soal Permissions API 'camera' yang cuma dikenal Chromium).
+  static Future<bool> primeWebCamera() async {
+    if (!kIsWeb) return true;
+    final granted = await requestCameraPermissionWeb();
+    if (granted) _webCameraGranted = true;
+    return granted;
   }
 }
