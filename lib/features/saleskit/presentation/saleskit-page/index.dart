@@ -196,6 +196,59 @@ class _SalesKitPageState extends State<SalesKitPage> {
                       ),
                     ),
                   ],
+                   if (args.priceList != null && args.priceList!.isNotEmpty) ...[
+                    SizedBox(height: 15),
+                    _buildButtonBorder(
+                      title: "Price List",
+                      colorBg: whiteColor,
+                      colorTitle: primaryColor,
+                      logo: icPriceList,
+                      onTap: () {
+                        AnalyticsService.logEvent('sales_kit_open_price_list');
+                        _openUrl(args.priceList, "Price List ${args.title ?? ''}".trim());
+                      },
+                    ),
+                  ],
+                  if (args.brochure != null && args.brochure!.isNotEmpty) ...[
+                    SizedBox(height: 15),
+                    _buildButtonBorder(
+                      title: "EBrouchure",
+                      colorBg: whiteColor,
+                      colorTitle: primaryColor,
+                      logo: icEBrouchure,
+                      onTap: () {
+                        AnalyticsService.logEvent('sales_kit_open_e_brochure');
+                        _openUrl(args.brochure, "E Brochure ${args.title ?? ''}".trim());
+                      },
+                    ),
+                  ],
+                  if (args.productKnowledge != null && args.productKnowledge!.isNotEmpty) ...[
+                    SizedBox(height: 15),
+                    _buildButtonBorder(
+                      title: "Product Knowledge",
+                      colorBg: whiteColor,
+                      colorTitle: primaryColor,
+                      logo: icProductKnowlage,
+                      onTap: () {
+                        AnalyticsService.logEvent('sales_kit_open_product_knowledge');
+                        _openUrl(args.productKnowledge, "Product Knowledge ${args.title ?? ''}".trim());
+                      },
+                    ),
+                  ],
+                  if (args.other != null && args.other!.isNotEmpty) ...[
+                    SizedBox(height: 15),
+                    _buildButtonBorder(
+                      title: "Promotion Kit",
+                      colorBg: whiteColor,
+                      colorTitle: primaryColor,
+                      logo: icAttacment,
+                      onTap: () {
+                        AnalyticsService.logEvent('sales_kit_open_promotion_kit');
+                        _openUrl(args.other, "Promotion Kit ${args.title ?? ''}".trim());
+                      },
+                    ),
+                  ],
+
                   if (args.clusterId != null) _buildMediaSections(args.clusterId!, args.ownerType, itemWidth),
                   SizedBox(height: 20),
                 ],
@@ -206,6 +259,48 @@ class _SalesKitPageState extends State<SalesKitPage> {
       ],
     );
   }
+
+    Widget _buildButtonBorder({
+    required String title,
+    required int colorBg,
+    required int colorTitle,
+    required VoidCallback onTap,
+    required String logo,
+    bool isDisabled = false,
+  }) {
+    final effectiveColorTitle = isDisabled ? grey4Color : colorTitle;
+    final effectiveColorBg = isDisabled ? grey8Color : colorBg;
+    return GestureDetector(
+      onTap: isDisabled ? null : onTap,
+      child: Container(
+        height: 52,
+        width: double.infinity,
+        decoration: BoxDecoration(
+          color: Color(effectiveColorBg),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: isDisabled ? Color(grey4Color) : Color(primaryColor)),
+        ),
+        child: Center(
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Image.asset(logo, height: 20, color: Color(effectiveColorTitle)),
+              SizedBox(width: 10),
+              Text(
+                title,
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.bold,
+                  color: Color(effectiveColorTitle),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
 
   Widget _buildSectionHeader(String title, {required VoidCallback onSeeAll}) {
     return Row(

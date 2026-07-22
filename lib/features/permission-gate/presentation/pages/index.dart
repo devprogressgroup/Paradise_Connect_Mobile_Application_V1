@@ -56,9 +56,11 @@ class _PermissionGatePageState extends State<PermissionGatePage> with WidgetsBin
       _permanentlyDenied[item.type] = await DevicePermissionGate.isPermanentlyDenied(item.type);
     }
     if (!mounted) return;
-    setState(() => _loading = false);
 
     if (_allGranted && !_navigated) {
+      // Semua izin sudah ada — jangan tampilkan daftar izin sama sekali (tetap di
+      // spinner) supaya halaman ini benar-benar "hide", bukan sempat kelihatan
+      // sebelum pindah ke splash.
       _navigated = true;
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;
@@ -68,7 +70,10 @@ class _PermissionGatePageState extends State<PermissionGatePage> with WidgetsBin
           context.go('/splash');
         }
       });
+      return;
     }
+
+    setState(() => _loading = false);
   }
 
   bool get _hasPermanentlyDenied => _permanentlyDenied.values.any((v) => v);
@@ -170,6 +175,7 @@ class _PermissionGatePageState extends State<PermissionGatePage> with WidgetsBin
 
     await DevicePermissionGate.request(type);
 
+    if (!mounted) return;
     setState(() => _requesting = false);
 
     await _refresh();

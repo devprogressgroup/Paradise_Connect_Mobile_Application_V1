@@ -4,8 +4,10 @@
 import 'dart:async';
 import 'dart:html' as html;
 import 'dart:js' as js;
+import 'dart:typed_data';
 import 'dart:ui_web' as ui_web;
 
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:progress_group/core/constants/colors.dart';
 import 'package:share_plus/share_plus.dart';

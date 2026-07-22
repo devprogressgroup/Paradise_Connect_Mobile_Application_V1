@@ -1762,7 +1762,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
           ),
           BlocListener<InfoSourceBloc, InfoSourceState>(
             listener: (context, state) {
-              if (widget.args.page != 0 && state.sourcesMap[2] != null) {
+              if (widget.args.page == 2 && state.sourcesMap[2] != null) {
                 final contact = context.read<ContactBloc>().state.contactDetail ?? widget.args.dataContact;
                 if (contact != null) _fillForm(contact);
               }
@@ -1943,24 +1943,24 @@ class _ContactFormPageState extends State<ContactFormPage> {
                                   setState(() {
                                     selectedOwnerId = owner.id;
                                     selectedOwnerName = owner.name;
-                                    if (ownerChanged) {
-                                      selectLastProject = null;
-                                      selectLastTownshipId = null;
-                                      selectLastProjectCategory = null;
-                                      selectLastProjectProduct = null;
-                                      selectProductType = null;
-                                      selectedSource1Id = null;
-                                      selectedSource1Name = null;
-                                      selectedSource2Id = null;
-                                      selectedSource2Name = null;
-                                      _periodePameranDateBackend = null;
-                                      periodePameranDateTC.text = '';
-                                    }
+                                    // if (ownerChanged) {
+                                    //   selectLastProject = null;
+                                    //   selectLastTownshipId = null;
+                                    //   selectLastProjectCategory = null;
+                                    //   selectLastProjectProduct = null;
+                                    //   selectProductType = null;
+                                    //   selectedSource1Id = null;
+                                    //   selectedSource1Name = null;
+                                    //   selectedSource2Id = null;
+                                    //   selectedSource2Name = null;
+                                    //   _periodePameranDateBackend = null;
+                                    //   periodePameranDateTC.text = '';
+                                    // }
                                   });
-                                  if (ownerChanged) {
-                                    context.read<PameranAktifCubit>().reset();
-                                    context.read<InfoSourceBloc>().add(const ResetInfoSourcesEvent([1, 2]));
-                                  }
+                                  // if (ownerChanged) {
+                                  //   context.read<PameranAktifCubit>().reset();
+                                  //   context.read<InfoSourceBloc>().add(const ResetInfoSourcesEvent([1, 2]));
+                                  // }
                                   _updateSalesInformation(owner.id ?? 0, user);
                                 }
                               }
@@ -2028,28 +2028,28 @@ class _ContactFormPageState extends State<ContactFormPage> {
                                 if (result != null) {
                                   final selected = result as OwnerDropdownItem;
                                   final projectChanged = selectLastTownshipId != selected.id;
-                                  setState(() {
-                                    selectLastProject = selected.name;
-                                    selectLastTownshipId = selected.id;
-                                    selectLastProjectCategory = null;
-                                    selectLastProjectProduct = null;
-                                    selectProductType = null;
+                                  // setState(() {
+                                  //   selectLastProject = selected.name;
+                                  //   selectLastTownshipId = selected.id;
+                                  //   selectLastProjectCategory = null;
+                                  //   selectLastProjectProduct = null;
+                                  //   selectProductType = null;
 
 
-                                    if (projectChanged) {
-                                      _selectedUnits = _activeUnitsForTownship(selected.id);
-                                      selectedSource1Id = null;
-                                      selectedSource1Name = null;
-                                      selectedSource2Id = null;
-                                      selectedSource2Name = null;
-                                      _periodePameranDateBackend = null;
-                                      periodePameranDateTC.text = '';
-                                    }
-                                  });
-                                  context.read<PropertyUnitCubit>().load(
-                                    selected.id!,
-                                    isCommercial: selectLastProjectCategory?.toLowerCase() == 'commercial',
-                                  );
+                                  //   if (projectChanged) {
+                                  //     _selectedUnits = _activeUnitsForTownship(selected.id);
+                                  //     selectedSource1Id = null;
+                                  //     selectedSource1Name = null;
+                                  //     selectedSource2Id = null;
+                                  //     selectedSource2Name = null;
+                                  //     _periodePameranDateBackend = null;
+                                  //     periodePameranDateTC.text = '';
+                                  //   }
+                                  // });
+                                  // context.read<PropertyUnitCubit>().load(
+                                  //   selected.id!,
+                                  //   isCommercial: selectLastProjectCategory?.toLowerCase() == 'commercial',
+                                  // );
                                 }
                               } else {
                                 context.read<TownshipBloc>().add(GetTownshipsEvent());
@@ -2133,17 +2133,17 @@ class _ContactFormPageState extends State<ContactFormPage> {
                                   setState(() {
                                     selectedSource1Id = selected.id;
                                     selectedSource1Name = selected.name;
-                                    if (channelChanged) {
-                                      selectedSource2Id = null;
-                                      selectedSource2Name = null;
-                                      _periodePameranDateBackend = null;
-                                      periodePameranDateTC.text = '';
-                                    }
+                                    // if (channelChanged) {
+                                    //   selectedSource2Id = null;
+                                    //   selectedSource2Name = null;
+                                    //   _periodePameranDateBackend = null;
+                                    //   periodePameranDateTC.text = '';
+                                    // }
                                   });
-                                  if (channelChanged) {
-                                    context.read<InfoSourceBloc>().add(const ResetInfoSourcesEvent([2]));
-                                    context.read<PameranAktifCubit>().reset();
-                                  }
+                                  // if (channelChanged) {
+                                  //   context.read<InfoSourceBloc>().add(const ResetInfoSourcesEvent([2]));
+                                  //   context.read<PameranAktifCubit>().reset();
+                                  // }
                                 }
                               } else {
                                 context.read<InfoSourceBloc>().add(const FetchInfoSourcesEvent(type: 1));
@@ -2176,27 +2176,27 @@ class _ContactFormPageState extends State<ContactFormPage> {
                                     selectedId: selectedSource2Id,
                                   ),
                                 );
-                                if (result != null) {
-                                  final selected = result as OwnerDropdownItem;
-                                  final matched = sources.cast<InfoSource?>().firstWhere((e) => e?.id == selected.id, orElse: () => null);
-                                  final isPameran = matched?.periodePameranId != null;
-                                  if (isPameran) {
-                                    final fallbackNow = AppTime.now();
-                                    await context.read<PameranAktifCubit>().load(lokasiPameran: matched!.name, userId: selectedOwnerId);
-                                    if (!mounted) return;
-                                    final ps = context.read<PameranAktifCubit>().state;
-                                    final list = ps is PameranAktifLoaded ? ps.data : <PameranAktifEntity>[];
-                                    _notifyIfNoPameranAktif(list);
-                                    _applyPameranDate(list, fallbackNow);
-                                  } else {
-                                    _periodePameranDateBackend = null;
-                                    periodePameranDateTC.text = '';
-                                  }
-                                  setState(() {
-                                    selectedSource2Id = selected.id;
-                                    selectedSource2Name = selected.name;
-                                  });
-                                }
+                                // if (result != null) {
+                                //   final selected = result as OwnerDropdownItem;
+                                //   final matched = sources.cast<InfoSource?>().firstWhere((e) => e?.id == selected.id, orElse: () => null);
+                                //   final isPameran = matched?.periodePameranId != null;
+                                //   if (isPameran) {
+                                //     final fallbackNow = AppTime.now();
+                                //     await context.read<PameranAktifCubit>().load(lokasiPameran: matched!.name, userId: selectedOwnerId);
+                                //     if (!mounted) return;
+                                //     final ps = context.read<PameranAktifCubit>().state;
+                                //     final list = ps is PameranAktifLoaded ? ps.data : <PameranAktifEntity>[];
+                                //     _notifyIfNoPameranAktif(list);
+                                //     _applyPameranDate(list, fallbackNow);
+                                //   } else {
+                                //     _periodePameranDateBackend = null;
+                                //     periodePameranDateTC.text = '';
+                                //   }
+                                //   setState(() {
+                                //     selectedSource2Id = selected.id;
+                                //     selectedSource2Name = selected.name;
+                                //   });
+                                // }
                               } else {
                                 context.read<InfoSourceBloc>().add(FetchInfoSourcesEvent(type: 2, userId: selectedOwnerId, salesChannel: selectedSource1Name));
                               }
