@@ -24,7 +24,7 @@ import 'package:progress_group/features/contact/domain/entities/attachment/uploa
 import 'package:progress_group/features/contact/domain/entities/contact/create_contact_params.dart';
 
 abstract class ContactRemoteDataSource {
-  Future<ContactResponseModel> getContacts({int page = 1, int perPage = 10, String? search, String? startDate, String? endDate, List<int>? ownerIds, List<int>? statusProspectIds, List<int>? salesChannelIds, List<int>? salesTeamIds, String? apptStartDate, String? apptEndDate, String? visitStartDate, String? visitEndDate, String? reserveStartDate, String? reserveEndDate, String? spStartDate, String? spEndDate, String? sort});
+  Future<ContactResponseModel> getContacts({int page = 1, int perPage = 10, String? search, String? startDate, String? endDate, List<int>? ownerIds, List<int>? statusProspectIds, List<int>? salesChannelIds, List<int>? salesTeamIds, List<int>? salesExecutiveIds, List<int>? salesSupervisorIds, List<int>? salesManagerIds, List<int>? salesGeneralManagerIds, String? apptStartDate, String? apptEndDate, String? visitStartDate, String? visitEndDate, String? reserveStartDate, String? reserveEndDate, String? spStartDate, String? spEndDate, String? sort});
 
   Future<List<ContactModel>> getAllContactsForDuplicateCheck();
 
@@ -85,33 +85,43 @@ class ContactRemoteDataSourceImpl implements ContactRemoteDataSource {
  
 
   @override
-  Future<ContactResponseModel> getContacts({int page = 1, int perPage = 10, String? search, String? startDate, String? endDate, List<int>? ownerIds, List<int>? statusProspectIds, List<int>? salesChannelIds, List<int>? salesTeamIds, String? apptStartDate, String? apptEndDate, String? visitStartDate, String? visitEndDate, String? reserveStartDate, String? reserveEndDate, String? spStartDate, String? spEndDate, String? sort}) async {
+  Future<ContactResponseModel> getContacts({int page = 1, int perPage = 10, String? search, String? startDate, String? endDate, List<int>? ownerIds, List<int>? statusProspectIds, List<int>? salesChannelIds, List<int>? salesTeamIds, List<int>? salesExecutiveIds, List<int>? salesSupervisorIds, List<int>? salesManagerIds, List<int>? salesGeneralManagerIds, String? apptStartDate, String? apptEndDate, String? visitStartDate, String? visitEndDate, String? reserveStartDate, String? reserveEndDate, String? spStartDate, String? spEndDate, String? sort}) async {
     try {
+      final queryParameters = {
+        'page': page,
+        'per_page': perPage,
+        if (search != null && search.isNotEmpty) 'search': search,
+        if (startDate != null && startDate.isNotEmpty) 'start_date': startDate,
+        if (endDate != null && endDate.isNotEmpty) 'end_date': endDate,
+        if (ownerIds != null && ownerIds.isNotEmpty) 'owner_id': ownerIds.join(','),
+        if (statusProspectIds != null && statusProspectIds.isNotEmpty) 'status_prospect_id': statusProspectIds.join(','),
+        if (salesChannelIds != null && salesChannelIds.isNotEmpty) 'sales_channel_id': salesChannelIds.join(','),
+        if (salesTeamIds != null && salesTeamIds.isNotEmpty) 'sales_team_id': salesTeamIds.join(','),
+        if (salesExecutiveIds != null && salesExecutiveIds.isNotEmpty) 'sales_executive_id': salesExecutiveIds.join(','),
+        if (salesSupervisorIds != null && salesSupervisorIds.isNotEmpty) 'sales_supervisor_id': salesSupervisorIds.join(','),
+        if (salesManagerIds != null && salesManagerIds.isNotEmpty) 'sales_manager_id': salesManagerIds.join(','),
+        if (salesGeneralManagerIds != null && salesGeneralManagerIds.isNotEmpty) 'sales_general_manager_id': salesGeneralManagerIds.join(','),
+        if (apptStartDate != null && apptStartDate.isNotEmpty) 'appt_start_date': apptStartDate,
+        if (apptEndDate != null && apptEndDate.isNotEmpty) 'appt_end_date': apptEndDate,
+        if (visitStartDate != null && visitStartDate.isNotEmpty) 'visit_start_date': visitStartDate,
+        if (visitEndDate != null && visitEndDate.isNotEmpty) 'visit_end_date': visitEndDate,
+        if (reserveStartDate != null && reserveStartDate.isNotEmpty) 'reserve_start_date': reserveStartDate,
+        if (reserveEndDate != null && reserveEndDate.isNotEmpty) 'reserve_end_date': reserveEndDate,
+        if (spStartDate != null && spStartDate.isNotEmpty) 'sp_start_date': spStartDate,
+        if (spEndDate != null && spEndDate.isNotEmpty) 'sp_end_date': spEndDate,
+        if (sort != null && sort.isNotEmpty) 'sort': sort,
+      };
+
+      debugPrint('[CONTACT ENDPOINT] GET /contacts?$queryParameters');
+
       final response = await dio.get(
         '/contacts',
-        queryParameters: {
-          'page': page,
-          'per_page': perPage,
-          if (search != null && search.isNotEmpty) 'search': search,
-          if (startDate != null && startDate.isNotEmpty) 'start_date': startDate,
-          if (endDate != null && endDate.isNotEmpty) 'end_date': endDate,
-          if (ownerIds != null && ownerIds.isNotEmpty) 'owner_id': ownerIds.join(','),
-          if (statusProspectIds != null && statusProspectIds.isNotEmpty) 'status_prospect_id': statusProspectIds.join(','),
-          if (salesChannelIds != null && salesChannelIds.isNotEmpty) 'sales_channel_id': salesChannelIds.join(','),
-          if (salesTeamIds != null && salesTeamIds.isNotEmpty) 'sales_team_id': salesTeamIds.join(','),
-          if (apptStartDate != null && apptStartDate.isNotEmpty) 'appt_start_date': apptStartDate,
-          if (apptEndDate != null && apptEndDate.isNotEmpty) 'appt_end_date': apptEndDate,
-          if (visitStartDate != null && visitStartDate.isNotEmpty) 'visit_start_date': visitStartDate,
-          if (visitEndDate != null && visitEndDate.isNotEmpty) 'visit_end_date': visitEndDate,
-          if (reserveStartDate != null && reserveStartDate.isNotEmpty) 'reserve_start_date': reserveStartDate,
-          if (reserveEndDate != null && reserveEndDate.isNotEmpty) 'reserve_end_date': reserveEndDate,
-          if (spStartDate != null && spStartDate.isNotEmpty) 'sp_start_date': spStartDate,
-          if (spEndDate != null && spEndDate.isNotEmpty) 'sp_end_date': spEndDate,
-          if (sort != null && sort.isNotEmpty) 'sort': sort,
-        },
+        queryParameters: queryParameters,
       );
 
       if (response.data['status'] == true) {
+
+        debugPrint('[RESPON CONTACT] ${response.data['data']}');
         return ContactResponseModel.fromJson(response.data['data']);
       }
 

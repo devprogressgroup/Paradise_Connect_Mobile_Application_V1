@@ -182,20 +182,20 @@ class _SalesKitPageState extends State<SalesKitPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  if (staticItems.isNotEmpty) ...[
-                    SizedBox(height: 15),
-                    _buildSectionHeader("SalesKit", onSeeAll: () => _openStaticSalesKitList(staticItems)),
-                    SizedBox(height: 12),
-                    SizedBox(
-                      height: staticCardHeight,
-                      child: ListView.separated(
-                        scrollDirection: Axis.horizontal,
-                        itemCount: staticItems.length,
-                        separatorBuilder: (_, __) => SizedBox(width: _horizontalRowSpacing),
-                        itemBuilder: (context, i) => _buildStaticCard(staticItems[i], itemWidth),
-                      ),
-                    ),
-                  ],
+                  // if (staticItems.isNotEmpty) ...[
+                  //   SizedBox(height: 15),
+                  //   _buildSectionHeader("SalesKit", onSeeAll: () => _openStaticSalesKitList(staticItems)),
+                  //   SizedBox(height: 12),
+                  //   SizedBox(
+                  //     height: staticCardHeight,
+                  //     child: ListView.separated(
+                  //       scrollDirection: Axis.horizontal,
+                  //       itemCount: staticItems.length,
+                  //       separatorBuilder: (_, __) => SizedBox(width: _horizontalRowSpacing),
+                  //       itemBuilder: (context, i) => _buildStaticCard(staticItems[i], itemWidth),
+                  //     ),
+                  //   ),
+                  // ],
                    if (args.priceList != null && args.priceList!.isNotEmpty) ...[
                     SizedBox(height: 15),
                     _buildButtonBorder(

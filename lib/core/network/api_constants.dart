@@ -27,9 +27,7 @@ class ApiConstants {
       baseUrl: 'https://api.connect.paradise.id/api',
       storageUrl: 'https://api.connect.paradise.id/storage',
       serverUrl: 'https://api.connect.paradise.id',
-      // baseUrl: 'https://apidevconnect.paradise.id/api',
-      // storageUrl: 'https://apidevconnect.paradise.id/storage',
-      // serverUrl: 'https://apidevconnect.paradise.id',
+    
     ),
 
 
@@ -171,3 +169,4 @@ class ApiConstants {
   static String commercialImageUrl(String filePath) => filePath.startsWith('bin/db/') ? '$_saleskitUrl/$filePath' : '$_saleskitUrl/bin/db/images/commercial/$filePath';
 
 }
+

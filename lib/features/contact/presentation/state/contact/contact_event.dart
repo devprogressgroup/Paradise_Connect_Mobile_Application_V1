@@ -18,6 +18,10 @@ class FetchContactsEvent extends ContactEvent {
   final List<int>? statusProspectIds;
   final List<int>? salesChannelIds;
   final List<int>? salesTeamIds;
+  final List<int>? salesExecutiveIds;
+  final List<int>? salesSupervisorIds;
+  final List<int>? salesManagerIds;
+  final List<int>? salesGeneralManagerIds;
   final bool isRefresh;
   final bool clearSearch;
   final bool clearDates;
@@ -25,6 +29,10 @@ class FetchContactsEvent extends ContactEvent {
   final bool clearStatus;
   final bool clearSalesChannel;
   final bool clearSalesTeam;
+  final bool clearSalesExecutive;
+  final bool clearSalesSupervisor;
+  final bool clearSalesManager;
+  final bool clearSalesGeneralManager;
   final String? apptStartDate;
   final String? apptEndDate;
   final String? visitStartDate;
@@ -50,6 +58,10 @@ class FetchContactsEvent extends ContactEvent {
     this.statusProspectIds,
     this.salesChannelIds,
     this.salesTeamIds,
+    this.salesExecutiveIds,
+    this.salesSupervisorIds,
+    this.salesManagerIds,
+    this.salesGeneralManagerIds,
     this.isRefresh = false,
     this.clearSearch = false,
     this.clearDates = false,
@@ -57,6 +69,10 @@ class FetchContactsEvent extends ContactEvent {
     this.clearStatus = false,
     this.clearSalesChannel = false,
     this.clearSalesTeam = false,
+    this.clearSalesExecutive = false,
+    this.clearSalesSupervisor = false,
+    this.clearSalesManager = false,
+    this.clearSalesGeneralManager = false,
     this.apptStartDate,
     this.apptEndDate,
     this.visitStartDate,
@@ -84,6 +100,10 @@ class FetchContactsEvent extends ContactEvent {
     statusProspectIds,
     salesChannelIds,
     salesTeamIds,
+    salesExecutiveIds,
+    salesSupervisorIds,
+    salesManagerIds,
+    salesGeneralManagerIds,
     isRefresh,
     clearSearch,
     clearDates,
@@ -91,6 +111,10 @@ class FetchContactsEvent extends ContactEvent {
     clearStatus,
     clearSalesChannel,
     clearSalesTeam,
+    clearSalesExecutive,
+    clearSalesSupervisor,
+    clearSalesManager,
+    clearSalesGeneralManager,
     apptStartDate,
     apptEndDate,
     visitStartDate,

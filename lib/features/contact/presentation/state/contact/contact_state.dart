@@ -28,6 +28,10 @@ class ContactState extends Equatable {
   final List<int>? statusProspectIds;
   final List<int>? salesChannelIds;
   final List<int>? salesTeamIds;
+  final List<int>? salesExecutiveIds;
+  final List<int>? salesSupervisorIds;
+  final List<int>? salesManagerIds;
+  final List<int>? salesGeneralManagerIds;
   final ContactEntity? contactDetail;
   final String? apptStartDate;
   final String? apptEndDate;
@@ -54,6 +58,10 @@ class ContactState extends Equatable {
     this.statusProspectIds,
     this.salesChannelIds,
     this.salesTeamIds,
+    this.salesExecutiveIds,
+    this.salesSupervisorIds,
+    this.salesManagerIds,
+    this.salesGeneralManagerIds,
     this.contactDetail,
     this.apptStartDate,
     this.apptEndDate,
@@ -81,12 +89,20 @@ class ContactState extends Equatable {
     List<int>? statusProspectIds,
     List<int>? salesChannelIds,
     List<int>? salesTeamIds,
+    List<int>? salesExecutiveIds,
+    List<int>? salesSupervisorIds,
+    List<int>? salesManagerIds,
+    List<int>? salesGeneralManagerIds,
     bool clearSearch = false,
     bool clearDates = false,
     bool clearOwner = false,
     bool clearStatus = false,
     bool clearSalesChannel = false,
     bool clearSalesTeam = false,
+    bool clearSalesExecutive = false,
+    bool clearSalesSupervisor = false,
+    bool clearSalesManager = false,
+    bool clearSalesGeneralManager = false,
     ContactEntity? contactDetail,
     String? apptStartDate,
     String? apptEndDate,
@@ -118,6 +134,10 @@ class ContactState extends Equatable {
       statusProspectIds: clearStatus ? null : (statusProspectIds ?? this.statusProspectIds),
       salesChannelIds: clearSalesChannel ? null : (salesChannelIds ?? this.salesChannelIds),
       salesTeamIds: clearSalesTeam ? null : (salesTeamIds ?? this.salesTeamIds),
+      salesExecutiveIds: clearSalesExecutive ? null : (salesExecutiveIds ?? this.salesExecutiveIds),
+      salesSupervisorIds: clearSalesSupervisor ? null : (salesSupervisorIds ?? this.salesSupervisorIds),
+      salesManagerIds: clearSalesManager ? null : (salesManagerIds ?? this.salesManagerIds),
+      salesGeneralManagerIds: clearSalesGeneralManager ? null : (salesGeneralManagerIds ?? this.salesGeneralManagerIds),
       contactDetail: contactDetail ?? this.contactDetail,
       apptStartDate: clearApptDates ? null : (apptStartDate ?? this.apptStartDate),
       apptEndDate: clearApptDates ? null : (apptEndDate ?? this.apptEndDate),
@@ -147,6 +167,10 @@ class ContactState extends Equatable {
     statusProspectIds,
     salesChannelIds,
     salesTeamIds,
+    salesExecutiveIds,
+    salesSupervisorIds,
+    salesManagerIds,
+    salesGeneralManagerIds,
     contactDetail,
     apptStartDate,
     apptEndDate,

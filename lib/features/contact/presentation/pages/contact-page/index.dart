@@ -621,6 +621,12 @@ class _ContactPageState extends State<ContactPage> {
                                         label: 'Sales Executive',
                                         pluralLabel: 'Sales Executives',
                                         analyticsEvent: 'contact_list_filter_sales_executive',
+                                        selectedIdsSelector: (s) => s.salesExecutiveIds,
+                                        buildEvent: (ids, isEmpty) => FetchContactsEvent(
+                                          salesExecutiveIds: ids,
+                                          isRefresh: true,
+                                          clearSalesExecutive: isEmpty,
+                                        ),
                                       );
                                     }
                                     if (index == 9) {
@@ -630,6 +636,12 @@ class _ContactPageState extends State<ContactPage> {
                                         label: 'Sales Supervisor',
                                         pluralLabel: 'Sales Supervisors',
                                         analyticsEvent: 'contact_list_filter_sales_supervisor',
+                                        selectedIdsSelector: (s) => s.salesSupervisorIds,
+                                        buildEvent: (ids, isEmpty) => FetchContactsEvent(
+                                          salesSupervisorIds: ids,
+                                          isRefresh: true,
+                                          clearSalesSupervisor: isEmpty,
+                                        ),
                                       );
                                     }
                                     if (index == 10) {
@@ -639,6 +651,12 @@ class _ContactPageState extends State<ContactPage> {
                                         label: 'Sales Manager',
                                         pluralLabel: 'Sales Managers',
                                         analyticsEvent: 'contact_list_filter_sales_manager',
+                                        selectedIdsSelector: (s) => s.salesManagerIds,
+                                        buildEvent: (ids, isEmpty) => FetchContactsEvent(
+                                          salesManagerIds: ids,
+                                          isRefresh: true,
+                                          clearSalesManager: isEmpty,
+                                        ),
                                       );
                                     }
                                     if (index == 11) {
@@ -648,6 +666,12 @@ class _ContactPageState extends State<ContactPage> {
                                         label: 'General Manager',
                                         pluralLabel: 'General Managers',
                                         analyticsEvent: 'contact_list_filter_general_manager',
+                                        selectedIdsSelector: (s) => s.salesGeneralManagerIds,
+                                        buildEvent: (ids, isEmpty) => FetchContactsEvent(
+                                          salesGeneralManagerIds: ids,
+                                          isRefresh: true,
+                                          clearSalesGeneralManager: isEmpty,
+                                        ),
                                       );
                                     }
 
@@ -743,10 +767,11 @@ String _normalizePhone(String phone) {
 
 class _OwnerCandidate {
   final int? id;
+  final int? salesPersonId;
   final String name;
   final String? subtitle;
   final String? positionName;
-  const _OwnerCandidate({this.id, required this.name, this.subtitle, this.positionName});
+  const _OwnerCandidate({this.id, this.salesPersonId, required this.name, this.subtitle, this.positionName});
 }
 
 class _TeamCandidate {
@@ -783,13 +808,13 @@ List<_TeamCandidate> _collectSalesTeamCandidates(UserProfileEntity user) {
 
 List<_OwnerCandidate> _collectOwnerCandidates(UserProfileEntity user) {
   final List<_OwnerCandidate> items = [
-    _OwnerCandidate(id: user.userId, name: user.fullName, subtitle: user.positionName, positionName: user.positionName),
+    _OwnerCandidate(id: user.userId, salesPersonId: user.salesPersonId, name: user.fullName, subtitle: user.positionName, positionName: user.positionName),
   ];
 
   if (user.subordinates.isNotEmpty) {
     void addSubs(List<HierarchyNodeEntity> subs) {
       for (final s in subs) {
-        items.add(_OwnerCandidate(id: s.userId, name: s.fullName, subtitle: s.positionName, positionName: s.positionName));
+        items.add(_OwnerCandidate(id: s.userId, salesPersonId: s.salesPersonId, name: s.fullName, subtitle: s.positionName, positionName: s.positionName));
         if (s.subordinates.isNotEmpty) addSubs(s.subordinates);
       }
     }
@@ -814,6 +839,7 @@ List<_OwnerCandidate> _collectOwnerCandidates(UserProfileEntity user) {
           seen.add(m.userId!);
           items.add(_OwnerCandidate(
             id: m.userId,
+            salesPersonId: m.salesPersonId,
             name: m.fullName,
             subtitle: '$teamName - ${m.positionName ?? ''}',
             positionName: m.positionName,
@@ -893,6 +919,8 @@ Widget _buildRolePositionFilter(
   required String label,
   required String pluralLabel,
   required String analyticsEvent,
+  required List<int>? Function(ContactState state) selectedIdsSelector,
+  required FetchContactsEvent Function(List<int> ids, bool isEmpty) buildEvent,
 }) {
   return BlocBuilder<ContactBloc, ContactState>(
     builder: (context, contactState) {
@@ -901,19 +929,22 @@ Widget _buildRolePositionFilter(
           String displayLabel = label;
           bool isSelected = false;
           List<_OwnerCandidate> candidates = const [];
+          final selectedIds = selectedIdsSelector(contactState) ?? const <int>[];
 
           if (profileState is ProfileLoaded) {
             candidates = _collectOwnerCandidates(profileState.profile)
                 .where((c) => _classifyPosition(c.positionName) == role)
                 .toList();
-            final candidateIds = candidates.map((c) => c.id).whereType<int>().toSet();
-            final roleSelectedIds = (contactState.ownerIds ?? []).where(candidateIds.contains).toList();
 
-            if (roleSelectedIds.isNotEmpty) {
+            if (selectedIds.isNotEmpty) {
               isSelected = true;
-              displayLabel = roleSelectedIds.length == 1
-                  ? (_resolveNameById(profileState.profile, roleSelectedIds.first) ?? label)
-                  : '${roleSelectedIds.length} $pluralLabel';
+              displayLabel = selectedIds.length == 1
+                  ? (candidates
+                          .cast<_OwnerCandidate?>()
+                          .firstWhere((c) => c?.salesPersonId == selectedIds.first, orElse: () => null)
+                          ?.name ??
+                      label)
+                  : '${selectedIds.length} $pluralLabel';
             }
           }
 
@@ -924,33 +955,23 @@ Widget _buildRolePositionFilter(
               AnalyticsService.logEvent(analyticsEvent);
               if (profileState is! ProfileLoaded) return;
 
-              final candidateIds = candidates.map((c) => c.id).whereType<int>().toSet();
-              final currentRoleSelected = (contactState.ownerIds ?? []).where(candidateIds.contains).toList();
-              final items = candidates.map((c) => OwnerDropdownItem(id: c.id, name: c.name, subtitle: c.subtitle)).toList();
+              final items = candidates.map((c) => OwnerDropdownItem(id: c.salesPersonId, name: c.name, subtitle: c.subtitle)).toList();
 
               final result = await context.pushNamed(
                 'detailContactDropdown',
                 extra: ContactDropdownArgs(
                   title: 'Pilih $label',
                   items: items,
-                  selectedIds: currentRoleSelected,
+                  selectedIds: selectedIds,
                   isMultiSelect: true,
                 ),
               );
 
               if (result != null && context.mounted) {
                 final selected = result as List<OwnerDropdownItem>;
-                final selectedIds = selected.map((e) => e.id).whereType<int>().toSet();
-                final others = (contactState.ownerIds ?? []).where((id) => !candidateIds.contains(id));
-                final merged = {...others, ...selectedIds}.toList();
+                final selectedResultIds = selected.map((e) => e.id).whereType<int>().toList();
 
-                context.read<ContactBloc>().add(
-                  FetchContactsEvent(
-                    ownerIds: merged,
-                    isRefresh: true,
-                    clearOwner: merged.isEmpty,
-                  ),
-                );
+                context.read<ContactBloc>().add(buildEvent(selectedResultIds, selected.isEmpty));
               }
             },
           );
