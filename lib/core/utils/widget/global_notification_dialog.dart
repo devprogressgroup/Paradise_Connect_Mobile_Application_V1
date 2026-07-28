@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:progress_group/core/constants/colors.dart';
+import 'package:progress_group/core/services/push_notification_service.dart';
 import 'package:progress_group/core/utils/widget/floating_download_overlay.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -14,6 +15,7 @@ Future<void> showGlobalNotificationDialog(
   final hasImage = mediaType == 'image' && (mediaUrl?.isNotEmpty ?? false);
   final hasPdf = mediaType == 'pdf' && (mediaUrl?.isNotEmpty ?? false);
   final hasLink = linkUrl != null && linkUrl.isNotEmpty;
+  final isInternalLink = linkUrl != null && linkUrl.startsWith('app://');
   final hasText = title.isNotEmpty || description.isNotEmpty || hasPdf || hasLink;
 
   return showDialog(
@@ -100,6 +102,10 @@ Future<void> showGlobalNotificationDialog(
                             InkWell(
                               borderRadius: BorderRadius.circular(12),
                               onTap: () async {
+                                if (PushNotificationService.tryNavigateInternalLink(linkUrl)) {
+                                  Navigator.of(ctx).pop();
+                                  return;
+                                }
                                 final uri = Uri.tryParse(linkUrl);
                                 if (uri != null && await canLaunchUrl(uri)) {
                                   launchUrl(uri, mode: LaunchMode.externalApplication);
@@ -115,11 +121,15 @@ Future<void> showGlobalNotificationDialog(
                                 ),
                                 child: Row(
                                   children: [
-                                    Icon(Icons.open_in_new_rounded, color: Color(primaryColor), size: 20),
+                                    Icon(
+                                      isInternalLink ? Icons.arrow_forward_rounded : Icons.open_in_new_rounded,
+                                      color: Color(primaryColor),
+                                      size: 20,
+                                    ),
                                     const SizedBox(width: 10),
                                     Expanded(
                                       child: Text(
-                                        'Buka Link',
+                                        isInternalLink ? 'Lihat Halaman' : 'Buka Link',
                                         style: TextStyle(color: Color(primaryColor), fontWeight: FontWeight.w600, fontSize: 14),
                                       ),
                                     ),

@@ -31,6 +31,28 @@ messaging.onBackgroundMessage(function(payload) {
   });
 });
 
+// Sama dengan globalNotificationInternalRoutes di push_notification_service.dart
+// (Dart) — diduplikasi di sini karena service worker jalan sebagai JS murni, tidak
+// bisa import kode Flutter. Kalau salah satunya diubah, ubah juga yang satu ini.
+const GLOBAL_NOTIFICATION_INTERNAL_ROUTES = {
+  approval: '/attandance/approval',
+  contact: '/contact',
+  task_home: '/task-home',
+  sales_kit: '/sales-kit',
+  site_plan: '/site-plan',
+  pipeline: '/pipeline',
+  notif: '/notif',
+  profile: '/profile',
+  siap_huni: '/siap-huni',
+};
+
+// Sama dengan _attendanceTabIndex di push_notification_service.dart.
+function attendanceTabPath(tab) {
+  if (tab === 'activity') return '/attandance?initialTab=1'; // Check In
+  if (tab === 'log') return '/attandance?initialTab=2'; // Clock Out
+  return '/attandance';
+}
+
 // Resolve target URL based on notification data type
 function getTargetUrl(data) {
   const type = data && data.type;
@@ -42,6 +64,31 @@ function getTargetUrl(data) {
     if (action === 'clock_out') return '/attandance?initialTab=2';
     if (action === 'checkin_activity') return '/attandance?initialTab=1';
     return '/attandance';
+  }
+  if (type === 'attendance_approved' || type === 'attendance_rejected') {
+    return '/attandance';
+  }
+  if (type === 'global_notification') {
+    const linkUrl = (data && data.link_url) || '';
+    if (linkUrl.indexOf('app://') === 0) {
+      let parsed;
+      try { parsed = new URL(linkUrl); } catch (e) { parsed = null; }
+      const key = parsed ? parsed.hostname : '';
+
+      if (key === 'attendance') {
+        return attendanceTabPath(parsed.searchParams.get('tab'));
+      }
+      // contact_detail butuh fetch data kontak dari API (lihat tryNavigateInternalLink
+      // di push_notification_service.dart) — tidak bisa dibangun dari service worker
+      // JS murni tanpa tab yang sedang jalan, jadi fallback ke list Contact saja.
+      if (key === 'contact_detail') {
+        return '/contact';
+      }
+      if (GLOBAL_NOTIFICATION_INTERNAL_ROUTES[key]) {
+        return GLOBAL_NOTIFICATION_INTERNAL_ROUTES[key];
+      }
+    }
+    return '/';
   }
   return '/';
 }

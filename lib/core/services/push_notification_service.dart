@@ -28,6 +28,24 @@ import 'web_notification_stub.dart'
 const String _channelId = 'upcoming_task_channel';
 const String _channelName = 'Upcoming Tasks';
 
+/// Menu internal app yang bisa dituju dari `link_url` Notifikasi Global (format
+/// `app://<key>` atau `app://<key>?param=...`, key harus ada di map ini —
+/// KECUALI `attendance` dan `contact_detail` yang butuh parameter tambahan,
+/// ditangani terpisah di [PushNotificationService.tryNavigateInternalLink]) —
+/// dibuat sama dengan dropdown "Menu Aplikasi" di dashboard
+/// (GlobalNotificationController::INTERNAL_LINK_KEYS).
+const Map<String, String> globalNotificationInternalRoutes = {
+  'approval': '/attandance/approval',
+  'contact': '/contact',
+  'task_home': '/task-home',
+  'sales_kit': '/sales-kit',
+  'site_plan': '/site-plan',
+  'pipeline': '/pipeline',
+  'notif': '/notif',
+  'profile': '/profile',
+  'siap_huni': '/siap-huni',
+};
+
 const String _vapidKey =  'BGIeIvkhfZzClnpnsLcZLyggcadQqTf_g996DoCZ1hJGeLcd0Tn8gHHuUnmjhvFA62wHqFLVDLaJjmZeGHC95PQ';
 
 final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =   FlutterLocalNotificationsPlugin();
@@ -184,6 +202,77 @@ class PushNotificationService {
   }
 
   static void navigateFromData(Map<String, dynamic> data) => _navigateFromData(data);
+
+  /// Cek apakah [linkUrl] adalah link internal (`app://<key>` atau
+  /// `app://<key>?param=...`) dari Notifikasi Global. Kalau iya, langsung
+  /// navigasi ke halaman terkait dan return true. Kalau bukan (link eksternal
+  /// biasa/null/key tak dikenal), return false — caller yang buka via
+  /// url_launcher seperti biasa.
+  static bool tryNavigateInternalLink(String? linkUrl) {
+    if (linkUrl == null || !linkUrl.startsWith('app://')) return false;
+    final uri = Uri.tryParse(linkUrl);
+    if (uri == null) return false;
+
+    final key = uri.host;
+
+    // Tab attandance (Clock In/Check In/Clock Out) dipilih lewat ?tab=, bukan
+    // key terpisah — satu route '/attandance', beda initialTab saja.
+    if (key == 'attendance') {
+      final tab = _attendanceTabIndex(uri.queryParameters['tab']);
+      AppRouter.router.go(tab == 0 ? '/attandance' : '/attandance?initialTab=$tab');
+      return true;
+    }
+
+    // Detail SATU kontak spesifik (dipilih admin saat kirim notif) dibuka di
+    // tab Activity/About/Attachment-nya — dataContact cuma butuh contactId,
+    // detail lengkap di-fetch ulang sama ContactDetailPage sendiri lewat
+    // ContactBloc (lihat _getContactDetail() di contact-detail/index.dart).
+    if (key == 'contact_detail') {
+      final contactId = int.tryParse(uri.queryParameters['contact_id'] ?? '');
+      if (contactId == null) return false;
+      final tab = _contactDetailTabIndex(uri.queryParameters['tab']);
+      AppRouter.router.goNamed(
+        'detailContact',
+        extra: ContactDetailArgs(
+          dataContact: ContactEntity(contactId: contactId),
+          initialTab: tab,
+        ),
+      );
+      return true;
+    }
+
+    final path = globalNotificationInternalRoutes[key];
+    if (path == null) return false;
+
+    AppRouter.router.go(path);
+    return true;
+  }
+
+  /// Urutan tab AttandancePage: 0=Clock In, 1=Check In, 2=Clock Out
+  /// (lihat `tabs` di attandance-page/index.dart).
+  static int _attendanceTabIndex(String? tab) {
+    switch (tab) {
+      case 'activity':
+        return 1; // Check In
+      case 'log':
+        return 2; // Clock Out
+      default:
+        return 0; // Clock In
+    }
+  }
+
+  /// Urutan tab ContactDetailPage: 0=Activity, 1=About, 2=Attachment
+  /// (lihat `tabs` di contact-detail/index.dart).
+  static int _contactDetailTabIndex(String? tab) {
+    switch (tab) {
+      case 'about':
+        return 1;
+      case 'attachment':
+        return 2;
+      default:
+        return 0; // activity
+    }
+  }
 
   // Pesan yang direlay oleh service worker (web/firebase-messaging-sw.js) lewat
   // postMessage saat notifikasi OS diklik. client.navigate() sebelumnya me-reload
@@ -486,6 +575,13 @@ class PushNotificationService {
 
     if (type == 'attendance_approved' || type == 'attendance_rejected') {
       AppRouter.router.go('/attandance');
+      return;
+    }
+
+    // Dikirim ContactLifecycleController::notifyResignReplacement() — kontak yang baru
+    // dialihkan (resign perorangan/team) muncul di list Contact milik sales pengganti.
+    if (type == 'contact_resign_team') {
+      AppRouter.router.go('/contact');
       return;
     }
 
