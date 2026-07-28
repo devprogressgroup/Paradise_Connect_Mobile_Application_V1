@@ -2133,17 +2133,17 @@ class _ContactFormPageState extends State<ContactFormPage> {
                                   setState(() {
                                     selectedSource1Id = selected.id;
                                     selectedSource1Name = selected.name;
-                                    // if (channelChanged) {
-                                    //   selectedSource2Id = null;
-                                    //   selectedSource2Name = null;
-                                    //   _periodePameranDateBackend = null;
-                                    //   periodePameranDateTC.text = '';
-                                    // }
+                                    if (channelChanged) {
+                                      selectedSource2Id = null;
+                                      selectedSource2Name = null;
+                                      _periodePameranDateBackend = null;
+                                      periodePameranDateTC.text = '';
+                                    }
                                   });
-                                  // if (channelChanged) {
-                                  //   context.read<InfoSourceBloc>().add(const ResetInfoSourcesEvent([2]));
-                                  //   context.read<PameranAktifCubit>().reset();
-                                  // }
+                                  if (channelChanged) {
+                                    context.read<InfoSourceBloc>().add(const ResetInfoSourcesEvent([2]));
+                                    context.read<PameranAktifCubit>().reset();
+                                  }
                                 }
                               } else {
                                 context.read<InfoSourceBloc>().add(const FetchInfoSourcesEvent(type: 1));
@@ -2158,7 +2158,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
                             value: selectedSource2Name,
                             isError: _showValidation && (selectedSource2Id == null || selectedSource2Id == 0),
                             readOnly: noSalesChannelDetail,
-                            errorText: noSalesChannelDetail 
+                            errorText: noSalesChannelDetail
                                 ? 'Tidak ada pameran aktif'
                                 : (_showValidation && (selectedSource2Id == null || selectedSource2Id == 0)) ? 'Wajib diisi' : null,
                             onTap: () async {
@@ -2176,27 +2176,27 @@ class _ContactFormPageState extends State<ContactFormPage> {
                                     selectedId: selectedSource2Id,
                                   ),
                                 );
-                                // if (result != null) {
-                                //   final selected = result as OwnerDropdownItem;
-                                //   final matched = sources.cast<InfoSource?>().firstWhere((e) => e?.id == selected.id, orElse: () => null);
-                                //   final isPameran = matched?.periodePameranId != null;
-                                //   if (isPameran) {
-                                //     final fallbackNow = AppTime.now();
-                                //     await context.read<PameranAktifCubit>().load(lokasiPameran: matched!.name, userId: selectedOwnerId);
-                                //     if (!mounted) return;
-                                //     final ps = context.read<PameranAktifCubit>().state;
-                                //     final list = ps is PameranAktifLoaded ? ps.data : <PameranAktifEntity>[];
-                                //     _notifyIfNoPameranAktif(list);
-                                //     _applyPameranDate(list, fallbackNow);
-                                //   } else {
-                                //     _periodePameranDateBackend = null;
-                                //     periodePameranDateTC.text = '';
-                                //   }
-                                //   setState(() {
-                                //     selectedSource2Id = selected.id;
-                                //     selectedSource2Name = selected.name;
-                                //   });
-                                // }
+                                if (result != null) {
+                                  final selected = result as OwnerDropdownItem;
+                                  final matched = sources.cast<InfoSource?>().firstWhere((e) => e?.id == selected.id, orElse: () => null);
+                                  final isPameran = matched?.periodePameranId != null;
+                                  if (isPameran) {
+                                    final fallbackNow = AppTime.now();
+                                    await context.read<PameranAktifCubit>().load(lokasiPameran: matched!.name, userId: selectedOwnerId);
+                                    if (!mounted) return;
+                                    final ps = context.read<PameranAktifCubit>().state;
+                                    final list = ps is PameranAktifLoaded ? ps.data : <PameranAktifEntity>[];
+                                    _notifyIfNoPameranAktif(list);
+                                    _applyPameranDate(list, fallbackNow);
+                                  } else {
+                                    _periodePameranDateBackend = null;
+                                    periodePameranDateTC.text = '';
+                                  }
+                                  setState(() {
+                                    selectedSource2Id = selected.id;
+                                    selectedSource2Name = selected.name;
+                                  });
+                                }
                               } else {
                                 context.read<InfoSourceBloc>().add(FetchInfoSourcesEvent(type: 2, userId: selectedOwnerId, salesChannel: selectedSource1Name));
                               }
