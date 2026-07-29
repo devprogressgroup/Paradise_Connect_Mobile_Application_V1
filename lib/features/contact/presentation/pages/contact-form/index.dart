@@ -721,17 +721,19 @@ class _ContactFormPageState extends State<ContactFormPage> {
     if (source2ForPrefill?.periodePameranId != null) {
       final fallbackNow = AppTime.now();
       periodePameranDateTC.text = DateHelper.formatDate(fallbackNow);
-      WidgetsBinding.instance.addPostFrameCallback((_) async {
-        if (!mounted) return;
-        await context.read<PameranAktifCubit>().load(lokasiPameran: source2ForPrefill!.name, userId: selectedOwnerId, all: widget.args.page == 1);
-        if (!mounted) return;
-        final ps = context.read<PameranAktifCubit>().state;
-        final list = ps is PameranAktifLoaded ? ps.data : <PameranAktifEntity>[];
-        // _notifyIfNoPameranAktif(list);
-        setState(() {
-          _applyPameranDate(list, fallbackNow);
+      if (widget.args.page == 1) {
+        WidgetsBinding.instance.addPostFrameCallback((_) async {
+          if (!mounted) return;
+          await context.read<PameranAktifCubit>().load(lokasiPameran: source2ForPrefill!.name, userId: selectedOwnerId, all: true);
+          if (!mounted) return;
+          final ps = context.read<PameranAktifCubit>().state;
+          final list = ps is PameranAktifLoaded ? ps.data : <PameranAktifEntity>[];
+          // _notifyIfNoPameranAktif(list);
+          setState(() {
+            _applyPameranDate(list, fallbackNow);
+          });
         });
-      });
+      }
     }
     volumePlanTC.text = contact.volumePlan?.toString() ?? '';
     vCountTC.text = contact.visitCount?.toString() ?? '';
@@ -2147,7 +2149,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
                           ),
                           Builder(builder: (context) {
                             final sources2 = context.watch<InfoSourceBloc>().state.sourcesMap[2];
-                            final noSalesChannelDetail = sources2 != null && sources2.isEmpty;
+                            final noSalesChannelDetail = _isPameranSource1(selectedSource1Id) && sources2 != null && sources2.isEmpty;
                             return _buildFieldDown(
                             label: "Sales Channel Detail",
                             value: selectedSource2Name,
@@ -2774,7 +2776,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
                             dateFirstDate: firstDate,
                             dateLastDate: lastDate,
                             readOnly: noPameranAktif,
-                            errorText: noPameranAktif ? 'Tidak ada pameran aktif' : null,
+                            errorText: noPameranAktif ? 'Tidak ada pameran aktifzzz' : null,
                             guard: () => _guardSalesChain(
                               [selectedOwnerId != null, selectFirstTownshipId != null, selectedSource1Id != null && selectedSource1Id != 0, selectedSource2Id != null && selectedSource2Id != 0],
                               ['Owner', 'Project', 'Sales Channel', 'Sales Channel Detail'],
