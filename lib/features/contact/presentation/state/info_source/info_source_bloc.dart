@@ -29,7 +29,7 @@ class InfoSourceBloc extends Bloc<InfoSourceEvent, InfoSourceState> {
   ) async {
     emit(state.copyWith(status: InfoSourceStatus.loading));
 
-    final result = await getInfoSourcesUseCase(type: event.type, userId: event.userId, salesChannel: event.salesChannel);
+    final result = await getInfoSourcesUseCase(type: event.type, userId: event.userId, salesChannel: event.salesChannel, all: event.all);
 
     result.fold(
       (failure) => emit(state.copyWith(

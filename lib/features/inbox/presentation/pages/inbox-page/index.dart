@@ -818,6 +818,7 @@ class _InboxPageState extends State<InboxPage> {
                   }
                 },
                 builder: (context, state) {
+                  final showingPairingCode = state is WhatsappQrStreaming && state.pairingCode != null;
                   return Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
@@ -835,7 +836,11 @@ class _InboxPageState extends State<InboxPage> {
                         ),
                       ),
                       SizedBox(height: 10),
-                      Text("Buka WhatsApp > Perangkat Tertaut > Tautkan Perangkat",textAlign: TextAlign.center, style: TextStyle(fontSize: 12, color: Color(greyShade500))),
+                      Text(
+                        showingPairingCode
+                            ? "Buka WhatsApp > Perangkat Tertaut > Tautkan dengan nomor telepon"
+                            : "Buka WhatsApp > Perangkat Tertaut > Tautkan Perangkat",
+                        textAlign: TextAlign.center, style: TextStyle(fontSize: 12, color: Color(greyShade500))),
                       SizedBox(height: 16),
                       if (state is WhatsappQrError)
                         const Padding(
@@ -844,9 +849,17 @@ class _InboxPageState extends State<InboxPage> {
                         ),
                       customButton((){ Navigator.pop(context); }, "Tutup", colorBg: Color(primaryColor), colorText: Color(whiteColor)),
                       SizedBox(height: 10),
-                      customButton((){ 
+                      customButton((){
+                        AnalyticsService.logEvent('inbox_qr_regenerate_qr');
                         context.read<WhatsappQrBloc>().add(StartQrSessionEvent(sessionId));
                       }, "Refresh QR", colorBg: Color(primaryColor), colorText: Color(whiteColor)),
+                      if (!showingPairingCode) ...[
+                        SizedBox(height: 10),
+                        customButton((){
+                          AnalyticsService.logEvent('inbox_qr_use_pairing_code');
+                          context.read<WhatsappQrBloc>().add(StartPairingCodeEvent(sessionId));
+                        }, "Gunakan Pairing Code", colorBg: Color(whiteColor), colorText: Color(primaryColor)),
+                      ],
                     ],
                   );
                 },
@@ -874,6 +887,25 @@ class _InboxPageState extends State<InboxPage> {
       );
     }
     if (state is WhatsappQrStreaming) {
+      if (state.pairingCode != null) {
+        return SizedBox(
+          width: 180,
+          height: 180,
+          child: Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text("Masukkan kode ini di HP Anda", textAlign: TextAlign.center, style: TextStyle(fontSize: 11, color: Color(greyShade500))),
+                SizedBox(height: 12),
+                Text(
+                  state.pairingCode!,
+                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, letterSpacing: 2, color: Color(primaryColor)),
+                ),
+              ],
+            ),
+          ),
+        );
+      }
       if (state.qrBase64 != null) {
         return Image.memory(
           base64Decode(state.qrBase64!),

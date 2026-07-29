@@ -8,6 +8,7 @@ import 'package:progress_group/features/inbox/data/arguments/inbox_detail_args.d
 import 'package:progress_group/core/constants/assets.dart';
 import 'package:progress_group/core/constants/colors.dart';
 import 'package:progress_group/core/utils/helpers/date_helper.dart';
+import 'package:progress_group/core/utils/helpers/app_time.dart';
 import 'package:progress_group/core/utils/widget/custom_header.dart';
 import 'package:progress_group/features/attandance/domain/entities/attendance_approval_entity.dart';
 import 'package:progress_group/features/attandance/presentation/state/attendance_approval/attendance_approval_cubit.dart';
@@ -195,10 +196,16 @@ class _NotifPageState extends State<NotifPage> {
     _loadAll();
   }
 
+  // "Upcoming Task" di feed notifikasi ini HARUS hari ini saja — sama seperti TaskPage
+  // (/task-home), bukan seluruh activity tanpa batas tanggal seperti sebelumnya.
+  String get _todayStr => DateHelper.formatNumericCompact(AppTime.now());
+
   void _loadAll() {
     context.read<AuthBloc>().add(FetchPermissionsEvent());
     context.read<NotifActivityBloc>().add(FetchActivitiesEvent(
       activityType: _selectedActivity.value,
+      followUpStartDate: _todayStr,
+      followUpEndDate: _todayStr,
       isRefresh: true,
     ));
     context.read<WhatsappActivityBloc>().add(const FetchWhatsappUnreadSummaryEvent(0));
@@ -268,7 +275,12 @@ class _NotifPageState extends State<NotifPage> {
         );
         if (result != null && mounted) {
           setState(() => _selectedActivity = result);
-          context.read<NotifActivityBloc>().add(FetchActivitiesEvent(activityType: result.value, isRefresh: true));
+          context.read<NotifActivityBloc>().add(FetchActivitiesEvent(
+            activityType: result.value,
+            followUpStartDate: _todayStr,
+            followUpEndDate: _todayStr,
+            isRefresh: true,
+          ));
         }
       },
       child: _filterChip(
@@ -277,7 +289,11 @@ class _NotifPageState extends State<NotifPage> {
         onClear: _isActivityFiltered ? () {
           AnalyticsService.logEvent('notif_clear_filter');
           setState(() => _selectedActivity = const _ActivityOption(null, 'Activity'));
-          context.read<NotifActivityBloc>().add(const FetchActivitiesEvent(isRefresh: true));
+          context.read<NotifActivityBloc>().add(FetchActivitiesEvent(
+            followUpStartDate: _todayStr,
+            followUpEndDate: _todayStr,
+            isRefresh: true,
+          ));
         } : null,
       ),
     );
@@ -613,6 +629,13 @@ class _NotifPageState extends State<NotifPage> {
     return GestureDetector(
       onTap: () {
         AnalyticsService.logEvent('notif_open_global_notification');
+        // Riwayat notifikasi PERSONAL (reminder absensi, lead baru, dst — dari FirebaseService::
+        // sendToUser()) linkUrl-nya berformat app://event/<type>?... — tangani ini SEBELUM dialog
+        // broadcast, supaya action-nya PERSIS sama dengan waktu push aslinya di-tap live (langsung
+        // navigasi, bukan dialog). Broadcast admin biasa (app://<key> polos/eksternal/tanpa link)
+        // tetap lewat dialog seperti semula.
+        if (PushNotificationService.tryNavigateFromEventLink(notif.linkUrl)) return;
+
         showGlobalNotificationDialog(
           context,
           title: notif.title,

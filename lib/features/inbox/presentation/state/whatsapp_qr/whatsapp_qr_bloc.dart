@@ -2,6 +2,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:progress_group/core/network/api_constants.dart';
 import 'package:progress_group/core/utils/helpers/error_message.dart';
 import 'package:progress_group/features/inbox/domain/usecases/get_qr_session_usecase.dart';
+import 'package:progress_group/features/inbox/domain/usecases/request_pair_code_usecase.dart';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
 
 
@@ -12,9 +13,19 @@ class StartQrSessionEvent extends WhatsappQrEvent {
   StartQrSessionEvent(this.session);
 }
 
+class StartPairingCodeEvent extends WhatsappQrEvent {
+  final String session;
+  StartPairingCodeEvent(this.session);
+}
+
 class UpdateQrCodeEvent extends WhatsappQrEvent {
   final String qrBase64;
   UpdateQrCodeEvent(this.qrBase64);
+}
+
+class UpdatePairingCodeEvent extends WhatsappQrEvent {
+  final String pairingCode;
+  UpdatePairingCodeEvent(this.pairingCode);
 }
 
 class UpdateConnectionStatusEvent extends WhatsappQrEvent {
@@ -31,8 +42,9 @@ class WhatsappQrLoading extends WhatsappQrState {}
 
 class WhatsappQrStreaming extends WhatsappQrState {
   final String? qrBase64;
+  final String? pairingCode;
   final String? status;
-  WhatsappQrStreaming({this.qrBase64, this.status});
+  WhatsappQrStreaming({this.qrBase64, this.pairingCode, this.status});
 }
 
 class WhatsappQrError extends WhatsappQrState {
@@ -43,24 +55,40 @@ class WhatsappQrError extends WhatsappQrState {
 
 class WhatsappQrBloc extends Bloc<WhatsappQrEvent, WhatsappQrState> {
   final GetQrSessionUsecase getQrSession;
+  final RequestPairCodeUsecase requestPairCode;
   IO.Socket? _socket;
 
-  WhatsappQrBloc(this.getQrSession) : super(WhatsappQrInitial()) {
+  WhatsappQrBloc(this.getQrSession, this.requestPairCode) : super(WhatsappQrInitial()) {
     on<StartQrSessionEvent>(_onStartSession);
+    on<StartPairingCodeEvent>(_onStartPairingCode);
     on<UpdateQrCodeEvent>(_onUpdateQr);
+    on<UpdatePairingCodeEvent>(_onUpdatePairingCode);
     on<UpdateConnectionStatusEvent>(_onUpdateStatus);
   }
 
   Future<void> _onStartSession(StartQrSessionEvent event, Emitter<WhatsappQrState> emit) async {
     emit(WhatsappQrLoading());
     try {
-      
+
       await getQrSession(session: event.session);
-      
-      
+
+
       emit(WhatsappQrStreaming());
 
-      
+
+      _connectSocket(event.session);
+    } catch (e) {
+      emit(WhatsappQrError(cleanErrorMessage(e)));
+    }
+  }
+
+  Future<void> _onStartPairingCode(StartPairingCodeEvent event, Emitter<WhatsappQrState> emit) async {
+    emit(WhatsappQrLoading());
+    try {
+      await requestPairCode(session: event.session);
+
+      emit(WhatsappQrStreaming());
+
       _connectSocket(event.session);
     } catch (e) {
       emit(WhatsappQrError(cleanErrorMessage(e)));
@@ -78,10 +106,22 @@ class WhatsappQrBloc extends Bloc<WhatsappQrEvent, WhatsappQrState> {
     }
   }
 
+  void _onUpdatePairingCode(UpdatePairingCodeEvent event, Emitter<WhatsappQrState> emit) {
+    if (state is WhatsappQrStreaming) {
+      emit(WhatsappQrStreaming(
+        pairingCode: event.pairingCode,
+        status: (state as WhatsappQrStreaming).status,
+      ));
+    } else {
+      emit(WhatsappQrStreaming(pairingCode: event.pairingCode));
+    }
+  }
+
   void _onUpdateStatus(UpdateConnectionStatusEvent event, Emitter<WhatsappQrState> emit) {
     if (state is WhatsappQrStreaming) {
       emit(WhatsappQrStreaming(
         qrBase64: (state as WhatsappQrStreaming).qrBase64,
+        pairingCode: (state as WhatsappQrStreaming).pairingCode,
         status: event.status,
       ));
     } else {
@@ -91,9 +131,9 @@ class WhatsappQrBloc extends Bloc<WhatsappQrEvent, WhatsappQrState> {
 
   void _connectSocket(String session) {
     _socket?.disconnect();
-    
-    
-    
+
+
+
     _socket = IO.io(ApiConstants.waServerURL, <String, dynamic>{
       'transports': ['websocket'],
       'autoConnect': true,
@@ -104,17 +144,27 @@ class WhatsappQrBloc extends Bloc<WhatsappQrEvent, WhatsappQrState> {
     _socket?.on('qr', (data) {
       if (data is Map && data['sessionId'] == session) {
         String qrFull = data['qr'].toString();
-        
+
         String cleanBase64 = qrFull.split(',').last;
         add(UpdateQrCodeEvent(cleanBase64));
+      }
+    });
+
+    _socket?.on('pairing_code', (data) {
+      if (data is Map && data['sessionId'] == session) {
+        String code = data['code'].toString();
+        if (code.length == 8) {
+          code = '${code.substring(0, 4)}-${code.substring(4)}';
+        }
+        add(UpdatePairingCodeEvent(code));
       }
     });
 
     _socket?.on('status', (data) {
       if (data is Map && data['status'] == 'CONNECTED') {
         add(UpdateConnectionStatusEvent('CONNECTED'));
-        
-        
+
+
       }
     });
   }

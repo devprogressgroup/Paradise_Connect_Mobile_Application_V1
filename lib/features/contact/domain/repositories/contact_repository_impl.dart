@@ -89,9 +89,9 @@ class ContactRepositoryImpl implements ContactRepository {
   }
 
   @override
-  Future<Either<String, List<InfoSource>>> getInfoSources({int? type, int? userId, String? salesChannel}) async {
+  Future<Either<String, List<InfoSource>>> getInfoSources({int? type, int? userId, String? salesChannel, bool all = false}) async {
     try {
-      final result = await remoteDataSource.getInfoSources(type: type, userId: userId, salesChannel: salesChannel);
+      final result = await remoteDataSource.getInfoSources(type: type, userId: userId, salesChannel: salesChannel, all: all);
       return Right(result);
     } catch (e) {
       return Left(e.toString());
@@ -324,9 +324,9 @@ class ContactRepositoryImpl implements ContactRepository {
   }
 
   @override
-  Future<Either<String, List<PameranAktifEntity>>> getPameranAktif({String? lokasiPameran, int? userId}) async {
+  Future<Either<String, List<PameranAktifEntity>>> getPameranAktif({String? lokasiPameran, int? userId, bool all = false}) async {
     try {
-      final result = await remoteDataSource.getPameranAktif(lokasiPameran: lokasiPameran, userId: userId);
+      final result = await remoteDataSource.getPameranAktif(lokasiPameran: lokasiPameran, userId: userId, all: all);
       return Right(result);
     } catch (e) {
       return Left(e.toString());

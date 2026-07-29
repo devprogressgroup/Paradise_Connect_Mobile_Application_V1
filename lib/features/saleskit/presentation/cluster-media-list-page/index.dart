@@ -296,13 +296,16 @@ class _ClusterMediaListPageState extends State<ClusterMediaListPage> {
             ),
              Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: CrossAxisAlignment.end,
                children: [
-                 Text(
-                    item.name,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(blue2Color)),
-                  ),
+                 Expanded(
+                   child: Text(
+                      item.name,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(blue2Color)),
+                    ),
+                 ),
                    IconButton(
                   onPressed: () => _shareMedia(item),
                   icon: Image.asset(icShare, height: 20, color: Color(primaryColor)),

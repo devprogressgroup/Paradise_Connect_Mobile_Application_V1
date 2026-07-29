@@ -32,7 +32,7 @@ abstract class ContactRemoteDataSource {
 
   Future<ContactModel?> checkDuplicateContact({required int ownerId, required String phone});
 
-  Future<List<InfoSourceModel>> getInfoSources({int? type, int? userId, String? salesChannel});
+  Future<List<InfoSourceModel>> getInfoSources({int? type, int? userId, String? salesChannel, bool all = false});
 
   Future<List<ProspectStatusModel>> getProspectStatuses({String? type});
   Future<List<LostReasonModel>> getLostReasons();
@@ -73,7 +73,7 @@ abstract class ContactRemoteDataSource {
   
   Future<List<UnitCluster>> getUnitHierarchy({required int townshipId, String? search});
   Future<List<UnitLot>> getUnitLots({required int productId, int? townshipId, int? companyId, String? search});
-  Future<List<PameranAktifModel>> getPameranAktif({String? lokasiPameran, int? userId});
+  Future<List<PameranAktifModel>> getPameranAktif({String? lokasiPameran, int? userId, bool all = false});
   Future<List<String>> getProductTypes();
 }
 
@@ -185,7 +185,7 @@ class ContactRemoteDataSourceImpl implements ContactRemoteDataSource {
   }
 
   @override
-  Future<List<InfoSourceModel>> getInfoSources({int? type, int? userId, String? salesChannel}) async {
+  Future<List<InfoSourceModel>> getInfoSources({int? type, int? userId, String? salesChannel, bool all = false}) async {
     try {
       final response = await dio.get(
         '/sumber-informasi',
@@ -193,6 +193,7 @@ class ContactRemoteDataSourceImpl implements ContactRemoteDataSource {
           if (type != null) 'type': type,
           if (userId != null) 'user_id': userId,
           if (salesChannel != null && salesChannel.isNotEmpty) 'sales_channel': salesChannel,
+          if (all) 'all': 1,
         },
       );
 
@@ -735,13 +736,14 @@ class ContactRemoteDataSourceImpl implements ContactRemoteDataSource {
   }
 
   @override
-  Future<List<PameranAktifModel>> getPameranAktif({String? lokasiPameran, int? userId}) async {
+  Future<List<PameranAktifModel>> getPameranAktif({String? lokasiPameran, int? userId, bool all = false}) async {
     try {
       final response = await dio.get(
         '/pameran/aktif',
         queryParameters: {
           if (lokasiPameran != null && lokasiPameran.isNotEmpty) 'lokasi_pameran': lokasiPameran,
           if (userId != null) 'user_id': userId,
+          if (all) 'all': 1,
         },
       );
 

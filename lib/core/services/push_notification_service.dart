@@ -233,6 +233,31 @@ class PushNotificationService {
 
   static void navigateFromData(Map<String, dynamic> data) => _navigateFromData(data);
 
+  /// Dipanggil dari halaman riwayat Notifikasi (GET /notifications, sumbernya
+  /// t_global_notifications) saat item personal (reminder absensi, lead baru, dst — BUKAN
+  /// broadcast admin) di-tap. `link_url` item itu dibuat FirebaseService::recordNotificationHistory()
+  /// dengan format `app://event/<type>?field=value` (beda dari `app://<key>` biasa punya
+  /// broadcast admin) — di-decode balik jadi data map yang SAMA seperti payload FCM aslinya,
+  /// lalu panggil _navigateFromData() supaya action-nya PERSIS sama dengan waktu push aslinya
+  /// di-tap live (termasuk buka dialog kalau type-nya 'attendance_feedback', dst).
+  ///
+  /// Return true kalau `linkUrl` memang format ini dan sudah ditangani (caller — NotifPage —
+  /// skip nampilin dialog broadcast). Return false kalau bukan (link_url null/eksternal/format
+  /// `app://<key>` broadcast admin biasa) — caller lanjut ke behavior lamanya (dialog).
+  static bool tryNavigateFromEventLink(String? linkUrl) {
+    if (linkUrl == null || !linkUrl.startsWith('app://event/')) return false;
+
+    final uri = Uri.tryParse(linkUrl);
+    if (uri == null || uri.pathSegments.isEmpty) return false;
+
+    final data = <String, dynamic>{
+      'type': uri.pathSegments.first,
+      ...uri.queryParameters,
+    };
+    _navigateFromData(data);
+    return true;
+  }
+
   /// Cek apakah [linkUrl] adalah link internal (`app://<key>` atau
   /// `app://<key>?param=...`) dari Notifikasi Global. Kalau iya, langsung
   /// navigasi ke halaman terkait dan return true. Kalau bukan (link eksternal
@@ -611,6 +636,25 @@ class PushNotificationService {
     // Dikirim ContactLifecycleController::notifyResignReplacement() — kontak yang baru
     // dialihkan (resign perorangan/team) muncul di list Contact milik sales pengganti.
     if (type == 'contact_resign_team') {
+      AppRouter.router.go('/contact');
+      return;
+    }
+
+    // Dikirim DbkBypassSyncService::notifyOwnerPush() (lead DBK Bypass),
+    // HubspotDealSyncService::notifyDealOwnerPush() (deal HubSpot biasa), ATAU
+    // ContactService::notifyContactOwnerChanged() (owner kontak dialihkan lewat PATCH
+    // /contacts/{id}) — ketiganya langsung buka detail contact yang bersangkutan (dataContact
+    // cuma butuh contactId, sisanya di-fetch ulang sendiri sama ContactDetailPage — sama
+    // seperti contact_detail internal link).
+    if (type == 'new_lead' || type == 'new_deal' || type == 'contact_owner_changed') {
+      final contactId = int.tryParse(data['contact_id']?.toString() ?? '');
+      if (contactId != null) {
+        AppRouter.router.goNamed(
+          'detailContact',
+          extra: ContactDetailArgs(dataContact: ContactEntity(contactId: contactId)),
+        );
+        return;
+      }
       AppRouter.router.go('/contact');
       return;
     }

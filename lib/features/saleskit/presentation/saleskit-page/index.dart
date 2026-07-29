@@ -137,16 +137,16 @@ class _SalesKitPageState extends State<SalesKitPage> {
     );
   }
 
-  List<_StaticSalesKitItem> _staticSalesKitItems(SalesKitDetailArgs args) => [
-        if (args.priceList != null && args.priceList!.isNotEmpty)
-          (title: "Price List", logo: icPriceList, url: args.priceList, event: 'sales_kit_open_price_list'),
-        if (args.brochure != null && args.brochure!.isNotEmpty)
-          (title: "E-Brochure", logo: icEBrouchure, url: args.brochure, event: 'sales_kit_open_e_brochure'),
-        if (args.productKnowledge != null && args.productKnowledge!.isNotEmpty)
-          (title: "Product Knowledge", logo: icProductKnowlage, url: args.productKnowledge, event: 'sales_kit_open_product_knowledge'),
-        if (args.other != null && args.other!.isNotEmpty)
-          (title: "Promotion Kit", logo: icAttacment, url: args.other, event: 'sales_kit_open_promotion_kit'),
-      ];
+  // List<_StaticSalesKitItem> _staticSalesKitItems(SalesKitDetailArgs args) => [
+  //       if (args.priceList != null && args.priceList!.isNotEmpty)
+  //         (title: "Price List", logo: icPriceList, url: args.priceList, event: 'sales_kit_open_price_list'),
+  //       if (args.brochure != null && args.brochure!.isNotEmpty)
+  //         (title: "E-Brochure", logo: icEBrouchure, url: args.brochure, event: 'sales_kit_open_e_brochure'),
+  //       if (args.productKnowledge != null && args.productKnowledge!.isNotEmpty)
+  //         (title: "Product Knowledge", logo: icProductKnowlage, url: args.productKnowledge, event: 'sales_kit_open_product_knowledge'),
+  //       if (args.other != null && args.other!.isNotEmpty)
+  //         (title: "Promotion Kit", logo: icAttacment, url: args.other, event: 'sales_kit_open_promotion_kit'),
+  //     ];
 
   static const double _horizontalRowSpacing = 12;
   static const double _horizontalRowPadding = 32; 
@@ -159,9 +159,9 @@ class _SalesKitPageState extends State<SalesKitPage> {
 
   Widget _buildShare() {
     final args = widget.args;
-    final staticItems = _staticSalesKitItems(args);
+    // final staticItems = _staticSalesKitItems(args);
     final itemWidth = _rowItemWidth(context);
-    final staticCardHeight = itemWidth * 0.75;
+    // final staticCardHeight = itemWidth * 0.75;
     return Column(
       children: [
         customHeader(context, args.title!, isBack: true),
@@ -321,115 +321,115 @@ class _SalesKitPageState extends State<SalesKitPage> {
     );
   }
 
-  Widget _buildStaticCard(_StaticSalesKitItem item, double width) {
-    return GestureDetector(
-      onTap: () {
-        AnalyticsService.logEvent(item.event);
-        _openUrl(item.url, "${item.title} ${widget.args.title ?? ''}".trim());
-      },
-      child: Container(
-        width: width,
-        decoration: BoxDecoration(
-          color: Color(whiteColor),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Color(primaryColor)),
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Image.asset(item.logo, height: 36, color: Color(primaryColor)),
-            SizedBox(height: 10),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8),
-              child: Text(
-                item.title,
-                textAlign: TextAlign.center,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(primaryColor)),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+  // Widget _buildStaticCard(_StaticSalesKitItem item, double width) {
+  //   return GestureDetector(
+  //     onTap: () {
+  //       AnalyticsService.logEvent(item.event);
+  //       _openUrl(item.url, "${item.title} ${widget.args.title ?? ''}".trim());
+  //     },
+  //     child: Container(
+  //       width: width,
+  //       decoration: BoxDecoration(
+  //         color: Color(whiteColor),
+  //         borderRadius: BorderRadius.circular(12),
+  //         border: Border.all(color: Color(primaryColor)),
+  //       ),
+  //       child: Column(
+  //         mainAxisAlignment: MainAxisAlignment.center,
+  //         children: [
+  //           Image.asset(item.logo, height: 36, color: Color(primaryColor)),
+  //           SizedBox(height: 10),
+  //           Padding(
+  //             padding: const EdgeInsets.symmetric(horizontal: 8),
+  //             child: Text(
+  //               item.title,
+  //               textAlign: TextAlign.center,
+  //               maxLines: 2,
+  //               overflow: TextOverflow.ellipsis,
+  //               style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(primaryColor)),
+  //             ),
+  //           ),
+  //         ],
+  //       ),
+  //     ),
+  //   );
+  // }
 
-  void _openStaticSalesKitList(List<_StaticSalesKitItem> items) {
-    AnalyticsService.logEvent('sales_kit_static_see_all');
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => Scaffold(
-          body: SafeArea(
-            child: Column(
-              children: [
-                customHeader(context, "SalesKit", isBack: true),
-                SizedBox(height: 12),
-                Expanded(
-                  child: ListView.separated(
-                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                    itemCount: items.length,
-                    separatorBuilder: (_, __) => SizedBox(height: 12),
-                    itemBuilder: (context, i) => _buildStaticListTile(items[i]),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
+  // void _openStaticSalesKitList(List<_StaticSalesKitItem> items) {
+  //   AnalyticsService.logEvent('sales_kit_static_see_all');
+  //   Navigator.push(
+  //     context,
+  //     MaterialPageRoute(
+  //       builder: (_) => Scaffold(
+  //         body: SafeArea(
+  //           child: Column(
+  //             children: [
+  //               customHeader(context, "SalesKit", isBack: true),
+  //               SizedBox(height: 12),
+  //               Expanded(
+  //                 child: ListView.separated(
+  //                   padding: const EdgeInsets.symmetric(horizontal: 16.0),
+  //                   itemCount: items.length,
+  //                   separatorBuilder: (_, __) => SizedBox(height: 12),
+  //                   itemBuilder: (context, i) => _buildStaticListTile(items[i]),
+  //                 ),
+  //               ),
+  //             ],
+  //           ),
+  //         ),
+  //       ),
+  //     ),
+  //   );
+  // }
 
-  Widget _buildStaticListTile(_StaticSalesKitItem item) {
-    return GestureDetector(
-      onTap: () {
-        AnalyticsService.logEvent(item.event);
-        _openUrl(item.url, "${item.title} ${widget.args.title ?? ''}".trim());
-      },
-      child: Container(
-        padding: const EdgeInsets.all(8),
-        decoration: BoxDecoration(
-          color: Color(whiteColor),
-          borderRadius: BorderRadius.circular(12),
-          boxShadow: [
-            BoxShadow(color: Color(grey6Color).withValues(alpha: 0.2), blurRadius: 5, offset: const Offset(0, 2)),
-          ],
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 70,
-              height: 70,
-              decoration: BoxDecoration(
-                color: Color(grey11Color),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Center(child: Image.asset(item.logo, height: 32, color: Color(primaryColor))),
-            ),
-            SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                item.title,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(blue2Color)),
-              ),
-            ),
-            IconButton(
-              onPressed: () {
-                if (item.url == null || item.url!.isEmpty) return;
-                AnalyticsService.logEvent('${item.event}_share');
-                Share.share(item.url!, subject: item.title);
-              },
-              icon: Image.asset(icShare, height: 20, color: Color(primaryColor)),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+  // Widget _buildStaticListTile(_StaticSalesKitItem item) {
+  //   return GestureDetector(
+  //     onTap: () {
+  //       AnalyticsService.logEvent(item.event);
+  //       _openUrl(item.url, "${item.title} ${widget.args.title ?? ''}".trim());
+  //     },
+  //     child: Container(
+  //       padding: const EdgeInsets.all(8),
+  //       decoration: BoxDecoration(
+  //         color: Color(whiteColor),
+  //         borderRadius: BorderRadius.circular(12),
+  //         boxShadow: [
+  //           BoxShadow(color: Color(grey6Color).withValues(alpha: 0.2), blurRadius: 5, offset: const Offset(0, 2)),
+  //         ],
+  //       ),
+  //       child: Row(
+  //         children: [
+  //           Container(
+  //             width: 70,
+  //             height: 70,
+  //             decoration: BoxDecoration(
+  //               color: Color(grey11Color),
+  //               borderRadius: BorderRadius.circular(8),
+  //             ),
+  //             child: Center(child: Image.asset(item.logo, height: 32, color: Color(primaryColor))),
+  //           ),
+  //           SizedBox(width: 12),
+  //           Expanded(
+  //             child: Text(
+  //               item.title,
+  //               maxLines: 2,
+  //               overflow: TextOverflow.ellipsis,
+  //               style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(blue2Color)),
+  //             ),
+  //           ),
+  //           IconButton(
+  //             onPressed: () {
+  //               if (item.url == null || item.url!.isEmpty) return;
+  //               AnalyticsService.logEvent('${item.event}_share');
+  //               Share.share(item.url!, subject: item.title);
+  //             },
+  //             icon: Image.asset(icShare, height: 20, color: Color(primaryColor)),
+  //           ),
+  //         ],
+  //       ),
+  //     ),
+  //   );
+  // }
 
   ScrollController _controllerFor(int clusterId, MediaOwnerType ownerType, int mediaGroupId) {
     return _sectionScrollControllers.putIfAbsent(mediaGroupId, () {
@@ -488,7 +488,7 @@ class _SalesKitPageState extends State<SalesKitPage> {
 
   Widget _buildMediaGroupSection(int clusterId, MediaOwnerType ownerType, MediaGroupSection section, double itemWidth) {
     final thumbHeight = itemWidth * 0.62;
-    final rowHeight = thumbHeight + 52;
+    final rowHeight = thumbHeight + 68;
     return Padding(
       padding: const EdgeInsets.only(top: 20),
       child: Column(
@@ -568,14 +568,18 @@ class _SalesKitPageState extends State<SalesKitPage> {
             ),
             SizedBox(height: 6),
             Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.end,
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  item.name,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(blue2Color)),
+                Expanded(
+                  child: Text(
+                    item.name,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    
+                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(blue2Color)),
+                    
+                  ),
                 ),
                  GestureDetector(
                   onTap: () => _shareMediaItem(item),

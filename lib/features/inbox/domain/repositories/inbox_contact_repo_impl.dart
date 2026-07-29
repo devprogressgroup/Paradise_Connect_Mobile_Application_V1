@@ -75,7 +75,18 @@ class InboxContactRepositoryImpl implements InboxContactRepository {
   @override
   Future<void> getQrSession({required String session}) async {
     final result = await remoteDataSource.getQrSession(session: session);
-    
+
+    final response = BaseResponse<Map<String, dynamic>>.fromJson(result, (data) => data);
+
+    if (!response.status) {
+      throw Exception(response.message);
+    }
+  }
+
+  @override
+  Future<void> requestPairCode({required String session}) async {
+    final result = await remoteDataSource.requestPairCode(session: session);
+
     final response = BaseResponse<Map<String, dynamic>>.fromJson(result, (data) => data);
 
     if (!response.status) {

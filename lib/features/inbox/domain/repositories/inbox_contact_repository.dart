@@ -13,4 +13,5 @@ abstract class InboxContactRepository {
   });
   Future<List<WhatsappDevice>> getWhatsappDevices();
   Future<void> getQrSession({required String session});
+  Future<void> requestPairCode({required String session});
 }

@@ -11,10 +11,11 @@ class FetchInfoSourcesEvent extends InfoSourceEvent {
   final int? type;
   final int? userId;
   final String? salesChannel;
-  const FetchInfoSourcesEvent({this.type, this.userId, this.salesChannel});
+  final bool all;
+  const FetchInfoSourcesEvent({this.type, this.userId, this.salesChannel, this.all = false});
 
   @override
-  List<Object> get props => [type ?? 0, userId ?? 0, salesChannel ?? ''];
+  List<Object> get props => [type ?? 0, userId ?? 0, salesChannel ?? '', all];
 }
 
 class ResetInfoSourcesEvent extends InfoSourceEvent {

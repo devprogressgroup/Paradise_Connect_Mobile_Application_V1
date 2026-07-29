@@ -110,37 +110,37 @@ class _SiapHuniPageState extends State<SiapHuniPage> {
       bottom: false,
       child: Column(
         children: [
-          if (_showFallbackBanner)
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              color: const Color(0xFFFFF8E1),
-              child: Row(
-                children: [
-                  const Icon(Icons.warning_amber_rounded, size: 16, color: Color(orangeAccentColor)),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      'Tampilan gagal dimuat. Buka di tab baru untuk melihat halaman.',
-                      style: TextStyle(fontSize: 11, color: Color(blackColor).withAlpha(87)),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  TextButton.icon(
-                    onPressed: () {
-                      AnalyticsService.logEvent('siap_huni_open_in_new_tab');
-                      html.window.open(_fullUrl, '_blank');
-                    },
-                    icon: const Icon(Icons.open_in_new, size: 14),
-                    label: const Text('Buka', style: TextStyle(fontSize: 12)),
-                    style: TextButton.styleFrom(
-                      foregroundColor: Color(primaryColor),
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                    ),
-                  ),
-                ],
-              ),
-            ),
+          // if (_showFallbackBanner)
+          //   Container(
+          //     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          //     color: const Color(0xFFFFF8E1),
+          //     child: Row(
+          //       children: [
+          //         const Icon(Icons.warning_amber_rounded, size: 16, color: Color(orangeAccentColor)),
+          //         const SizedBox(width: 8),
+          //         Expanded(
+          //           child: Text(
+          //             'Tampilan gagal dimuat. Buka di tab baru untuk melihat halaman.',
+          //             style: TextStyle(fontSize: 11, color: Color(blackColor).withAlpha(87)),
+          //           ),
+          //         ),
+          //         const SizedBox(width: 8),
+          //         TextButton.icon(
+          //           onPressed: () {
+          //             AnalyticsService.logEvent('siap_huni_open_in_new_tab');
+          //             html.window.open(_fullUrl, '_blank');
+          //           },
+          //           icon: const Icon(Icons.open_in_new, size: 14),
+          //           label: const Text('Buka', style: TextStyle(fontSize: 12)),
+          //           style: TextButton.styleFrom(
+          //             foregroundColor: Color(primaryColor),
+          //             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          //             tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          //           ),
+          //         ),
+          //       ],
+          //     ),
+          //   ),
           if (_isLoading)
             const LinearProgressIndicator(
               minHeight: 2,

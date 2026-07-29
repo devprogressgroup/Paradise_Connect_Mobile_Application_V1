@@ -342,11 +342,16 @@ class _ContactDetailPageState extends State<ContactDetailPage>with TickerProvide
                                                   color: Color(blue2Color),
                                                 ),
                                               ),
-                                              Text(
-                                                name,
-                                                style: const TextStyle(
-                                                  fontSize: 20,
-                                                  fontWeight: FontWeight.w700,
+                                              Container(
+                                                width: MediaQuery.of(context).size.width * 0.8,
+                                                child: Text(
+                                                  name,
+                                                  style: const TextStyle(
+                                                    fontSize: 20,
+                                                    fontWeight: FontWeight.w700,
+                                                  ),
+                                                  overflow: TextOverflow.ellipsis,
+                                                  maxLines: 1,
                                                 ),
                                               ),
                                             ],

@@ -6,7 +6,7 @@ class GetInfoSourcesUseCase {
   final ContactRepository repository;
   GetInfoSourcesUseCase(this.repository);
 
-  Future<Either<String, List<InfoSource>>> call({int? type, int? userId, String? salesChannel}) async {
-    return await repository.getInfoSources(type: type, userId: userId, salesChannel: salesChannel);
+  Future<Either<String, List<InfoSource>>> call({int? type, int? userId, String? salesChannel, bool all = false}) async {
+    return await repository.getInfoSources(type: type, userId: userId, salesChannel: salesChannel, all: all);
   }
 }

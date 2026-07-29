@@ -5,6 +5,7 @@ abstract class InboxContactRemoteDataSource {
   Future<Map<String, dynamic>> getInboxContacts({  String? search,  int? cPage,  int? gPage,  List<int>? salesExecutiveIds,  int? statusProspectId,  String? startDate,  String? endDate,});
   Future<Map<String, dynamic>> getWhatsappDevices();
   Future<Map<String, dynamic>> getQrSession({required String session});
+  Future<Map<String, dynamic>> requestPairCode({required String session});
 }
 
 class InboxContactRemoteDataSourceImpl implements InboxContactRemoteDataSource {
@@ -86,8 +87,33 @@ class InboxContactRemoteDataSourceImpl implements InboxContactRemoteDataSource {
       }
     } on DioException catch (e) {
        if (e.response != null) {
-        return e.response!.data is String 
-            ? jsonDecode(e.response!.data) 
+        return e.response!.data is String
+            ? jsonDecode(e.response!.data)
+            : e.response!.data;
+      } else {
+        throw Exception("Tidak dapat terhubung ke server");
+      }
+    }
+  }
+
+  @override
+  Future<Map<String, dynamic>> requestPairCode({required String session}) async {
+    try {
+      final response = await dio.get(
+        '/whatsapp/qr/$session/pair-code',
+      );
+
+      if (response.data is String) {
+        return jsonDecode(response.data) as Map<String, dynamic>;
+      } else if (response.data is Map<String, dynamic>) {
+        return response.data;
+      } else {
+        throw Exception("Format response tidak didukung");
+      }
+    } on DioException catch (e) {
+       if (e.response != null) {
+        return e.response!.data is String
+            ? jsonDecode(e.response!.data)
             : e.response!.data;
       } else {
         throw Exception("Tidak dapat terhubung ke server");

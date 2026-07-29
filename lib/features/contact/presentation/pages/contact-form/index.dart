@@ -501,12 +501,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
     return sources.where((s) => seen.add(s.name)).toList();
   }
 
-  void _notifyIfNoPameranAktif(List<PameranAktifEntity> list) {
-    if (list.isNotEmpty || !mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Tidak ada pameran aktif')),
-    );
-  }
+  
 
   void _applyPameranDate(List<PameranAktifEntity> list, DateTime fallbackNow) {
     if (list.isEmpty) {
@@ -627,7 +622,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
     }
 
     if (context.read<InfoSourceBloc>().state.sourcesMap[2] == null) {
-      context.read<InfoSourceBloc>().add(FetchInfoSourcesEvent(type: 2, userId: selectedOwnerId, salesChannel: selectedSource1Name));
+      context.read<InfoSourceBloc>().add(FetchInfoSourcesEvent(type: 2, userId: selectedOwnerId, salesChannel: selectedSource1Name, all: widget.args.page == 1));
     }
 
 
@@ -728,7 +723,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
       periodePameranDateTC.text = DateHelper.formatDate(fallbackNow);
       WidgetsBinding.instance.addPostFrameCallback((_) async {
         if (!mounted) return;
-        await context.read<PameranAktifCubit>().load(lokasiPameran: source2ForPrefill!.name, userId: selectedOwnerId);
+        await context.read<PameranAktifCubit>().load(lokasiPameran: source2ForPrefill!.name, userId: selectedOwnerId, all: widget.args.page == 1);
         if (!mounted) return;
         final ps = context.read<PameranAktifCubit>().state;
         final list = ps is PameranAktifLoaded ? ps.data : <PameranAktifEntity>[];
@@ -2182,11 +2177,10 @@ class _ContactFormPageState extends State<ContactFormPage> {
                                   final isPameran = matched?.periodePameranId != null;
                                   if (isPameran) {
                                     final fallbackNow = AppTime.now();
-                                    await context.read<PameranAktifCubit>().load(lokasiPameran: matched!.name, userId: selectedOwnerId);
+                                    await context.read<PameranAktifCubit>().load(lokasiPameran: matched!.name, userId: selectedOwnerId, all: true);
                                     if (!mounted) return;
                                     final ps = context.read<PameranAktifCubit>().state;
                                     final list = ps is PameranAktifLoaded ? ps.data : <PameranAktifEntity>[];
-                                    _notifyIfNoPameranAktif(list);
                                     _applyPameranDate(list, fallbackNow);
                                   } else {
                                     _periodePameranDateBackend = null;
@@ -2198,7 +2192,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
                                   });
                                 }
                               } else {
-                                context.read<InfoSourceBloc>().add(FetchInfoSourcesEvent(type: 2, userId: selectedOwnerId, salesChannel: selectedSource1Name));
+                                context.read<InfoSourceBloc>().add(FetchInfoSourcesEvent(type: 2, userId: selectedOwnerId, salesChannel: selectedSource1Name, all: true));
                               }
                             },
                             );
@@ -2749,7 +2743,6 @@ class _ContactFormPageState extends State<ContactFormPage> {
                                 if (!mounted) return;
                                 final ps = context.read<PameranAktifCubit>().state;
                                 final list = ps is PameranAktifLoaded ? ps.data : <PameranAktifEntity>[];
-                                _notifyIfNoPameranAktif(list);
                                 _applyPameranDate(list, fallbackNow);
                               } else {
                                 _periodePameranDateBackend = null;

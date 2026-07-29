@@ -68,6 +68,11 @@ function getTargetUrl(data) {
   if (type === 'attendance_approved' || type === 'attendance_rejected') {
     return '/attandance';
   }
+  if (type === 'contact_resign_team' || type === 'new_lead' || type === 'new_deal' || type === 'contact_owner_changed') {
+    // Sama kaya contact_detail: butuh fetch data via API, tidak bisa dibangun dari SW
+    // murni tanpa tab yang jalan, jadi fallback ke list Contact.
+    return '/contact';
+  }
   if (type === 'global_notification') {
     const linkUrl = (data && data.link_url) || '';
     if (linkUrl.indexOf('app://') === 0) {

@@ -18,11 +18,11 @@ class PameranAktifCubit extends Cubit<PameranAktifState> {
 
   PameranAktifCubit(this.repository) : super(PameranAktifInitial());
 
-  Future<void> load({String? lokasiPameran, int? userId}) async {
+  Future<void> load({String? lokasiPameran, int? userId, bool all = false}) async {
     if (state is PameranAktifLoaded && _loadedLokasiPameran == lokasiPameran && _loadedUserId == userId) return;
     _loadedLokasiPameran = lokasiPameran;
     _loadedUserId = userId;
-    final result = await repository.getPameranAktif(lokasiPameran: lokasiPameran, userId: userId);
+    final result = await repository.getPameranAktif(lokasiPameran: lokasiPameran, userId: userId, all: all);
     result.fold(
       (_) => emit(PameranAktifLoaded([])),
       (data) => emit(PameranAktifLoaded(data)),

@@ -19,8 +19,10 @@ class QrScannerPage extends StatefulWidget {
 class _QrScannerPageState extends State<QrScannerPage> {
   late IO.Socket socket;
   String? qrBase64;
+  String? pairingCode;
   bool isConnected = false;
   bool isTriggering = true;
+  bool isRequestingPairCode = false;
   String errorMessage = '';
 
   @override
@@ -57,9 +59,27 @@ class _QrScannerPageState extends State<QrScannerPage> {
       });
     });
 
+    socket.on('pairing_code', (data) {
+      if (!mounted) return;
+
+      if (data is Map && data['sessionId'] != null && data['sessionId'] != widget.sessionId) {
+        return;
+      }
+
+      String? code = data is Map ? data['code']?.toString() : data?.toString();
+      if (code != null && code.length == 8) {
+        code = '${code.substring(0, 4)}-${code.substring(4)}';
+      }
+
+      setState(() {
+        pairingCode = code;
+        isRequestingPairCode = false;
+      });
+    });
+
     socket.on('status', (data) {
       if (!mounted) return;
-      
+
       if (data is Map && data['status'] == 'CONNECTED') {
         setState(() {
           isConnected = true;
@@ -111,6 +131,47 @@ class _QrScannerPageState extends State<QrScannerPage> {
     }
   }
 
+  Future<void> requestPairingCode() async {
+    setState(() {
+      isRequestingPairCode = true;
+      pairingCode = null;
+    });
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = ProxyCipher.decryptString(prefs.getString('auth_token'));
+
+      if (token == null) {
+        setState(() {
+          errorMessage = "Sesi autentikasi habis, silakan login kembali.";
+          isRequestingPairCode = false;
+        });
+        return;
+      }
+
+      final dio = Dio();
+      final response = await dio.get(
+        '${ApiConstants.baseUrl}/whatsapp/qr/${widget.sessionId}/pair-code',
+        options: Options(headers: {
+          'Authorization': 'Bearer $token',
+          'Accept': 'application/json',
+        }),
+      );
+
+      if (response.statusCode != 200) {
+        setState(() {
+          errorMessage = "Gagal meminta pairing code: ${response.statusCode}";
+          isRequestingPairCode = false;
+        });
+      }
+    } catch (e) {
+      setState(() {
+        errorMessage = "Gagal meminta Pairing Code";
+        isRequestingPairCode = false;
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -149,60 +210,120 @@ class _QrScannerPageState extends State<QrScannerPage> {
                   child: const Text("Coba Lagi")
                 )
               ] else ...[
-                const Text("Tautkan Perangkat", 
+                const Text("Tautkan Perangkat",
                   style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
                 const SizedBox(height: 8),
-                const Text("Buka WhatsApp > Perangkat Tertaut > Tautkan Perangkat", 
-                  textAlign: TextAlign.center, style: TextStyle(color: Color(greyShade500), fontSize: 13)),
-                
+                Text(
+                  pairingCode != null
+                      ? "Buka WhatsApp > Perangkat Tertaut > Tautkan dengan nomor telepon"
+                      : "Buka WhatsApp > Perangkat Tertaut > Tautkan Perangkat",
+                  textAlign: TextAlign.center, style: const TextStyle(color: Color(greyShade500), fontSize: 13)),
+
                 const SizedBox(height: 40),
 
-                Container(
-                  width: 280,
-                  height: 280,
-                  decoration: BoxDecoration(
-                    color: Color(greyShade50),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: Color(greyShade300)),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Color(blackColor).withOpacity(0.05),
-                        blurRadius: 10,
-                        spreadRadius: 2,
-                      )
-                    ]
-                  ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(20),
-                    child: qrBase64 == null
-                        ? Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: const [
-                              CircularProgressIndicator(strokeWidth: 2),
-                              SizedBox(height: 16),
-                              Text("Menunggu QR Code...", style: TextStyle(fontSize: 12, color: Color(greyShade500)))
-                            ],
-                          )
-                        : Image.memory(
-                            base64Decode(qrBase64!),
-                            fit: BoxFit.cover,
+                if (pairingCode != null) ...[
+                  Container(
+                    width: 280,
+                    padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 16),
+                    decoration: BoxDecoration(
+                      color: Color(greyShade50),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: Color(greyShade300)),
+                    ),
+                    child: Column(
+                      children: [
+                        const Text("Masukkan kode ini di HP Anda", style: TextStyle(fontSize: 12, color: Color(greyShade500))),
+                        const SizedBox(height: 16),
+                        Text(
+                          pairingCode!,
+                          style: const TextStyle(
+                            fontSize: 30,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 3,
+                            color: Color(greenMaterialColor),
                           ),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
+                  const SizedBox(height: 40),
+                  TextButton.icon(
+                    onPressed: () {
+                      AnalyticsService.logEvent('qr_scanner_use_qr_code');
+                      setState(() {
+                        pairingCode = null;
+                        qrBase64 = null;
+                      });
+                      triggerLaravelQR();
+                    },
+                    icon: const Icon(Icons.qr_code, size: 18),
+                    label: const Text("Gunakan QR Code")
+                  )
+                ] else ...[
+                  Container(
+                    width: 280,
+                    height: 280,
+                    decoration: BoxDecoration(
+                      color: Color(greyShade50),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: Color(greyShade300)),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Color(blackColor).withOpacity(0.05),
+                          blurRadius: 10,
+                          spreadRadius: 2,
+                        )
+                      ]
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(20),
+                      child: qrBase64 == null
+                          ? Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: const [
+                                CircularProgressIndicator(strokeWidth: 2),
+                                SizedBox(height: 16),
+                                Text("Menunggu QR Code...", style: TextStyle(fontSize: 12, color: Color(greyShade500)))
+                              ],
+                            )
+                          : Image.memory(
+                              base64Decode(qrBase64!),
+                              fit: BoxFit.cover,
+                            ),
+                    ),
+                  ),
 
-                const SizedBox(height: 40),
-                
-                const Text("Pastikan HP Anda terhubung ke internet", style: TextStyle(color: Color(greyShade500), fontSize: 12)),
-                const SizedBox(height: 8),
-                TextButton.icon(
-                  onPressed: () {
-                    AnalyticsService.logEvent('qr_scanner_regenerate_qr');
-                    setState(() => qrBase64 = null);
-                    triggerLaravelQR();
-                  },
-                  icon: const Icon(Icons.refresh, size: 18),
-                  label: const Text("Refresh QR Code")
-                )
+                  const SizedBox(height: 24),
+
+                  const Text("Pastikan HP Anda terhubung ke internet", style: TextStyle(color: Color(greyShade500), fontSize: 12)),
+                  const SizedBox(height: 8),
+                  TextButton.icon(
+                    onPressed: () {
+                      AnalyticsService.logEvent('qr_scanner_regenerate_qr');
+                      setState(() => qrBase64 = null);
+                      triggerLaravelQR();
+                    },
+                    icon: const Icon(Icons.refresh, size: 18),
+                    label: const Text("Refresh QR Code")
+                  ),
+                  const SizedBox(height: 4),
+                  TextButton.icon(
+                    onPressed: isRequestingPairCode
+                        ? null
+                        : () {
+                            AnalyticsService.logEvent('qr_scanner_use_pairing_code');
+                            requestPairingCode();
+                          },
+                    icon: isRequestingPairCode
+                        ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.dialpad, size: 18),
+                    label: Text(isRequestingPairCode ? "Meminta Kode..." : "Gunakan Pairing Code")
+                  )
+                ]
               ],
             ],
           ),
@@ -214,6 +335,7 @@ class _QrScannerPageState extends State<QrScannerPage> {
   @override
   void dispose() {
     socket.off('qr');
+    socket.off('pairing_code');
     socket.off('status');
     socket.disconnect();
     super.dispose();

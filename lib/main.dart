@@ -95,6 +95,7 @@ import 'package:progress_group/features/inbox/domain/repositories/inbox_contact_
 import 'package:progress_group/features/inbox/domain/repositories/message_repository.dart';
 import 'package:progress_group/features/inbox/domain/usecases/get_messages_usecase.dart';
 import 'package:progress_group/features/inbox/domain/usecases/get_qr_session_usecase.dart';
+import 'package:progress_group/features/inbox/domain/usecases/request_pair_code_usecase.dart';
 import 'package:progress_group/features/inbox/domain/usecases/get_whatsapp_devices_usecase.dart';
 import 'package:progress_group/features/inbox/domain/usecases/inbox_contact_usecase.dart';
 import 'package:progress_group/features/inbox/presentation/state/inbox/inbox_block.dart';
@@ -364,6 +365,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     final getInboxContactsUsecase = GetInboxContactsUsecase(inboxRepository);
     final getWhatsappDevicesUsecase = GetWhatsappDevicesUsecase(inboxRepository);
     final getQrSessionUsecase = GetQrSessionUsecase(inboxRepository);
+    final requestPairCodeUsecase = RequestPairCodeUsecase(inboxRepository);
     final messageRemoteDataSource = MessageRemoteDataSourceImpl(dioClient.dio);
     final messageRepository = MessageRepositoryImpl(messageRemoteDataSource);
     final getMessagesUseCase = GetMessagesUseCase(messageRepository);
@@ -459,7 +461,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
             BlocProvider(create: (_) => AuthBloc(loginUseCase: loginUseCase, forgotPasswordUseCase: forgotPasswordUseCase, getRememberMeUseCase: getRememberMeUseCase, clearRememberMeUseCase: clearRememberMeUseCase, getBiometricEnabledUseCase: getBiometricEnabledUseCase, saveBiometricEnabledUseCase: saveBiometricEnabledUseCase, saveCredentialsUseCase: saveCredentialsUseCase, updateProfileUseCase: updateProfileUseCase, resetPasswordUsecase: resetPasswordUsecase, logoutUseCase: logoutUseCase, getPermissionsUseCase: getPermissionsUseCase, getImpersonatableUsersUseCase: getImpersonatableUsersUseCase, impersonateUseCase: impersonateUseCase, stopImpersonationUseCase: stopImpersonationUseCase)),
             BlocProvider(create: (_) => InboxContactBloc(getInboxContactsUsecase)),
             BlocProvider(create: (_) => WhatsappDeviceBloc(getWhatsappDevicesUsecase)),
-            BlocProvider(create: (_) => WhatsappQrBloc(getQrSessionUsecase)),
+            BlocProvider(create: (_) => WhatsappQrBloc(getQrSessionUsecase, requestPairCodeUsecase)),
             BlocProvider(create: (_) => ProfileBloc(getProfileUseCase: getProfileUseCase)),
             BlocProvider(create: (_) => MessageBloc(getMessagesUseCase)),
             BlocProvider(create: (_) => ReportBloc(getVolumeReportUseCase)),
