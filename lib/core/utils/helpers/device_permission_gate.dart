@@ -1,13 +1,16 @@
 import 'dart:io' show Platform;
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/material.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:permission_handler/permission_handler.dart' as ph;
 import 'package:progress_group/core/services/ota_update_service.dart';
+import 'package:progress_group/core/utils/web_debug_util.dart' as web_debug;
+import 'package:shared_preferences/shared_preferences.dart';
 import 'camera_permission_primer.dart';
 
-enum DevicePermissionType { camera, gallery, location, contacts, notification, installPackages }
+enum DevicePermissionType { camera, gallery, location, contacts, notification, installPackages, batteryOptimization }
 
 class DevicePermissionItem {
   final DevicePermissionType type;
@@ -58,6 +61,14 @@ class DevicePermissionGate {
       label: 'Instal Pembaruan Aplikasi',
       description: 'Supaya update aplikasi versi terbaru bisa langsung dipasang tanpa diminta lagi nanti',
     ),
+    // batteryOptimization SENGAJA TIDAK dimasukkan ke daftar wajib ini — bukan
+    // syarat mutlak app bisa dipakai (beda dari kamera/lokasi/dst), cuma memengaruhi
+    // keandalan push notif saat app ditutup. Kalau di sini, user LAMA yang sudah
+    // pernah lolos gate ini akan ke-block lagi begitu item ini ditambahkan (karena
+    // _allGranted mensyaratkan SEMUA item granted) — malah bikin gate ini nongol
+    // ulang tiba-tiba dan menunda mereka sampai ke splash/login. Diminta secara
+    // terpisah & non-blocking lewat [maybePromptBatteryOptimization], sekali saja
+    // setelah login (lihat pemanggilnya di splash/index.dart).
   ];
 
   /// Kontak tidak tersedia di web (flutter_contacts mobile-only), dan galeri
@@ -94,7 +105,8 @@ class DevicePermissionGate {
   }) async {
     try {
       return await action().timeout(timeout);
-    } catch (_) {
+    } catch (e) {
+      web_debug.logDebugInfo('[PermissionGate] _guard fallback due to: $e');
       return fallback;
     }
   }
@@ -128,8 +140,12 @@ class DevicePermissionGate {
     switch (type) {
       case DevicePermissionType.location:
         return _guard(() async {
-          if (!await Geolocator.isLocationServiceEnabled()) return false;
+          final serviceEnabled = await Geolocator.isLocationServiceEnabled();
           final status = await Geolocator.checkPermission();
+          web_debug.logDebugInfo(
+            '[PermissionGate] location isGranted check: serviceEnabled=$serviceEnabled status=$status',
+          );
+          if (!serviceEnabled) return false;
           return status == LocationPermission.always ||
               status == LocationPermission.whileInUse;
         }, false);
@@ -170,6 +186,9 @@ class DevicePermissionGate {
         return (await ph.Permission.contacts.status).isGranted;
       case DevicePermissionType.installPackages:
         return OtaUpdateService.canInstallPackages();
+      case DevicePermissionType.batteryOptimization:
+        if (kIsWeb || !Platform.isAndroid) return true;
+        return (await ph.Permission.ignoreBatteryOptimizations.status).isGranted;
     }
   }
 
@@ -196,6 +215,7 @@ class DevicePermissionGate {
         case DevicePermissionType.gallery:
         case DevicePermissionType.contacts:
         case DevicePermissionType.installPackages:
+        case DevicePermissionType.batteryOptimization:
           return false;
       }
     }
@@ -216,6 +236,10 @@ class DevicePermissionGate {
       case DevicePermissionType.installPackages:
         // Bukan runtime permission dialog biasa — tidak ada state "ditolak permanen",
         // cuma toggle di halaman Settings khusus yang dibuka lewat request().
+        return false;
+      case DevicePermissionType.batteryOptimization:
+        // Dialog sistem ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS tidak punya opsi
+        // "jangan tanya lagi" seperti runtime permission biasa — selalu bisa direquest ulang.
         return false;
     }
   }
@@ -256,6 +280,9 @@ class DevicePermissionGate {
         // menunggu user kembali (lifecycle resumed di halaman gate akan re-check statusnya).
         await OtaUpdateService.openInstallPermissionSettings();
         return OtaUpdateService.canInstallPackages();
+      case DevicePermissionType.batteryOptimization:
+        if (kIsWeb || !Platform.isAndroid) return true;
+        return (await ph.Permission.ignoreBatteryOptimizations.request()).isGranted;
     }
   }
 
@@ -276,5 +303,46 @@ class DevicePermissionGate {
     final granted = await requestCameraPermissionWeb();
     if (granted) _webCameraGranted = true;
     return granted;
+  }
+
+  static const _batteryPromptedKey = 'battery_optimization_prompted';
+
+  /// Prompt battery optimization SEKALI SAJA seumur install, non-blocking (bukan
+  /// bagian dari gate wajib — lihat komentar di [_items]). Dipanggil setelah login
+  /// berhasil (splash/index.dart). Aman dipanggil berkali-kali: begitu user sudah
+  /// pernah lihat dialognya (apa pun jawabannya) atau sudah granted, tidak nongol lagi.
+  static Future<void> maybePromptBatteryOptimization(BuildContext context) async {
+    if (kIsWeb || !Platform.isAndroid) return;
+
+    final prefs = await SharedPreferences.getInstance();
+    if (prefs.getBool(_batteryPromptedKey) == true) return;
+
+    if (await isGranted(DevicePermissionType.batteryOptimization)) {
+      await prefs.setBool(_batteryPromptedKey, true);
+      return;
+    }
+
+    if (!context.mounted) return;
+    final proceed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Jalankan di Latar Belakang'),
+        content: const Text(
+          'Supaya notifikasi tugas & reminder tetap sampai walau aplikasi ditutup '
+          '(seperti WhatsApp), izinkan Paradise Connect berjalan di latar belakang.',
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Nanti')),
+          TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Izinkan')),
+        ],
+      ),
+    );
+
+    if (proceed == true) {
+      await request(DevicePermissionType.batteryOptimization);
+    }
+    // Ditandai "sudah ditanya" TERLEPAS dari jawabannya — sekali saja seumur install,
+    // tidak menagih lagi tiap login walau user pilih "Nanti"/menolak dialog sistemnya.
+    await prefs.setBool(_batteryPromptedKey, true);
   }
 }

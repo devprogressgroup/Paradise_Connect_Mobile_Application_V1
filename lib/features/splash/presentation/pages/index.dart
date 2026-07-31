@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import 'package:progress_group/app/router.dart';
 import 'package:progress_group/core/constants/assets.dart';
 import 'package:progress_group/core/constants/colors.dart';
+import 'package:progress_group/core/utils/helpers/device_permission_gate.dart';
 import 'package:progress_group/core/network/proxy_cipher.dart';
 import 'package:progress_group/features/auth/presentation/state/auth/auth_bloc.dart';
 import 'package:progress_group/features/auth/presentation/state/auth/auth_event.dart';
@@ -76,6 +77,12 @@ class _SplashPageState extends State<SplashPage> {
           context.read<AuthBloc>().add(FetchPermissionsEvent());
           AppRouter.authNotifier.value = true;
           context.go('/');
+          // Non-blocking, sekali seumur install — pakai root navigator context karena
+          // context SplashPage ini bisa saja sudah di-dispose sesaat setelah go('/').
+          final rootCtx = AppRouter.rootNavigatorKey.currentContext;
+          if (rootCtx != null) {
+            DevicePermissionGate.maybePromptBatteryOptimization(rootCtx);
+          }
         } else if (state is ProfileFailure) {
           web_debug.logDebugError('[Splash] ProfileFailure: ${state.message} → hapus token, go /login');
           final prefs = await SharedPreferences.getInstance();

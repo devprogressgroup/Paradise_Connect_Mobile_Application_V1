@@ -155,6 +155,8 @@ class _PermissionGatePageState extends State<PermissionGatePage> with WidgetsBin
         return Icons.notifications_rounded;
       case DevicePermissionType.installPackages:
         return Icons.system_update_rounded;
+      case DevicePermissionType.batteryOptimization:
+        return Icons.battery_charging_full_rounded;
     }
   }
 

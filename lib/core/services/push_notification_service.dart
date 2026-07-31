@@ -1,4 +1,5 @@
-﻿import 'dart:convert';
+﻿import 'dart:async';
+import 'dart:convert';
 import 'dart:io' show Platform;
 
 import 'package:device_info_plus/device_info_plus.dart';
@@ -193,12 +194,41 @@ class PushNotificationService {
     }
   }
 
+  /// Dipanggil di frame pertama app (lihat main.dart) untuk memproses notifikasi yang
+  /// dipakai membuka app dari kondisi mati (getInitialMessage). Pada cold start ini,
+  /// AppRouter.authNotifier masih default `false` — Splash belum sempat verifikasi
+  /// token tersimpan (remember me) di background. Kalau langsung navigasi sekarang,
+  /// redirect guard router (isLoggedIn=false karena BELUM DICEK, bukan karena token
+  /// invalid) memaksa lempar ke /login walau sesi sebenarnya masih valid. Jadi kalau
+  /// authNotifier belum true, tunggu dulu sampai Splash selesai — dengan batas waktu
+  /// supaya tidak nyangkut kalau ternyata token memang expired/gagal (Splash akan pergi
+  /// ke /login sendiri lewat jalur normalnya, pesan yang tertunda ini cukup dibuang).
   static void processPendingMessage() {
-    if (_pendingMessage != null) {
+    if (_pendingMessage == null) return;
+
+    if (AppRouter.authNotifier.value) {
       final msg = _pendingMessage!;
       _pendingMessage = null;
       _navigateFromData(_safeData(msg));
+      return;
     }
+
+    var settled = false;
+    late final VoidCallback listener;
+    final giveUpTimer = Timer(const Duration(seconds: 5), () {
+      if (settled) return;
+      settled = true;
+      AppRouter.authNotifier.removeListener(listener);
+      _pendingMessage = null;
+    });
+    listener = () {
+      if (settled || !AppRouter.authNotifier.value) return;
+      settled = true;
+      giveUpTimer.cancel();
+      AppRouter.authNotifier.removeListener(listener);
+      processPendingMessage();
+    };
+    AppRouter.authNotifier.addListener(listener);
   }
 
   static void navigateFromData(Map<String, dynamic> data) => _navigateFromData(data);
@@ -608,6 +638,7 @@ class PushNotificationService {
         final nextFollowUp   = data['next_follow_up_date'] as String?;
         final createdBy      = int.tryParse(data['created_by'] as String? ?? '') ?? 0;
         final createdAt      = data['created_at']          as String? ?? AppTime.now().toIso8601String();
+        final notes          = data['notes']               as String?;
 
         int    page     = 6;
         String namePage = 'Update Status Prospect';
@@ -633,6 +664,7 @@ class PushNotificationService {
               createdBy:         createdBy,
               createdAt:         createdAt,
               contactName:       contactName,
+              notes:             (notes != null && notes.isNotEmpty) ? notes : null,
             ),
             dataContact: ContactEntity(
               contactId: contactId,
