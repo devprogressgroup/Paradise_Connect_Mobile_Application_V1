@@ -82,7 +82,7 @@ class DevicePermissionGate {
       return _items
           .where((i) =>
               i.type == DevicePermissionType.camera ||
-              i.type == DevicePermissionType.location ||
+              // i.type == DevicePermissionType.location ||
               i.type == DevicePermissionType.notification)
           .toList();
     }

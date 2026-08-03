@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:local_auth/local_auth.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:progress_group/core/network/proxy_cipher.dart';
 import 'package:progress_group/core/utils/widget/shimmer_loading.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
@@ -566,26 +568,27 @@ class _ProfilePageState extends State<ProfilePage> {
                     //   ),
                     // ),
                     // const SizedBox(height: 12),
-                    // SizedBox(
-                    //   width: double.infinity,
-                    //   child: OutlinedButton.icon(
-                    //     onPressed: () async {
-                    //       final prefs = await SharedPreferences.getInstance();
-                    //       final token = prefs.getString('auth_token') ?? '-';
-                    //       debugPrint('[TOKEN] $token');
-                    //       await Clipboard.setData(ClipboardData(text: token));
-                    //       if (context.mounted) showSnackbar(context, 'Token disalin ke clipboard', isError: false);
-                    //     },
-                    //     icon: const Icon(Icons.copy, size: 16),
-                    //     label: const Text('Print Token'),
-                    //     style: OutlinedButton.styleFrom(
-                    //       foregroundColor: Color(primaryColor),
-                    //       side: BorderSide(color: Color(primaryColor)),
-                    //       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                    //       padding: const EdgeInsets.symmetric(vertical: 14),
-                    //     ),
-                    //   ),
-                    // ),
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        onPressed: () async {
+                          final prefs = await SharedPreferences.getInstance();
+                          final stored = prefs.getString('auth_token');
+                          final token = ProxyCipher.decryptString(stored) ?? '-';
+                          debugPrint('[TOKEN] $token');
+                          await Clipboard.setData(ClipboardData(text: token));
+                          if (context.mounted) showSnackbar(context, 'Token disalin ke clipboard', isError: false);
+                        },
+                        icon: const Icon(Icons.copy, size: 16),
+                        label: const Text('Print Token'),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: Color(primaryColor),
+                          side: BorderSide(color: Color(primaryColor)),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                        ),
+                      ),
+                    ),
                   ],
                 ),
               ),
