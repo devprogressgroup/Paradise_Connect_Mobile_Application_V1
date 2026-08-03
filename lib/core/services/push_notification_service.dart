@@ -641,12 +641,13 @@ class PushNotificationService {
     }
 
     // Dikirim DbkBypassSyncService::notifyOwnerPush() (lead DBK Bypass),
-    // HubspotDealSyncService::notifyDealOwnerPush() (deal HubSpot biasa), ATAU
+    // HubspotDealSyncService::notifyDealOwnerPush() (deal HubSpot biasa),
     // ContactService::notifyContactOwnerChanged() (owner kontak dialihkan lewat PATCH
-    // /contacts/{id}) — ketiganya langsung buka detail contact yang bersangkutan (dataContact
-    // cuma butuh contactId, sisanya di-fetch ulang sendiri sama ContactDetailPage — sama
-    // seperti contact_detail internal link).
-    if (type == 'new_lead' || type == 'new_deal' || type == 'contact_owner_changed') {
+    // /contacts/{id}), ATAU ContactService::notifyNewContactOwner() (kontak baru dibuat
+    // sudah langsung punya owner, mobile & web) — semuanya langsung buka detail contact
+    // yang bersangkutan (dataContact cuma butuh contactId, sisanya di-fetch ulang sendiri
+    // sama ContactDetailPage — sama seperti contact_detail internal link).
+    if (type == 'new_lead' || type == 'new_deal' || type == 'contact_owner_changed' || type == 'new_contact') {
       final contactId = int.tryParse(data['contact_id']?.toString() ?? '');
       if (contactId != null) {
         AppRouter.router.goNamed(
