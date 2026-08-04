@@ -46,12 +46,12 @@ class ApiConstants {
     // ),
 
 
-    // AppEnvironment.developmnetDomain: _EnvConfig(
-    //   label: 'Development',
-    //   baseUrl: 'https://apidevconnect.paradise.id/api',
-    //   storageUrl: 'https://apidevconnect.paradise.id/storage',
-    //   serverUrl: 'https://apidevconnect.paradise.id',
-    // ),
+    AppEnvironment.developmnetDomain: _EnvConfig(
+      label: 'Development',
+      baseUrl: 'https://apidevconnect.paradise.id/api',
+      storageUrl: 'https://apidevconnect.paradise.id/storage',
+      serverUrl: 'https://apidevconnect.paradise.id',
+    ),
   };
 
 
