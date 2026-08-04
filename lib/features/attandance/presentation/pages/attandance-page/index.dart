@@ -22,6 +22,7 @@ import 'package:progress_group/core/utils/widget/drive_image/drive_image.dart';
 import 'package:progress_group/core/utils/helpers/initial_name_helper.dart';
 import 'package:progress_group/core/utils/widget/custom_filter_button.dart';
 import 'package:progress_group/features/attandance/domain/entities/attandance_entity.dart';
+import 'package:progress_group/features/attandance/presentation/pages/location-permission-guide/index.dart';
 import 'package:progress_group/core/constants/attendance_feedback_labels.dart';
 import 'package:progress_group/features/attandance/domain/entities/attendance_activity_entity.dart';
 import 'package:progress_group/features/attandance/domain/entities/attendance_feedback_entity.dart';
@@ -252,7 +253,7 @@ class _AttandancePageState extends State<AttandancePage>
           ScaffoldMessenger.of(context).hideCurrentSnackBar();
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text("Lokasi belum terdeteksi, coba lagi cek permisionnya di pengaturan"),
+              content: Text("Lokasi sudah diizinkan tapi belum terdeteksi. Tutup dan buka kembali aplikasi, lalu coba lagi."),
               backgroundColor: Color(orangeAccentColor),
             ),
           );

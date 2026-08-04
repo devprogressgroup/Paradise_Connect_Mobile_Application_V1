@@ -33,5 +33,32 @@ const String icQR = 'assets/img/ic-qr.png';
 const String icSearch = "assets/img/ic-search.png";
 const String icCalendar = "assets/img/ic-calendar.png";
 
+const List<String> locationGuideSafariImages = [
+  'assets/img/location-safari/1.jpeg',
+  'assets/img/location-safari/2.jpeg',
+  'assets/img/location-safari/3.jpeg',
+  'assets/img/location-safari/4.jpeg',
+  'assets/img/location-safari/5.jpeg',
+  'assets/img/location-safari/6-1.jpeg',
+  'assets/img/location-safari/7.jpeg',
+  'assets/img/location-safari/8.jpeg',
+  'assets/img/location-safari/9.jpeg',
+  'assets/img/location-safari/10.jpeg',
+];
+
+const List<String> locationGuideChromeImages = [
+  'assets/img/location-chrome/1.jpeg',
+  'assets/img/location-chrome/2.jpeg',
+  'assets/img/location-chrome/3.jpeg',
+  'assets/img/location-chrome/4.jpeg',
+  'assets/img/location-chrome/5.jpeg',
+  'assets/img/location-chrome/6.jpeg',
+  'assets/img/location-chrome/7.jpeg',
+  'assets/img/location-chrome/8.jpeg',
+  'assets/img/location-chrome/9.jpeg',
+  'assets/img/location-chrome/10.jpeg',
+  'assets/img/location-chrome/11.jpeg',
+];
+
 
 

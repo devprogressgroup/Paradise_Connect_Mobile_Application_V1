@@ -109,9 +109,6 @@ mixin AttendanceLocationMixin<T extends StatefulWidget> on State<T> {
     LocationPermission permission = await Geolocator.checkPermission();
 
     if (permission == LocationPermission.denied) {
-              if (!fromUserGesture && kIsWeb) {
-              return false;
-      }
       permission = await Geolocator.requestPermission();
       if (permission == LocationPermission.denied) {
         if (mounted) {
@@ -129,25 +126,9 @@ mixin AttendanceLocationMixin<T extends StatefulWidget> on State<T> {
     if (permission == LocationPermission.deniedForever) {
       if (mounted) {
         if (kIsWeb) {
-          showDialog(
-            context: context,
-            builder: (ctx) => AlertDialog(
-              title: const Text('Izin Lokasi Diblokir'),
-              content: const Text(
-                'Chrome memblokir akses lokasi untuk halaman ini.\n\n'
-                'Cara mengaktifkan:\n'
-                '1. Klik ikon 🔒 atau ⓘ di address bar\n'
-                '2. Pilih "Site settings"\n'
-                '3. Ubah "Location" ke "Allow"\n'
-                '4. Refresh halaman',
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(ctx),
-                  child: const Text('Mengerti'),
-                ),
-              ],
-            ),
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const LocationPermissionGuidePage()),
           );
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
