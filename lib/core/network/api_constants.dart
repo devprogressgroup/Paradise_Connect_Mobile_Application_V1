@@ -38,12 +38,12 @@ class ApiConstants {
     //   serverUrl: 'http://192.168.8.36:8000',
     // ),
 
-    // AppEnvironment.development2: _EnvConfig(
-    //   label: 'Development 2',
-    //   baseUrl: 'http://172.20.10.2:8000/api',
-    //   storageUrl: 'http://172.20.10.2:8000/storage',
-    //   serverUrl: 'http://172.20.10.2:8000',
-    // ),
+    AppEnvironment.development2: _EnvConfig(
+      label: 'Development 2',
+      baseUrl: 'http://172.20.10.2:8000/api',
+      storageUrl: 'http://172.20.10.2:8000/storage',
+      serverUrl: 'http://172.20.10.2:8000',
+    ),
 
 
     AppEnvironment.developmnetDomain: _EnvConfig(
