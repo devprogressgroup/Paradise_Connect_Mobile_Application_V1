@@ -1936,7 +1936,6 @@ class _ContactFormPageState extends State<ContactFormPage> {
                                 );
                                 if (result != null) {
                                   final owner = result as OwnerDropdownItem;
-                                  final ownerChanged = selectedOwnerId != owner.id;
                                   setState(() {
                                     selectedOwnerId = owner.id;
                                     selectedOwnerName = owner.name;
@@ -2023,8 +2022,6 @@ class _ContactFormPageState extends State<ContactFormPage> {
                                   ),
                                 );
                                 if (result != null) {
-                                  final selected = result as OwnerDropdownItem;
-                                  final projectChanged = selectLastTownshipId != selected.id;
                                   // setState(() {
                                   //   selectLastProject = selected.name;
                                   //   selectLastTownshipId = selected.id;

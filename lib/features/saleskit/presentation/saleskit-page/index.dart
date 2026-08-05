@@ -35,7 +35,6 @@ import '../../../../core/utils/widget/shimmer_loading.dart';
 import '../../data/arguments/saleskit_detail_args.dart';
 import 'package:progress_group/core/services/analytics_service.dart';
 
-typedef _StaticSalesKitItem = ({String title, String logo, String? url, String event});
 
 class SalesKitPage extends StatefulWidget {
   final SalesKitDetailArgs args;

@@ -677,15 +677,10 @@ class _HomePageState extends State<HomePage> with RouteAware {
                         return GestureDetector(
                           
                           onTap: () {
-                            final now = AppTime.now();
-                            final today = DateTime(now.year, now.month, now.day);
-                            final fmt = DateFormat('yyyy-MM-dd');
-                            final defaultStart = fmt.format(DateTime(today.year - 1, today.month, today.day));
-                            final defaultEnd = fmt.format(today);
                             context.go('/contact', extra: {
                               'statusIds': [item.prospectStatusId],
-                              'startDate': _prospectStartDate ?? defaultStart,
-                              'endDate': _prospectEndDate ?? defaultEnd,
+                              'startDate': _prospectStartDate,
+                              'endDate': _prospectEndDate,
                             });
                           },
                           child: Container(
@@ -893,18 +888,25 @@ class _HomePageState extends State<HomePage> with RouteAware {
                         final showBottomBorder = !isLastVisible || allChannels.length > _salesChannelCollapsedCount;
                         return GestureDetector(
 
+                          // onTap: () {
+                          //   final now = AppTime.now();
+                          //   final today = DateTime(now.year, now.month, now.day);
+                          //   final fmt = DateFormat('yyyy-MM-dd');
+                          //   final defaultStart = fmt.format(DateTime(today.year - 1, today.month, today.day));
+                          //   final defaultEnd = fmt.format(today);
+                          //   context.go('/contact', extra: {
+                          //     'salesChannelIds': [item.salesChannelId],
+                          //     'startDate': _salesChannelStartDate ?? defaultStart,
+                          //     'endDate': _salesChannelEndDate ?? defaultEnd,
+                          //   });
+                          // },
                           onTap: () {
-                            final now = AppTime.now();
-                            final today = DateTime(now.year, now.month, now.day);
-                            final fmt = DateFormat('yyyy-MM-dd');
-                            final defaultStart = fmt.format(DateTime(today.year - 1, today.month, today.day));
-                            final defaultEnd = fmt.format(today);
-                            context.go('/contact', extra: {
-                              'salesChannelIds': [item.salesChannelId],
-                              'startDate': _salesChannelStartDate ?? defaultStart,
-                              'endDate': _salesChannelEndDate ?? defaultEnd,
-                            });
-                          },
+                              context.go('/contact', extra: {
+                                'salesChannelIds': [item.salesChannelId],
+                                'startDate': _salesChannelStartDate,
+                                'endDate': _salesChannelEndDate,
+                              });
+                            },
                           child: Container(
                           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                           decoration: BoxDecoration(

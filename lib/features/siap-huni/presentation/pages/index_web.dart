@@ -10,7 +10,6 @@ import 'package:progress_group/core/network/api_constants.dart';
 import 'package:progress_group/core/network/proxy_cipher.dart';
 import 'package:progress_group/features/auth/presentation/state/profile/profile_bloc.dart';
 import 'package:progress_group/features/auth/presentation/state/profile/profile_state.dart';
-import 'package:progress_group/core/services/analytics_service.dart';
 
 class SiapHuniPage extends StatefulWidget {
   const SiapHuniPage({super.key});
@@ -22,9 +21,7 @@ class SiapHuniPage extends StatefulWidget {
 class _SiapHuniPageState extends State<SiapHuniPage> {
   static int _counter = 0;
   String? _viewId;
-  String _fullUrl = '';
   bool _isLoading = true;
-  bool _showFallbackBanner = false;
   Timer? _timeoutTimer;
   bool _initialized = false;
 
@@ -43,7 +40,6 @@ class _SiapHuniPageState extends State<SiapHuniPage> {
   }
 
   void _initIframe(String url) {
-    _fullUrl = url;
     _counter++;
     _viewId = 'siap-huni-iframe-$_counter';
 
@@ -64,7 +60,6 @@ class _SiapHuniPageState extends State<SiapHuniPage> {
       if (mounted && _isLoading) {
         setState(() {
           _isLoading = false;
-          _showFallbackBanner = true;
         });
       }
     });

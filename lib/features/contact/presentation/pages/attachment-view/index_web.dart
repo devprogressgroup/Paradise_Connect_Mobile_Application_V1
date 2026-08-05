@@ -24,10 +24,8 @@ class _AttachmentWebViewPageState extends State<AttachmentWebViewPage> {
   static int _counter = 0;
   late final String _viewId;
   late final String _previewUrl;
-  late final String _openUrl;
 
   bool _isLoading = true;
-  bool _showFallbackBanner = false;
   Timer? _timeoutTimer;
 
   @override
@@ -37,7 +35,6 @@ class _AttachmentWebViewPageState extends State<AttachmentWebViewPage> {
     _counter++;
     _viewId = 'attachment-iframe-$_counter';
     _previewUrl = _toPreviewUrl(widget.url);
-    _openUrl = _toOpenUrl(widget.url);
 
     final iframe = html.IFrameElement()
       ..src = _previewUrl
@@ -57,7 +54,6 @@ class _AttachmentWebViewPageState extends State<AttachmentWebViewPage> {
       if (mounted && _isLoading) {
         setState(() {
           _isLoading = false;
-          _showFallbackBanner = true;
         });
       }
     });
@@ -77,11 +73,6 @@ class _AttachmentWebViewPageState extends State<AttachmentWebViewPage> {
     return url;
   }
 
-  String _toOpenUrl(String url) {
-    final id = _extractId(url);
-    if (id != null) return 'https://drive.google.com/file/d/$id/view';
-    return url;
-  }
 
   String? _extractId(String url) {
     final m = RegExp(r'/d/([a-zA-Z0-9_-]+)').firstMatch(url);
@@ -91,10 +82,6 @@ class _AttachmentWebViewPageState extends State<AttachmentWebViewPage> {
     return null;
   }
 
-  void _openInNewTab() {
-    AnalyticsService.logEvent('attachment_view_open_in_new_tab');
-    html.window.open(_openUrl, '_blank');
-  }
 
   @override
   Widget build(BuildContext context) {
