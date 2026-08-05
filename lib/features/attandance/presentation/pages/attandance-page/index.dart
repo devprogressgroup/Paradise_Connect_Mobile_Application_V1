@@ -2615,7 +2615,10 @@ class _AttandancePageState extends State<AttandancePage>
                     ),
                   ),
                   const SizedBox(height: 12),
-                  Text("Please $title!", style: TextStyle(fontSize: 12, color: Color(grey6Color))),
+                  Text(
+                    flagParam == 6 ? "Hanya untuk ambil foto aktivitas hari ini" : "Please $title!",
+                    style: TextStyle(fontSize: 12, color:flagParam == 6 ? Color(redColor) : Color(grey6Color)),
+                  ),
                 ],
               ),
             ),

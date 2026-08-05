@@ -10,8 +10,10 @@ import 'dart:ui_web' as ui_web;
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:progress_group/core/constants/colors.dart';
+import 'package:progress_group/core/utils/helpers/youtube_helper.dart';
 import 'package:share_plus/share_plus.dart';
 import 'custom_header.dart';
+import 'custom_snackbar.dart';
 
 class WebViewPage extends StatefulWidget {
   final String url;
@@ -25,6 +27,12 @@ class WebViewPage extends StatefulWidget {
     return u.endsWith('.pdf') || u.contains('.pdf?');
   }
 
+  bool get isVideo {
+    final u = url.toLowerCase();
+    final hasVideoExt = ['.mp4', '.mov', '.avi', '.mkv', '.webm'].any((ext) => u.contains(ext));
+    return hasVideoExt || isYoutubeUrl(url);
+  }
+
   @override
   State<WebViewPage> createState() => _WebViewPageState();
 }
@@ -34,7 +42,6 @@ class _WebViewPageState extends State<WebViewPage> {
   late final String _viewId;
   late final html.IFrameElement _iframe;
   bool _isLoading = true;
-  bool _showFallbackBanner = false;
   Timer? _timeoutTimer;
   html.EventListener? _navigateListener;
 
@@ -75,7 +82,6 @@ class _WebViewPageState extends State<WebViewPage> {
       if (mounted && _isLoading) {
         setState(() {
           _isLoading = false;
-          _showFallbackBanner = true;
         });
       }
     });
@@ -106,7 +112,6 @@ class _WebViewPageState extends State<WebViewPage> {
           _iframe.src = embedUrl;
           setState(() {
             _isLoading = true;
-            _showFallbackBanner = false;
           });
           _startTimeout(embedUrl);
         }
@@ -170,9 +175,38 @@ class _WebViewPageState extends State<WebViewPage> {
     return null;
   }
 
-  void _openInNewTab() => html.window.open(widget.url, '_blank');
 
-  void _shareUrl() => Share.share(widget.url, subject: widget.title);
+  bool _isSharing = false;
+
+  String _shareFilename() {
+    final safeName = widget.url.split('/').last.split('?').first;
+    final ext = safeName.contains('.') ? '.${safeName.split('.').last}' : (widget.isPdf ? '.pdf' : '');
+    final titleName = widget.title.replaceAll(RegExp(r'[^\w\s\-]'), '').trim();
+    return '$titleName$ext';
+  }
+
+  Future<void> _shareUrl() async {
+    if (_isSharing) return;
+    if (widget.isVideo) {
+      await Share.share(widget.url, subject: widget.title);
+      return;
+    }
+    setState(() => _isSharing = true);
+    try {
+      final response = await Dio().get<List<int>>(
+        widget.url,
+        options: Options(responseType: ResponseType.bytes, followRedirects: true),
+      );
+      final bytes = Uint8List.fromList(response.data ?? []);
+      if (bytes.isEmpty) throw Exception('File kosong');
+      await Share.shareXFiles([XFile.fromData(bytes, name: _shareFilename())], subject: widget.title);
+    } catch (_) {
+      if (mounted) showSnackbar(context, 'Gagal mengunduh file, membagikan link saja', isError: true);
+      await Share.share(widget.url, subject: widget.title);
+    } finally {
+      if (mounted) setState(() => _isSharing = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {

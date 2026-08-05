@@ -3,9 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_pdfview/flutter_pdfview.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:progress_group/core/constants/colors.dart';
+import 'package:progress_group/core/utils/helpers/youtube_helper.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'custom_header.dart';
+import 'custom_snackbar.dart';
 import 'floating_download_overlay.dart';
 
 class WebViewPage extends StatefulWidget {
@@ -25,12 +27,51 @@ class WebViewPage extends StatefulWidget {
     return urlLower.endsWith('.pdf') || urlLower.contains('.pdf?');
   }
 
+  bool get isVideo {
+    final urlLower = url.toLowerCase();
+    final hasVideoExt = ['.mp4', '.mov', '.avi', '.mkv', '.webm'].any((ext) => urlLower.contains(ext));
+    return hasVideoExt || isYoutubeUrl(url);
+  }
+
   @override
   State<WebViewPage> createState() => _WebViewPageState();
 }
 
 class _WebViewPageState extends State<WebViewPage> {
-  void _shareUrl() => Share.share(widget.url, subject: widget.title);
+  bool _isSharing = false;
+
+  Future<void> _shareUrl() async {
+    if (_isSharing) return;
+    if (widget.isVideo) {
+      await Share.share(widget.url, subject: widget.title);
+      return;
+    }
+    setState(() => _isSharing = true);
+    try {
+      final dir = await getTemporaryDirectory();
+      final safeName = widget.url.split('/').last.split('?').first;
+      final ext = safeName.contains('.') ? '.${safeName.split('.').last}' : (widget.isPdf ? '.pdf' : '');
+      final titleName = widget.title.replaceAll(RegExp(r'[^\w\s\-]'), '').trim();
+      final filePath = '${dir.path}/$titleName$ext';
+
+      final response = await Dio().download(
+        widget.url,
+        filePath,
+        options: Options(followRedirects: true, receiveTimeout: const Duration(seconds: 60)),
+      );
+
+      if (response.statusCode == 200) {
+        await Share.shareXFiles([XFile(filePath)], subject: widget.title);
+      } else {
+        throw Exception('Download gagal ${response.statusCode}');
+      }
+    } catch (_) {
+      if (mounted) showSnackbar(context, 'Gagal mengunduh file, membagikan link saja', isError: true);
+      await Share.share(widget.url, subject: widget.title);
+    } finally {
+      if (mounted) setState(() => _isSharing = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
