@@ -20,17 +20,31 @@ Tombol share (ikon share di header `WebViewPage`) sebelumnya cuma `Share.share(w
 - Ada guard `_isSharing` supaya tombol tidak bisa di-tap dobel saat proses download berlangsung.
 - Kalau download gagal, muncul snackbar "Gagal mengunduh file, membagikan link saja" lalu tetap fallback share link — tidak ada skenario tombol jadi tidak berfungsi sama sekali.
 
-## Update — Video tetap share link, bukan download
-Video (ekstensi `.mp4/.mov/.avi/.mkv/.webm` atau link YouTube) sengaja **tidak** didownload — file video biasanya besar (lambat/boros kuota) dan YouTube bukan file yang bisa didownload langsung. Untuk kasus ini, share tetap pakai `Share.share(widget.url, ...)` (link mentah), sama seperti behavior sebelum perubahan ini.
+## Update — Cuma PDF & gambar yang didownload, selain itu share link biasa
+Awalnya cuma video yang dikecualikan dari download (pakai `isVideo`). Setelah didiskusikan lagi, keputusan akhirnya dibalik jadi **whitelist**: cuma PDF & gambar yang didownload lalu di-share sebagai file. Semua tipe lain (video, dokumen, zip, dll — apa pun yang bukan PDF/gambar) langsung `Share.share(widget.url, ...)` (link mentah, tanpa dipersingkat/di-custom — sempat didiskusikan pakai shortlink seperti Bitly/TinyURL tapi diputuskan pakai link biasa dulu untuk saat ini).
 
-- `bool get isVideo` pada `WebViewPage` — cek ekstensi video atau `isYoutubeUrl()` ([lib/core/utils/helpers/youtube_helper.dart](../lib/core/utils/helpers/youtube_helper.dart)):
-  - [lib/core/utils/widget/webview_page_mobile.dart:24-28](../lib/core/utils/widget/webview_page_mobile.dart#L24-L28)
-  - [lib/core/utils/widget/webview_page_web.dart:24-28](../lib/core/utils/widget/webview_page_web.dart#L24-L28)
-- Guard di awal `_shareUrl()` — kalau `widget.isVideo`, langsung `Share.share(...)` dan `return`, tidak masuk ke alur download:
-  - [lib/core/utils/widget/webview_page_mobile.dart:43-48](../lib/core/utils/widget/webview_page_mobile.dart#L43-L48)
-  - [lib/core/utils/widget/webview_page_web.dart:188-192](../lib/core/utils/widget/webview_page_web.dart#L188-L192)
+- `bool get isImage` ditambahkan di `WebViewPage` (gantikan `isVideo` yang sebelumnya dipakai untuk guard ini — sekarang tidak diperlukan lagi karena logikanya sudah whitelist `isPdf`/`isImage`):
+  - [lib/core/utils/widget/webview_page_mobile.dart:28-31](../lib/core/utils/widget/webview_page_mobile.dart#L28-L31)
+  - [lib/core/utils/widget/webview_page_web.dart:26-29](../lib/core/utils/widget/webview_page_web.dart#L26-L29)
+- Guard di awal `_shareUrl()` — kalau **bukan** `isPdf` dan **bukan** `isImage`, langsung `Share.share(...)` dan `return`, tidak masuk ke alur download:
+  - [lib/core/utils/widget/webview_page_mobile.dart:46-51](../lib/core/utils/widget/webview_page_mobile.dart#L46-L51)
+  - [lib/core/utils/widget/webview_page_web.dart:180-185](../lib/core/utils/widget/webview_page_web.dart#L180-L185)
 
-Jadi ringkasan akhir: **PDF & gambar** → download lalu share sebagai file. **Video** (termasuk YouTube) → tetap share link.
+Jadi ringkasan akhir: **PDF & gambar** → download lalu share sebagai file. **Selain itu (termasuk video/YouTube)** → share link biasa.
+
+## Fix — File hasil share jadi ".bin" / tanpa ekstensi
+**Masalah:** banyak URL sumber (misal Google Drive `uc?export=download&id=...`) tidak punya ekstensi di path-nya. Kode awal cuma nebak ekstensi dari potongan terakhir URL — kalau tidak ketemu, nama file jadi tanpa ekstensi dan `XFile`/share sheet default ke `application/octet-stream`, yang oleh banyak OS/aplikasi penerima ditampilkan sebagai file `.bin`.
+
+**Perbaikan:** tambah helper [lib/core/utils/helpers/file_extension_helper.dart](../lib/core/utils/helpers/file_extension_helper.dart) buat resolve ekstensi secara berlapis:
+1. `extensionFromUrl()` — dari path URL (cuma dipakai kalau ekstensinya dikenali di daftar mime yang didukung).
+2. `extensionFromContentDisposition()` — parse header `Content-Disposition: ...filename=...` dari response.
+3. `extensionFromContentType()` — mapping header `Content-Type` (mis. `application/pdf` → `.pdf`) ke ekstensi.
+4. Fallback terakhir: `.pdf` kalau `widget.isPdf`, atau `.bin` kalau benar-benar tidak diketahui.
+
+- **Mobile** — download tetap sekali jalan (`Dio().download`); kalau URL tidak punya ekstensi, ekstensi final di-resolve dari header response yang sama, lalu file di-*rename* sebelum di-share: [lib/core/utils/widget/webview_page_mobile.dart:50-77](../lib/core/utils/widget/webview_page_mobile.dart#L50-L77)
+- **Web** — ekstensi + `mimeType` di-resolve dari response yang sama (satu request `Dio().get(bytes)`, tidak ada request tambahan), lalu dipakai di `XFile.fromData(bytes, name: ..., mimeType: ...)`: [lib/core/utils/widget/webview_page_web.dart:187-210](../lib/core/utils/widget/webview_page_web.dart#L187-L210)
+
+Hasilnya file yang di-share sekarang konsisten punya ekstensi & mimeType yang benar (`.pdf`, `.jpg`, dst), cuma jatuh ke `.bin` kalau memang tipe filenya di luar daftar yang dikenali helper.
 
 ## Catatan risiko
 Di web, fetch file dari domain lain (misal Google Drive) bisa kena **CORS** kalau server sumbernya tidak mengizinkan cross-origin request dari browser — kalau itu terjadi, otomatis fallback ke share link (tidak ada crash), tapi user tidak dapat file-nya. Perlu ditest langsung ke masing-masing sumber file (Price List/Brochure/dll) untuk pastikan tidak semuanya kena CORS.

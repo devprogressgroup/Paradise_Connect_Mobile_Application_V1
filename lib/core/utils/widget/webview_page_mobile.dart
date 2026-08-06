@@ -1,9 +1,11 @@
-﻿import 'package:dio/dio.dart';
+﻿import 'dart:io';
+
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_pdfview/flutter_pdfview.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:progress_group/core/constants/colors.dart';
-import 'package:progress_group/core/utils/helpers/youtube_helper.dart';
+import 'package:progress_group/core/utils/helpers/file_extension_helper.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'custom_header.dart';
@@ -27,10 +29,9 @@ class WebViewPage extends StatefulWidget {
     return urlLower.endsWith('.pdf') || urlLower.contains('.pdf?');
   }
 
-  bool get isVideo {
+  bool get isImage {
     final urlLower = url.toLowerCase();
-    final hasVideoExt = ['.mp4', '.mov', '.avi', '.mkv', '.webm'].any((ext) => urlLower.contains(ext));
-    return hasVideoExt || isYoutubeUrl(url);
+    return ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp'].any((ext) => urlLower.contains(ext));
   }
 
   @override
@@ -42,17 +43,16 @@ class _WebViewPageState extends State<WebViewPage> {
 
   Future<void> _shareUrl() async {
     if (_isSharing) return;
-    if (widget.isVideo) {
+    if (!widget.isPdf && !widget.isImage) {
       await Share.share(widget.url, subject: widget.title);
       return;
     }
     setState(() => _isSharing = true);
     try {
       final dir = await getTemporaryDirectory();
-      final safeName = widget.url.split('/').last.split('?').first;
-      final ext = safeName.contains('.') ? '.${safeName.split('.').last}' : (widget.isPdf ? '.pdf' : '');
       final titleName = widget.title.replaceAll(RegExp(r'[^\w\s\-]'), '').trim();
-      final filePath = '${dir.path}/$titleName$ext';
+      final urlExt = extensionFromUrl(widget.url);
+      var filePath = '${dir.path}/$titleName${urlExt ?? '.tmp'}';
 
       final response = await Dio().download(
         widget.url,
@@ -60,11 +60,22 @@ class _WebViewPageState extends State<WebViewPage> {
         options: Options(followRedirects: true, receiveTimeout: const Duration(seconds: 60)),
       );
 
-      if (response.statusCode == 200) {
-        await Share.shareXFiles([XFile(filePath)], subject: widget.title);
-      } else {
+      if (response.statusCode != 200) {
         throw Exception('Download gagal ${response.statusCode}');
       }
+
+      if (urlExt == null) {
+        final resolvedExt = extensionFromContentDisposition(response.headers.value('content-disposition')) ??
+            extensionFromContentType(response.headers.value('content-type')) ??
+            (widget.isPdf ? '.pdf' : '.bin');
+        final newPath = '${dir.path}/$titleName$resolvedExt';
+        if (newPath != filePath) {
+          await File(filePath).rename(newPath);
+          filePath = newPath;
+        }
+      }
+
+      await Share.shareXFiles([XFile(filePath)], subject: widget.title);
     } catch (_) {
       if (mounted) showSnackbar(context, 'Gagal mengunduh file, membagikan link saja', isError: true);
       await Share.share(widget.url, subject: widget.title);

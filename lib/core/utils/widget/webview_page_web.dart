@@ -10,7 +10,7 @@ import 'dart:ui_web' as ui_web;
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:progress_group/core/constants/colors.dart';
-import 'package:progress_group/core/utils/helpers/youtube_helper.dart';
+import 'package:progress_group/core/utils/helpers/file_extension_helper.dart';
 import 'package:share_plus/share_plus.dart';
 import 'custom_header.dart';
 import 'custom_snackbar.dart';
@@ -27,10 +27,9 @@ class WebViewPage extends StatefulWidget {
     return u.endsWith('.pdf') || u.contains('.pdf?');
   }
 
-  bool get isVideo {
+  bool get isImage {
     final u = url.toLowerCase();
-    final hasVideoExt = ['.mp4', '.mov', '.avi', '.mkv', '.webm'].any((ext) => u.contains(ext));
-    return hasVideoExt || isYoutubeUrl(url);
+    return ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp'].any((ext) => u.contains(ext));
   }
 
   @override
@@ -178,16 +177,9 @@ class _WebViewPageState extends State<WebViewPage> {
 
   bool _isSharing = false;
 
-  String _shareFilename() {
-    final safeName = widget.url.split('/').last.split('?').first;
-    final ext = safeName.contains('.') ? '.${safeName.split('.').last}' : (widget.isPdf ? '.pdf' : '');
-    final titleName = widget.title.replaceAll(RegExp(r'[^\w\s\-]'), '').trim();
-    return '$titleName$ext';
-  }
-
   Future<void> _shareUrl() async {
     if (_isSharing) return;
-    if (widget.isVideo) {
+    if (!widget.isPdf && !widget.isImage) {
       await Share.share(widget.url, subject: widget.title);
       return;
     }
@@ -199,7 +191,17 @@ class _WebViewPageState extends State<WebViewPage> {
       );
       final bytes = Uint8List.fromList(response.data ?? []);
       if (bytes.isEmpty) throw Exception('File kosong');
-      await Share.shareXFiles([XFile.fromData(bytes, name: _shareFilename())], subject: widget.title);
+
+      final ext = extensionFromUrl(widget.url) ??
+          extensionFromContentDisposition(response.headers.value('content-disposition')) ??
+          extensionFromContentType(response.headers.value('content-type')) ??
+          (widget.isPdf ? '.pdf' : '.bin');
+      final titleName = widget.title.replaceAll(RegExp(r'[^\w\s\-]'), '').trim();
+
+      await Share.shareXFiles(
+        [XFile.fromData(bytes, name: '$titleName$ext', mimeType: mimeTypeFromExtension(ext))],
+        subject: widget.title,
+      );
     } catch (_) {
       if (mounted) showSnackbar(context, 'Gagal mengunduh file, membagikan link saja', isError: true);
       await Share.share(widget.url, subject: widget.title);
