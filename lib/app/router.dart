@@ -29,6 +29,7 @@ import '../features/notif/presentation/pages/notif-page/index.dart';
 import '../features/saleskit/data/arguments/saleskit_detail_args.dart';
 import '../features/saleskit/presentation/saleskit-page/index.dart';
 import '../features/site-plan/domain/entities/project_site.dart';
+import '../features/site-plan/presentation/blank/siteplan-blank.dart';
 import '../features/site-plan/presentation/project-list/index.dart';
 import '../features/site-plan/presentation/site-plan-page/index.dart';
 import '../features/landing-page/presentation/landing-page/index.dart';
@@ -40,6 +41,13 @@ import 'main_layout.dart';
 import '../core/services/analytics_service.dart';
 import '../core/utils/helpers/permissions_helper.dart';
 import '../core/utils/route_observer.dart';
+
+/// Path App Links (domain APP_LINK_DOMAIN Laravel, https://devconnect.paradise.id) → route
+/// internal app — dicek di AppRouter.init()'s redirect() (lihat komentar di sana kenapa harus
+/// di redirect, bukan listener terpisah kayak package app_links).
+const Map<String, String> _appLinkPathRoutes = {
+  '/link/site-plan-blank': '/site-plan/blank',
+};
 
 class AppRouter {
   static GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>();
@@ -60,6 +68,22 @@ class AppRouter {
       refreshListenable: authNotifier,
       observers: [appRouteObserver],
       redirect: (context, state) {
+        // App Links (mobile) & link dibuka langsung di browser (PWA): "location" yang
+        // dilempar ke go_router itu URL LENGKAP di mobile (scheme+host+path, mis.
+        // "https://devconnect.paradise.id/link/site-plan-blank" — Android meneruskan
+        // Intent-nya apa adanya) tapi cuma PATH-nya saja di web (browser sudah otomatis
+        // pisahkan origin dari path). findMatch() go_router gagal cocokkan KEDUANYA ke
+        // tabel route (isinya path relatif semua) dan lempar GoException("no routes for
+        // location: ..."). redirect TOP-LEVEL ini TETAP dipanggil oleh go_router walau
+        // matching awal gagal (dievaluasi di atas match-list error, lihat
+        // configuration.dart:findMatch()+redirect() punya package go_router) — jadi di
+        // SINI tempat yang benar buat translate ke path internal app, SEBELUM di-match
+        // ulang. Cek berdasarkan uri.path SAJA (bukan host) — otomatis benar utk kedua
+        // platform tanpa perlu hardcode domain di sini (domain App Links sendiri diatur
+        // di AndroidManifest.xml, TIDAK BISA dibaca dari sini — lihat catatan di sana).
+        final internalPath = _appLinkPathRoutes[state.uri.path];
+        if (internalPath != null) return internalPath;
+
         final isLoggedIn = authNotifier.value;
         final location = state.matchedLocation;
 
@@ -241,6 +265,11 @@ class AppRouter {
                   final selected = extra?['selected'] as ProjectSite?;
                   return ProjectListPage(sites: sites, selectedSite: selected);
                 },
+              ),
+              GoRoute(
+                name: 'site_plan_blank',
+                path: 'blank',
+                builder: (context, state) => const SitePlanBlank(),
               ),
             ],
           ),

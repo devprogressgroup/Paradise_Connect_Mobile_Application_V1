@@ -117,6 +117,7 @@ class ApiConstants {
   static String _appDownloadUrl = '';
   static String _saleskitUrl = '';
   static String _loginHelpMessage = '';
+  static String _appLinkDomain = '';
 
   static String get waServerURL => _waServerUrl;
   static String get salesbookWebhookUrl => _salesbookWebhookUrl;
@@ -129,6 +130,12 @@ class ApiConstants {
   static String get appDownloadUrl => _appDownloadUrl;
   static String get saleskitUrl => _saleskitUrl;
   static String get loginHelpMessage => _loginHelpMessage;
+  /// Domain App Links (mis. "https://devconnect.paradise.id") — dari APP_LINK_DOMAIN di
+  /// .env Laravel (config('app.link_domain')), diteruskan lewat GET /settings, BUKAN
+  /// dipakai buat matching route (lihat AppRouter.init()'s redirect — itu cek path saja,
+  /// tidak butuh domain ini). Baru berguna kalau nanti app perlu GENERATE share-link
+  /// (mis. tombol "Share" yang bikin https://$appLinkDomain/link/site-plan-blank).
+  static String get appLinkDomain => _appLinkDomain;
 
   static void applySettings(List<Map<String, dynamic>> settings) {
     for (final s in settings) {
@@ -158,6 +165,8 @@ class ApiConstants {
           _saleskitUrl = value;
         case 'LOGIN_HELP_MESSAGE':
           _loginHelpMessage = value;
+        case 'APP_LINK_DOMAIN':
+          _appLinkDomain = value;
       }
     }
   }

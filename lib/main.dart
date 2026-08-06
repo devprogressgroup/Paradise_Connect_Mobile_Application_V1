@@ -228,7 +228,6 @@ void main() async {
     debugPrint('[Firebase] Init error: $e');
   }
 
-  
   AppRouter.init();
 
   SystemChrome.setSystemUIOverlayStyle(
