@@ -19,6 +19,7 @@ class _LocalProxy {
 
   Future<int> start({
     required String targetHost,
+    required String targetScheme,
     required Map<String, String> headers,
   }) async {
     _client = HttpClient();
@@ -27,7 +28,7 @@ class _LocalProxy {
     _server!.listen((req) async {
       try {
         final targetUri = Uri(
-          scheme: 'https',
+          scheme: targetScheme,
           host: targetHost,
           path: req.uri.path,
           query: req.uri.query.isEmpty ? null : req.uri.query,
@@ -82,6 +83,7 @@ class _SitePlanPageState extends State<SitePlanPage> {
   ProjectSite? _selectedSite;
   bool _isWebviewLoading = false;
   double _loadingProgress = 0;
+  String? _currentSiteUrl;
 
   @override
   void initState() {
@@ -116,8 +118,26 @@ class _SitePlanPageState extends State<SitePlanPage> {
             setState(() => _isWebviewLoading = false);
             _resetZoomToDefault();
           },
+          onWebResourceError: (error) {
+            if (error.isForMainFrame == false) return;
+            setState(() => _isWebviewLoading = false);
+            _showLoadError(error.description);
+          },
         ),
       );
+  }
+
+  void _showLoadError(String description) {
+    final displayUrl = _currentSiteUrl ?? '';
+    _controller.loadHtmlString('''
+      <html>
+        <body style="font-family: sans-serif; padding: 24px; text-align: center;">
+          <h3>Halaman web tidak tersedia</h3>
+          <p>Halaman web di $displayUrl tidak dapat dimuat karena:</p>
+          <p>$description</p>
+        </body>
+      </html>
+    ''');
   }
 
   void _resetZoomToDefault() {
@@ -143,6 +163,9 @@ class _SitePlanPageState extends State<SitePlanPage> {
 
   Future<void> _loadSite(ProjectSite site) async {
     setState(() => _isWebviewLoading = true);
+    _currentSiteUrl = site.url;
+
+    debugPrint('[SitePlan] loading url: ${site.url}');
 
     _proxy?.stop();
     _proxy = null;
@@ -152,14 +175,16 @@ class _SitePlanPageState extends State<SitePlanPage> {
       _proxy = _LocalProxy();
       final port = await _proxy!.start(
         targetHost: originalUri.host,
+        targetScheme: originalUri.scheme,
         headers: site.headers,
       );
 
       final localUri = originalUri.replace(
-        scheme: 'http',
+        scheme: 'https',
         host: '127.0.0.1',
         port: port,
       );
+      debugPrint('[SitePlan] proxied url: $localUri');
       await _controller.loadRequest(localUri);
     } else {
       await _controller.loadRequest(Uri.parse(site.url));
