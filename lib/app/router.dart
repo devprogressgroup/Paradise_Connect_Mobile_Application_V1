@@ -1,4 +1,5 @@
 
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:progress_group/features/attandance/presentation/pages/approval/index.dart';
@@ -38,16 +39,49 @@ import '../features/permission-gate/presentation/pages/index.dart';
 import '../features/siap-huni/presentation/pages/index.dart';
 import '../features/contact/presentation/pages/pipeline/index.dart';
 import 'main_layout.dart';
+import '../core/network/api_constants.dart';
 import '../core/services/analytics_service.dart';
 import '../core/utils/helpers/permissions_helper.dart';
 import '../core/utils/route_observer.dart';
 
-/// Path App Links (domain APP_LINK_DOMAIN Laravel, https://devconnect.paradise.id) → route
-/// internal app — dicek di AppRouter.init()'s redirect() (lihat komentar di sana kenapa harus
-/// di redirect, bukan listener terpisah kayak package app_links).
-const Map<String, String> _appLinkPathRoutes = {
-  '/link/site-plan-blank': '/site-plan/blank',
+/// Pola path App Links yang dianggap "hash link" — https://{APP_LINK_DOMAIN}/link/{hash}
+/// (hash di-generate AppDeepLinkController, lihat docs/app-links-site-plan-blank.md §7).
+/// SEBELUMNYA path-nya literal "/link/site-plan-blank" (dicocokkan lewat Map); SEKARANG segmen
+/// terakhirnya hash acak per-share, jadi harus di-resolve ke server dulu (lihat _resolveAppLinkHash)
+/// buat tahu ini link menuju halaman internal yang mana.
+final RegExp _appLinkHashPattern = RegExp(r'^/link/([A-Za-z0-9]+)$');
+
+/// Map "target" hasil resolve (dari AppLinkResolveController) -> path internal app. Cuma 1 entry
+/// sekarang ('site-plan-blank') — tambah entry baru di sini kalau nanti ada target lain, TANPA
+/// perlu ubah AndroidManifest.xml (intent-filter pathPrefix "/link" sudah menangkap semua path
+/// di bawahnya apapun hash-nya).
+const Map<String, String> _appLinkTargetRoutes = {
+  'site-plan-blank': '/site-plan/blank',
 };
+
+/// Resolve https://.../link/{hash} -> path internal, hit endpoint publik GET /link/resolve/{hash}
+/// (lihat AppLinkResolveController). SENGAJA pakai Dio polos (BUKAN DioClient/gateway terenkripsi
+/// -/px-): endpoint ini publik & datanya tidak sensitif (cuma nama target dari daftar terbatas di
+/// atas) — persis sama seperti kalau link ini dibuka di browser biasa tanpa app. DioClient juga
+/// butuh AuthLocalDataSource via DI yang tidak tersedia di titik statis ini (AppRouter.init()).
+Future<String?> _resolveAppLinkHash(String hash) async {
+  try {
+    final dio = Dio(BaseOptions(
+      baseUrl: ApiConstants.baseUrl,
+      connectTimeout: const Duration(seconds: 8),
+      receiveTimeout: const Duration(seconds: 8),
+    ));
+    final response = await dio.get('/link/resolve/$hash');
+    final data = response.data;
+    if (data is! Map) return null;
+    final inner = data['data'];
+    final target = inner is Map ? inner['target'] as String? : null;
+    return target != null ? _appLinkTargetRoutes[target] : null;
+  } catch (e) {
+    debugPrint('[AppRouter] Gagal resolve app link hash "$hash": $e');
+    return null;
+  }
+}
 
 class AppRouter {
   static GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>();
@@ -67,22 +101,28 @@ class AppRouter {
       navigatorKey: rootNavigatorKey,
       refreshListenable: authNotifier,
       observers: [appRouteObserver],
-      redirect: (context, state) {
+      redirect: (context, state) async {
         // App Links (mobile) & link dibuka langsung di browser (PWA): "location" yang
         // dilempar ke go_router itu URL LENGKAP di mobile (scheme+host+path, mis.
-        // "https://devconnect.paradise.id/link/site-plan-blank" — Android meneruskan
-        // Intent-nya apa adanya) tapi cuma PATH-nya saja di web (browser sudah otomatis
-        // pisahkan origin dari path). findMatch() go_router gagal cocokkan KEDUANYA ke
-        // tabel route (isinya path relatif semua) dan lempar GoException("no routes for
-        // location: ..."). redirect TOP-LEVEL ini TETAP dipanggil oleh go_router walau
-        // matching awal gagal (dievaluasi di atas match-list error, lihat
-        // configuration.dart:findMatch()+redirect() punya package go_router) — jadi di
-        // SINI tempat yang benar buat translate ke path internal app, SEBELUM di-match
-        // ulang. Cek berdasarkan uri.path SAJA (bukan host) — otomatis benar utk kedua
-        // platform tanpa perlu hardcode domain di sini (domain App Links sendiri diatur
-        // di AndroidManifest.xml, TIDAK BISA dibaca dari sini — lihat catatan di sana).
-        final internalPath = _appLinkPathRoutes[state.uri.path];
-        if (internalPath != null) return internalPath;
+        // "https://devconnect.paradise.id/link/{hash}" — Android meneruskan Intent-nya
+        // apa adanya) tapi cuma PATH-nya saja di web (browser sudah otomatis pisahkan
+        // origin dari path). findMatch() go_router gagal cocokkan KEDUANYA ke tabel route
+        // (isinya path relatif semua) dan lempar GoException("no routes for location: ...").
+        // redirect TOP-LEVEL ini TETAP dipanggil oleh go_router walau matching awal gagal
+        // (dievaluasi di atas match-list error, lihat configuration.dart:findMatch()+redirect()
+        // punya package go_router) — jadi di SINI tempat yang benar buat translate ke path
+        // internal app, SEBELUM di-match ulang. Cek berdasarkan uri.path SAJA (bukan host) —
+        // otomatis benar utk kedua platform tanpa perlu hardcode domain di sini (domain App
+        // Links sendiri diatur di AndroidManifest.xml, TIDAK BISA dibaca dari sini — lihat
+        // catatan di sana).
+        final hashMatch = _appLinkHashPattern.firstMatch(state.uri.path);
+        if (hashMatch != null) {
+          final internalPath = await _resolveAppLinkHash(hashMatch.group(1)!);
+          if (internalPath != null) return internalPath;
+          // Hash tidak dikenal/gagal resolve (network error, link sudah tidak valid, dst) —
+          // jangan biarkan GoException nyangkut di lokasi yang gagal match, redirect ke home.
+          return '/';
+        }
 
         final isLoggedIn = authNotifier.value;
         final location = state.matchedLocation;
