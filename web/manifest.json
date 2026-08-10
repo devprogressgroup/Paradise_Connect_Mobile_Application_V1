@@ -9,6 +9,7 @@
     "description": "Aplikasi Paradise Connect oleh Progress Group.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
+    "capture_links": "existing-client-navigate",
     "categories": ["business", "productivity"],
     "icons": [
         {

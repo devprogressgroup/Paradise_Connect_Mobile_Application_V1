@@ -10,6 +10,7 @@ import 'package:progress_group/core/constants/colors.dart';
 import '../../../../core/utils/widget/custom_header.dart';
 import 'package:progress_group/core/services/analytics_service.dart';
 import '../../domain/entities/project_site.dart';
+import '../../domain/entities/unit_detail.dart';
 import '../state/siteplan_bloc.dart';
 import '../state/siteplan_event.dart';
 import '../state/siteplan_state.dart';
@@ -105,6 +106,12 @@ class _SitePlanPageState extends State<SitePlanPage> {
     }
   }
 
+  void _openSitePlanBlank() {
+    AnalyticsService.logEvent('site_plan_open_blank_preview');
+    final unitData = UnitDetail.decryptKeyUrlToJson(sampleEncryptedSiteplanKeyUrl);
+    context.pushNamed('site_plan_blank', extra: unitData);
+  }
+
   void _openInNewTab() {
     if (_selectedSite != null) {
       AnalyticsService.logEvent('site_plan_open_in_new_tab');
@@ -137,7 +144,13 @@ class _SitePlanPageState extends State<SitePlanPage> {
           body: SafeArea(
             child: Column(
               children: [
-                customHeader(context, 'Site Plan'),
+                customHeader(
+                  context,
+                  'Site Plan',
+                  iconLeft: Icons.visibility_outlined,
+                  colorIconLeft: Color(blackColor),
+                  iconLeftOnTap: _openSitePlanBlank,
+                ),
 
                 if (state is SiteplanLoading || state is SiteplanInitial)
                   const Expanded(child: Center(child: CircularProgressIndicator()))

@@ -5,6 +5,7 @@ import 'dart:ui' show PlatformDispatcher;
 import 'package:flutter/foundation.dart' show kIsWeb, debugPrint;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_web_plugins/url_strategy.dart';
 import 'package:progress_group/core/constants/colors.dart';
 import 'package:progress_group/core/screens/update_screen.dart';
 import 'package:progress_group/core/services/old_app_check_service.dart';
@@ -167,6 +168,12 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Path URL murni ("/link/{hash}", bukan "/#/link/{hash}") — App Link/PWA butuh ini supaya
+  // path-nya kebaca browser & server (bisa di-deep-link langsung), sama seperti perilaku native
+  // Android app links. Tanpa ini Flutter web default pakai hash strategy, jadi redirect hash-link
+  // di AppRouter (lihat router.dart) tidak akan pernah match saat link dibuka langsung di browser.
+  usePathUrlStrategy();
 
   if (!kIsWeb) {
     // Native only: raise Flutter's in-memory image cache ceiling (default 100MB/1000

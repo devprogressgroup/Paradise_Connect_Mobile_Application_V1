@@ -109,8 +109,6 @@ class ApiConstants {
   static String _waServerUrl = '';
   static String _salesbookWebhookUrl = '';
   static String _salesbookWebhookToken = '';
-  static String _siteplanBaseUrl = '';
-  static String _siteplanToken = '';
   static String _landingPageUrl = '';
   static String _siapHuniUrl = '';
   static String _lastVersion = '';
@@ -122,8 +120,6 @@ class ApiConstants {
   static String get waServerURL => _waServerUrl;
   static String get salesbookWebhookUrl => _salesbookWebhookUrl;
   static String get salesbookWebhookToken => _salesbookWebhookToken;
-  static String get siteplanBaseUrl => _siteplanBaseUrl;
-  static Map<String, String> get siteplanWebviewHeaders => {'X-App-Token': _siteplanToken};
   static String get landingPageUrl => _landingPageUrl;
   static String get siapHuniUrl => _siapHuniUrl;
   static String get lastVersion => _lastVersion;
@@ -149,10 +145,6 @@ class ApiConstants {
           _salesbookWebhookUrl = value;
         case 'X-App-Token SalesBook':
           _salesbookWebhookToken = value;
-        case 'SITEPLAN_MOBILE_URL':
-          _siteplanBaseUrl = value;
-        case 'X-App-Token SitePlan':
-          _siteplanToken = value;
         case 'LANDING_PAGE_URL':
           _landingPageUrl = value;
         case 'SIAP_HUNI_URL':

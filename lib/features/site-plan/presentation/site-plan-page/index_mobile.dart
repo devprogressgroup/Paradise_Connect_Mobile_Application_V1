@@ -1,5 +1,4 @@
-﻿import 'dart:io';
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:progress_group/core/constants/colors.dart';
@@ -7,67 +6,10 @@ import 'package:webview_flutter/webview_flutter.dart';
 import '../../../../core/utils/widget/custom_header.dart';
 import 'package:progress_group/core/services/analytics_service.dart';
 import '../../domain/entities/project_site.dart';
+import '../../domain/entities/unit_detail.dart';
 import '../state/siteplan_bloc.dart';
 import '../state/siteplan_event.dart';
 import '../state/siteplan_state.dart';
-
-
-
-class _LocalProxy {
-  HttpServer? _server;
-  HttpClient? _client;
-
-  Future<int> start({
-    required String targetHost,
-    required String targetScheme,
-    required Map<String, String> headers,
-  }) async {
-    _client = HttpClient();
-    _server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
-
-    _server!.listen((req) async {
-      try {
-        final targetUri = Uri(
-          scheme: targetScheme,
-          host: targetHost,
-          path: req.uri.path,
-          query: req.uri.query.isEmpty ? null : req.uri.query,
-        );
-
-        final proxyReq = await _client!.getUrl(targetUri);
-        headers.forEach(proxyReq.headers.add);
-
-        final proxyRes = await proxyReq.close();
-        req.response.statusCode = proxyRes.statusCode;
-
-        const skipHeaders = {'transfer-encoding', 'connection', 'keep-alive'};
-        proxyRes.headers.forEach((name, values) {
-          if (!skipHeaders.contains(name.toLowerCase())) {
-            try {
-              req.response.headers.set(name, values.join(', '));
-            } catch (_) {}
-          }
-        });
-
-        await proxyRes.pipe(req.response);
-      } catch (_) {
-        try {
-          req.response.statusCode = 500;
-          await req.response.close();
-        } catch (_) {}
-      }
-    });
-
-    return _server!.port;
-  }
-
-  void stop() {
-    _client?.close(force: true);
-    _server?.close(force: true);
-    _client = null;
-    _server = null;
-  }
-}
 
 class SitePlanPage extends StatefulWidget {
   const SitePlanPage({super.key});
@@ -78,7 +20,6 @@ class SitePlanPage extends StatefulWidget {
 
 class _SitePlanPageState extends State<SitePlanPage> {
   late final WebViewController _controller;
-  _LocalProxy? _proxy;
   List<ProjectSite> _sites = [];
   ProjectSite? _selectedSite;
   bool _isWebviewLoading = false;
@@ -167,28 +108,16 @@ class _SitePlanPageState extends State<SitePlanPage> {
 
     debugPrint('[SitePlan] loading url: ${site.url}');
 
-    _proxy?.stop();
-    _proxy = null;
+    // site.url sudah menunjuk ke proxy Laravel (/property/siteplan-proxy) — backend yang
+    // menyisipkan header X-App-Token ke server siteplan asli, WebView tidak perlu (dan
+    // tidak bisa lagi) kirim header custom sendiri. Sama seperti jalur web (iframe).
+    await _controller.loadRequest(Uri.parse(site.url));
+  }
 
-    if (site.headers.isNotEmpty) {
-      final originalUri = Uri.parse(site.url);
-      _proxy = _LocalProxy();
-      final port = await _proxy!.start(
-        targetHost: originalUri.host,
-        targetScheme: originalUri.scheme,
-        headers: site.headers,
-      );
-
-      final localUri = originalUri.replace(
-        scheme: 'https',
-        host: '127.0.0.1',
-        port: port,
-      );
-      debugPrint('[SitePlan] proxied url: $localUri');
-      await _controller.loadRequest(localUri);
-    } else {
-      await _controller.loadRequest(Uri.parse(site.url));
-    }
+  void _openSitePlanBlank() {
+    AnalyticsService.logEvent('site_plan_open_blank_preview');
+    final unitData = UnitDetail.decryptKeyUrlToJson(sampleEncryptedSiteplanKeyUrl);
+    context.pushNamed('site_plan_blank', extra: unitData);
   }
 
   void _openProjectList() async {
@@ -201,12 +130,6 @@ class _SitePlanPageState extends State<SitePlanPage> {
       setState(() => _selectedSite = result);
       _loadSite(result);
     }
-  }
-
-  @override
-  void dispose() {
-    _proxy?.stop();
-    super.dispose();
   }
 
   @override
@@ -228,7 +151,13 @@ class _SitePlanPageState extends State<SitePlanPage> {
           body: SafeArea(
             child: Column(
               children: [
-                customHeader(context, 'Site Plan'),
+                customHeader(
+                  context,
+                  'Site Plan',
+                  iconLeft: Icons.visibility_outlined,
+                  colorIconLeft: Color(blackColor),
+                  iconLeftOnTap: _openSitePlanBlank,
+                ),
                 if (state is SiteplanLoading || state is SiteplanInitial) ...[
                   Expanded(
                     child: Container(

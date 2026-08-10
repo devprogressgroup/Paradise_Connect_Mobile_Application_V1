@@ -30,6 +30,7 @@ import '../features/notif/presentation/pages/notif-page/index.dart';
 import '../features/saleskit/data/arguments/saleskit_detail_args.dart';
 import '../features/saleskit/presentation/saleskit-page/index.dart';
 import '../features/site-plan/domain/entities/project_site.dart';
+import '../features/site-plan/domain/entities/unit_detail.dart';
 import '../features/site-plan/presentation/blank/siteplan-blank.dart';
 import '../features/site-plan/presentation/project-list/index.dart';
 import '../features/site-plan/presentation/site-plan-page/index.dart';
@@ -118,10 +119,17 @@ class AppRouter {
         final hashMatch = _appLinkHashPattern.firstMatch(state.uri.path);
         if (hashMatch != null) {
           final internalPath = await _resolveAppLinkHash(hashMatch.group(1)!);
-          if (internalPath != null) return internalPath;
-          // Hash tidak dikenal/gagal resolve (network error, link sudah tidak valid, dst) —
-          // jangan biarkan GoException nyangkut di lokasi yang gagal match, redirect ke home.
-          return '/';
+          if (internalPath == null) {
+            // Hash tidak dikenal/gagal resolve (network error, link sudah tidak valid, dst) —
+            // jangan biarkan GoException nyangkut di lokasi yang gagal match, redirect ke home.
+            return '/';
+          }
+          // Payload unit (terenkripsi) NUMPANG di query string link asli, BUKAN dari endpoint
+          // resolve (lihat catatan di _resolveAppLinkHash — resolve sengaja tidak bawa data
+          // sensitif). Diteruskan apa adanya ke path internal supaya builder-nya (mis.
+          // 'site_plan_blank') bisa decrypt sendiri dari state.uri.query.
+          final query = state.uri.query;
+          return query.isEmpty ? internalPath : '$internalPath?$query';
         }
 
         final isLoggedIn = authNotifier.value;
@@ -130,6 +138,9 @@ class AppRouter {
         if (location == '/permission-gate') return null;
         if (location == '/splash') return null;
         if (location.startsWith('/forgot-password')) return null;
+        // Halaman publik (lihat definisi route-nya) — tidak boleh kena gate login, dibuka
+        // customer/prospek lewat link share yang tidak punya akun sama sekali.
+        if (location.startsWith('/site-plan/blank')) return null;
 
         if (!isLoggedIn && location != '/login') return '/login';
         if (isLoggedIn && location == '/login') return '/';
@@ -164,6 +175,28 @@ class AppRouter {
         path: '/impersonate',
         name: 'impersonate',
         builder: (context, state) => const ImpersonatePage(),
+      ),
+      // Halaman publik — dibuka lewat link share ('/link/{hash}' -> di-redirect ke sini,
+      // lihat _appLinkTargetRoutes) ke customer/prospek yang BELUM TENTU punya akun app ini.
+      // SENGAJA di luar ShellRoute (tanpa MainLayout/bottom-nav) dan dikecualikan dari gate
+      // login di redirect() atas — kalau dibiarkan di bawah '/site-plan' (yang butuh login +
+      // PermissionsHelper.canAccessSitePlan), penerima link akan selalu kelempar ke /login.
+      GoRoute(
+        path: '/site-plan/blank',
+        name: 'site_plan_blank',
+        builder: (context, state) {
+          final extra = state.extra as Map<String, dynamic>?;
+          // Dibuka dari App Link ('/link/{hash}') -> tidak ada extra, datanya ada di
+          // query string ("=<ivBase64>:<ciphertextBase64>", diteruskan redirect di atas).
+          final query = state.uri.query;
+          final data = extra ??
+              (query.isEmpty
+                  ? null
+                  : UnitDetail.decryptPayload(
+                      query.startsWith('=') ? query.substring(1) : query,
+                    ));
+          return SitePlanBlank(data: data);
+        },
       ),
       ShellRoute(
         builder: (context, state, child) {
@@ -304,14 +337,6 @@ class AppRouter {
                   final sites = (extra?['sites'] as List<ProjectSite>?) ?? [];
                   final selected = extra?['selected'] as ProjectSite?;
                   return ProjectListPage(sites: sites, selectedSite: selected);
-                },
-              ),
-              GoRoute(
-                name: 'site_plan_blank',
-                path: 'blank',
-                builder: (context, state) {
-                  final extra = state.extra as Map<String, dynamic>?;
-                  return SitePlanBlank(data: extra);
                 },
               ),
             ],

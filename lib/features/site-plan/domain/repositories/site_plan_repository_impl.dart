@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:progress_group/core/network/api_constants.dart';
 
 import '../../data/datasources/siteplan_remote_datasource.dart';
@@ -23,23 +22,13 @@ class SitePlanRepositoryImpl implements SitePlanRepository {
           final companyId = cluster['company_id']?.toString() ?? '';
           final siteplanId = cluster['id']?.toString() ?? '';
 
-          
-          const query = 'pdkey=hoaxprogress';
 
-          String url;
-          Map<String, String> headers;
-
-          if (kIsWeb) {
-            
-            
-            final backendBase = ApiConstants.baseUrl; 
-            url     = '$backendBase/property/siteplan-proxy?$query&company_id=$companyId&siteplan_id=$siteplanId';
-            headers = const {};
-          } else {
-            
-            url     = '${ApiConstants.siteplanBaseUrl}?$query&company_id=$companyId&siteplan_id=$siteplanId';
-            headers = ApiConstants.siteplanWebviewHeaders;
-          }
+          // Selalu lewat proxy Laravel (/property/siteplan-proxy) — SAMA untuk web maupun
+          // mobile. Backend yang menyisipkan header X-App-Token DAN query param pdkey ke
+          // server siteplan asli (lihat PropertyController::forwardToSiteplan()), jadi app
+          // TIDAK PERNAH connect langsung ke server siteplan atau tahu credential apa pun.
+          final backendBase = ApiConstants.baseUrl;
+          final url = '$backendBase/property/siteplan-proxy?company_id=$companyId&siteplan_id=$siteplanId';
 
           sites.add(
             ProjectSite(
@@ -49,7 +38,6 @@ class SitePlanRepositoryImpl implements SitePlanRepository {
                   '',
               unitName: cluster['siteplan_name'] as String? ?? '',
               url: url,
-              headers: headers,
             ),
           );
         }

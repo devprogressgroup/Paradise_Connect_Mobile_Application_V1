@@ -1,61 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:progress_group/core/constants/colors.dart';
 import '../../../../core/utils/widget/custom_header.dart';
 import '../../domain/entities/unit_detail.dart';
-
-/// Contoh data unit, dipakai kalau halaman ini dibuka tanpa data (preview).
-const Map<String, dynamic> _sampleUnitData = {
-  "projects": "Paradise Serpong City 2",
-  "cluster": "Cluster EcoArdence",
-  "product": "Tahap 4.1-Ariawood 36/60",
-  "blok_unit": "BA5-3",
-  "status": "RBB",
-  "is_sold": false,
-  "spec": {
-    "luas_tanah": 60,
-    "luas_bangunan": 36,
-    "kelebihan_tanah": null,
-    "jumlah_lantai": null,
-    "kamar_tidur": null,
-    "kamar_mandi": null,
-  },
-  "price_schemes": [
-    {
-      "name": "Kontan Keras 1X",
-      "harga": "Rp 577.000.000",
-      "installments": [
-        {"name": "UP", "total": "Rp 5.000.000"},
-        {"name": "Angs 1", "total": "Rp 23.850.000"},
-        {"name": "Angs 2", "total": "Rp 548.150.000"},
-      ],
-    },
-    {
-      "name": "Kontan Keras 3X",
-      "harga": "Rp 591.000.000",
-      "installments": [
-        {"name": "UP", "total": "Rp 5.000.000"},
-        {"name": "Angs 1", "total": "Rp 24.550.000"},
-        {"name": "Angs 2", "total": "Rp 187.169.700"},
-        {"name": "Angs 3", "total": "Rp 187.169.700"},
-        {"name": "Angs 4", "total": "Rp 187.110.600"},
-      ],
-    },
-    {
-      "name": "KPR Super Express - Bank BCA",
-      "bank": "Bank BCA",
-      "promo_name": "Promo KPR Merdeka",
-      "promo_percentage": 2.5,
-      "harga_sebelum_promo": "Rp 584.000.000",
-      "harga": "Rp 569.400.000",
-      "installments": [
-        {"name": "UP", "total": "Rp 5.000.000"},
-        {"name": "Angs 1", "total": "Rp 24.200.000"},
-        {"name": "Angs 2", "total": "Rp 146.000.000"},
-        {"name": "KPR", "total": "Rp 394.200.000"},
-      ],
-    },
-  ],
-};
 
 class SitePlanBlank extends StatefulWidget {
   final Map<String, dynamic>? data;
@@ -67,146 +14,60 @@ class SitePlanBlank extends StatefulWidget {
 }
 
 class _SitePlanBlankState extends State<SitePlanBlank> {
-  final PageController _galleryController = PageController();
-  int _activeImage = 0;
   bool _informasiExpanded = true;
 
-  static const List<IconData> _galleryIcons = [
-    Icons.villa_outlined,
-    Icons.grid_view_outlined,
-    Icons.view_in_ar_outlined,
-    Icons.holiday_village_outlined,
-  ];
-
-  @override
-  void dispose() {
-    _galleryController.dispose();
-    super.dispose();
+  /// Kalau dibuka tanpa data (mis. lewat tombol preview), pakai contoh
+  /// response API `/siteplan-key` (didecrypt) sebagai fallback.
+  UnitDetail _resolveUnit() {
+    final data = widget.data;
+    if (data != null) return UnitDetail.fromJson(data);
+    return UnitDetail.fromEncryptedKeyUrl(sampleEncryptedSiteplanKeyUrl) ??
+        UnitDetail.fromJson(const {});
   }
 
   @override
   Widget build(BuildContext context) {
-    final unit = UnitDetail.fromJson(widget.data ?? _sampleUnitData);
+    final unit = _resolveUnit();
 
     return Scaffold(
-      backgroundColor: const Color(whiteColor),
+      backgroundColor: const Color(grey11Color),
       body: SafeArea(
         child: Column(
           children: [
-            customHeader(context, 'Detail Unit', isBack: true),
+            customHeader(
+              context,
+              'Detail Unit',
+              isBack: true,
+              // Halaman ini bisa jadi ENTRY POINT pertama (dibuka langsung dari link share,
+              // tanpa riwayat navigasi) — context.pop() bawaan customHeader bisa gagal kalau
+              // stack-nya cuma 1. context.canPop() jaga-jaga itu, fallback ke halaman utama.
+              onBack: () => context.canPop() ? context.pop() : context.go('/'),
+              colorBg: const Color(primaryColor),
+              colorBack: const Color(whiteColor),
+              colorTitle: const Color(whiteColor),
+            ),
             Expanded(
               child: SingleChildScrollView(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildGallery(),
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          _buildTitleSection(unit),
-                          const SizedBox(height: 20),
-                          _buildInformasiUnit(unit),
-                          const SizedBox(height: 24),
-                          _buildHargaSimulasi(unit),
-                          const SizedBox(height: 24),
-                          _buildSpesifikasiUnit(unit),
-                        ],
-                      ),
-                    ),
-                  ],
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildTitleSection(unit),
+                      const SizedBox(height: 20),
+                      _buildInformasiUnit(unit),
+                      const SizedBox(height: 24),
+                      _buildHargaSimulasi(unit),
+                      const SizedBox(height: 24),
+                      _buildSpesifikasiUnit(unit),
+                    ],
+                  ),
                 ),
               ),
             ),
           ],
         ),
       ),
-    );
-  }
-
-  // ---------------------------------------------------------------------
-  // Galeri gambar (placeholder - data unit belum menyediakan URL gambar)
-  // ---------------------------------------------------------------------
-  Widget _buildGallery() {
-    return Stack(
-      children: [
-        Column(
-          children: [
-            SizedBox(
-              height: 220,
-              width: double.infinity,
-              child: PageView.builder(
-                controller: _galleryController,
-                itemCount: _galleryIcons.length,
-                onPageChanged: (i) => setState(() => _activeImage = i),
-                itemBuilder: (context, index) => _placeholderImage(
-                  icon: _galleryIcons[index],
-                  size: 56,
-                ),
-              ),
-            ),
-            Container(
-              height: 68,
-              color: const Color(whiteColor),
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              child: ListView.separated(
-                scrollDirection: Axis.horizontal,
-                itemCount: _galleryIcons.length,
-                separatorBuilder: (_, __) => const SizedBox(width: 8),
-                itemBuilder: (context, index) {
-                  final isActive = index == _activeImage;
-                  return GestureDetector(
-                    onTap: () => _galleryController.animateToPage(
-                      index,
-                      duration: const Duration(milliseconds: 250),
-                      curve: Curves.easeOut,
-                    ),
-                    child: Container(
-                      width: 52,
-                      height: 52,
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(
-                          color: isActive
-                              ? const Color(primaryColor)
-                              : const Color(greyShade300),
-                          width: isActive ? 2 : 1,
-                        ),
-                      ),
-                      clipBehavior: Clip.antiAlias,
-                      child: _placeholderImage(icon: _galleryIcons[index], size: 22),
-                    ),
-                  );
-                },
-              ),
-            ),
-          ],
-        ),
-        Positioned(
-          top: 8,
-          right: 16,
-          child: Container(
-            width: 36,
-            height: 36,
-            decoration: const BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: LinearGradient(
-                colors: [Color(0xFFFF7A6B), Color(0xFFFF3C6E)],
-              ),
-            ),
-            child: const Icon(Icons.share_outlined, color: Color(whiteColor), size: 18),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _placeholderImage({required IconData icon, required double size}) {
-    return Container(
-      color: const Color(greyShade100),
-      alignment: Alignment.center,
-      child: Icon(icon, size: size, color: const Color(greyShade400)),
     );
   }
 
@@ -226,7 +87,7 @@ class _SitePlanBlankState extends State<SitePlanBlank> {
                 style: const TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
-                  color: Color(orangeColor),
+                  color: Color(blueShade900Color),
                   letterSpacing: 0.5,
                 ),
               ),
@@ -248,7 +109,7 @@ class _SitePlanBlankState extends State<SitePlanBlank> {
   Widget _buildStatusBadge(UnitDetail unit) {
     final isSold = unit.isSold;
     final label = isSold ? 'TERJUAL' : (unit.status ?? '-');
-    final color = isSold ? const Color(redAccentColor) : const Color(successColor);
+    final color = isSold ? const Color(redAccentColor) : const Color(primaryColor);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
       decoration: BoxDecoration(
@@ -344,8 +205,9 @@ class _SitePlanBlankState extends State<SitePlanBlank> {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: const Color(greyShade50),
+        color: const Color(whiteColor),
         borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(grey9Color)),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -354,11 +216,11 @@ class _SitePlanBlankState extends State<SitePlanBlank> {
             width: 34,
             height: 34,
             decoration: BoxDecoration(
-              color: const Color(orangeColor).withAlpha(30),
+              color: const Color(grey11Color),
               borderRadius: BorderRadius.circular(8),
             ),
             alignment: Alignment.center,
-            child: Icon(icon, size: 18, color: const Color(orangeColor)),
+            child: Icon(icon, size: 18, color: const Color(primaryColor)),
           ),
           const SizedBox(width: 10),
           Expanded(
@@ -383,23 +245,81 @@ class _SitePlanBlankState extends State<SitePlanBlank> {
   // Harga dan Simulasi Pembayaran
   // ---------------------------------------------------------------------
   Widget _buildHargaSimulasi(UnitDetail unit) {
-    if (unit.priceSchemes.isEmpty) return const SizedBox.shrink();
+    final isTerjual = (unit.status ?? '').toUpperCase() == 'SP' || unit.isSold;
+
+    Widget content;
+    if (isTerjual) {
+      content = _buildPaymentEmptyState(
+        icon: Icons.sell_rounded,
+        iconColor: const Color(redAccentColor),
+        title: 'Unit Sudah Terjual',
+        subtitle: 'Simulasi harga dan pembayaran tidak tersedia karena unit ini sudah terjual.',
+      );
+    } else if (unit.priceSchemes.isEmpty) {
+      content = _buildPaymentEmptyState(
+        icon: Icons.hourglass_top_rounded,
+        iconColor: const Color(greyShade500),
+        title: 'Harga Belum Tersedia',
+        subtitle: 'Informasi harga dan simulasi pembayaran untuk unit ini sedang kami siapkan.',
+      );
+    } else {
+      content = SizedBox(
+        height: 250,
+        child: ListView.separated(
+          scrollDirection: Axis.horizontal,
+          itemCount: unit.priceSchemes.length,
+          separatorBuilder: (_, __) => const SizedBox(width: 10),
+          itemBuilder: (context, index) => _priceSchemeCard(unit.priceSchemes[index]),
+        ),
+      );
+    }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text('Harga dan Simulasi Pembayaran', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
         const SizedBox(height: 12),
-        SizedBox(
-          height: 250,
-          child: ListView.separated(
-            scrollDirection: Axis.horizontal,
-            itemCount: unit.priceSchemes.length,
-            separatorBuilder: (_, __) => const SizedBox(width: 10),
-            itemBuilder: (context, index) => _priceSchemeCard(unit.priceSchemes[index]),
-          ),
-        ),
+        content,
       ],
+    );
+  }
+
+  Widget _buildPaymentEmptyState({
+    required IconData icon,
+    required Color iconColor,
+    required String title,
+    required String subtitle,
+  }) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 28, horizontal: 24),
+      decoration: BoxDecoration(
+        color: const Color(whiteColor),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(grey9Color)),
+      ),
+      child: Column(
+        children: [
+          Container(
+            width: 56,
+            height: 56,
+            decoration: BoxDecoration(
+              color: iconColor.withAlpha(26),
+              shape: BoxShape.circle,
+            ),
+            alignment: Alignment.center,
+            child: Icon(icon, size: 28, color: iconColor),
+          ),
+          const SizedBox(height: 14),
+          Text(title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 6),
+          Text(
+            subtitle,
+            textAlign: TextAlign.center,
+            style: const TextStyle(fontSize: 12, color: Color(greyShade600), height: 1.4),
+          ),
+        ],
+      ),
     );
   }
 
@@ -410,9 +330,9 @@ class _SitePlanBlankState extends State<SitePlanBlank> {
       width: 220,
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: const Color(greyShade50),
+        color: const Color(whiteColor),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(greyShade200)),
+        border: Border.all(color: const Color(grey9Color)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -456,7 +376,7 @@ class _SitePlanBlankState extends State<SitePlanBlank> {
             Text(scheme.bank!, style: const TextStyle(fontSize: 11, color: Color(greyShade600))),
           ],
           const SizedBox(height: 8),
-          const Divider(height: 1, color: Color(greyShade200)),
+          const Divider(height: 1, color: Color(grey9Color)),
           const SizedBox(height: 8),
           Expanded(
             child: ListView.builder(
@@ -523,13 +443,14 @@ class _SitePlanBlankState extends State<SitePlanBlank> {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
       decoration: BoxDecoration(
-        color: const Color(greyShade50),
+        color: const Color(whiteColor),
         borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(grey9Color)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, size: 24, color: const Color(orangeColor)),
+          Icon(icon, size: 24, color: const Color(primaryColor)),
           const SizedBox(height: 10),
           Text(value, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
           const SizedBox(height: 2),
