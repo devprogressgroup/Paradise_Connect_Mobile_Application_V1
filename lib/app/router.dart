@@ -309,7 +309,10 @@ class AppRouter {
               GoRoute(
                 name: 'site_plan_blank',
                 path: 'blank',
-                builder: (context, state) => const SitePlanBlank(),
+                builder: (context, state) {
+                  final extra = state.extra as Map<String, dynamic>?;
+                  return SitePlanBlank(data: extra);
+                },
               ),
             ],
           ),
