@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart' show kIsWeb, debugPrint;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_web_plugins/url_strategy.dart';
+import 'package:app_links/app_links.dart';
 import 'package:progress_group/core/constants/colors.dart';
 import 'package:progress_group/core/screens/update_screen.dart';
 import 'package:progress_group/core/services/old_app_check_service.dart';
@@ -236,6 +237,20 @@ void main() async {
   }
 
   AppRouter.init();
+
+  if (!kIsWeb) {
+    // App Link COLD START (app belum jalan) sudah otomatis kebaca lewat initial route Android
+    // -> go_router, TAPI kalau app sudah jalan di background, Android cuma "bring existing task
+    // to front" (MainActivity.kt tidak override onNewIntent) — intent barunya tidak pernah
+    // sampai ke Flutter/go_router sama sekali, jadi kelihatan "linknya tidak ngapa-ngapain".
+    // app_links nangkep intent susulan itu lewat plugin registry (auto, tanpa perlu ubah native
+    // code) dan kita teruskan ke go_router secara manual di sini.
+    AppLinks().uriLinkStream.listen((uri) {
+      final location = '${uri.path}${uri.hasQuery ? '?${uri.query}' : ''}';
+      debugPrint('[AppLinks] uriLinkStream: $location');
+      AppRouter.router.go(location.isEmpty ? '/' : location);
+    }, onError: (e) => debugPrint('[AppLinks] error: $e'));
+  }
 
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
