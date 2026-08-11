@@ -1,0 +1,7 @@
+#!/bin/sh
+# Sama seperti post-commit, tapi khusus buat merge (termasuk fast-forward, yang gak
+# bikin commit baru jadi post-commit gak kepanggil sama sekali untuk kasus itu).
+# Lihat .githooks/_identity-guard.sh untuk logic-nya.
+#
+# Setup sekali per clone: git config core.hooksPath .githooks
+exec "$(dirname "$0")/_identity-guard.sh"
