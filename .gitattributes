@@ -14,3 +14,6 @@ android/app/google-services.json merge=ours
 ios/Runner/GoogleService-Info.plist merge=ours
 firebase.json merge=ours
 lib/firebase_options.dart merge=ours
+
+# Hook harus LF walau core.autocrlf=true, kalau kena CRLF shebang-nya rusak ("bad interpreter").
+.githooks/* text eol=lf
