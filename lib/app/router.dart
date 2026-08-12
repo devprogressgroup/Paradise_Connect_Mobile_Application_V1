@@ -52,6 +52,14 @@ import '../core/utils/route_observer.dart';
 /// menangkap semua path di bawahnya).
 const Map<String, String> _appLinkPathRoutes = {
   '/link/site-plan-blank': '/site-plan/blank',
+  // Redirect ASLI dari server siteplan vendor saat unit di-tap (bukan App Link kita) — tetap ke
+  // domain yang sama (devconnect.paradise.id, cuma serve static PWA build, TIDAK PERNAH sampai
+  // ke Laravel apapun path-nya, sudah dicek langsung: /api/settings dkk di domain itu SEMUA
+  // balik index.html yang sama). Jadi satu-satunya tempat yang BISA nangkep URL ini adalah PWA
+  // ini sendiri, begitu dia boot ulang di halaman ini (lihat docs/site-plan-mobile-pwa.md §16).
+  // Query string-nya (payload terenkripsi, format "=<iv>:<ciphertext>") numpang apa adanya ke
+  // '/site-plan/blank', yang SUDAH BISA baca & decrypt sendiri (lihat builder route itu).
+  '/siteplan-key': '/site-plan/blank',
 };
 
 class AppRouter {

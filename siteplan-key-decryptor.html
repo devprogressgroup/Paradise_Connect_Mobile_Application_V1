@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<title>Site Plan Key Decryptor (lokal, debug only)</title>
+<style>
+  body { font-family: system-ui, sans-serif; max-width: 780px; margin: 24px auto; padding: 0 16px; color: #222; }
+  h1 { font-size: 18px; }
+  textarea { width: 100%; height: 140px; font-family: monospace; font-size: 12px; box-sizing: border-box; }
+  button { margin-top: 8px; padding: 8px 16px; font-size: 14px; cursor: pointer; }
+  pre { background: #f4f4f4; padding: 12px; overflow-x: auto; white-space: pre-wrap; word-break: break-all; }
+  .err { color: #b00020; }
+  .note { font-size: 12px; color: #666; }
+</style>
+</head>
+<body>
+<h1>Site Plan Key Decryptor</h1>
+<p class="note">
+  Cuma jalan lokal di browser (tidak kirim data ke mana-mana). Sama persis dengan
+  <code>ProxyCipher.decryptString</code> di <code>lib/core/network/proxy_cipher.dart</code>:
+  AES-256-CBC, key sama dengan yang di-hardcode di sana, format input
+  <code>&lt;ivBase64&gt;:&lt;ciphertextBase64&gt;</code> (boleh ditempel utuh dengan prefix URL
+  <code>.../siteplan-key?=</code> di depannya, akan otomatis dipotong).
+</p>
+
+<textarea id="input">https://devconnect.paradise.id/siteplan-key?=fLSZ/IglGMfqJwr8KBUOqw==:brOqClrp3c3kqU3g8ZOaj65bcGBq0MiaP7TkLzZlynxLjBPgqd8HHQ1Kjvpk2vffxN7vadn8j06EBnzOJu8kxsXcq1o2IqZ7tNZb++aSGEjuhcsLtcESUKCZMyccpHZLC/Vvp/RiqEtQiTqHyt2bH+Yyuq3hK4U0bYUDkYFOo2cZ1YXbhCd9TybQQSQ6puJBgMyPRmKtzm5sztfZT/J4spQy9e01Vhguip3J3bGnVqKD7pIB1jH3KeetIb82WQWjXA/QvrrYyu0VenJLfh26HoeWSfJsfwTDmsZOesQZRA4/bviDNhIYzb6aSf4qWpYg13FnwDjmK3Dad1sNX5oYSnnsoRlxasP0fDM8Ww76fdYXSXhQY50AYskS1neJgDNgIhsVF2ORnomazfoSoY9D2hpPQx3uPX5R0Bz0ySEJDW6bLcdfqPEP4RoxKMfNsO4SfkU30cdK3Dfx5ee//T0ty5s9v1QY0xjmQvVUQqNLHXgYLGe+6kpx1gVu3vfUmqbgJOJT8qMuEAzls3Xxi0GDyW/2xdFksfGBo/zuLFxe6wAAFXaS6pUY8dhlcJ78GV8fMn5NT1eaz+3JsW5t/Spsqw4qsEPeCQIC8ODO0KcGHTRNSpcNe2agBaZ19aujj1S+9IE5PsCCFfO3h75KCyHMxTfSVpWBAosOhmrSA0vMuQYsKKhsINk6KscaRE0jD77LI9JFMawomWMbio6Q/5InwFknzryWMaLuZKnRPf55CydjXK9Tj3O0EMr3PVRgNmM2XQj1zIirFjnunP7QW7JETujxVA+nFVuuc0R5kO/TAT25JyM8po0tucabUtd5HlegFO7yWKN5VXwdmD3OEKKJnGIQrBRvTgBO1l+BKicBZUULBxRX1WkOkcRF328nfuH16rqy/4L6Q+5BSktElo06A6iBp6xXxaIjfAVevIb5njwKdGakK5jA+QE1cvxtJ0H63rx004WhKOb6nQl7zr6V8fzANDZd5lvIn433NouDLw0DZaMU/c9dPEU1vJhD4+UrNI5F5AG4BBLSnQls5sVNOW5jrmH99OhZxAjFlKZ5xJnlzhMuRXGlrW2Z3bi1vK8s8+1BuuYK7suxqGCwZKx+u5nUH2Uc6/NzC2Go3Y+GKNgPrrnri4IFh9cCxzCYVjlgHiiPLLTn3coqCDWcZdQNHVGHjnTQJd3cWaWmsnEYKODb1e2fTK0YGQ+WXlc64rwuxxh9wE5X1Q08npX5hIQnBcWDmh2w9pxEQWOFgO26mtUHCTQI3Gp1TGQ8tk9GUPain5LLt9YJ1crTBFzKDSf2LlQ5umcM2cAC7a56tpdteBhl63nGWGKgEnzk3qLn1Y1d9RS2D6b7aPQ+bj+ckv2VtsnYnd+A7rAnqSYUi8hH8myJ1xyBC0l9qM/AeamQGiIYLxbkue3MkHKGDXQfFLsq+MdrH7d03dk00jBlQBJm9cQKY3M+Wfn2soGq326zqMZv95pzAjOKWqbWBb/xkATL7F1o9RK/pUicVMayUMutWLo=</textarea>
+<br>
+<button id="decryptBtn">Decrypt</button>
+
+<h3>Hasil</h3>
+<pre id="output">(belum ada hasil)</pre>
+
+<script>
+// Sama dengan _keyStr di lib/core/network/proxy_cipher.dart — key ini SUDAH ada di source
+// client (Flutter), jadi bukan rahasia baru, cuma dipindah ke sini biar bisa decrypt manual
+// tanpa jalanin app Flutter-nya.
+const KEY_STR = 'PdC0nn3ct2026Sec3tKey32BytesXz1!';
+
+function base64ToBytes(b64) {
+  const binary = atob(b64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  return bytes;
+}
+
+function extractIvCiphertext(raw) {
+  let s = raw.trim();
+  const markerIdx = s.indexOf('?=');
+  if (markerIdx !== -1) s = s.slice(markerIdx + 2);
+  const parts = s.split(':');
+  if (parts.length !== 2) {
+    throw new Error('Format harus <ivBase64>:<ciphertextBase64>, dapat ' + parts.length + ' bagian');
+  }
+  return { iv: parts[0], ciphertext: parts[1] };
+}
+
+async function importAesKey() {
+  const keyBytes = new TextEncoder().encode(KEY_STR);
+  return crypto.subtle.importKey('raw', keyBytes, { name: 'AES-CBC' }, false, ['decrypt']);
+}
+
+async function decryptPayload(raw) {
+  const { iv, ciphertext } = extractIvCiphertext(raw);
+  const key = await importAesKey();
+  const ivBytes = base64ToBytes(iv);
+  const ctBytes = base64ToBytes(ciphertext);
+  const plainBuf = await crypto.subtle.decrypt({ name: 'AES-CBC', iv: ivBytes }, key, ctBytes);
+  return new TextDecoder().decode(plainBuf);
+}
+
+document.getElementById('decryptBtn').addEventListener('click', async () => {
+  const out = document.getElementById('output');
+  out.className = '';
+  out.textContent = 'Decrypting...';
+  try {
+    const plain = await decryptPayload(document.getElementById('input').value);
+    try {
+      const parsed = JSON.parse(plain);
+      out.textContent = JSON.stringify(parsed, null, 2);
+    } catch (_) {
+      out.textContent = plain;
+    }
+  } catch (e) {
+    out.className = 'err';
+    out.textContent = 'Gagal decrypt: ' + e.message;
+  }
+});
+</script>
+</body>
+</html>

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:progress_group/core/constants/colors.dart';
 import '../../../../core/utils/widget/custom_header.dart';
+import '../../../../core/utils/web_iframe_bridge.dart';
 import '../../domain/entities/unit_detail.dart';
 
 class SitePlanBlank extends StatefulWidget {
@@ -15,6 +16,22 @@ class SitePlanBlank extends StatefulWidget {
 
 class _SitePlanBlankState extends State<SitePlanBlank> {
   bool _informasiExpanded = true;
+
+  @override
+  void initState() {
+    super.initState();
+    // Kasus PWA (docs/site-plan-mobile-pwa.md §16): redirect vendor ke "/siteplan-key" bikin
+    // PWA ini boot ULANG di dalam <iframe> siteplan (bukan di outer app) — halaman ini jadi
+    // nested & kecil (§16.5). Relay data ke window PARENT (outer app) lewat postMessage, supaya
+    // outer app bisa render halaman ini di navigasi-nya SENDIRI (full-screen, back button
+    // benar) — SAMA seperti pengalaman di mobile. Kalau BUKAN di dalam iframe (mis. dibuka lewat
+    // tombol preview 👁 di outer app sendiri, atau App Link biasa), tidak melakukan apa-apa,
+    // halaman ini dirender normal seperti biasa.
+    final data = widget.data;
+    if (data != null && isInsideIframe) {
+      postUnitDetailToParent(data);
+    }
+  }
 
   /// Kalau dibuka tanpa data (mis. lewat tombol preview), pakai contoh
   /// response API `/siteplan-key` (didecrypt) sebagai fallback.

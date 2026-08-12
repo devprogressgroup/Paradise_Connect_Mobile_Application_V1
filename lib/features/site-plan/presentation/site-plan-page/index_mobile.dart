@@ -5,6 +5,7 @@ import 'package:progress_group/core/constants/colors.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import '../../../../core/utils/widget/custom_header.dart';
 import 'package:progress_group/core/services/analytics_service.dart';
+import 'package:progress_group/core/utils/web_debug_util.dart' as web_debug;
 import '../../domain/entities/project_site.dart';
 import '../../domain/entities/unit_detail.dart';
 import '../state/siteplan_bloc.dart';
@@ -51,6 +52,17 @@ class _SitePlanPageState extends State<SitePlanPage> {
   void _initWebViewController() {
     _controller = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
+      // Backend (PropertyController::siteplanBridgeScript()) inject script ke tiap halaman
+      // siteplan yang di-proxy, yang relay data unit yang lagi dilihat user (hasil tap pin /
+      // klik "Lihat Selengkapnya") lewat channel ini — WebView native BISA nerima JS channel
+      // custom (beda dari iframe browser yang cuma bisa postMessage), jadi dipakai langsung.
+      ..addJavaScriptChannel(
+        'SiteplanBridge',
+        onMessageReceived: (JavaScriptMessage message) {
+          debugPrint('[SitePlan][bridge] ${message.message}');
+          web_debug.logDebugInfo('[SitePlan][bridge] ${message.message}');
+        },
+      )
       ..setNavigationDelegate(
         NavigationDelegate(
           onProgress: (p) => setState(() => _loadingProgress = p / 100),
@@ -63,6 +75,37 @@ class _SitePlanPageState extends State<SitePlanPage> {
             if (error.isForMainFrame == false) return;
             setState(() => _isWebviewLoading = false);
             _showLoadError(error.description);
+          },
+          // Tombol popup unit (mis. "Lihat Selengkapnya") di-render oleh konten HTML server
+          // siteplan, bukan Flutter — vendor navigasi (window.location.href) ke
+          // ".../siteplan-key?=<payload terenkripsi>" (dikonfirmasi lewat komentar di kode
+          // vendor sendiri: "biar WebView beneran pindah ke halaman Paradise Connect setelah
+          // redirect"). Sebelumnya URL ini SELALU diizinkan navigate — karena endpoint
+          // "/siteplan-key" itu belum pernah di-wire ke halaman apa pun, WebView jadi nyasar
+          // ke halaman kosong/blank. Match cuma dari PATH (bukan host) — pola sama seperti
+          // `_appLinkPathRoutes` di router.dart — supaya tidak perlu hardcode domain.
+          // Filter isMainFrame + url tidak kosong: konten siteplan pakai iframe internal
+          // yang juga memicu onNavigationRequest berkali-kali dengan url kosong, bikin spam.
+          onNavigationRequest: (request) {
+            if (!request.isMainFrame || request.url.isEmpty) {
+              return NavigationDecision.navigate;
+            }
+            debugPrint('[SitePlan] onNavigationRequest: ${request.url}');
+            web_debug.logDebugInfo('[SitePlan] navigate: ${request.url}');
+
+            final uri = Uri.tryParse(request.url);
+            if (uri != null && uri.path == '/siteplan-key') {
+              final unitData = UnitDetail.decryptKeyUrlToJson(request.url);
+              if (unitData != null && mounted) {
+                AnalyticsService.logEvent('site_plan_unit_detail_from_siteplan');
+                context.pushNamed('site_plan_blank', extra: unitData);
+              } else {
+                web_debug.logDebugInfo('[SitePlan] gagal decrypt payload siteplan-key: ${request.url}');
+              }
+              return NavigationDecision.prevent;
+            }
+
+            return NavigationDecision.navigate;
           },
         ),
       );
@@ -154,9 +197,9 @@ class _SitePlanPageState extends State<SitePlanPage> {
                 customHeader(
                   context,
                   'Site Plan',
-                  iconLeft: Icons.visibility_outlined,
+                  // iconLeft: Icons.visibility_outlined,
                   colorIconLeft: Color(blackColor),
-                  iconLeftOnTap: _openSitePlanBlank,
+                  // iconLeftOnTap: _openSitePlanBlank,
                 ),
                 if (state is SiteplanLoading || state is SiteplanInitial) ...[
                   Expanded(

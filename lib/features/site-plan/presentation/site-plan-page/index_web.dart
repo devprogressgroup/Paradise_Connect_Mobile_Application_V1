@@ -1,5 +1,6 @@
 ﻿
 import 'dart:async';
+import 'dart:convert';
 import 'dart:html' as html;
 import 'dart:ui_web' as ui_web;
 
@@ -32,15 +33,66 @@ class _SitePlanPageState extends State<SitePlanPage> {
   bool _isLoading          = false;
   bool _showFallbackBanner = false;
   Timer? _timeoutTimer;
+  StreamSubscription<html.MessageEvent>? _bridgeSub;
 
   @override
   void initState() {
     super.initState();
     AnalyticsService.logScreenView('site_plan');
+    _listenSiteplanBridge();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final state = context.read<SiteplanBloc>().state;
       if (state is SiteplanLoaded && state.sites.isNotEmpty) {
         _initFromSites(state.sites);
+      }
+    });
+  }
+
+  // Backend (PropertyController::siteplanBridgeScript()) inject script ke tiap halaman
+  // siteplan yang di-proxy, yang relay data unit yang lagi dilihat user lewat postMessage —
+  // dipakai supaya Flutter tahu isi tombol "Lihat Selengkapnya" tanpa perlu proxy/reverse-
+  // engineer konten vendor sendiri di sisi Flutter.
+  void _listenSiteplanBridge() {
+    _bridgeSub?.cancel();
+    _bridgeSub = html.window.onMessage.listen((event) {
+      final data = event.data;
+      if (data is Map && data['source'] == 'paradiseSiteplan') {
+        debugPrint('[SitePlan][bridge] ${data['type']}: ${data['payload']}');
+
+        // Klik "Lihat Selengkapnya": proxy Laravel (PropertyController::forwardToSiteplan(),
+        // docs §17) MENCEGAT redirect ke "/siteplan-key" SEBELUM browser sempat navigasi ke
+        // sana — jadi TIDAK ADA reload PWA/webview apa pun. Query string (MASIH terenkripsi)
+        // di-relay ke sini, decrypt-nya baru terjadi di Dart (key AES cuma ada di sini).
+        if (data['type'] == 'unitDetailRedirect') {
+          final payload = data['payload'];
+          final query = payload is Map ? payload['query'] as String? : null;
+          if (query != null && query.isNotEmpty) {
+            final unitData = UnitDetail.decryptPayload(
+              query.startsWith('=') ? query.substring(1) : query,
+            );
+            if (unitData != null && mounted) {
+              AnalyticsService.logEvent('site_plan_unit_detail_from_siteplan');
+              context.pushNamed('site_plan_blank', extra: unitData);
+            }
+          }
+        }
+
+        // Fallback (jaga-jaga): kalau ternyata redirect-nya SEMPAT lolos jadi navigasi asli
+        // (mis. proxy versi lama belum ter-deploy) & PWA boot ulang nested di dalam iframe
+        // (docs §16) — SitePlanBlank nested itu (web_iframe_bridge_web.dart) tetap relay data
+        // yang SUDAH didecrypt-nya sendiri ke sini, supaya tidak berakhir blank/nyasar.
+        if (data['type'] == 'unitDetailFromBlank') {
+          final payloadStr = data['payload'];
+          if (payloadStr is String && mounted) {
+            try {
+              final decoded = jsonDecode(payloadStr);
+              if (decoded is Map<String, dynamic>) {
+                AnalyticsService.logEvent('site_plan_unit_detail_from_siteplan');
+                context.pushNamed('site_plan_blank', extra: decoded);
+              }
+            } catch (_) {}
+          }
+        }
       }
     });
   }
@@ -112,16 +164,17 @@ class _SitePlanPageState extends State<SitePlanPage> {
     context.pushNamed('site_plan_blank', extra: unitData);
   }
 
-  void _openInNewTab() {
+  void _retryLoadSite() {
     if (_selectedSite != null) {
-      AnalyticsService.logEvent('site_plan_open_in_new_tab');
-      html.window.open(_selectedSite!.url, '_blank');
+      AnalyticsService.logEvent('site_plan_retry_from_fallback');
+      _loadSite(_selectedSite!);
     }
   }
 
   @override
   void dispose() {
     _timeoutTimer?.cancel();
+    _bridgeSub?.cancel();
     super.dispose();
   }
 
@@ -147,9 +200,9 @@ class _SitePlanPageState extends State<SitePlanPage> {
                 customHeader(
                   context,
                   'Site Plan',
-                  iconLeft: Icons.visibility_outlined,
+                  // iconLeft: Icons.visibility_outlined,
                   colorIconLeft: Color(blackColor),
-                  iconLeftOnTap: _openSitePlanBlank,
+                  // iconLeftOnTap: _openSitePlanBlank,
                 ),
 
                 if (state is SiteplanLoading || state is SiteplanInitial)
@@ -191,14 +244,14 @@ class _SitePlanPageState extends State<SitePlanPage> {
                           const SizedBox(width: 8),
                           Expanded(
                             child: Text(
-                              'Gagal dimuat. Buka di tab baru.',
+                              'Gagal dimuat.',
                               style: TextStyle(fontSize: 11, color: Color(blackColor).withAlpha(87)),
                             ),
                           ),
                           TextButton.icon(
-                            onPressed: _openInNewTab,
-                            icon: const Icon(Icons.open_in_new, size: 14),
-                            label: const Text('Buka', style: TextStyle(fontSize: 12)),
+                            onPressed: _retryLoadSite,
+                            icon: const Icon(Icons.refresh, size: 14),
+                            label: const Text('Muat Ulang', style: TextStyle(fontSize: 12)),
                             style: TextButton.styleFrom(
                               foregroundColor: Color(primaryColor),
                               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),

@@ -68,6 +68,30 @@ cuma cara dapat URL-nya (`site_plan_repository_impl.dart`).
 dibuka/ditutup tiap kali pindah site plan (biaya CPU/memory kecil tapi nyata, apalagi kalau user
 sering ganti-ganti site plan).
 
+## Iterasi 3 (2026-08-11) — Log URL Navigasi Dalam WebView (`onNavigationRequest`)
+
+**Konteks:** popup marker unit di Site Plan (mis. klik pin → muncul info unit + tombol
+"Lihat Selengkapnya") itu di-render oleh konten HTML dari server siteplan (via proxy Laravel),
+bukan widget Flutter. Sebelum perubahan ini, `WebViewController` di
+[`index_mobile.dart`](../lib/features/site-plan/presentation/site-plan-page/index_mobile.dart)
+tidak punya `onNavigationRequest`, jadi tiap kali tombol semacam itu di-tap, WebView langsung
+navigasi sendiri di dalam dirinya tanpa ada jejak URL tujuan yang bisa dilihat dari sisi Flutter.
+
+**Perubahan:**
+- [`index_mobile.dart`](../lib/features/site-plan/presentation/site-plan-page/index_mobile.dart#L71-L78):
+  tambah `onNavigationRequest` di `NavigationDelegate` — `debugPrint` + `web_debug.logDebugInfo`
+  URL request-nya, lalu selalu `NavigationDecision.navigate` (murni observasi, tidak mengubah
+  perilaku navigasi).
+- **Fix spam log**: awalnya log tercetak terus-menerus dengan `url` kosong — ternyata konten
+  siteplan pakai iframe internal yang juga memicu `onNavigationRequest` berkali-kali (bukan cuma
+  navigasi utama). Ditambah filter `request.isMainFrame && request.url.isNotEmpty` sebelum log,
+  supaya cuma navigasi frame utama dengan URL valid yang dicatat.
+
+**Yang SENGAJA belum dikerjakan:** tidak ada intercept/`NavigationDecision.prevent` atau redirect
+ke halaman native (`/site-plan/blank` + `UnitDetail`) — baru sebatas lihat dulu URL-nya berisi apa.
+Kalau nanti perlu buka detail unit secara native dari tombol ini, baru ditambah logic parsing URL
++ prevent di titik yang sama.
+
 ## Status/Verifikasi
 
 `flutter analyze lib/features/site-plan lib/core/network/api_constants.dart` → 0 error (1 info
