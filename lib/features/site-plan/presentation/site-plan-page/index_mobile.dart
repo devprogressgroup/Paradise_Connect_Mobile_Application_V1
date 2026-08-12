@@ -6,6 +6,7 @@ import 'package:webview_flutter/webview_flutter.dart';
 import '../../../../core/utils/widget/custom_header.dart';
 import 'package:progress_group/core/services/analytics_service.dart';
 import 'package:progress_group/core/utils/web_debug_util.dart' as web_debug;
+import '../../../../core/utils/route_observer.dart';
 import '../../domain/entities/project_site.dart';
 import '../../domain/entities/unit_detail.dart';
 import '../state/siteplan_bloc.dart';
@@ -19,7 +20,7 @@ class SitePlanPage extends StatefulWidget {
   State<SitePlanPage> createState() => _SitePlanPageState();
 }
 
-class _SitePlanPageState extends State<SitePlanPage> {
+class _SitePlanPageState extends State<SitePlanPage> with RouteAware {
   late final WebViewController _controller;
   List<ProjectSite> _sites = [];
   ProjectSite? _selectedSite;
@@ -33,12 +34,47 @@ class _SitePlanPageState extends State<SitePlanPage> {
     AnalyticsService.logScreenView('site_plan');
     _initWebViewController();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      setState(() {
-        _selectedSite = null;
-        _sites = [];
-      });
-      context.read<SiteplanBloc>().add(LoadSiteplanEvent());
+      // Kalau data site plan SUDAH ada di Bloc (mis. widget ini dibuat ulang setelah
+      // kembali dari SitePlanBlank, yang didaftarkan DI LUAR ShellRoute — router.dart —
+      // sehingga branch ShellRoute ini kena rebuild), pakai itu LANGSUNG, JANGAN reset +
+      // fetch ulang dari nol. Sebelumnya selalu reset ke sites.first + reload WebView dari
+      // kosong tiap initState jalan — itu yang bikin balik dari Detail Unit jadi terlihat
+      // putih & cluster yang tampil balik ke default (bukan yang terakhir dipilih user).
+      // Pola SAMA seperti index_web.dart (sudah benar dari awal, tidak kena bug ini).
+      final state = context.read<SiteplanBloc>().state;
+      if (state is SiteplanLoaded && state.sites.isNotEmpty) {
+        _initFromSites(state.sites);
+      } else {
+        context.read<SiteplanBloc>().add(LoadSiteplanEvent());
+      }
     });
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final route = ModalRoute.of(context);
+    if (route is PageRoute) {
+      appRouteObserver.subscribe(this, route);
+    }
+  }
+
+  @override
+  void dispose() {
+    appRouteObserver.unsubscribe(this);
+    super.dispose();
+  }
+
+  // Kembali dari halaman lain yang ditumpuk di atas (mis. SitePlanBlank/Detail Unit) — WebView
+  // di Android SERING jadi blank/putih persis setelah itu, walau controller & isi peta-nya
+  // SEBENARNYA masih hidup di memori (bug dikenal `webview_flutter`: platform view/texture-nya
+  // yang berhenti repaint, bukan datanya yang hilang). JANGAN panggil _loadSite() lagi di sini
+  // — itu justru bikin nunggu network 3-4 detik lagi tiap kali balik (persis yang dikomplain
+  // user). Cukup paksa Flutter rebuild widget-nya (setState kosong) supaya platform view WebView
+  // ikut di-re-attach & repaint sendiri oleh framework, tanpa reload konten apa pun.
+  @override
+  void didPopNext() {
+    if (mounted) setState(() {});
   }
 
   void _initFromSites(List<ProjectSite> sites) {
