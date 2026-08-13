@@ -27,6 +27,7 @@ class _SitePlanPageState extends State<SitePlanPage> with RouteAware {
   bool _isWebviewLoading = false;
   double _loadingProgress = 0;
   String? _currentSiteUrl;
+  OverlayEntry? _rawHrefOverlay;
 
   @override
   void initState() {
@@ -62,6 +63,7 @@ class _SitePlanPageState extends State<SitePlanPage> with RouteAware {
   @override
   void dispose() {
     appRouteObserver.unsubscribe(this);
+    _rawHrefOverlay?.remove();
     super.dispose();
   }
 
@@ -75,6 +77,57 @@ class _SitePlanPageState extends State<SitePlanPage> with RouteAware {
   @override
   void didPopNext() {
     if (mounted) setState(() {});
+  }
+
+  // Overlay.insert() SENGAJA dipakai, BUKAN showDialog() — showDialog mendorong route baru ke
+  // Navigator, dan biarpun WebView native jarang kena bug detach-reload seperti iframe web,
+  // konsisten pakai mekanisme yang sama-sama TIDAK LEWAT Navigator di kedua platform.
+  void _showRawHrefDialog(String href) {
+    _rawHrefOverlay?.remove();
+    late final OverlayEntry entry;
+    entry = OverlayEntry(
+      builder: (overlayContext) => Positioned(
+        left: 16,
+        right: 16,
+        bottom: 16,
+        child: Material(
+          elevation: 8,
+          borderRadius: BorderRadius.circular(12),
+          color: const Color(whiteColor),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Expanded(
+                      child: Text(
+                        'Href Tombol "Lihat Selengkapnya"',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close, size: 18),
+                      onPressed: () {
+                        entry.remove();
+                        _rawHrefOverlay = null;
+                      },
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                SelectableText(href, style: const TextStyle(fontSize: 12)),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+    _rawHrefOverlay = entry;
+    Overlay.of(context).insert(entry);
   }
 
   void _initFromSites(List<ProjectSite> sites) {
@@ -131,13 +184,11 @@ class _SitePlanPageState extends State<SitePlanPage> with RouteAware {
 
             final uri = Uri.tryParse(request.url);
             if (uri != null && uri.path == '/siteplan-key') {
-              final unitData = UnitDetail.decryptKeyUrlToJson(request.url);
-              if (unitData != null && mounted) {
-                AnalyticsService.logEvent('site_plan_unit_detail_from_siteplan');
-                context.pushNamed('site_plan_blank', extra: unitData);
-              } else {
-                web_debug.logDebugInfo('[SitePlan] gagal decrypt payload siteplan-key: ${request.url}');
-              }
+              // Klik "Lihat Selengkapnya" — SEMENTARA dimatiin (navigasi ke SitePlanBlank tidak
+              // jalan dulu), cuma tampilkan href mentahnya di dialog buat verifikasi/debug.
+              // NavigationDecision.prevent tetap dipertahankan supaya WebView tidak ikut pindah
+              // ke domain itu.
+              if (mounted) _showRawHrefDialog(request.url);
               return NavigationDecision.prevent;
             }
 
@@ -196,7 +247,18 @@ class _SitePlanPageState extends State<SitePlanPage> with RouteAware {
   void _openSitePlanBlank() {
     AnalyticsService.logEvent('site_plan_open_blank_preview');
     final unitData = UnitDetail.decryptKeyUrlToJson(sampleEncryptedSiteplanKeyUrl);
+    unitData?['_rawHref'] = sampleEncryptedSiteplanKeyUrl;
     context.pushNamed('site_plan_blank', extra: unitData);
+  }
+
+  void _openUnitDetailPreview() {
+    AnalyticsService.logEvent('site_plan_open_unit_detail_preview');
+    // previewData: endpoint /property-pricing LAN dev belum tentu bisa diakses dari device tes —
+    // pakai contoh response yang sudah di-hardcode (sampleUnitPricingData) biar tampilan Harga &
+    // Simulasi tetap bisa dites tanpa itu.
+    context.pushNamed('unit_detail', extra: {
+      'preview_data': sampleUnitPricingData,
+    });
   }
 
   void _openProjectList() async {
@@ -233,9 +295,17 @@ class _SitePlanPageState extends State<SitePlanPage> with RouteAware {
                 customHeader(
                   context,
                   'Site Plan',
-                  // iconLeft: Icons.visibility_outlined,
+                  iconLeft: Icons.visibility_outlined,
                   colorIconLeft: Color(blackColor),
-                  // iconLeftOnTap: _openSitePlanBlank,
+                  iconLeftOnTap: _openSitePlanBlank,
+                  // Tombol preview UnitDetailPage (halaman harga & simulasi yang fetch LIVE
+                  // dari /property-pricing) — belum ada pemicu asli (tap pin di WebView siteplan
+                  // belum relay product/property id lewat SiteplanBridge), jadi dibuka pakai
+                  // contoh id sesuai unit contoh di SitePlanBlank (Ariawood 36/60) supaya bisa
+                  // dites tanpa itu dulu.
+                  iconLeft2: Icons.payments_outlined,
+                  colorIconLeft2: Color(blackColor),
+                  iconLeft2OnTap: _openUnitDetailPreview,
                 ),
                 if (state is SiteplanLoading || state is SiteplanInitial) ...[
                   Expanded(

@@ -10,6 +10,7 @@ import 'package:go_router/go_router.dart';
 import 'package:progress_group/core/constants/colors.dart';
 import '../../../../core/utils/widget/custom_header.dart';
 import 'package:progress_group/core/services/analytics_service.dart';
+import '../../../../core/utils/route_observer.dart';
 import '../../domain/entities/project_site.dart';
 import '../../domain/entities/unit_detail.dart';
 import '../state/siteplan_bloc.dart';
@@ -23,8 +24,14 @@ class SitePlanPage extends StatefulWidget {
   State<SitePlanPage> createState() => _SitePlanPageState();
 }
 
-class _SitePlanPageState extends State<SitePlanPage> {
+class _SitePlanPageState extends State<SitePlanPage> with RouteAware {
   static int _iframeCounter = 0;
+  // `static` SENGAJA — bertahan lintas rebuild `_SitePlanPageState` (kembali dari
+  // `SitePlanBlank`/`/site-plan/blank`, yang DI LUAR ShellRoute, bikin branch ShellRoute ini
+  // kena rebuild PENUH — initState jalan lagi, instance State lama dibuang). `SiteplanBloc`
+  // sendiri TIDAK ikut rebuild (di-provide di atas router, lihat main.dart), jadi `state.sites`
+  // dari Bloc tetap List<ProjectSite> yang SAMA — referensi ini masih valid buat dicari lagi.
+  static ProjectSite? _lastSelectedSite;
 
   List<ProjectSite> _sites   = [];
   ProjectSite? _selectedSite;
@@ -34,10 +41,16 @@ class _SitePlanPageState extends State<SitePlanPage> {
   bool _showFallbackBanner = false;
   Timer? _timeoutTimer;
   StreamSubscription<html.MessageEvent>? _bridgeSub;
+  OverlayEntry? _rawHrefOverlay;
 
   @override
   void initState() {
     super.initState();
+    // debugPrint (BUKAN web_debug.logDebugInfo) — script debug panel Eruda di web/index.html
+    // SAAT INI di-comment semua, jadi logDebugInfo diam-diam no-op (try/catch nelan error JS
+    // "logDebugLine is not defined"). debugPrint tetap muncul di terminal `flutter run` tanpa
+    // bergantung ke itu.
+    debugPrint('[SitePlan] initState (widget baru/rebuild)');
     AnalyticsService.logScreenView('site_plan');
     _listenSiteplanBridge();
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -59,21 +72,17 @@ class _SitePlanPageState extends State<SitePlanPage> {
       if (data is Map && data['source'] == 'paradiseSiteplan') {
         debugPrint('[SitePlan][bridge] ${data['type']}: ${data['payload']}');
 
-        // Klik "Lihat Selengkapnya": proxy Laravel (PropertyController::forwardToSiteplan(),
-        // docs §17) MENCEGAT redirect ke "/siteplan-key" SEBELUM browser sempat navigasi ke
-        // sana — jadi TIDAK ADA reload PWA/webview apa pun. Query string (MASIH terenkripsi)
-        // di-relay ke sini, decrypt-nya baru terjadi di Dart (key AES cuma ada di sini).
+        // Klik "Lihat Selengkapnya" — SEMENTARA dimatiin (navigasi ke SitePlanBlank tidak
+        // jalan dulu), cuma tampilkan href mentahnya di dialog buat verifikasi/debug.
         if (data['type'] == 'unitDetailRedirect') {
           final payload = data['payload'];
           final query = payload is Map ? payload['query'] as String? : null;
           if (query != null && query.isNotEmpty) {
-            final unitData = UnitDetail.decryptPayload(
-              query.startsWith('=') ? query.substring(1) : query,
-            );
-            if (unitData != null && mounted) {
-              AnalyticsService.logEvent('site_plan_unit_detail_from_siteplan');
-              context.pushNamed('site_plan_blank', extra: unitData);
-            }
+            // Redirect MENTAH dari backend (PropertyController::forwardToSiteplan()) — persis
+            // URL yang dituju window.location.href di fallback non-iframe-nya (mobile).
+            final rawLocation = payload['location'] as String?;
+            debugPrint('TOMBOL REDIRECT: ${rawLocation ?? '(kosong)'}');
+            if (mounted) _showRawHrefDialog(rawLocation ?? query);
           }
         }
 
@@ -97,12 +106,73 @@ class _SitePlanPageState extends State<SitePlanPage> {
     });
   }
 
+  // Overlay.insert() SENGAJA dipakai, BUKAN showDialog() — showDialog mendorong route BARU ke
+  // Navigator, dan push/pop route (bahkan dialog) di web bisa ikut memicu platform view iframe
+  // ke-detach/reattach dari DOM (persis bug reset iframe yang sudah dibahas), lepas dari apakah
+  // RouteObserver<PageRoute> beneran ke-trigger atau tidak. Overlay TIDAK LEWAT Navigator sama
+  // sekali — cuma nambah widget ke Overlay stack yang sudah ada, jadi iframe di baliknya tidak
+  // pernah tersentuh/dicabut dari tree, tidak ada alasan buat reset.
+  void _showRawHrefDialog(String href) {
+    _rawHrefOverlay?.remove();
+    late final OverlayEntry entry;
+    entry = OverlayEntry(
+      builder: (overlayContext) => Positioned(
+        left: 16,
+        right: 16,
+        bottom: 16,
+        child: Material(
+          elevation: 8,
+          borderRadius: BorderRadius.circular(12),
+          color: const Color(whiteColor),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Expanded(
+                      child: Text(
+                        'Href Tombol "Lihat Selengkapnya"',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close, size: 18),
+                      onPressed: () {
+                        entry.remove();
+                        _rawHrefOverlay = null;
+                      },
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                SelectableText(href, style: const TextStyle(fontSize: 12)),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+    _rawHrefOverlay = entry;
+    Overlay.of(context).insert(entry);
+  }
+
   void _initFromSites(List<ProjectSite> sites) {
+    // Pertahankan cluster yang terakhir dipilih user (kalau masih ada di daftar) — jangan
+    // selalu reset ke sites.first tiap kali branch ShellRoute ini rebuild (lihat komentar
+    // _lastSelectedSite), soalnya itu bikin cluster balik ke default pas user kembali dari
+    // SitePlanBlank walau sebelumnya dia sudah pindah ke cluster lain.
+    final last = _lastSelectedSite;
+    final restored = last != null && sites.any((s) => identical(s, last)) ? last : sites.first;
     setState(() {
       _sites        = sites;
-      _selectedSite = sites.first;
+      _selectedSite = restored;
     });
-    _loadSite(sites.first);
+    _lastSelectedSite = restored;
+    _loadSite(restored);
   }
 
   void _loadSite(ProjectSite site) {
@@ -154,6 +224,7 @@ class _SitePlanPageState extends State<SitePlanPage> {
     });
     if (result != null && result is ProjectSite) {
       setState(() => _selectedSite = result);
+      _lastSelectedSite = result;
       _loadSite(result);
     }
   }
@@ -161,7 +232,17 @@ class _SitePlanPageState extends State<SitePlanPage> {
   void _openSitePlanBlank() {
     AnalyticsService.logEvent('site_plan_open_blank_preview');
     final unitData = UnitDetail.decryptKeyUrlToJson(sampleEncryptedSiteplanKeyUrl);
+    unitData?['_rawHref'] = sampleEncryptedSiteplanKeyUrl;
     context.pushNamed('site_plan_blank', extra: unitData);
+  }
+    void _openUnitDetailPreview() {
+    AnalyticsService.logEvent('site_plan_open_unit_detail_preview');
+    context.pushNamed('unit_detail', extra: const {
+      'siteplan_id': 15,
+      'company_id': 24,
+      'product_id': 103,
+      'property_id': 1275,
+    });
   }
 
   void _retryLoadSite() {
@@ -172,10 +253,32 @@ class _SitePlanPageState extends State<SitePlanPage> {
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final route = ModalRoute.of(context);
+    if (route is PageRoute) {
+      appRouteObserver.subscribe(this, route);
+    }
+  }
+
+  @override
   void dispose() {
+    appRouteObserver.unsubscribe(this);
     _timeoutTimer?.cancel();
     _bridgeSub?.cancel();
+    _rawHrefOverlay?.remove();
     super.dispose();
+  }
+
+  // Kembali dari halaman lain yang ditumpuk di atas (SitePlanBlank/Detail Unit) — BEDA dari
+  // WebView native (mobile), iframe di web itu elemen DOM asli: dicabut dari document lalu
+  // dipasang ulang DIANGGAP BROWSER SEBAGAI NAVIGASI BARU, otomatis reload src-nya dari nol
+  // (bukan sesuatu yang bisa "diperbaiki" dari sisi Flutter — setState kosong saja TIDAK CUKUP,
+  // sudah dicoba & tetap putih). Jadi terima konsekuensinya: reload eksplisit di sini.
+  @override
+  void didPopNext() {
+    debugPrint('[SitePlan] didPopNext (state lama masih hidup, bukan rebuild)');
+    if (mounted && _selectedSite != null) _loadSite(_selectedSite!);
   }
 
   @override
@@ -197,14 +300,21 @@ class _SitePlanPageState extends State<SitePlanPage> {
           body: SafeArea(
             child: Column(
               children: [
-                customHeader(
+                 customHeader(
                   context,
                   'Site Plan',
-                  // iconLeft: Icons.visibility_outlined,
+                  iconLeft: Icons.visibility_outlined,
                   colorIconLeft: Color(blackColor),
-                  // iconLeftOnTap: _openSitePlanBlank,
+                  iconLeftOnTap: _openSitePlanBlank,
+                  // Tombol preview UnitDetailPage (halaman harga & simulasi yang fetch LIVE
+                  // dari /property-pricing) — belum ada pemicu asli (tap pin di WebView siteplan
+                  // belum relay product/property id lewat SiteplanBridge), jadi dibuka pakai
+                  // contoh id sesuai unit contoh di SitePlanBlank (Ariawood 36/60) supaya bisa
+                  // dites tanpa itu dulu.
+                  iconLeft2: Icons.payments_outlined,
+                  colorIconLeft2: Color(blackColor),
+                  iconLeft2OnTap: _openUnitDetailPreview,
                 ),
-
                 if (state is SiteplanLoading || state is SiteplanInitial)
                   const Expanded(child: Center(child: CircularProgressIndicator()))
                 else if (state is SiteplanError)

@@ -2,6 +2,7 @@ import 'package:progress_group/core/network/api_constants.dart';
 
 import '../../data/datasources/siteplan_remote_datasource.dart';
 import '../entities/project_site.dart';
+import '../entities/unit_detail.dart';
 import 'site_plan_repository.dart';
 
 class SitePlanRepositoryImpl implements SitePlanRepository {
@@ -45,5 +46,21 @@ class SitePlanRepositoryImpl implements SitePlanRepository {
     }
 
     return sites;
+  }
+
+  @override
+  Future<UnitDetail> getUnitDetail({
+    required int siteplanId,
+    required int companyId,
+    required int productId,
+    required int propertyId,
+  }) async {
+    final data = await dataSource.getPropertyPricing(
+      siteplanId: siteplanId,
+      companyId: companyId,
+      productId: productId,
+      propertyId: propertyId,
+    );
+    return UnitDetail.fromJson(data);
   }
 }

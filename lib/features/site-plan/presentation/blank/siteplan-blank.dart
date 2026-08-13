@@ -16,6 +16,18 @@ class SitePlanBlank extends StatefulWidget {
 
 class _SitePlanBlankState extends State<SitePlanBlank> {
   bool _informasiExpanded = true;
+  bool _spesifikasiExpanded = true;
+
+  // Buat kasih tanda visual (tombol arrow) bahwa kartu skema harga bisa di-scroll horizontal —
+  // tanpa ini user gampang tidak sadar ada kartu lain di sebelah kanan yang ke-cut.
+  final ScrollController _priceSchemeScrollController = ScrollController();
+  bool _showLeftPriceArrow = false;
+  // Default true (optimis) — metrik scroll asli (position.maxScrollExtent) baru KETAHUAN
+  // setelah frame pertama selesai layout (lewat _updatePriceArrowVisibility). Kalau default-nya
+  // false, arrow kanan sempat tidak kelihatan sama sekali di frame pertama sebelum listener-nya
+  // sempat jalan/koreksi — makanya mulai dari true, baru dikoreksi (disembunyikan) kalau
+  // ternyata kontennya tidak overflow.
+  bool _showRightPriceArrow = true;
 
   @override
   void initState() {
@@ -31,6 +43,83 @@ class _SitePlanBlankState extends State<SitePlanBlank> {
     if (data != null && isInsideIframe) {
       postUnitDetailToParent(data);
     }
+    _priceSchemeScrollController.addListener(_updatePriceArrowVisibility);
+    // Sekali panggil di frame pertama kadang belum cukup — metrik scroll
+    // (position.maxScrollExtent) beberapa kali baru settle di frame berikutnya (nested di
+    // dalam SingleChildScrollView vertikal). Susul dengan delay kecil sebagai jaring pengaman.
+    WidgetsBinding.instance.addPostFrameCallback((_) => _updatePriceArrowVisibility());
+    Future.delayed(const Duration(milliseconds: 300), _updatePriceArrowVisibility);
+  }
+
+  @override
+  void dispose() {
+    _priceSchemeScrollController.dispose();
+    super.dispose();
+  }
+
+  void _updatePriceArrowVisibility() {
+    if (!mounted || !_priceSchemeScrollController.hasClients) return;
+    final position = _priceSchemeScrollController.position;
+    setState(() {
+      _showLeftPriceArrow = position.pixels > 4;
+      _showRightPriceArrow = position.pixels < position.maxScrollExtent - 4;
+    });
+  }
+
+  void _scrollPriceSchemesBy(double delta) {
+    if (!_priceSchemeScrollController.hasClients) return;
+    final target = (_priceSchemeScrollController.offset + delta).clamp(
+      0.0,
+      _priceSchemeScrollController.position.maxScrollExtent,
+    );
+    _priceSchemeScrollController.animateTo(
+      target,
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeOut,
+    );
+  }
+
+  Widget _priceScrollArrowButton({required IconData icon, required VoidCallback onTap}) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 28,
+        height: 28,
+        decoration: BoxDecoration(
+          color: const Color(whiteColor),
+          shape: BoxShape.circle,
+          boxShadow: [
+            BoxShadow(color: Colors.black.withAlpha(30), blurRadius: 4, offset: const Offset(0, 1)),
+          ],
+        ),
+        child: Icon(icon, size: 18, color: const Color(primaryColor)),
+      ),
+    );
+  }
+
+  // Href/URL "/siteplan-key" MENTAH yang memicu navigasi ke halaman ini — dititip di
+  // widget.data['_rawHref'] oleh pemicunya (onNavigationRequest mobile / _listenSiteplanBridge
+  // web / tombol preview), BUKAN bagian dari kontrak data UnitDetail. Cuma buat debug/verifikasi
+  // manual, jadi SelectableText biar gampang di-copy.
+  Widget _buildRawHrefDebug() {
+    final rawHref = widget.data?['_rawHref'] as String?;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Href tombol mentah:',
+            style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(greyShade600)),
+          ),
+          const SizedBox(height: 4),
+          SelectableText(
+            rawHref ?? '(tidak ada — bukan dari trigger "Lihat Selengkapnya" asli)',
+            style: const TextStyle(fontSize: 11, color: Color(greyShade600)),
+          ),
+        ],
+      ),
+    );
   }
 
   /// Kalau dibuka tanpa data (mis. lewat tombol preview), pakai contoh
@@ -63,20 +152,25 @@ class _SitePlanBlankState extends State<SitePlanBlank> {
               colorBack: const Color(whiteColor),
               colorTitle: const Color(whiteColor),
             ),
+            SizedBox(height: 20),
+            Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: _buildTitleSection(unit),
+            ),
+            SizedBox(height: 20),
             Expanded(
               child: SingleChildScrollView(
                 child: Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _buildTitleSection(unit),
-                      const SizedBox(height: 20),
+                      _buildRawHrefDebug(),
                       _buildInformasiUnit(unit),
                       const SizedBox(height: 24),
-                      _buildHargaSimulasi(unit),
-                      const SizedBox(height: 24),
                       _buildSpesifikasiUnit(unit),
+                       const SizedBox(height: 24),
+                      _buildHargaSimulasi(unit),
                     ],
                   ),
                 ),
@@ -96,17 +190,15 @@ class _SitePlanBlankState extends State<SitePlanBlank> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Expanded(
-              child: Text(
-                (unit.clusterName ?? '-').toUpperCase(),
-                style: const TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: Color(blueShade900Color),
-                  letterSpacing: 0.5,
-                ),
+            Text(
+              (unit.clusterName ?? '-').toUpperCase(),
+              style: const TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                color: Color(blueShade900Color),
               ),
             ),
             _buildStatusBadge(unit),
@@ -115,9 +207,9 @@ class _SitePlanBlankState extends State<SitePlanBlank> {
         const SizedBox(height: 4),
         Text(
           unit.productName ?? '-',
-          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 4),
         _labelValueRow('Kode Unit', unit.blokUnit ?? '-'),
       ],
     );
@@ -149,13 +241,13 @@ class _SitePlanBlankState extends State<SitePlanBlank> {
       children: [
         SizedBox(
           width: 90,
-          child: Text(label, style: const TextStyle(fontSize: 13, color: Color(greyShade600))),
+          child: Text(label, style: const TextStyle(fontSize: 12, color: Color(greyShade600))),
         ),
-        const Text(': ', style: TextStyle(fontSize: 13, color: Color(greyShade600))),
+        const Text(': ', style: TextStyle(fontSize: 12, color: Color(greyShade600))),
         Expanded(
           child: Text(
             value,
-            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
           ),
         ),
       ],
@@ -167,11 +259,10 @@ class _SitePlanBlankState extends State<SitePlanBlank> {
   // ---------------------------------------------------------------------
   Widget _buildInformasiUnit(UnitDetail unit) {
     final items = <_InfoItem>[
-      _InfoItem(Icons.apartment_outlined, 'Proyek', unit.projectName),
-      _InfoItem(Icons.holiday_village_outlined, 'Nama Cluster', unit.clusterName),
-      _InfoItem(Icons.home_outlined, 'Nama Unit', unit.productName),
       _InfoItem(Icons.qr_code_2_outlined, 'Kode Unit', unit.blokUnit),
-      _InfoItem(Icons.info_outline, 'Status', unit.isSold ? 'TERJUAL' : unit.status),
+      _InfoItem(Icons.home_outlined, 'Nama Unit', unit.productName),
+      _InfoItem(Icons.holiday_village_outlined, 'Nama Cluster', unit.clusterName),
+      _InfoItem(Icons.apartment_outlined, 'Proyek', unit.projectName),
     ].where((e) => e.value != null && e.value!.isNotEmpty).toList();
 
     return Column(
@@ -220,11 +311,11 @@ class _SitePlanBlankState extends State<SitePlanBlank> {
 
   Widget _infoCard({required IconData icon, required String label, required String value}) {
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(8),
+      height: 75,
       decoration: BoxDecoration(
         color: const Color(whiteColor),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(grey9Color)),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -244,11 +335,21 @@ class _SitePlanBlankState extends State<SitePlanBlank> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(label, style: const TextStyle(fontSize: 11, color: Color(greyShade600))),
-                const SizedBox(height: 2),
                 Text(
-                  value,
-                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                  label,
+                  style: const TextStyle(fontSize: 11, color: Color(greyShade600)),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 2),
+                SizedBox(
+                  height: 34,
+                  child: Text(
+                    value,
+                    style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, height: 1.3),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
               ],
             ),
@@ -280,14 +381,49 @@ class _SitePlanBlankState extends State<SitePlanBlank> {
         subtitle: 'Informasi harga dan simulasi pembayaran untuk unit ini sedang kami siapkan.',
       );
     } else {
-      content = SizedBox(
-        height: 250,
-        child: ListView.separated(
-          scrollDirection: Axis.horizontal,
-          itemCount: unit.priceSchemes.length,
-          separatorBuilder: (_, __) => const SizedBox(width: 10),
-          itemBuilder: (context, index) => _priceSchemeCard(unit.priceSchemes[index]),
-        ),
+      // --- Desain baru (list vertikal + bottom sheet simulasi lengkap): dibiarkan sebagai
+      // referensi, belum dihapus — lihat _buildPriceSchemeList/_priceSchemeCardV2 di bawah.
+      // content = _buildPriceSchemeList(unit.priceSchemes);
+      content = Stack(
+        children: [
+          SizedBox(
+            height: 150,
+            child: ListView.separated(
+              controller: _priceSchemeScrollController,
+              scrollDirection: Axis.horizontal,
+              itemCount: unit.priceSchemes.length,
+              separatorBuilder: (_, __) => const SizedBox(width: 10),
+              itemBuilder: (context, index) => _priceSchemeCard(unit.priceSchemes[index]),
+            ),
+          ),
+          if (unit.priceSchemes.length > 1) ...[
+            if (_showLeftPriceArrow)
+              Positioned(
+                left: 0,
+                top: 0,
+                bottom: 0,
+                child: Center(
+                  child: _priceScrollArrowButton(
+                    icon: Icons.chevron_left,
+                  
+                    onTap: () => _scrollPriceSchemesBy(-190),
+                  ),
+                ),
+              ),
+            if (_showRightPriceArrow)
+              Positioned(
+                right: 0,
+                top: 0,
+                bottom: 0,
+                child: Center(
+                  child: _priceScrollArrowButton(
+                    icon: Icons.chevron_right,
+                    onTap: () => _scrollPriceSchemesBy(190),
+                  ),
+                ),
+              ),
+          ],
+        ],
       );
     }
 
@@ -340,87 +476,282 @@ class _SitePlanBlankState extends State<SitePlanBlank> {
     );
   }
 
+  // TextDecoration.lineThrough Flutter kadang render putus-putus per kata (ada gap di spasi,
+  // terutama di web/CanvasKit) — gambar garis manual di atas teks pakai Stack supaya nyambung
+  // utuh dalam satu garis, bukan per kata.
+  Widget _strikeThroughText(String text, {required double fontSize, required Color color}) {
+    return Stack(
+      children: [
+        Text(text, style: TextStyle(fontSize: fontSize, color: color)),
+        Positioned.fill(
+          child: Align(
+            alignment: Alignment.center,
+            child: FractionallySizedBox(
+              widthFactor: 1,
+              child: Container(height: 1, color: color),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _priceSchemeCard(PriceScheme scheme) {
     final hasPromo = scheme.promoName != null && scheme.hargaSebelumPromo != null;
 
     return Container(
-      width: 220,
+      width: 170,
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: const Color(whiteColor),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(grey9Color)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            scheme.name.toUpperCase(),
-            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 145,
+                child: Text(
+                  scheme.name.toUpperCase(),
+                  style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
           ),
           if (hasPromo) ...[
             const SizedBox(height: 6),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-              decoration: BoxDecoration(
-                color: const Color(successColor).withAlpha(30),
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Text(
-                scheme.promoName!,
-                style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(successColor)),
-              ),
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: const Color(successColor).withAlpha(30),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    // scheme.promoName!,
+                    "Promo BCA",
+                    style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(successColor)),
+                  ),
+                ),
+                if (scheme.promoPercentage != null) ...[
+                  const SizedBox(width: 4),
+                  Text(
+                    '-${scheme.promoPercentage}%',
+                    style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(redAccentColor)),
+                  ),
+                ],
+              ],
             ),
           ],
           const SizedBox(height: 8),
           if (hasPromo)
-            Text(
-              scheme.hargaSebelumPromo!,
-              style: const TextStyle(
-                fontSize: 11,
-                color: Color(greyShade500),
-                decoration: TextDecoration.lineThrough,
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text("Harga", style: const TextStyle(fontSize: 11, color: Color(greyShade600))),
+                _strikeThroughText(
+                  scheme.hargaSebelumPromo!,
+                  fontSize: 11,
+                  color: const Color(greyShade500),
+                ),
+              ],
+            ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text("Harga", style: const TextStyle(fontSize: 11, color: Color(greyShade600))),
+              Text(
+                scheme.harga ?? '-',
+                style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600),
               ),
-            ),
-          Text(
-            scheme.harga ?? '-',
-            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Color(primaryColor)),
+            ],
           ),
-          if (scheme.bank != null) ...[
-            const SizedBox(height: 2),
-            Text(scheme.bank!, style: const TextStyle(fontSize: 11, color: Color(greyShade600))),
+          if (scheme.installments.isNotEmpty) ...[
+            const SizedBox(height: 6),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Angsuran',
+                  style: const TextStyle(fontSize: 11, color: Color(greyShade600)),
+                ),
+                Text(
+                  scheme.installments.first.total,
+                  style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600),
+                ),
+              ],
+            ),
           ],
-          const SizedBox(height: 8),
-          const Divider(height: 1, color: Color(grey9Color)),
-          const SizedBox(height: 8),
-          Expanded(
-            child: ListView.builder(
-              padding: EdgeInsets.zero,
-              itemCount: scheme.installments.length,
-              itemBuilder: (context, i) {
-                final installment = scheme.installments[i];
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 6),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(installment.name, style: const TextStyle(fontSize: 11, color: Color(greyShade600))),
-                      Text(
-                        installment.total,
-                        style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600),
-                      ),
-                    ],
-                  ),
-                );
-              },
-            ),
-          ),
         ],
       ),
     );
   }
+
+  // --- Desain baru: list vertikal full-width per skema harga, tombol "Lihat Simulasi
+  // Lengkap" buka bottom sheet berisi breakdown SEMUA cicilan (bukan cuma yang pertama). ---
+  // Widget _buildPriceSchemeList(List<PriceScheme> schemes) {
+  //   return Column(
+  //     crossAxisAlignment: CrossAxisAlignment.start,
+  //     children: [
+  //       for (var i = 0; i < schemes.length; i++) ...[
+  //         if (i > 0) const SizedBox(height: 12),
+  //         _priceSchemeCardV2(schemes[i]),
+  //       ],
+  //     ],
+  //   );
+  // }
+  //
+  // Widget _priceSchemeCardV2(PriceScheme scheme) {
+  //   final hasPromo = scheme.promoName != null && scheme.hargaSebelumPromo != null;
+  //
+  //   return Container(
+  //     width: double.infinity,
+  //     padding: const EdgeInsets.all(14),
+  //     decoration: BoxDecoration(
+  //       color: const Color(whiteColor),
+  //       borderRadius: BorderRadius.circular(12),
+  //       border: Border.all(color: const Color(grey9Color)),
+  //     ),
+  //     child: Column(
+  //       crossAxisAlignment: CrossAxisAlignment.start,
+  //       children: [
+  //         Row(
+  //           crossAxisAlignment: CrossAxisAlignment.start,
+  //           children: [
+  //             Expanded(
+  //               child: Text(
+  //                 scheme.name.toUpperCase(),
+  //                 style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+  //               ),
+  //             ),
+  //             if (hasPromo) ...[
+  //               const SizedBox(width: 8),
+  //               Container(
+  //                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+  //                 decoration: BoxDecoration(
+  //                   color: const Color(successColor).withAlpha(30),
+  //                   borderRadius: BorderRadius.circular(20),
+  //                 ),
+  //                 child: Text(
+  //                   scheme.promoName!,
+  //                   style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(successColor)),
+  //                 ),
+  //               ),
+  //             ],
+  //           ],
+  //         ),
+  //         const SizedBox(height: 10),
+  //         if (hasPromo)
+  //           Row(
+  //             children: [
+  //               Text(
+  //                 scheme.hargaSebelumPromo!,
+  //                 style: const TextStyle(
+  //                   fontSize: 12,
+  //                   color: Color(greyShade500),
+  //                   decoration: TextDecoration.lineThrough,
+  //                 ),
+  //               ),
+  //               if (scheme.promoPercentage != null) ...[
+  //                 const SizedBox(width: 6),
+  //                 Text(
+  //                   '-${scheme.promoPercentage}%',
+  //                   style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(redAccentColor)),
+  //                 ),
+  //               ],
+  //             ],
+  //           ),
+  //         Text(
+  //           scheme.harga ?? '-',
+  //           style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(primaryColor)),
+  //         ),
+  //         if (scheme.bank != null) ...[
+  //           const SizedBox(height: 4),
+  //           Text(scheme.bank!, style: const TextStyle(fontSize: 12, color: Color(greyShade600))),
+  //         ],
+  //         if (scheme.installments.isNotEmpty) ...[
+  //           const SizedBox(height: 12),
+  //           const Divider(height: 1, color: Color(grey9Color)),
+  //           const SizedBox(height: 12),
+  //           SizedBox(
+  //             width: double.infinity,
+  //             child: OutlinedButton.icon(
+  //               onPressed: () => _showInstallmentSheet(scheme),
+  //               icon: const Icon(Icons.receipt_long_outlined, size: 16),
+  //               label: const Text('Lihat Simulasi Lengkap'),
+  //               style: OutlinedButton.styleFrom(
+  //                 foregroundColor: const Color(primaryColor),
+  //                 side: const BorderSide(color: Color(primaryColor)),
+  //                 padding: const EdgeInsets.symmetric(vertical: 10),
+  //               ),
+  //             ),
+  //           ),
+  //         ],
+  //       ],
+  //     ),
+  //   );
+  // }
+  //
+  // void _showInstallmentSheet(PriceScheme scheme) {
+  //   showModalBottomSheet(
+  //     context: context,
+  //     isScrollControlled: true,
+  //     shape: const RoundedRectangleBorder(
+  //       borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+  //     ),
+  //     builder: (context) {
+  //       return SafeArea(
+  //         child: Padding(
+  //           padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+  //           child: Column(
+  //             mainAxisSize: MainAxisSize.min,
+  //             crossAxisAlignment: CrossAxisAlignment.start,
+  //             children: [
+  //               Center(
+  //                 child: Container(
+  //                   width: 36,
+  //                   height: 4,
+  //                   margin: const EdgeInsets.only(bottom: 16),
+  //                   decoration: BoxDecoration(
+  //                     color: const Color(grey9Color),
+  //                     borderRadius: BorderRadius.circular(4),
+  //                   ),
+  //                 ),
+  //               ),
+  //               Text(scheme.name.toUpperCase(), style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+  //               const SizedBox(height: 4),
+  //               Text(
+  //                 scheme.harga ?? '-',
+  //                 style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(primaryColor)),
+  //               ),
+  //               const SizedBox(height: 16),
+  //               const Text('Simulasi Cicilan', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+  //               const SizedBox(height: 8),
+  //               ...scheme.installments.map(
+  //                 (installment) => Padding(
+  //                   padding: const EdgeInsets.symmetric(vertical: 6),
+  //                   child: Row(
+  //                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
+  //                     children: [
+  //                       Text(installment.name, style: const TextStyle(fontSize: 12, color: Color(greyShade600))),
+  //                       Text(installment.total, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+  //                     ],
+  //                   ),
+  //                 ),
+  //               ),
+  //             ],
+  //           ),
+  //         ),
+  //       );
+  //     },
+  //   );
+  // }
 
   // ---------------------------------------------------------------------
   // Spesifikasi Unit
@@ -441,10 +772,30 @@ class _SitePlanBlankState extends State<SitePlanBlank> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('Spesifikasi Unit', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+        GestureDetector(
+          onTap: () => setState(() => _spesifikasiExpanded = !_spesifikasiExpanded),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text('Spesifikasi Unit', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+              Icon(
+                _spesifikasiExpanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
+                color: const Color(greyShade600),
+              ),
+            ],
+          ),
+        ),
         const SizedBox(height: 12),
-        _twoColumnGrid(
-          items.map((e) => _specCard(icon: e.icon, label: e.label, value: e.value!)).toList(),
+        AnimatedCrossFade(
+          firstCurve: Curves.easeOut,
+          secondCurve: Curves.easeOut,
+          sizeCurve: Curves.easeOut,
+          duration: const Duration(milliseconds: 200),
+          crossFadeState: _spesifikasiExpanded ? CrossFadeState.showFirst : CrossFadeState.showSecond,
+          firstChild: _twoColumnGrid(
+            items.map((e) => _specCard(icon: e.icon, label: e.label, value: e.value!)).toList(),
+          ),
+          secondChild: const SizedBox.shrink(),
         ),
       ],
     );
@@ -458,19 +809,18 @@ class _SitePlanBlankState extends State<SitePlanBlank> {
 
   Widget _specCard({required IconData icon, required String label, required String value}) {
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
+      height: 75,
+      alignment: Alignment.center,
       decoration: BoxDecoration(
         color: const Color(whiteColor),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(grey9Color)),
+        borderRadius: BorderRadius.circular(8),
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(icon, size: 24, color: const Color(primaryColor)),
-          const SizedBox(height: 10),
-          Text(value, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 2),
+          Text(value, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
           Text(label, style: const TextStyle(fontSize: 11, color: Color(greyShade600))),
         ],
       ),
