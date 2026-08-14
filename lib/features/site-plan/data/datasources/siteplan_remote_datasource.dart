@@ -20,7 +20,9 @@ class SiteplanRemoteDataSourceImpl implements SiteplanRemoteDataSource {
   // TODO: server pricing ini masih vendor internal (IP LAN dev + x-api-key statis) — belum
   // lewat proxy Laravel seperti siteplan-settings/siteplan-proxy di atas. Kalau nanti sudah ada
   // endpoint proxy resminya, ganti pemanggilan ini supaya x-api-key tidak ikut ke-bundle di app.
-  static String get _propertyPricingBaseUrl => '${ApiConstants.baseUrl}';
+
+  static String get _propertyPricingBaseUrl => 'http://192.168.8.56:9000/api';
+  // static String get _propertyPricingBaseUrl => '${ApiConstants.baseUrl}';
   static const String _propertyPricingApiKey = 'eae3e65103a97623f6b05a75e0fade7c7d2dcffbc3a30f10a6acb33399264a71';
 
   @override
