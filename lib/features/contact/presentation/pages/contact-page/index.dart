@@ -13,6 +13,7 @@ import 'package:progress_group/core/utils/widget/custom_bg_icon.dart';
 import 'package:progress_group/core/constants/colors.dart';
 
 import 'package:progress_group/core/utils/helpers/initial_name_helper.dart';
+import 'package:progress_group/core/utils/helpers/status_group_color_helper.dart';
 import 'package:progress_group/core/utils/widget/custom_header.dart';
 import 'package:progress_group/core/utils/widget/custom_search_field.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -1235,26 +1236,8 @@ Widget _buildContactBadges(BuildContext context, ContactEntity contact) {
   );
 }
 
-Color _statusGroupColor(String group) {
-  switch (group) {
-    case 'lost':
-      return Color(redColor);
-    case 'appt':
-      return Color(primaryColor);
-    case 'visitor':
-      return Color(warningColor);
-    case 'reserve':
-      return Color(lightGreenColor);
-    case 'sp':
-      return Color(darkGreenColor);
-    case 'db':
-    default:
-      return Color(purpleColor);
-  }
-}
-
 Widget _statusChip(String label, {required String group}) {
-  final color = _statusGroupColor(group);
+  final color = statusGroupColor(group);
   return Container(
     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
     alignment: Alignment.center,

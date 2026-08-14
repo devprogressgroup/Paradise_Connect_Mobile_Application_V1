@@ -10,7 +10,6 @@ import 'package:progress_group/core/services/analytics_service.dart';
 import 'package:progress_group/core/utils/web_debug_util.dart' as web_debug;
 import '../../../../core/utils/route_observer.dart';
 import '../../domain/entities/project_site.dart';
-import '../../domain/entities/unit_detail.dart';
 import '../state/siteplan_bloc.dart';
 import '../state/siteplan_event.dart';
 import '../state/siteplan_state.dart';
@@ -166,6 +165,28 @@ class _SitePlanPageState extends State<SitePlanPage> with RouteAware {
     Overlay.of(context).insert(entry);
   }
 
+  // Navigasi ke UnitDetailPage (fetch LIVE dari /property-pricing) pakai id unit yang di-relay
+  // dari klik pin/tombol "Lihat Selengkapnya" di WebView siteplan — lihat channel
+  // 'SiteplanBridge' & onNavigationRequest di atas.
+  void _openUnitDetailFromParams(Map params) {
+    int? toInt(dynamic v) => v is int ? v : int.tryParse('$v');
+    final siteplanId = toInt(params['siteplan_id']);
+    final companyId = toInt(params['company_id']);
+    final productId = toInt(params['product_id']);
+    final propertyId = toInt(params['property_id']);
+    if (siteplanId == null || companyId == null || productId == null || propertyId == null) {
+      return;
+    }
+    if (!mounted) return;
+    AnalyticsService.logEvent('site_plan_open_unit_detail');
+    context.pushNamed('unit_detail', extra: {
+      'siteplan_id': siteplanId,
+      'company_id': companyId,
+      'product_id': productId,
+      'property_id': propertyId,
+    });
+  }
+
   void _initFromSites(List<ProjectSite> sites) {
     setState(() {
       _sites = sites;
@@ -200,11 +221,8 @@ class _SitePlanPageState extends State<SitePlanPage> with RouteAware {
             // pakai href ini.
             if (decoded is Map && decoded['type'] == 'unitDetailPlainParams') {
               final payload = decoded['payload'];
-              if (payload is Map && mounted) {
-                final href = payload['href'] as String?;
-                final label = '${href ?? '(href kosong)'}\n\nsiteplan_id: ${payload['siteplan_id']}\ncompany_id: ${payload['company_id']}\nproduct_id: ${payload['product_id']}\nproperty_id: ${payload['property_id']}';
-                debugPrint('UNIT DETAIL PLAIN PARAMS: $label');
-                _showRawHrefDialog(label);
+              if (payload is Map) {
+                _openUnitDetailFromParams(payload);
               }
             }
             if (decoded is Map && decoded['type'] == 'unitDetailResponse') {
@@ -214,12 +232,10 @@ class _SitePlanPageState extends State<SitePlanPage> with RouteAware {
                 final parsed = _parseBridgeHtml(body);
                 final location = parsed['location'] as String?;
                 final redirectParams = parsed['redirectParams'] as Map<String, dynamic>?;
-                debugPrint('TOMBOL REDIRECT (fetch): ${location ?? '(kosong)'} | redirectParams: $redirectParams');
-                if (mounted && (location != null || (redirectParams != null && redirectParams.isNotEmpty))) {
-                  final label = (redirectParams != null && redirectParams.isNotEmpty)
-                      ? '${location ?? '(kosong)'}\n\nsiteplan_id: ${redirectParams['siteplan_id']}\ncompany_id: ${redirectParams['company_id']}\nproduct_id: ${redirectParams['product_id']}\nproperty_id: ${redirectParams['property_id']}'
-                      : location!;
-                  _showRawHrefDialog(label);
+                if (redirectParams != null && redirectParams.isNotEmpty) {
+                  _openUnitDetailFromParams(redirectParams);
+                } else if (mounted && location != null) {
+                  _showRawHrefDialog(location);
                 }
               }
             }
@@ -268,9 +284,14 @@ class _SitePlanPageState extends State<SitePlanPage> with RouteAware {
                 uri.queryParameters.containsKey('product_id') &&
                 uri.queryParameters.containsKey('property_id');
             if (uri != null && (uri.path == '/siteplan-key' || hasPlainUnitParams)) {
-              // Klik "Lihat Selengkapnya" — SEMENTARA dimatiin (navigasi ke SitePlanBlank tidak
-              // jalan dulu), cuma tampilkan href mentahnya di panel buat verifikasi/debug.
-              if (mounted) _showRawHrefDialog(request.url);
+              // Bentuk baru (siteplan_id/company_id/product_id/property_id plain di query) —
+              // langsung navigasi ke UnitDetailPage. Bentuk lama (/siteplan-key, terenkripsi,
+              // menuju halaman berbeda) tetap tampilkan href mentahnya buat debug.
+              if (hasPlainUnitParams) {
+                _openUnitDetailFromParams(uri.queryParameters);
+              } else if (mounted) {
+                _showRawHrefDialog(request.url);
+              }
               // .prevent DI SINI cuma nyetop HOP KEDUA (redirect ke /siteplan-key atau root app).
               // HOP PERTAMA (navigasi ke "unit_detail_link" yang responsnya HTML kosong berisi
               // script bridge ini) SUDAH KEBURU jalan & ke-render duluan (path-nya tidak match,
@@ -335,23 +356,6 @@ class _SitePlanPageState extends State<SitePlanPage> with RouteAware {
     await _controller.loadRequest(Uri.parse(site.url));
   }
 
-  void _openSitePlanBlank() {
-    AnalyticsService.logEvent('site_plan_open_blank_preview');
-    final unitData = UnitDetail.decryptKeyUrlToJson(sampleEncryptedSiteplanKeyUrl);
-    unitData?['_rawHref'] = sampleEncryptedSiteplanKeyUrl;
-    context.pushNamed('site_plan_blank', extra: unitData);
-  }
-
-  void _openUnitDetailPreview() {
-    AnalyticsService.logEvent('site_plan_open_unit_detail_preview');
-    // previewData: endpoint /property-pricing LAN dev belum tentu bisa diakses dari device tes —
-    // pakai contoh response yang sudah di-hardcode (sampleUnitPricingData) biar tampilan Harga &
-    // Simulasi tetap bisa dites tanpa itu.
-    context.pushNamed('unit_detail', extra: {
-      'preview_data': sampleUnitPricingData,
-    });
-  }
-
   void _openProjectList() async {
     AnalyticsService.logEvent('site_plan_open_project_list');
     final result = await context.pushNamed('project_list', extra: {
@@ -386,17 +390,7 @@ class _SitePlanPageState extends State<SitePlanPage> with RouteAware {
                 customHeader(
                   context,
                   'Site Plan',
-                  iconLeft: Icons.visibility_outlined,
                   colorIconLeft: Color(blackColor),
-                  iconLeftOnTap: _openSitePlanBlank,
-                  // Tombol preview UnitDetailPage (halaman harga & simulasi yang fetch LIVE
-                  // dari /property-pricing) — belum ada pemicu asli (tap pin di WebView siteplan
-                  // belum relay product/property id lewat SiteplanBridge), jadi dibuka pakai
-                  // contoh id sesuai unit contoh di SitePlanBlank (Ariawood 36/60) supaya bisa
-                  // dites tanpa itu dulu.
-                  iconLeft2: Icons.payments_outlined,
-                  colorIconLeft2: Color(blackColor),
-                  iconLeft2OnTap: _openUnitDetailPreview,
                 ),
                 if (state is SiteplanLoading || state is SiteplanInitial) ...[
                   Expanded(

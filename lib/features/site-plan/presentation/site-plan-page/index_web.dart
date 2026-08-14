@@ -12,7 +12,6 @@ import '../../../../core/utils/widget/custom_header.dart';
 import 'package:progress_group/core/services/analytics_service.dart';
 import '../../../../core/utils/route_observer.dart';
 import '../../domain/entities/project_site.dart';
-import '../../domain/entities/unit_detail.dart';
 import '../state/siteplan_bloc.dart';
 import '../state/siteplan_event.dart';
 import '../state/siteplan_state.dart';
@@ -72,8 +71,10 @@ class _SitePlanPageState extends State<SitePlanPage> with RouteAware {
       if (data is Map && data['source'] == 'paradiseSiteplan') {
         debugPrint('[SitePlan][bridge] ${data['type']}: ${data['payload']}');
 
-        // Klik "Lihat Selengkapnya" — SEMENTARA dimatiin (navigasi ke SitePlanBlank tidak
-        // jalan dulu), cuma tampilkan href mentahnya di dialog buat verifikasi/debug.
+        // Klik "Lihat Selengkapnya" — kalau redirectParams (siteplan_id/company_id/product_id/
+        // property_id plain, tanpa enkripsi) sudah ada, langsung navigasi ke UnitDetailPage
+        // (fetch LIVE dari /property-pricing). Kalau belum (redirect versi lama, terenkripsi,
+        // belum ke-parse di sini), tampilkan raw href-nya saja buat debug.
         if (data['type'] == 'unitDetailRedirect') {
           final payload = data['payload'];
           final query = payload is Map ? payload['query'] as String? : null;
@@ -81,16 +82,11 @@ class _SitePlanPageState extends State<SitePlanPage> with RouteAware {
             // Redirect MENTAH dari backend (PropertyController::forwardToSiteplan()) — persis
             // URL yang dituju window.location.href di fallback non-iframe-nya (mobile).
             final rawLocation = payload['location'] as String?;
-            // BARU: vendor sekarang bisa generate redirect_target PLAIN (siteplan_id/company_id/
-            // product_id/property_id langsung di query, TANPA enkripsi) — kalau ini kasusnya,
-            // redirectParams sudah berisi ke-4 id itu, tidak perlu decrypt apa pun lagi.
             final redirectParams = payload is Map ? payload['redirectParams'] as Map? : null;
-            debugPrint('TOMBOL REDIRECT: ${rawLocation ?? '(kosong)'} | redirectParams: $redirectParams');
-            if (mounted) {
-              final label = (redirectParams != null && redirectParams.isNotEmpty)
-                  ? '${rawLocation ?? query}\n\nsiteplan_id: ${redirectParams['siteplan_id']}\ncompany_id: ${redirectParams['company_id']}\nproduct_id: ${redirectParams['product_id']}\nproperty_id: ${redirectParams['property_id']}'
-                  : (rawLocation ?? query);
-              _showRawHrefDialog(label);
+            if (redirectParams != null && redirectParams.isNotEmpty) {
+              _openUnitDetailFromParams(redirectParams);
+            } else if (mounted) {
+              _showRawHrefDialog(rawLocation ?? query);
             }
           }
         }
@@ -107,12 +103,10 @@ class _SitePlanPageState extends State<SitePlanPage> with RouteAware {
             final parsed = _parseBridgeHtml(body);
             final location = parsed['location'] as String?;
             final redirectParams = parsed['redirectParams'] as Map<String, dynamic>?;
-            debugPrint('TOMBOL REDIRECT (fetch): ${location ?? '(kosong)'} | redirectParams: $redirectParams');
-            if (mounted && (location != null || (redirectParams != null && redirectParams.isNotEmpty))) {
-              final label = (redirectParams != null && redirectParams.isNotEmpty)
-                  ? '${location ?? '(kosong)'}\n\nsiteplan_id: ${redirectParams['siteplan_id']}\ncompany_id: ${redirectParams['company_id']}\nproduct_id: ${redirectParams['product_id']}\nproperty_id: ${redirectParams['property_id']}'
-                  : location!;
-              _showRawHrefDialog(label);
+            if (redirectParams != null && redirectParams.isNotEmpty) {
+              _openUnitDetailFromParams(redirectParams);
+            } else if (mounted && location != null) {
+              _showRawHrefDialog(location);
             }
           }
         }
@@ -120,16 +114,12 @@ class _SitePlanPageState extends State<SitePlanPage> with RouteAware {
         // Vendor SEKARANG navigasi LANGSUNG ke domain app kita (siteplan_id/company_id/
         // product_id/property_id plain di query, TIDAK LEWAT proxy Laravel sama sekali) —
         // PWA boot ulang nested di dalam iframe (SitePlanRelayPage, lihat router.dart), yang
-        // relay id-nya ke sini APA ADANYA, tidak perlu decrypt/parsing apa pun.
+        // relay id-nya ke sini APA ADANYA, tidak perlu decrypt/parsing apa pun — langsung
+        // navigasi ke UnitDetailPage.
         if (data['type'] == 'unitDetailPlainParams') {
           final payload = data['payload'];
-          // Cuma tampilkan di overlay (_showRawHrefDialog) — TIDAK PERNAH context.push/go ke
-          // mana pun pakai href ini, biar tidak ada navigasi/pindah halaman sama sekali.
-          if (payload is Map && mounted) {
-            final href = payload['href'] as String?;
-            final label = '${href ?? '(href kosong)'}\n\nsiteplan_id: ${payload['siteplan_id']}\ncompany_id: ${payload['company_id']}\nproduct_id: ${payload['product_id']}\nproperty_id: ${payload['property_id']}';
-            debugPrint('UNIT DETAIL PLAIN PARAMS: $label');
-            _showRawHrefDialog(label);
+          if (payload is Map) {
+            _openUnitDetailFromParams(payload);
           }
         }
 
@@ -310,19 +300,26 @@ class _SitePlanPageState extends State<SitePlanPage> with RouteAware {
     }
   }
 
-  void _openSitePlanBlank() {
-    AnalyticsService.logEvent('site_plan_open_blank_preview');
-    final unitData = UnitDetail.decryptKeyUrlToJson(sampleEncryptedSiteplanKeyUrl);
-    unitData?['_rawHref'] = sampleEncryptedSiteplanKeyUrl;
-    context.pushNamed('site_plan_blank', extra: unitData);
-  }
-    void _openUnitDetailPreview() {
-    AnalyticsService.logEvent('site_plan_open_unit_detail_preview');
-    context.pushNamed('unit_detail', extra: const {
-      'siteplan_id': 15,
-      'company_id': 24,
-      'product_id': 103,
-      'property_id': 1275,
+
+  // Navigasi ke UnitDetailPage (fetch LIVE dari /property-pricing) pakai id unit yang di-relay
+  // dari klik pin/tombol "Lihat Selengkapnya" di WebView siteplan — lihat handler-handler
+  // 'unitDetailRedirect'/'unitDetailResponse'/'unitDetailPlainParams' di _listenSiteplanBridge().
+  void _openUnitDetailFromParams(Map params) {
+    int? toInt(dynamic v) => v is int ? v : int.tryParse('$v');
+    final siteplanId = toInt(params['siteplan_id']);
+    final companyId = toInt(params['company_id']);
+    final productId = toInt(params['product_id']);
+    final propertyId = toInt(params['property_id']);
+    if (siteplanId == null || companyId == null || productId == null || propertyId == null) {
+      return;
+    }
+    if (!mounted) return;
+    AnalyticsService.logEvent('site_plan_open_unit_detail');
+    context.pushNamed('unit_detail', extra: {
+      'siteplan_id': siteplanId,
+      'company_id': companyId,
+      'product_id': productId,
+      'property_id': propertyId,
     });
   }
 
@@ -384,17 +381,7 @@ class _SitePlanPageState extends State<SitePlanPage> with RouteAware {
                  customHeader(
                   context,
                   'Site Plan',
-                  iconLeft: Icons.visibility_outlined,
                   colorIconLeft: Color(blackColor),
-                  iconLeftOnTap: _openSitePlanBlank,
-                  // Tombol preview UnitDetailPage (halaman harga & simulasi yang fetch LIVE
-                  // dari /property-pricing) — belum ada pemicu asli (tap pin di WebView siteplan
-                  // belum relay product/property id lewat SiteplanBridge), jadi dibuka pakai
-                  // contoh id sesuai unit contoh di SitePlanBlank (Ariawood 36/60) supaya bisa
-                  // dites tanpa itu dulu.
-                  iconLeft2: Icons.payments_outlined,
-                  colorIconLeft2: Color(blackColor),
-                  iconLeft2OnTap: _openUnitDetailPreview,
                 ),
                 if (state is SiteplanLoading || state is SiteplanInitial)
                   const Expanded(child: Center(child: CircularProgressIndicator()))

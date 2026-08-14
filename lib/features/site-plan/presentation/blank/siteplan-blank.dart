@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:progress_group/core/constants/colors.dart';
 import '../../../../core/utils/widget/custom_header.dart';
+import '../../../../core/utils/widget/unit_status_badge.dart';
 import '../../../../core/utils/web_iframe_bridge.dart';
 import '../../domain/entities/unit_detail.dart';
 
@@ -122,13 +123,9 @@ class _SitePlanBlankState extends State<SitePlanBlank> {
     );
   }
 
-  /// Kalau dibuka tanpa data (mis. lewat tombol preview), pakai contoh
-  /// response API `/siteplan-key` (didecrypt) sebagai fallback.
   UnitDetail _resolveUnit() {
     final data = widget.data;
-    if (data != null) return UnitDetail.fromJson(data);
-    return UnitDetail.fromEncryptedKeyUrl(sampleEncryptedSiteplanKeyUrl) ??
-        UnitDetail.fromJson(const {});
+    return UnitDetail.fromJson(data ?? const {});
   }
 
   @override
@@ -216,24 +213,7 @@ class _SitePlanBlankState extends State<SitePlanBlank> {
   }
 
   Widget _buildStatusBadge(UnitDetail unit) {
-    final isSold = unit.isSold;
-    final label = isSold ? 'TERJUAL' : (unit.status ?? '-');
-    final color = isSold ? const Color(redAccentColor) : const Color(primaryColor);
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-      decoration: BoxDecoration(
-        color: color,
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Text(
-        label,
-        style: const TextStyle(
-          color: Color(whiteColor),
-          fontSize: 11,
-          fontWeight: FontWeight.bold,
-        ),
-      ),
-    );
+    return UnitStatusBadge(label: unit.status ?? '-');
   }
 
   Widget _labelValueRow(String label, String value) {

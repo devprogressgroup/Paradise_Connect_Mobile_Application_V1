@@ -2,78 +2,6 @@ import 'dart:convert';
 
 import '../../../../core/network/proxy_cipher.dart';
 
-/// Contoh response API `/siteplan-key` (payload unit terenkripsi), dipakai
-/// tombol preview site plan sebelum endpoint aslinya tersedia di app.
-const String sampleEncryptedSiteplanKeyUrl =
-    'https://devconnect.paradise.id/siteplan-key?=fLSZ/IglGMfqJwr8KBUOqw==:brOqClrp3c3kqU3g8ZOaj65bcGBq0MiaP7TkLzZlynxLjBPgqd8HHQ1Kjvpk2vffxN7vadn8j06EBnzOJu8kxsXcq1o2IqZ7tNZb++aSGEjuhcsLtcESUKCZMyccpHZLC/Vvp/RiqEtQiTqHyt2bH+Yyuq3hK4U0bYUDkYFOo2cZ1YXbhCd9TybQQSQ6puJBgMyPRmKtzm5sztfZT/J4spQy9e01Vhguip3J3bGnVqKD7pIB1jH3KeetIb82WQWjXA/QvrrYyu0VenJLfh26HoeWSfJsfwTDmsZOesQZRA4/bviDNhIYzb6aSf4qWpYg13FnwDjmK3Dad1sNX5oYSnnsoRlxasP0fDM8Ww76fdYXSXhQY50AYskS1neJgDNgIhsVF2ORnomazfoSoY9D2hpPQx3uPX5R0Bz0ySEJDW6bLcdfqPEP4RoxKMfNsO4SfkU30cdK3Dfx5ee//T0ty5s9v1QY0xjmQvVUQqNLHXgYLGe+6kpx1gVu3vfUmqbgJOJT8qMuEAzls3Xxi0GDyW/2xdFksfGBo/zuLFxe6wAAFXaS6pUY8dhlcJ78GV8fMn5NT1eaz+3JsW5t/Spsqw4qsEPeCQIC8ODO0KcGHTRNSpcNe2agBaZ19aujj1S+9IE5PsCCFfO3h75KCyHMxTfSVpWBAosOhmrSA0vMuQYsKKhsINk6KscaRE0jD77LI9JFMawomWMbio6Q/5InwFknzryWMaLuZKnRPf55CydjXK9Tj3O0EMr3PVRgNmM2XQj1zIirFjnunP7QW7JETujxVA+nFVuuc0R5kO/TAT25JyM8po0tucabUtd5HlegFO7yWKN5VXwdmD3OEKKJnGIQrBRvTgBO1l+BKicBZUULBxRX1WkOkcRF328nfuH16rqy/4L6Q+5BSktElo06A6iBp6xXxaIjfAVevIb5njwKdGakK5jA+QE1cvxtJ0H63rx004WhKOb6nQl7zr6V8fzANDZd5lvIn433NouDLw0DZaMU/c9dPEU1vJhD4+UrNI5F5AG4BBLSnQls5sVNOW5jrmH99OhZxAjFlKZ5xJnlzhMuRXGlrW2Z3bi1vK8s8+1BuuYK7suxqGCwZKx+u5nUH2Uc6/NzC2Go3Y+GKNgPrrnri4IFh9cCxzCYVjlgHiiPLLTn3coqCDWcZdQNHVGHjnTQJd3cWaWmsnEYKODb1e2fTK0YGQ+WXlc64rwuxxh9wE5X1Q08npX5hIQnBcWDmh2w9pxEQWOFgO26mtUHCTQI3Gp1TGQ8tk9GUPain5LLt9YJ1crTBFzKDSf2LlQ5umcM2cAC7a56tpdteBhl63nGWGKgEnzk3qLn1Y1d9RS2D6b7aPQ+bj+ckv2VtsnYnd+A7rAnqSYUi8hH8myJ1xyBC0l9qM/AeamQGiIYLxbkue3MkHKGDXQfFLsq+MdrH7d03dk00jBlQBJm9cQKY3M+Wfn2soGq326zqMZv95pzAjOKWqbWBb/xkATL7F1o9RK/pUicVMayUMutWLo=';
-
-/// Contoh response API `/property-pricing` (SUDAH bentuk baru — skema "KPR" bisa punya
-/// beberapa varian bank di field "promo") — dipakai tombol preview harga & simulasi sebelum
-/// endpoint aslinya (LAN dev, lihat SiteplanRemoteDataSourceImpl) bisa diakses dari device tes.
-const Map<String, dynamic> sampleUnitPricingData = {
-  'projects': 'Paradise Serpong City 2',
-  'cluster': 'Cluster EcoArdence',
-  'product': 'Tahap 4.1-Ariawood 36/60',
-  'blok_unit': 'BA6-1',
-  'status': 'Reserve',
-  'is_sold': false,
-  'spec': {
-    'luas_tanah': 60,
-    'luas_bangunan': 36,
-    'kelebihan_tanah': null,
-    'jumlah_lantai': null,
-    'kamar_tidur': null,
-    'kamar_mandi': null,
-  },
-  'price_schemes': [
-    {
-      'name': 'CASH KERAS',
-      'harga': 'Rp 605.000.000',
-      'installments': [
-        {'name': 'CASH KERAS', 'total': 'Rp 605.000.000'},
-      ],
-    },
-    {
-      'name': 'CASH KERAS 3X',
-      'harga': 'Rp 619.000.000',
-      'installments': [
-        {'name': 'CASH KERAS 3X', 'total': 'Rp 619.000.000'},
-      ],
-    },
-    {
-      'name': 'KPR',
-      'harga': 'Rp 612.000.000',
-      'promo': [
-        {
-          'name': 'KPR - Bank BCA',
-          'bank': 'Bank BCA',
-          'promo_name': 'Promo KPR Merdeka',
-          'promo_percentage': 2.5,
-          'harga_sebelum_promo': 'Rp 612.000.000',
-          'harga': 'Rp 596.700.000',
-          'installments': [
-            {'name': 'KPR - Bank BCA', 'total': 'Rp 596.700.000'},
-          ],
-        },
-        {
-          'name': 'KPR - Bank Mandiri',
-          'bank': 'Bank Mandiri',
-          'promo_name': 'Promo KPR Spesial',
-          'promo_percentage': 2.0,
-          'harga_sebelum_promo': 'Rp 612.000.000',
-          'harga': 'Rp 599.760.000',
-          'installments': [
-            {'name': 'KPR - Bank Mandiri', 'total': 'Rp 599.760.000'},
-          ],
-        },
-      ],
-      'installments': [
-        {'name': 'KPR', 'total': 'Rp 612.000.000'},
-      ],
-    },
-  ],
-};
-
 class UnitDetail {
   final String? projectName;
   final String? clusterName;
@@ -150,6 +78,7 @@ class UnitSpec {
   final num? jumlahLantai;
   final num? kamarTidur;
   final num? kamarMandi;
+  final num? jumlahCarport;
 
   UnitSpec({
     this.luasTanah,
@@ -158,6 +87,7 @@ class UnitSpec {
     this.jumlahLantai,
     this.kamarTidur,
     this.kamarMandi,
+    this.jumlahCarport,
   });
 
   factory UnitSpec.fromJson(Map<String, dynamic> json) {
@@ -168,6 +98,7 @@ class UnitSpec {
       jumlahLantai: json['jumlah_lantai'] as num?,
       kamarTidur: json['kamar_tidur'] as num?,
       kamarMandi: json['kamar_mandi'] as num?,
+      jumlahCarport: json['jumlah_carport'] as num?,
     );
   }
 }
@@ -179,6 +110,7 @@ class PriceScheme {
   final num? promoPercentage;
   final String? hargaSebelumPromo;
   final String? harga;
+  final int? tenor;
   final List<Installment> installments;
   // Varian per-bank dari skema yang sama (mis. "KPR" punya beberapa promo bank: BCA, Mandiri,
   // dst) — tiap entrinya bentuknya SAMA seperti PriceScheme lain (name/bank/promo_name/
@@ -192,6 +124,7 @@ class PriceScheme {
     this.promoPercentage,
     this.hargaSebelumPromo,
     this.harga,
+    this.tenor,
     this.installments = const [],
     this.promo = const [],
   });
@@ -204,6 +137,7 @@ class PriceScheme {
       promoPercentage: json['promo_percentage'] as num?,
       hargaSebelumPromo: json['harga_sebelum_promo'] as String?,
       harga: json['harga'] as String?,
+      tenor: json['tenor'] as int?,
       installments: ((json['installments'] as List?) ?? const [])
           .map((e) => Installment.fromJson(e as Map<String, dynamic>))
           .toList(),

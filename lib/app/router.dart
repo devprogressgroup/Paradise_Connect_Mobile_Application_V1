@@ -370,7 +370,6 @@ class AppRouter {
                     companyId: extra['company_id'] as int? ?? 0,
                     productId: extra['product_id'] as int? ?? 0,
                     propertyId: extra['property_id'] as int? ?? 0,
-                    previewData: extra['preview_data'] as Map<String, dynamic>?,
                   );
                 },
               ),

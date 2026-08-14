@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:progress_group/core/constants/colors.dart';
 import '../../../../core/utils/widget/custom_header.dart';
+import '../../../../core/utils/widget/unit_status_badge.dart';
 import '../../domain/entities/unit_detail.dart';
 import '../state/siteplan_bloc.dart';
 
@@ -15,10 +16,6 @@ class UnitDetailPage extends StatefulWidget {
   final int companyId;
   final int productId;
   final int propertyId;
-  // Kalau diisi (mis. tombol preview 💰 sebelum endpoint /property-pricing bisa diakses dari
-  // device tes), halaman ini render data ini LANGSUNG — TIDAK fetch ke API sama sekali,
-  // siteplanId/companyId/dst di atas jadi tidak dipakai.
-  final Map<String, dynamic>? previewData;
 
   const UnitDetailPage({
     super.key,
@@ -26,7 +23,6 @@ class UnitDetailPage extends StatefulWidget {
     this.companyId = 0,
     this.productId = 0,
     this.propertyId = 0,
-    this.previewData,
   });
 
   @override
@@ -51,14 +47,6 @@ class _UnitDetailPageState extends State<UnitDetailPage> {
   }
 
   Future<void> _load() async {
-    if (widget.previewData != null) {
-      setState(() {
-        _unit = UnitDetail.fromJson(widget.previewData!);
-        _status = _LoadStatus.loaded;
-      });
-      return;
-    }
-
     setState(() => _status = _LoadStatus.loading);
     try {
       final unit = await context.read<SiteplanBloc>().repository.getUnitDetail(
@@ -148,7 +136,7 @@ class _UnitDetailPageState extends State<UnitDetailPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _buildInformasiUnit(unit),
+                    // _buildInformasiUnit(unit),
                     _buildSpesifikasiUnit(unit),
                     _buildHargaSimulasi(unit),
                   ],
@@ -180,10 +168,11 @@ class _UnitDetailPageState extends State<UnitDetailPage> {
             children: [
               Expanded(
                 child: Text(
-                  (unit.clusterName ?? '-').toUpperCase(),
+                  (unit.projectName ?? '-').toUpperCase(),
                   style: const TextStyle(
                     fontSize: 11,
-                    fontWeight: FontWeight.w600,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.3,
                     color: Color(blueShade900Color),
                   ),
                 ),
@@ -191,29 +180,28 @@ class _UnitDetailPageState extends State<UnitDetailPage> {
               _buildStatusBadge(unit),
             ],
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 6),
+          Text(
+            unit.clusterName ?? '-',
+            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: Color(greyShade600)),
+          ),
+          const SizedBox(height: 6),
           Text(
             unit.productName ?? '-',
-            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+            style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
           ),
-          
+          const SizedBox(height: 8),
+          Text(
+           "Blok No : ${unit.blokUnit ?? '-'}",
+            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(greyShade600)),
+          ),
         ],
       ),
     );
   }
 
   Widget _buildStatusBadge(UnitDetail unit) {
-    final isSold = unit.isSold;
-    final label = isSold ? 'TERJUAL' : (unit.status ?? '-');
-    final color = isSold ? const Color(redAccentColor) : const Color(primaryColor);
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-      decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(20)),
-      child: Text(
-        label,
-        style: const TextStyle(color: Color(whiteColor), fontSize: 11, fontWeight: FontWeight.bold),
-      ),
-    );
+    return UnitStatusBadge(label: unit.status ?? '-');
   }
 
   // ---------------------------------------------------------------------
@@ -221,7 +209,7 @@ class _UnitDetailPageState extends State<UnitDetailPage> {
   // ---------------------------------------------------------------------
   Widget _buildInformasiUnit(UnitDetail unit) {
     final items = <_InfoItem>[
-      _InfoItem(Icons.qr_code_2_outlined, 'No Blok', unit.blokUnit),
+      _InfoItem(Icons.qr_code_2_outlined, 'Blok Nomor', unit.blokUnit),
       _InfoItem(Icons.home_outlined, 'Nama Unit', unit.productName),
       _InfoItem(Icons.holiday_village_outlined, 'Nama Cluster', unit.clusterName),
       _InfoItem(Icons.apartment_outlined, 'Proyek', unit.projectName),
@@ -330,13 +318,12 @@ class _UnitDetailPageState extends State<UnitDetailPage> {
     final items = <_InfoItem>[
       _InfoItem(Icons.straighten_outlined, 'Luas Tanah', _fmtArea(spec.luasTanah)),
       _InfoItem(Icons.home_outlined, 'Luas Bangunan', _fmtArea(spec.luasBangunan)),
-      _InfoItem(Icons.add_box_outlined, 'Kelebihan Tanah', _fmtArea(spec.kelebihanTanah)),
-      _InfoItem(Icons.layers_outlined, 'Jumlah Lantai', spec.jumlahLantai?.toString()),
-      _InfoItem(Icons.bed_outlined, 'Kamar Tidur', spec.kamarTidur?.toString()),
-      _InfoItem(Icons.bathtub_outlined, 'Kamar Mandi', spec.kamarMandi?.toString()),
-    ].where((e) => e.value != null).toList();
+      _InfoItem(Icons.bed_outlined, 'Kamar Tidur', spec.kamarTidur?.toString() ?? '0'),
+      _InfoItem(Icons.bathtub_outlined, 'Kamar Mandi', spec.kamarMandi?.toString() ?? '0'),
+      _InfoItem(Icons.layers_outlined, 'Jumlah Lantai', spec.jumlahLantai?.toString() ?? '0'),
+      _InfoItem(Icons.garage_outlined, 'Jumlah Carport', spec.jumlahCarport?.toString() ?? '0'),
 
-    if (items.isEmpty) return const SizedBox.shrink();
+    ];
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -346,7 +333,7 @@ class _UnitDetailPageState extends State<UnitDetailPage> {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text('Spesifikasi Unit', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+              const Text('Informasi Unit', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
               Icon(
                 _spesifikasiExpanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
                 color: const Color(greyShade600),
@@ -371,8 +358,8 @@ class _UnitDetailPageState extends State<UnitDetailPage> {
     );
   }
 
-  String? _fmtArea(num? value) {
-    if (value == null) return null;
+  String _fmtArea(num? value) {
+    if (value == null) return '0 m²';
     final asString = value == value.roundToDouble() ? value.toInt().toString() : value.toString();
     return '$asString m²';
   }
@@ -406,20 +393,10 @@ class _UnitDetailPageState extends State<UnitDetailPage> {
     final isTerjual = (unit.status ?? '').toUpperCase() == 'SP' || unit.isSold;
 
     if (isTerjual) {
-      return _buildEmptyState(
-        icon: Icons.sell_rounded,
-        iconColor: const Color(redAccentColor),
-        title: 'Unit Sudah Terjual',
-        subtitle: 'Simulasi harga dan pembayaran tidak tersedia karena unit ini sudah terjual.',
-      );
+      return Container();
     }
     if (unit.priceSchemes.isEmpty) {
-      return _buildEmptyState(
-        icon: Icons.hourglass_top_rounded,
-        iconColor: const Color(greyShade500),
-        title: 'Harga Belum Tersedia',
-        subtitle: 'Informasi harga dan simulasi pembayaran untuk unit ini sedang kami siapkan.',
-      );
+      return Container();
     }
 
     // Skema yang ada promo bank-nya selalu ditaruh duluan — itu yang paling menarik buat
@@ -472,42 +449,7 @@ class _UnitDetailPageState extends State<UnitDetailPage> {
     );
   }
 
-  Widget _buildEmptyState({
-    required IconData icon,
-    required Color iconColor,
-    required String title,
-    required String subtitle,
-  }) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(vertical: 28, horizontal: 24),
-      decoration: BoxDecoration(
-        color: const Color(whiteColor),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(grey9Color)),
-      ),
-      child: Column(
-        children: [
-          Container(
-            width: 56,
-            height: 56,
-            decoration: BoxDecoration(color: iconColor.withAlpha(26), shape: BoxShape.circle),
-            alignment: Alignment.center,
-            child: Icon(icon, size: 28, color: iconColor),
-          ),
-          const SizedBox(height: 14),
-          Text(title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 6),
-          Text(
-            subtitle,
-            textAlign: TextAlign.center,
-            style: const TextStyle(fontSize: 12, color: Color(greyShade600), height: 1.4),
-          ),
-        ],
-      ),
-    );
-  }
-
+ 
   Widget _priceSchemeCard(PriceScheme scheme) {
     // Bunga TERKECIL di antara varian bank skema ini yang paling menguntungkan buat user —
     // cuma itu yang dikasih badge hijau (successColor), sisanya badge netral (abu-abu).
@@ -564,30 +506,35 @@ class _UnitDetailPageState extends State<UnitDetailPage> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     const Text('Bunga', style: TextStyle(fontSize: 12, color: Color(greyShade600))),
-                    Container(
+                    Container(child:  bankPromo.promoPercentage == lowestPromoPercentage?Container(
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
                       decoration: BoxDecoration(
-                        color: (bankPromo.promoPercentage == lowestPromoPercentage
-                                ? const Color(successColor)
-                                : const Color(greyShade500))
-                            .withAlpha(30),
-                        borderRadius: BorderRadius.circular(20),
+                        color: 
+                             const Color(successColor),
+                          
+                        borderRadius: BorderRadius.circular(12),
                       ),
                       child: Text(
                         '${bankPromo.promoPercentage}%',
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.bold,
-                          color: bankPromo.promoPercentage == lowestPromoPercentage
-                              ? const Color(successColor)
-                              : const Color(greyShade500),
+                          color: const Color(whiteColor)
                         ),
                       ),
-                    ),
+                    ):Text(
+                        '${bankPromo.promoPercentage}%',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: const Color(blackColor),
+                        ),
+                      ),)
+                    
                   ],
                 ),
               ),
-            ..._installmentRows(bankPromo.installments),
+            ..._installmentRows(bankPromo.installments, tenor: bankPromo.tenor),
           ],
         ],
       ),
@@ -597,7 +544,7 @@ class _UnitDetailPageState extends State<UnitDetailPage> {
   // Label posisional ("Angsuran 1x", "Angsuran 2x", dst) dipakai alih-alih nama installment
   // mentah — nama installment dari API sering cuma duplikat nama skema/bank di atasnya
   // (mis. "KPR - Bank BCA"), keliatan ngulang kalau ditampilkan lagi apa adanya di sini.
-  List<Widget> _installmentRows(List<Installment> installments) {
+  List<Widget> _installmentRows(List<Installment> installments, {int? tenor}) {
     return [
       for (var i = 0; i < installments.length; i++)
         Padding(
@@ -605,7 +552,15 @@ class _UnitDetailPageState extends State<UnitDetailPage> {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('Angsuran ${i + 1}x', style: const TextStyle(fontSize: 12, color: Color(greyShade600))),
+              Row(
+                children: [
+                  Text('${installments[i].name}', style: const TextStyle(fontSize: 12, color: Color(greyShade600))),
+                  if (tenor != null) ...[
+                    const SizedBox(width: 6),
+                    Text('($tenor tahun)', style: const TextStyle(fontSize: 11, color: Color(greyShade500))),
+                  ],
+                ],
+              ),
               Text(installments[i].total, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
             ],
           ),
