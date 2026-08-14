@@ -33,3 +33,31 @@ void postUnitDetailToParent(Map<String, dynamic> data) {
     );
   } catch (_) {}
 }
+
+/// Vendor SEKARANG navigasi LANGSUNG ke domain app kita (bukan lewat proxy Laravel lagi —
+/// lihat komentar di router.dart), bawa siteplan_id/company_id/product_id/property_id PLAIN
+/// (tanpa enkripsi) sebagai query param. PWA ini BOOT ULANG nested di dalam iframe siteplan
+/// (persis kasus §16, cuma trigger-nya beda) — relay id-nya ke parent SEBELUM sempat kena gate
+/// login/render halaman apa pun, supaya outer app yang urus render halaman detail unit-nya.
+void postPlainUnitParamsToParent({
+  required String siteplanId,
+  required String companyId,
+  required String productId,
+  required String propertyId,
+}) {
+  try {
+    html.window.parent?.postMessage(
+      {
+        'source': 'paradiseSiteplan',
+        'type': 'unitDetailPlainParams',
+        'payload': {
+          'siteplan_id': siteplanId,
+          'company_id': companyId,
+          'product_id': productId,
+          'property_id': propertyId,
+        },
+      },
+      '*',
+    );
+  } catch (_) {}
+}

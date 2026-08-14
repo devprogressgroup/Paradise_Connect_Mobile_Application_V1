@@ -1,4 +1,6 @@
-﻿import 'package:flutter/material.dart';
+﻿import 'dart:convert';
+
+import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:progress_group/core/constants/colors.dart';
@@ -79,6 +81,40 @@ class _SitePlanPageState extends State<SitePlanPage> with RouteAware {
     if (mounted) setState(() {});
   }
 
+  // Body dari event 'unitDetailResponse' itu teks HTML mentah (bridge script yang biasa
+  // di-generate PropertyController::forwardToSiteplan()) — bukan object siap pakai. Ambil
+  // query/location/sourceParams/redirectParams-nya pakai regex, lalu json-decode tiap nilainya
+  // (semua sudah di-json_encode satu-satu di sisi PHP, jadi escaping-nya valid JSON per-field,
+  // meski pembungkusnya bukan JSON object literal). Sama persis dengan index_web.dart.
+  Map<String, dynamic> _parseBridgeHtml(String html) {
+    String? extractJsonString(String key) {
+      final match = RegExp('$key:\\s*"((?:[^"\\\\]|\\\\.)*)"').firstMatch(html);
+      if (match == null) return null;
+      try {
+        return jsonDecode('"${match.group(1)}"') as String;
+      } catch (_) {
+        return null;
+      }
+    }
+
+    Map<String, dynamic>? extractJsonObject(String key) {
+      final match = RegExp('$key:\\s*(\\{[^}]*\\})').firstMatch(html);
+      if (match == null) return null;
+      try {
+        return jsonDecode(match.group(1)!) as Map<String, dynamic>;
+      } catch (_) {
+        return null;
+      }
+    }
+
+    return {
+      'query': extractJsonString('query'),
+      'location': extractJsonString('location'),
+      'sourceParams': extractJsonObject('sourceParams'),
+      'redirectParams': extractJsonObject('redirectParams'),
+    };
+  }
+
   // Overlay.insert() SENGAJA dipakai, BUKAN showDialog() — showDialog mendorong route baru ke
   // Navigator, dan biarpun WebView native jarang kena bug detach-reload seperti iframe web,
   // konsisten pakai mekanisme yang sama-sama TIDAK LEWAT Navigator di kedua platform.
@@ -150,6 +186,44 @@ class _SitePlanPageState extends State<SitePlanPage> with RouteAware {
         onMessageReceived: (JavaScriptMessage message) {
           debugPrint('[SitePlan][bridge] ${message.message}');
           web_debug.logDebugInfo('[SitePlan][bridge] ${message.message}');
+
+          // Klik "Lihat Selengkapnya" versi BARU (vendor sudah diubah pakai fetch() alih-alih
+          // window.location.href) — WebView TIDAK PERNAH navigasi, peta tidak pernah hilang.
+          // Pesannya lewat channel ini (bukan onNavigationRequest lagi), format JSON string
+          // {source, type, payload, ts} — dikirim siteplanBridgeScript()::relayToFlutter().
+          try {
+            final decoded = jsonDecode(message.message);
+            // Vendor SEKARANG bisa fetch() langsung ke domain app kita sendiri (siteplan_id/
+            // company_id/product_id/property_id plain di query) — kalau ini lewat fetch()
+            // (bukan navigasi asli), onNavigationRequest TIDAK PERNAH ke-trigger, jadi harus
+            // ditangkap di sini juga. Cuma tampilkan di overlay — TIDAK PERNAH pushNamed/navigasi
+            // pakai href ini.
+            if (decoded is Map && decoded['type'] == 'unitDetailPlainParams') {
+              final payload = decoded['payload'];
+              if (payload is Map && mounted) {
+                final href = payload['href'] as String?;
+                final label = '${href ?? '(href kosong)'}\n\nsiteplan_id: ${payload['siteplan_id']}\ncompany_id: ${payload['company_id']}\nproduct_id: ${payload['product_id']}\nproperty_id: ${payload['property_id']}';
+                debugPrint('UNIT DETAIL PLAIN PARAMS: $label');
+                _showRawHrefDialog(label);
+              }
+            }
+            if (decoded is Map && decoded['type'] == 'unitDetailResponse') {
+              final payload = decoded['payload'];
+              final body = payload is Map ? payload['body'] : null;
+              if (body is String && body.contains('paradiseSiteplan')) {
+                final parsed = _parseBridgeHtml(body);
+                final location = parsed['location'] as String?;
+                final redirectParams = parsed['redirectParams'] as Map<String, dynamic>?;
+                debugPrint('TOMBOL REDIRECT (fetch): ${location ?? '(kosong)'} | redirectParams: $redirectParams');
+                if (mounted && (location != null || (redirectParams != null && redirectParams.isNotEmpty))) {
+                  final label = (redirectParams != null && redirectParams.isNotEmpty)
+                      ? '${location ?? '(kosong)'}\n\nsiteplan_id: ${redirectParams['siteplan_id']}\ncompany_id: ${redirectParams['company_id']}\nproduct_id: ${redirectParams['product_id']}\nproperty_id: ${redirectParams['property_id']}'
+                      : location!;
+                  _showRawHrefDialog(label);
+                }
+              }
+            }
+          } catch (_) {}
         },
       )
       ..setNavigationDelegate(
@@ -183,12 +257,29 @@ class _SitePlanPageState extends State<SitePlanPage> with RouteAware {
             web_debug.logDebugInfo('[SitePlan] navigate: ${request.url}');
 
             final uri = Uri.tryParse(request.url);
-            if (uri != null && uri.path == '/siteplan-key') {
+            // Redirect vendor sekarang ada 2 bentuk (lihat forwardToSiteplan() di backend):
+            // "/siteplan-key?=<ciphertext>" (lama) ATAU root domain app dengan query PLAIN
+            // (siteplan_id/company_id/product_id/property_id, tanpa enkripsi). Match query-nya
+            // (bukan cuma path) supaya bentuk baru juga tercegat, tidak WebView ikut navigasi
+            // ke domain app sendiri (yang bisa bikin WebView nampilin PWA vendor, bukan peta).
+            final hasPlainUnitParams = uri != null &&
+                uri.queryParameters.containsKey('siteplan_id') &&
+                uri.queryParameters.containsKey('company_id') &&
+                uri.queryParameters.containsKey('product_id') &&
+                uri.queryParameters.containsKey('property_id');
+            if (uri != null && (uri.path == '/siteplan-key' || hasPlainUnitParams)) {
               // Klik "Lihat Selengkapnya" — SEMENTARA dimatiin (navigasi ke SitePlanBlank tidak
-              // jalan dulu), cuma tampilkan href mentahnya di dialog buat verifikasi/debug.
-              // NavigationDecision.prevent tetap dipertahankan supaya WebView tidak ikut pindah
-              // ke domain itu.
+              // jalan dulu), cuma tampilkan href mentahnya di panel buat verifikasi/debug.
               if (mounted) _showRawHrefDialog(request.url);
+              // .prevent DI SINI cuma nyetop HOP KEDUA (redirect ke /siteplan-key atau root app).
+              // HOP PERTAMA (navigasi ke "unit_detail_link" yang responsnya HTML kosong berisi
+              // script bridge ini) SUDAH KEBURU jalan & ke-render duluan (path-nya tidak match,
+              // jadi lolos di bawah) — WebView jadi nyangkut nampilin halaman kosong itu terus,
+              // bukan .prevent yang salah. Reload eksplisit balik ke situs asli biar peta
+              // muncul lagi.
+              if (_currentSiteUrl != null) {
+                _controller.loadRequest(Uri.parse(_currentSiteUrl!));
+              }
               return NavigationDecision.prevent;
             }
 

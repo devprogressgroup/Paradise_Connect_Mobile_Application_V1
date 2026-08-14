@@ -81,8 +81,55 @@ class _SitePlanPageState extends State<SitePlanPage> with RouteAware {
             // Redirect MENTAH dari backend (PropertyController::forwardToSiteplan()) — persis
             // URL yang dituju window.location.href di fallback non-iframe-nya (mobile).
             final rawLocation = payload['location'] as String?;
-            debugPrint('TOMBOL REDIRECT: ${rawLocation ?? '(kosong)'}');
-            if (mounted) _showRawHrefDialog(rawLocation ?? query);
+            // BARU: vendor sekarang bisa generate redirect_target PLAIN (siteplan_id/company_id/
+            // product_id/property_id langsung di query, TANPA enkripsi) — kalau ini kasusnya,
+            // redirectParams sudah berisi ke-4 id itu, tidak perlu decrypt apa pun lagi.
+            final redirectParams = payload is Map ? payload['redirectParams'] as Map? : null;
+            debugPrint('TOMBOL REDIRECT: ${rawLocation ?? '(kosong)'} | redirectParams: $redirectParams');
+            if (mounted) {
+              final label = (redirectParams != null && redirectParams.isNotEmpty)
+                  ? '${rawLocation ?? query}\n\nsiteplan_id: ${redirectParams['siteplan_id']}\ncompany_id: ${redirectParams['company_id']}\nproduct_id: ${redirectParams['product_id']}\nproperty_id: ${redirectParams['property_id']}'
+                  : (rawLocation ?? query);
+              _showRawHrefDialog(label);
+            }
+          }
+        }
+
+        // Klik "Lihat Selengkapnya" versi BARU (vendor sudah diubah pakai fetch() alih-alih
+        // window.location.href) — halaman TIDAK PERNAH navigasi, jadi peta tidak pernah hilang.
+        // Body-nya sama persis dengan HTML bridge yang biasa di-generate forwardToSiteplan()
+        // (masih ada <script> pembungkusnya), jadi query/location/sourceParams/redirectParams
+        // diambil pakai regex, bukan didapat langsung sebagai object siap pakai.
+        if (data['type'] == 'unitDetailResponse') {
+          final payload = data['payload'];
+          final body = payload is Map ? payload['body'] : null;
+          if (body is String && body.contains('paradiseSiteplan')) {
+            final parsed = _parseBridgeHtml(body);
+            final location = parsed['location'] as String?;
+            final redirectParams = parsed['redirectParams'] as Map<String, dynamic>?;
+            debugPrint('TOMBOL REDIRECT (fetch): ${location ?? '(kosong)'} | redirectParams: $redirectParams');
+            if (mounted && (location != null || (redirectParams != null && redirectParams.isNotEmpty))) {
+              final label = (redirectParams != null && redirectParams.isNotEmpty)
+                  ? '${location ?? '(kosong)'}\n\nsiteplan_id: ${redirectParams['siteplan_id']}\ncompany_id: ${redirectParams['company_id']}\nproduct_id: ${redirectParams['product_id']}\nproperty_id: ${redirectParams['property_id']}'
+                  : location!;
+              _showRawHrefDialog(label);
+            }
+          }
+        }
+
+        // Vendor SEKARANG navigasi LANGSUNG ke domain app kita (siteplan_id/company_id/
+        // product_id/property_id plain di query, TIDAK LEWAT proxy Laravel sama sekali) —
+        // PWA boot ulang nested di dalam iframe (SitePlanRelayPage, lihat router.dart), yang
+        // relay id-nya ke sini APA ADANYA, tidak perlu decrypt/parsing apa pun.
+        if (data['type'] == 'unitDetailPlainParams') {
+          final payload = data['payload'];
+          // Cuma tampilkan di overlay (_showRawHrefDialog) — TIDAK PERNAH context.push/go ke
+          // mana pun pakai href ini, biar tidak ada navigasi/pindah halaman sama sekali.
+          if (payload is Map && mounted) {
+            final href = payload['href'] as String?;
+            final label = '${href ?? '(href kosong)'}\n\nsiteplan_id: ${payload['siteplan_id']}\ncompany_id: ${payload['company_id']}\nproduct_id: ${payload['product_id']}\nproperty_id: ${payload['property_id']}';
+            debugPrint('UNIT DETAIL PLAIN PARAMS: $label');
+            _showRawHrefDialog(label);
           }
         }
 
@@ -104,6 +151,40 @@ class _SitePlanPageState extends State<SitePlanPage> with RouteAware {
         }
       }
     });
+  }
+
+  // Body dari event 'unitDetailResponse' itu teks HTML mentah (bridge script yang biasa
+  // di-generate PropertyController::forwardToSiteplan()) — bukan object siap pakai kayak
+  // payload 'unitDetailRedirect'. Ambil query/location/sourceParams/redirectParams-nya pakai
+  // regex, lalu json-decode tiap nilainya (semua sudah di-json_encode satu-satu di sisi PHP,
+  // jadi escaping-nya valid JSON per-field, meski pembungkusnya bukan JSON object literal).
+  Map<String, dynamic> _parseBridgeHtml(String html) {
+    String? extractJsonString(String key) {
+      final match = RegExp('$key:\\s*"((?:[^"\\\\]|\\\\.)*)"').firstMatch(html);
+      if (match == null) return null;
+      try {
+        return jsonDecode('"${match.group(1)}"') as String;
+      } catch (_) {
+        return null;
+      }
+    }
+
+    Map<String, dynamic>? extractJsonObject(String key) {
+      final match = RegExp('$key:\\s*(\\{[^}]*\\})').firstMatch(html);
+      if (match == null) return null;
+      try {
+        return jsonDecode(match.group(1)!) as Map<String, dynamic>;
+      } catch (_) {
+        return null;
+      }
+    }
+
+    return {
+      'query': extractJsonString('query'),
+      'location': extractJsonString('location'),
+      'sourceParams': extractJsonObject('sourceParams'),
+      'redirectParams': extractJsonObject('redirectParams'),
+    };
   }
 
   // Overlay.insert() SENGAJA dipakai, BUKAN showDialog() — showDialog mendorong route BARU ke
