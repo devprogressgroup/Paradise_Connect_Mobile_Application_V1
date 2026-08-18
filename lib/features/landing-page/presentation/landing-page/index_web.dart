@@ -151,7 +151,7 @@ class _LandingPageState extends State<LandingPage> {
                 children: [
                   const Icon(Icons.error_outline, size: 48, color: Color(redAccentColor)),
                   const SizedBox(height: 12),
-                  const Text('Gagal memuat halaman', textAlign: TextAlign.center),
+                  Text(state.message, textAlign: TextAlign.center),
                   const SizedBox(height: 12),
                   ElevatedButton(
                     onPressed: () {

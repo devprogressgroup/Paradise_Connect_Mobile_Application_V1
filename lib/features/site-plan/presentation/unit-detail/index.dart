@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:progress_group/core/constants/colors.dart';
+import '../../../../core/utils/helpers/error_message.dart';
 import '../../../../core/utils/widget/custom_header.dart';
 import '../../../../core/utils/widget/shimmer_loading.dart';
 import '../../../../core/utils/widget/unit_status_badge.dart';
@@ -64,7 +65,7 @@ class _UnitDetailPageState extends State<UnitDetailPage> {
     } catch (e) {
       if (!mounted) return;
       setState(() {
-        _errorMessage = e.toString().replaceFirst('Exception: ', '');
+        _errorMessage = cleanErrorMessage(e);
         _status = _LoadStatus.error;
       });
     }

@@ -407,10 +407,10 @@ class _SitePlanPageState extends State<SitePlanPage> with RouteAware {
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            const Text(
-                              'Gagal memuat data site plan',
+                            Text(
+                              state.message,
                               textAlign: TextAlign.center,
-                              style: TextStyle(color: Color(redAccentColor)),
+                              style: const TextStyle(color: Color(redAccentColor)),
                             ),
                             const SizedBox(height: 16),
                             ElevatedButton(

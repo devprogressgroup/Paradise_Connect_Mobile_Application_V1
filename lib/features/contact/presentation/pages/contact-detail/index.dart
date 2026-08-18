@@ -1078,20 +1078,16 @@ class _ContactDetailPageState extends State<ContactDetailPage>with TickerProvide
             ),
           ),
           Expanded(
+            // Error upload TIDAK ditampilkan di sini — halaman ini cuma nyimak sukses buat
+            // refresh list lampiran; yang benar-benar submit SubmitAttachmentEvent (dan yang
+            // seharusnya nampilin pesan error-nya) adalah ContactAddPage.
             child: BlocListener<UploadAttachmentBloc, UploadAttachmentState>(
+              listenWhen: (prev, curr) => curr is UploadAttachmentSuccess,
               listener: (context, state) {
-                if (state is UploadAttachmentSuccess) {
-                  context.read<AttachmentCubit>().fetch(
-                    widget.args.dataContact!.contactId!,
-                    widget.args.dataContact!.dealId,
-                  );
-                }
-
-                if (state is UploadAttachmentError) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Gagal mengunggah lampiran')),
-                  );
-                }
+                context.read<AttachmentCubit>().fetch(
+                  widget.args.dataContact!.contactId!,
+                  widget.args.dataContact!.dealId,
+                );
               },
               child: RefreshIndicator(
                 onRefresh: _getAttachment,
@@ -1099,7 +1095,7 @@ class _ContactDetailPageState extends State<ContactDetailPage>with TickerProvide
                   listenWhen: (prev, curr) => curr is AttachmentError && prev is! AttachmentError,
                   listener: (context, state) {
                     if (state is AttachmentError) {
-                      showErrorDialog(context, 'Gagal memuat lampiran');
+                      showErrorDialog(context, state.message);
                     }
                   },
                   builder: (context, state) {

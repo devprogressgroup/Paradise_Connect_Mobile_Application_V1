@@ -255,7 +255,7 @@ class _ApprovalPageState extends State<ApprovalPage> {
                   if (state is AttendanceApprovalLoading) {
                     return SingleChildScrollView(child: buildApprovalShimmer());
                   } else if (state is AttendanceApprovalError) {
-                    return const Center(child: Text('Gagal memuat data approval'));
+                    return Center(child: Text(state.message));
                   } else if (state is AttendanceApprovalLoaded) {
                     final logs = state.logs;
                     if (logs.isEmpty) {

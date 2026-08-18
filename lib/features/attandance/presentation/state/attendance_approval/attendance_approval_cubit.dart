@@ -45,7 +45,7 @@ class AttendanceApprovalCubit extends Cubit<AttendanceApprovalState> {
         flag: flag,
       ));
     } catch (e) {
-      emit(AttendanceApprovalError(e.toString()));
+      emit(AttendanceApprovalError(cleanErrorMessage(e)));
     }
   }
 
@@ -100,7 +100,7 @@ class AttendanceApprovalCubit extends Cubit<AttendanceApprovalState> {
       } else {
         emit(AttendanceApprovalError(cleanErrorMessage(e)));
       }
-      throw Exception(e.toString());
+      rethrow;
     }
   }
 }

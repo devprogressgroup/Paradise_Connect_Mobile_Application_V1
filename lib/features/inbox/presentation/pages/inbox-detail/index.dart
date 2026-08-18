@@ -94,8 +94,7 @@ class _InboxDetailPageState extends State<InboxDetailPage> {
                   listener: (context, state) {
                     if (state is MessageError) {
                       _isFetchingMore = false;
-                   
-                      showErrorDialog(context, 'Gagal memuat pesan');
+                      showErrorDialog(context, state.message);
                     }
                   },
                   builder: (context, state) {

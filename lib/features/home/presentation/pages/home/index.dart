@@ -571,8 +571,7 @@ class _HomePageState extends State<HomePage> with RouteAware {
     return BlocConsumer<ProspectStatusSummaryBloc, ProspectStatusSummaryState>(
       listenWhen: (prev, curr) => curr.status == ProspectStatusSummaryStatus.error && prev.status != ProspectStatusSummaryStatus.error,
       listener: (context, state) {
-        
-        showErrorDialog(context, 'Gagal memuat prospect status');
+        showErrorDialog(context, state.errorMessage ?? 'Gagal memuat prospect status');
       },
       builder: (context, state) {
         return Column(
@@ -784,7 +783,7 @@ class _HomePageState extends State<HomePage> with RouteAware {
     return BlocConsumer<SalesChannelSummaryBloc, SalesChannelSummaryState>(
       listenWhen: (prev, curr) => curr.status == SalesChannelSummaryStatus.error && prev.status != SalesChannelSummaryStatus.error,
       listener: (context, state) {
-        showErrorDialog(context, 'Gagal memuat sales channel');
+        showErrorDialog(context, state.errorMessage ?? 'Gagal memuat sales channel');
       },
       builder: (context, state) {
         return Column(
@@ -1068,11 +1067,10 @@ class _HomePageState extends State<HomePage> with RouteAware {
                 return buildHomeChartShimmer();
               }
               if (state is ReportError) {
-                
-                return const SizedBox(
+                return SizedBox(
                   height: 150,
                   child: Center(
-                      child: Text('Gagal memuat data laporan', style: TextStyle(color: Color(redAccentColor)))),
+                      child: Text(state.message, style: const TextStyle(color: Color(redAccentColor)))),
                 );
               }
               if (state is ReportLoaded) {

@@ -196,8 +196,7 @@ class _InboxPageState extends State<InboxPage> {
                         listenWhen: (prev, curr) => curr is WhatsappDeviceError && prev is! WhatsappDeviceError,
                         listener: (context, state) {
                           if (state is WhatsappDeviceError) {
-                           
-                            showErrorDialog(context, 'Gagal memuat perangkat WhatsApp');
+                            showErrorDialog(context, state.message);
                           }
                         },
                         builder: (context, state) {
@@ -596,8 +595,7 @@ class _InboxPageState extends State<InboxPage> {
       listener: (context, state) {
         if (state is InboxContactError) {
           _isFetchingMore = false;
-         
-          showErrorDialog(context, 'Gagal memuat data inbox');
+          showErrorDialog(context, state.message);
         }
       },
       builder: (context, state) {
@@ -843,9 +841,9 @@ class _InboxPageState extends State<InboxPage> {
                         textAlign: TextAlign.center, style: TextStyle(fontSize: 12, color: Color(greyShade500))),
                       SizedBox(height: 16),
                       if (state is WhatsappQrError)
-                        const Padding(
-                          padding: EdgeInsets.only(bottom: 8.0),
-                          child: Text('Gagal memuat QR code', style: TextStyle(color: Color(redAccentColor), fontSize: 10), textAlign: TextAlign.center),
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 8.0),
+                          child: Text(state.message, style: const TextStyle(color: Color(redAccentColor), fontSize: 10), textAlign: TextAlign.center),
                         ),
                       customButton((){ Navigator.pop(context); }, "Tutup", colorBg: Color(primaryColor), colorText: Color(whiteColor)),
                       SizedBox(height: 10),

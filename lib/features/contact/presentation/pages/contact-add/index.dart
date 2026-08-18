@@ -5,6 +5,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:progress_group/core/services/salesbook_sync_service.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:progress_group/core/utils/widget/shimmer_loading.dart';
+import 'package:progress_group/core/utils/widget/error_dialog.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -981,13 +982,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
                 context.pop();
               }
             } else if (state.status == ActivityStatus.error) {
-              
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Gagal menambahkan activity'),
-                  backgroundColor: Color(redAccentColor),
-                ),
-              );
+              showErrorDialog(context, state.errorMessage ?? 'Gagal menambahkan activity');
             }
           },
         ),
@@ -996,13 +991,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
             if (state is UploadAttachmentSuccess) {
               context.pop(2);
             } else if (state is UploadAttachmentError) {
-              
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Gagal mengunggah lampiran'),
-                  backgroundColor: Color(redAccentColor),
-                ),
-              );
+              showErrorDialog(context, state.message);
             }
           },
         ),
@@ -1067,13 +1056,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
               }
               if (selectedProject != null) _loadTownshipClusters(selectedProject!);
             } else if (state.status == ContactStatus.error) {
-              
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Gagal memperbarui data kontak'),
-                  backgroundColor: Color(redAccentColor),
-                ),
-              );
+              showErrorDialog(context, state.errorMessage ?? 'Gagal memperbarui data kontak');
             }
           },
         ),
@@ -1082,13 +1065,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
             if (state is VisitSuccess) {
               context.pop(0); 
             } else if (state is VisitError) {
-              
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Gagal menyimpan data kunjungan'),
-                  backgroundColor: Color(redAccentColor),
-                ),
-              );
+              showErrorDialog(context, state.message);
             }
           },
         ),

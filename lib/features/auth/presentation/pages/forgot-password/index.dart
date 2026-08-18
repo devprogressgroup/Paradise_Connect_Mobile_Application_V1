@@ -163,8 +163,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
 
             if (state is AuthFailure) {
               _hideLoading();
-              
-              showSnackbar(context, _step == 1 ? 'Gagal mengirim kode verifikasi' : 'Gagal mereset password', isError: true);
+              showSnackbar(context, state.error, isError: true);
             }
           },
           builder: (context, state) {

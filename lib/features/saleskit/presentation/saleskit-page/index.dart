@@ -692,7 +692,7 @@ class _SalesKitPageState extends State<SalesKitPage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Text('Gagal memuat data saleskit', textAlign: TextAlign.center),
+            Text(state.message, textAlign: TextAlign.center),
             SizedBox(height: 12),
             ElevatedButton(
               onPressed: () {
@@ -876,7 +876,7 @@ class _SalesKitPageState extends State<SalesKitPage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Text('Gagal memuat data project', textAlign: TextAlign.center),
+            Text(state.message, textAlign: TextAlign.center),
             SizedBox(height: 12),
             ElevatedButton(
               onPressed: () {

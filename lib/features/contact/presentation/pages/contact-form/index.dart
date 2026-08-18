@@ -1710,9 +1710,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
           
           
           final msg = (state.errorMessage ?? '').replaceFirst('Exception: ', '').trim();
-          ScaffoldMessenger.of(this.context).showSnackBar(
-            SnackBar(content: Text(msg.isNotEmpty ? msg : 'Gagal menyimpan data kontak')),
-          );
+          showErrorDialog(this.context, msg.isNotEmpty ? msg : 'Gagal menyimpan data kontak');
         }
       },
       child: MultiBlocListener(
@@ -1780,17 +1778,11 @@ class _ContactFormPageState extends State<ContactFormPage> {
                 _autoFillFromProfile();
               });
             }
-            return BlocConsumer<ContactBloc, ContactState>(
-              listenWhen: (prev, curr) =>
-                  widget.args.page == 2 &&
-                  curr.status == ContactStatus.error &&
-                  prev.status != ContactStatus.error,
-              listener: (context, contactState) {
-                
-                showErrorDialog(context, 'Gagal memuat data kontak').then((_) {
-                  if (context.mounted) context.pop();
-                });
-              },
+            // Error load detail sudah ditangani oleh listener di ContactDetailPage (halaman
+            // pembungkus — ContactFormPage(page: 2) ini SELALU dipakai ter-embed di dalam
+            // IndexedStack-nya, tidak pernah berdiri sendiri), jadi tidak perlu listener error
+            // sendiri di sini — dulu ada, tapi bikin dialog error dobel + pop dobel.
+            return BlocBuilder<ContactBloc, ContactState>(
               builder: (context, contactState) {
                 final statusState = context.watch<ProspectStatusBloc>().state.status;
                 final statusLoading = statusState == ProspectStatusEnum.initial || statusState == ProspectStatusEnum.loading;

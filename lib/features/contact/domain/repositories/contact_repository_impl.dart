@@ -1,4 +1,5 @@
 import 'package:dartz/dartz.dart';
+import 'package:progress_group/core/utils/helpers/error_message.dart';
 import 'package:progress_group/features/contact/domain/entities/activity/activity_prospect_status.dart';
 import 'package:progress_group/features/contact/domain/entities/activity/create_activity_visit_params.dart';
 import 'package:progress_group/features/contact/domain/entities/activity/whatsapp_activity_entity.dart';
@@ -54,7 +55,7 @@ class ContactRepositoryImpl implements ContactRepository {
       );
       return Right(result);
     } catch (e) {
-      return Left(e.toString());
+      return Left(cleanErrorMessage(e));
     }
   }
 
@@ -64,7 +65,7 @@ class ContactRepositoryImpl implements ContactRepository {
       final result = await remoteDataSource.getAllContactsForDuplicateCheck();
       return Right(result);
     } catch (e) {
-      return Left(e.toString());
+      return Left(cleanErrorMessage(e));
     }
   }
 
@@ -74,7 +75,7 @@ class ContactRepositoryImpl implements ContactRepository {
       final result = await remoteDataSource.getContactDetail(id);
       return Right(result);
     } catch (e) {
-      return Left(e.toString());
+      return Left(cleanErrorMessage(e));
     }
   }
 
@@ -84,7 +85,7 @@ class ContactRepositoryImpl implements ContactRepository {
       final result = await remoteDataSource.checkDuplicateContact(ownerId: ownerId, phone: phone);
       return Right(result);
     } catch (e) {
-      return Left(e.toString());
+      return Left(cleanErrorMessage(e));
     }
   }
 
@@ -94,7 +95,7 @@ class ContactRepositoryImpl implements ContactRepository {
       final result = await remoteDataSource.getInfoSources(type: type, userId: userId, salesChannel: salesChannel, all: all);
       return Right(result);
     } catch (e) {
-      return Left(e.toString());
+      return Left(cleanErrorMessage(e));
     }
   }
 
@@ -104,7 +105,7 @@ class ContactRepositoryImpl implements ContactRepository {
       final result = await remoteDataSource.getProspectStatuses(type: type);
       return Right(result);
     } catch (e) {
-      return Left(e.toString());
+      return Left(cleanErrorMessage(e));
     }
   }
 
@@ -114,7 +115,7 @@ class ContactRepositoryImpl implements ContactRepository {
       final result = await remoteDataSource.getLostReasons();
       return Right(result);
     } catch (e) {
-      return Left(e.toString());
+      return Left(cleanErrorMessage(e));
     }
   }
   
@@ -124,7 +125,7 @@ class ContactRepositoryImpl implements ContactRepository {
       final result = await remoteDataSource.getContactProperties();
       return Right(result);
     } catch (e) {
-      return Left(e.toString());
+      return Left(cleanErrorMessage(e));
     }
   }
 
@@ -134,7 +135,7 @@ class ContactRepositoryImpl implements ContactRepository {
       final result = await remoteDataSource.createContact(params);
       return Right(result);
     } catch (e) {
-      return Left(e.toString());
+      return Left(cleanErrorMessage(e));
     }
   }
 
@@ -144,7 +145,7 @@ class ContactRepositoryImpl implements ContactRepository {
       final result = await remoteDataSource.updateContact(id, params);
       return Right(result);
     } catch (e) {
-      return Left(e.toString());
+      return Left(cleanErrorMessage(e));
     }
   }
 
@@ -154,7 +155,7 @@ class ContactRepositoryImpl implements ContactRepository {
       await remoteDataSource.deleteContact(id);
       return const Right(null);
     } catch (e) {
-      return Left(e.toString());
+      return Left(cleanErrorMessage(e));
     }
   }
 
@@ -171,7 +172,7 @@ class ContactRepositoryImpl implements ContactRepository {
       );
       return Right(result.activities);
     } catch (e) {
-      return Left(e.toString());
+      return Left(cleanErrorMessage(e));
     }
   }
 
@@ -181,7 +182,7 @@ class ContactRepositoryImpl implements ContactRepository {
       await remoteDataSource.createActivityVisit(params);
       return const Right(null);
     } catch (e) {
-      return Left(e.toString());
+      return Left(cleanErrorMessage(e));
     }
   }
 
@@ -191,7 +192,7 @@ class ContactRepositoryImpl implements ContactRepository {
       await remoteDataSource.createActivity(params);
       return const Right(null);
     } catch (e) {
-      return Left(e.toString());
+      return Left(cleanErrorMessage(e));
     }
   }
 
@@ -201,7 +202,7 @@ class ContactRepositoryImpl implements ContactRepository {
       await remoteDataSource.postStatusFollow(activityIds);
       return const Right(null);
     } catch (e) {
-      return Left(e.toString());
+      return Left(cleanErrorMessage(e));
     }
   }
 
@@ -212,7 +213,7 @@ class ContactRepositoryImpl implements ContactRepository {
 
       return Right(result.map((e) => e.toEntity()).toList());
     } catch (e) {
-      return Left(e.toString());
+      return Left(cleanErrorMessage(e));
     }
   }
 
@@ -223,7 +224,7 @@ class ContactRepositoryImpl implements ContactRepository {
 
       return Right(result.map((e) => e.toEntity()).toList());
     } catch (e) {
-      return Left(e.toString());
+      return Left(cleanErrorMessage(e));
     }
   }
 
@@ -233,7 +234,7 @@ class ContactRepositoryImpl implements ContactRepository {
       final result = await remoteDataSource.getAttachmentTypes();
       return Right(result);
     } catch (e) {
-      return Left(e.toString());
+      return Left(cleanErrorMessage(e));
     }
   }
 
@@ -243,7 +244,7 @@ class ContactRepositoryImpl implements ContactRepository {
       await remoteDataSource.uploadAttachment(params);
       return const Right(null);
     } catch (e) {
-      return Left(e.toString());
+      return Left(cleanErrorMessage(e));
     }
   }
 
@@ -253,7 +254,7 @@ class ContactRepositoryImpl implements ContactRepository {
       final result = await remoteDataSource.getAttachments(contactId: contactId,dealId: dealId);
       return Right(result);
     } catch (e) {
-      return Left(e.toString());
+      return Left(cleanErrorMessage(e));
     }
   }
 
@@ -266,7 +267,7 @@ class ContactRepositoryImpl implements ContactRepository {
       );
       return const Right(null);
     } catch (e) {
-      return Left(e.toString());
+      return Left(cleanErrorMessage(e));
     }
   }
 
@@ -281,7 +282,7 @@ class ContactRepositoryImpl implements ContactRepository {
       );
       return const Right(null);
     } catch (e) {
-      return Left(e.toString());
+      return Left(cleanErrorMessage(e));
     }
   }
 
@@ -291,7 +292,7 @@ class ContactRepositoryImpl implements ContactRepository {
       final result = await remoteDataSource.getPropertyUnits(townshipId: townshipId);
       return Right(result);
     } catch (e) {
-      return Left(e.toString());
+      return Left(cleanErrorMessage(e));
     }
   }
 
@@ -301,7 +302,7 @@ class ContactRepositoryImpl implements ContactRepository {
       final result = await remoteDataSource.getPropertyCommercialUnits(townshipId: townshipId);
       return Right(result);
     } catch (e) {
-      return Left(e.toString());
+      return Left(cleanErrorMessage(e));
     }
   }
 
@@ -310,7 +311,7 @@ class ContactRepositoryImpl implements ContactRepository {
     try {
       return Right(await remoteDataSource.getUnitHierarchy(townshipId: townshipId, search: search));
     } catch (e) {
-      return Left(e.toString());
+      return Left(cleanErrorMessage(e));
     }
   }
 
@@ -319,7 +320,7 @@ class ContactRepositoryImpl implements ContactRepository {
     try {
       return Right(await remoteDataSource.getUnitLots(productId: productId, townshipId: townshipId, companyId: companyId, search: search));
     } catch (e) {
-      return Left(e.toString());
+      return Left(cleanErrorMessage(e));
     }
   }
 
@@ -329,7 +330,7 @@ class ContactRepositoryImpl implements ContactRepository {
       final result = await remoteDataSource.getPameranAktif(lokasiPameran: lokasiPameran, userId: userId, all: all);
       return Right(result);
     } catch (e) {
-      return Left(e.toString());
+      return Left(cleanErrorMessage(e));
     }
   }
 
@@ -339,7 +340,7 @@ class ContactRepositoryImpl implements ContactRepository {
       final result = await remoteDataSource.getProductTypes();
       return Right(result);
     } catch (e) {
-      return Left(e.toString());
+      return Left(cleanErrorMessage(e));
     }
   }
 

@@ -18,6 +18,7 @@ import 'package:progress_group/core/utils/helpers/app_time.dart';
 import 'package:progress_group/core/utils/helpers/permissions_helper.dart';
 import 'package:progress_group/core/utils/helpers/camera_permission_primer.dart';
 import 'package:progress_group/core/utils/widget/custom_snackbar.dart';
+import 'package:progress_group/core/utils/widget/error_dialog.dart';
 import 'package:progress_group/core/utils/widget/drive_image/drive_image.dart';
 import 'package:progress_group/core/utils/helpers/initial_name_helper.dart';
 import 'package:progress_group/core/utils/widget/custom_filter_button.dart';
@@ -1024,10 +1025,7 @@ class _AttandancePageState extends State<AttandancePage>
             context.read<AttendanceExcelCubit>().reset();
           } else if (state is AttendanceExcelError) {
             ScaffoldMessenger.of(context).hideCurrentSnackBar();
-            debugPrint('AttendanceExcelError: ${state.message}');
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Gagal mengunduh data kehadiran')),
-            );
+            showErrorDialog(context, state.message);
             context.read<AttendanceExcelCubit>().reset();
           }
         },
