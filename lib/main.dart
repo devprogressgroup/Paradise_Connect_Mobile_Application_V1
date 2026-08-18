@@ -434,7 +434,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     
     
     final siteplanRemoteDataSource = SiteplanRemoteDataSourceImpl(dioClient.dio);
-    final siteplanRepository = SitePlanRepositoryImpl(siteplanRemoteDataSource);
+    final siteplanRepository = SitePlanRepositoryImpl(siteplanRemoteDataSource, localDataSource);
 
     
     final landingPageRemoteDataSource = LandingPageRemoteDataSourceImpl();

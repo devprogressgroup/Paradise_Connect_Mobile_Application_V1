@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:progress_group/core/constants/colors.dart';
 import '../../../../core/utils/widget/custom_header.dart';
+import '../../../../core/utils/widget/shimmer_loading.dart';
 import '../../../../core/utils/widget/unit_status_badge.dart';
 import '../../domain/entities/unit_detail.dart';
 import '../state/siteplan_bloc.dart';
@@ -95,7 +96,7 @@ class _UnitDetailPageState extends State<UnitDetailPage> {
   Widget _buildBody() {
     switch (_status) {
       case _LoadStatus.loading:
-        return const Center(child: CircularProgressIndicator());
+        return buildUnitDetailShimmer();
       case _LoadStatus.error:
         return Center(
           child: Padding(
