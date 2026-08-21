@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:go_router/go_router.dart';
 import 'package:progress_group/core/constants/colors.dart';
 import '../../../../core/utils/helpers/error_message.dart';
-import '../../../../core/utils/widget/custom_header.dart';
 import '../../../../core/utils/widget/shimmer_loading.dart';
 import '../../../../core/utils/widget/unit_status_badge.dart';
 import '../../domain/entities/unit_detail.dart';
@@ -11,13 +9,47 @@ import '../state/siteplan_bloc.dart';
 
 /// Detail satu unit (informasi, spesifikasi, harga & simulasi pembayaran) — beda dari
 /// [SitePlanBlank] (yang menampilkan payload unit hasil decrypt dari WebView siteplan, sudah
-/// "beku" sejak user klik pin), halaman ini SELALU fetch data TERBARU dari API
+/// "beku" sejak user klik pin), widget ini SELALU fetch data TERBARU dari API
 /// `/property-pricing` (harga & promo bisa berubah setelah link/preview lama dibuka).
+/// Dipakai sebagai isi `showCustomBottomSheet` (lihat _openUnitDetailFromParams di
+/// SitePlanPage), BUKAN halaman/route sendiri — supaya peta site plan di baliknya tidak perlu
+/// ikut ke-navigasi (lihat catatan iframe-detach di index_web.dart).
+// Bottom sheet setengah layar dulu, baru full kalau user tarik ke atas — DraggableScrollableSheet
+// yang mengatur tinggi sheet-nya (initial/min/max), `scrollController` DIOPER ke SingleChildScrollView
+// isi UnitDetailPage supaya gesture tarik di atas konten ikut memperbesar sheet, bukan cuma scroll isi.
+Future<void> showUnitDetailSheet(
+  BuildContext context, {
+  required int siteplanId,
+  required int companyId,
+  required int productId,
+  required int propertyId,
+}) {
+  return showModalBottomSheet(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: const Color(transparentColor),
+    builder: (context) => DraggableScrollableSheet(
+      initialChildSize: 0.5,
+      minChildSize: 0.35,
+      maxChildSize: 0.95,
+      expand: false,
+      builder: (context, scrollController) => UnitDetailPage(
+        siteplanId: siteplanId,
+        companyId: companyId,
+        productId: productId,
+        propertyId: propertyId,
+        scrollController: scrollController,
+      ),
+    ),
+  );
+}
+
 class UnitDetailPage extends StatefulWidget {
   final int siteplanId;
   final int companyId;
   final int productId;
   final int propertyId;
+  final ScrollController? scrollController;
 
   const UnitDetailPage({
     super.key,
@@ -25,6 +57,7 @@ class UnitDetailPage extends StatefulWidget {
     this.companyId = 0,
     this.productId = 0,
     this.propertyId = 0,
+    this.scrollController,
   });
 
   @override
@@ -73,23 +106,28 @@ class _UnitDetailPageState extends State<UnitDetailPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(grey11Color),
-      body: SafeArea(
-        child: Column(
-          children: [
-            customHeader(
-              context,
-              'Unit Detail',
-              isBack: true,
-              onBack: () => context.canPop() ? context.pop() : context.go('/'),
-              colorBg: const Color(primaryColor),
-              colorBack: const Color(whiteColor),
-              colorTitle: const Color(whiteColor),
+    return Container(
+      decoration: const BoxDecoration(
+        color: Color(grey11Color),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const SizedBox(height: 10),
+          Center(
+            child: Container(
+              width: 60,
+              height: 4,
+              decoration: BoxDecoration(
+                color: const Color(grey7Color),
+                borderRadius: BorderRadius.circular(2),
+              ),
             ),
-            Expanded(child: _buildBody()),
-          ],
-        ),
+          ),
+          const SizedBox(height: 12),
+          Expanded(child: _buildBody()),
+        ],
       ),
     );
   }
@@ -134,6 +172,7 @@ class _UnitDetailPageState extends State<UnitDetailPage> {
             const SizedBox(height: 20),
             Expanded(
               child: SingleChildScrollView(
+                controller: widget.scrollController,
                 padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -253,12 +292,15 @@ class _UnitDetailPageState extends State<UnitDetailPage> {
   }
 
   Widget _twoColumnGrid(List<Widget> children) {
-    return Wrap(
-      spacing: 10,
-      runSpacing: 10,
-      children: children
-          .map((c) => SizedBox(width: (MediaQuery.of(context).size.width - 16 * 2 - 10) / 2, child: c))
-          .toList(),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final itemWidth = (constraints.maxWidth - 10) / 2;
+        return Wrap(
+          spacing: 10,
+          runSpacing: 10,
+          children: children.map((c) => SizedBox(width: itemWidth, child: c)).toList(),
+        );
+      },
     );
   }
 

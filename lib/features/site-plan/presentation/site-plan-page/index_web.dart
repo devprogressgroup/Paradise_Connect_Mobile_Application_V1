@@ -12,6 +12,7 @@ import '../../../../core/utils/widget/custom_header.dart';
 import 'package:progress_group/core/services/analytics_service.dart';
 import '../../../../core/utils/route_observer.dart';
 import '../../domain/entities/project_site.dart';
+import '../unit-detail/index.dart';
 import '../state/siteplan_bloc.dart';
 import '../state/siteplan_event.dart';
 import '../state/siteplan_state.dart';
@@ -38,6 +39,7 @@ class _SitePlanPageState extends State<SitePlanPage> with RouteAware {
 
   bool _isLoading          = false;
   bool _showFallbackBanner = false;
+  bool _isUnitDetailSheetOpen = false;
   Timer? _timeoutTimer;
   StreamSubscription<html.MessageEvent>? _bridgeSub;
   OverlayEntry? _rawHrefOverlay;
@@ -301,9 +303,11 @@ class _SitePlanPageState extends State<SitePlanPage> with RouteAware {
   }
 
 
-  // Navigasi ke UnitDetailPage (fetch LIVE dari /property-pricing) pakai id unit yang di-relay
-  // dari klik pin/tombol "Lihat Selengkapnya" di WebView siteplan — lihat handler-handler
-  // 'unitDetailRedirect'/'unitDetailResponse'/'unitDetailPlainParams' di _listenSiteplanBridge().
+  // Tampilkan UnitDetailPage (fetch LIVE dari /property-pricing) sebagai bottom sheet, pakai id
+  // unit yang di-relay dari klik pin/tombol "Lihat Selengkapnya" di WebView siteplan — lihat
+  // handler-handler 'unitDetailRedirect'/'unitDetailResponse'/'unitDetailPlainParams' di
+  // _listenSiteplanBridge(). SENGAJA bottom sheet (bukan route/pushNamed) — supaya iframe
+  // siteplan di baliknya TIDAK ikut ke-navigasi/reload (lihat catatan didPopNext di atas).
   void _openUnitDetailFromParams(Map params) {
     int? toInt(dynamic v) => v is int ? v : int.tryParse('$v');
     final siteplanId = toInt(params['siteplan_id']);
@@ -315,12 +319,14 @@ class _SitePlanPageState extends State<SitePlanPage> with RouteAware {
     }
     if (!mounted) return;
     AnalyticsService.logEvent('site_plan_open_unit_detail');
-    context.pushNamed('unit_detail', extra: {
-      'siteplan_id': siteplanId,
-      'company_id': companyId,
-      'product_id': productId,
-      'property_id': propertyId,
-    });
+    _isUnitDetailSheetOpen = true;
+    showUnitDetailSheet(
+      context,
+      siteplanId: siteplanId,
+      companyId: companyId,
+      productId: productId,
+      propertyId: propertyId,
+    ).whenComplete(() => _isUnitDetailSheetOpen = false);
   }
 
   void _retryLoadSite() {
@@ -348,14 +354,21 @@ class _SitePlanPageState extends State<SitePlanPage> with RouteAware {
     super.dispose();
   }
 
-  // Kembali dari halaman lain yang ditumpuk di atas (SitePlanBlank/Detail Unit) — BEDA dari
-  // WebView native (mobile), iframe di web itu elemen DOM asli: dicabut dari document lalu
-  // dipasang ulang DIANGGAP BROWSER SEBAGAI NAVIGASI BARU, otomatis reload src-nya dari nol
-  // (bukan sesuatu yang bisa "diperbaiki" dari sisi Flutter — setState kosong saja TIDAK CUKUP,
-  // sudah dicoba & tetap putih). Jadi terima konsekuensinya: reload eksplisit di sini.
+  // Kembali dari halaman lain yang ditumpuk di atas (mis. project-list) — BEDA dari WebView
+  // native (mobile), iframe di web itu elemen DOM asli: dicabut dari document lalu dipasang
+  // ulang DIANGGAP BROWSER SEBAGAI NAVIGASI BARU, otomatis reload src-nya dari nol (bukan
+  // sesuatu yang bisa "diperbaiki" dari sisi Flutter — setState kosong saja TIDAK CUKUP, sudah
+  // dicoba & tetap putih). Jadi terima konsekuensinya: reload eksplisit di sini.
+  //
+  // Unit Detail SEKARANG bottom sheet (showUnitDetailSheet, route non-opaque) — beda dari route
+  // halaman biasa, route di baliknya TETAP kelihatan/ke-paint (didimming lewat barrier modal),
+  // TIDAK pernah dicabut dari DOM, jadi TIDAK butuh reload. RouteObserver tetap memicu
+  // didPopNext saat sheet ditutup (dianggap sama seperti pop biasa), makanya reload di-skip
+  // pakai flag ini — kalau tidak, peta ikut reload tiap kali sheet ditutup padahal tidak perlu.
   @override
   void didPopNext() {
     debugPrint('[SitePlan] didPopNext (state lama masih hidup, bukan rebuild)');
+    if (_isUnitDetailSheetOpen) return;
     if (mounted && _selectedSite != null) _loadSite(_selectedSite!);
   }
 

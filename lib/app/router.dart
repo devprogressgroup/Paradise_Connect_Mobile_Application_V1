@@ -34,7 +34,6 @@ import '../features/site-plan/presentation/blank/siteplan-blank.dart';
 import '../features/site-plan/presentation/project-list/index.dart';
 import '../features/site-plan/presentation/relay/index.dart';
 import '../features/site-plan/presentation/site-plan-page/index.dart';
-import '../features/site-plan/presentation/unit-detail/index.dart';
 import '../features/landing-page/presentation/landing-page/index.dart';
 import '../features/splash/presentation/pages/index.dart';
 import '../features/permission-gate/presentation/pages/index.dart';
@@ -388,19 +387,6 @@ class AppRouter {
                   final sites = (extra?['sites'] as List<ProjectSite>?) ?? [];
                   final selected = extra?['selected'] as ProjectSite?;
                   return ProjectListPage(sites: sites, selectedSite: selected);
-                },
-              ),
-              GoRoute(
-                name: 'unit_detail',
-                path: 'unit-detail',
-                builder: (context, state) {
-                  final extra = state.extra as Map<String, dynamic>? ?? const {};
-                  return UnitDetailPage(
-                    siteplanId: extra['siteplan_id'] as int? ?? 0,
-                    companyId: extra['company_id'] as int? ?? 0,
-                    productId: extra['product_id'] as int? ?? 0,
-                    propertyId: extra['property_id'] as int? ?? 0,
-                  );
                 },
               ),
             ],

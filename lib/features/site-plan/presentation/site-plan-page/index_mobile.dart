@@ -10,6 +10,7 @@ import 'package:progress_group/core/services/analytics_service.dart';
 import 'package:progress_group/core/utils/web_debug_util.dart' as web_debug;
 import '../../../../core/utils/route_observer.dart';
 import '../../domain/entities/project_site.dart';
+import '../unit-detail/index.dart';
 import '../state/siteplan_bloc.dart';
 import '../state/siteplan_event.dart';
 import '../state/siteplan_state.dart';
@@ -26,6 +27,7 @@ class _SitePlanPageState extends State<SitePlanPage> with RouteAware {
   List<ProjectSite> _sites = [];
   ProjectSite? _selectedSite;
   bool _isWebviewLoading = false;
+  bool _isUnitDetailSheetOpen = false;
   double _loadingProgress = 0;
   String? _currentSiteUrl;
   OverlayEntry? _rawHrefOverlay;
@@ -68,15 +70,21 @@ class _SitePlanPageState extends State<SitePlanPage> with RouteAware {
     super.dispose();
   }
 
-  // Kembali dari halaman lain yang ditumpuk di atas (mis. SitePlanBlank/Detail Unit) — WebView
-  // di Android SERING jadi blank/putih persis setelah itu, walau controller & isi peta-nya
-  // SEBENARNYA masih hidup di memori (bug dikenal `webview_flutter`: platform view/texture-nya
-  // yang berhenti repaint, bukan datanya yang hilang). JANGAN panggil _loadSite() lagi di sini
-  // — itu justru bikin nunggu network 3-4 detik lagi tiap kali balik (persis yang dikomplain
-  // user). Cukup paksa Flutter rebuild widget-nya (setState kosong) supaya platform view WebView
-  // ikut di-re-attach & repaint sendiri oleh framework, tanpa reload konten apa pun.
+  // Kembali dari halaman lain yang ditumpuk di atas (mis. SitePlanBlank) — WebView di Android
+  // SERING jadi blank/putih persis setelah itu, walau controller & isi peta-nya SEBENARNYA masih
+  // hidup di memori (bug dikenal `webview_flutter`: platform view/texture-nya yang berhenti
+  // repaint, bukan datanya yang hilang). JANGAN panggil _loadSite() lagi di sini — itu justru
+  // bikin nunggu network 3-4 detik lagi tiap kali balik (persis yang dikomplain user). Cukup
+  // paksa Flutter rebuild widget-nya (setState kosong) supaya platform view WebView ikut
+  // di-re-attach & repaint sendiri oleh framework, tanpa reload konten apa pun.
+  //
+  // Unit Detail SEKARANG bottom sheet (showUnitDetailSheet, route non-opaque) — route di
+  // baliknya TETAP ke-paint (didimming lewat barrier modal), tidak pernah kena bug blank di
+  // atas, jadi rebuild ini pun tidak perlu — di-skip pakai flag ini supaya tidak ada
+  // flicker/rebuild yang kelihatan seperti "reset" tiap sheet ditutup.
   @override
   void didPopNext() {
+    if (_isUnitDetailSheetOpen) return;
     if (mounted) setState(() {});
   }
 
@@ -165,9 +173,11 @@ class _SitePlanPageState extends State<SitePlanPage> with RouteAware {
     Overlay.of(context).insert(entry);
   }
 
-  // Navigasi ke UnitDetailPage (fetch LIVE dari /property-pricing) pakai id unit yang di-relay
-  // dari klik pin/tombol "Lihat Selengkapnya" di WebView siteplan — lihat channel
-  // 'SiteplanBridge' & onNavigationRequest di atas.
+  // Tampilkan UnitDetailPage (fetch LIVE dari /property-pricing) sebagai bottom sheet, pakai id
+  // unit yang di-relay dari klik pin/tombol "Lihat Selengkapnya" di WebView siteplan — lihat
+  // channel 'SiteplanBridge' & onNavigationRequest di atas. SENGAJA bottom sheet (bukan
+  // route/pushNamed) — WebView native jarang kena bug detach-reload seperti iframe web, tapi
+  // tetap konsisten dengan versi web supaya perilakunya sama di kedua platform.
   void _openUnitDetailFromParams(Map params) {
     int? toInt(dynamic v) => v is int ? v : int.tryParse('$v');
     final siteplanId = toInt(params['siteplan_id']);
@@ -179,12 +189,14 @@ class _SitePlanPageState extends State<SitePlanPage> with RouteAware {
     }
     if (!mounted) return;
     AnalyticsService.logEvent('site_plan_open_unit_detail');
-    context.pushNamed('unit_detail', extra: {
-      'siteplan_id': siteplanId,
-      'company_id': companyId,
-      'product_id': productId,
-      'property_id': propertyId,
-    });
+    _isUnitDetailSheetOpen = true;
+    showUnitDetailSheet(
+      context,
+      siteplanId: siteplanId,
+      companyId: companyId,
+      productId: productId,
+      propertyId: propertyId,
+    ).whenComplete(() => _isUnitDetailSheetOpen = false);
   }
 
   void _initFromSites(List<ProjectSite> sites) {
