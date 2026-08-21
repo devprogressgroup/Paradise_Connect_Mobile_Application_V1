@@ -667,7 +667,7 @@ class _ContactPageState extends State<ContactPage> {
           key: 'supervisor',
           label: 'Sales Supervisor',
           section: null,
-          searchable: false,
+          searchable: true,
           items: spvCandidates
               .map(
                 (c) => OwnerDropdownItem(
@@ -683,7 +683,7 @@ class _ContactPageState extends State<ContactPage> {
           key: 'manager',
           label: 'Sales Manager',
           section: null,
-          searchable: false,
+          searchable: true,
           items: smCandidates
               .map(
                 (c) => OwnerDropdownItem(
@@ -699,7 +699,7 @@ class _ContactPageState extends State<ContactPage> {
           key: 'gm',
           label: 'General Manager',
           section: null,
-          searchable: false,
+          searchable: true,
           items: gmCandidates
               .map(
                 (c) => OwnerDropdownItem(
@@ -715,7 +715,7 @@ class _ContactPageState extends State<ContactPage> {
           key: 'team',
           label: 'Sales Team',
           section: null,
-          searchable: false,
+          searchable: true,
           items: teamCandidates
               .map((c) => OwnerDropdownItem(id: c.id, name: c.name))
               .toList(),
