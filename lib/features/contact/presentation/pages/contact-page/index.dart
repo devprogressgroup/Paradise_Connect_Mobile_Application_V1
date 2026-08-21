@@ -1,4 +1,4 @@
-﻿import 'dart:async';
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:progress_group/core/services/analytics_service.dart';
@@ -20,7 +20,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:progress_group/features/auth/presentation/state/auth/auth_bloc.dart';
 import 'package:progress_group/features/auth/presentation/state/auth/auth_event.dart';
 import 'package:progress_group/features/contact/data/arguments/contact_detail_args.dart';
-import 'package:progress_group/features/contact/data/models/dropdown/date_filter.dart';
 import 'package:progress_group/features/contact/domain/entities/contact/contact_entity.dart';
 import 'package:progress_group/features/auth/domain/entities/user_profile.dart';
 import 'package:progress_group/features/auth/presentation/state/profile/profile_bloc.dart';
@@ -41,13 +40,41 @@ import '../../../domain/entities/info_source/info_source.dart';
 import '../../../../../core/utils/widget/custom_filter_button.dart';
 import '../../../../../core/utils/widget/error_dialog.dart';
 import '../../../domain/entities/prospect/prospect_status.dart';
+import '../../widgets/contact_filter_sheet.dart';
+import '../../../data/models/dropdown/contact_filter_result.dart';
 
 class ContactPage extends StatefulWidget {
   final List<int>? initialStatusIds;
   final List<int>? initialSalesChannelIds;
   final String? initialStartDate;
   final String? initialEndDate;
-  const ContactPage({super.key, this.initialStatusIds, this.initialSalesChannelIds, this.initialStartDate, this.initialEndDate});
+  final String? initialApptStartDate;
+  final String? initialApptEndDate;
+  final String? initialVisitStartDate;
+  final String? initialVisitEndDate;
+  final String? initialReserveStartDate;
+  final String? initialReserveEndDate;
+  final String? initialSpStartDate;
+  final String? initialSpEndDate;
+  final String? initialLostStartDate;
+  final String? initialLostEndDate;
+  const ContactPage({
+    super.key,
+    this.initialStatusIds,
+    this.initialSalesChannelIds,
+    this.initialStartDate,
+    this.initialEndDate,
+    this.initialApptStartDate,
+    this.initialApptEndDate,
+    this.initialVisitStartDate,
+    this.initialVisitEndDate,
+    this.initialReserveStartDate,
+    this.initialReserveEndDate,
+    this.initialSpStartDate,
+    this.initialSpEndDate,
+    this.initialLostStartDate,
+    this.initialLostEndDate,
+  });
 
   @override
   State<ContactPage> createState() => _ContactPageState();
@@ -63,6 +90,8 @@ class _ContactPageState extends State<ContactPage> {
   String? selectedVisitDateLabel;
   String? selectedReserveDateLabel;
   String? selectedSpDateLabel;
+  String? selectedLostDateLabel;
+  bool _openingFilterSheet = false;
 
   List<ContactEntity> contactEntity = [];
   late ContactBloc _contactBloc;
@@ -83,22 +112,71 @@ class _ContactPageState extends State<ContactPage> {
         widget.initialEndDate ?? widget.initialStartDate!,
       );
     }
+    if (widget.initialApptStartDate != null) {
+      selectedApptDateLabel = _resolveDateLabel(
+        widget.initialApptStartDate!,
+        widget.initialApptEndDate ?? widget.initialApptStartDate!,
+      );
+    }
+    if (widget.initialVisitStartDate != null) {
+      selectedVisitDateLabel = _resolveDateLabel(
+        widget.initialVisitStartDate!,
+        widget.initialVisitEndDate ?? widget.initialVisitStartDate!,
+      );
+    }
+    if (widget.initialReserveStartDate != null) {
+      selectedReserveDateLabel = _resolveDateLabel(
+        widget.initialReserveStartDate!,
+        widget.initialReserveEndDate ?? widget.initialReserveStartDate!,
+      );
+    }
+    if (widget.initialSpStartDate != null) {
+      selectedSpDateLabel = _resolveDateLabel(
+        widget.initialSpStartDate!,
+        widget.initialSpEndDate ?? widget.initialSpStartDate!,
+      );
+    }
+    if (widget.initialLostStartDate != null) {
+      selectedLostDateLabel = _resolveDateLabel(
+        widget.initialLostStartDate!,
+        widget.initialLostEndDate ?? widget.initialLostStartDate!,
+      );
+    }
 
-    context.read<ContactBloc>().add(FetchContactsEvent(
-      search: '',
-      isRefresh: true,
-      statusProspectIds: widget.initialStatusIds,
-      salesChannelIds: widget.initialSalesChannelIds,
-      startDate: widget.initialStartDate,
-      endDate: widget.initialEndDate,
-    ));
+    context.read<ContactBloc>().add(
+      FetchContactsEvent(
+        search: '',
+        isRefresh: true,
+        statusProspectIds: widget.initialStatusIds,
+        salesChannelIds: widget.initialSalesChannelIds,
+        startDate: widget.initialStartDate,
+        endDate: widget.initialEndDate,
+        apptStartDate: widget.initialApptStartDate,
+        apptEndDate: widget.initialApptEndDate,
+        visitStartDate: widget.initialVisitStartDate,
+        visitEndDate: widget.initialVisitEndDate,
+        reserveStartDate: widget.initialReserveStartDate,
+        reserveEndDate: widget.initialReserveEndDate,
+        spStartDate: widget.initialSpStartDate,
+        spEndDate: widget.initialSpEndDate,
+        lostStartDate: widget.initialLostStartDate,
+        lostEndDate: widget.initialLostEndDate,
+        clearDates: widget.initialStartDate == null,
+        clearApptDates: widget.initialApptStartDate == null,
+        clearVisitDates: widget.initialVisitStartDate == null,
+        clearReserveDates: widget.initialReserveStartDate == null,
+        clearSpDates: widget.initialSpStartDate == null,
+        clearLostDates: widget.initialLostStartDate == null,
+      ),
+    );
 
     context.read<ProspectStatusBloc>().add(FetchProspectStatusesEvent());
     context.read<InfoSourceBloc>().add(const FetchInfoSourcesEvent(type: 1));
 
-
     context.read<AuthBloc>().add(FetchPermissionsEvent(silent: true));
-    context.read<ProfileBloc>().add(GetProfileEvent(forceRefresh: true, silent: true));
+    context.read<ProfileBloc>().add(
+      GetProfileEvent(forceRefresh: true, silent: true),
+    );
   }
 
   @override
@@ -106,15 +184,11 @@ class _ContactPageState extends State<ContactPage> {
     super.didUpdateWidget(oldWidget);
     final newIds = widget.initialStatusIds;
     final oldIds = oldWidget.initialStatusIds;
-    final statusChanged = newIds != null &&
-        newIds.isNotEmpty &&
-        newIds.toString() != (oldIds ?? []).toString();
+    final statusChanged = newIds != null && newIds.isNotEmpty && newIds.toString() != (oldIds ?? []).toString();
 
     final newChannelIds = widget.initialSalesChannelIds;
     final oldChannelIds = oldWidget.initialSalesChannelIds;
-    final salesChannelChanged = newChannelIds != null &&
-        newChannelIds.isNotEmpty &&
-        newChannelIds.toString() != (oldChannelIds ?? []).toString();
+    final salesChannelChanged = newChannelIds != null && newChannelIds.isNotEmpty && newChannelIds.toString() != (oldChannelIds ?? []).toString();
 
     if (statusChanged || salesChannelChanged) {
       _searchController.clear();
@@ -124,15 +198,70 @@ class _ContactPageState extends State<ContactPage> {
               widget.initialEndDate ?? widget.initialStartDate!,
             )
           : null;
-      setState(() => selectedDateLabel = newLabel);
-      context.read<ContactBloc>().add(FetchContactsEvent(
-        search: '',
-        isRefresh: true,
-        statusProspectIds: newIds,
-        salesChannelIds: newChannelIds,
-        startDate: widget.initialStartDate,
-        endDate: widget.initialEndDate,
-      ));
+      final newApptLabel = widget.initialApptStartDate != null
+          ? _resolveDateLabel(
+              widget.initialApptStartDate!,
+              widget.initialApptEndDate ?? widget.initialApptStartDate!,
+            )
+          : null;
+      final newVisitLabel = widget.initialVisitStartDate != null
+          ? _resolveDateLabel(
+              widget.initialVisitStartDate!,
+              widget.initialVisitEndDate ?? widget.initialVisitStartDate!,
+            )
+          : null;
+      final newReserveLabel = widget.initialReserveStartDate != null
+          ? _resolveDateLabel(
+              widget.initialReserveStartDate!,
+              widget.initialReserveEndDate ?? widget.initialReserveStartDate!,
+            )
+          : null;
+      final newSpLabel = widget.initialSpStartDate != null
+          ? _resolveDateLabel(
+              widget.initialSpStartDate!,
+              widget.initialSpEndDate ?? widget.initialSpStartDate!,
+            )
+          : null;
+      final newLostLabel = widget.initialLostStartDate != null
+          ? _resolveDateLabel(
+              widget.initialLostStartDate!,
+              widget.initialLostEndDate ?? widget.initialLostStartDate!,
+            )
+          : null;
+      setState(() {
+        selectedDateLabel = newLabel;
+        selectedApptDateLabel = newApptLabel;
+        selectedVisitDateLabel = newVisitLabel;
+        selectedReserveDateLabel = newReserveLabel;
+        selectedSpDateLabel = newSpLabel;
+        selectedLostDateLabel = newLostLabel;
+      });
+      context.read<ContactBloc>().add(
+        FetchContactsEvent(
+          search: '',
+          isRefresh: true,
+          statusProspectIds: newIds,
+          salesChannelIds: newChannelIds,
+          startDate: widget.initialStartDate,
+          endDate: widget.initialEndDate,
+          apptStartDate: widget.initialApptStartDate,
+          apptEndDate: widget.initialApptEndDate,
+          visitStartDate: widget.initialVisitStartDate,
+          visitEndDate: widget.initialVisitEndDate,
+          reserveStartDate: widget.initialReserveStartDate,
+          reserveEndDate: widget.initialReserveEndDate,
+          spStartDate: widget.initialSpStartDate,
+          spEndDate: widget.initialSpEndDate,
+          lostStartDate: widget.initialLostStartDate,
+          lostEndDate: widget.initialLostEndDate,
+          clearDates: widget.initialStartDate == null,
+          clearApptDates: widget.initialApptStartDate == null,
+          clearVisitDates: widget.initialVisitStartDate == null,
+          clearReserveDates: widget.initialReserveStartDate == null,
+          clearSpDates: widget.initialSpStartDate == null,
+          clearLostDates: widget.initialLostStartDate == null,
+        ),
+      );
     }
   }
 
@@ -140,7 +269,6 @@ class _ContactPageState extends State<ContactPage> {
   void dispose() {
     _searchController.clear();
 
-    _contactBloc.add(const FetchContactsEvent(search: '', isRefresh: true));
     _contactBloc.add(ClearContactsEvent());
 
     _debounce?.cancel();
@@ -195,7 +323,8 @@ class _ContactPageState extends State<ContactPage> {
 
   String _normalizeSearch(String value) {
     final trimmed = value.trim();
-    if (RegExp(r'^08\d+$').hasMatch(trimmed)) return '628${trimmed.substring(2)}';
+    if (RegExp(r'^08\d+$').hasMatch(trimmed))
+      return '628${trimmed.substring(2)}';
     if (trimmed.startsWith('+62')) return '62${trimmed.substring(3)}';
     return trimmed;
   }
@@ -224,26 +353,32 @@ class _ContactPageState extends State<ContactPage> {
                       focusNode: _searchFocus,
                       onChanged: (value) {
                         if (_debounce?.isActive ?? false) _debounce?.cancel();
-                        _debounce = Timer(const Duration(milliseconds: 500), () {
-                          AnalyticsService.logEvent('contact_list_search_contacts');
-                          contactEntity.clear();
-                          context.read<ContactBloc>().add(
-                            FetchContactsEvent(search: _normalizeSearch(value), isRefresh: true),
-                          );
-                        });
+                        _debounce = Timer(
+                          const Duration(milliseconds: 500),
+                          () {
+                            AnalyticsService.logEvent(
+                              'contact_list_search_contacts',
+                            );
+                            contactEntity.clear();
+                            context.read<ContactBloc>().add(
+                              FetchContactsEvent(
+                                search: _normalizeSearch(value),
+                                isRefresh: true,
+                              ),
+                            );
+                          },
+                        );
                       },
                     ),
                     Expanded(
                       child: BlocConsumer<ContactBloc, ContactState>(
-                       
-                       
-                       
-                        listenWhen: (prev, curr) =>
-                            curr.status == ContactStatus.error && prev.status == ContactStatus.loading,
+                        listenWhen: (prev, curr) => curr.status == ContactStatus.error && prev.status == ContactStatus.loading,
                         listener: (context, state) {
-                         
                           final msg = (state.errorMessage ?? '').replaceFirst('Exception: ', '').trim();
-                          showErrorDialog(context, msg.isNotEmpty ? msg : 'Gagal memuat data kontak');
+                          showErrorDialog(
+                            context,
+                            msg.isNotEmpty ? msg : 'Gagal memuat data kontak',
+                          );
                         },
                         builder: (context, state) {
                           contactEntity = state.contacts;
@@ -252,477 +387,61 @@ class _ContactPageState extends State<ContactPage> {
                           }
                           return Column(
                             children: [
-                              SizedBox(
-                                height: 50,
-                                child: BlocBuilder<ProfileBloc, ProfileState>(
-                                  builder: (context, profileState) {
-                                    final availableRoles = profileState is ProfileLoaded
-                                        ? _collectOwnerCandidates(profileState.profile)
-                                            .map((c) => _classifyPosition(c.positionName))
-                                            .whereType<String>()
-                                            .toSet()
-                                        : const <String>{};
-
-                                    final teamCandidates = profileState is ProfileLoaded
-                                        ? _collectSalesTeamCandidates(profileState.profile)
-                                        : const <_TeamCandidate>[];
-
-                                    final slots = <int>[13, 0, 1, 2, 3, 4, 5, 6, 7];
-                                    if (availableRoles.contains('se')) slots.add(8);
-                                    if (availableRoles.contains('spv')) slots.add(9);
-                                    if (availableRoles.contains('sm')) slots.add(10);
-                                    if (availableRoles.contains('gm')) slots.add(11);
-                                    if (teamCandidates.isNotEmpty) slots.add(12);
-
-                                    return ListView.separated(
-                                  scrollDirection: Axis.horizontal,
-                                  itemCount: slots.length,
-                                  separatorBuilder: (_, __) => const SizedBox(width: 10),
-                                  itemBuilder: (context, i) {
-                                    final index = slots[i];
-                                    if (index == 0) {
-                                      return BlocBuilder<ContactBloc, ContactState>(
-                                        builder: (context, contactState) {
-                                          return BlocBuilder<ProfileBloc, ProfileState>(
-                                            builder: (context, profileState) {
-                                              String label = 'Owner';
-                                              final ownerIds = contactState.ownerIds ?? const <int>[];
-                                              bool isSelected = ownerIds.isNotEmpty;
-
-                                              if (isSelected && profileState is ProfileLoaded) {
-                                                if (ownerIds.length == 1) {
-                                                  label = _resolveNameById(profileState.profile, ownerIds.first) ?? label;
-                                                } else {
-                                                  label = "${ownerIds.length} Owners";
-                                                }
-                                              }
-
-                                              return CustomFilterButton(
-                                                label: label,
-                                                isSelected: isSelected,
-                                                onTap: () async {
-                                                  AnalyticsService.logEvent('contact_list_filter_owner');
-                                                  if (profileState is ProfileLoaded) {
-                                                    final ownerItems = _collectOwnerCandidates(profileState.profile)
-                                                        .map((c) => OwnerDropdownItem(id: c.id, name: c.name, subtitle: c.subtitle))
-                                                        .toList();
-
-                                                    final result = await context.pushNamed('detailContactDropdown',extra: ContactDropdownArgs(title: 'Pilih Owner',items: ownerItems,selectedIds: contactState.ownerIds,isMultiSelect: true,),);
-
-                                                    if (result != null) {
-                                                      final selected = result as List<OwnerDropdownItem>;
-                                                      context.read<ContactBloc>().add(
-                                                        FetchContactsEvent(
-                                                          ownerIds: selected.map((e) => e.id).whereType<int>().toList(),
-                                                          isRefresh: true,
-                                                          clearOwner: selected.isEmpty,
-                                                        ),
-                                                      );
-                                                    }
-                                                  }
-                                                },
-                                              );
-                                            },
-                                          );
-                                        },
-                                      );
-                                    }
-                                    if (index == 1) {
-                                      return BlocBuilder<ContactBloc, ContactState>(
-                                        builder: (context, contactState) {
-                                          return BlocBuilder<ProspectStatusBloc, ProspectStatusState>(
-                                            builder: (context, statusState) {
-                                              String label = 'Status';
-                                              bool isSelected = contactState.statusProspectIds != null && contactState.statusProspectIds!.isNotEmpty;
-
-                                              if (isSelected && statusState.status == ProspectStatusEnum.loaded) {
-                                                if (contactState.statusProspectIds!.length == 1) {
-                                                  final status = statusState.statuses.cast<ProspectStatusEntity?>().firstWhere((e) => e?.statusProspectId == contactState.statusProspectIds!.first, orElse: () => null,);
-                                                  if (status != null) label = status.statusProspectName;
-                                                } else {
-                                                  label = "${contactState.statusProspectIds!.length} Statuses";
-                                                }
-                                              }
-
-                                              return CustomFilterButton(
-                                                label: label,
-                                                isSelected: isSelected,
-                                                onTap: () async {
-                                                  AnalyticsService.logEvent('contact_list_filter_status');
-                                                  if (statusState.status == ProspectStatusEnum.loaded) {
-                                                    final List<OwnerDropdownItem> statusItems = statusState.statuses.map((e) => OwnerDropdownItem(id: e.statusProspectId, name: e.statusProspectName,)).toList();
-
-                                                    final result = await context.pushNamed('detailContactDropdown', extra: ContactDropdownArgs(title: 'Pilih Status Prospect', items: statusItems, selectedIds: contactState.statusProspectIds, isMultiSelect: true,),);
-
-                                                    if (result != null) {
-                                                      final selected = result as List<OwnerDropdownItem>;
-                                                      if (context.mounted) {
-                                                        context.read<ContactBloc>().add(
-                                                          FetchContactsEvent(
-                                                            statusProspectIds: selected.map((e) => e.id).whereType<int>().toList(),
-                                                            isRefresh: true,
-                                                            clearStatus: selected.isEmpty,
-                                                          ),
-                                                        );
-                                                      }
-                                                    }
-                                                  }
-                                                },
-                                              );
-                                            },
-                                          );
-                                        },
-                                      );
-                                    }
-
-                                    if (index == 2) {
-                                      return BlocBuilder<ContactBloc, ContactState>(
-                                        builder: (context, contactState) {
-                                          bool isSelected = contactState.startDate != null && contactState.endDate != null;
-
-                                          String label = contactState.startDate != null ? (selectedDateLabel ?? 'Create Date') : 'Create Date';
-
-                                          return CustomFilterButton(
-                                            label: label,
-                                            isSelected: isSelected,
-                                            onTap: () async {
-                                              AnalyticsService.logEvent('contact_list_filter_date', parameters: {'filter': 'create_date'});
-                                              final result = await context.pushNamed<DateFilterResult>(
-                                                'dateFilter',
-                                                extra: {
-                                                  'label': selectedDateLabel,
-                                                  'startDate': contactState.startDate,
-                                                  'endDate': contactState.endDate,
-                                                  'isSingleSelect': true,
-                                                },
-                                              );
-
-                                              if (result != null) {
-                                                if (result.isClear) {
-                                                  context.read<ContactBloc>().add(const FetchContactsEvent(startDate: null,endDate: null,isRefresh: true,clearDates: true,),);
-
-                                                  setState(() => selectedDateLabel = null);
-                                                } else {
-                                                  context.read<ContactBloc>().add(
-                                                    FetchContactsEvent(
-                                                      startDate: result.startDate,
-                                                      endDate: result.endDate,
-                                                      isRefresh: true,
-                                                    ),
-                                                  );
-
-                                                  setState(() => selectedDateLabel = result.label);
-                                                }
-                                              }
-                                            },
-                                          );
-                                        },
-                                      );
-                                    }
-                                    if (index == 3) {
-                                      return BlocBuilder<ContactBloc, ContactState>(
-                                        builder: (context, contactState) {
-                                          final isSelected = contactState.apptStartDate != null && contactState.apptEndDate != null;
-                                          final label = isSelected ? (selectedApptDateLabel ?? 'Appt Date') : 'Appt Date';
-                                          return CustomFilterButton(
-                                            label: label,
-                                            isSelected: isSelected,
-                                            onTap: () async {
-                                              AnalyticsService.logEvent('contact_list_filter_date', parameters: {'filter': 'appt_date'});
-                                              final result = await context.pushNamed<DateFilterResult>(
-                                                'dateFilter',
-                                                extra: {
-                                                  'label': selectedApptDateLabel,
-                                                  'startDate': contactState.apptStartDate,
-                                                  'endDate': contactState.apptEndDate,
-                                                  'isSingleSelect': true,
-                                                },
-                                              );
-                                              if (result != null) {
-                                                if (result.isClear) {
-                                                  context.read<ContactBloc>().add(const FetchContactsEvent(isRefresh: true, clearApptDates: true));
-                                                  setState(() => selectedApptDateLabel = null);
-                                                } else {
-                                                  context.read<ContactBloc>().add(FetchContactsEvent(apptStartDate: result.startDate, apptEndDate: result.endDate, isRefresh: true));
-                                                  setState(() => selectedApptDateLabel = result.label);
-                                                }
-                                              }
-                                            },
-                                          );
-                                        },
-                                      );
-                                    }
-
-                                    if (index == 4) {
-                                      return BlocBuilder<ContactBloc, ContactState>(
-                                        builder: (context, contactState) {
-                                          final isSelected = contactState.visitStartDate != null && contactState.visitEndDate != null;
-                                          final label = isSelected ? (selectedVisitDateLabel ?? 'Visit Date') : 'Visit Date';
-                                          return CustomFilterButton(
-                                            label: label,
-                                            isSelected: isSelected,
-                                            onTap: () async {
-                                              AnalyticsService.logEvent('contact_list_filter_date', parameters: {'filter': 'visit_date'});
-                                              final result = await context.pushNamed<DateFilterResult>(
-                                                'dateFilter',
-                                                extra: {
-                                                  'label': selectedVisitDateLabel,
-                                                  'startDate': contactState.visitStartDate,
-                                                  'endDate': contactState.visitEndDate,
-                                                  'isSingleSelect': true,
-                                                },
-                                              );
-                                              if (result != null) {
-                                                if (result.isClear) {
-                                                  context.read<ContactBloc>().add(const FetchContactsEvent(isRefresh: true, clearVisitDates: true));
-                                                  setState(() => selectedVisitDateLabel = null);
-                                                } else {
-                                                  context.read<ContactBloc>().add(FetchContactsEvent(visitStartDate: result.startDate, visitEndDate: result.endDate, isRefresh: true));
-                                                  setState(() => selectedVisitDateLabel = result.label);
-                                                }
-                                              }
-                                            },
-                                          );
-                                        },
-                                      );
-                                    }
-
-                                    if (index == 5) {
-                                      return BlocBuilder<ContactBloc, ContactState>(
-                                        builder: (context, contactState) {
-                                          final isSelected = contactState.reserveStartDate != null && contactState.reserveEndDate != null;
-                                          final label = isSelected ? (selectedReserveDateLabel ?? 'Reserve Date') : 'Reserve Date';
-                                          return CustomFilterButton(
-                                            label: label,
-                                            isSelected: isSelected,
-                                            onTap: () async {
-                                              AnalyticsService.logEvent('contact_list_filter_date', parameters: {'filter': 'reserve_date'});
-                                              final result = await context.pushNamed<DateFilterResult>(
-                                                'dateFilter',
-                                                extra: {
-                                                  'label': selectedReserveDateLabel,
-                                                  'startDate': contactState.reserveStartDate,
-                                                  'endDate': contactState.reserveEndDate,
-                                                  'isSingleSelect': true,
-                                                },
-                                              );
-                                              if (result != null) {
-                                                if (result.isClear) {
-                                                  context.read<ContactBloc>().add(const FetchContactsEvent(isRefresh: true, clearReserveDates: true));
-                                                  setState(() => selectedReserveDateLabel = null);
-                                                } else {
-                                                  context.read<ContactBloc>().add(FetchContactsEvent(reserveStartDate: result.startDate, reserveEndDate: result.endDate, isRefresh: true));
-                                                  setState(() => selectedReserveDateLabel = result.label);
-                                                }
-                                              }
-                                            },
-                                          );
-                                        },
-                                      );
-                                    }
-
-                                    if (index == 6) {
-                                      return BlocBuilder<ContactBloc, ContactState>(
-                                        builder: (context, contactState) {
-                                          final isSelected = contactState.spStartDate != null && contactState.spEndDate != null;
-                                          final label = isSelected ? (selectedSpDateLabel ?? 'SP Date') : 'SP Date';
-                                          return CustomFilterButton(
-                                            label: label,
-                                            isSelected: isSelected,
-                                            onTap: () async {
-                                              AnalyticsService.logEvent('contact_list_filter_date', parameters: {'filter': 'sp_date'});
-                                              final result = await context.pushNamed<DateFilterResult>(
-                                                'dateFilter',
-                                                extra: {
-                                                  'label': selectedSpDateLabel,
-                                                  'startDate': contactState.spStartDate,
-                                                  'endDate': contactState.spEndDate,
-                                                  'isSingleSelect': true,
-                                                },
-                                              );
-                                              if (result != null) {
-                                                if (result.isClear) {
-                                                  context.read<ContactBloc>().add(const FetchContactsEvent(isRefresh: true, clearSpDates: true));
-                                                  setState(() => selectedSpDateLabel = null);
-                                                } else {
-                                                  context.read<ContactBloc>().add(FetchContactsEvent(spStartDate: result.startDate, spEndDate: result.endDate, isRefresh: true));
-                                                  setState(() => selectedSpDateLabel = result.label);
-                                                }
-                                              }
-                                            },
-                                          );
-                                        },
-                                      );
-                                    }
-
-                                    if (index == 7) {
-                                      return BlocBuilder<ContactBloc, ContactState>(
-                                        builder: (context, contactState) {
-                                          return BlocBuilder<InfoSourceBloc, InfoSourceState>(
-                                            builder: (context, sourceState) {
-                                              String label = 'Sales Channel';
-                                              bool isSelected = contactState.salesChannelIds != null && contactState.salesChannelIds!.isNotEmpty;
-
-                                              if (isSelected) {
-                                                final sources = sourceState.sourcesMap[1];
-                                                if (contactState.salesChannelIds!.length == 1 && sources != null) {
-                                                  final found = sources.cast<InfoSource?>().firstWhere(
-                                                        (e) => e?.id == contactState.salesChannelIds!.first,
-                                                        orElse: () => null,
-                                                      );
-                                                  if (found != null) label = found.name;
-                                                } else {
-                                                  label = "${contactState.salesChannelIds!.length} Sales Channels";
-                                                }
-                                              }
-
-                                              return CustomFilterButton(
-                                                label: label,
-                                                isSelected: isSelected,
-                                                onTap: () async {
-                                                  final sources = sourceState.sourcesMap[1];
-                                                  if (sources != null) {
-                                                    final sourceItems = sources.map((e) => OwnerDropdownItem(id: e.id, name: e.name)).toList();
-                                                    final result = await context.pushNamed(
-                                                      'detailContactDropdown',
-                                                      extra: ContactDropdownArgs(
-                                                        title: 'Pilih Sales Channel',
-                                                        items: sourceItems,
-                                                        selectedIds: contactState.salesChannelIds,
-                                                        isMultiSelect: true,
-                                                      ),
-                                                    );
-                                                    if (result != null) {
-                                                      final selected = result as List<OwnerDropdownItem>;
-                                                      if (context.mounted) {
-                                                        context.read<ContactBloc>().add(
-                                                          FetchContactsEvent(
-                                                            salesChannelIds: selected.map((e) => e.id).whereType<int>().toList(),
-                                                            isRefresh: true,
-                                                            clearSalesChannel: selected.isEmpty,
-                                                          ),
-                                                        );
-                                                      }
-                                                    }
-                                                  } else {
-                                                    context.read<InfoSourceBloc>().add(const FetchInfoSourcesEvent(type: 1));
-                                                  }
-                                                },
-                                              );
-                                            },
-                                          );
-                                        },
-                                      );
-                                    }
-
-                                    if (index == 8) {
-                                      return _buildRolePositionFilter(
-                                        context,
-                                        role: 'se',
-                                        label: 'Sales Executive',
-                                        pluralLabel: 'Sales Executives',
-                                        analyticsEvent: 'contact_list_filter_sales_executive',
-                                        selectedIdsSelector: (s) => s.salesExecutiveIds,
-                                        buildEvent: (ids, isEmpty) => FetchContactsEvent(
-                                          salesExecutiveIds: ids,
-                                          isRefresh: true,
-                                          clearSalesExecutive: isEmpty,
-                                        ),
-                                      );
-                                    }
-                                    if (index == 9) {
-                                      return _buildRolePositionFilter(
-                                        context,
-                                        role: 'spv',
-                                        label: 'Sales Supervisor',
-                                        pluralLabel: 'Sales Supervisors',
-                                        analyticsEvent: 'contact_list_filter_sales_supervisor',
-                                        selectedIdsSelector: (s) => s.salesSupervisorIds,
-                                        buildEvent: (ids, isEmpty) => FetchContactsEvent(
-                                          salesSupervisorIds: ids,
-                                          isRefresh: true,
-                                          clearSalesSupervisor: isEmpty,
-                                        ),
-                                      );
-                                    }
-                                    if (index == 10) {
-                                      return _buildRolePositionFilter(
-                                        context,
-                                        role: 'sm',
-                                        label: 'Sales Manager',
-                                        pluralLabel: 'Sales Managers',
-                                        analyticsEvent: 'contact_list_filter_sales_manager',
-                                        selectedIdsSelector: (s) => s.salesManagerIds,
-                                        buildEvent: (ids, isEmpty) => FetchContactsEvent(
-                                          salesManagerIds: ids,
-                                          isRefresh: true,
-                                          clearSalesManager: isEmpty,
-                                        ),
-                                      );
-                                    }
-                                    if (index == 11) {
-                                      return _buildRolePositionFilter(
-                                        context,
-                                        role: 'gm',
-                                        label: 'General Manager',
-                                        pluralLabel: 'General Managers',
-                                        analyticsEvent: 'contact_list_filter_general_manager',
-                                        selectedIdsSelector: (s) => s.salesGeneralManagerIds,
-                                        buildEvent: (ids, isEmpty) => FetchContactsEvent(
-                                          salesGeneralManagerIds: ids,
-                                          isRefresh: true,
-                                          clearSalesGeneralManager: isEmpty,
-                                        ),
-                                      );
-                                    }
-
-                                    if (index == 12) {
-                                      return _buildSalesTeamFilter(context);
-                                    }
-
-                                    if (index == 13) {
-                                      return _buildSortFilter(context);
-                                    }
-
-                                    return null;
-                                  },
-                                    );
-                                  },
-                                ),
+                              Row(
+                                children: [
+                                  _buildSortFilter(context),
+                                  const SizedBox(width: 8),
+                                  _buildFilterPill(context),
+                                ],
                               ),
-                                Padding(
-                                  padding: const EdgeInsets.only(top: 8, bottom: 4),
-                                  child: Align(
-                                    alignment: Alignment.centerLeft,
-                                    child: Text(
-                                      'Total: ${NumberHelper.thousands(state.totalContacts??0)} contacts',
-                                      style: TextStyle(
-                                        fontSize: 13,
-                                        color: Color(grey5Color),
-                                        fontWeight: FontWeight.w500,
-                                      ),
+                              _buildActiveChipsRow(context),
+                              Padding(
+                                padding: const EdgeInsets.only(
+                                  top: 8,
+                                  bottom: 4,
+                                ),
+                                child: Align(
+                                  alignment: Alignment.centerLeft,
+                                  child: Text(
+                                    'Total: ${NumberHelper.thousands(state.totalContacts ?? 0)} contacts',
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      color: Color(grey5Color),
+                                      fontWeight: FontWeight.w500,
                                     ),
                                   ),
                                 ),
+                              ),
                               Expanded(
                                 child: Builder(
                                   builder: (context) {
                                     if (state.contacts.isEmpty) {
-                                      return const Center(child: Text('Tidak ada data kontak'));
+                                      return const Center(
+                                        child: Text('Tidak ada data kontak'),
+                                      );
                                     }
                                     return RefreshIndicator(
                                       onRefresh: _onRefresh,
                                       child: ListView.separated(
                                         controller: _scrollController,
-                                        physics: const AlwaysScrollableScrollPhysics(),
-                                        itemCount: state.hasReachedMax ? contactEntity.length : contactEntity.length + 1,
-                                        separatorBuilder: (_, __) => const SizedBox(height: 10),
+                                        physics:
+                                            const AlwaysScrollableScrollPhysics(),
+                                        itemCount: state.hasReachedMax
+                                            ? contactEntity.length
+                                            : contactEntity.length + 1,
+                                        separatorBuilder: (_, __) =>
+                                            const SizedBox(height: 10),
                                         itemBuilder: (context, index) {
                                           if (index >= state.contacts.length) {
                                             return const ShimmerContactItem();
                                           }
                                           final contact = state.contacts[index];
-                                          return RepaintBoundary(child: _buildListContacts(context, contact));
+                                          return RepaintBoundary(
+                                            child: _buildListContacts(
+                                              context,
+                                              contact,
+                                            ),
+                                          );
                                         },
                                       ),
                                     );
@@ -747,7 +466,10 @@ class _ContactPageState extends State<ContactPage> {
               child: FloatingActionButton(
                 onPressed: () {
                   AnalyticsService.logEvent('contact_list_add_contact');
-                  context.pushNamed('formContact', extra: ContactDetailArgs(page: 0));
+                  context.pushNamed(
+                    'formContact',
+                    extra: ContactDetailArgs(page: 0),
+                  );
                 },
                 backgroundColor: Color(primaryColor),
                 shape: const CircleBorder(),
@@ -757,6 +479,728 @@ class _ContactPageState extends State<ContactPage> {
           : null,
     );
   }
+
+  Widget _buildFilterPill(BuildContext context) {
+    return BlocBuilder<ContactBloc, ContactState>(
+      builder: (context, contactState) {
+        final count = _activeFilterCount(contactState);
+        return Stack(
+          clipBehavior: Clip.none,
+          children: [
+            CustomFilterButton(
+              label: 'Filter',
+              isSelected: count > 0,
+              onTap: _openingFilterSheet ? () {} : () => _openFilterSheet(context),
+            ),
+            if (_openingFilterSheet)
+              const Positioned(
+                right: 10,
+                top: 0,
+                bottom: 0,
+                child: Center(
+                  child: SizedBox(
+                    width: 14,
+                    height: 14,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
+                ),
+              ),
+            if (count > 0)
+              Positioned(
+                top: 4,
+                right: 4,
+                child: Container(
+                  padding: const EdgeInsets.all(3),
+                  constraints: const BoxConstraints(
+                    minWidth: 16,
+                    minHeight: 16,
+                  ),
+                  decoration: const BoxDecoration(
+                    color: Color(redColor),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Text(
+                    '$count',
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      color: Color(whiteColor),
+                      fontSize: 9,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<T> _waitUntilReady<T>(Stream<T> stream, bool Function(T) isReady, T current) {
+    if (isReady(current)) return Future.value(current);
+    return stream
+        .firstWhere(isReady)
+        .timeout(const Duration(seconds: 6), onTimeout: () => current);
+  }
+
+  Future<void> _openFilterSheet(BuildContext context) async {
+    AnalyticsService.logEvent('contact_list_open_filter_sheet');
+    final statusBloc = context.read<ProspectStatusBloc>();
+    final sourceBloc = context.read<InfoSourceBloc>();
+    final profileBloc = context.read<ProfileBloc>();
+
+    // Owner/Sales Executive/Supervisor/Manager/GM/Team depend on the profile
+    // hierarchy, and Status/Sales Channel depend on their own blocs — wait for
+    // whichever of these haven't finished loading yet so the sheet opens with
+    // every accordion already populated instead of appearing empty/stuck.
+    setState(() => _openingFilterSheet = true);
+    await Future.wait([
+      _waitUntilReady<ProspectStatusState>(
+        statusBloc.stream,
+        (s) => s.status != ProspectStatusEnum.initial && s.status != ProspectStatusEnum.loading,
+        statusBloc.state,
+      ),
+      _waitUntilReady<InfoSourceState>(
+        sourceBloc.stream,
+        (s) => s.status != InfoSourceStatus.initial && s.status != InfoSourceStatus.loading,
+        sourceBloc.state,
+      ),
+      _waitUntilReady<ProfileState>(
+        profileBloc.stream,
+        (s) => s is ProfileLoaded || s is ProfileFailure,
+        profileBloc.state,
+      ),
+    ]);
+    if (!context.mounted) return;
+    setState(() => _openingFilterSheet = false);
+
+    final contactState = context.read<ContactBloc>().state;
+    final statusState = statusBloc.state;
+    final sourceState = sourceBloc.state;
+    final profileState = profileBloc.state;
+
+    final statusItems = statusState.status == ProspectStatusEnum.loaded
+        ? statusState.statuses
+              .map(
+                (e) => OwnerDropdownItem(
+                  id: e.statusProspectId,
+                  name: e.statusProspectName,
+                ),
+              )
+              .toList()
+        : <OwnerDropdownItem>[];
+    final channelItems = (sourceState.sourcesMap[1] ?? const <InfoSource>[])
+        .map((e) => OwnerDropdownItem(id: e.id, name: e.name))
+        .toList();
+
+    List<_OwnerCandidate> ownerCandidates = const [];
+    List<_OwnerCandidate> seCandidates = const [];
+    List<_OwnerCandidate> spvCandidates = const [];
+    List<_OwnerCandidate> smCandidates = const [];
+    List<_OwnerCandidate> gmCandidates = const [];
+    List<_TeamCandidate> teamCandidates = const [];
+    if (profileState is ProfileLoaded) {
+      ownerCandidates = _collectOwnerCandidates(profileState.profile);
+      seCandidates = ownerCandidates
+          .where((c) => _classifyPosition(c.positionName) == 'se')
+          .toList();
+      spvCandidates = ownerCandidates
+          .where((c) => _classifyPosition(c.positionName) == 'spv')
+          .toList();
+      smCandidates = ownerCandidates
+          .where((c) => _classifyPosition(c.positionName) == 'sm')
+          .toList();
+      gmCandidates = ownerCandidates
+          .where((c) => _classifyPosition(c.positionName) == 'gm')
+          .toList();
+      teamCandidates = _collectSalesTeamCandidates(profileState.profile);
+    }
+
+    final checkGroups = <ContactCheckGroup>[
+      ContactCheckGroup(
+        key: 'status',
+        label: 'Status Prospek',
+        section: 'Data Kontak',
+        searchable: true,
+        items: statusItems,
+      ),
+      ContactCheckGroup(
+        key: 'channel',
+        label: 'Sales Channel',
+        section: null,
+        searchable: false,
+        items: channelItems,
+      ),
+      ContactCheckGroup(
+        key: 'owner',
+        label: 'Owner',
+        section: 'Sales',
+        searchable: true,
+        items: ownerCandidates
+            .map(
+              (c) => OwnerDropdownItem(
+                id: c.id,
+                name: c.name,
+                subtitle: c.subtitle,
+              ),
+            )
+            .toList(),
+      ),
+      if (seCandidates.isNotEmpty)
+        ContactCheckGroup(
+          key: 'executive',
+          label: 'Sales Executive',
+          section: null,
+          searchable: true,
+          items: seCandidates
+              .map(
+                (c) => OwnerDropdownItem(
+                  id: c.salesPersonId,
+                  name: c.name,
+                  subtitle: c.subtitle,
+                ),
+              )
+              .toList(),
+        ),
+      if (spvCandidates.isNotEmpty)
+        ContactCheckGroup(
+          key: 'supervisor',
+          label: 'Sales Supervisor',
+          section: null,
+          searchable: false,
+          items: spvCandidates
+              .map(
+                (c) => OwnerDropdownItem(
+                  id: c.salesPersonId,
+                  name: c.name,
+                  subtitle: c.subtitle,
+                ),
+              )
+              .toList(),
+        ),
+      if (smCandidates.isNotEmpty)
+        ContactCheckGroup(
+          key: 'manager',
+          label: 'Sales Manager',
+          section: null,
+          searchable: false,
+          items: smCandidates
+              .map(
+                (c) => OwnerDropdownItem(
+                  id: c.salesPersonId,
+                  name: c.name,
+                  subtitle: c.subtitle,
+                ),
+              )
+              .toList(),
+        ),
+      if (gmCandidates.isNotEmpty)
+        ContactCheckGroup(
+          key: 'gm',
+          label: 'General Manager',
+          section: null,
+          searchable: false,
+          items: gmCandidates
+              .map(
+                (c) => OwnerDropdownItem(
+                  id: c.salesPersonId,
+                  name: c.name,
+                  subtitle: c.subtitle,
+                ),
+              )
+              .toList(),
+        ),
+      if (teamCandidates.isNotEmpty)
+        ContactCheckGroup(
+          key: 'team',
+          label: 'Sales Team',
+          section: null,
+          searchable: false,
+          items: teamCandidates
+              .map((c) => OwnerDropdownItem(id: c.id, name: c.name))
+              .toList(),
+        ),
+    ];
+
+    final initialChecks = <String, Set<int>>{
+      'status': (contactState.statusProspectIds ?? const []).toSet(),
+      'channel': (contactState.salesChannelIds ?? const []).toSet(),
+      'owner': (contactState.ownerIds ?? const []).toSet(),
+      'executive': (contactState.salesExecutiveIds ?? const []).toSet(),
+      'supervisor': (contactState.salesSupervisorIds ?? const []).toSet(),
+      'manager': (contactState.salesManagerIds ?? const []).toSet(),
+      'gm': (contactState.salesGeneralManagerIds ?? const []).toSet(),
+      'team': (contactState.salesTeamIds ?? const []).toSet(),
+    };
+
+    DateRangeValue? dateValue(String? start, String? end, String? label) =>
+        start == null
+        ? null
+        : DateRangeValue(
+            label: label ?? start,
+            start: start,
+            end: end ?? start,
+          );
+
+    final initialDates = <String, DateRangeValue?>{
+      'create': dateValue(
+        contactState.startDate,
+        contactState.endDate,
+        selectedDateLabel,
+      ),
+      'appt': dateValue(
+        contactState.apptStartDate,
+        contactState.apptEndDate,
+        selectedApptDateLabel,
+      ),
+      'visit': dateValue(
+        contactState.visitStartDate,
+        contactState.visitEndDate,
+        selectedVisitDateLabel,
+      ),
+      'reserve': dateValue(
+        contactState.reserveStartDate,
+        contactState.reserveEndDate,
+        selectedReserveDateLabel,
+      ),
+      'sp': dateValue(
+        contactState.spStartDate,
+        contactState.spEndDate,
+        selectedSpDateLabel,
+      ),
+      'lost': dateValue(
+        contactState.lostStartDate,
+        contactState.lostEndDate,
+        selectedLostDateLabel,
+      ),
+    };
+
+    final result = await showModalBottomSheet<ContactFilterResult>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => ContactFilterSheet(
+        checkGroups: checkGroups,
+        initialChecks: initialChecks,
+        initialDates: initialDates,
+        initialProject: contactState.lastProject,
+      ),
+    );
+
+    if (result != null && context.mounted) {
+      AnalyticsService.logEvent('contact_list_apply_filter_sheet');
+      context.read<ContactBloc>().add(
+        FetchContactsEvent(
+          isRefresh: true,
+          statusProspectIds: result.statusIds.toList(),
+          clearStatus: result.statusIds.isEmpty,
+          salesChannelIds: result.channelIds.toList(),
+          clearSalesChannel: result.channelIds.isEmpty,
+          ownerIds: result.ownerIds.toList(),
+          clearOwner: result.ownerIds.isEmpty,
+          salesExecutiveIds: result.executiveIds.toList(),
+          clearSalesExecutive: result.executiveIds.isEmpty,
+          salesSupervisorIds: result.supervisorIds.toList(),
+          clearSalesSupervisor: result.supervisorIds.isEmpty,
+          salesManagerIds: result.managerIds.toList(),
+          clearSalesManager: result.managerIds.isEmpty,
+          salesGeneralManagerIds: result.generalManagerIds.toList(),
+          clearSalesGeneralManager: result.generalManagerIds.isEmpty,
+          salesTeamIds: result.teamIds.toList(),
+          clearSalesTeam: result.teamIds.isEmpty,
+          startDate: result.createDate?.start,
+          endDate: result.createDate?.end,
+          clearDates: result.createDate == null,
+          apptStartDate: result.apptDate?.start,
+          apptEndDate: result.apptDate?.end,
+          clearApptDates: result.apptDate == null,
+          visitStartDate: result.visitDate?.start,
+          visitEndDate: result.visitDate?.end,
+          clearVisitDates: result.visitDate == null,
+          reserveStartDate: result.reserveDate?.start,
+          reserveEndDate: result.reserveDate?.end,
+          clearReserveDates: result.reserveDate == null,
+          spStartDate: result.spDate?.start,
+          spEndDate: result.spDate?.end,
+          clearSpDates: result.spDate == null,
+          lostStartDate: result.lostDate?.start,
+          lostEndDate: result.lostDate?.end,
+          clearLostDates: result.lostDate == null,
+          lastProject: result.project,
+          clearProject: result.project == null,
+        ),
+      );
+      setState(() {
+        selectedDateLabel = result.createDate?.label;
+        selectedApptDateLabel = result.apptDate?.label;
+        selectedVisitDateLabel = result.visitDate?.label;
+        selectedReserveDateLabel = result.reserveDate?.label;
+        selectedSpDateLabel = result.spDate?.label;
+        selectedLostDateLabel = result.lostDate?.label;
+      });
+    }
+  }
+
+  Widget _buildActiveChipsRow(BuildContext context) {
+    return BlocBuilder<ContactBloc, ContactState>(
+      builder: (context, contactState) {
+        return BlocBuilder<ProspectStatusBloc, ProspectStatusState>(
+          builder: (context, statusState) {
+            return BlocBuilder<InfoSourceBloc, InfoSourceState>(
+              builder: (context, sourceState) {
+                return BlocBuilder<ProfileBloc, ProfileState>(
+                  builder: (context, profileState) {
+                    final chips = _buildActiveChips(
+                      contactState,
+                      statusState,
+                      sourceState,
+                      profileState,
+                    );
+                    if (chips.isEmpty) return const SizedBox.shrink();
+                    return SizedBox(
+                      height: 36,
+                      child: ListView.separated(
+                        scrollDirection: Axis.horizontal,
+                        itemCount: chips.length + 1,
+                        separatorBuilder: (_, __) => const SizedBox(width: 6),
+                        itemBuilder: (context, i) {
+                          if (i == chips.length) {
+                            return Center(
+                              child: TextButton(
+                                onPressed: () => _clearAllFilters(context),
+                                child: Text(
+                                  'Hapus Semua',
+                                  style: TextStyle(
+                                    color: Color(redColor),
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ),
+                            );
+                          }
+                          final chip = chips[i];
+                          return Chip(
+                            label: Text(
+                              chip.label,
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Color(primaryColor),
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            backgroundColor: Color(
+                              primaryColor,
+                            ).withValues(alpha: 0.1),
+                            deleteIcon: const Icon(Icons.close, size: 14),
+                            onDeleted: chip.onRemove,
+                            materialTapTargetSize:
+                                MaterialTapTargetSize.shrinkWrap,
+                            visualDensity: VisualDensity.compact,
+                            side: BorderSide.none,
+                          );
+                        },
+                      ),
+                    );
+                  },
+                );
+              },
+            );
+          },
+        );
+      },
+    );
+  }
+
+  List<_ActiveChip> _buildActiveChips(
+    ContactState s,
+    ProspectStatusState statusState,
+    InfoSourceState sourceState,
+    ProfileState profileState,
+  ) {
+    final chips = <_ActiveChip>[];
+
+    final statusIds = s.statusProspectIds ?? const <int>[];
+    if (statusIds.isNotEmpty) {
+      String label = 'Status';
+      if (statusState.status == ProspectStatusEnum.loaded) {
+        if (statusIds.length == 1) {
+          final st = statusState.statuses
+              .cast<ProspectStatusEntity?>()
+              .firstWhere(
+                (e) => e?.statusProspectId == statusIds.first,
+                orElse: () => null,
+              );
+          if (st != null) label = st.statusProspectName;
+        } else {
+          label = '${statusIds.length} Statuses';
+        }
+      }
+      chips.add(
+        _ActiveChip(
+          label,
+          () => context.read<ContactBloc>().add(
+            const FetchContactsEvent(isRefresh: true, clearStatus: true),
+          ),
+        ),
+      );
+    }
+
+    final channelIds = s.salesChannelIds ?? const <int>[];
+    if (channelIds.isNotEmpty) {
+      String label = 'Sales Channel';
+      final sources = sourceState.sourcesMap[1];
+      if (sources != null) {
+        if (channelIds.length == 1) {
+          final found = sources.cast<InfoSource?>().firstWhere(
+            (e) => e?.id == channelIds.first,
+            orElse: () => null,
+          );
+          if (found != null) label = found.name;
+        } else {
+          label = '${channelIds.length} Sales Channels';
+        }
+      }
+      chips.add(
+        _ActiveChip(
+          label,
+          () => context.read<ContactBloc>().add(
+            const FetchContactsEvent(isRefresh: true, clearSalesChannel: true),
+          ),
+        ),
+      );
+    }
+
+    if (profileState is ProfileLoaded) {
+      void addRoleChip(
+        List<int>? ids,
+        String role,
+        String singularLabel,
+        String pluralLabel,
+        FetchContactsEvent Function() clearEvent,
+      ) {
+        final selected = ids ?? const <int>[];
+        if (selected.isEmpty) return;
+        final candidates = _collectOwnerCandidates(profileState.profile)
+            .where(
+              (c) => role == 'owner'
+                  ? true
+                  : _classifyPosition(c.positionName) == role,
+            )
+            .toList();
+        String label = singularLabel;
+        if (selected.length == 1) {
+          final match = candidates.cast<_OwnerCandidate?>().firstWhere(
+            (c) => role == 'owner'
+                ? c?.id == selected.first
+                : c?.salesPersonId == selected.first,
+            orElse: () => null,
+          );
+          if (match != null) label = match.name;
+        } else {
+          label = '${selected.length} $pluralLabel';
+        }
+        chips.add(
+          _ActiveChip(
+            label,
+            () => context.read<ContactBloc>().add(clearEvent()),
+          ),
+        );
+      }
+
+      addRoleChip(
+        s.ownerIds,
+        'owner',
+        'Owner',
+        'Owners',
+        () => const FetchContactsEvent(isRefresh: true, clearOwner: true),
+      );
+      addRoleChip(
+        s.salesExecutiveIds,
+        'se',
+        'Sales Executive',
+        'Sales Executives',
+        () => const FetchContactsEvent(
+          isRefresh: true,
+          clearSalesExecutive: true,
+        ),
+      );
+      addRoleChip(
+        s.salesSupervisorIds,
+        'spv',
+        'Sales Supervisor',
+        'Sales Supervisors',
+        () => const FetchContactsEvent(
+          isRefresh: true,
+          clearSalesSupervisor: true,
+        ),
+      );
+      addRoleChip(
+        s.salesManagerIds,
+        'sm',
+        'Sales Manager',
+        'Sales Managers',
+        () =>
+            const FetchContactsEvent(isRefresh: true, clearSalesManager: true),
+      );
+      addRoleChip(
+        s.salesGeneralManagerIds,
+        'gm',
+        'General Manager',
+        'General Managers',
+        () => const FetchContactsEvent(
+          isRefresh: true,
+          clearSalesGeneralManager: true,
+        ),
+      );
+
+      final teamIds = s.salesTeamIds ?? const <int>[];
+      if (teamIds.isNotEmpty) {
+        final candidates = _collectSalesTeamCandidates(profileState.profile);
+        final label = teamIds.length == 1
+            ? (candidates
+                      .cast<_TeamCandidate?>()
+                      .firstWhere(
+                        (c) => c?.id == teamIds.first,
+                        orElse: () => null,
+                      )
+                      ?.name ??
+                  'Sales Team')
+            : '${teamIds.length} Sales Teams';
+        chips.add(
+          _ActiveChip(
+            label,
+            () => context.read<ContactBloc>().add(
+              const FetchContactsEvent(isRefresh: true, clearSalesTeam: true),
+            ),
+          ),
+        );
+      }
+    }
+
+    void addDateChip(
+      String label,
+      String? start,
+      String? selLabel,
+      VoidCallback onClear,
+    ) {
+      if (start == null) return;
+      chips.add(_ActiveChip('$label: ${selLabel ?? start}', onClear));
+    }
+
+    addDateChip('Create Date', s.startDate, selectedDateLabel, () {
+      context.read<ContactBloc>().add(
+        const FetchContactsEvent(isRefresh: true, clearDates: true),
+      );
+      setState(() => selectedDateLabel = null);
+    });
+    addDateChip('Appt Date', s.apptStartDate, selectedApptDateLabel, () {
+      context.read<ContactBloc>().add(
+        const FetchContactsEvent(isRefresh: true, clearApptDates: true),
+      );
+      setState(() => selectedApptDateLabel = null);
+    });
+    addDateChip('Visit Date', s.visitStartDate, selectedVisitDateLabel, () {
+      context.read<ContactBloc>().add(
+        const FetchContactsEvent(isRefresh: true, clearVisitDates: true),
+      );
+      setState(() => selectedVisitDateLabel = null);
+    });
+    addDateChip(
+      'Reserve Date',
+      s.reserveStartDate,
+      selectedReserveDateLabel,
+      () {
+        context.read<ContactBloc>().add(
+          const FetchContactsEvent(isRefresh: true, clearReserveDates: true),
+        );
+        setState(() => selectedReserveDateLabel = null);
+      },
+    );
+    addDateChip('SP Date', s.spStartDate, selectedSpDateLabel, () {
+      context.read<ContactBloc>().add(
+        const FetchContactsEvent(isRefresh: true, clearSpDates: true),
+      );
+      setState(() => selectedSpDateLabel = null);
+    });
+    addDateChip('Lost Date', s.lostStartDate, selectedLostDateLabel, () {
+      context.read<ContactBloc>().add(
+        const FetchContactsEvent(isRefresh: true, clearLostDates: true),
+      );
+      setState(() => selectedLostDateLabel = null);
+    });
+
+    if (s.lastProject != null) {
+      chips.add(
+        _ActiveChip(
+          'Project: ${s.lastProject}',
+          () => context.read<ContactBloc>().add(
+            const FetchContactsEvent(isRefresh: true, clearProject: true),
+          ),
+        ),
+      );
+    }
+
+    return chips;
+  }
+
+  void _clearAllFilters(BuildContext context) {
+    AnalyticsService.logEvent('contact_list_clear_all_filters');
+    context.read<ContactBloc>().add(
+      const FetchContactsEvent(
+        isRefresh: true,
+        clearStatus: true,
+        clearSalesChannel: true,
+        clearOwner: true,
+        clearSalesExecutive: true,
+        clearSalesSupervisor: true,
+        clearSalesManager: true,
+        clearSalesGeneralManager: true,
+        clearSalesTeam: true,
+        clearDates: true,
+        clearApptDates: true,
+        clearVisitDates: true,
+        clearReserveDates: true,
+        clearSpDates: true,
+        clearLostDates: true,
+        clearProject: true,
+      ),
+    );
+    setState(() {
+      selectedDateLabel = null;
+      selectedApptDateLabel = null;
+      selectedVisitDateLabel = null;
+      selectedReserveDateLabel = null;
+      selectedSpDateLabel = null;
+      selectedLostDateLabel = null;
+    });
+  }
+}
+
+class _ActiveChip {
+  final String label;
+  final VoidCallback onRemove;
+  _ActiveChip(this.label, this.onRemove);
+}
+
+int _activeFilterCount(ContactState s) {
+  var n = 0;
+  if ((s.statusProspectIds ?? const []).isNotEmpty) n++;
+  if ((s.salesChannelIds ?? const []).isNotEmpty) n++;
+  if ((s.ownerIds ?? const []).isNotEmpty) n++;
+  if ((s.salesExecutiveIds ?? const []).isNotEmpty) n++;
+  if ((s.salesSupervisorIds ?? const []).isNotEmpty) n++;
+  if ((s.salesManagerIds ?? const []).isNotEmpty) n++;
+  if ((s.salesGeneralManagerIds ?? const []).isNotEmpty) n++;
+  if ((s.salesTeamIds ?? const []).isNotEmpty) n++;
+  if (s.startDate != null) n++;
+  if (s.apptStartDate != null) n++;
+  if (s.visitStartDate != null) n++;
+  if (s.reserveStartDate != null) n++;
+  if (s.spStartDate != null) n++;
+  if (s.lostStartDate != null) n++;
+  if (s.lastProject != null) n++;
+  return n;
 }
 
 String _normalizePhone(String phone) {
@@ -772,7 +1216,13 @@ class _OwnerCandidate {
   final String name;
   final String? subtitle;
   final String? positionName;
-  const _OwnerCandidate({this.id, this.salesPersonId, required this.name, this.subtitle, this.positionName});
+  const _OwnerCandidate({
+    this.id,
+    this.salesPersonId,
+    required this.name,
+    this.subtitle,
+    this.positionName,
+  });
 }
 
 class _TeamCandidate {
@@ -798,27 +1248,45 @@ List<_TeamCandidate> _collectSalesTeamCandidates(UserProfileEntity user) {
       if (n.subordinates.isNotEmpty) walkSubordinates(n.subordinates);
     }
   }
+
   walkSubordinates(user.subordinates);
 
   for (final t in user.salesTeamHierarchy) {
     addTeam(t.salesTeamId, t.salesTeamName);
   }
 
-  return teams.entries.map((e) => _TeamCandidate(id: e.key, name: e.value)).toList();
+  return teams.entries
+      .map((e) => _TeamCandidate(id: e.key, name: e.value))
+      .toList();
 }
 
 List<_OwnerCandidate> _collectOwnerCandidates(UserProfileEntity user) {
   final List<_OwnerCandidate> items = [
-    _OwnerCandidate(id: user.userId, salesPersonId: user.salesPersonId, name: user.fullName, subtitle: user.positionName, positionName: user.positionName),
+    _OwnerCandidate(
+      id: user.userId,
+      salesPersonId: user.salesPersonId,
+      name: user.fullName,
+      subtitle: user.positionName,
+      positionName: user.positionName,
+    ),
   ];
 
   if (user.subordinates.isNotEmpty) {
     void addSubs(List<HierarchyNodeEntity> subs) {
       for (final s in subs) {
-        items.add(_OwnerCandidate(id: s.userId, salesPersonId: s.salesPersonId, name: s.fullName, subtitle: s.positionName, positionName: s.positionName));
+        items.add(
+          _OwnerCandidate(
+            id: s.userId,
+            salesPersonId: s.salesPersonId,
+            name: s.fullName,
+            subtitle: s.positionName,
+            positionName: s.positionName,
+          ),
+        );
         if (s.subordinates.isNotEmpty) addSubs(s.subordinates);
       }
     }
+
     addSubs(user.subordinates);
   } else {
     final seen = <int>{user.userId};
@@ -827,28 +1295,39 @@ List<_OwnerCandidate> _collectOwnerCandidates(UserProfileEntity user) {
         for (final u in g.users) {
           if (seen.contains(u.userId)) continue;
           seen.add(u.userId);
-          items.add(_OwnerCandidate(id: u.userId, name: u.fullName, subtitle: g.groupName, positionName: null));
+          items.add(
+            _OwnerCandidate(
+              id: u.userId,
+              name: u.fullName,
+              subtitle: g.groupName,
+              positionName: null,
+            ),
+          );
         }
         if (g.children.isNotEmpty) addGroupUsers(g.children);
       }
     }
+
     addGroupUsers(user.groupHierarchy);
 
     void addTeamMembers(List<SalesTeamMemberEntity> members, String teamName) {
       for (final m in members) {
         if (m.userId != null && !seen.contains(m.userId!)) {
           seen.add(m.userId!);
-          items.add(_OwnerCandidate(
-            id: m.userId,
-            salesPersonId: m.salesPersonId,
-            name: m.fullName,
-            subtitle: '$teamName - ${m.positionName ?? ''}',
-            positionName: m.positionName,
-          ));
+          items.add(
+            _OwnerCandidate(
+              id: m.userId,
+              salesPersonId: m.salesPersonId,
+              name: m.fullName,
+              subtitle: '$teamName - ${m.positionName ?? ''}',
+              positionName: m.positionName,
+            ),
+          );
         }
         if (m.subordinates.isNotEmpty) addTeamMembers(m.subordinates, teamName);
       }
     }
+
     for (final team in user.salesTeamHierarchy) {
       addTeamMembers(team.members, team.salesTeamName);
     }
@@ -868,176 +1347,6 @@ String? _classifyPosition(String? positionName) {
   if (p.contains('manager')) return 'sm';
   if (p.contains('executive')) return 'se';
   return null;
-}
-
-String? _resolveNameById(UserProfileEntity user, int id) {
-  if (user.userId == id) return user.fullName;
-
-  HierarchyNodeEntity? found;
-  void search(List<HierarchyNodeEntity> nodes) {
-    for (final n in nodes) {
-      if (n.userId == id) found = n;
-      if (found == null && n.subordinates.isNotEmpty) search(n.subordinates);
-    }
-  }
-  search(user.subordinates);
-  if (found != null) return found!.fullName;
-
-  String? foundLabel;
-  void searchGroup(List<GroupHierarchyEntity> groups) {
-    for (final g in groups) {
-      for (final u in g.users) {
-        if (u.userId == id) {
-          foundLabel = u.fullName;
-          return;
-        }
-      }
-      if (foundLabel == null && g.children.isNotEmpty) searchGroup(g.children);
-    }
-  }
-  searchGroup(user.groupHierarchy);
-  if (foundLabel != null) return foundLabel;
-
-  void searchTeam(List<SalesTeamMemberEntity> members) {
-    for (final m in members) {
-      if (m.userId == id) {
-        foundLabel = m.fullName;
-        return;
-      }
-      if (foundLabel == null && m.subordinates.isNotEmpty) searchTeam(m.subordinates);
-    }
-  }
-  for (final team in user.salesTeamHierarchy) {
-    if (foundLabel != null) break;
-    searchTeam(team.members);
-  }
-  return foundLabel;
-}
-
-Widget _buildRolePositionFilter(
-  BuildContext context, {
-  required String role,
-  required String label,
-  required String pluralLabel,
-  required String analyticsEvent,
-  required List<int>? Function(ContactState state) selectedIdsSelector,
-  required FetchContactsEvent Function(List<int> ids, bool isEmpty) buildEvent,
-}) {
-  return BlocBuilder<ContactBloc, ContactState>(
-    builder: (context, contactState) {
-      return BlocBuilder<ProfileBloc, ProfileState>(
-        builder: (context, profileState) {
-          String displayLabel = label;
-          bool isSelected = false;
-          List<_OwnerCandidate> candidates = const [];
-          final selectedIds = selectedIdsSelector(contactState) ?? const <int>[];
-
-          if (profileState is ProfileLoaded) {
-            candidates = _collectOwnerCandidates(profileState.profile)
-                .where((c) => _classifyPosition(c.positionName) == role)
-                .toList();
-
-            if (selectedIds.isNotEmpty) {
-              isSelected = true;
-              displayLabel = selectedIds.length == 1
-                  ? (candidates
-                          .cast<_OwnerCandidate?>()
-                          .firstWhere((c) => c?.salesPersonId == selectedIds.first, orElse: () => null)
-                          ?.name ??
-                      label)
-                  : '${selectedIds.length} $pluralLabel';
-            }
-          }
-
-          return CustomFilterButton(
-            label: displayLabel,
-            isSelected: isSelected,
-            onTap: () async {
-              AnalyticsService.logEvent(analyticsEvent);
-              if (profileState is! ProfileLoaded) return;
-
-              final items = candidates.map((c) => OwnerDropdownItem(id: c.salesPersonId, name: c.name, subtitle: c.subtitle)).toList();
-
-              final result = await context.pushNamed(
-                'detailContactDropdown',
-                extra: ContactDropdownArgs(
-                  title: 'Pilih $label',
-                  items: items,
-                  selectedIds: selectedIds,
-                  isMultiSelect: true,
-                ),
-              );
-
-              if (result != null && context.mounted) {
-                final selected = result as List<OwnerDropdownItem>;
-                final selectedResultIds = selected.map((e) => e.id).whereType<int>().toList();
-
-                context.read<ContactBloc>().add(buildEvent(selectedResultIds, selected.isEmpty));
-              }
-            },
-          );
-        },
-      );
-    },
-  );
-}
-
-Widget _buildSalesTeamFilter(BuildContext context) {
-  return BlocBuilder<ContactBloc, ContactState>(
-    builder: (context, contactState) {
-      return BlocBuilder<ProfileBloc, ProfileState>(
-        builder: (context, profileState) {
-          String label = 'Sales Team';
-          bool isSelected = false;
-          List<_TeamCandidate> candidates = const [];
-
-          if (profileState is ProfileLoaded) {
-            candidates = _collectSalesTeamCandidates(profileState.profile);
-            final salesTeamIds = contactState.salesTeamIds ?? const <int>[];
-
-            if (salesTeamIds.isNotEmpty) {
-              isSelected = true;
-              label = salesTeamIds.length == 1
-                  ? (candidates.cast<_TeamCandidate?>().firstWhere((e) => e?.id == salesTeamIds.first, orElse: () => null)?.name ?? label)
-                  : '${salesTeamIds.length} Sales Teams';
-            }
-          }
-
-          return CustomFilterButton(
-            label: label,
-            isSelected: isSelected,
-            onTap: () async {
-              AnalyticsService.logEvent('contact_list_filter_sales_team');
-              if (candidates.isEmpty) return;
-
-              final items = candidates.map((c) => OwnerDropdownItem(id: c.id, name: c.name)).toList();
-
-              final result = await context.pushNamed(
-                'detailContactDropdown',
-                extra: ContactDropdownArgs(
-                  title: 'Pilih Sales Team',
-                  items: items,
-                  selectedIds: contactState.salesTeamIds,
-                  isMultiSelect: true,
-                ),
-              );
-
-              if (result != null && context.mounted) {
-                final selected = result as List<OwnerDropdownItem>;
-                context.read<ContactBloc>().add(
-                  FetchContactsEvent(
-                    salesTeamIds: selected.map((e) => e.id).whereType<int>().toList(),
-                    isRefresh: true,
-                    clearSalesTeam: selected.isEmpty,
-                  ),
-                );
-              }
-            },
-          );
-        },
-      );
-    },
-  );
 }
 
 const List<MapEntry<String, String>> _sortOptions = [
@@ -1062,8 +1371,12 @@ Widget _buildSortFilter(BuildContext context) {
     builder: (context, contactState) {
       final currentSort = contactState.sort ?? 'created_desc';
       final isSelected = currentSort != 'created_desc';
-      final selectedIndex = _sortOptions.indexWhere((e) => e.key == currentSort);
-      final label = selectedIndex >= 0 ? _sortOptions[selectedIndex].value : 'Urutkan';
+      final selectedIndex = _sortOptions.indexWhere(
+        (e) => e.key == currentSort,
+      );
+      final label = selectedIndex >= 0
+          ? _sortOptions[selectedIndex].value
+          : 'Urutkan';
 
       return CustomFilterButton(
         label: label,
@@ -1152,7 +1465,14 @@ Widget _buildListContacts(BuildContext context, ContactEntity contact) {
               children: [
                 CircleAvatar(
                   backgroundColor: Color(primaryColor).withValues(alpha: 0.1),
-                  child: Text(getInitials(contact.fullName ?? 'No Name'),style: TextStyle(color: Color(primaryColor), fontWeight: FontWeight.bold, fontSize: 16)),
+                  child: Text(
+                    getInitials(contact.fullName ?? 'No Name'),
+                    style: TextStyle(
+                      color: Color(primaryColor),
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+                  ),
                 ),
                 const SizedBox(width: 10),
                 Expanded(
@@ -1160,9 +1480,33 @@ Widget _buildListContacts(BuildContext context, ContactEntity contact) {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Text(contact.fullName ?? 'No Name',style: TextStyle(fontSize: 16, color: Color(blue2Color), fontWeight: FontWeight.bold),overflow: TextOverflow.ellipsis),
-                      Text(contact.whatsappNumber != null ? _normalizePhone(contact.whatsappNumber!) : 'No Phone',style: TextStyle(fontSize: 14, color: Color(grey5Color)),overflow: TextOverflow.ellipsis),
-                      Text(contact.ownerName ??'No Owner',style: TextStyle(fontSize: 12, color: Color(grey5Color)),overflow: TextOverflow.ellipsis),
+                      Text(
+                        contact.fullName ?? 'No Name',
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: Color(blue2Color),
+                          fontWeight: FontWeight.bold,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      Text(
+                        contact.whatsappNumber != null
+                            ? _normalizePhone(contact.whatsappNumber!)
+                            : 'No Phone',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Color(grey5Color),
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      Text(
+                        contact.ownerName ?? 'No Owner',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Color(grey5Color),
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ],
                   ),
                 ),
@@ -1174,7 +1518,10 @@ Widget _buildListContacts(BuildContext context, ContactEntity contact) {
           GestureDetector(
             onTap: () {
               AnalyticsService.logEvent('contact_list_open_contact_options');
-              showCustomBottomSheet(context: context,child: _buildContactOptions(context, contact),);
+              showCustomBottomSheet(
+                context: context,
+                child: _buildContactOptions(context, contact),
+              );
             },
             child: Icon(Icons.more_vert, size: 27, color: Color(blackColor)),
           ),
@@ -1191,7 +1538,9 @@ Widget _buildContactBadges(BuildContext context, ContactEntity contact) {
         builder: (context, sourceState) {
           ProspectStatusEntity? status;
           if (statusState.status == ProspectStatusEnum.loaded) {
-            status = statusState.statuses.cast<ProspectStatusEntity?>().firstWhere(
+            status = statusState.statuses
+                .cast<ProspectStatusEntity?>()
+                .firstWhere(
                   (e) => e?.statusProspectId == contact.statusProspectId,
                   orElse: () => null,
                 );
@@ -1201,14 +1550,16 @@ Widget _buildContactBadges(BuildContext context, ContactEntity contact) {
           InfoSource? channel;
           if (sources != null) {
             channel = sources.cast<InfoSource?>().firstWhere(
-                  (e) => e?.id == contact.salesChannelId,
-                  orElse: () => null,
-                );
+              (e) => e?.id == contact.salesChannelId,
+              orElse: () => null,
+            );
           }
 
           final statusLabel = status == null
               ? null
-              : (status.statusValue.isNotEmpty ? status.statusValue : status.statusProspectName);
+              : (status.statusValue.isNotEmpty
+                    ? status.statusValue
+                    : status.statusProspectName);
           final group = status?.group ?? 'db';
 
           final channelLabel = channel?.name.split('-').first.trim();
@@ -1219,7 +1570,7 @@ Widget _buildContactBadges(BuildContext context, ContactEntity contact) {
           if (!hasStatus && !hasChannel) return const SizedBox.shrink();
 
           return SizedBox(
-            width:50,
+            width: 50,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               mainAxisAlignment: MainAxisAlignment.center,
@@ -1261,7 +1612,7 @@ Widget _channelChip(String label) {
     alignment: Alignment.center,
     decoration: BoxDecoration(
       // color: color.withValues(alpha: 0.15),
-      border: Border.all(color:color.withValues(alpha: 0.15)),
+      border: Border.all(color: color.withValues(alpha: 0.15)),
       borderRadius: BorderRadius.circular(20),
     ),
     child: Text(
@@ -1279,11 +1630,25 @@ Widget _buildContactOptions(BuildContext context, ContactEntity contact) {
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildIconLink(context, icEdit, "Edit Contact", () {
+        _buildIconLink(
+          context,
+          icEdit,
+          "Edit Contact",
+          () {
             AnalyticsService.logEvent('contact_list_edit_contact');
-            context.pushNamed('formContact', extra: ContactDetailArgs(dataContact: contact, page: 1));
-          }, hidden: !(PermissionsHelper.canEditContact && (contact.canEdit ?? true))),
-        _buildIconLink(context, icDelete, "Delete Contact", () {
+            context.pushNamed(
+              'formContact',
+              extra: ContactDetailArgs(dataContact: contact, page: 1),
+            );
+          },
+          hidden:
+              !(PermissionsHelper.canEditContact && (contact.canEdit ?? true)),
+        ),
+        _buildIconLink(
+          context,
+          icDelete,
+          "Delete Contact",
+          () {
             AnalyticsService.logEvent('contact_list_delete_contact');
             showDialog(
               context: context,
@@ -1291,22 +1656,35 @@ Widget _buildContactOptions(BuildContext context, ContactEntity contact) {
                 title: Text('Confirm'),
                 content: Text('Delete this contact?'),
                 actions: [
-                  TextButton(onPressed: () {
-                    AnalyticsService.logEvent('contact_list_cancel_delete_contact');
-                    Navigator.pop(ctx);
-                  }, child: Text('Cancel')),
                   TextButton(
                     onPressed: () {
-                      AnalyticsService.logEvent('contact_list_confirm_delete_contact');
+                      AnalyticsService.logEvent(
+                        'contact_list_cancel_delete_contact',
+                      );
                       Navigator.pop(ctx);
-                      context.read<ContactBloc>().add(DeleteContactEvent(contact.contactId!));
+                    },
+                    child: Text('Cancel'),
+                  ),
+                  TextButton(
+                    onPressed: () {
+                      AnalyticsService.logEvent(
+                        'contact_list_confirm_delete_contact',
+                      );
+                      Navigator.pop(ctx);
+                      context.read<ContactBloc>().add(
+                        DeleteContactEvent(contact.contactId!),
+                      );
                     },
                     child: Text('Delete'),
                   ),
                 ],
               ),
             );
-          }, hidden: !(PermissionsHelper.canDeleteContact && (contact.canDelete ?? true))),
+          },
+          hidden:
+              !(PermissionsHelper.canDeleteContact &&
+                  (contact.canDelete ?? true)),
+        ),
         _buildIconLink(context, icShare, "Share Contact", () {
           ShareHelper.shareContact(contact);
         }),
@@ -1315,20 +1693,41 @@ Widget _buildContactOptions(BuildContext context, ContactEntity contact) {
   );
 }
 
-Widget _buildIconLink(BuildContext context, String asset, String label, VoidCallback onTap, {Color? color, bool disabled = false, bool hidden = false}) {
+Widget _buildIconLink(
+  BuildContext context,
+  String asset,
+  String label,
+  VoidCallback onTap, {
+  Color? color,
+  bool disabled = false,
+  bool hidden = false,
+}) {
   if (hidden) return const SizedBox.shrink();
   return InkWell(
-    onTap: disabled ? null : () {
-      Navigator.pop(context);
-      onTap();
-    },
+    onTap: disabled
+        ? null
+        : () {
+            Navigator.pop(context);
+            onTap();
+          },
     child: Padding(
       padding: const EdgeInsets.symmetric(vertical: 10),
       child: Row(
         children: [
-          BgIcon(asset: asset, onTap: null, color: disabled ? Color(greyShade500) : color),
+          BgIcon(
+            asset: asset,
+            onTap: null,
+            color: disabled ? Color(greyShade500) : color,
+          ),
           const SizedBox(width: 10),
-          Text(label, style: TextStyle(fontSize: 16, color: disabled ? Color(greyShade500) : Color(blue2Color), fontWeight: FontWeight.w400)),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 16,
+              color: disabled ? Color(greyShade500) : Color(blue2Color),
+              fontWeight: FontWeight.w400,
+            ),
+          ),
         ],
       ),
     ),

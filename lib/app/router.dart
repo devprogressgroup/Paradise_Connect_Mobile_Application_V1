@@ -247,11 +247,31 @@ class AppRouter {
               List<int>? initialSalesChannelIds;
               String? initialStartDate;
               String? initialEndDate;
+              String? initialApptStartDate;
+              String? initialApptEndDate;
+              String? initialVisitStartDate;
+              String? initialVisitEndDate;
+              String? initialReserveStartDate;
+              String? initialReserveEndDate;
+              String? initialSpStartDate;
+              String? initialSpEndDate;
+              String? initialLostStartDate;
+              String? initialLostEndDate;
               if (extra is Map<String, dynamic>) {
                 initialStatusIds = (extra['statusIds'] as List?)?.cast<int>();
                 initialSalesChannelIds = (extra['salesChannelIds'] as List?)?.cast<int>();
                 initialStartDate = extra['startDate'] as String?;
                 initialEndDate = extra['endDate'] as String?;
+                initialApptStartDate = extra['apptStartDate'] as String?;
+                initialApptEndDate = extra['apptEndDate'] as String?;
+                initialVisitStartDate = extra['visitStartDate'] as String?;
+                initialVisitEndDate = extra['visitEndDate'] as String?;
+                initialReserveStartDate = extra['reserveStartDate'] as String?;
+                initialReserveEndDate = extra['reserveEndDate'] as String?;
+                initialSpStartDate = extra['spStartDate'] as String?;
+                initialSpEndDate = extra['spEndDate'] as String?;
+                initialLostStartDate = extra['lostStartDate'] as String?;
+                initialLostEndDate = extra['lostEndDate'] as String?;
               } else if (extra is List<int>) {
                 initialStatusIds = extra;
               }
@@ -260,6 +280,16 @@ class AppRouter {
                 initialSalesChannelIds: initialSalesChannelIds,
                 initialStartDate: initialStartDate,
                 initialEndDate: initialEndDate,
+                initialApptStartDate: initialApptStartDate,
+                initialApptEndDate: initialApptEndDate,
+                initialVisitStartDate: initialVisitStartDate,
+                initialVisitEndDate: initialVisitEndDate,
+                initialReserveStartDate: initialReserveStartDate,
+                initialReserveEndDate: initialReserveEndDate,
+                initialSpStartDate: initialSpStartDate,
+                initialSpEndDate: initialSpEndDate,
+                initialLostStartDate: initialLostStartDate,
+                initialLostEndDate: initialLostEndDate,
               );
             },
             routes: [

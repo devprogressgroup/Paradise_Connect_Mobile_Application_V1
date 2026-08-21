@@ -1,3 +1,5 @@
+lib/core/network/api_constants.dart merge=ours
+
 # File identitas app (applicationId/bundle id/signing/Firebase client config) dikunci
 # ke versi branch tujuan lewat custom merge driver "ours" (built-in git, bukan strategi
 # `-X ours` bawaan) — jadi merge & cherry-pick manapun yang menyentuh file-file ini akan

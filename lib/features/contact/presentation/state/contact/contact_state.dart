@@ -41,6 +41,9 @@ class ContactState extends Equatable {
   final String? reserveEndDate;
   final String? spStartDate;
   final String? spEndDate;
+  final String? lostStartDate;
+  final String? lostEndDate;
+  final String? lastProject;
   final int? totalContacts;
   final List<ContactEntity> duplicateCheckContacts;
   final String? sort;
@@ -71,6 +74,9 @@ class ContactState extends Equatable {
     this.reserveEndDate,
     this.spStartDate,
     this.spEndDate,
+    this.lostStartDate,
+    this.lostEndDate,
+    this.lastProject,
     this.totalContacts,
     this.duplicateCheckContacts = const [],
     this.sort,
@@ -112,10 +118,15 @@ class ContactState extends Equatable {
     String? reserveEndDate,
     String? spStartDate,
     String? spEndDate,
+    String? lostStartDate,
+    String? lostEndDate,
+    String? lastProject,
     bool clearApptDates = false,
     bool clearVisitDates = false,
     bool clearReserveDates = false,
     bool clearSpDates = false,
+    bool clearLostDates = false,
+    bool clearProject = false,
     int? totalContacts,
     List<ContactEntity>? duplicateCheckContacts,
     String? sort,
@@ -147,6 +158,9 @@ class ContactState extends Equatable {
       reserveEndDate: clearReserveDates ? null : (reserveEndDate ?? this.reserveEndDate),
       spStartDate: clearSpDates ? null : (spStartDate ?? this.spStartDate),
       spEndDate: clearSpDates ? null : (spEndDate ?? this.spEndDate),
+      lostStartDate: clearLostDates ? null : (lostStartDate ?? this.lostStartDate),
+      lostEndDate: clearLostDates ? null : (lostEndDate ?? this.lostEndDate),
+      lastProject: clearProject ? null : (lastProject ?? this.lastProject),
       totalContacts: totalContacts ?? this.totalContacts,
       duplicateCheckContacts: duplicateCheckContacts ?? this.duplicateCheckContacts,
       sort: clearSort ? null : (sort ?? this.sort),
@@ -180,6 +194,9 @@ class ContactState extends Equatable {
     reserveEndDate,
     spStartDate,
     spEndDate,
+    lostStartDate,
+    lostEndDate,
+    lastProject,
     totalContacts,
     duplicateCheckContacts,
     sort,

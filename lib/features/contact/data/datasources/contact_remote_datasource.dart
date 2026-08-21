@@ -24,7 +24,7 @@ import 'package:progress_group/features/contact/domain/entities/attachment/uploa
 import 'package:progress_group/features/contact/domain/entities/contact/create_contact_params.dart';
 
 abstract class ContactRemoteDataSource {
-  Future<ContactResponseModel> getContacts({int page = 1, int perPage = 10, String? search, String? startDate, String? endDate, List<int>? ownerIds, List<int>? statusProspectIds, List<int>? salesChannelIds, List<int>? salesTeamIds, List<int>? salesExecutiveIds, List<int>? salesSupervisorIds, List<int>? salesManagerIds, List<int>? salesGeneralManagerIds, String? apptStartDate, String? apptEndDate, String? visitStartDate, String? visitEndDate, String? reserveStartDate, String? reserveEndDate, String? spStartDate, String? spEndDate, String? sort});
+  Future<ContactResponseModel> getContacts({int page = 1, int perPage = 10, String? search, String? startDate, String? endDate, List<int>? ownerIds, List<int>? statusProspectIds, List<int>? salesChannelIds, List<int>? salesTeamIds, List<int>? salesExecutiveIds, List<int>? salesSupervisorIds, List<int>? salesManagerIds, List<int>? salesGeneralManagerIds, String? apptStartDate, String? apptEndDate, String? visitStartDate, String? visitEndDate, String? reserveStartDate, String? reserveEndDate, String? spStartDate, String? spEndDate, String? lostStartDate, String? lostEndDate, String? lastProject, String? sort});
 
   Future<List<ContactModel>> getAllContactsForDuplicateCheck();
 
@@ -85,7 +85,7 @@ class ContactRemoteDataSourceImpl implements ContactRemoteDataSource {
  
 
   @override
-  Future<ContactResponseModel> getContacts({int page = 1, int perPage = 10, String? search, String? startDate, String? endDate, List<int>? ownerIds, List<int>? statusProspectIds, List<int>? salesChannelIds, List<int>? salesTeamIds, List<int>? salesExecutiveIds, List<int>? salesSupervisorIds, List<int>? salesManagerIds, List<int>? salesGeneralManagerIds, String? apptStartDate, String? apptEndDate, String? visitStartDate, String? visitEndDate, String? reserveStartDate, String? reserveEndDate, String? spStartDate, String? spEndDate, String? sort}) async {
+  Future<ContactResponseModel> getContacts({int page = 1, int perPage = 10, String? search, String? startDate, String? endDate, List<int>? ownerIds, List<int>? statusProspectIds, List<int>? salesChannelIds, List<int>? salesTeamIds, List<int>? salesExecutiveIds, List<int>? salesSupervisorIds, List<int>? salesManagerIds, List<int>? salesGeneralManagerIds, String? apptStartDate, String? apptEndDate, String? visitStartDate, String? visitEndDate, String? reserveStartDate, String? reserveEndDate, String? spStartDate, String? spEndDate, String? lostStartDate, String? lostEndDate, String? lastProject, String? sort}) async {
     try {
       final queryParameters = {
         'page': page,
@@ -109,6 +109,9 @@ class ContactRemoteDataSourceImpl implements ContactRemoteDataSource {
         if (reserveEndDate != null && reserveEndDate.isNotEmpty) 'reserve_end_date': reserveEndDate,
         if (spStartDate != null && spStartDate.isNotEmpty) 'sp_start_date': spStartDate,
         if (spEndDate != null && spEndDate.isNotEmpty) 'sp_end_date': spEndDate,
+        if (lostStartDate != null && lostStartDate.isNotEmpty) 'lost_start_date': lostStartDate,
+        if (lostEndDate != null && lostEndDate.isNotEmpty) 'lost_end_date': lostEndDate,
+        if (lastProject != null && lastProject.isNotEmpty) 'last_project': lastProject,
         if (sort != null && sort.isNotEmpty) 'sort': sort,
       };
 
