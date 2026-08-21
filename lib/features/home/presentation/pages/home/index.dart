@@ -705,14 +705,7 @@ class _HomePageState extends State<HomePage> with RouteAware {
                         return GestureDetector(
                           
                           onTap: () {
-                            final now = AppTime.now();
-                            final today = DateTime(now.year, now.month, now.day);
-                            final fmt = DateFormat('yyyy-MM-dd');
-                            final defaultStart = fmt.format(DateTime(today.year - 1, today.month, today.day));
-                            final defaultEnd = fmt.format(today);
-                            final rangeStart = _prospectStartDate ?? defaultStart;
-                            final rangeEnd = _prospectEndDate ?? defaultEnd;
-                            final dateFieldByGroup = {
+                            const dateFieldByGroup = {
                               'appt': 'appt',
                               'visit': 'visit',
                               'reserve': 'reserve',
@@ -723,11 +716,11 @@ class _HomePageState extends State<HomePage> with RouteAware {
                             context.go('/contact', extra: {
                               'statusIds': [item.prospectStatusId],
                               if (dateField == null) ...{
-                                'startDate': rangeStart,
-                                'endDate': rangeEnd,
+                                'startDate': _prospectStartDate,
+                                'endDate': _prospectEndDate,
                               } else ...{
-                                '${dateField}StartDate': rangeStart,
-                                '${dateField}EndDate': rangeEnd,
+                                '${dateField}StartDate': _prospectStartDate,
+                                '${dateField}EndDate': _prospectEndDate,
                               },
                             });
                           },
@@ -939,15 +932,10 @@ class _HomePageState extends State<HomePage> with RouteAware {
                         return GestureDetector(
 
                           onTap: () {
-                            final now = AppTime.now();
-                            final today = DateTime(now.year, now.month, now.day);
-                            final fmt = DateFormat('yyyy-MM-dd');
-                            final defaultStart = fmt.format(DateTime(today.year - 1, today.month, today.day));
-                            final defaultEnd = fmt.format(today);
                             context.go('/contact', extra: {
                               'salesChannelIds': [item.salesChannelId],
-                              'startDate': _salesChannelStartDate ?? defaultStart,
-                              'endDate': _salesChannelEndDate ?? defaultEnd,
+                              'startDate': _salesChannelStartDate,
+                              'endDate': _salesChannelEndDate,
                             });
                           },
                           child: Container(

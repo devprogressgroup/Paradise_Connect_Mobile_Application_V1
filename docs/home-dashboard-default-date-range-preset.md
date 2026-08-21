@@ -36,8 +36,15 @@ Setting di-fetch async dan bisa baru selesai *setelah* `HomePage.initState()` ja
 - [lib/features/home/presentation/pages/home/index.dart:101-104](../lib/features/home/presentation/pages/home/index.dart#L101-L104) — `_onSettingsUpdated()`: kalau kedua filter belum pernah di-set manual user, panggil `_loadData(force: true)` lagi (yang otomatis re-apply default & refetch data).
 - [lib/features/home/presentation/pages/home/index.dart:118](../lib/features/home/presentation/pages/home/index.dart#L118) — listener dilepas di `dispose()`.
 
+### 5. Klik status/channel row tidak lagi paksa default "Last 1 Year"
+Sebelumnya, tap salah satu status prospect atau sales channel di Home selalu jatuh balik ke fallback hardcoded `defaultStart`/`defaultEnd` (last 1 year) kalau `_prospectStartDate`/`_salesChannelStartDate` `null` — jadi walau filter "Create Date" di Home lagi kosong (all time, sesuai preset kosong dari poin 1-4 di atas atau habis di-clear), Contact page tetap dibuka dengan filter tanggal 1 tahun terakhir. Ini sama dengan masalah yang sudah diperbaiki di branch `Development-1.0.4` untuk kasus tanpa group ([home-prospect-status-filter.md](home-prospect-status-filter.md), [home-sales-channel-filter.md](home-sales-channel-filter.md)); di sini fallback yang sama juga dihapus untuk versi Das yang sudah pakai per-group date field (`apptStartDate`, `spStartDate`, dst.).
+
+- [lib/features/home/presentation/pages/home/index.dart:707-726](../lib/features/home/presentation/pages/home/index.dart#L707-L726) — Prospect Status: fallback `defaultStart`/`defaultEnd` dihapus, `_prospectStartDate`/`_prospectEndDate` (boleh `null`) dikirim langsung ke `startDate`/`endDate` atau `${dateField}StartDate`/`${dateField}EndDate` sesuai `item.group` (mis. group `sp` → `spStartDate`/`spEndDate`).
+- [lib/features/home/presentation/pages/home/index.dart:934-940](../lib/features/home/presentation/pages/home/index.dart#L934-L940) — Sales Channel: fallback yang sama dihapus, `_salesChannelStartDate`/`_salesChannelEndDate` dikirim apa adanya.
+
 ## Hasil
 - Default range Prospect Status & Sales Channel di Home sekarang ikut nilai `PROSPECT_STATUS_DEFAULT_RANGE_PRESET` dari `/api/settings` (bisa `today`, `this_month`, dll), bukan hardcode "Last 1 Year" lagi.
 - Kalau preset di-set kosong (`""`), default-nya "no filter" (all time) — konsisten dengan behavior tombol "Clear" yang sudah ada.
 - Default ikut menyesuaikan tiap refresh (pull-to-refresh, retry, balik ke Home), tapi tidak akan menimpa filter yang sudah dipilih/di-clear manual oleh user.
 - Aman dari race condition kalau settings baru selesai di-fetch setelah Home sudah tampil (mis. tepat setelah login).
+- Klik status/channel row di Home tidak lagi paksa filter tanggal 1 tahun terakhir kalau filter "Create Date" lagi kosong/all-time — Contact page ikut terbuka tanpa filter tanggal aktif untuk group terkait (mis. `spStartDate`/`spEndDate` kosong untuk status group `sp`).
