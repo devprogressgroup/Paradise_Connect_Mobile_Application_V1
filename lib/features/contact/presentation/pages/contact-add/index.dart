@@ -100,6 +100,12 @@ class _ContactAddPageState extends State<ContactAddPage> {
   
   bool _prefillDateApplied = false;
 
+  // Menunggu CreateVisitEvent (ActivityVisitBloc) dan UpdateContactEvent (ContactBloc)
+  // sama-sama sukses sebelum halaman ditutup, supaya tidak ada yang gagal diam-diam
+  // saat salah satu request selesai duluan dari yang lain.
+  bool _visitActivityDone = false;
+  bool _contactUpdateDone = false;
+
   String? selectedProject;
   String? selectedProduct;
   String? selectedProductType;
@@ -828,6 +834,9 @@ class _ContactAddPageState extends State<ContactAddPage> {
     
     final isVisitStatus = _isVisitGroup(selectedStatusId);
 
+    _visitActivityDone = false;
+    _contactUpdateDone = false;
+
     if (isVisitStatus) {
       final visitImages = await _compressVisitImages();
       if (!mounted) return;
@@ -874,7 +883,10 @@ class _ContactAddPageState extends State<ContactAddPage> {
     final visitImages = await _compressVisitImages();
     if (!mounted) return;
 
-    
+    _visitActivityDone = false;
+    _contactUpdateDone = false;
+
+
     
     
     
@@ -998,9 +1010,12 @@ class _ContactAddPageState extends State<ContactAddPage> {
         BlocListener<ContactBloc, ContactState>(
           listener: (ctx, state) {
             if (state.status == ContactStatus.updateSuccess) {
-              
-              if (!_isVisitGroup(selectedStatusId)) {
-                context.pop(0); 
+              final needsVisitActivity = widget.args.page == 4 || _isVisitGroup(selectedStatusId);
+              if (!needsVisitActivity) {
+                context.pop(0);
+              } else {
+                _contactUpdateDone = true;
+                if (_visitActivityDone) context.pop(0);
               }
             } else if (state.status == ContactStatus.detailLoaded &&
                 state.contactDetail != null) {
@@ -1063,7 +1078,8 @@ class _ContactAddPageState extends State<ContactAddPage> {
         BlocListener<ActivityVisitBloc, VisitState>(
           listener: (ctx, state) {
             if (state is VisitSuccess) {
-              context.pop(0); 
+              _visitActivityDone = true;
+              if (_contactUpdateDone) context.pop(0);
             } else if (state is VisitError) {
               showErrorDialog(context, state.message);
             }
@@ -1531,7 +1547,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
 
             final isContactLoading = contactState.status == ContactStatus.creating;
             final isVisitLoading = visitState is VisitLoading;
-            final isLoading = isVisitFlow ? isVisitLoading : isContactLoading;
+            final isLoading = isVisitFlow ? (isVisitLoading || isContactLoading) : isContactLoading;
 
             return customButton(
               isLoading ? null : () {
