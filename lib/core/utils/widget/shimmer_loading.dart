@@ -90,23 +90,18 @@ Widget buildContactPageShimmer() {
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        
-        SizedBox(
-          height: 50,
-          child: Row(
-            children: [
-              _ShimmerBox(width: 90, height: 36, borderRadius: 12),
-              const SizedBox(width: 10),
-              _ShimmerBox(width: 90, height: 36, borderRadius: 12),
-                const SizedBox(width: 10),
-              _ShimmerBox(width: 110, height: 36, borderRadius: 12),
-              const SizedBox(width: 10),
-              _ShimmerBox(width: 40, height: 36, borderRadius: 12),
-            ],
-          ),
+        SizedBox(height: 20),
+        Row(
+          children: [
+            _ShimmerBox(width: 100, height: 36, borderRadius: 14),
+            const SizedBox(width: 8),
+            _ShimmerBox(width: 76, height: 36, borderRadius: 14),
+          ],
         ),
-        const SizedBox(height: 4),
-        
+        const SizedBox(height: 12),
+        _ShimmerBox(width: 120, height: 13, borderRadius: 4),
+        const SizedBox(height: 12),
+
         ...List.generate(8, (_) => Padding(
           padding: const EdgeInsets.only(bottom: 10),
           child: Container(

@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:progress_group/features/attandance/presentation/pages/approval/index.dart';
@@ -42,18 +41,16 @@ import '../core/utils/helpers/permissions_helper.dart';
 import '../core/utils/route_observer.dart';
 
 class AppRouter {
-  static GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>();
+  static GlobalKey<NavigatorState> rootNavigatorKey =
+      GlobalKey<NavigatorState>();
 
-  
-  
   static final authNotifier = ValueNotifier<bool>(false);
 
   static late GoRouter router;
 
   static void init() {
-    
     rootNavigatorKey = GlobalKey<NavigatorState>();
-    
+
     router = GoRouter(
       initialLocation: '/permission-gate',
       navigatorKey: rootNavigatorKey,
@@ -73,271 +70,320 @@ class AppRouter {
         return null;
       },
       routes: [
-      GoRoute(
-        path: '/permission-gate',
-        builder: (context, state) => const PermissionGatePage(),
-      ),
-      GoRoute(
-        path: '/splash',
-        builder: (context, state) => const SplashPage(),
-      ),
-      GoRoute(
-        path: '/login',
-        name: 'login',
-        builder: (context, state) => const LoginPage(),
-      ),
-      GoRoute(
-        path: '/forgot-password',
-        name: 'forgot_password',
+        GoRoute(
+          path: '/permission-gate',
+          builder: (context, state) => const PermissionGatePage(),
+        ),
+        GoRoute(
+          path: '/splash',
+          builder: (context, state) => const SplashPage(),
+        ),
+        GoRoute(
+          path: '/login',
+          name: 'login',
+          builder: (context, state) => const LoginPage(),
+        ),
+        GoRoute(
+          path: '/forgot-password',
+          name: 'forgot_password',
           builder: (context, state) {
-          final extra = state.extra;
-          if (extra is Map) {
-            return ForgotPasswordPage(step: extra['step'] as int, isRegister: extra['isRegister'] as bool? ?? false);
-          }
-          return ForgotPasswordPage(step: extra as int);}
-      ),
-      GoRoute(
-        path: '/impersonate',
-        name: 'impersonate',
-        builder: (context, state) => const ImpersonatePage(),
-      ),
-      ShellRoute(
-        builder: (context, state, child) {
-          return MainLayout(child: child);
-        },
-        routes: [
-          GoRoute(
-            path: '/',
-            name: 'home',
-            builder: (context, state) => const HomePage(),
-            routes: [
-              GoRoute(
-                name: 'taskHome',
-                path: 'task-home',
-                builder: (context, state) {
-                  return const TaskPage();
-                },
-              ),
-            ]
-          ),
-          GoRoute(
-            path: '/contact',
-            redirect: (context, state) => PermissionsHelper.canAccessContacts ? null : '/',
-            builder: (context, state) {
-              final extra = state.extra;
-              List<int>? initialStatusIds;
-              List<int>? initialSalesChannelIds;
-              String? initialStartDate;
-              String? initialEndDate;
-              if (extra is Map<String, dynamic>) {
-                initialStatusIds = (extra['statusIds'] as List?)?.cast<int>();
-                initialSalesChannelIds = (extra['salesChannelIds'] as List?)?.cast<int>();
-                initialStartDate = extra['startDate'] as String?;
-                initialEndDate = extra['endDate'] as String?;
-              } else if (extra is List<int>) {
-                initialStatusIds = extra;
-              }
-              return ContactPage(
-                initialStatusIds: initialStatusIds,
-                initialSalesChannelIds: initialSalesChannelIds,
-                initialStartDate: initialStartDate,
-                initialEndDate: initialEndDate,
+            final extra = state.extra;
+            if (extra is Map) {
+              return ForgotPasswordPage(
+                step: extra['step'] as int,
+                isRegister: extra['isRegister'] as bool? ?? false,
               );
-            },
-            routes: [
-              GoRoute(
-                name: 'detailContact',
-                path: 'detail-contact',
-                builder: (context, state) {
-                  final args = state.extra as ContactDetailArgs;
-                  return ContactDetailPage(args: args);
-                },
-              ),
-              GoRoute(
-                name: 'formContact',
-                path: 'form-contact',
-                builder: (context, state) {
-                  final args = state.extra as ContactDetailArgs;
-                  return ContactFormPage(args: args);
-                },
-              ),
-              GoRoute(
-                name: 'detailContactDropdown',
-                path: 'detail-contact-dropdown',
-                builder: (context, state) {
-                  final args = state.extra as ContactDropdownArgs;
-                  return DropdownListContact(args: args);
-                },
-              ),
-              GoRoute(
-                name: 'addContact',
-                path: 'add-contact',
-                builder: (context, state) {
-                  final args = state.extra as ContactDetailArgs;
-                  return ContactAddPage(args: args);
-                },
-              ),
-              GoRoute(
-                name: 'attachmentWebView',
-                path: 'attachment-web-view',
-                builder: (context, state) {
-                  final args = state.extra as String;
-                  return AttachmentWebViewPage(url: args);
-                },
-              ),
-              GoRoute(
-                name: 'dateFilter',
-                path: 'date-filter',
-                builder: (context, state) {
-                  final extra = state.extra as Map<String, dynamic>?;
-                  return DateFilterPage(
-                    selectedLabel: extra?['label'] as String?,
-                    startDate: extra?['startDate'] as String?,
-                    endDate: extra?['endDate'] as String?,
-                    isSingleSelect: extra?['isSingleSelect'] as bool? ?? false,
-                  );
-                },
-              ),
-             
-            ],
-          ),
-          GoRoute(
-            path: '/inbox',
-            redirect: (context, state) =>
-                PermissionsHelper.canAccessInbox ? null : '/',
-            builder: (context, state) => const InboxPage(),
-            routes: [
-              GoRoute(
-                name: 'detailInbox',
-                path: 'detail-inbox',
-                builder: (context, state) {
-                  final args = state.extra as InboxDetailArgs;
-                  return InboxDetailPage(args: args);
-                },
-              ),
-              GoRoute(
-                name: 'qrScanner',
-                path: 'qrScanner',
-                builder: (context, state) {
-                  final args = state.extra as String;
-                  return QrScannerPage(sessionId: args);
-                },
-              ),
-            ],
-          ),
-          GoRoute(
-            path: '/site-plan',
-            name: 'site_plan',
-            redirect: (context, state) =>
-                PermissionsHelper.canAccessSitePlan ? null : '/',
-            builder: (context, state) => const SitePlanPage(),
-            routes: [
-              GoRoute(
-                name: 'project_list',
-                path: 'project-list',
-                builder: (context, state) {
-                  final extra = state.extra as Map<String, dynamic>?;
-                  final sites = (extra?['sites'] as List<ProjectSite>?) ?? [];
-                  final selected = extra?['selected'] as ProjectSite?;
-                  return ProjectListPage(sites: sites, selectedSite: selected);
-                },
-              ),
-            ],
-          ),
-          GoRoute(
-            path: '/sales-kit',
-            name: "sales_kit",
-            redirect: (context, state) =>
-                PermissionsHelper.canAccessSalesKit ? null : '/',
-            builder: (context, state) {
-              final args = (state.extra as SalesKitDetailArgs?) ?? SalesKitDetailArgs();
-              return SalesKitPage(args: args);
-            },
-          ),
-          GoRoute(
-            path: '/attandance',
-            name: 'attendance',
-            redirect: (context, state) {
-              if (!PermissionsHelper.canAccessAttendance) {
-                debugPrint('[Router] /attandance redirect → "/" (canAccessAttendance=false)');
-              }
-              return PermissionsHelper.canAccessAttendance ? null : '/';
-            },
-            builder: (context, state) {
-              final tabParam = state.uri.queryParameters['initialTab'];
-              final initialTab = tabParam != null ? int.tryParse(tabParam) : null;
-              return AttandancePage(initialTab: initialTab);
-            },
-            routes: [
-              GoRoute(
-                path: 'camera', 
-                name: 'camera',
-                builder: (context, state) {
-                  final args = state.extra as AttandanceArgs;
-                  return CameraPage(args: args);
-                },
-              ),
-              GoRoute(
-                path: 'approval',
-                name: 'approval',
-                builder: (context, state) => const ApprovalPage(),
-              ),
-              GoRoute(
-                name: 'attendanceOwnerDropdown',
-                path: 'owner-dropdown',
-                builder: (context, state) {
-                  final args = state.extra as ContactDropdownArgs;
-                  return DropdownListContact(args: args);
-                },
-              ),
-            ],
-          ),
-          GoRoute(
-            path: '/notif',
-            name: "notif",
-            builder: (context, state) => const NotifPage(),
-          ),
-
-          GoRoute(
-            path: '/profile',
-            name: "profile",
-            builder: (context, state) => const ProfilePage(),
-          ),
-          GoRoute(
-            path: '/landing-page',
-            name: 'landing_page',
-            builder: (context, state) => const LandingPage(),
-          ),
-          GoRoute(
-            path: '/siap-huni',
-            name: 'siap_huni',
-            redirect: (context, state) =>
-                PermissionsHelper.canAccessSiapHuni ? null : '/',
-            builder: (context, state) => const SiapHuniPage(),
-          ),
-          GoRoute(
-            path: '/pipeline',
-            name: 'pipeline',
-            redirect: (context, state) =>
-                PermissionsHelper.canAccessContacts ? null : '/',
-            builder: (context, state) {
-              final extra = state.extra;
-              List<int>? ids;
-              String? title;
-              if (extra is Map) {
-                final raw = extra['statusIds'];
-                if (raw is List) {
-                  ids = raw.map((e) => e is int ? e : int.tryParse('$e') ?? 0).where((e) => e != 0).toList();
+            }
+            return ForgotPasswordPage(step: extra as int);
+          },
+        ),
+        GoRoute(
+          path: '/impersonate',
+          name: 'impersonate',
+          builder: (context, state) => const ImpersonatePage(),
+        ),
+        ShellRoute(
+          builder: (context, state, child) {
+            return MainLayout(child: child);
+          },
+          routes: [
+            GoRoute(
+              path: '/',
+              name: 'home',
+              builder: (context, state) => const HomePage(),
+              routes: [
+                GoRoute(
+                  name: 'taskHome',
+                  path: 'task-home',
+                  builder: (context, state) {
+                    return const TaskPage();
+                  },
+                ),
+              ],
+            ),
+            GoRoute(
+              path: '/contact',
+              redirect: (context, state) =>
+                  PermissionsHelper.canAccessContacts ? null : '/',
+              builder: (context, state) {
+                final extra = state.extra;
+                List<int>? initialStatusIds;
+                List<int>? initialSalesChannelIds;
+                String? initialStartDate;
+                String? initialEndDate;
+                String? initialApptStartDate;
+                String? initialApptEndDate;
+                String? initialVisitStartDate;
+                String? initialVisitEndDate;
+                String? initialReserveStartDate;
+                String? initialReserveEndDate;
+                String? initialSpStartDate;
+                String? initialSpEndDate;
+                String? initialLostStartDate;
+                String? initialLostEndDate;
+                if (extra is Map<String, dynamic>) {
+                  initialStatusIds = (extra['statusIds'] as List?)?.cast<int>();
+                  initialSalesChannelIds = (extra['salesChannelIds'] as List?)
+                      ?.cast<int>();
+                  initialStartDate = extra['startDate'] as String?;
+                  initialEndDate = extra['endDate'] as String?;
+                  initialApptStartDate = extra['apptStartDate'] as String?;
+                  initialApptEndDate = extra['apptEndDate'] as String?;
+                  initialVisitStartDate = extra['visitStartDate'] as String?;
+                  initialVisitEndDate = extra['visitEndDate'] as String?;
+                  initialReserveStartDate =
+                      extra['reserveStartDate'] as String?;
+                  initialReserveEndDate = extra['reserveEndDate'] as String?;
+                  initialSpStartDate = extra['spStartDate'] as String?;
+                  initialSpEndDate = extra['spEndDate'] as String?;
+                  initialLostStartDate = extra['lostStartDate'] as String?;
+                  initialLostEndDate = extra['lostEndDate'] as String?;
+                } else if (extra is List<int>) {
+                  initialStatusIds = extra;
                 }
-                title = extra['title']?.toString();
-              }
-              return PipelineScreen(statusIds: ids, title: title);
-            },
-          ),
-        ],
-      ),
-    ],
-  );
+                return ContactPage(
+                  initialStatusIds: initialStatusIds,
+                  initialSalesChannelIds: initialSalesChannelIds,
+                  initialStartDate: initialStartDate,
+                  initialEndDate: initialEndDate,
+                  initialApptStartDate: initialApptStartDate,
+                  initialApptEndDate: initialApptEndDate,
+                  initialVisitStartDate: initialVisitStartDate,
+                  initialVisitEndDate: initialVisitEndDate,
+                  initialReserveStartDate: initialReserveStartDate,
+                  initialReserveEndDate: initialReserveEndDate,
+                  initialSpStartDate: initialSpStartDate,
+                  initialSpEndDate: initialSpEndDate,
+                  initialLostStartDate: initialLostStartDate,
+                  initialLostEndDate: initialLostEndDate,
+                );
+              },
+              routes: [
+                GoRoute(
+                  name: 'detailContact',
+                  path: 'detail-contact',
+                  builder: (context, state) {
+                    final args = state.extra as ContactDetailArgs;
+                    return ContactDetailPage(args: args);
+                  },
+                ),
+                GoRoute(
+                  name: 'formContact',
+                  path: 'form-contact',
+                  builder: (context, state) {
+                    final args = state.extra as ContactDetailArgs;
+                    return ContactFormPage(args: args);
+                  },
+                ),
+                GoRoute(
+                  name: 'detailContactDropdown',
+                  path: 'detail-contact-dropdown',
+                  builder: (context, state) {
+                    final args = state.extra as ContactDropdownArgs;
+                    return DropdownListContact(args: args);
+                  },
+                ),
+                GoRoute(
+                  name: 'addContact',
+                  path: 'add-contact',
+                  builder: (context, state) {
+                    final args = state.extra as ContactDetailArgs;
+                    return ContactAddPage(args: args);
+                  },
+                ),
+                GoRoute(
+                  name: 'attachmentWebView',
+                  path: 'attachment-web-view',
+                  builder: (context, state) {
+                    final args = state.extra as String;
+                    return AttachmentWebViewPage(url: args);
+                  },
+                ),
+                GoRoute(
+                  name: 'dateFilter',
+                  path: 'date-filter',
+                  builder: (context, state) {
+                    final extra = state.extra as Map<String, dynamic>?;
+                    return DateFilterPage(
+                      selectedLabel: extra?['label'] as String?,
+                      startDate: extra?['startDate'] as String?,
+                      endDate: extra?['endDate'] as String?,
+                      isSingleSelect:
+                          extra?['isSingleSelect'] as bool? ?? false,
+                    );
+                  },
+                ),
+              ],
+            ),
+            GoRoute(
+              path: '/inbox',
+              redirect: (context, state) =>
+                  PermissionsHelper.canAccessInbox ? null : '/',
+              builder: (context, state) => const InboxPage(),
+              routes: [
+                GoRoute(
+                  name: 'detailInbox',
+                  path: 'detail-inbox',
+                  builder: (context, state) {
+                    final args = state.extra as InboxDetailArgs;
+                    return InboxDetailPage(args: args);
+                  },
+                ),
+                GoRoute(
+                  name: 'qrScanner',
+                  path: 'qrScanner',
+                  builder: (context, state) {
+                    final args = state.extra as String;
+                    return QrScannerPage(sessionId: args);
+                  },
+                ),
+              ],
+            ),
+            GoRoute(
+              path: '/site-plan',
+              name: 'site_plan',
+              redirect: (context, state) =>
+                  PermissionsHelper.canAccessSitePlan ? null : '/',
+              builder: (context, state) => const SitePlanPage(),
+              routes: [
+                GoRoute(
+                  name: 'project_list',
+                  path: 'project-list',
+                  builder: (context, state) {
+                    final extra = state.extra as Map<String, dynamic>?;
+                    final sites = (extra?['sites'] as List<ProjectSite>?) ?? [];
+                    final selected = extra?['selected'] as ProjectSite?;
+                    return ProjectListPage(
+                      sites: sites,
+                      selectedSite: selected,
+                    );
+                  },
+                ),
+              ],
+            ),
+            GoRoute(
+              path: '/sales-kit',
+              name: "sales_kit",
+              redirect: (context, state) =>
+                  PermissionsHelper.canAccessSalesKit ? null : '/',
+              builder: (context, state) {
+                final args =
+                    (state.extra as SalesKitDetailArgs?) ??
+                    SalesKitDetailArgs();
+                return SalesKitPage(args: args);
+              },
+            ),
+            GoRoute(
+              path: '/attandance',
+              name: 'attendance',
+              redirect: (context, state) {
+                if (!PermissionsHelper.canAccessAttendance) {
+                  debugPrint(
+                    '[Router] /attandance redirect → "/" (canAccessAttendance=false)',
+                  );
+                }
+                return PermissionsHelper.canAccessAttendance ? null : '/';
+              },
+              builder: (context, state) {
+                final tabParam = state.uri.queryParameters['initialTab'];
+                final initialTab = tabParam != null
+                    ? int.tryParse(tabParam)
+                    : null;
+                return AttandancePage(initialTab: initialTab);
+              },
+              routes: [
+                GoRoute(
+                  path: 'camera',
+                  name: 'camera',
+                  builder: (context, state) {
+                    final args = state.extra as AttandanceArgs;
+                    return CameraPage(args: args);
+                  },
+                ),
+                GoRoute(
+                  path: 'approval',
+                  name: 'approval',
+                  builder: (context, state) => const ApprovalPage(),
+                ),
+                GoRoute(
+                  name: 'attendanceOwnerDropdown',
+                  path: 'owner-dropdown',
+                  builder: (context, state) {
+                    final args = state.extra as ContactDropdownArgs;
+                    return DropdownListContact(args: args);
+                  },
+                ),
+              ],
+            ),
+            GoRoute(
+              path: '/notif',
+              name: "notif",
+              builder: (context, state) => const NotifPage(),
+            ),
+
+            GoRoute(
+              path: '/profile',
+              name: "profile",
+              builder: (context, state) => const ProfilePage(),
+            ),
+            GoRoute(
+              path: '/landing-page',
+              name: 'landing_page',
+              builder: (context, state) => const LandingPage(),
+            ),
+            GoRoute(
+              path: '/siap-huni',
+              name: 'siap_huni',
+              redirect: (context, state) =>
+                  PermissionsHelper.canAccessSiapHuni ? null : '/',
+              builder: (context, state) => const SiapHuniPage(),
+            ),
+            GoRoute(
+              path: '/pipeline',
+              name: 'pipeline',
+              redirect: (context, state) =>
+                  PermissionsHelper.canAccessContacts ? null : '/',
+              builder: (context, state) {
+                final extra = state.extra;
+                List<int>? ids;
+                String? title;
+                if (extra is Map) {
+                  final raw = extra['statusIds'];
+                  if (raw is List) {
+                    ids = raw
+                        .map((e) => e is int ? e : int.tryParse('$e') ?? 0)
+                        .where((e) => e != 0)
+                        .toList();
+                  }
+                  title = extra['title']?.toString();
+                }
+                return PipelineScreen(statusIds: ids, title: title);
+              },
+            ),
+          ],
+        ),
+      ],
+    );
 
     // Track setiap perpindahan route ke Firebase Analytics
     String lastScreen = '';
@@ -346,7 +392,9 @@ class AppRouter {
       final matches = config.matches;
       if (matches.isEmpty) return;
       final lastRoute = matches.last.route;
-      final screen = (lastRoute is GoRoute && lastRoute.name != null) ? lastRoute.name! : config.uri.path;
+      final screen = (lastRoute is GoRoute && lastRoute.name != null)
+          ? lastRoute.name!
+          : config.uri.path;
       if (screen.isNotEmpty && screen != lastScreen) {
         lastScreen = screen;
         AnalyticsService.logScreenView(screen);

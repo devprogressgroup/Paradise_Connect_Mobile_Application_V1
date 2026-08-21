@@ -41,10 +41,15 @@ class FetchContactsEvent extends ContactEvent {
   final String? reserveEndDate;
   final String? spStartDate;
   final String? spEndDate;
+  final String? lostStartDate;
+  final String? lostEndDate;
+  final String? lastProject;
   final bool clearApptDates;
   final bool clearVisitDates;
   final bool clearReserveDates;
   final bool clearSpDates;
+  final bool clearLostDates;
+  final bool clearProject;
   final String? sort;
   final bool clearSort;
 
@@ -81,10 +86,15 @@ class FetchContactsEvent extends ContactEvent {
     this.reserveEndDate,
     this.spStartDate,
     this.spEndDate,
+    this.lostStartDate,
+    this.lostEndDate,
+    this.lastProject,
     this.clearApptDates = false,
     this.clearVisitDates = false,
     this.clearReserveDates = false,
     this.clearSpDates = false,
+    this.clearLostDates = false,
+    this.clearProject = false,
     this.sort,
     this.clearSort = false,
   });
@@ -123,10 +133,15 @@ class FetchContactsEvent extends ContactEvent {
     reserveEndDate,
     spStartDate,
     spEndDate,
+    lostStartDate,
+    lostEndDate,
+    lastProject,
     clearApptDates,
     clearVisitDates,
     clearReserveDates,
     clearSpDates,
+    clearLostDates,
+    clearProject,
     sort,
     clearSort,
   ];

@@ -31,12 +31,12 @@ class ApiConstants {
     ),
 
 
-    // AppEnvironment.development: _EnvConfig(
-    //   label: 'Development IP',
-    //   baseUrl: 'http://192.168.8.36:8000/api',
-    //   storageUrl: 'http://192.168.8.36:8000/storage',
-    //   serverUrl: 'http://192.168.8.36:8000',
-    // ),
+    AppEnvironment.development: _EnvConfig(
+      label: 'Development IP',
+      baseUrl: 'http://192.168.8.49:8000/api',
+      storageUrl: 'http://192.168.8.49:8000/storage',
+      serverUrl: 'http://192.168.8.49:8000',
+    ),
 
     // AppEnvironment.development2: _EnvConfig(
     //   label: 'Development 2',
@@ -46,12 +46,12 @@ class ApiConstants {
     // ),
 
 
-    // AppEnvironment.developmnetDomain: _EnvConfig(
-    //   label: 'Development',
-    //   baseUrl: 'https://apidevconnect.paradise.id/api',
-    //   storageUrl: 'https://apidevconnect.paradise.id/storage',
-    //   serverUrl: 'https://apidevconnect.paradise.id',
-    // ),
+    AppEnvironment.developmnetDomain: _EnvConfig(
+      label: 'Development',
+      baseUrl: 'https://apidevconnect.paradise.id/api',
+      storageUrl: 'https://apidevconnect.paradise.id/storage',
+      serverUrl: 'https://apidevconnect.paradise.id',
+    ),
   };
 
 
@@ -117,6 +117,8 @@ class ApiConstants {
   static String _appDownloadUrl = '';
   static String _saleskitUrl = '';
   static String _loginHelpMessage = '';
+  static String _prospectStatusDefaultRangePreset = '';
+  static final ValueNotifier<int> settingsVersion = ValueNotifier<int>(0);
 
   static String get waServerURL => _waServerUrl;
   static String get salesbookWebhookUrl => _salesbookWebhookUrl;
@@ -129,6 +131,7 @@ class ApiConstants {
   static String get appDownloadUrl => _appDownloadUrl;
   static String get saleskitUrl => _saleskitUrl;
   static String get loginHelpMessage => _loginHelpMessage;
+  static String get prospectStatusDefaultRangePreset => _prospectStatusDefaultRangePreset;
 
   static void applySettings(List<Map<String, dynamic>> settings) {
     for (final s in settings) {
@@ -158,8 +161,11 @@ class ApiConstants {
           _saleskitUrl = value;
         case 'LOGIN_HELP_MESSAGE':
           _loginHelpMessage = value;
+        case 'PROSPECT_STATUS_DEFAULT_RANGE_PRESET':
+          _prospectStatusDefaultRangePreset = value;
       }
     }
+    settingsVersion.value++;
   }
 
   static String townshipImageUrl(String slug, String fileName) => '$_saleskitUrl/bin/db/images/township/$slug/$fileName';
