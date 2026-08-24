@@ -26,12 +26,6 @@ class SitePlanPage extends StatefulWidget {
 
 class _SitePlanPageState extends State<SitePlanPage> with RouteAware {
   static int _iframeCounter = 0;
-  // `static` SENGAJA — bertahan lintas rebuild `_SitePlanPageState` (kembali dari
-  // `SitePlanBlank`/`/site-plan/blank`, yang DI LUAR ShellRoute, bikin branch ShellRoute ini
-  // kena rebuild PENUH — initState jalan lagi, instance State lama dibuang). `SiteplanBloc`
-  // sendiri TIDAK ikut rebuild (di-provide di atas router, lihat main.dart), jadi `state.sites`
-  // dari Bloc tetap List<ProjectSite> yang SAMA — referensi ini masih valid buat dicari lagi.
-  static ProjectSite? _lastSelectedSite;
 
   List<ProjectSite> _sites   = [];
   ProjectSite? _selectedSite;
@@ -43,6 +37,7 @@ class _SitePlanPageState extends State<SitePlanPage> with RouteAware {
   Timer? _timeoutTimer;
   StreamSubscription<html.MessageEvent>? _bridgeSub;
   OverlayEntry? _rawHrefOverlay;
+  html.IFrameElement? _currentIframe;
 
   @override
   void initState() {
@@ -234,18 +229,11 @@ class _SitePlanPageState extends State<SitePlanPage> with RouteAware {
   }
 
   void _initFromSites(List<ProjectSite> sites) {
-    // Pertahankan cluster yang terakhir dipilih user (kalau masih ada di daftar) — jangan
-    // selalu reset ke sites.first tiap kali branch ShellRoute ini rebuild (lihat komentar
-    // _lastSelectedSite), soalnya itu bikin cluster balik ke default pas user kembali dari
-    // SitePlanBlank walau sebelumnya dia sudah pindah ke cluster lain.
-    final last = _lastSelectedSite;
-    final restored = last != null && sites.any((s) => identical(s, last)) ? last : sites.first;
     setState(() {
       _sites        = sites;
-      _selectedSite = restored;
+      _selectedSite = sites.first;
     });
-    _lastSelectedSite = restored;
-    _loadSite(restored);
+    _loadSite(sites.first);
   }
 
   void _loadSite(ProjectSite site) {
@@ -255,11 +243,12 @@ class _SitePlanPageState extends State<SitePlanPage> with RouteAware {
     final viewId = 'siteplan-iframe-$_iframeCounter';
 
     final iframe = html.IFrameElement()
-      ..src = site.url  
+      ..src = site.url
       ..style.width  = '100%'
       ..style.height = '100%'
       ..style.border = 'none'
       ..setAttribute('allowfullscreen', 'true');
+    _currentIframe = iframe;
 
     iframe.onLoad.listen((_) {
       _timeoutTimer?.cancel();
@@ -297,7 +286,6 @@ class _SitePlanPageState extends State<SitePlanPage> with RouteAware {
     });
     if (result != null && result is ProjectSite) {
       setState(() => _selectedSite = result);
-      _lastSelectedSite = result;
       _loadSite(result);
     }
   }
@@ -320,13 +308,21 @@ class _SitePlanPageState extends State<SitePlanPage> with RouteAware {
     if (!mounted) return;
     AnalyticsService.logEvent('site_plan_open_unit_detail');
     _isUnitDetailSheetOpen = true;
+    // Iframe adalah elemen DOM ASLI (bukan digambar di canvas Flutter) — dia tetap menangkap
+    // klik mouse duluan meski secara visual ketutup ModalBarrier bottom sheet, sehingga tap
+    // "di luar sheet" (area map) tidak pernah sampai ke barrier & sheet tidak pernah close.
+    // pointer-events: none selama sheet terbuka supaya klik itu lolos ke Flutter.
+    _currentIframe?.style.pointerEvents = 'none';
     showUnitDetailSheet(
       context,
       siteplanId: siteplanId,
       companyId: companyId,
       productId: productId,
       propertyId: propertyId,
-    ).whenComplete(() => _isUnitDetailSheetOpen = false);
+    ).whenComplete(() {
+      _isUnitDetailSheetOpen = false;
+      _currentIframe?.style.pointerEvents = 'auto';
+    });
   }
 
   void _retryLoadSite() {

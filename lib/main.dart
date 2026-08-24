@@ -73,6 +73,7 @@ import 'package:progress_group/features/contact/domain/usecases/attachment/updat
 import 'package:progress_group/features/contact/domain/usecases/contact/delete_contact_usecase.dart';
 import 'package:progress_group/features/contact/domain/usecases/contact/update_contact_usecase.dart';
 import 'package:progress_group/features/contact/domain/usecases/info_source/get_info_sources_usecase.dart';
+import 'package:progress_group/features/contact/domain/usecases/info_source/get_sales_channel_details_usecase.dart';
 import 'package:progress_group/features/contact/domain/usecases/lost_reason/get_lost_reason.dart';
 import 'package:progress_group/features/contact/presentation/state/attachment/attachment_cubit.dart';
 import 'package:progress_group/features/contact/presentation/state/info_source/info_source_bloc.dart';
@@ -428,6 +429,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     final getActivityProspectStatusUseCase = GetActivityProspectStatusUseCase(contactRepository);
     final getWhatsappActivityUseCase =  GetWhatsappUnreadSummaryUseCase(contactRepository);
     final getInfoSourcesUseCase = GetInfoSourcesUseCase(contactRepository);
+    final getSalesChannelDetailsUseCase = GetSalesChannelDetailsUseCase(contactRepository);
     final getLostReasonsUseCase = GetLostReasonsUseCase(contactRepository);
     final getProductTypesUseCase = GetProductTypesUseCase(contactRepository);
     final getPropertyUnitsUseCase = GetPropertyUnitsUseCase(contactRepository);
@@ -472,6 +474,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
       debugShowCheckedModeBanner: false,
       scaffoldMessengerKey: PushNotificationService.scaffoldMessengerKey,
       theme: AppTheme.lightTheme,
+      scrollBehavior: AppScrollBehavior(),
       routerConfig: AppRouter.router,
       builder: (context, child) {
         final mq = MediaQuery.of(context);
@@ -513,7 +516,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
             BlocProvider(create: (_) => ReceivedNotifCubit()),
             BlocProvider(create: (_) => GlobalNotificationCubit(globalNotificationRemoteDataSource)),
             BlocProvider(create: (_) => WhatsappActivityBloc(getWhatsappActivityUseCase)),
-            BlocProvider(create: (_) => InfoSourceBloc(getInfoSourcesUseCase: getInfoSourcesUseCase)),
+            BlocProvider(create: (_) => InfoSourceBloc(getInfoSourcesUseCase: getInfoSourcesUseCase, getSalesChannelDetailsUseCase: getSalesChannelDetailsUseCase)),
             BlocProvider(create: (_) => LostReasonBloc(getLostReasonsUseCase: getLostReasonsUseCase)),
             BlocProvider(create: (_) => ProductTypeBloc(getProductTypesUseCase: getProductTypesUseCase)..add(const FetchProductTypesEvent())),
             BlocProvider(create: (_) => PropertyUnitCubit(getPropertyUnitsUseCase, getPropertyCommercialUnitsUseCase)),

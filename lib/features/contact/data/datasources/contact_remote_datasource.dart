@@ -34,6 +34,8 @@ abstract class ContactRemoteDataSource {
 
   Future<List<InfoSourceModel>> getInfoSources({int? type, int? userId, String? salesChannel, bool all = false});
 
+  Future<List<InfoSourceModel>> getSalesChannelDetails();
+
   Future<List<ProspectStatusModel>> getProspectStatuses({String? type});
   Future<List<ProspectStatusModel>> getContactFormProspectStatuses({int? contactId});
   Future<List<LostReasonModel>> getLostReasons();
@@ -211,7 +213,22 @@ class ContactRemoteDataSourceImpl implements ContactRemoteDataSource {
       throw Exception(getErrorMessage(e, 'Gagal memuat sumber informasi'));
     }
   }
-  
+
+  @override
+  Future<List<InfoSourceModel>> getSalesChannelDetails() async {
+    try {
+      final response = await dio.get('/master-data/sales-channel-detail');
+
+      if (response.data['status'] == true) {
+        final List<dynamic> data = response.data['data'];
+        return data.map((json) => InfoSourceModel.fromJson(json)).toList();
+      }
+      throw Exception(response.data['message'] ?? 'Gagal memuat sales channel detail');
+    } on DioException catch (e) {
+      throw Exception(getErrorMessage(e, 'Gagal memuat sales channel detail'));
+    }
+  }
+
   @override
   Future<List<ProspectStatusModel>> getProspectStatuses({String? type}) async {
     try {

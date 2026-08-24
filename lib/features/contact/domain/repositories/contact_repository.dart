@@ -25,6 +25,7 @@ abstract class ContactRepository {
   Future<Either<String, ContactEntity>> getContactDetail(int id);
   Future<Either<String, ContactEntity?>> checkDuplicateContact({required int ownerId, required String phone});
     Future<Either<String, List<InfoSource>>> getInfoSources({int? type, int? userId, String? salesChannel, bool all = false});
+  Future<Either<String, List<InfoSource>>> getSalesChannelDetails();
   Future<Either<String, List<ProspectStatusEntity>>> getProspectStatuses({String? type});
   Future<Either<String, List<ProspectStatusEntity>>> getContactFormProspectStatuses({int? contactId});
   Future<Either<String, List<LostReasonEntity>>> getLostReasons();

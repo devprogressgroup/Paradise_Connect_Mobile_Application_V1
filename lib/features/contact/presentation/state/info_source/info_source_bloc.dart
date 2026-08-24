@@ -1,14 +1,17 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:progress_group/features/contact/domain/entities/info_source/info_source.dart';
 import 'package:progress_group/features/contact/domain/usecases/info_source/get_info_sources_usecase.dart';
+import 'package:progress_group/features/contact/domain/usecases/info_source/get_sales_channel_details_usecase.dart';
 import 'info_source_event.dart';
 import 'info_source_state.dart';
 
 class InfoSourceBloc extends Bloc<InfoSourceEvent, InfoSourceState> {
   final GetInfoSourcesUseCase getInfoSourcesUseCase;
+  final GetSalesChannelDetailsUseCase getSalesChannelDetailsUseCase;
 
-  InfoSourceBloc({required this.getInfoSourcesUseCase}) : super(const InfoSourceState()) {
+  InfoSourceBloc({required this.getInfoSourcesUseCase, required this.getSalesChannelDetailsUseCase}) : super(const InfoSourceState()) {
     on<FetchInfoSourcesEvent>(_onFetchInfoSources);
+    on<FetchSalesChannelDetailsEvent>(_onFetchSalesChannelDetails);
     on<ResetInfoSourcesEvent>(_onResetInfoSources);
   }
 
@@ -42,6 +45,32 @@ class InfoSourceBloc extends Bloc<InfoSourceEvent, InfoSourceState> {
           newSourcesMap[event.type!] = sources;
         }
         
+        emit(state.copyWith(
+          status: InfoSourceStatus.loaded,
+          sources: sources,
+          sourcesMap: newSourcesMap,
+        ));
+      },
+    );
+  }
+
+  Future<void> _onFetchSalesChannelDetails(
+    FetchSalesChannelDetailsEvent event,
+    Emitter<InfoSourceState> emit,
+  ) async {
+    emit(state.copyWith(status: InfoSourceStatus.loading));
+
+    final result = await getSalesChannelDetailsUseCase();
+
+    result.fold(
+      (failure) => emit(state.copyWith(
+        status: InfoSourceStatus.error,
+        errorMessage: failure,
+      )),
+      (sources) {
+        final newSourcesMap = Map<int, List<InfoSource>>.from(state.sourcesMap);
+        newSourcesMap[2] = sources;
+
         emit(state.copyWith(
           status: InfoSourceStatus.loaded,
           sources: sources,

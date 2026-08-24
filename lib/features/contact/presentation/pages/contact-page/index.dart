@@ -172,7 +172,7 @@ class _ContactPageState extends State<ContactPage> {
 
     context.read<ProspectStatusBloc>().add(FetchProspectStatusesEvent());
     context.read<InfoSourceBloc>().add(const FetchInfoSourcesEvent(type: 1));
-    context.read<InfoSourceBloc>().add(const FetchInfoSourcesEvent(type: 2));
+    context.read<InfoSourceBloc>().add(const FetchSalesChannelDetailsEvent());
 
     context.read<AuthBloc>().add(FetchPermissionsEvent(silent: true));
     context.read<ProfileBloc>().add(
@@ -388,12 +388,17 @@ class _ContactPageState extends State<ContactPage> {
                           }
                           return Column(
                             children: [
-                              Row(
-                                children: [
-                                  _buildSortFilter(context),
-                                  const SizedBox(width: 8),
-                                  _buildFilterPill(context),
-                                ],
+                              SingleChildScrollView(
+                                scrollDirection: Axis.horizontal,
+                                child: Row(
+                                  children: [
+                                    _buildSortFilter(context),
+                                    const SizedBox(width: 8),
+                                    _buildFilterPill(context),
+                                    const SizedBox(width: 10),
+                                    ..._buildQuickDateChips(context),
+                                  ],
+                                ),
                               ),
                               _buildActiveChipsRow(context),
                               Padding(
@@ -478,6 +483,165 @@ class _ContactPageState extends State<ContactPage> {
               ),
             )
           : null,
+    );
+  }
+
+  List<Widget> _buildQuickDateChips(BuildContext context) {
+    return [
+      _quickDateChip(
+        label: 'Appt',
+        icon: Icons.event_available_rounded,
+        currentLabel: selectedApptDateLabel,
+        onApply: (start, end) {
+          AnalyticsService.logEvent('contact_list_quick_filter_appt_week');
+          context.read<ContactBloc>().add(
+            FetchContactsEvent(isRefresh: true, apptStartDate: start, apptEndDate: end),
+          );
+          setState(() => selectedApptDateLabel = 'This Week');
+        },
+        onClear: () {
+          context.read<ContactBloc>().add(
+            const FetchContactsEvent(isRefresh: true, clearApptDates: true),
+          );
+          setState(() => selectedApptDateLabel = null);
+        },
+      ),
+      const SizedBox(width: 8),
+      _quickDateChip(
+        label: 'Visit',
+        icon: Icons.directions_walk_rounded,
+        currentLabel: selectedVisitDateLabel,
+        onApply: (start, end) {
+          AnalyticsService.logEvent('contact_list_quick_filter_visit_week');
+          context.read<ContactBloc>().add(
+            FetchContactsEvent(isRefresh: true, visitStartDate: start, visitEndDate: end),
+          );
+          setState(() => selectedVisitDateLabel = 'This Week');
+        },
+        onClear: () {
+          context.read<ContactBloc>().add(
+            const FetchContactsEvent(isRefresh: true, clearVisitDates: true),
+          );
+          setState(() => selectedVisitDateLabel = null);
+        },
+      ),
+      const SizedBox(width: 8),
+      _quickDateChip(
+        label: 'Reserve',
+        icon: Icons.bookmark_added_rounded,
+        currentLabel: selectedReserveDateLabel,
+        onApply: (start, end) {
+          AnalyticsService.logEvent('contact_list_quick_filter_reserve_week');
+          context.read<ContactBloc>().add(
+            FetchContactsEvent(isRefresh: true, reserveStartDate: start, reserveEndDate: end),
+          );
+          setState(() => selectedReserveDateLabel = 'This Week');
+        },
+        onClear: () {
+          context.read<ContactBloc>().add(
+            const FetchContactsEvent(isRefresh: true, clearReserveDates: true),
+          );
+          setState(() => selectedReserveDateLabel = null);
+        },
+      ),
+      const SizedBox(width: 8),
+      _quickDateChip(
+        label: 'SP',
+        icon: Icons.assignment_turned_in_rounded,
+        currentLabel: selectedSpDateLabel,
+        onApply: (start, end) {
+          AnalyticsService.logEvent('contact_list_quick_filter_sp_week');
+          context.read<ContactBloc>().add(
+            FetchContactsEvent(isRefresh: true, spStartDate: start, spEndDate: end),
+          );
+          setState(() => selectedSpDateLabel = 'This Week');
+        },
+        onClear: () {
+          context.read<ContactBloc>().add(
+            const FetchContactsEvent(isRefresh: true, clearSpDates: true),
+          );
+          setState(() => selectedSpDateLabel = null);
+        },
+      ),
+      const SizedBox(width: 8),
+      _quickDateChip(
+        label: 'Lost',
+        icon: Icons.highlight_off_rounded,
+        currentLabel: selectedLostDateLabel,
+        onApply: (start, end) {
+          AnalyticsService.logEvent('contact_list_quick_filter_lost_week');
+          context.read<ContactBloc>().add(
+            FetchContactsEvent(isRefresh: true, lostStartDate: start, lostEndDate: end),
+          );
+          setState(() => selectedLostDateLabel = 'This Week');
+        },
+        onClear: () {
+          context.read<ContactBloc>().add(
+            const FetchContactsEvent(isRefresh: true, clearLostDates: true),
+          );
+          setState(() => selectedLostDateLabel = null);
+        },
+      ),
+    ];
+  }
+
+  Widget _quickDateChip({
+    required String label,
+    required IconData icon,
+    required String? currentLabel,
+    required void Function(String start, String end) onApply,
+    required VoidCallback onClear,
+  }) {
+    final isSelected = currentLabel == 'This Week';
+    return InkWell(
+      borderRadius: BorderRadius.circular(14),
+      onTap: () {
+        if (isSelected) {
+          onClear();
+          return;
+        }
+        final now = AppTime.now();
+        final today = DateTime(now.year, now.month, now.day);
+        final startOfWeek = today.subtract(Duration(days: today.weekday - 1));
+        final fmt = DateFormat('yyyy-MM-dd');
+        onApply(fmt.format(startOfWeek), fmt.format(today));
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: isSelected ? Color(primaryColor) : Color(whiteColor),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: isSelected ? Color(primaryColor) : Color(transparentColor),
+          ),
+          boxShadow: [
+            if (!isSelected)
+              BoxShadow(
+                color: Color(blackColor).withValues(alpha: 0.05),
+                blurRadius: 4,
+                offset: const Offset(0, 2),
+              ),
+          ],
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 13, color: isSelected ? Color(whiteColor) : Color(blackColor)),
+            const SizedBox(width: 5),
+            Text(
+              isSelected ? '$label · Minggu Ini' : label,
+              style: TextStyle(
+                fontSize: 12,
+                color: isSelected ? Color(whiteColor) : Color(blackColor),
+              ),
+            ),
+            if (isSelected) ...[
+              const SizedBox(width: 4),
+              const Icon(Icons.close_rounded, size: 14, color: Color(whiteColor)),
+            ],
+          ],
+        ),
+      ),
     );
   }
 

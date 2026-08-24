@@ -104,6 +104,16 @@ class ContactRepositoryImpl implements ContactRepository {
   }
 
   @override
+  Future<Either<String, List<InfoSource>>> getSalesChannelDetails() async {
+    try {
+      final result = await remoteDataSource.getSalesChannelDetails();
+      return Right(result);
+    } catch (e) {
+      return Left(cleanErrorMessage(e));
+    }
+  }
+
+  @override
   Future<Either<String, List<ProspectStatusEntity>>> getProspectStatuses({String? type}) async {
     try {
       final result = await remoteDataSource.getProspectStatuses(type: type);
