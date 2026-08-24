@@ -27,6 +27,7 @@ class ContactState extends Equatable {
   final List<int>? ownerIds;
   final List<int>? statusProspectIds;
   final List<int>? salesChannelIds;
+  final List<int>? salesChannelDetailIds;
   final List<int>? salesTeamIds;
   final List<int>? salesExecutiveIds;
   final List<int>? salesSupervisorIds;
@@ -60,6 +61,7 @@ class ContactState extends Equatable {
     this.ownerIds,
     this.statusProspectIds,
     this.salesChannelIds,
+    this.salesChannelDetailIds,
     this.salesTeamIds,
     this.salesExecutiveIds,
     this.salesSupervisorIds,
@@ -94,6 +96,7 @@ class ContactState extends Equatable {
     List<int>? ownerIds,
     List<int>? statusProspectIds,
     List<int>? salesChannelIds,
+    List<int>? salesChannelDetailIds,
     List<int>? salesTeamIds,
     List<int>? salesExecutiveIds,
     List<int>? salesSupervisorIds,
@@ -104,6 +107,7 @@ class ContactState extends Equatable {
     bool clearOwner = false,
     bool clearStatus = false,
     bool clearSalesChannel = false,
+    bool clearSalesChannelDetail = false,
     bool clearSalesTeam = false,
     bool clearSalesExecutive = false,
     bool clearSalesSupervisor = false,
@@ -144,6 +148,7 @@ class ContactState extends Equatable {
       ownerIds: clearOwner ? null : (ownerIds ?? this.ownerIds),
       statusProspectIds: clearStatus ? null : (statusProspectIds ?? this.statusProspectIds),
       salesChannelIds: clearSalesChannel ? null : (salesChannelIds ?? this.salesChannelIds),
+      salesChannelDetailIds: clearSalesChannelDetail ? null : (salesChannelDetailIds ?? this.salesChannelDetailIds),
       salesTeamIds: clearSalesTeam ? null : (salesTeamIds ?? this.salesTeamIds),
       salesExecutiveIds: clearSalesExecutive ? null : (salesExecutiveIds ?? this.salesExecutiveIds),
       salesSupervisorIds: clearSalesSupervisor ? null : (salesSupervisorIds ?? this.salesSupervisorIds),
@@ -180,6 +185,7 @@ class ContactState extends Equatable {
     ownerIds,
     statusProspectIds,
     salesChannelIds,
+    salesChannelDetailIds,
     salesTeamIds,
     salesExecutiveIds,
     salesSupervisorIds,

@@ -110,6 +110,7 @@ class _ContactFilterSheetState extends State<ContactFilterSheet> {
   ContactFilterResult _buildResult() => ContactFilterResult(
     statusIds: _stagedChecks['status'] ?? const {},
     channelIds: _stagedChecks['channel'] ?? const {},
+    channelDetailIds: _stagedChecks['channelDetail'] ?? const {},
     ownerIds: _stagedChecks['owner'] ?? const {},
     executiveIds: _stagedChecks['executive'] ?? const {},
     supervisorIds: _stagedChecks['supervisor'] ?? const {},

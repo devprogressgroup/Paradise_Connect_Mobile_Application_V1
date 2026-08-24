@@ -1,4 +1,4 @@
-﻿import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:progress_group/core/services/analytics_service.dart';
 import 'package:progress_group/core/utils/widget/custom_button.dart';
 import 'package:progress_group/core/utils/helpers/permissions_helper.dart';
@@ -37,7 +37,7 @@ import '../../../data/arguments/contact_dropdown_args.dart';
 import '../../state/contact/contact_bloc.dart';
 import '../../state/contact/contact_event.dart';
 import '../../state/contact/contact_state.dart';
-import '../../state/prospect_status/prospect_status_bloc.dart';
+import '../../state/prospect_status/contact_form_prospect_status_bloc.dart';
 import '../../state/prospect_status/prospect_status_state.dart';
 import '../../state/contact_properties/contact_properties_bloc.dart';
 import '../../state/contact_properties/contact_properties_event.dart';
@@ -226,6 +226,8 @@ class _ContactFormPageState extends State<ContactFormPage> {
   final ScrollController _scrollController = ScrollController();
   bool _hideWhatsappField = false;
   bool _formInitialized = false;
+  int? _loadedProspectStatusContactId;
+  bool _loadedProspectStatusOnce = false;
   double _lastOffset = 0;
   final Map<String, GlobalKey> _fieldKeys = {};
 
@@ -609,12 +611,10 @@ class _ContactFormPageState extends State<ContactFormPage> {
       }
     }
 
-    if (context.read<ProspectStatusBloc>().state.status !=
-        ProspectStatusEnum.loaded) {
-
-      context.read<ProspectStatusBloc>().add(FetchProspectStatusesEvent());
-    } else {
-
+    if (context.read<ContactFormProspectStatusBloc>().state.status !=ProspectStatusEnum.loaded ||!_loadedProspectStatusOnce ||_loadedProspectStatusContactId != contactId) {
+      _loadedProspectStatusOnce = true;
+      _loadedProspectStatusContactId = contactId;
+      context.read<ContactFormProspectStatusBloc>().add(FetchProspectStatusesEvent(contactId: contactId));
     }
 
     if (context.read<InfoSourceBloc>().state.sourcesMap[1] == null) {
@@ -649,7 +649,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
     }
 
     if (widget.args.page == 0) {
-      final statusState = context.read<ProspectStatusBloc>().state;
+      final statusState = context.read<ContactFormProspectStatusBloc>().state;
       if (statusState.status == ProspectStatusEnum.loaded && statusState.statuses.isNotEmpty) {
         setState(() {
           selectedStatusId = statusState.statuses.first.statusProspectId;
@@ -927,7 +927,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
         }
       }
 
-      final statusState = context.read<ProspectStatusBloc>().state;
+      final statusState = context.read<ContactFormProspectStatusBloc>().state;
       if (statusState.status == ProspectStatusEnum.loaded) {
         selectedStatusProspectName = statusState.statuses
             .cast<ProspectStatusEntity?>()
@@ -1736,7 +1736,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
               }
             },
           ),
-          BlocListener<ProspectStatusBloc, ProspectStatusState>(
+          BlocListener<ContactFormProspectStatusBloc, ProspectStatusState>(
             listener: (context, state) {
               if (state.status == ProspectStatusEnum.loaded) {
                 if (widget.args.page == 0 &&
@@ -1784,7 +1784,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
             // sendiri di sini — dulu ada, tapi bikin dialog error dobel + pop dobel.
             return BlocBuilder<ContactBloc, ContactState>(
               builder: (context, contactState) {
-                final statusState = context.watch<ProspectStatusBloc>().state.status;
+                final statusState = context.watch<ContactFormProspectStatusBloc>().state.status;
                 final statusLoading = statusState == ProspectStatusEnum.initial || statusState == ProspectStatusEnum.loading;
                 final propertiesState = context.watch<ContactPropertiesBloc>().state.status;
                 final propertiesLoading = propertiesState == ContactPropertiesStatus.initial || propertiesState == ContactPropertiesStatus.loading;
@@ -1960,7 +1960,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
                             isError: _showValidation && selectedStatusId == null,
                             onTap: () async {
                               AnalyticsService.logEvent('contact_form_select_status_prospect');
-                              final statusState = context.read<ProspectStatusBloc>().state;
+                              final statusState = context.read<ContactFormProspectStatusBloc>().state;
                               if (statusState.status == ProspectStatusEnum.loaded) {
                                 final statusItems = statusState.statuses.map((e) => OwnerDropdownItem(id: e.statusProspectId, name: e.statusProspectName)).toList();
                           
@@ -1989,7 +1989,10 @@ class _ContactFormPageState extends State<ContactFormPage> {
                                   }
                                 }
                               } else {
-                                context.read<ProspectStatusBloc>().add(FetchProspectStatusesEvent());
+                                final contactId = widget.args.dataContact?.contactId;
+                                _loadedProspectStatusOnce = true;
+                                _loadedProspectStatusContactId = contactId;
+                                context.read<ContactFormProspectStatusBloc>().add(FetchProspectStatusesEvent(contactId: contactId));
                                 ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Memuat daftar status...')));
                               }
                             },
@@ -3064,7 +3067,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
   
   String _statusGroup(int? id) {
     if (id == null) return 'db';
-    final st = context.read<ProspectStatusBloc>().state;
+    final st = context.read<ContactFormProspectStatusBloc>().state;
     if (st.status != ProspectStatusEnum.loaded) return 'db';
     for (final s in st.statuses) {
       if (s.statusProspectId == id) return s.group;
@@ -3076,7 +3079,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
   
   bool _isVisitorWi(int? id) {
     if (id == null) return false;
-    final st = context.read<ProspectStatusBloc>().state;
+    final st = context.read<ContactFormProspectStatusBloc>().state;
     if (st.status != ProspectStatusEnum.loaded) return false;
     for (final s in st.statuses) {
       if (s.statusProspectId == id) return s.isVisitorWi;
@@ -3086,7 +3089,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
 
   
   List<int> _statusIdsForGroup(String group) {
-    final st = context.read<ProspectStatusBloc>().state;
+    final st = context.read<ContactFormProspectStatusBloc>().state;
     if (st.status != ProspectStatusEnum.loaded) return const [];
     return st.statuses
         .where((e) => e.group == group)
@@ -3423,3 +3426,4 @@ class _ContactFormPageState extends State<ContactFormPage> {
     );
   }
 }
+

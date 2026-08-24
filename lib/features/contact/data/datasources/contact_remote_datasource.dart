@@ -24,7 +24,7 @@ import 'package:progress_group/features/contact/domain/entities/attachment/uploa
 import 'package:progress_group/features/contact/domain/entities/contact/create_contact_params.dart';
 
 abstract class ContactRemoteDataSource {
-  Future<ContactResponseModel> getContacts({int page = 1, int perPage = 10, String? search, String? startDate, String? endDate, List<int>? ownerIds, List<int>? statusProspectIds, List<int>? salesChannelIds, List<int>? salesTeamIds, List<int>? salesExecutiveIds, List<int>? salesSupervisorIds, List<int>? salesManagerIds, List<int>? salesGeneralManagerIds, String? apptStartDate, String? apptEndDate, String? visitStartDate, String? visitEndDate, String? reserveStartDate, String? reserveEndDate, String? spStartDate, String? spEndDate, String? lostStartDate, String? lostEndDate, String? lastProject, String? sort});
+  Future<ContactResponseModel> getContacts({int page = 1, int perPage = 10, String? search, String? startDate, String? endDate, List<int>? ownerIds, List<int>? statusProspectIds, List<int>? salesChannelIds, List<int>? salesChannelDetailIds, List<int>? salesTeamIds, List<int>? salesExecutiveIds, List<int>? salesSupervisorIds, List<int>? salesManagerIds, List<int>? salesGeneralManagerIds, String? apptStartDate, String? apptEndDate, String? visitStartDate, String? visitEndDate, String? reserveStartDate, String? reserveEndDate, String? spStartDate, String? spEndDate, String? lostStartDate, String? lostEndDate, String? lastProject, String? sort});
 
   Future<List<ContactModel>> getAllContactsForDuplicateCheck();
 
@@ -35,6 +35,7 @@ abstract class ContactRemoteDataSource {
   Future<List<InfoSourceModel>> getInfoSources({int? type, int? userId, String? salesChannel, bool all = false});
 
   Future<List<ProspectStatusModel>> getProspectStatuses({String? type});
+  Future<List<ProspectStatusModel>> getContactFormProspectStatuses({int? contactId});
   Future<List<LostReasonModel>> getLostReasons();
 
   Future<List<ContactPropertyGroupModel>> getContactProperties();
@@ -85,7 +86,7 @@ class ContactRemoteDataSourceImpl implements ContactRemoteDataSource {
  
 
   @override
-  Future<ContactResponseModel> getContacts({int page = 1, int perPage = 10, String? search, String? startDate, String? endDate, List<int>? ownerIds, List<int>? statusProspectIds, List<int>? salesChannelIds, List<int>? salesTeamIds, List<int>? salesExecutiveIds, List<int>? salesSupervisorIds, List<int>? salesManagerIds, List<int>? salesGeneralManagerIds, String? apptStartDate, String? apptEndDate, String? visitStartDate, String? visitEndDate, String? reserveStartDate, String? reserveEndDate, String? spStartDate, String? spEndDate, String? lostStartDate, String? lostEndDate, String? lastProject, String? sort}) async {
+  Future<ContactResponseModel> getContacts({int page = 1, int perPage = 10, String? search, String? startDate, String? endDate, List<int>? ownerIds, List<int>? statusProspectIds, List<int>? salesChannelIds, List<int>? salesChannelDetailIds, List<int>? salesTeamIds, List<int>? salesExecutiveIds, List<int>? salesSupervisorIds, List<int>? salesManagerIds, List<int>? salesGeneralManagerIds, String? apptStartDate, String? apptEndDate, String? visitStartDate, String? visitEndDate, String? reserveStartDate, String? reserveEndDate, String? spStartDate, String? spEndDate, String? lostStartDate, String? lostEndDate, String? lastProject, String? sort}) async {
     try {
       final queryParameters = {
         'page': page,
@@ -96,6 +97,7 @@ class ContactRemoteDataSourceImpl implements ContactRemoteDataSource {
         if (ownerIds != null && ownerIds.isNotEmpty) 'owner_id': ownerIds.join(','),
         if (statusProspectIds != null && statusProspectIds.isNotEmpty) 'status_prospect_id': statusProspectIds.join(','),
         if (salesChannelIds != null && salesChannelIds.isNotEmpty) 'sales_channel_id': salesChannelIds.join(','),
+        if (salesChannelDetailIds != null && salesChannelDetailIds.isNotEmpty) 'sumber_informasi_2': salesChannelDetailIds.join(','),
         if (salesTeamIds != null && salesTeamIds.isNotEmpty) 'sales_team_id': salesTeamIds.join(','),
         if (salesExecutiveIds != null && salesExecutiveIds.isNotEmpty) 'sales_executive_id': salesExecutiveIds.join(','),
         if (salesSupervisorIds != null && salesSupervisorIds.isNotEmpty) 'sales_supervisor_id': salesSupervisorIds.join(','),
@@ -215,6 +217,26 @@ class ContactRemoteDataSourceImpl implements ContactRemoteDataSource {
     try {
       final url = type != null ? '/sales/statuses/$type' : '/sales/statuses';
       final response = await dio.get(url);
+
+      if (response.data['status'] == true) {
+        final List<dynamic> data = response.data['data'];
+
+        return data.map((json) => ProspectStatusModel.fromJson(json)).toList();
+      }
+
+      throw Exception(response.data['message'] ?? 'Failed to load prospect statuses');
+    } on DioException catch (e) {
+      throw Exception(getErrorMessage(e, 'Failed to load prospect statuses'));
+    }
+  }
+
+  @override
+  Future<List<ProspectStatusModel>> getContactFormProspectStatuses({int? contactId}) async {
+    try {
+      final response = await dio.get(
+        '/sales/status-prospect/contact',
+        queryParameters: contactId != null ? {'contact_id': contactId} : null,
+      );
 
       if (response.data['status'] == true) {
         final List<dynamic> data = response.data['data'];

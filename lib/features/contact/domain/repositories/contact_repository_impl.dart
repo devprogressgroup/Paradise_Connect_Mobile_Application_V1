@@ -27,7 +27,7 @@ class ContactRepositoryImpl implements ContactRepository {
   ContactRepositoryImpl(this.remoteDataSource);
 
   @override
-  Future<Either<String, ContactResponse>> getContacts({int page = 1, int perPage = 10, String? search, String? startDate, String? endDate, List<int>? ownerIds, List<int>? statusProspectIds, List<int>? salesChannelIds, List<int>? salesTeamIds, List<int>? salesExecutiveIds, List<int>? salesSupervisorIds, List<int>? salesManagerIds, List<int>? salesGeneralManagerIds, String? apptStartDate, String? apptEndDate, String? visitStartDate, String? visitEndDate, String? reserveStartDate, String? reserveEndDate, String? spStartDate, String? spEndDate, String? lostStartDate, String? lostEndDate, String? lastProject, String? sort}) async {
+  Future<Either<String, ContactResponse>> getContacts({int page = 1, int perPage = 10, String? search, String? startDate, String? endDate, List<int>? ownerIds, List<int>? statusProspectIds, List<int>? salesChannelIds, List<int>? salesChannelDetailIds, List<int>? salesTeamIds, List<int>? salesExecutiveIds, List<int>? salesSupervisorIds, List<int>? salesManagerIds, List<int>? salesGeneralManagerIds, String? apptStartDate, String? apptEndDate, String? visitStartDate, String? visitEndDate, String? reserveStartDate, String? reserveEndDate, String? spStartDate, String? spEndDate, String? lostStartDate, String? lostEndDate, String? lastProject, String? sort}) async {
     try {
       final result = await remoteDataSource.getContacts(
         page: page,
@@ -38,6 +38,7 @@ class ContactRepositoryImpl implements ContactRepository {
         ownerIds: ownerIds,
         statusProspectIds: statusProspectIds,
         salesChannelIds: salesChannelIds,
+        salesChannelDetailIds: salesChannelDetailIds,
         salesTeamIds: salesTeamIds,
         salesExecutiveIds: salesExecutiveIds,
         salesSupervisorIds: salesSupervisorIds,
@@ -106,6 +107,16 @@ class ContactRepositoryImpl implements ContactRepository {
   Future<Either<String, List<ProspectStatusEntity>>> getProspectStatuses({String? type}) async {
     try {
       final result = await remoteDataSource.getProspectStatuses(type: type);
+      return Right(result);
+    } catch (e) {
+      return Left(cleanErrorMessage(e));
+    }
+  }
+
+  @override
+  Future<Either<String, List<ProspectStatusEntity>>> getContactFormProspectStatuses({int? contactId}) async {
+    try {
+      final result = await remoteDataSource.getContactFormProspectStatuses(contactId: contactId);
       return Right(result);
     } catch (e) {
       return Left(cleanErrorMessage(e));

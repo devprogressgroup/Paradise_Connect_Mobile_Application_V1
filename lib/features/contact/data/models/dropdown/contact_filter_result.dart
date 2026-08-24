@@ -25,6 +25,7 @@ class ContactCheckGroup {
 class ContactFilterResult {
   final Set<int> statusIds;
   final Set<int> channelIds;
+  final Set<int> channelDetailIds;
   final Set<int> ownerIds;
   final Set<int> executiveIds;
   final Set<int> supervisorIds;
@@ -42,6 +43,7 @@ class ContactFilterResult {
   const ContactFilterResult({
     required this.statusIds,
     required this.channelIds,
+    required this.channelDetailIds,
     required this.ownerIds,
     required this.executiveIds,
     required this.supervisorIds,

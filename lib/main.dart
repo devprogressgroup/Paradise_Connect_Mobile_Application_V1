@@ -145,9 +145,11 @@ import 'features/contact/domain/usecases/activity/create_activity_usecase.dart';
 import 'features/contact/domain/usecases/activity/post_status_follow_usecase.dart';
 import 'features/contact/presentation/state/activity/activity_bloc.dart';
 import 'features/contact/domain/usecases/prospect/get_prospect_statuses_usecase.dart';
+import 'features/contact/domain/usecases/prospect/get_contact_form_prospect_statuses_usecase.dart';
 import 'features/contact/domain/usecases/contact/get_contact_properties_usecase.dart';
 import 'features/contact/presentation/state/contact_properties/contact_properties_bloc.dart';
 import 'features/contact/presentation/state/prospect_status/prospect_status_bloc.dart';
+import 'features/contact/presentation/state/prospect_status/contact_form_prospect_status_bloc.dart';
 import 'features/contact/domain/usecases/attachment/get_attachment_types_usecase.dart';
 import 'features/contact/presentation/state/attachment_type/attachment_type_bloc.dart';
 import 'features/contact/domain/usecases/attachment/upload_attachment_usecase.dart';
@@ -409,6 +411,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     final getAllContactsForDuplicateCheckUseCase = GetAllContactsForDuplicateCheckUseCase(contactRepository);
     final checkDuplicateContactUseCase = CheckDuplicateContactUseCase(contactRepository);
     final getProspectStatusesUseCase = GetProspectStatusesUseCase(contactRepository);
+    final getContactFormProspectStatusesUseCase = GetContactFormProspectStatusesUseCase(contactRepository);
     final getActivitiesUseCase = GetActivitiesUseCase(contactRepository);
     final createActivityUseCase = CreateActivityUseCase(contactRepository);
     final postStatusFollowUseCase = PostStatusFollowUseCase(contactRepository);
@@ -490,6 +493,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
             BlocProvider(create: (_) => SalesChannelSummaryBloc(getSalesChannelsSummaryUseCase: getSalesChannelsSummaryUseCase)),
             BlocProvider(create: (_) => ContactBloc(getContactsUseCase: getContactsUseCase, createContactUseCase: createContactUseCase, updateContactUseCase: updateContactUseCase, deleteContactUseCase: deleteContactUseCase, getContactDetailUseCase: getContactDetailUseCase, getAllContactsForDuplicateCheckUseCase: getAllContactsForDuplicateCheckUseCase, checkDuplicateContactUseCase: checkDuplicateContactUseCase)),
             BlocProvider(create: (_) => ProspectStatusBloc(getProspectStatusesUseCase: getProspectStatusesUseCase)),
+            BlocProvider(create: (_) => ContactFormProspectStatusBloc(getContactFormProspectStatusesUseCase: getContactFormProspectStatusesUseCase)),
             BlocProvider(create: (_) => ContactPropertiesBloc(getContactPropertiesUseCase: getContactPropertiesUseCase)),
             BlocProvider(create: (_) => PipelineCubit(pipelineRemoteDataSource)),
             BlocProvider(create: (_) => ActivityBloc(getActivitiesUseCase: getActivitiesUseCase, createActivityUseCase: createActivityUseCase, postStatusFollowUseCase: postStatusFollowUseCase)),

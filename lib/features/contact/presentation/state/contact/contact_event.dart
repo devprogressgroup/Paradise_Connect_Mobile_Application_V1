@@ -17,6 +17,7 @@ class FetchContactsEvent extends ContactEvent {
   final List<int>? ownerIds;
   final List<int>? statusProspectIds;
   final List<int>? salesChannelIds;
+  final List<int>? salesChannelDetailIds;
   final List<int>? salesTeamIds;
   final List<int>? salesExecutiveIds;
   final List<int>? salesSupervisorIds;
@@ -28,6 +29,7 @@ class FetchContactsEvent extends ContactEvent {
   final bool clearOwner;
   final bool clearStatus;
   final bool clearSalesChannel;
+  final bool clearSalesChannelDetail;
   final bool clearSalesTeam;
   final bool clearSalesExecutive;
   final bool clearSalesSupervisor;
@@ -62,6 +64,7 @@ class FetchContactsEvent extends ContactEvent {
     this.ownerIds,
     this.statusProspectIds,
     this.salesChannelIds,
+    this.salesChannelDetailIds,
     this.salesTeamIds,
     this.salesExecutiveIds,
     this.salesSupervisorIds,
@@ -73,6 +76,7 @@ class FetchContactsEvent extends ContactEvent {
     this.clearOwner = false,
     this.clearStatus = false,
     this.clearSalesChannel = false,
+    this.clearSalesChannelDetail = false,
     this.clearSalesTeam = false,
     this.clearSalesExecutive = false,
     this.clearSalesSupervisor = false,
@@ -109,6 +113,7 @@ class FetchContactsEvent extends ContactEvent {
     ownerIds,
     statusProspectIds,
     salesChannelIds,
+    salesChannelDetailIds,
     salesTeamIds,
     salesExecutiveIds,
     salesSupervisorIds,
@@ -120,6 +125,7 @@ class FetchContactsEvent extends ContactEvent {
     clearOwner,
     clearStatus,
     clearSalesChannel,
+    clearSalesChannelDetail,
     clearSalesTeam,
     clearSalesExecutive,
     clearSalesSupervisor,

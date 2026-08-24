@@ -1,4 +1,4 @@
-﻿import 'dart:io';
+import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:file_picker/file_picker.dart';
@@ -38,7 +38,7 @@ import 'package:progress_group/features/contact/presentation/state/contact/conta
 import 'package:progress_group/features/contact/presentation/state/lost_reason/lost_reason_block.dart';
 import 'package:progress_group/features/contact/presentation/state/lost_reason/lost_reason_event.dart';
 import 'package:progress_group/features/contact/presentation/state/lost_reason/lost_reason_state.dart';
-import 'package:progress_group/features/contact/presentation/state/prospect_status/prospect_status_bloc.dart';
+import 'package:progress_group/features/contact/presentation/state/prospect_status/contact_form_prospect_status_bloc.dart';
 import 'package:progress_group/features/contact/presentation/state/prospect_status/prospect_status_event.dart';
 import 'package:progress_group/features/contact/presentation/state/prospect_status/prospect_status_state.dart';
 import 'package:progress_group/features/contact/presentation/state/contact/contact_bloc.dart';
@@ -168,7 +168,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
   
   DateTime? _getSelectedDateByStatus(dynamic data) {
     final group = _resolveStatusGroup(
-          context.read<ProspectStatusBloc>().state,
+          context.read<ContactFormProspectStatusBloc>().state,
           data.statusProspectId,
         ) ??
         'db';
@@ -291,7 +291,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
         lostReasonNoteTC.text = params?.lostReasonNote ?? data.lostReasonNote ?? '';
 
         
-        final statusState = context.read<ProspectStatusBloc>().state;
+        final statusState = context.read<ContactFormProspectStatusBloc>().state;
         if (statusState.status == ProspectStatusEnum.loaded) {
           for (final s in statusState.statuses) {
             if (s.statusProspectId == selectedStatusId) {
@@ -320,7 +320,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
 
       
       
-      final cachedStatus = context.read<ProspectStatusBloc>().state;
+      final cachedStatus = context.read<ContactFormProspectStatusBloc>().state;
       if (cachedStatus.status == ProspectStatusEnum.loaded) {
         _autoSelectStatusIfNeeded(cachedStatus.statuses);
       }
@@ -346,7 +346,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
     }
 
     context.read<AttachmentTypeBloc>().add(FetchAttachmentTypesEvent());
-    context.read<ProspectStatusBloc>().add(const FetchProspectStatusesEvent());
+    context.read<ContactFormProspectStatusBloc>().add(FetchProspectStatusesEvent(contactId: widget.args.dataContact?.contactId));
     context.read<LostReasonBloc>().add(FetchLostReasonsEvent());
   }
 
@@ -1024,7 +1024,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
                 selectedProject = data.projectName ?? data.firstProject;
                 
                 selectedStatusId = data.statusProspectId;
-                final statusState = context.read<ProspectStatusBloc>().state;
+                final statusState = context.read<ContactFormProspectStatusBloc>().state;
                 if (statusState.status == ProspectStatusEnum.loaded) {
                   for (final s in statusState.statuses) {
                     if (s.statusProspectId == selectedStatusId) {
@@ -1065,7 +1065,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
                 }
               });
               
-              final ssDetail = context.read<ProspectStatusBloc>().state;
+              final ssDetail = context.read<ContactFormProspectStatusBloc>().state;
               if (ssDetail.status == ProspectStatusEnum.loaded) {
                 _autoSelectStatusIfNeeded(ssDetail.statuses);
               }
@@ -1085,7 +1085,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
             }
           },
         ),
-        BlocListener<ProspectStatusBloc, ProspectStatusState>(
+        BlocListener<ContactFormProspectStatusBloc, ProspectStatusState>(
           listener: (context, state) {
             if (state.status == ProspectStatusEnum.loaded &&
                 selectedStatusId != null) {
@@ -1347,10 +1347,10 @@ class _ContactAddPageState extends State<ContactAddPage> {
   }
 
   
-  String _currentStatusGroup() => _resolveStatusGroup(context.read<ProspectStatusBloc>().state, selectedStatusId) ?? 'db';
+  String _currentStatusGroup() => _resolveStatusGroup(context.read<ContactFormProspectStatusBloc>().state, selectedStatusId) ?? 'db';
 
   
-  bool _isVisitGroup(int? id) => _resolveStatusGroup(context.read<ProspectStatusBloc>().state, id) == 'visit';
+  bool _isVisitGroup(int? id) => _resolveStatusGroup(context.read<ContactFormProspectStatusBloc>().state, id) == 'visit';
 
   
   
@@ -1371,7 +1371,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
   
   
   bool _currentIsVisitFormStatus() {
-    final st = context.read<ProspectStatusBloc>().state;
+    final st = context.read<ContactFormProspectStatusBloc>().state;
     return st.status == ProspectStatusEnum.loaded &&
         _isVisitPickerStatus(st.statuses, selectedStatusId);
   }
@@ -1379,7 +1379,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
   
   
   bool _currentIsVisitorWi() {
-    final st = context.read<ProspectStatusBloc>().state;
+    final st = context.read<ContactFormProspectStatusBloc>().state;
     if (st.status != ProspectStatusEnum.loaded) return false;
     for (final s in st.statuses) {
       if (s.statusProspectId == selectedStatusId) return s.isVisitorWi;
@@ -1423,7 +1423,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             
-            BlocBuilder<ProspectStatusBloc, ProspectStatusState>(
+            BlocBuilder<ContactFormProspectStatusBloc, ProspectStatusState>(
               builder: (context, statusState) {
                 final group = _resolveStatusGroup(statusState, selectedStatusId);
                 if (group == null) {
@@ -1717,7 +1717,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
         GestureDetector(
           onTap: () async {
             AnalyticsService.logEvent('contact_add_select_status_prospect');
-            final statusState = context.read<ProspectStatusBloc>().state;
+            final statusState = context.read<ContactFormProspectStatusBloc>().state;
             if (statusState.status == ProspectStatusEnum.loaded) {
               
               final isPage4 = widget.args.page == 4;
@@ -1763,8 +1763,8 @@ class _ContactAddPageState extends State<ContactAddPage> {
                 }
               }
             } else {
-              context.read<ProspectStatusBloc>().add(
-                const FetchProspectStatusesEvent(),
+              context.read<ContactFormProspectStatusBloc>().add(
+                FetchProspectStatusesEvent(contactId: widget.args.dataContact?.contactId),
               );
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(content: Text('Memuat daftar status...')),
@@ -2969,3 +2969,4 @@ class _ContactAddPageState extends State<ContactAddPage> {
     );
   }
 }
+

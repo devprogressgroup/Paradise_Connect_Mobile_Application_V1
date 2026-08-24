@@ -172,6 +172,7 @@ class _ContactPageState extends State<ContactPage> {
 
     context.read<ProspectStatusBloc>().add(FetchProspectStatusesEvent());
     context.read<InfoSourceBloc>().add(const FetchInfoSourcesEvent(type: 1));
+    context.read<InfoSourceBloc>().add(const FetchInfoSourcesEvent(type: 2));
 
     context.read<AuthBloc>().add(FetchPermissionsEvent(silent: true));
     context.read<ProfileBloc>().add(
@@ -592,6 +593,10 @@ class _ContactPageState extends State<ContactPage> {
     final channelItems = (sourceState.sourcesMap[1] ?? const <InfoSource>[])
         .map((e) => OwnerDropdownItem(id: e.id, name: e.name))
         .toList();
+    final channelDetailItems = <int, OwnerDropdownItem>{
+      for (final e in sourceState.sourcesMap[2] ?? const <InfoSource>[])
+        e.id: OwnerDropdownItem(id: e.id, name: e.name),
+    }.values.toList();
 
     List<_OwnerCandidate> ownerCandidates = const [];
     List<_OwnerCandidate> seCandidates = const [];
@@ -630,6 +635,13 @@ class _ContactPageState extends State<ContactPage> {
         section: null,
         searchable: false,
         items: channelItems,
+      ),
+      ContactCheckGroup(
+        key: 'channelDetail',
+        label: 'Sales Channel Detail',
+        section: null,
+        searchable: true,
+        items: channelDetailItems,
       ),
       ContactCheckGroup(
         key: 'owner',
@@ -725,6 +737,7 @@ class _ContactPageState extends State<ContactPage> {
     final initialChecks = <String, Set<int>>{
       'status': (contactState.statusProspectIds ?? const []).toSet(),
       'channel': (contactState.salesChannelIds ?? const []).toSet(),
+      'channelDetail': (contactState.salesChannelDetailIds ?? const []).toSet(),
       'owner': (contactState.ownerIds ?? const []).toSet(),
       'executive': (contactState.salesExecutiveIds ?? const []).toSet(),
       'supervisor': (contactState.salesSupervisorIds ?? const []).toSet(),
@@ -796,6 +809,8 @@ class _ContactPageState extends State<ContactPage> {
           clearStatus: result.statusIds.isEmpty,
           salesChannelIds: result.channelIds.toList(),
           clearSalesChannel: result.channelIds.isEmpty,
+          salesChannelDetailIds: result.channelDetailIds.toList(),
+          clearSalesChannelDetail: result.channelDetailIds.isEmpty,
           ownerIds: result.ownerIds.toList(),
           clearOwner: result.ownerIds.isEmpty,
           salesExecutiveIds: result.executiveIds.toList(),
@@ -966,6 +981,31 @@ class _ContactPageState extends State<ContactPage> {
           label,
           () => context.read<ContactBloc>().add(
             const FetchContactsEvent(isRefresh: true, clearSalesChannel: true),
+          ),
+        ),
+      );
+    }
+
+    final channelDetailIds = s.salesChannelDetailIds ?? const <int>[];
+    if (channelDetailIds.isNotEmpty) {
+      String label = 'Sales Channel Detail';
+      final detailSources = sourceState.sourcesMap[2];
+      if (detailSources != null) {
+        if (channelDetailIds.length == 1) {
+          final found = detailSources.cast<InfoSource?>().firstWhere(
+            (e) => e?.id == channelDetailIds.first,
+            orElse: () => null,
+          );
+          if (found != null) label = found.name;
+        } else {
+          label = '${channelDetailIds.length} Sales Channel Details';
+        }
+      }
+      chips.add(
+        _ActiveChip(
+          label,
+          () => context.read<ContactBloc>().add(
+            const FetchContactsEvent(isRefresh: true, clearSalesChannelDetail: true),
           ),
         ),
       );
@@ -1187,6 +1227,7 @@ int _activeFilterCount(ContactState s) {
   var n = 0;
   if ((s.statusProspectIds ?? const []).isNotEmpty) n++;
   if ((s.salesChannelIds ?? const []).isNotEmpty) n++;
+  if ((s.salesChannelDetailIds ?? const []).isNotEmpty) n++;
   if ((s.ownerIds ?? const []).isNotEmpty) n++;
   if ((s.salesExecutiveIds ?? const []).isNotEmpty) n++;
   if ((s.salesSupervisorIds ?? const []).isNotEmpty) n++;

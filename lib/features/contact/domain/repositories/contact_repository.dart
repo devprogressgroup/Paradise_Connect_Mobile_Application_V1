@@ -20,12 +20,13 @@ import '../entities/attachment/attachment_type.dart';
 
 abstract class ContactRepository {
   Future<Either<String, List<AttachmentType>>> getAttachmentTypes();
-  Future<Either<String, ContactResponse>> getContacts({int page = 1, int perPage = 10, String? search, String? startDate, String? endDate, List<int>? ownerIds, List<int>? statusProspectIds, List<int>? salesChannelIds, List<int>? salesTeamIds, List<int>? salesExecutiveIds, List<int>? salesSupervisorIds, List<int>? salesManagerIds, List<int>? salesGeneralManagerIds, String? apptStartDate, String? apptEndDate, String? visitStartDate, String? visitEndDate, String? reserveStartDate, String? reserveEndDate, String? spStartDate, String? spEndDate, String? lostStartDate, String? lostEndDate, String? lastProject, String? sort});
+  Future<Either<String, ContactResponse>> getContacts({int page = 1, int perPage = 10, String? search, String? startDate, String? endDate, List<int>? ownerIds, List<int>? statusProspectIds, List<int>? salesChannelIds, List<int>? salesChannelDetailIds, List<int>? salesTeamIds, List<int>? salesExecutiveIds, List<int>? salesSupervisorIds, List<int>? salesManagerIds, List<int>? salesGeneralManagerIds, String? apptStartDate, String? apptEndDate, String? visitStartDate, String? visitEndDate, String? reserveStartDate, String? reserveEndDate, String? spStartDate, String? spEndDate, String? lostStartDate, String? lostEndDate, String? lastProject, String? sort});
   Future<Either<String, List<ContactEntity>>> getAllContactsForDuplicateCheck();
   Future<Either<String, ContactEntity>> getContactDetail(int id);
   Future<Either<String, ContactEntity?>> checkDuplicateContact({required int ownerId, required String phone});
     Future<Either<String, List<InfoSource>>> getInfoSources({int? type, int? userId, String? salesChannel, bool all = false});
   Future<Either<String, List<ProspectStatusEntity>>> getProspectStatuses({String? type});
+  Future<Either<String, List<ProspectStatusEntity>>> getContactFormProspectStatuses({int? contactId});
   Future<Either<String, List<LostReasonEntity>>> getLostReasons();
   Future<Either<String, List<ContactPropertyGroup>>> getContactProperties();
   Future<Either<String, ContactEntity>> updateContact(int id, CreateContactParams params);
