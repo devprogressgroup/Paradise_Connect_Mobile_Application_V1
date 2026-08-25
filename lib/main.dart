@@ -24,6 +24,7 @@ import 'package:progress_group/features/attandance/domain/repositories/attandanc
 import 'package:progress_group/features/attandance/domain/usecase/get_attendance.dart';
 import 'package:progress_group/features/attandance/domain/usecase/get_locations.dart';
 import 'package:progress_group/features/attandance/domain/usecase/get_office_locations.dart';
+import 'package:progress_group/features/attandance/domain/usecase/get_all_office_locations.dart';
 import 'package:progress_group/features/attandance/domain/usecase/get_today_attendance.dart';
 import 'package:progress_group/features/attandance/domain/usecase/get_attendance_activity.dart';
 import 'package:progress_group/features/attandance/domain/usecase/submit_attendance.dart';
@@ -39,6 +40,7 @@ import 'package:progress_group/features/notif/data/datasources/global_notificati
 import 'package:progress_group/features/notif/presentation/state/global_notification/global_notification_cubit.dart';
 import 'package:progress_group/features/attandance/presentation/state/pameran_location/pameran_location_cubit.dart';
 import 'package:progress_group/features/attandance/presentation/state/office_location/office_location_cubit.dart';
+import 'package:progress_group/features/attandance/presentation/state/office_location/all_office_location_cubit.dart';
 import 'package:progress_group/features/auth/data/datasources/auth_local_datasource.dart';
 import 'package:progress_group/features/auth/data/datasources/auth_remote_datasource.dart';
 import 'package:progress_group/features/auth/data/repositories/auth_repository_impl.dart';
@@ -74,9 +76,16 @@ import 'package:progress_group/features/contact/domain/usecases/contact/delete_c
 import 'package:progress_group/features/contact/domain/usecases/contact/update_contact_usecase.dart';
 import 'package:progress_group/features/contact/domain/usecases/info_source/get_info_sources_usecase.dart';
 import 'package:progress_group/features/contact/domain/usecases/info_source/get_sales_channel_details_usecase.dart';
+import 'package:progress_group/features/contact/domain/usecases/sales_hierarchy/get_sales_owners_usecase.dart';
+import 'package:progress_group/features/contact/domain/usecases/sales_hierarchy/get_sales_executives_usecase.dart';
+import 'package:progress_group/features/contact/domain/usecases/sales_hierarchy/get_sales_supervisors_usecase.dart';
+import 'package:progress_group/features/contact/domain/usecases/sales_hierarchy/get_sales_managers_usecase.dart';
+import 'package:progress_group/features/contact/domain/usecases/sales_hierarchy/get_sales_general_managers_usecase.dart';
+import 'package:progress_group/features/contact/domain/usecases/sales_hierarchy/get_sales_teams_paginated_usecase.dart';
 import 'package:progress_group/features/contact/domain/usecases/lost_reason/get_lost_reason.dart';
 import 'package:progress_group/features/contact/presentation/state/attachment/attachment_cubit.dart';
 import 'package:progress_group/features/contact/presentation/state/info_source/info_source_bloc.dart';
+import 'package:progress_group/features/contact/presentation/state/sales_hierarchy/sales_hierarchy_service.dart';
 import 'package:progress_group/features/contact/presentation/state/lost_reason/lost_reason_block.dart';
 import 'package:progress_group/features/contact/domain/usecases/product_type/get_product_types_usecase.dart';
 import 'package:progress_group/features/contact/presentation/state/product_type/product_type_bloc.dart';
@@ -430,6 +439,12 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     final getWhatsappActivityUseCase =  GetWhatsappUnreadSummaryUseCase(contactRepository);
     final getInfoSourcesUseCase = GetInfoSourcesUseCase(contactRepository);
     final getSalesChannelDetailsUseCase = GetSalesChannelDetailsUseCase(contactRepository);
+    final getSalesOwnersUseCase = GetSalesOwnersUseCase(contactRepository);
+    final getSalesExecutivesUseCase = GetSalesExecutivesUseCase(contactRepository);
+    final getSalesSupervisorsUseCase = GetSalesSupervisorsUseCase(contactRepository);
+    final getSalesManagersUseCase = GetSalesManagersUseCase(contactRepository);
+    final getSalesGeneralManagersUseCase = GetSalesGeneralManagersUseCase(contactRepository);
+    final getSalesTeamsPaginatedUseCase = GetSalesTeamsPaginatedUseCase(contactRepository);
     final getLostReasonsUseCase = GetLostReasonsUseCase(contactRepository);
     final getProductTypesUseCase = GetProductTypesUseCase(contactRepository);
     final getPropertyUnitsUseCase = GetPropertyUnitsUseCase(contactRepository);
@@ -463,6 +478,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     final getTodayAttendanceUseCase = GetTodayAttendanceUseCase(attendanceRepository);
     final getLocationsUseCase = GetLocationsUseCase(attendanceRepository);
     final getOfficeLocationsUseCase = GetOfficeLocationsUseCase(attendanceRepository);
+    final getAllOfficeLocationsUseCase = GetAllOfficeLocationsUseCase(attendanceRepository);
     final submitAttendanceUseCase = SubmitAttendanceUseCase(attendanceRepository);
     final submitAttendanceActivityUseCase = SubmitAttendanceActivityUseCase(attendanceRepository);
     final getAttendanceActivityUseCase = GetAttendanceActivityUseCase(attendanceRepository);
@@ -510,13 +526,23 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
             BlocProvider(create: (_) => AttendanceBloc(getAttendanceUseCase: getAttendanceUseCase, getTodayAttendanceUseCase: getTodayAttendanceUseCase, getLocationsUseCase: getLocationsUseCase, getOfficeLocationsUseCase: getOfficeLocationsUseCase, submitAttendanceUseCase: submitAttendanceUseCase, submitAttendanceActivityUseCase: submitAttendanceActivityUseCase)),
             BlocProvider(create: (_) => PameranLocationCubit(getLocationsUseCase)),
             BlocProvider(create: (_) => OfficeLocationCubit(getOfficeLocationsUseCase)),
+            BlocProvider(create: (_) => AllOfficeLocationCubit(getAllOfficeLocationsUseCase)),
             BlocProvider(create: (_) => AttendanceActivityBloc(getAttendanceActivityUseCase: getAttendanceActivityUseCase, validasiCheckInUseCase: validasiCheckInUseCase)),
             BlocProvider(create: (_) => AttendanceApprovalCubit(getAttendanceApprovalTodayUseCase, postAttendanceApprovalUseCase)),
             BlocProvider(create: (_) => AttendanceExcelCubit(attendanceRepository)),
             BlocProvider(create: (_) => ReceivedNotifCubit()),
             BlocProvider(create: (_) => GlobalNotificationCubit(globalNotificationRemoteDataSource)),
             BlocProvider(create: (_) => WhatsappActivityBloc(getWhatsappActivityUseCase)),
-            BlocProvider(create: (_) => InfoSourceBloc(getInfoSourcesUseCase: getInfoSourcesUseCase, getSalesChannelDetailsUseCase: getSalesChannelDetailsUseCase)),
+            BlocProvider(create: (_) => InfoSourceBloc(getInfoSourcesUseCase: getInfoSourcesUseCase)),
+            BlocProvider(create: (_) => SalesHierarchyService(
+              getSalesOwnersUseCase: getSalesOwnersUseCase,
+              getSalesExecutivesUseCase: getSalesExecutivesUseCase,
+              getSalesSupervisorsUseCase: getSalesSupervisorsUseCase,
+              getSalesManagersUseCase: getSalesManagersUseCase,
+              getSalesGeneralManagersUseCase: getSalesGeneralManagersUseCase,
+              getSalesTeamsPaginatedUseCase: getSalesTeamsPaginatedUseCase,
+              getSalesChannelDetailsUseCase: getSalesChannelDetailsUseCase,
+            )),
             BlocProvider(create: (_) => LostReasonBloc(getLostReasonsUseCase: getLostReasonsUseCase)),
             BlocProvider(create: (_) => ProductTypeBloc(getProductTypesUseCase: getProductTypesUseCase)..add(const FetchProductTypesEvent())),
             BlocProvider(create: (_) => PropertyUnitCubit(getPropertyUnitsUseCase, getPropertyCommercialUnitsUseCase)),

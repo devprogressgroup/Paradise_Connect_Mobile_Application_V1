@@ -18,10 +18,6 @@ class FetchInfoSourcesEvent extends InfoSourceEvent {
   List<Object> get props => [type ?? 0, userId ?? 0, salesChannel ?? '', all];
 }
 
-class FetchSalesChannelDetailsEvent extends InfoSourceEvent {
-  const FetchSalesChannelDetailsEvent();
-}
-
 class ResetInfoSourcesEvent extends InfoSourceEvent {
   final List<int> types;
   const ResetInfoSourcesEvent(this.types);

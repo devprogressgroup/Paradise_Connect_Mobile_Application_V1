@@ -5,6 +5,7 @@ import 'package:progress_group/features/contact/domain/entities/activity/create_
 import 'package:progress_group/features/contact/domain/entities/activity/whatsapp_activity_entity.dart';
 import 'package:progress_group/features/contact/domain/entities/attachment/attachment_entity.dart';
 import 'package:progress_group/features/contact/domain/entities/attachment/attachment_type.dart';
+import 'package:progress_group/features/contact/domain/entities/dropdown_option.dart';
 import 'package:progress_group/features/contact/domain/entities/info_source/info_source.dart';
 import 'package:progress_group/features/contact/domain/entities/lost_reason/lost_reason_entity.dart';
 import 'package:progress_group/features/contact/domain/entities/pameran/pameran_aktif_entity.dart';
@@ -103,11 +104,102 @@ class ContactRepositoryImpl implements ContactRepository {
     }
   }
 
+  static int _parsePage(dynamic value) {
+    if (value is num) return value.toInt();
+    if (value is String) return int.tryParse(value) ?? 1;
+    return 1;
+  }
+
+  ({List<DropdownOption> data, int lastPage, int total}) _parsePaginated(
+    Map<String, dynamic> raw,
+    DropdownOption Function(Map<String, dynamic> json) mapper,
+  ) {
+    final pagination = raw['data'] as Map<String, dynamic>;
+    final list = pagination['data'] as List;
+    return (
+      data: list.map((e) => mapper(e as Map<String, dynamic>)).toList(),
+      lastPage: _parsePage(pagination['last_page']),
+      total: _parsePage(pagination['total']),
+    );
+  }
+
   @override
-  Future<Either<String, List<InfoSource>>> getSalesChannelDetails() async {
+  Future<Either<String, ({List<DropdownOption> data, int lastPage, int total})>> getSalesChannelDetails({int page = 1, int perPage = 30, String? search}) async {
     try {
-      final result = await remoteDataSource.getSalesChannelDetails();
-      return Right(result);
+      final result = await remoteDataSource.getSalesChannelDetails(page: page, perPage: perPage, search: search);
+      return Right(_parsePaginated(
+        result,
+        (json) => DropdownOption(id: json['master_data_id'] as int, name: json['name'] as String),
+      ));
+    } catch (e) {
+      return Left(cleanErrorMessage(e));
+    }
+  }
+
+  DropdownOption _salesPersonOption(Map<String, dynamic> json) => DropdownOption(
+    id: json['sales_person_id'] as int,
+    name: json['full_name'] as String,
+    subtitle: json['sales_person_code']?.toString(),
+  );
+
+  @override
+  Future<Either<String, ({List<DropdownOption> data, int lastPage, int total})>> getSalesOwners({int page = 1, int perPage = 20, String? search}) async {
+    try {
+      final result = await remoteDataSource.getSalesOwners(page: page, perPage: perPage, search: search);
+      return Right(_parsePaginated(result, _salesPersonOption));
+    } catch (e) {
+      return Left(cleanErrorMessage(e));
+    }
+  }
+
+  @override
+  Future<Either<String, ({List<DropdownOption> data, int lastPage, int total})>> getSalesExecutives({int page = 1, int perPage = 20, String? search}) async {
+    try {
+      final result = await remoteDataSource.getSalesExecutives(page: page, perPage: perPage, search: search);
+      return Right(_parsePaginated(result, _salesPersonOption));
+    } catch (e) {
+      return Left(cleanErrorMessage(e));
+    }
+  }
+
+  @override
+  Future<Either<String, ({List<DropdownOption> data, int lastPage, int total})>> getSalesSupervisors({int page = 1, int perPage = 20, String? search}) async {
+    try {
+      final result = await remoteDataSource.getSalesSupervisors(page: page, perPage: perPage, search: search);
+      return Right(_parsePaginated(result, _salesPersonOption));
+    } catch (e) {
+      return Left(cleanErrorMessage(e));
+    }
+  }
+
+  @override
+  Future<Either<String, ({List<DropdownOption> data, int lastPage, int total})>> getSalesManagers({int page = 1, int perPage = 20, String? search}) async {
+    try {
+      final result = await remoteDataSource.getSalesManagers(page: page, perPage: perPage, search: search);
+      return Right(_parsePaginated(result, _salesPersonOption));
+    } catch (e) {
+      return Left(cleanErrorMessage(e));
+    }
+  }
+
+  @override
+  Future<Either<String, ({List<DropdownOption> data, int lastPage, int total})>> getSalesGeneralManagers({int page = 1, int perPage = 20, String? search}) async {
+    try {
+      final result = await remoteDataSource.getSalesGeneralManagers(page: page, perPage: perPage, search: search);
+      return Right(_parsePaginated(result, _salesPersonOption));
+    } catch (e) {
+      return Left(cleanErrorMessage(e));
+    }
+  }
+
+  @override
+  Future<Either<String, ({List<DropdownOption> data, int lastPage, int total})>> getSalesTeamsPaginated({int page = 1, int perPage = 20, String? search}) async {
+    try {
+      final result = await remoteDataSource.getSalesTeamsPaginated(page: page, perPage: perPage, search: search);
+      return Right(_parsePaginated(
+        result,
+        (json) => DropdownOption(id: json['sales_team_id'] as int, name: json['sales_team_name'] as String),
+      ));
     } catch (e) {
       return Left(cleanErrorMessage(e));
     }

@@ -1,4 +1,26 @@
+import 'package:dartz/dartz.dart';
 import 'package:progress_group/features/contact/data/arguments/contact_dropdown_args.dart';
+import 'package:progress_group/features/contact/domain/entities/dropdown_option.dart';
+
+typedef PaginatedOptions = ({List<DropdownOption> data, int lastPage, int total});
+typedef PaginatedFetch = Future<Either<String, PaginatedOptions>> Function({required int page, int perPage, String? search});
+
+/// Grup checkbox filter yang datanya diambil bertahap (infinite scroll + search
+/// di server), bukan dimuat penuh di depan — dipakai untuk daftar besar (mis.
+/// Sales Channel Detail 600+ baris, atau hierarki sales Owner/Executive/dst yang
+/// scope-nya dari backend, bukan diturunkan dari data /me profile).
+class PaginatedCheckGroup {
+  final String key;
+  final String label;
+  final String section;
+  final PaginatedFetch fetchPage;
+  const PaginatedCheckGroup({
+    required this.key,
+    required this.label,
+    required this.section,
+    required this.fetchPage,
+  });
+}
 
 class DateRangeValue {
   final String label;

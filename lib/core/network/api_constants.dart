@@ -33,9 +33,9 @@ class ApiConstants {
 
     AppEnvironment.development: _EnvConfig(
       label: 'Development IP',
-      baseUrl: 'http://192.168.8.67:8000/api',
-      storageUrl: 'http://192.168.8.67:8000/storage',
-      serverUrl: 'http://192.168.8.67:8000',
+      baseUrl: 'http://192.168.18.158:7000/api',
+      storageUrl: 'http://192.168.18.158:7000/storage',
+      serverUrl: 'http://192.168.18.158:7000',
     ),
 
     // AppEnvironment.development2: _EnvConfig(
@@ -116,6 +116,11 @@ class ApiConstants {
   static String _saleskitUrl = '';
   static String _loginHelpMessage = '';
   static String _prospectStatusDefaultRangePreset = '';
+  static String _prospectStatusApptRangePreset = '';
+  static String _prospectStatusVisitRangePreset = '';
+  static String _prospectStatusReserveRangePreset = '';
+  static String _prospectStatusSpRangePreset = '';
+  static String _prospectStatusLostRangePreset = '';
   static final ValueNotifier<int> settingsVersion = ValueNotifier<int>(0);
 
   static String get waServerURL => _waServerUrl;
@@ -128,6 +133,11 @@ class ApiConstants {
   static String get saleskitUrl => _saleskitUrl;
   static String get loginHelpMessage => _loginHelpMessage;
   static String get prospectStatusDefaultRangePreset => _prospectStatusDefaultRangePreset;
+  static String get prospectStatusApptRangePreset => _prospectStatusApptRangePreset;
+  static String get prospectStatusVisitRangePreset => _prospectStatusVisitRangePreset;
+  static String get prospectStatusReserveRangePreset => _prospectStatusReserveRangePreset;
+  static String get prospectStatusSpRangePreset => _prospectStatusSpRangePreset;
+  static String get prospectStatusLostRangePreset => _prospectStatusLostRangePreset;
 
   static void applySettings(List<Map<String, dynamic>> settings) {
     for (final s in settings) {
@@ -155,6 +165,16 @@ class ApiConstants {
           _loginHelpMessage = value;
         case 'PROSPECT_STATUS_DEFAULT_RANGE_PRESET':
           _prospectStatusDefaultRangePreset = value;
+        case 'PROSPECT_STATUS_APPT_RANGE_PRESET':
+          _prospectStatusApptRangePreset = value;
+        case 'PROSPECT_STATUS_VISIT_RANGE_PRESET':
+          _prospectStatusVisitRangePreset = value;
+        case 'PROSPECT_STATUS_RESERVE_RANGE_PRESET':
+          _prospectStatusReserveRangePreset = value;
+        case 'PROSPECT_STATUS_SP_RANGE_PRESET':
+          _prospectStatusSpRangePreset = value;
+        case 'PROSPECT_STATUS_LOST_RANGE_PRESET':
+          _prospectStatusLostRangePreset = value;
       }
     }
     settingsVersion.value++;

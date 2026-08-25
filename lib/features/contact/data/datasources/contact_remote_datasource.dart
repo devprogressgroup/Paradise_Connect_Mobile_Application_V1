@@ -34,7 +34,16 @@ abstract class ContactRemoteDataSource {
 
   Future<List<InfoSourceModel>> getInfoSources({int? type, int? userId, String? salesChannel, bool all = false});
 
-  Future<List<InfoSourceModel>> getSalesChannelDetails();
+  Future<Map<String, dynamic>> getSalesChannelDetails({int page = 1, int perPage = 30, String? search});
+
+  // Dropdown filter hierarki sales — endpoint khusus (bukan diturunkan dari data /me profile),
+  // masing-masing paginated + searchable di backend (lihat SalesController::getSalesByPosition).
+  Future<Map<String, dynamic>> getSalesOwners({int page = 1, int perPage = 20, String? search});
+  Future<Map<String, dynamic>> getSalesExecutives({int page = 1, int perPage = 20, String? search});
+  Future<Map<String, dynamic>> getSalesSupervisors({int page = 1, int perPage = 20, String? search});
+  Future<Map<String, dynamic>> getSalesManagers({int page = 1, int perPage = 20, String? search});
+  Future<Map<String, dynamic>> getSalesGeneralManagers({int page = 1, int perPage = 20, String? search});
+  Future<Map<String, dynamic>> getSalesTeamsPaginated({int page = 1, int perPage = 20, String? search});
 
   Future<List<ProspectStatusModel>> getProspectStatuses({String? type});
   Future<List<ProspectStatusModel>> getContactFormProspectStatuses({int? contactId});
@@ -215,19 +224,61 @@ class ContactRemoteDataSourceImpl implements ContactRemoteDataSource {
   }
 
   @override
-  Future<List<InfoSourceModel>> getSalesChannelDetails() async {
+  Future<Map<String, dynamic>> getSalesChannelDetails({int page = 1, int perPage = 30, String? search}) async {
     try {
-      final response = await dio.get('/master-data/sales-channel-detail');
-
-      if (response.data['status'] == true) {
-        final List<dynamic> data = response.data['data'];
-        return data.map((json) => InfoSourceModel.fromJson(json)).toList();
-      }
-      throw Exception(response.data['message'] ?? 'Gagal memuat sales channel detail');
+      final response = await dio.get(
+        '/master-data/sales-channel-detail',
+        queryParameters: {
+          'page': page,
+          'per_page': perPage,
+          if (search != null && search.isNotEmpty) 'search': search,
+        },
+      );
+      return response.data;
     } on DioException catch (e) {
       throw Exception(getErrorMessage(e, 'Gagal memuat sales channel detail'));
     }
   }
+
+  Future<Map<String, dynamic>> _getSalesDropdown(String path, {required int page, required int perPage, String? search}) async {
+    try {
+      final response = await dio.get(
+        '/sales/$path',
+        queryParameters: {
+          'page': page,
+          'per_page': perPage,
+          if (search != null && search.isNotEmpty) 'search': search,
+        },
+      );
+      return response.data;
+    } on DioException catch (e) {
+      throw Exception(getErrorMessage(e, 'Gagal memuat data'));
+    }
+  }
+
+  @override
+  Future<Map<String, dynamic>> getSalesOwners({int page = 1, int perPage = 20, String? search}) =>
+      _getSalesDropdown('owners', page: page, perPage: perPage, search: search);
+
+  @override
+  Future<Map<String, dynamic>> getSalesExecutives({int page = 1, int perPage = 20, String? search}) =>
+      _getSalesDropdown('executives', page: page, perPage: perPage, search: search);
+
+  @override
+  Future<Map<String, dynamic>> getSalesSupervisors({int page = 1, int perPage = 20, String? search}) =>
+      _getSalesDropdown('supervisors', page: page, perPage: perPage, search: search);
+
+  @override
+  Future<Map<String, dynamic>> getSalesManagers({int page = 1, int perPage = 20, String? search}) =>
+      _getSalesDropdown('managers', page: page, perPage: perPage, search: search);
+
+  @override
+  Future<Map<String, dynamic>> getSalesGeneralManagers({int page = 1, int perPage = 20, String? search}) =>
+      _getSalesDropdown('general-managers', page: page, perPage: perPage, search: search);
+
+  @override
+  Future<Map<String, dynamic>> getSalesTeamsPaginated({int page = 1, int perPage = 20, String? search}) =>
+      _getSalesDropdown('teams', page: page, perPage: perPage, search: search);
 
   @override
   Future<List<ProspectStatusModel>> getProspectStatuses({String? type}) async {

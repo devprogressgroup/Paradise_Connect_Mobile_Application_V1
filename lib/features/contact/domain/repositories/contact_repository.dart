@@ -5,6 +5,7 @@ import 'package:progress_group/features/contact/domain/entities/activity/create_
 import 'package:progress_group/features/contact/domain/entities/activity/whatsapp_activity_entity.dart';
 import 'package:progress_group/features/contact/domain/entities/attachment/attachment_entity.dart';
 import 'package:progress_group/features/contact/domain/entities/attachment/upload_attachment_params.dart';
+import 'package:progress_group/features/contact/domain/entities/dropdown_option.dart';
 import 'package:progress_group/features/contact/domain/entities/info_source/info_source.dart';
 import 'package:progress_group/features/contact/domain/entities/lost_reason/lost_reason_entity.dart';
 import 'package:progress_group/features/contact/domain/entities/property/property_unit_entity.dart';
@@ -25,7 +26,15 @@ abstract class ContactRepository {
   Future<Either<String, ContactEntity>> getContactDetail(int id);
   Future<Either<String, ContactEntity?>> checkDuplicateContact({required int ownerId, required String phone});
     Future<Either<String, List<InfoSource>>> getInfoSources({int? type, int? userId, String? salesChannel, bool all = false});
-  Future<Either<String, List<InfoSource>>> getSalesChannelDetails();
+  Future<Either<String, ({List<DropdownOption> data, int lastPage, int total})>> getSalesChannelDetails({int page = 1, int perPage = 30, String? search});
+
+  // Dropdown filter hierarki sales — endpoint khusus, terpisah dari data /me profile.
+  Future<Either<String, ({List<DropdownOption> data, int lastPage, int total})>> getSalesOwners({int page = 1, int perPage = 20, String? search});
+  Future<Either<String, ({List<DropdownOption> data, int lastPage, int total})>> getSalesExecutives({int page = 1, int perPage = 20, String? search});
+  Future<Either<String, ({List<DropdownOption> data, int lastPage, int total})>> getSalesSupervisors({int page = 1, int perPage = 20, String? search});
+  Future<Either<String, ({List<DropdownOption> data, int lastPage, int total})>> getSalesManagers({int page = 1, int perPage = 20, String? search});
+  Future<Either<String, ({List<DropdownOption> data, int lastPage, int total})>> getSalesGeneralManagers({int page = 1, int perPage = 20, String? search});
+  Future<Either<String, ({List<DropdownOption> data, int lastPage, int total})>> getSalesTeamsPaginated({int page = 1, int perPage = 20, String? search});
   Future<Either<String, List<ProspectStatusEntity>>> getProspectStatuses({String? type});
   Future<Either<String, List<ProspectStatusEntity>>> getContactFormProspectStatuses({int? contactId});
   Future<Either<String, List<LostReasonEntity>>> getLostReasons();

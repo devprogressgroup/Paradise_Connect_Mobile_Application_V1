@@ -1,8 +1,10 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:progress_group/core/network/api_constants.dart';
 import 'package:progress_group/core/services/analytics_service.dart';
 import 'package:progress_group/core/utils/helpers/app_time.dart';
+import 'package:progress_group/core/utils/helpers/date_helper.dart';
 import 'package:progress_group/core/utils/helpers/number_helper.dart';
 import 'package:progress_group/core/utils/helpers/permissions_helper.dart';
 import 'package:progress_group/core/utils/widget/shimmer_loading.dart';
@@ -36,6 +38,7 @@ import '../../state/prospect_status/prospect_status_state.dart';
 import '../../state/info_source/info_source_bloc.dart';
 import '../../state/info_source/info_source_event.dart';
 import '../../state/info_source/info_source_state.dart';
+import '../../state/sales_hierarchy/sales_hierarchy_service.dart';
 import '../../../domain/entities/info_source/info_source.dart';
 import '../../../../../core/utils/widget/custom_filter_button.dart';
 import '../../../../../core/utils/widget/error_dialog.dart';
@@ -172,12 +175,17 @@ class _ContactPageState extends State<ContactPage> {
 
     context.read<ProspectStatusBloc>().add(FetchProspectStatusesEvent());
     context.read<InfoSourceBloc>().add(const FetchInfoSourcesEvent(type: 1));
-    context.read<InfoSourceBloc>().add(const FetchSalesChannelDetailsEvent());
 
     context.read<AuthBloc>().add(FetchPermissionsEvent(silent: true));
     context.read<ProfileBloc>().add(
       GetProfileEvent(forceRefresh: true, silent: true),
     );
+
+    ApiConstants.settingsVersion.addListener(_onSettingsUpdated);
+  }
+
+  void _onSettingsUpdated() {
+    if (mounted) setState(() {});
   }
 
   @override
@@ -272,6 +280,7 @@ class _ContactPageState extends State<ContactPage> {
 
     _contactBloc.add(ClearContactsEvent());
 
+    ApiConstants.settingsVersion.removeListener(_onSettingsUpdated);
     _debounce?.cancel();
     _scrollController.dispose();
     _searchController.dispose();
@@ -348,6 +357,7 @@ class _ContactPageState extends State<ContactPage> {
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16.0),
                 child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     customSearchField(
                       controller: _searchController,
@@ -487,17 +497,24 @@ class _ContactPageState extends State<ContactPage> {
   }
 
   List<Widget> _buildQuickDateChips(BuildContext context) {
-    return [
-      _quickDateChip(
+    final configs = <({
+      String preset,
+      String label,
+      String? currentLabel,
+      String analyticsEvent,
+      void Function(String start, String end, String label) onApply,
+      VoidCallback onClear,
+    })>[
+      (
+        preset: ApiConstants.prospectStatusApptRangePreset,
         label: 'Appt',
-        icon: Icons.event_available_rounded,
         currentLabel: selectedApptDateLabel,
-        onApply: (start, end) {
-          AnalyticsService.logEvent('contact_list_quick_filter_appt_week');
+        analyticsEvent: 'contact_list_quick_filter_appt_week',
+        onApply: (start, end, label) {
           context.read<ContactBloc>().add(
             FetchContactsEvent(isRefresh: true, apptStartDate: start, apptEndDate: end),
           );
-          setState(() => selectedApptDateLabel = 'This Week');
+          setState(() => selectedApptDateLabel = label);
         },
         onClear: () {
           context.read<ContactBloc>().add(
@@ -506,17 +523,16 @@ class _ContactPageState extends State<ContactPage> {
           setState(() => selectedApptDateLabel = null);
         },
       ),
-      const SizedBox(width: 8),
-      _quickDateChip(
+      (
+        preset: ApiConstants.prospectStatusVisitRangePreset,
         label: 'Visit',
-        icon: Icons.directions_walk_rounded,
         currentLabel: selectedVisitDateLabel,
-        onApply: (start, end) {
-          AnalyticsService.logEvent('contact_list_quick_filter_visit_week');
+        analyticsEvent: 'contact_list_quick_filter_visit_week',
+        onApply: (start, end, label) {
           context.read<ContactBloc>().add(
             FetchContactsEvent(isRefresh: true, visitStartDate: start, visitEndDate: end),
           );
-          setState(() => selectedVisitDateLabel = 'This Week');
+          setState(() => selectedVisitDateLabel = label);
         },
         onClear: () {
           context.read<ContactBloc>().add(
@@ -525,17 +541,16 @@ class _ContactPageState extends State<ContactPage> {
           setState(() => selectedVisitDateLabel = null);
         },
       ),
-      const SizedBox(width: 8),
-      _quickDateChip(
+      (
+        preset: ApiConstants.prospectStatusReserveRangePreset,
         label: 'Reserve',
-        icon: Icons.bookmark_added_rounded,
         currentLabel: selectedReserveDateLabel,
-        onApply: (start, end) {
-          AnalyticsService.logEvent('contact_list_quick_filter_reserve_week');
+        analyticsEvent: 'contact_list_quick_filter_reserve_week',
+        onApply: (start, end, label) {
           context.read<ContactBloc>().add(
             FetchContactsEvent(isRefresh: true, reserveStartDate: start, reserveEndDate: end),
           );
-          setState(() => selectedReserveDateLabel = 'This Week');
+          setState(() => selectedReserveDateLabel = label);
         },
         onClear: () {
           context.read<ContactBloc>().add(
@@ -544,17 +559,16 @@ class _ContactPageState extends State<ContactPage> {
           setState(() => selectedReserveDateLabel = null);
         },
       ),
-      const SizedBox(width: 8),
-      _quickDateChip(
+      (
+        preset: ApiConstants.prospectStatusSpRangePreset,
         label: 'SP',
-        icon: Icons.assignment_turned_in_rounded,
         currentLabel: selectedSpDateLabel,
-        onApply: (start, end) {
-          AnalyticsService.logEvent('contact_list_quick_filter_sp_week');
+        analyticsEvent: 'contact_list_quick_filter_sp_week',
+        onApply: (start, end, label) {
           context.read<ContactBloc>().add(
             FetchContactsEvent(isRefresh: true, spStartDate: start, spEndDate: end),
           );
-          setState(() => selectedSpDateLabel = 'This Week');
+          setState(() => selectedSpDateLabel = label);
         },
         onClear: () {
           context.read<ContactBloc>().add(
@@ -563,17 +577,16 @@ class _ContactPageState extends State<ContactPage> {
           setState(() => selectedSpDateLabel = null);
         },
       ),
-      const SizedBox(width: 8),
-      _quickDateChip(
+      (
+        preset: ApiConstants.prospectStatusLostRangePreset,
         label: 'Lost',
-        icon: Icons.highlight_off_rounded,
         currentLabel: selectedLostDateLabel,
-        onApply: (start, end) {
-          AnalyticsService.logEvent('contact_list_quick_filter_lost_week');
+        analyticsEvent: 'contact_list_quick_filter_lost_week',
+        onApply: (start, end, label) {
           context.read<ContactBloc>().add(
             FetchContactsEvent(isRefresh: true, lostStartDate: start, lostEndDate: end),
           );
-          setState(() => selectedLostDateLabel = 'This Week');
+          setState(() => selectedLostDateLabel = label);
         },
         onClear: () {
           context.read<ContactBloc>().add(
@@ -583,29 +596,43 @@ class _ContactPageState extends State<ContactPage> {
         },
       ),
     ];
+
+    final chips = <Widget>[];
+    for (final config in configs) {
+      // Setting kosong/tidak valid (mis. PROSPECT_STATUS_LOST_RANGE_PRESET = " ")
+      // -> resolveRangePreset return null -> chip disembunyikan dari UI.
+      final preset = DateHelper.resolveRangePreset(config.preset);
+      if (preset == null) continue;
+      if (chips.isNotEmpty) chips.add(const SizedBox(width: 8));
+      chips.add(_quickDateChip(
+        label: config.label,
+        currentLabel: config.currentLabel,
+        presetLabel: preset.label,
+        onApply: () {
+          AnalyticsService.logEvent(config.analyticsEvent);
+          // Dihitung ulang saat tap (bukan pakai `preset` dari saat build) supaya
+          // tanggalnya tetap real-time walau chip sudah lama tidak di-rebuild.
+          final fresh = DateHelper.resolveRangePreset(config.preset)!;
+          final fmt = DateFormat('yyyy-MM-dd');
+          config.onApply(fmt.format(fresh.start), fmt.format(fresh.end), fresh.label);
+        },
+        onClear: config.onClear,
+      ));
+    }
+    return chips;
   }
 
   Widget _quickDateChip({
     required String label,
-    required IconData icon,
     required String? currentLabel,
-    required void Function(String start, String end) onApply,
+    required String presetLabel,
+    required VoidCallback onApply,
     required VoidCallback onClear,
   }) {
-    final isSelected = currentLabel == 'This Week';
+    final isSelected = currentLabel == presetLabel;
     return InkWell(
       borderRadius: BorderRadius.circular(14),
-      onTap: () {
-        if (isSelected) {
-          onClear();
-          return;
-        }
-        final now = AppTime.now();
-        final today = DateTime(now.year, now.month, now.day);
-        final startOfWeek = today.subtract(Duration(days: today.weekday - 1));
-        final fmt = DateFormat('yyyy-MM-dd');
-        onApply(fmt.format(startOfWeek), fmt.format(today));
-      },
+      onTap: isSelected ? onClear : onApply,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
@@ -626,10 +653,8 @@ class _ContactPageState extends State<ContactPage> {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 13, color: isSelected ? Color(whiteColor) : Color(blackColor)),
-            const SizedBox(width: 5),
             Text(
-              isSelected ? '$label · Minggu Ini' : label,
+              '$presetLabel $label',
               style: TextStyle(
                 fontSize: 12,
                 color: isSelected ? Color(whiteColor) : Color(blackColor),
@@ -712,12 +737,13 @@ class _ContactPageState extends State<ContactPage> {
     AnalyticsService.logEvent('contact_list_open_filter_sheet');
     final statusBloc = context.read<ProspectStatusBloc>();
     final sourceBloc = context.read<InfoSourceBloc>();
-    final profileBloc = context.read<ProfileBloc>();
 
-    // Owner/Sales Executive/Supervisor/Manager/GM/Team depend on the profile
-    // hierarchy, and Status/Sales Channel depend on their own blocs — wait for
-    // whichever of these haven't finished loading yet so the sheet opens with
-    // every accordion already populated instead of appearing empty/stuck.
+    // Status/Sales Channel depend on their own blocs, loaded upfront — wait for
+    // whichever hasn't finished loading yet so the sheet opens with those
+    // accordions already populated instead of appearing empty/stuck. Sales
+    // Channel Detail + hierarki sales (Owner/dst) sekarang paginated dan
+    // di-fetch sendiri oleh masing-masing accordion saat dibuka, jadi tidak
+    // perlu ditunggu di sini lagi.
     setState(() => _openingFilterSheet = true);
     await Future.wait([
       _waitUntilReady<ProspectStatusState>(
@@ -730,11 +756,6 @@ class _ContactPageState extends State<ContactPage> {
         (s) => s.status != InfoSourceStatus.initial && s.status != InfoSourceStatus.loading,
         sourceBloc.state,
       ),
-      _waitUntilReady<ProfileState>(
-        profileBloc.stream,
-        (s) => s is ProfileLoaded || s is ProfileFailure,
-        profileBloc.state,
-      ),
     ]);
     if (!context.mounted) return;
     setState(() => _openingFilterSheet = false);
@@ -742,7 +763,6 @@ class _ContactPageState extends State<ContactPage> {
     final contactState = context.read<ContactBloc>().state;
     final statusState = statusBloc.state;
     final sourceState = sourceBloc.state;
-    final profileState = profileBloc.state;
 
     final statusItems = statusState.status == ProspectStatusEnum.loaded
         ? statusState.statuses
@@ -757,33 +777,6 @@ class _ContactPageState extends State<ContactPage> {
     final channelItems = (sourceState.sourcesMap[1] ?? const <InfoSource>[])
         .map((e) => OwnerDropdownItem(id: e.id, name: e.name))
         .toList();
-    final channelDetailItems = <int, OwnerDropdownItem>{
-      for (final e in sourceState.sourcesMap[2] ?? const <InfoSource>[])
-        e.id: OwnerDropdownItem(id: e.id, name: e.name),
-    }.values.toList();
-
-    List<_OwnerCandidate> ownerCandidates = const [];
-    List<_OwnerCandidate> seCandidates = const [];
-    List<_OwnerCandidate> spvCandidates = const [];
-    List<_OwnerCandidate> smCandidates = const [];
-    List<_OwnerCandidate> gmCandidates = const [];
-    List<_TeamCandidate> teamCandidates = const [];
-    if (profileState is ProfileLoaded) {
-      ownerCandidates = _collectOwnerCandidates(profileState.profile);
-      seCandidates = ownerCandidates
-          .where((c) => _classifyPosition(c.positionName) == 'se')
-          .toList();
-      spvCandidates = ownerCandidates
-          .where((c) => _classifyPosition(c.positionName) == 'spv')
-          .toList();
-      smCandidates = ownerCandidates
-          .where((c) => _classifyPosition(c.positionName) == 'sm')
-          .toList();
-      gmCandidates = ownerCandidates
-          .where((c) => _classifyPosition(c.positionName) == 'gm')
-          .toList();
-      teamCandidates = _collectSalesTeamCandidates(profileState.profile);
-    }
 
     final checkGroups = <ContactCheckGroup>[
       ContactCheckGroup(
@@ -800,102 +793,56 @@ class _ContactPageState extends State<ContactPage> {
         searchable: false,
         items: channelItems,
       ),
-      ContactCheckGroup(
+    ];
+
+    // Sales Channel Detail + hierarki sales (Owner/Executive/Supervisor/Manager/GM/
+    // Team) — dedicated endpoint sendiri-sendiri (paginated + search di backend),
+    // BUKAN diturunkan dari data /me profile seperti sebelumnya. Data di-fetch
+    // bertahap oleh accordion-nya sendiri saat dibuka, lihat SalesHierarchyService.
+    final hierarchyService = context.read<SalesHierarchyService>();
+    final paginatedGroups = <PaginatedCheckGroup>[
+      PaginatedCheckGroup(
         key: 'channelDetail',
         label: 'Sales Channel Detail',
-        section: null,
-        searchable: true,
-        items: channelDetailItems,
+        section: 'Data Kontak',
+        fetchPage: hierarchyService.channelDetail,
       ),
-      ContactCheckGroup(
+      PaginatedCheckGroup(
         key: 'owner',
         label: 'Owner',
         section: 'Sales',
-        searchable: true,
-        items: ownerCandidates
-            .map(
-              (c) => OwnerDropdownItem(
-                id: c.id,
-                name: c.name,
-                subtitle: c.subtitle,
-              ),
-            )
-            .toList(),
+        fetchPage: hierarchyService.owners,
       ),
-      if (seCandidates.isNotEmpty)
-        ContactCheckGroup(
-          key: 'executive',
-          label: 'Sales Executive',
-          section: null,
-          searchable: true,
-          items: seCandidates
-              .map(
-                (c) => OwnerDropdownItem(
-                  id: c.salesPersonId,
-                  name: c.name,
-                  subtitle: c.subtitle,
-                ),
-              )
-              .toList(),
-        ),
-      if (spvCandidates.isNotEmpty)
-        ContactCheckGroup(
-          key: 'supervisor',
-          label: 'Sales Supervisor',
-          section: null,
-          searchable: true,
-          items: spvCandidates
-              .map(
-                (c) => OwnerDropdownItem(
-                  id: c.salesPersonId,
-                  name: c.name,
-                  subtitle: c.subtitle,
-                ),
-              )
-              .toList(),
-        ),
-      if (smCandidates.isNotEmpty)
-        ContactCheckGroup(
-          key: 'manager',
-          label: 'Sales Manager',
-          section: null,
-          searchable: true,
-          items: smCandidates
-              .map(
-                (c) => OwnerDropdownItem(
-                  id: c.salesPersonId,
-                  name: c.name,
-                  subtitle: c.subtitle,
-                ),
-              )
-              .toList(),
-        ),
-      if (gmCandidates.isNotEmpty)
-        ContactCheckGroup(
-          key: 'gm',
-          label: 'General Manager',
-          section: null,
-          searchable: true,
-          items: gmCandidates
-              .map(
-                (c) => OwnerDropdownItem(
-                  id: c.salesPersonId,
-                  name: c.name,
-                  subtitle: c.subtitle,
-                ),
-              )
-              .toList(),
-        ),
-      if (teamCandidates.isNotEmpty)
-        ContactCheckGroup(
-          key: 'team',
-          label: 'Sales Team',
-          section: null,
-          searchable: true,
-          items: teamCandidates
-              .map((c) => OwnerDropdownItem(id: c.id, name: c.name))
-              .toList(),
-        ),
+      PaginatedCheckGroup(
+        key: 'executive',
+        label: 'Sales Executive',
+        section: 'Sales',
+        fetchPage: hierarchyService.executives,
+      ),
+      PaginatedCheckGroup(
+        key: 'supervisor',
+        label: 'Sales Supervisor',
+        section: 'Sales',
+        fetchPage: hierarchyService.supervisors,
+      ),
+      PaginatedCheckGroup(
+        key: 'manager',
+        label: 'Sales Manager',
+        section: 'Sales',
+        fetchPage: hierarchyService.managers,
+      ),
+      PaginatedCheckGroup(
+        key: 'gm',
+        label: 'General Manager',
+        section: 'Sales',
+        fetchPage: hierarchyService.generalManagers,
+      ),
+      PaginatedCheckGroup(
+        key: 'team',
+        label: 'Sales Team',
+        section: 'Sales',
+        fetchPage: hierarchyService.teams,
+      ),
     ];
 
     final initialChecks = <String, Set<int>>{
@@ -958,6 +905,7 @@ class _ContactPageState extends State<ContactPage> {
       backgroundColor: Colors.transparent,
       builder: (ctx) => ContactFilterSheet(
         checkGroups: checkGroups,
+        paginatedGroups: paginatedGroups,
         initialChecks: initialChecks,
         initialDates: initialDates,
         initialProject: contactState.lastProject,

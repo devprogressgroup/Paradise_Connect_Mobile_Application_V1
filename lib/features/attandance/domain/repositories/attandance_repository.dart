@@ -14,6 +14,7 @@ abstract class AttendanceRepository {
   Future<AttendanceEntity?> getTodayAttendance();
   Future<List<AttendanceLocation>> getLocations();
   Future<List<AttendanceLocation>> getOfficeLocations();
+  Future<List<AttendanceLocation>> getAllOfficeLocations();
   Future<void> submitAttendance({required String datetime,required int flag,required String location,String? note,String? filePath,Uint8List? fileBytes,int? locationId,String? latitude,String? longitude,});
   Future<void> submitAttendanceActivity({required String datetime,required int flag,required String location,String? note,required List<String> filePaths,List<Uint8List>? fileBytesData,int? locationId,String? latitude,String? longitude,});
   Future<({List<AttendanceActivityEntity> data, int lastPage})> getAttendanceActivity({List<int>? salesPersonIds, String? startDate, String? endDate, String? location, List<String>? types, int page, int perPage});
@@ -46,6 +47,13 @@ class AttendanceRepositoryImpl implements AttendanceRepository {
   @override
   Future<List<AttendanceLocation>> getOfficeLocations() async {
     final result = await remote.getOfficeLocations();
+    final list = result['data']['data'] as List;
+    return list.map((e) => AttendanceLocationModel.fromJson(e)).whereType<AttendanceLocationModel>().toList();
+  }
+
+  @override
+  Future<List<AttendanceLocation>> getAllOfficeLocations() async {
+    final result = await remote.getAllOfficeLocations();
     final list = result['data']['data'] as List;
     return list.map((e) => AttendanceLocationModel.fromJson(e)).whereType<AttendanceLocationModel>().toList();
   }
