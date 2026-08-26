@@ -1,0 +1,11 @@
+#!/bin/sh
+# Auto-restore file identitas app (applicationId/bundle id/signing/Firebase client config)
+# di branch main/Main setiap ada commit baru (cherry-pick atau commit langsung) yang
+# mengubahnya. Lihat .githooks/_identity-guard.sh untuk logic-nya, dan .githooks/post-merge
+# untuk kasus merge (termasuk fast-forward, yang gak memicu post-commit sama sekali).
+#
+# Setup sekali per clone: git config core.hooksPath .githooks
+#
+# Bypass sengaja (kalau memang mau ubah identity di main): tambahkan tag [allow-identity]
+# di commit message.
+exec "$(dirname "$0")/_identity-guard.sh"

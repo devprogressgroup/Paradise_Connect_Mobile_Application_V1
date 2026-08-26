@@ -1,1 +1,22 @@
 lib/core/network/api_constants.dart merge=ours
+
+# File identitas app (applicationId/bundle id/signing/Firebase client config) dikunci
+# ke versi branch tujuan lewat custom merge driver "ours" (built-in git, bukan strategi
+# `-X ours` bawaan) — jadi merge & cherry-pick manapun yang menyentuh file-file ini akan
+# selalu pakai versi branch tujuan, perubahan dari commit yang di-merge/di-cherry-pick
+# untuk file-file ini diabaikan sepenuhnya (bukan cuma di-skip kalau conflict).
+#
+# Setup sekali per clone/CI (tidak ke-commit karena driver command disimpan di git config,
+# bukan di repo): git config merge.ours.driver true
+#
+# Konsekuensi: perubahan LEGIT ke file-file ini (bukan cuma appId, misal proguard rule baru)
+# juga TIDAK akan ikut lewat merge/cherry-pick — harus di-apply manual ke branch tujuan.
+android/app/build.gradle.kts merge=ours
+android/app/src/main/AndroidManifest.xml merge=ours
+android/app/google-services.json merge=ours
+ios/Runner/GoogleService-Info.plist merge=ours
+firebase.json merge=ours
+lib/firebase_options.dart merge=ours
+
+# Hook harus LF walau core.autocrlf=true, kalau kena CRLF shebang-nya rusak ("bad interpreter").
+.githooks/* text eol=lf

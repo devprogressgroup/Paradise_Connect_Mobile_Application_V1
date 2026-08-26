@@ -1,32 +1,7 @@
 #!/bin/sh
-# Keeps lib/core/network/api_constants.dart untouched on Main after any merge.
-# Git's merge=ours driver only fires when BOTH sides changed a file; if only the
-# incoming branch changed it, git fast-paths to "theirs" and skips the driver.
-# This hook restores Main's own version after every merge into Main.
+# Sama seperti post-commit, tapi khusus buat merge (termasuk fast-forward, yang gak
+# bikin commit baru jadi post-commit gak kepanggil sama sekali untuk kasus itu).
+# Lihat .githooks/_identity-guard.sh untuk logic-nya.
 #
-# It intentionally does NOT auto-commit: while this hook runs, git still has
-# MERGE_HEAD in place (cleaned up only after the hook returns), so `git commit`
-# or `--amend` here fails or risks creating a bogus second merge commit. The
-# fix is staged instead; commit it with the command the hook prints.
-
-PROTECTED="lib/core/network/api_constants.dart"
-BRANCH=$(git rev-parse --abbrev-ref HEAD)
-
-if [ "$BRANCH" != "Main" ]; then
-  exit 0
-fi
-
-if ! git rev-parse -q --verify ORIG_HEAD >/dev/null 2>&1; then
-  exit 0
-fi
-
-if ! git diff --quiet ORIG_HEAD -- "$PROTECTED" 2>/dev/null; then
-  git checkout ORIG_HEAD -- "$PROTECTED"
-  git add "$PROTECTED"
-  echo ""
-  echo "=================================================================="
-  echo "[post-merge] $PROTECTED was changed by this merge."
-  echo "It has been restored to Main's version and staged (not committed)."
-  echo "Run:  git commit -m \"chore: keep Main's api_constants.dart\""
-  echo "=================================================================="
-fi
+# Setup sekali per clone: git config core.hooksPath .githooks
+exec "$(dirname "$0")/_identity-guard.sh"
