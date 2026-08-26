@@ -17,7 +17,7 @@ esac
 
 prev=$(git rev-parse "HEAD@{1}" 2>/dev/null) || exit 0
 
-protected="android/app/build.gradle.kts android/app/google-services.json ios/Runner/GoogleService-Info.plist firebase.json lib/firebase_options.dart lib/core/network/api_constants.dart"
+protected="android/app/build.gradle.kts android/app/src/main/AndroidManifest.xml android/app/google-services.json ios/Runner/GoogleService-Info.plist firebase.json lib/firebase_options.dart lib/core/network/api_constants.dart"
 
 restored=""
 for f in $protected; do
