@@ -15,7 +15,7 @@
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS"/>
 
     <application
-        android:label="Paradise Connect Dev"
+        android:label="Paradise Connect"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher"
         android:usesCleartextTraffic="true">
@@ -46,26 +46,6 @@
             <intent-filter>
                 <action android:name="FLUTTER_NOTIFICATION_CLICK"/>
                 <category android:name="android.intent.category.DEFAULT"/>
-            </intent-filter>
-            <!-- App Links — link https://devconnect.paradise.id/link/... dibuka LANGSUNG di app
-                 ini (bukan browser), tanpa dialog pilihan app, kalau assetlinks.json di domain itu
-                 sudah terverifikasi (lihat docs/app-links-site-plan-blank.md, harus diserver dari
-                 Paradise-Connect-1.0/public/.well-known/assetlinks.json). Ditangkap & di-translate
-                 ke path internal app di AppRouter.init()'s redirect() (lib/app/router.dart), BUKAN
-                 lewat listener/package terpisah.
-
-                 android:host DI BAWAH INI SENGAJA HARDCODE, TIDAK BISA dibaca dari .env/settings API
-                 Laravel manapun — Android verifikasi App Links (autoVerify) terjadi saat APK
-                 diinstall, JAUH SEBELUM Dart/Flutter engine sempat jalan sama sekali, jadi nilainya
-                 WAJIB sudah final di manifest ini saat app di-build. Kalau domain App Links beda per
-                 environment (dev/staging/prod), satu-satunya cara benar-benar "dinamis" adalah lewat
-                 Android build flavors (manifest placeholder per flavor) — BELUM diimplementasi,
-                 karena app ini saat ini cuma punya 1 domain App Links (production). -->
-            <intent-filter android:autoVerify="true">
-                <action android:name="android.intent.action.VIEW"/>
-                <category android:name="android.intent.category.DEFAULT"/>
-                <category android:name="android.intent.category.BROWSABLE"/>
-                <data android:scheme="https" android:host="devconnect.paradise.id" android:pathPrefix="/link"/>
             </intent-filter>
         </activity>
         <!-- Don't delete the meta-data below.

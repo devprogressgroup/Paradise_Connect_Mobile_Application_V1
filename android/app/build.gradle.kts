@@ -42,7 +42,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.example.progress_group"
+        applicationId = "id.co.progressgroup.connect"
         // applicationId = "id.co.progressgroup.connect"
         // Di-hardcode (bukan ikut flutter.minSdkVersion) supaya nggak diam-diam naik/turun
         // kalau Flutter SDK di-upgrade. 24 ini juga batas bawah paling ketat yang ada di
