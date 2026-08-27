@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 
 String cleanErrorMessage(Object e) {
+  if (e is DioException) return getErrorMessage(e, 'Terjadi kesalahan. Silakan coba lagi.');
   final raw = e.toString();
   if (raw.startsWith('Exception: ')) return raw.substring(11);
   return raw.replaceAll('  ', '').trim();
@@ -20,7 +21,6 @@ String getErrorMessage(DioException e, String defaultMessage) {
         break;
     }
 
-    final statusCode = e.response?.statusCode;
     final data = e.response?.data;
 
     String? message;
@@ -41,7 +41,7 @@ String getErrorMessage(DioException e, String defaultMessage) {
 
     message ??= e.message ?? defaultMessage;
 
-    return statusCode != null ? '[$statusCode] $message' : message;
+    return message;
   } catch (_) {
     return defaultMessage;
   }

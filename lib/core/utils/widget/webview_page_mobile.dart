@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_pdfview/flutter_pdfview.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:progress_group/core/constants/colors.dart';
+import 'package:progress_group/core/utils/helpers/error_message.dart';
 import 'package:progress_group/core/utils/helpers/file_extension_helper.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:webview_flutter/webview_flutter.dart';
@@ -183,7 +184,7 @@ class _PdfViewerWidgetState extends State<PdfViewerWidget> {
     } catch (e) {
       if (mounted) {
         setState(() {
-          error = e.toString();
+          error = cleanErrorMessage(e);
         });
       }
     }
@@ -232,7 +233,7 @@ class _PdfViewerWidgetState extends State<PdfViewerWidget> {
       fitPolicy: FitPolicy.BOTH,
       onError: (e) {
         setState(() {
-          error = e.toString();
+          error = cleanErrorMessage(e);
         });
       },
       onPageError: (page, e) {

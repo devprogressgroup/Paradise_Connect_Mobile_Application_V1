@@ -1,6 +1,7 @@
 import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
 const _channel = MethodChannel('com.example.progress_group/install_apk');
 
@@ -16,6 +17,11 @@ class OldAppCheckService {
 
   static Future<bool> isOldAppInstalled() async {
     try {
+      // Build dev pakai applicationId yang sama persis dengan oldPackageName (lihat
+      // dev-branch-applicationid-separation.md) — tanpa guard ini, app dev bakal
+      // mendeteksi dirinya sendiri sebagai "app lama" dan nyuruh uninstall diri sendiri.
+      final self = await PackageInfo.fromPlatform();
+      if (self.packageName == oldPackageName) return false;
       final result = await _channel.invokeMethod<bool>(
         'isPackageInstalled',
         {'packageName': oldPackageName},

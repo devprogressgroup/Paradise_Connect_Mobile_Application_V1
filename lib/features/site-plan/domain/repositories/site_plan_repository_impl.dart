@@ -12,6 +12,15 @@ class SitePlanRepositoryImpl implements SitePlanRepository {
 
   SitePlanRepositoryImpl(this.dataSource, this.authLocalDataSource);
 
+  // getUnitDetail() selalu nunggu PropertyPricingGateway::pull() di backend (POST sinkron ke
+  // server vendor eksternal Paradise Dynamics Web2, timeout 15 detik, TANPA cache) — kalau unit
+  // yang sama dibuka lagi (tutup-buka sheet, tap pin sama 2x), user nunggu round-trip lambat itu
+  // dari nol lagi walau datanya belum tentu berubah. Cache in-memory di sini (dipakai bareng oleh
+  // mobile & web/PWA, satu class yang sama) supaya buka ulang unit yang sama dalam jangka pendek
+  // langsung dari cache, tidak ikut nunggu vendor lagi.
+  static final Map<String, _CachedUnitDetail> _unitDetailCache = {};
+  static const _cacheTtl = Duration(minutes: 5);
+
   @override
   Future<List<ProjectSite>> getAvailableSites() async {
     final data = await dataSource.getSiteplanSettings();
@@ -65,12 +74,31 @@ class SitePlanRepositoryImpl implements SitePlanRepository {
     required int productId,
     required int propertyId,
   }) async {
+    final cacheKey = '$siteplanId-$companyId-$productId-$propertyId';
+    final cached = _unitDetailCache[cacheKey];
+    if (cached != null && DateTime.now().difference(cached.fetchedAt) < _cacheTtl) {
+      return cached.detail;
+    }
+
     final data = await dataSource.getPropertyPricing(
       siteplanId: siteplanId,
       companyId: companyId,
       productId: productId,
       propertyId: propertyId,
     );
-    return UnitDetail.fromJson(data);
+    final detail = UnitDetail.fromJson(data);
+    // Cuma hasil SUKSES yang di-cache — kalau gagal (mis. timeout ke Paradise Dynamics Web2),
+    // dataSource.getPropertyPricing() sudah throw duluan sebelum sampai sini, jadi tombol
+    // "Coba Lagi" di UnitDetailPage tetap benar-benar fetch ulang ke backend, bukan ke-cache
+    // sebagai error.
+    _unitDetailCache[cacheKey] = _CachedUnitDetail(detail, DateTime.now());
+    return detail;
   }
+}
+
+class _CachedUnitDetail {
+  final UnitDetail detail;
+  final DateTime fetchedAt;
+
+  _CachedUnitDetail(this.detail, this.fetchedAt);
 }

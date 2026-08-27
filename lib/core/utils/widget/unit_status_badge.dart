@@ -10,15 +10,17 @@ class UnitStatusBadge extends StatelessWidget {
   Color get _bgColor {
     switch (label.trim().toLowerCase()) {
       case 'available':
-        return const Color(successColor);
+        return const Color(availableColor);
       case 'hold':
-        return const Color(redColor);
+        return const Color(holdColor);
+      case 'rba':
+        return const Color(rbaColor);
       case 'rbb':
-        return const Color(orangeAccentColor);
+        return const Color(rbbColor);
       case 'reserve':
-        return const Color(amberMaterialColor);
+        return const Color(reserveColor);
       case 'sp':
-        return const Color(blueShade900Color);
+        return const Color(spColor);
       default:
         return const Color(greyShade500);
     }

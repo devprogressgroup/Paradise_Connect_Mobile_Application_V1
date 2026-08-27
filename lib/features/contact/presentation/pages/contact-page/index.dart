@@ -398,16 +398,19 @@ class _ContactPageState extends State<ContactPage> {
                           }
                           return Column(
                             children: [
-                              SingleChildScrollView(
-                                scrollDirection: Axis.horizontal,
-                                child: Row(
-                                  children: [
-                                    _buildSortFilter(context),
-                                    const SizedBox(width: 8),
-                                    _buildFilterPill(context),
-                                    const SizedBox(width: 10),
-                                    ..._buildQuickDateChips(context),
-                                  ],
+                              Align(
+                                alignment: Alignment.centerLeft,
+                                child: SingleChildScrollView(
+                                  scrollDirection: Axis.horizontal,
+                                  child: Row(
+                                    children: [
+                                      _buildSortFilter(context),
+                                      const SizedBox(width: 8),
+                                      _buildFilterPill(context),
+                                      const SizedBox(width: 10),
+                                      ..._buildQuickDateChips(context),
+                                    ],
+                                  ),
                                 ),
                               ),
                               _buildActiveChipsRow(context),

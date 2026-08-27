@@ -111,8 +111,8 @@ class _LoginPageState extends State<LoginPage> {
       context.read<AuthBloc>().add(
         LoginEvent(email, password, rememberMe: true),
       );
-    } catch (e) {
-      if (context.mounted) showSnackbar(context, "Biometrik gagal: $e", isError: true);
+    } catch (_) {
+      if (context.mounted) showSnackbar(context, "Biometrik tidak tersedia di perangkat ini", isError: true);
     }
   }
 

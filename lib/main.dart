@@ -2,7 +2,7 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'dart:ui' show PlatformDispatcher;
-import 'package:flutter/foundation.dart' show kIsWeb, debugPrint;
+import 'package:flutter/foundation.dart' show kIsWeb, kDebugMode, debugPrint;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_web_plugins/url_strategy.dart';
@@ -226,9 +226,23 @@ void main() async {
   try {
     final localDs = AuthLocalDataSourceImpl(prefs);
     final dio = DioClient(localDs).dio;
-    final settings = await SettingsRemoteDataSource(dio).getSettings();
+    // getSettings() & refreshEnabledEvents() independen satu sama lain — DIPANGGIL dulu (bukan
+    // di-await) di sini supaya keduanya jalan PARALEL di background, baru di-await satu-satu di
+    // bawah. Sebelumnya sequential (getSettings selesai baru refreshEnabledEvents mulai), jadi
+    // splash screen nunggu 2x round-trip network yang sebetulnya bisa bersamaan. Timeout jaga-jaga
+    // per panggilan (pola sama seperti PushNotificationService di bawah) — backend yang lambat
+    // tidak boleh bikin app nge-hang di splash tanpa batas waktu.
+    final settingsFuture = SettingsRemoteDataSource(dio).getSettings();
+    final analyticsFuture = AnalyticsService.refreshEnabledEvents(dio);
+    final settings = await settingsFuture.timeout(
+      const Duration(seconds: 8),
+      onTimeout: () => <Map<String, dynamic>>[],
+    );
     if (settings.isNotEmpty) ApiConstants.applySettings(settings);
-    await AnalyticsService.refreshEnabledEvents(dio);
+    await analyticsFuture.timeout(
+      const Duration(seconds: 8),
+      onTimeout: () => debugPrint('[main] refreshEnabledEvents() timeout, lanjut tanpa itu'),
+    );
   } catch (_) {}
 
   try {
@@ -259,9 +273,11 @@ void main() async {
     // code) dan kita teruskan ke go_router secara manual di sini.
     AppLinks().uriLinkStream.listen((uri) {
       final location = '${uri.path}${uri.hasQuery ? '?${uri.query}' : ''}';
-      debugPrint('[AppLinks] uriLinkStream: $location');
+      if (kDebugMode) debugPrint('[AppLinks] uriLinkStream: $location');
       AppRouter.router.go(location.isEmpty ? '/' : location);
-    }, onError: (e) => debugPrint('[AppLinks] error: $e'));
+    }, onError: (e) {
+      if (kDebugMode) debugPrint('[AppLinks] error: $e');
+    });
   }
 
   SystemChrome.setSystemUIOverlayStyle(

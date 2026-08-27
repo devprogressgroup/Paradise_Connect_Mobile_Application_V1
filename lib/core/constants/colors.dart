@@ -87,4 +87,12 @@ const int blueShade900Color = 0xFF0D47A1;
 const int blueShade800Color = 0xFF1565C0;
 const int blueShade50Color = 0xFFE3F2FD;
 
+//siteplan
+const int holdColor = 0xFFFF005A;        // #ff005a
+const int availableColor = 0xFF00FF0C;   // #00ff0c
+const int reserveColor = 0xFFEAFF00;     // #eaff00
+const int rbbColor = 0xFFFEB900;         // #FEB900
+const int rbaColor = 0xFFFE9500;         // #fe9500
+const int spColor = 0xFF1800FE;          // #1800FE
+const int defaultColor = 0xFFFFFFFF;     // #FFFFFF
 //dark
