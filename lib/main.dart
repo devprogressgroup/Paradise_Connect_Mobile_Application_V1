@@ -241,7 +241,9 @@ void main() async {
     if (settings.isNotEmpty) ApiConstants.applySettings(settings);
     await analyticsFuture.timeout(
       const Duration(seconds: 8),
-      onTimeout: () => debugPrint('[main] refreshEnabledEvents() timeout, lanjut tanpa itu'),
+      onTimeout: () {
+        if (kDebugMode) debugPrint('[main] refreshEnabledEvents() timeout, lanjut tanpa itu');
+      },
     );
   } catch (_) {}
 
