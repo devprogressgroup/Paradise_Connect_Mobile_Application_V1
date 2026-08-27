@@ -1,5 +1,6 @@
 import 'package:bloc_concurrency/bloc_concurrency.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:progress_group/core/utils/helpers/error_message.dart';
 import 'package:progress_group/features/home/domain/usecases/get_prospect_status_summary_usecase.dart';
 import 'prospect_status_summary_event.dart';
 import 'prospect_status_summary_state.dart';
@@ -25,7 +26,7 @@ class ProspectStatusSummaryBloc extends Bloc<ProspectStatusSummaryEvent, Prospec
       final summary = await getProspectStatusSummaryUseCase(startDate: event.startDate, endDate: event.endDate);
       emit(state.copyWith(status: ProspectStatusSummaryStatus.loaded, summary: summary));
     } catch (e) {
-      emit(state.copyWith(status: ProspectStatusSummaryStatus.error, errorMessage: e.toString()));
+      emit(state.copyWith(status: ProspectStatusSummaryStatus.error, errorMessage: cleanErrorMessage(e)));
     }
   }
 }

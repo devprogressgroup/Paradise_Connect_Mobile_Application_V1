@@ -74,7 +74,7 @@ class OtaUpdateService {
       onError('Gagal membuka installer: ${e.message}');
     } catch (e) {
       debugPrint('[OtaUpdateService] Error tak terduga: $e');
-      onError('Error: $e');
+      onError('Gagal mengunduh pembaruan, silakan coba lagi.');
     }
   }
 

@@ -18,6 +18,7 @@ import 'package:progress_group/core/utils/helpers/app_time.dart';
 import 'package:progress_group/core/utils/helpers/permissions_helper.dart';
 import 'package:progress_group/core/utils/helpers/camera_permission_primer.dart';
 import 'package:progress_group/core/utils/widget/custom_snackbar.dart';
+import 'package:progress_group/core/utils/widget/error_dialog.dart';
 import 'package:progress_group/core/utils/widget/drive_image/drive_image.dart';
 import 'package:progress_group/core/utils/helpers/initial_name_helper.dart';
 import 'package:progress_group/core/utils/widget/custom_filter_button.dart';
@@ -33,6 +34,7 @@ import 'package:progress_group/features/attandance/presentation/state/attandance
 import 'package:progress_group/features/attandance/presentation/state/attandance/attendance_state.dart';
 import 'package:progress_group/features/attandance/presentation/state/attendance_activity/attendance_activity_bloc.dart';
 import 'package:progress_group/features/attandance/presentation/state/office_location/office_location_cubit.dart';
+import 'package:progress_group/features/attandance/presentation/state/office_location/all_office_location_cubit.dart';
 import 'package:progress_group/features/attandance/presentation/state/attendance_activity/attendance_activity_event.dart';
 import 'package:progress_group/features/attandance/presentation/state/attendance_activity/attendance_activity_state.dart';
 import 'package:progress_group/features/attandance/presentation/state/attendance_approval/attendance_approval_cubit.dart';
@@ -87,6 +89,7 @@ class _AttandancePageState extends State<AttandancePage>
   String? _activityEndDate;
   String? _activityDateLabel;
   List<String>? _activityTypes;
+  List<String>? _activityLocationNames;
   final GlobalKey _activityFilterButtonKey = GlobalKey();
 
   List<AttendanceActivityEntity>? _activityRowsSourceRef;
@@ -180,6 +183,7 @@ class _AttandancePageState extends State<AttandancePage>
         startDate: _activityDateRange.start,
         endDate: _activityDateRange.end,
         types: _activityTypes,
+        location: (_activityLocationNames != null && _activityLocationNames!.isNotEmpty) ? _activityLocationNames!.join(',') : null,
         page: activityState.activityPage + 1,
         perPage: 8,
         isLoadMore: true,
@@ -384,6 +388,7 @@ class _AttandancePageState extends State<AttandancePage>
     int count = 0;
     if (_activityOwnerIds != null && _activityOwnerIds!.isNotEmpty) count++;
     if (_activityTypes != null && _activityTypes!.isNotEmpty) count++;
+    if (_activityLocationNames != null && _activityLocationNames!.isNotEmpty) count++;
     if (_activityStartDate != null && _activityEndDate != null) count++;
     return count;
   }
@@ -394,6 +399,7 @@ class _AttandancePageState extends State<AttandancePage>
       startDate: _activityDateRange.start,
       endDate: _activityDateRange.end,
       types: _activityTypes,
+      location: (_activityLocationNames != null && _activityLocationNames!.isNotEmpty) ? _activityLocationNames!.join(',') : null,
       perPage: 8,
     ));
   }
@@ -1024,10 +1030,7 @@ class _AttandancePageState extends State<AttandancePage>
             context.read<AttendanceExcelCubit>().reset();
           } else if (state is AttendanceExcelError) {
             ScaffoldMessenger.of(context).hideCurrentSnackBar();
-            debugPrint('AttendanceExcelError: ${state.message}');
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Gagal mengunduh data kehadiran')),
-            );
+            showErrorDialog(context, state.message);
             context.read<AttendanceExcelCubit>().reset();
           }
         },
@@ -1294,6 +1297,12 @@ class _AttandancePageState extends State<AttandancePage>
           clearValue: 'type_clear',
         ),
         _buildActivityFilterMenuItem(
+          value: 'location',
+          label: 'Location',
+          isActive: _activityLocationNames != null && _activityLocationNames!.isNotEmpty,
+          clearValue: 'location_clear',
+        ),
+        _buildActivityFilterMenuItem(
           value: 'date',
           label: 'Date',
           isActive: _activityStartDate != null && _activityEndDate != null,
@@ -1308,12 +1317,16 @@ class _AttandancePageState extends State<AttandancePage>
         await _openActivityUserFilter();
       case 'type':
         await _openActivityTypeFilter();
+      case 'location':
+        await _openActivityLocationFilter();
       case 'date':
         await _openActivityDateFilter();
       case 'user_clear':
         _clearActivityUserFilter();
       case 'type_clear':
         _clearActivityTypeFilter();
+      case 'location_clear':
+        _clearActivityLocationFilter();
       case 'date_clear':
         _clearActivityDateFilter();
     }
@@ -1356,6 +1369,12 @@ class _AttandancePageState extends State<AttandancePage>
     _fetchActivityLogs();
   }
 
+  void _clearActivityLocationFilter() {
+    if (_activityLocationNames == null) return;
+    setState(() => _activityLocationNames = null);
+    _fetchActivityLogs();
+  }
+
   void _clearActivityDateFilter() {
     if (_activityStartDate == null && _activityEndDate == null) return;
     setState(() {
@@ -1391,6 +1410,40 @@ class _AttandancePageState extends State<AttandancePage>
     final List<OwnerDropdownItem> selected = result is List<OwnerDropdownItem> ? result : [result as OwnerDropdownItem];
     final values = selected.where((e) => e.id != null).map((e) => _activityTypeOptions[e.id!].value).toList();
     setState(() => _activityTypes = values.isEmpty ? null : values);
+    _fetchActivityLogs();
+  }
+
+  Future<void> _openActivityLocationFilter() async {
+    final allOfficeLocationCubit = context.read<AllOfficeLocationCubit>();
+    await allOfficeLocationCubit.load();
+    if (!mounted) return;
+
+    final locationNames = allOfficeLocationCubit.state.map((e) => e.name).where((name) => name.isNotEmpty).toSet().toList()..sort();
+
+    final items = List<OwnerDropdownItem>.generate(
+      locationNames.length,
+      (i) => OwnerDropdownItem(id: i, name: locationNames[i]),
+    );
+    final selectedIds = (_activityLocationNames ?? const <String>[])
+        .map((v) => locationNames.indexOf(v))
+        .where((i) => i >= 0)
+        .toList();
+
+    final result = await context.pushNamed(
+      'attendanceOwnerDropdown',
+      extra: ContactDropdownArgs(
+        title: 'Pilih Location',
+        items: items,
+        selectedIds: selectedIds,
+        isMultiSelect: true,
+        allowClear: false,
+      ),
+    );
+
+    if (result == null || !mounted) return;
+    final List<OwnerDropdownItem> selected = result is List<OwnerDropdownItem> ? result : [result as OwnerDropdownItem];
+    final values = selected.where((e) => e.id != null).map((e) => locationNames[e.id!]).toList();
+    setState(() => _activityLocationNames = values.isEmpty ? null : values);
     _fetchActivityLogs();
   }
 
@@ -2615,7 +2668,10 @@ class _AttandancePageState extends State<AttandancePage>
                     ),
                   ),
                   const SizedBox(height: 12),
-                  Text("Please $title!", style: TextStyle(fontSize: 12, color: Color(grey6Color))),
+                  Text(
+                    flagParam == 6 ? "Hanya untuk ambil foto aktivitas hari ini" : "Please $title!",
+                    style: TextStyle(fontSize: 12, color:flagParam == 6 ? Color(redColor) : Color(grey6Color)),
+                  ),
                 ],
               ),
             ),

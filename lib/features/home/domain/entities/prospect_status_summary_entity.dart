@@ -2,6 +2,7 @@ class ProspectStatusItemEntity {
   final int prospectStatusId;
   final String statusValue;
   final String statusName;
+  final String group;
   final String? startDate;
   final String? endDate;
   final int totalContacts;
@@ -10,6 +11,7 @@ class ProspectStatusItemEntity {
     required this.prospectStatusId,
     required this.statusValue,
     required this.statusName,
+    required this.group,
     required this.totalContacts,
     this.startDate,
     this.endDate,

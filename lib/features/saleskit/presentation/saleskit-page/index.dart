@@ -35,7 +35,6 @@ import '../../../../core/utils/widget/shimmer_loading.dart';
 import '../../data/arguments/saleskit_detail_args.dart';
 import 'package:progress_group/core/services/analytics_service.dart';
 
-typedef _StaticSalesKitItem = ({String title, String logo, String? url, String event});
 
 class SalesKitPage extends StatefulWidget {
   final SalesKitDetailArgs args;
@@ -693,7 +692,7 @@ class _SalesKitPageState extends State<SalesKitPage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Text('Gagal memuat data saleskit', textAlign: TextAlign.center),
+            Text(state.message, textAlign: TextAlign.center),
             SizedBox(height: 12),
             ElevatedButton(
               onPressed: () {
@@ -877,7 +876,7 @@ class _SalesKitPageState extends State<SalesKitPage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Text('Gagal memuat data project', textAlign: TextAlign.center),
+            Text(state.message, textAlign: TextAlign.center),
             SizedBox(height: 12),
             ElevatedButton(
               onPressed: () {

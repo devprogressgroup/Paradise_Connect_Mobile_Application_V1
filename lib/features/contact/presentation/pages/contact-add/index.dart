@@ -1,10 +1,11 @@
-﻿import 'dart:io';
+import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:file_picker/file_picker.dart';
 import 'package:progress_group/core/services/salesbook_sync_service.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:progress_group/core/utils/widget/shimmer_loading.dart';
+import 'package:progress_group/core/utils/widget/error_dialog.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -37,7 +38,7 @@ import 'package:progress_group/features/contact/presentation/state/contact/conta
 import 'package:progress_group/features/contact/presentation/state/lost_reason/lost_reason_block.dart';
 import 'package:progress_group/features/contact/presentation/state/lost_reason/lost_reason_event.dart';
 import 'package:progress_group/features/contact/presentation/state/lost_reason/lost_reason_state.dart';
-import 'package:progress_group/features/contact/presentation/state/prospect_status/prospect_status_bloc.dart';
+import 'package:progress_group/features/contact/presentation/state/prospect_status/contact_form_prospect_status_bloc.dart';
 import 'package:progress_group/features/contact/presentation/state/prospect_status/prospect_status_event.dart';
 import 'package:progress_group/features/contact/presentation/state/prospect_status/prospect_status_state.dart';
 import 'package:progress_group/features/contact/presentation/state/contact/contact_bloc.dart';
@@ -98,6 +99,12 @@ class _ContactAddPageState extends State<ContactAddPage> {
   
   
   bool _prefillDateApplied = false;
+
+  // Menunggu CreateVisitEvent (ActivityVisitBloc) dan UpdateContactEvent (ContactBloc)
+  // sama-sama sukses sebelum halaman ditutup, supaya tidak ada yang gagal diam-diam
+  // saat salah satu request selesai duluan dari yang lain.
+  bool _visitActivityDone = false;
+  bool _contactUpdateDone = false;
 
   String? selectedProject;
   String? selectedProduct;
@@ -161,7 +168,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
   
   DateTime? _getSelectedDateByStatus(dynamic data) {
     final group = _resolveStatusGroup(
-          context.read<ProspectStatusBloc>().state,
+          context.read<ContactFormProspectStatusBloc>().state,
           data.statusProspectId,
         ) ??
         'db';
@@ -284,7 +291,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
         lostReasonNoteTC.text = params?.lostReasonNote ?? data.lostReasonNote ?? '';
 
         
-        final statusState = context.read<ProspectStatusBloc>().state;
+        final statusState = context.read<ContactFormProspectStatusBloc>().state;
         if (statusState.status == ProspectStatusEnum.loaded) {
           for (final s in statusState.statuses) {
             if (s.statusProspectId == selectedStatusId) {
@@ -313,7 +320,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
 
       
       
-      final cachedStatus = context.read<ProspectStatusBloc>().state;
+      final cachedStatus = context.read<ContactFormProspectStatusBloc>().state;
       if (cachedStatus.status == ProspectStatusEnum.loaded) {
         _autoSelectStatusIfNeeded(cachedStatus.statuses);
       }
@@ -339,7 +346,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
     }
 
     context.read<AttachmentTypeBloc>().add(FetchAttachmentTypesEvent());
-    context.read<ProspectStatusBloc>().add(const FetchProspectStatusesEvent());
+    context.read<ContactFormProspectStatusBloc>().add(FetchProspectStatusesEvent(contactId: widget.args.dataContact?.contactId));
     context.read<LostReasonBloc>().add(FetchLostReasonsEvent());
   }
 
@@ -827,6 +834,9 @@ class _ContactAddPageState extends State<ContactAddPage> {
     
     final isVisitStatus = _isVisitGroup(selectedStatusId);
 
+    _visitActivityDone = false;
+    _contactUpdateDone = false;
+
     if (isVisitStatus) {
       final visitImages = await _compressVisitImages();
       if (!mounted) return;
@@ -873,7 +883,10 @@ class _ContactAddPageState extends State<ContactAddPage> {
     final visitImages = await _compressVisitImages();
     if (!mounted) return;
 
-    
+    _visitActivityDone = false;
+    _contactUpdateDone = false;
+
+
     
     
     
@@ -981,13 +994,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
                 context.pop();
               }
             } else if (state.status == ActivityStatus.error) {
-              
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Gagal menambahkan activity'),
-                  backgroundColor: Color(redAccentColor),
-                ),
-              );
+              showErrorDialog(context, state.errorMessage ?? 'Gagal menambahkan activity');
             }
           },
         ),
@@ -996,22 +1003,19 @@ class _ContactAddPageState extends State<ContactAddPage> {
             if (state is UploadAttachmentSuccess) {
               context.pop(2);
             } else if (state is UploadAttachmentError) {
-              
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Gagal mengunggah lampiran'),
-                  backgroundColor: Color(redAccentColor),
-                ),
-              );
+              showErrorDialog(context, state.message);
             }
           },
         ),
         BlocListener<ContactBloc, ContactState>(
           listener: (ctx, state) {
             if (state.status == ContactStatus.updateSuccess) {
-              
-              if (!_isVisitGroup(selectedStatusId)) {
-                context.pop(0); 
+              final needsVisitActivity = widget.args.page == 4 || _isVisitGroup(selectedStatusId);
+              if (!needsVisitActivity) {
+                context.pop(0);
+              } else {
+                _contactUpdateDone = true;
+                if (_visitActivityDone) context.pop(0);
               }
             } else if (state.status == ContactStatus.detailLoaded &&
                 state.contactDetail != null) {
@@ -1020,7 +1024,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
                 selectedProject = data.projectName ?? data.firstProject;
                 
                 selectedStatusId = data.statusProspectId;
-                final statusState = context.read<ProspectStatusBloc>().state;
+                final statusState = context.read<ContactFormProspectStatusBloc>().state;
                 if (statusState.status == ProspectStatusEnum.loaded) {
                   for (final s in statusState.statuses) {
                     if (s.statusProspectId == selectedStatusId) {
@@ -1061,38 +1065,27 @@ class _ContactAddPageState extends State<ContactAddPage> {
                 }
               });
               
-              final ssDetail = context.read<ProspectStatusBloc>().state;
+              final ssDetail = context.read<ContactFormProspectStatusBloc>().state;
               if (ssDetail.status == ProspectStatusEnum.loaded) {
                 _autoSelectStatusIfNeeded(ssDetail.statuses);
               }
               if (selectedProject != null) _loadTownshipClusters(selectedProject!);
             } else if (state.status == ContactStatus.error) {
-              
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Gagal memperbarui data kontak'),
-                  backgroundColor: Color(redAccentColor),
-                ),
-              );
+              showErrorDialog(context, state.errorMessage ?? 'Gagal memperbarui data kontak');
             }
           },
         ),
         BlocListener<ActivityVisitBloc, VisitState>(
           listener: (ctx, state) {
             if (state is VisitSuccess) {
-              context.pop(0); 
+              _visitActivityDone = true;
+              if (_contactUpdateDone) context.pop(0);
             } else if (state is VisitError) {
-              
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Gagal menyimpan data kunjungan'),
-                  backgroundColor: Color(redAccentColor),
-                ),
-              );
+              showErrorDialog(context, state.message);
             }
           },
         ),
-        BlocListener<ProspectStatusBloc, ProspectStatusState>(
+        BlocListener<ContactFormProspectStatusBloc, ProspectStatusState>(
           listener: (context, state) {
             if (state.status == ProspectStatusEnum.loaded &&
                 selectedStatusId != null) {
@@ -1354,10 +1347,10 @@ class _ContactAddPageState extends State<ContactAddPage> {
   }
 
   
-  String _currentStatusGroup() => _resolveStatusGroup(context.read<ProspectStatusBloc>().state, selectedStatusId) ?? 'db';
+  String _currentStatusGroup() => _resolveStatusGroup(context.read<ContactFormProspectStatusBloc>().state, selectedStatusId) ?? 'db';
 
   
-  bool _isVisitGroup(int? id) => _resolveStatusGroup(context.read<ProspectStatusBloc>().state, id) == 'visit';
+  bool _isVisitGroup(int? id) => _resolveStatusGroup(context.read<ContactFormProspectStatusBloc>().state, id) == 'visit';
 
   
   
@@ -1378,7 +1371,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
   
   
   bool _currentIsVisitFormStatus() {
-    final st = context.read<ProspectStatusBloc>().state;
+    final st = context.read<ContactFormProspectStatusBloc>().state;
     return st.status == ProspectStatusEnum.loaded &&
         _isVisitPickerStatus(st.statuses, selectedStatusId);
   }
@@ -1386,7 +1379,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
   
   
   bool _currentIsVisitorWi() {
-    final st = context.read<ProspectStatusBloc>().state;
+    final st = context.read<ContactFormProspectStatusBloc>().state;
     if (st.status != ProspectStatusEnum.loaded) return false;
     for (final s in st.statuses) {
       if (s.statusProspectId == selectedStatusId) return s.isVisitorWi;
@@ -1430,7 +1423,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             
-            BlocBuilder<ProspectStatusBloc, ProspectStatusState>(
+            BlocBuilder<ContactFormProspectStatusBloc, ProspectStatusState>(
               builder: (context, statusState) {
                 final group = _resolveStatusGroup(statusState, selectedStatusId);
                 if (group == null) {
@@ -1554,7 +1547,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
 
             final isContactLoading = contactState.status == ContactStatus.creating;
             final isVisitLoading = visitState is VisitLoading;
-            final isLoading = isVisitFlow ? isVisitLoading : isContactLoading;
+            final isLoading = isVisitFlow ? (isVisitLoading || isContactLoading) : isContactLoading;
 
             return customButton(
               isLoading ? null : () {
@@ -1724,7 +1717,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
         GestureDetector(
           onTap: () async {
             AnalyticsService.logEvent('contact_add_select_status_prospect');
-            final statusState = context.read<ProspectStatusBloc>().state;
+            final statusState = context.read<ContactFormProspectStatusBloc>().state;
             if (statusState.status == ProspectStatusEnum.loaded) {
               
               final isPage4 = widget.args.page == 4;
@@ -1770,8 +1763,8 @@ class _ContactAddPageState extends State<ContactAddPage> {
                 }
               }
             } else {
-              context.read<ProspectStatusBloc>().add(
-                const FetchProspectStatusesEvent(),
+              context.read<ContactFormProspectStatusBloc>().add(
+                FetchProspectStatusesEvent(contactId: widget.args.dataContact?.contactId),
               );
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(content: Text('Memuat daftar status...')),
@@ -2976,3 +2969,4 @@ class _ContactAddPageState extends State<ContactAddPage> {
     );
   }
 }
+

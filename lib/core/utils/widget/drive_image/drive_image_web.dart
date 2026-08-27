@@ -57,9 +57,9 @@ class _DriveImageWebState extends State<DriveImage> {
 
   String _toCdnUrl(String url) {
     try {
-      final match = RegExp(r'/d/([a-zA-Z0-9_-]+)').firstMatch(url);
-      if (match == null) return url;
-      final id = match.group(1);
+      final id = RegExp(r'/d/([a-zA-Z0-9_-]+)').firstMatch(url)?.group(1) ??
+          Uri.parse(url).queryParameters['id'];
+      if (id == null) return url;
       final baseUrl = 'https://lh3.googleusercontent.com/d/$id';
 
 

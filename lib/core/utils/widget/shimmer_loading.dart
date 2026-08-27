@@ -90,23 +90,31 @@ Widget buildContactPageShimmer() {
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        
+        SizedBox(height: 20),
+        // Cocokin sama toolbar asli (sort + Filter + beberapa quick date chip)
+        // biar nggak ada lompatan layout pas shimmer diganti data asli.
         SizedBox(
-          height: 50,
-          child: Row(
-            children: [
-              _ShimmerBox(width: 90, height: 36, borderRadius: 12),
-              const SizedBox(width: 10),
-              _ShimmerBox(width: 90, height: 36, borderRadius: 12),
-                const SizedBox(width: 10),
-              _ShimmerBox(width: 110, height: 36, borderRadius: 12),
-              const SizedBox(width: 10),
-              _ShimmerBox(width: 40, height: 36, borderRadius: 12),
+          height: 36,
+          child: ListView(
+            scrollDirection: Axis.horizontal,
+            physics: const NeverScrollableScrollPhysics(),
+            children: const [
+              _ShimmerBox(width: 100, height: 36, borderRadius: 14),
+              SizedBox(width: 8),
+              _ShimmerBox(width: 76, height: 36, borderRadius: 14),
+              SizedBox(width: 10),
+              _ShimmerBox(width: 90, height: 36, borderRadius: 14),
+              SizedBox(width: 8),
+              _ShimmerBox(width: 110, height: 36, borderRadius: 14),
+              SizedBox(width: 8),
+              _ShimmerBox(width: 120, height: 36, borderRadius: 14),
             ],
           ),
         ),
-        const SizedBox(height: 4),
-        
+        const SizedBox(height: 12),
+        _ShimmerBox(width: 120, height: 13, borderRadius: 4),
+        const SizedBox(height: 12),
+
         ...List.generate(8, (_) => Padding(
           padding: const EdgeInsets.only(bottom: 10),
           child: Container(
@@ -1165,6 +1173,115 @@ class ShimmerBottomNav extends StatelessWidget {
   }
 }
 
+
+Widget _unitDetailSpecRow() {
+  return Row(
+    children: [
+      Expanded(child: Container(height: 75, decoration: BoxDecoration(color: Color(whiteColor), borderRadius: BorderRadius.circular(8)))),
+      const SizedBox(width: 10),
+      Expanded(child: Container(height: 75, decoration: BoxDecoration(color: Color(whiteColor), borderRadius: BorderRadius.circular(8)))),
+    ],
+  );
+}
+
+Widget _unitDetailPriceCardShimmer() {
+  return Container(
+    margin: const EdgeInsets.only(bottom: 12),
+    width: double.infinity,
+    padding: const EdgeInsets.all(14),
+    decoration: BoxDecoration(color: Color(whiteColor), borderRadius: BorderRadius.circular(12)),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            _ShimmerBox(width: 140, height: 14),
+            _ShimmerBox(width: 80, height: 14),
+          ],
+        ),
+        const SizedBox(height: 14),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            _ShimmerBox(width: 100, height: 11),
+            _ShimmerBox(width: 70, height: 11),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            _ShimmerBox(width: 100, height: 11),
+            _ShimmerBox(width: 70, height: 11),
+          ],
+        ),
+      ],
+    ),
+  );
+}
+
+Widget buildUnitDetailShimmer() {
+  return SingleChildScrollView(
+    physics: const NeverScrollableScrollPhysics(),
+    padding: const EdgeInsets.all(16),
+    child: _shimmerWrap(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(color: Color(whiteColor), borderRadius: BorderRadius.circular(12)),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    _ShimmerBox(width: 90, height: 10),
+                    _ShimmerBox(width: 60, height: 20, borderRadius: 20),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                _ShimmerBox(width: 120, height: 11),
+                const SizedBox(height: 10),
+                _ShimmerBox(width: 180, height: 16),
+                const SizedBox(height: 10),
+                _ShimmerBox(width: 100, height: 11),
+              ],
+            ),
+          ),
+          const SizedBox(height: 20),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              _ShimmerBox(width: 130, height: 16),
+              const _ShimmerBox(width: 20, height: 20, borderRadius: 4),
+            ],
+          ),
+          const SizedBox(height: 12),
+          _unitDetailSpecRow(),
+          const SizedBox(height: 10),
+          _unitDetailSpecRow(),
+          const SizedBox(height: 10),
+          _unitDetailSpecRow(),
+          const SizedBox(height: 20),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              _ShimmerBox(width: 180, height: 16),
+              const _ShimmerBox(width: 20, height: 20, borderRadius: 4),
+            ],
+          ),
+          const SizedBox(height: 12),
+          _unitDetailPriceCardShimmer(),
+          _unitDetailPriceCardShimmer(),
+        ],
+      ),
+    ),
+  );
+}
 
 Widget buildFormShimmer({bool showHeader = true}) {
   Widget fieldRow({double labelWidth = 100, double fieldHeight = 44}) => Padding(

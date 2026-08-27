@@ -5,6 +5,7 @@ import 'package:progress_group/features/contact/domain/entities/activity/create_
 import 'package:progress_group/features/contact/domain/entities/activity/whatsapp_activity_entity.dart';
 import 'package:progress_group/features/contact/domain/entities/attachment/attachment_entity.dart';
 import 'package:progress_group/features/contact/domain/entities/attachment/upload_attachment_params.dart';
+import 'package:progress_group/features/contact/domain/entities/dropdown_option.dart';
 import 'package:progress_group/features/contact/domain/entities/info_source/info_source.dart';
 import 'package:progress_group/features/contact/domain/entities/lost_reason/lost_reason_entity.dart';
 import 'package:progress_group/features/contact/domain/entities/property/property_unit_entity.dart';
@@ -20,12 +21,22 @@ import '../entities/attachment/attachment_type.dart';
 
 abstract class ContactRepository {
   Future<Either<String, List<AttachmentType>>> getAttachmentTypes();
-  Future<Either<String, ContactResponse>> getContacts({int page = 1, int perPage = 10, String? search, String? startDate, String? endDate, List<int>? ownerIds, List<int>? statusProspectIds, List<int>? salesChannelIds, List<int>? salesTeamIds, List<int>? salesExecutiveIds, List<int>? salesSupervisorIds, List<int>? salesManagerIds, List<int>? salesGeneralManagerIds, String? apptStartDate, String? apptEndDate, String? visitStartDate, String? visitEndDate, String? reserveStartDate, String? reserveEndDate, String? spStartDate, String? spEndDate, String? sort});
+  Future<Either<String, ContactResponse>> getContacts({int page = 1, int perPage = 10, String? search, String? startDate, String? endDate, List<int>? ownerIds, List<int>? statusProspectIds, List<int>? salesChannelIds, List<int>? salesChannelDetailIds, List<int>? salesTeamIds, List<int>? salesExecutiveIds, List<int>? salesSupervisorIds, List<int>? salesManagerIds, List<int>? salesGeneralManagerIds, String? apptStartDate, String? apptEndDate, String? visitStartDate, String? visitEndDate, String? reserveStartDate, String? reserveEndDate, String? spStartDate, String? spEndDate, String? lostStartDate, String? lostEndDate, String? lastProject, String? sort});
   Future<Either<String, List<ContactEntity>>> getAllContactsForDuplicateCheck();
   Future<Either<String, ContactEntity>> getContactDetail(int id);
   Future<Either<String, ContactEntity?>> checkDuplicateContact({required int ownerId, required String phone});
     Future<Either<String, List<InfoSource>>> getInfoSources({int? type, int? userId, String? salesChannel, bool all = false});
+  Future<Either<String, ({List<DropdownOption> data, int lastPage, int total})>> getSalesChannelDetails({int page = 1, int perPage = 30, String? search});
+
+  // Dropdown filter hierarki sales — endpoint khusus, terpisah dari data /me profile.
+  Future<Either<String, ({List<DropdownOption> data, int lastPage, int total})>> getSalesOwners({int page = 1, int perPage = 20, String? search});
+  Future<Either<String, ({List<DropdownOption> data, int lastPage, int total})>> getSalesExecutives({int page = 1, int perPage = 20, String? search});
+  Future<Either<String, ({List<DropdownOption> data, int lastPage, int total})>> getSalesSupervisors({int page = 1, int perPage = 20, String? search});
+  Future<Either<String, ({List<DropdownOption> data, int lastPage, int total})>> getSalesManagers({int page = 1, int perPage = 20, String? search});
+  Future<Either<String, ({List<DropdownOption> data, int lastPage, int total})>> getSalesGeneralManagers({int page = 1, int perPage = 20, String? search});
+  Future<Either<String, ({List<DropdownOption> data, int lastPage, int total})>> getSalesTeamsPaginated({int page = 1, int perPage = 20, String? search});
   Future<Either<String, List<ProspectStatusEntity>>> getProspectStatuses({String? type});
+  Future<Either<String, List<ProspectStatusEntity>>> getContactFormProspectStatuses({int? contactId});
   Future<Either<String, List<LostReasonEntity>>> getLostReasons();
   Future<Either<String, List<ContactPropertyGroup>>> getContactProperties();
   Future<Either<String, ContactEntity>> updateContact(int id, CreateContactParams params);

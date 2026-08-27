@@ -2,9 +2,11 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'dart:ui' show PlatformDispatcher;
-import 'package:flutter/foundation.dart' show kIsWeb, debugPrint;
+import 'package:flutter/foundation.dart' show kIsWeb, kDebugMode, debugPrint;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_web_plugins/url_strategy.dart';
+import 'package:app_links/app_links.dart';
 import 'package:progress_group/core/constants/colors.dart';
 import 'package:progress_group/core/screens/update_screen.dart';
 import 'package:progress_group/core/services/old_app_check_service.dart';
@@ -22,6 +24,7 @@ import 'package:progress_group/features/attandance/domain/repositories/attandanc
 import 'package:progress_group/features/attandance/domain/usecase/get_attendance.dart';
 import 'package:progress_group/features/attandance/domain/usecase/get_locations.dart';
 import 'package:progress_group/features/attandance/domain/usecase/get_office_locations.dart';
+import 'package:progress_group/features/attandance/domain/usecase/get_all_office_locations.dart';
 import 'package:progress_group/features/attandance/domain/usecase/get_today_attendance.dart';
 import 'package:progress_group/features/attandance/domain/usecase/get_attendance_activity.dart';
 import 'package:progress_group/features/attandance/domain/usecase/submit_attendance.dart';
@@ -37,6 +40,7 @@ import 'package:progress_group/features/notif/data/datasources/global_notificati
 import 'package:progress_group/features/notif/presentation/state/global_notification/global_notification_cubit.dart';
 import 'package:progress_group/features/attandance/presentation/state/pameran_location/pameran_location_cubit.dart';
 import 'package:progress_group/features/attandance/presentation/state/office_location/office_location_cubit.dart';
+import 'package:progress_group/features/attandance/presentation/state/office_location/all_office_location_cubit.dart';
 import 'package:progress_group/features/auth/data/datasources/auth_local_datasource.dart';
 import 'package:progress_group/features/auth/data/datasources/auth_remote_datasource.dart';
 import 'package:progress_group/features/auth/data/repositories/auth_repository_impl.dart';
@@ -71,9 +75,17 @@ import 'package:progress_group/features/contact/domain/usecases/attachment/updat
 import 'package:progress_group/features/contact/domain/usecases/contact/delete_contact_usecase.dart';
 import 'package:progress_group/features/contact/domain/usecases/contact/update_contact_usecase.dart';
 import 'package:progress_group/features/contact/domain/usecases/info_source/get_info_sources_usecase.dart';
+import 'package:progress_group/features/contact/domain/usecases/info_source/get_sales_channel_details_usecase.dart';
+import 'package:progress_group/features/contact/domain/usecases/sales_hierarchy/get_sales_owners_usecase.dart';
+import 'package:progress_group/features/contact/domain/usecases/sales_hierarchy/get_sales_executives_usecase.dart';
+import 'package:progress_group/features/contact/domain/usecases/sales_hierarchy/get_sales_supervisors_usecase.dart';
+import 'package:progress_group/features/contact/domain/usecases/sales_hierarchy/get_sales_managers_usecase.dart';
+import 'package:progress_group/features/contact/domain/usecases/sales_hierarchy/get_sales_general_managers_usecase.dart';
+import 'package:progress_group/features/contact/domain/usecases/sales_hierarchy/get_sales_teams_paginated_usecase.dart';
 import 'package:progress_group/features/contact/domain/usecases/lost_reason/get_lost_reason.dart';
 import 'package:progress_group/features/contact/presentation/state/attachment/attachment_cubit.dart';
 import 'package:progress_group/features/contact/presentation/state/info_source/info_source_bloc.dart';
+import 'package:progress_group/features/contact/presentation/state/sales_hierarchy/sales_hierarchy_service.dart';
 import 'package:progress_group/features/contact/presentation/state/lost_reason/lost_reason_block.dart';
 import 'package:progress_group/features/contact/domain/usecases/product_type/get_product_types_usecase.dart';
 import 'package:progress_group/features/contact/presentation/state/product_type/product_type_bloc.dart';
@@ -143,9 +155,11 @@ import 'features/contact/domain/usecases/activity/create_activity_usecase.dart';
 import 'features/contact/domain/usecases/activity/post_status_follow_usecase.dart';
 import 'features/contact/presentation/state/activity/activity_bloc.dart';
 import 'features/contact/domain/usecases/prospect/get_prospect_statuses_usecase.dart';
+import 'features/contact/domain/usecases/prospect/get_contact_form_prospect_statuses_usecase.dart';
 import 'features/contact/domain/usecases/contact/get_contact_properties_usecase.dart';
 import 'features/contact/presentation/state/contact_properties/contact_properties_bloc.dart';
 import 'features/contact/presentation/state/prospect_status/prospect_status_bloc.dart';
+import 'features/contact/presentation/state/prospect_status/contact_form_prospect_status_bloc.dart';
 import 'features/contact/domain/usecases/attachment/get_attachment_types_usecase.dart';
 import 'features/contact/presentation/state/attachment_type/attachment_type_bloc.dart';
 import 'features/contact/domain/usecases/attachment/upload_attachment_usecase.dart';
@@ -167,6 +181,12 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Path URL murni ("/link/{hash}", bukan "/#/link/{hash}") — App Link/PWA butuh ini supaya
+  // path-nya kebaca browser & server (bisa di-deep-link langsung), sama seperti perilaku native
+  // Android app links. Tanpa ini Flutter web default pakai hash strategy, jadi redirect hash-link
+  // di AppRouter (lihat router.dart) tidak akan pernah match saat link dibuka langsung di browser.
+  usePathUrlStrategy();
 
   if (!kIsWeb) {
     // Native only: raise Flutter's in-memory image cache ceiling (default 100MB/1000
@@ -206,9 +226,25 @@ void main() async {
   try {
     final localDs = AuthLocalDataSourceImpl(prefs);
     final dio = DioClient(localDs).dio;
-    final settings = await SettingsRemoteDataSource(dio).getSettings();
+    // getSettings() & refreshEnabledEvents() independen satu sama lain — DIPANGGIL dulu (bukan
+    // di-await) di sini supaya keduanya jalan PARALEL di background, baru di-await satu-satu di
+    // bawah. Sebelumnya sequential (getSettings selesai baru refreshEnabledEvents mulai), jadi
+    // splash screen nunggu 2x round-trip network yang sebetulnya bisa bersamaan. Timeout jaga-jaga
+    // per panggilan (pola sama seperti PushNotificationService di bawah) — backend yang lambat
+    // tidak boleh bikin app nge-hang di splash tanpa batas waktu.
+    final settingsFuture = SettingsRemoteDataSource(dio).getSettings();
+    final analyticsFuture = AnalyticsService.refreshEnabledEvents(dio);
+    final settings = await settingsFuture.timeout(
+      const Duration(seconds: 8),
+      onTimeout: () => <Map<String, dynamic>>[],
+    );
     if (settings.isNotEmpty) ApiConstants.applySettings(settings);
-    await AnalyticsService.refreshEnabledEvents(dio);
+    await analyticsFuture.timeout(
+      const Duration(seconds: 8),
+      onTimeout: () {
+        if (kDebugMode) debugPrint('[main] refreshEnabledEvents() timeout, lanjut tanpa itu');
+      },
+    );
   } catch (_) {}
 
   try {
@@ -228,8 +264,23 @@ void main() async {
     debugPrint('[Firebase] Init error: $e');
   }
 
-  
   AppRouter.init();
+
+  if (!kIsWeb) {
+    // App Link COLD START (app belum jalan) sudah otomatis kebaca lewat initial route Android
+    // -> go_router, TAPI kalau app sudah jalan di background, Android cuma "bring existing task
+    // to front" (MainActivity.kt tidak override onNewIntent) — intent barunya tidak pernah
+    // sampai ke Flutter/go_router sama sekali, jadi kelihatan "linknya tidak ngapa-ngapain".
+    // app_links nangkep intent susulan itu lewat plugin registry (auto, tanpa perlu ubah native
+    // code) dan kita teruskan ke go_router secara manual di sini.
+    AppLinks().uriLinkStream.listen((uri) {
+      final location = '${uri.path}${uri.hasQuery ? '?${uri.query}' : ''}';
+      if (kDebugMode) debugPrint('[AppLinks] uriLinkStream: $location');
+      AppRouter.router.go(location.isEmpty ? '/' : location);
+    }, onError: (e) {
+      if (kDebugMode) debugPrint('[AppLinks] error: $e');
+    });
+  }
 
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
@@ -388,6 +439,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     final getAllContactsForDuplicateCheckUseCase = GetAllContactsForDuplicateCheckUseCase(contactRepository);
     final checkDuplicateContactUseCase = CheckDuplicateContactUseCase(contactRepository);
     final getProspectStatusesUseCase = GetProspectStatusesUseCase(contactRepository);
+    final getContactFormProspectStatusesUseCase = GetContactFormProspectStatusesUseCase(contactRepository);
     final getActivitiesUseCase = GetActivitiesUseCase(contactRepository);
     final createActivityUseCase = CreateActivityUseCase(contactRepository);
     final postStatusFollowUseCase = PostStatusFollowUseCase(contactRepository);
@@ -404,6 +456,13 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     final getActivityProspectStatusUseCase = GetActivityProspectStatusUseCase(contactRepository);
     final getWhatsappActivityUseCase =  GetWhatsappUnreadSummaryUseCase(contactRepository);
     final getInfoSourcesUseCase = GetInfoSourcesUseCase(contactRepository);
+    final getSalesChannelDetailsUseCase = GetSalesChannelDetailsUseCase(contactRepository);
+    final getSalesOwnersUseCase = GetSalesOwnersUseCase(contactRepository);
+    final getSalesExecutivesUseCase = GetSalesExecutivesUseCase(contactRepository);
+    final getSalesSupervisorsUseCase = GetSalesSupervisorsUseCase(contactRepository);
+    final getSalesManagersUseCase = GetSalesManagersUseCase(contactRepository);
+    final getSalesGeneralManagersUseCase = GetSalesGeneralManagersUseCase(contactRepository);
+    final getSalesTeamsPaginatedUseCase = GetSalesTeamsPaginatedUseCase(contactRepository);
     final getLostReasonsUseCase = GetLostReasonsUseCase(contactRepository);
     final getProductTypesUseCase = GetProductTypesUseCase(contactRepository);
     final getPropertyUnitsUseCase = GetPropertyUnitsUseCase(contactRepository);
@@ -413,7 +472,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     
     
     final siteplanRemoteDataSource = SiteplanRemoteDataSourceImpl(dioClient.dio);
-    final siteplanRepository = SitePlanRepositoryImpl(siteplanRemoteDataSource);
+    final siteplanRepository = SitePlanRepositoryImpl(siteplanRemoteDataSource, localDataSource);
 
     
     final landingPageRemoteDataSource = LandingPageRemoteDataSourceImpl();
@@ -437,6 +496,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     final getTodayAttendanceUseCase = GetTodayAttendanceUseCase(attendanceRepository);
     final getLocationsUseCase = GetLocationsUseCase(attendanceRepository);
     final getOfficeLocationsUseCase = GetOfficeLocationsUseCase(attendanceRepository);
+    final getAllOfficeLocationsUseCase = GetAllOfficeLocationsUseCase(attendanceRepository);
     final submitAttendanceUseCase = SubmitAttendanceUseCase(attendanceRepository);
     final submitAttendanceActivityUseCase = SubmitAttendanceActivityUseCase(attendanceRepository);
     final getAttendanceActivityUseCase = GetAttendanceActivityUseCase(attendanceRepository);
@@ -448,6 +508,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
       debugShowCheckedModeBanner: false,
       scaffoldMessengerKey: PushNotificationService.scaffoldMessengerKey,
       theme: AppTheme.lightTheme,
+      scrollBehavior: AppScrollBehavior(),
       routerConfig: AppRouter.router,
       builder: (context, child) {
         final mq = MediaQuery.of(context);
@@ -469,6 +530,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
             BlocProvider(create: (_) => SalesChannelSummaryBloc(getSalesChannelsSummaryUseCase: getSalesChannelsSummaryUseCase)),
             BlocProvider(create: (_) => ContactBloc(getContactsUseCase: getContactsUseCase, createContactUseCase: createContactUseCase, updateContactUseCase: updateContactUseCase, deleteContactUseCase: deleteContactUseCase, getContactDetailUseCase: getContactDetailUseCase, getAllContactsForDuplicateCheckUseCase: getAllContactsForDuplicateCheckUseCase, checkDuplicateContactUseCase: checkDuplicateContactUseCase)),
             BlocProvider(create: (_) => ProspectStatusBloc(getProspectStatusesUseCase: getProspectStatusesUseCase)),
+            BlocProvider(create: (_) => ContactFormProspectStatusBloc(getContactFormProspectStatusesUseCase: getContactFormProspectStatusesUseCase)),
             BlocProvider(create: (_) => ContactPropertiesBloc(getContactPropertiesUseCase: getContactPropertiesUseCase)),
             BlocProvider(create: (_) => PipelineCubit(pipelineRemoteDataSource)),
             BlocProvider(create: (_) => ActivityBloc(getActivitiesUseCase: getActivitiesUseCase, createActivityUseCase: createActivityUseCase, postStatusFollowUseCase: postStatusFollowUseCase)),
@@ -482,6 +544,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
             BlocProvider(create: (_) => AttendanceBloc(getAttendanceUseCase: getAttendanceUseCase, getTodayAttendanceUseCase: getTodayAttendanceUseCase, getLocationsUseCase: getLocationsUseCase, getOfficeLocationsUseCase: getOfficeLocationsUseCase, submitAttendanceUseCase: submitAttendanceUseCase, submitAttendanceActivityUseCase: submitAttendanceActivityUseCase)),
             BlocProvider(create: (_) => PameranLocationCubit(getLocationsUseCase)),
             BlocProvider(create: (_) => OfficeLocationCubit(getOfficeLocationsUseCase)),
+            BlocProvider(create: (_) => AllOfficeLocationCubit(getAllOfficeLocationsUseCase)),
             BlocProvider(create: (_) => AttendanceActivityBloc(getAttendanceActivityUseCase: getAttendanceActivityUseCase, validasiCheckInUseCase: validasiCheckInUseCase)),
             BlocProvider(create: (_) => AttendanceApprovalCubit(getAttendanceApprovalTodayUseCase, postAttendanceApprovalUseCase)),
             BlocProvider(create: (_) => AttendanceExcelCubit(attendanceRepository)),
@@ -489,6 +552,15 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
             BlocProvider(create: (_) => GlobalNotificationCubit(globalNotificationRemoteDataSource)),
             BlocProvider(create: (_) => WhatsappActivityBloc(getWhatsappActivityUseCase)),
             BlocProvider(create: (_) => InfoSourceBloc(getInfoSourcesUseCase: getInfoSourcesUseCase)),
+            BlocProvider(create: (_) => SalesHierarchyService(
+              getSalesOwnersUseCase: getSalesOwnersUseCase,
+              getSalesExecutivesUseCase: getSalesExecutivesUseCase,
+              getSalesSupervisorsUseCase: getSalesSupervisorsUseCase,
+              getSalesManagersUseCase: getSalesManagersUseCase,
+              getSalesGeneralManagersUseCase: getSalesGeneralManagersUseCase,
+              getSalesTeamsPaginatedUseCase: getSalesTeamsPaginatedUseCase,
+              getSalesChannelDetailsUseCase: getSalesChannelDetailsUseCase,
+            )),
             BlocProvider(create: (_) => LostReasonBloc(getLostReasonsUseCase: getLostReasonsUseCase)),
             BlocProvider(create: (_) => ProductTypeBloc(getProductTypesUseCase: getProductTypesUseCase)..add(const FetchProductTypesEvent())),
             BlocProvider(create: (_) => PropertyUnitCubit(getPropertyUnitsUseCase, getPropertyCommercialUnitsUseCase)),

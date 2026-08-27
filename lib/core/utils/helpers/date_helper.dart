@@ -48,6 +48,35 @@ class DateHelper {
     return formatDay(AppTime.now());
   }
 
+  static ({DateTime start, DateTime end, String label})? resolveRangePreset(String? preset) {
+    if (preset == null || preset.isEmpty) return null;
+    final now = AppTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    switch (preset) {
+      case 'today':
+        return (start: today, end: today, label: 'Today');
+      case 'this_week':
+        final startOfWeek = today.subtract(Duration(days: today.weekday - 1));
+        return (start: startOfWeek, end: today, label: 'This Week');
+      case 'last_week':
+        final startOfWeek = today.subtract(Duration(days: today.weekday - 1));
+        final startOfLastWeek = startOfWeek.subtract(const Duration(days: 7));
+        final endOfLastWeek = startOfWeek.subtract(const Duration(days: 1));
+        return (start: startOfLastWeek, end: endOfLastWeek, label: 'Last Week');
+      case 'this_month':
+        final startOfMonth = DateTime(today.year, today.month, 1);
+        return (start: startOfMonth, end: today, label: 'This Month');
+      case 'last_month':
+        final startOfLastMonth = DateTime(today.year, today.month - 1, 1);
+        final endOfLastMonth = DateTime(today.year, today.month, 0);
+        return (start: startOfLastMonth, end: endOfLastMonth, label: 'Last Month');
+      case 'last_1_year':
+        return (start: DateTime(today.year - 1, today.month, today.day), end: today, label: 'Last 1 Year');
+      default:
+        return null;
+    }
+  }
+
   String formatInboxDate(String? value) {
   if (value == null || value.isEmpty) return '-';
 

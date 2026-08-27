@@ -41,7 +41,7 @@ class InfoSourceBloc extends Bloc<InfoSourceEvent, InfoSourceState> {
         if (event.type != null) {
           newSourcesMap[event.type!] = sources;
         }
-        
+
         emit(state.copyWith(
           status: InfoSourceStatus.loaded,
           sources: sources,

@@ -235,12 +235,10 @@ class _ProfilePageState extends State<ProfilePage> {
           passwordTC.clear();
           confirmPasswordTC.clear();
           setState(() { _selectedPhoto = null; _selectedPhotoBytes = null; });
-          // debugPrint('AuthSuccess: ${state.message}');
-          showSnackbar(context, 'Profil berhasil diperbarui', isError: false);
+          showSnackbar(context, state.message, isError: false);
           context.read<ProfileBloc>().add(GetProfileEvent(forceRefresh: true));
         } else if (state is AuthFailure) {
-          // debugPrint('AuthFailure: ${state.error}');
-          showSnackbar(context, 'Gagal menyimpan perubahan profil', isError: true);
+          showSnackbar(context, state.error, isError: true);
         }
       },
       child: Scaffold(
@@ -280,7 +278,7 @@ class _ProfilePageState extends State<ProfilePage> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Text('Gagal memuat profil'),
+                Text(state.message),
                 const SizedBox(height: 10),
                 customButton(() {
                   context.read<ProfileBloc>().add(GetProfileEvent());

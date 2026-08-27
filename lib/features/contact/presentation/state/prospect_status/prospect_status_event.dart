@@ -9,9 +9,10 @@ abstract class ProspectStatusEvent extends Equatable {
 
 class FetchProspectStatusesEvent extends ProspectStatusEvent {
   final String? type;
+  final int? contactId;
 
-  const FetchProspectStatusesEvent({this.type});
+  const FetchProspectStatusesEvent({this.type, this.contactId});
 
   @override
-  List<Object> get props => [type ?? ''];
+  List<Object> get props => [type ?? '', contactId ?? 0];
 }

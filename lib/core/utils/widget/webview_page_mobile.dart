@@ -1,11 +1,16 @@
-﻿import 'package:dio/dio.dart';
+﻿import 'dart:io';
+
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_pdfview/flutter_pdfview.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:progress_group/core/constants/colors.dart';
+import 'package:progress_group/core/utils/helpers/error_message.dart';
+import 'package:progress_group/core/utils/helpers/file_extension_helper.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'custom_header.dart';
+import 'custom_snackbar.dart';
 import 'floating_download_overlay.dart';
 
 class WebViewPage extends StatefulWidget {
@@ -25,12 +30,60 @@ class WebViewPage extends StatefulWidget {
     return urlLower.endsWith('.pdf') || urlLower.contains('.pdf?');
   }
 
+  bool get isImage {
+    final urlLower = url.toLowerCase();
+    return ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp'].any((ext) => urlLower.contains(ext));
+  }
+
   @override
   State<WebViewPage> createState() => _WebViewPageState();
 }
 
 class _WebViewPageState extends State<WebViewPage> {
-  void _shareUrl() => Share.share(widget.url, subject: widget.title);
+  bool _isSharing = false;
+
+  Future<void> _shareUrl() async {
+    if (_isSharing) return;
+    if (!widget.isPdf && !widget.isImage) {
+      await Share.share(widget.url, subject: widget.title);
+      return;
+    }
+    setState(() => _isSharing = true);
+    try {
+      final dir = await getTemporaryDirectory();
+      final titleName = widget.title.replaceAll(RegExp(r'[^\w\s\-]'), '').trim();
+      final urlExt = extensionFromUrl(widget.url);
+      var filePath = '${dir.path}/$titleName${urlExt ?? '.tmp'}';
+
+      final response = await Dio().download(
+        widget.url,
+        filePath,
+        options: Options(followRedirects: true, receiveTimeout: const Duration(seconds: 60)),
+      );
+
+      if (response.statusCode != 200) {
+        throw Exception('Download gagal ${response.statusCode}');
+      }
+
+      if (urlExt == null) {
+        final resolvedExt = extensionFromContentDisposition(response.headers.value('content-disposition')) ??
+            extensionFromContentType(response.headers.value('content-type')) ??
+            (widget.isPdf ? '.pdf' : '.bin');
+        final newPath = '${dir.path}/$titleName$resolvedExt';
+        if (newPath != filePath) {
+          await File(filePath).rename(newPath);
+          filePath = newPath;
+        }
+      }
+
+      await Share.shareXFiles([XFile(filePath)], subject: widget.title);
+    } catch (_) {
+      if (mounted) showSnackbar(context, 'Gagal mengunduh file, membagikan link saja', isError: true);
+      await Share.share(widget.url, subject: widget.title);
+    } finally {
+      if (mounted) setState(() => _isSharing = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -131,7 +184,7 @@ class _PdfViewerWidgetState extends State<PdfViewerWidget> {
     } catch (e) {
       if (mounted) {
         setState(() {
-          error = e.toString();
+          error = cleanErrorMessage(e);
         });
       }
     }
@@ -180,7 +233,7 @@ class _PdfViewerWidgetState extends State<PdfViewerWidget> {
       fitPolicy: FitPolicy.BOTH,
       onError: (e) {
         setState(() {
-          error = e.toString();
+          error = cleanErrorMessage(e);
         });
       },
       onPageError: (page, e) {

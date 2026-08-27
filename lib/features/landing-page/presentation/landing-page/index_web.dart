@@ -23,7 +23,6 @@ class _LandingPageState extends State<LandingPage> {
   String? _viewId;
   String _fullUrl = '';
   bool _isLoading = true;
-  bool _showFallbackBanner = false;
   bool _showWaBlockedBanner = false;
   Timer? _timeoutTimer;
   Timer? _pollTimer;
@@ -86,7 +85,6 @@ class _LandingPageState extends State<LandingPage> {
     _counter++;
     _viewId = 'landing-page-iframe-$_counter';
     _isLoading = true;
-    _showFallbackBanner = false;
     _initialLoadDone = false;
     _iframeResetting = false;
 
@@ -117,7 +115,6 @@ class _LandingPageState extends State<LandingPage> {
       if (mounted && _isLoading) {
         setState(() {
           _isLoading = false;
-          _showFallbackBanner = true;
         });
       }
     });
@@ -154,7 +151,7 @@ class _LandingPageState extends State<LandingPage> {
                 children: [
                   const Icon(Icons.error_outline, size: 48, color: Color(redAccentColor)),
                   const SizedBox(height: 12),
-                  const Text('Gagal memuat halaman', textAlign: TextAlign.center),
+                  Text(state.message, textAlign: TextAlign.center),
                   const SizedBox(height: 12),
                   ElevatedButton(
                     onPressed: () {

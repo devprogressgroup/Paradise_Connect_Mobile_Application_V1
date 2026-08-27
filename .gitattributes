@@ -12,7 +12,10 @@ lib/core/network/api_constants.dart merge=ours
 # Konsekuensi: perubahan LEGIT ke file-file ini (bukan cuma appId, misal proguard rule baru)
 # juga TIDAK akan ikut lewat merge/cherry-pick — harus di-apply manual ke branch tujuan.
 android/app/build.gradle.kts merge=ours
+<<<<<<< HEAD
 android/app/src/main/AndroidManifest.xml merge=ours
+=======
+>>>>>>> Development-1.0.4
 android/app/google-services.json merge=ours
 ios/Runner/GoogleService-Info.plist merge=ours
 firebase.json merge=ours

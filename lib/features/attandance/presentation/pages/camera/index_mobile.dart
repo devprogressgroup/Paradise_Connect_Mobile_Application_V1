@@ -120,10 +120,9 @@ class _CameraPageState extends State<CameraPage> {
       if (mounted) {
         setState(() => _cameraError = "Kamera timeout, coba lagi.");
       }
-    } catch (e) {
-     
+    } catch (_) {
       if (mounted) {
-        setState(() => _cameraError = "Gagal membuka kamera: $e");
+        setState(() => _cameraError = "Gagal membuka kamera, coba lagi.");
       }
     }
   }

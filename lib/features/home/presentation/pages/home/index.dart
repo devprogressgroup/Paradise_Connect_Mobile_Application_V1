@@ -7,6 +7,7 @@ import 'package:progress_group/core/constants/colors.dart';
 import 'package:progress_group/core/constants/assets.dart';
 import 'package:progress_group/core/utils/helpers/app_time.dart';
 import 'package:progress_group/core/utils/helpers/date_helper.dart';
+import 'package:progress_group/core/network/api_constants.dart';
 import 'package:progress_group/core/utils/helpers/number_helper.dart';
 import 'package:progress_group/features/attandance/domain/entities/attendance_approval_entity.dart';
 import 'package:progress_group/features/attandance/presentation/state/attendance_approval/attendance_approval_cubit.dart';
@@ -63,24 +64,43 @@ class _HomePageState extends State<HomePage> with RouteAware {
   String? _prospectDateLabel;
   String? _prospectStartDate;
   String? _prospectEndDate;
+  bool _prospectFilterUserSet = false;
 
   bool _salesChannelExpanded = false;
   static const int _salesChannelCollapsedCount = 5;
   String? _salesChannelDateLabel;
   String? _salesChannelStartDate;
   String? _salesChannelEndDate;
+  bool _salesChannelFilterUserSet = false;
 
   @override
   void initState() {
     super.initState();
     day = _chartEndDate.difference(_chartStartDate).inDays + 1;
-    final now = AppTime.now();
-    _prospectStartDate = DateFormat('yyyy-MM-dd').format(DateTime(now.year - 1, now.month, now.day));
-    _prospectEndDate   = DateFormat('yyyy-MM-dd').format(now);
-    _prospectDateLabel = 'Last 1 Year';
-    _salesChannelStartDate = DateFormat('yyyy-MM-dd').format(DateTime(now.year - 1, now.month, now.day));
-    _salesChannelEndDate   = DateFormat('yyyy-MM-dd').format(now);
-    _salesChannelDateLabel = 'Last 1 Year';
+    ApiConstants.settingsVersion.addListener(_onSettingsUpdated);
+    _loadData(force: true);
+  }
+
+  void _applyDefaultDateRangePreset() {
+    final defaultRange = DateHelper.resolveRangePreset(ApiConstants.prospectStatusDefaultRangePreset);
+    if (defaultRange == null) return;
+    final startStr = DateFormat('yyyy-MM-dd').format(defaultRange.start);
+    final endStr = DateFormat('yyyy-MM-dd').format(defaultRange.end);
+    if (!_prospectFilterUserSet) {
+      _prospectStartDate = startStr;
+      _prospectEndDate = endStr;
+      _prospectDateLabel = defaultRange.label;
+    }
+    if (!_salesChannelFilterUserSet) {
+      _salesChannelStartDate = startStr;
+      _salesChannelEndDate = endStr;
+      _salesChannelDateLabel = defaultRange.label;
+    }
+  }
+
+  void _onSettingsUpdated() {
+    if (!mounted) return;
+    if (_prospectFilterUserSet && _salesChannelFilterUserSet) return;
     _loadData(force: true);
   }
 
@@ -95,6 +115,7 @@ class _HomePageState extends State<HomePage> with RouteAware {
 
   @override
   void dispose() {
+    ApiConstants.settingsVersion.removeListener(_onSettingsUpdated);
     appRouteObserver.unsubscribe(this);
     super.dispose();
   }
@@ -159,6 +180,11 @@ class _HomePageState extends State<HomePage> with RouteAware {
   }
 
   Future<void> _loadData({bool force = false}) async {
+    if (mounted) {
+      setState(_applyDefaultDateRangePreset);
+    } else {
+      _applyDefaultDateRangePreset();
+    }
     final now = AppTime.now();
     context.read<ProspectStatusSummaryBloc>().add(FetchProspectStatusSummaryEvent(startDate: _prospectStartDate, endDate: _prospectEndDate));
     context.read<SalesChannelSummaryBloc>().add(FetchSalesChannelsSummaryEvent(startDate: _salesChannelStartDate, endDate: _salesChannelEndDate));
@@ -571,8 +597,7 @@ class _HomePageState extends State<HomePage> with RouteAware {
     return BlocConsumer<ProspectStatusSummaryBloc, ProspectStatusSummaryState>(
       listenWhen: (prev, curr) => curr.status == ProspectStatusSummaryStatus.error && prev.status != ProspectStatusSummaryStatus.error,
       listener: (context, state) {
-        
-        showErrorDialog(context, 'Gagal memuat prospect status');
+        showErrorDialog(context, state.errorMessage ?? 'Gagal memuat prospect status');
       },
       builder: (context, state) {
         return Column(
@@ -589,7 +614,7 @@ class _HomePageState extends State<HomePage> with RouteAware {
                   style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                 ),
                  CustomFilterButton(
-              label: _prospectDateLabel ?? 'Create Date',
+              label: _prospectDateLabel ?? 'Date',
               isSelected: _prospectStartDate != null,
               onTap: () async {
                 AnalyticsService.logEvent('home_filter_prospect_by_date');
@@ -605,6 +630,7 @@ class _HomePageState extends State<HomePage> with RouteAware {
                 if (result != null) {
                   if (result.isClear) {
                     setState(() {
+                      _prospectFilterUserSet = true;
                       _prospectDateLabel = null;
                       _prospectStartDate = null;
                       _prospectEndDate = null;
@@ -614,6 +640,7 @@ class _HomePageState extends State<HomePage> with RouteAware {
                     }
                   } else {
                     setState(() {
+                      _prospectFilterUserSet = true;
                       _prospectDateLabel = result.label;
                       _prospectStartDate = result.startDate;
                       _prospectEndDate = result.endDate;
@@ -677,15 +704,23 @@ class _HomePageState extends State<HomePage> with RouteAware {
                         return GestureDetector(
                           
                           onTap: () {
-                            final now = AppTime.now();
-                            final today = DateTime(now.year, now.month, now.day);
-                            final fmt = DateFormat('yyyy-MM-dd');
-                            final defaultStart = fmt.format(DateTime(today.year - 1, today.month, today.day));
-                            final defaultEnd = fmt.format(today);
+                            const dateFieldByGroup = {
+                              'appt': 'appt',
+                              'visit': 'visit',
+                              'reserve': 'reserve',
+                              'sp': 'sp',
+                              'lost': 'lost',
+                            };
+                            final dateField = dateFieldByGroup[item.group];
                             context.go('/contact', extra: {
                               'statusIds': [item.prospectStatusId],
-                              'startDate': _prospectStartDate ?? defaultStart,
-                              'endDate': _prospectEndDate ?? defaultEnd,
+                              if (dateField == null) ...{
+                                'startDate': _prospectStartDate,
+                                'endDate': _prospectEndDate,
+                              } else ...{
+                                '${dateField}StartDate': _prospectStartDate,
+                                '${dateField}EndDate': _prospectEndDate,
+                              },
                             });
                           },
                           child: Container(
@@ -789,7 +824,7 @@ class _HomePageState extends State<HomePage> with RouteAware {
     return BlocConsumer<SalesChannelSummaryBloc, SalesChannelSummaryState>(
       listenWhen: (prev, curr) => curr.status == SalesChannelSummaryStatus.error && prev.status != SalesChannelSummaryStatus.error,
       listener: (context, state) {
-        showErrorDialog(context, 'Gagal memuat sales channel');
+        showErrorDialog(context, state.errorMessage ?? 'Gagal memuat sales channel');
       },
       builder: (context, state) {
         return Column(
@@ -806,7 +841,7 @@ class _HomePageState extends State<HomePage> with RouteAware {
                   style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                 ),
                  CustomFilterButton(
-              label: _salesChannelDateLabel ?? 'Create Date',
+              label: _salesChannelDateLabel ?? 'Date',
               isSelected: _salesChannelStartDate != null,
               onTap: () async {
                 AnalyticsService.logEvent('home_filter_sales_channel_by_date');
@@ -822,6 +857,7 @@ class _HomePageState extends State<HomePage> with RouteAware {
                 if (result != null) {
                   if (result.isClear) {
                     setState(() {
+                      _salesChannelFilterUserSet = true;
                       _salesChannelDateLabel = null;
                       _salesChannelStartDate = null;
                       _salesChannelEndDate = null;
@@ -831,6 +867,7 @@ class _HomePageState extends State<HomePage> with RouteAware {
                     }
                   } else {
                     setState(() {
+                      _salesChannelFilterUserSet = true;
                       _salesChannelDateLabel = result.label;
                       _salesChannelStartDate = result.startDate;
                       _salesChannelEndDate = result.endDate;
@@ -893,16 +930,23 @@ class _HomePageState extends State<HomePage> with RouteAware {
                         final showBottomBorder = !isLastVisible || allChannels.length > _salesChannelCollapsedCount;
                         return GestureDetector(
 
+                          // onTap: () {
+                          //   final now = AppTime.now();
+                          //   final today = DateTime(now.year, now.month, now.day);
+                          //   final fmt = DateFormat('yyyy-MM-dd');
+                          //   final defaultStart = fmt.format(DateTime(today.year - 1, today.month, today.day));
+                          //   final defaultEnd = fmt.format(today);
+                          //   context.go('/contact', extra: {
+                          //     'salesChannelIds': [item.salesChannelId],
+                          //     'startDate': _salesChannelStartDate ?? defaultStart,
+                          //     'endDate': _salesChannelEndDate ?? defaultEnd,
+                          //   });
+                          // },
                           onTap: () {
-                            final now = AppTime.now();
-                            final today = DateTime(now.year, now.month, now.day);
-                            final fmt = DateFormat('yyyy-MM-dd');
-                            final defaultStart = fmt.format(DateTime(today.year - 1, today.month, today.day));
-                            final defaultEnd = fmt.format(today);
                             context.go('/contact', extra: {
                               'salesChannelIds': [item.salesChannelId],
-                              'startDate': _salesChannelStartDate ?? defaultStart,
-                              'endDate': _salesChannelEndDate ?? defaultEnd,
+                              'startDate': _salesChannelStartDate,
+                              'endDate': _salesChannelEndDate,
                             });
                           },
                           child: Container(
@@ -1066,11 +1110,10 @@ class _HomePageState extends State<HomePage> with RouteAware {
                 return buildHomeChartShimmer();
               }
               if (state is ReportError) {
-                
-                return const SizedBox(
+                return SizedBox(
                   height: 150,
                   child: Center(
-                      child: Text('Gagal memuat data laporan', style: TextStyle(color: Color(redAccentColor)))),
+                      child: Text(state.message, style: const TextStyle(color: Color(redAccentColor)))),
                 );
               }
               if (state is ReportLoaded) {

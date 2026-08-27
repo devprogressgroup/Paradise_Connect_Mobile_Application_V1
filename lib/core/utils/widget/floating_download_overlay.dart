@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_pdfview/flutter_pdfview.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:progress_group/core/constants/colors.dart';
+import 'package:progress_group/core/utils/helpers/error_message.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:video_player/video_player.dart';
 
@@ -534,7 +535,7 @@ class _PdfLocalViewerPageState extends State<_PdfLocalViewerPage> {
               autoSpacing: true,
               pageFling: false,
               fitPolicy: FitPolicy.BOTH,
-              onError: (e) => setState(() => _error = e.toString()),
+              onError: (e) => setState(() => _error = cleanErrorMessage(e)),
               onPageError: (_, __) {},
             ),
     );

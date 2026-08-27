@@ -29,7 +29,10 @@ import '../features/notif/presentation/pages/notif-page/index.dart';
 import '../features/saleskit/data/arguments/saleskit_detail_args.dart';
 import '../features/saleskit/presentation/saleskit-page/index.dart';
 import '../features/site-plan/domain/entities/project_site.dart';
+import '../features/site-plan/domain/entities/unit_detail.dart';
+import '../features/site-plan/presentation/blank/siteplan-blank.dart';
 import '../features/site-plan/presentation/project-list/index.dart';
+import '../features/site-plan/presentation/relay/index.dart';
 import '../features/site-plan/presentation/site-plan-page/index.dart';
 import '../features/landing-page/presentation/landing-page/index.dart';
 import '../features/splash/presentation/pages/index.dart';
@@ -41,6 +44,25 @@ import '../core/services/analytics_service.dart';
 import '../core/utils/helpers/permissions_helper.dart';
 import '../core/utils/route_observer.dart';
 
+/// Path App Links literal — https://{APP_LINK_DOMAIN}{path} -> path internal app, dicocokkan
+/// SINKRON (tanpa network round-trip/decrypt apa pun). Pola ini yang sudah TERBUKTI jalan
+/// (dipakai '/link/contact' oleh backend WA notification — lihat
+/// DbkBypassSyncService::buildAppLinkUrl() — sebelum sempat diganti hash+resolve API yang lebih
+/// rumit & rentan gagal, lalu dibalikkan lagi ke pola ini). Tambah entry baru di sini kalau ada
+/// target lain, TANPA perlu ubah AndroidManifest.xml (intent-filter pathPrefix "/link" sudah
+/// menangkap semua path di bawahnya).
+const Map<String, String> _appLinkPathRoutes = {
+  '/link/site-plan-blank': '/site-plan/blank',
+  // Redirect ASLI dari server siteplan vendor saat unit di-tap (bukan App Link kita) — tetap ke
+  // domain yang sama (devconnect.paradise.id, cuma serve static PWA build, TIDAK PERNAH sampai
+  // ke Laravel apapun path-nya, sudah dicek langsung: /api/settings dkk di domain itu SEMUA
+  // balik index.html yang sama). Jadi satu-satunya tempat yang BISA nangkep URL ini adalah PWA
+  // ini sendiri, begitu dia boot ulang di halaman ini (lihat docs/site-plan-mobile-pwa.md §16).
+  // Query string-nya (payload terenkripsi, format "=<iv>:<ciphertext>") numpang apa adanya ke
+  // '/site-plan/blank', yang SUDAH BISA baca & decrypt sendiri (lihat builder route itu).
+  '/siteplan-key': '/site-plan/blank',
+};
+
 class AppRouter {
   static GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>();
 
@@ -51,21 +73,78 @@ class AppRouter {
   static late GoRouter router;
 
   static void init() {
-    
+
     rootNavigatorKey = GlobalKey<NavigatorState>();
-    
+
+    // Kalau PWA ini di-boot ulang nested di dalam iframe siteplan (vendor navigasi langsung ke
+    // domain app kita bawa siteplan_id/company_id/product_id/property_id PLAIN di query, lihat
+    // redirect() & SitePlanRelayPage) — WAJIB cek Uri.base (URL ASLI browser) di SINI, bukan
+    // cuma andalkan redirect() di bawah. GoRouter kadang "kehilangan" query string dari URL awal
+    // kalau path-nya cuma "/" (dianggap tidak ada info spesifik, jatuh ke initialLocation default
+    // SEBELUM redirect() sempat jalan sama sekali) — jadi initialLocation-nya SENDIRI harus
+    // sudah benar dari awal, tidak bisa mengandalkan redirect() buat kasus spesifik ini.
+    final baseUri = Uri.base;
+    final baseQuery = baseUri.queryParameters;
+    final bootedWithPlainUnitParams = baseQuery.containsKey('siteplan_id') &&
+        baseQuery.containsKey('company_id') &&
+        baseQuery.containsKey('product_id') &&
+        baseQuery.containsKey('property_id');
+    final initialLocation =
+        bootedWithPlainUnitParams ? '/site-plan/relay?${baseUri.query}' : '/permission-gate';
+
     router = GoRouter(
-      initialLocation: '/permission-gate',
+      initialLocation: initialLocation,
       navigatorKey: rootNavigatorKey,
       refreshListenable: authNotifier,
       observers: [appRouteObserver],
       redirect: (context, state) {
+        // App Links (mobile) & link dibuka langsung di browser (PWA): "location" yang
+        // dilempar ke go_router itu URL LENGKAP di mobile (scheme+host+path, mis.
+        // "https://devconnect.paradise.id/link/site-plan-blank" — Android meneruskan Intent-nya
+        // apa adanya) tapi cuma PATH-nya saja di web (browser sudah otomatis pisahkan
+        // origin dari path). findMatch() go_router gagal cocokkan KEDUANYA ke tabel route
+        // (isinya path relatif semua) dan lempar GoException("no routes for location: ...").
+        // redirect TOP-LEVEL ini TETAP dipanggil oleh go_router walau matching awal gagal
+        // (dievaluasi di atas match-list error, lihat configuration.dart:findMatch()+redirect()
+        // punya package go_router) — jadi di SINI tempat yang benar buat translate ke path
+        // internal app, SEBELUM di-match ulang. Cek berdasarkan uri.path SAJA (bukan host) —
+        // otomatis benar utk kedua platform tanpa perlu hardcode domain di sini (domain App
+        // Links sendiri diatur di AndroidManifest.xml, TIDAK BISA dibaca dari sini — lihat
+        // catatan di sana).
+        final internalPath = _appLinkPathRoutes[state.uri.path];
+        if (internalPath != null) {
+          // Payload unit (kalau ada, mis. ?unit_id=X) NUMPANG di query string link asli — cukup
+          // diteruskan apa adanya ke path internal, builder-nya baca dari state.uri.query sendiri.
+          final query = state.uri.query;
+          return query.isEmpty ? internalPath : '$internalPath?$query';
+        }
+
+        // Vendor site plan SEKARANG navigasi LANGSUNG ke domain app kita (bukan lewat proxy
+        // Laravel lagi — beda dari _appLinkPathRoutes di atas, yang masih lewat proxy), bawa
+        // siteplan_id/company_id/product_id/property_id PLAIN (tanpa enkripsi) di query. PWA
+        // ini boot ULANG nested di dalam iframe siteplan begitu itu kejadian (persis kasus
+        // "/siteplan-key" dulu, cuma trigger-nya beda) — TANGKAP di SINI, SEBELUM sempat kena
+        // gate login (§, kalau tidak instance nested ini nyangkut nampilin halaman Sign In,
+        // bukan yang seharusnya). Cek dari QUERY (bukan path) — path-nya bisa apa saja
+        // tergantung devconnectAppUrl vendor diarahkan ke mana.
+        final qp = state.uri.queryParameters;
+        final hasPlainUnitParams = qp.containsKey('siteplan_id') && qp.containsKey('company_id') && qp.containsKey('product_id') && qp.containsKey('property_id');
+        if (hasPlainUnitParams && state.matchedLocation != '/site-plan/relay') {
+          return '/site-plan/relay?${state.uri.query}';
+        }
+
         final isLoggedIn = authNotifier.value;
         final location = state.matchedLocation;
 
         if (location == '/permission-gate') return null;
         if (location == '/splash') return null;
         if (location.startsWith('/forgot-password')) return null;
+        // Halaman publik (lihat definisi route-nya) — tidak boleh kena gate login, dibuka
+        // customer/prospek lewat link share yang tidak punya akun sama sekali.
+        if (location.startsWith('/site-plan/blank')) return null;
+        // Instance nested (relay) di atas — kalau kena gate login di sini, malah nyangkut
+        // nampilin halaman Sign In (persis bug yang mau dihindari), bukan diam & relay.
+        if (location.startsWith('/site-plan/relay')) return null;
 
         if (!isLoggedIn && location != '/login') return '/login';
         if (isLoggedIn && location == '/login') return '/';
@@ -101,6 +180,44 @@ class AppRouter {
         name: 'impersonate',
         builder: (context, state) => const ImpersonatePage(),
       ),
+      // Halaman publik — dibuka lewat link share ('/link/{hash}' -> di-redirect ke sini,
+      // lihat _appLinkTargetRoutes) ke customer/prospek yang BELUM TENTU punya akun app ini.
+      // SENGAJA di luar ShellRoute (tanpa MainLayout/bottom-nav) dan dikecualikan dari gate
+      // login di redirect() atas — kalau dibiarkan di bawah '/site-plan' (yang butuh login +
+      // PermissionsHelper.canAccessSitePlan), penerima link akan selalu kelempar ke /login.
+      GoRoute(
+        path: '/site-plan/blank',
+        name: 'site_plan_blank',
+        builder: (context, state) {
+          final extra = state.extra as Map<String, dynamic>?;
+          // Dibuka dari App Link ('/link/{hash}') -> tidak ada extra, datanya ada di
+          // query string ("=<ivBase64>:<ciphertextBase64>", diteruskan redirect di atas).
+          final query = state.uri.query;
+          final data = extra ??
+              (query.isEmpty
+                  ? null
+                  : UnitDetail.decryptPayload(
+                      query.startsWith('=') ? query.substring(1) : query,
+                    ));
+          return SitePlanBlank(data: data);
+        },
+      ),
+      // Tujuan sementara instance PWA yang boot ulang nested di dalam iframe siteplan (lihat
+      // redirect() atas & SitePlanRelayPage) — SENGAJA di luar ShellRoute & dikecualikan dari
+      // gate login (alasan SAMA seperti site_plan_blank di atas).
+      GoRoute(
+        path: '/site-plan/relay',
+        name: 'site_plan_relay',
+        builder: (context, state) {
+          final qp = state.uri.queryParameters;
+          return SitePlanRelayPage(
+            siteplanId: qp['siteplan_id'],
+            companyId: qp['company_id'],
+            productId: qp['product_id'],
+            propertyId: qp['property_id'],
+          );
+        },
+      ),
       ShellRoute(
         builder: (context, state, child) {
           return MainLayout(child: child);
@@ -129,11 +246,31 @@ class AppRouter {
               List<int>? initialSalesChannelIds;
               String? initialStartDate;
               String? initialEndDate;
+              String? initialApptStartDate;
+              String? initialApptEndDate;
+              String? initialVisitStartDate;
+              String? initialVisitEndDate;
+              String? initialReserveStartDate;
+              String? initialReserveEndDate;
+              String? initialSpStartDate;
+              String? initialSpEndDate;
+              String? initialLostStartDate;
+              String? initialLostEndDate;
               if (extra is Map<String, dynamic>) {
                 initialStatusIds = (extra['statusIds'] as List?)?.cast<int>();
                 initialSalesChannelIds = (extra['salesChannelIds'] as List?)?.cast<int>();
                 initialStartDate = extra['startDate'] as String?;
                 initialEndDate = extra['endDate'] as String?;
+                initialApptStartDate = extra['apptStartDate'] as String?;
+                initialApptEndDate = extra['apptEndDate'] as String?;
+                initialVisitStartDate = extra['visitStartDate'] as String?;
+                initialVisitEndDate = extra['visitEndDate'] as String?;
+                initialReserveStartDate = extra['reserveStartDate'] as String?;
+                initialReserveEndDate = extra['reserveEndDate'] as String?;
+                initialSpStartDate = extra['spStartDate'] as String?;
+                initialSpEndDate = extra['spEndDate'] as String?;
+                initialLostStartDate = extra['lostStartDate'] as String?;
+                initialLostEndDate = extra['lostEndDate'] as String?;
               } else if (extra is List<int>) {
                 initialStatusIds = extra;
               }
@@ -142,6 +279,16 @@ class AppRouter {
                 initialSalesChannelIds: initialSalesChannelIds,
                 initialStartDate: initialStartDate,
                 initialEndDate: initialEndDate,
+                initialApptStartDate: initialApptStartDate,
+                initialApptEndDate: initialApptEndDate,
+                initialVisitStartDate: initialVisitStartDate,
+                initialVisitEndDate: initialVisitEndDate,
+                initialReserveStartDate: initialReserveStartDate,
+                initialReserveEndDate: initialReserveEndDate,
+                initialSpStartDate: initialSpStartDate,
+                initialSpEndDate: initialSpEndDate,
+                initialLostStartDate: initialLostStartDate,
+                initialLostEndDate: initialLostEndDate,
               );
             },
             routes: [

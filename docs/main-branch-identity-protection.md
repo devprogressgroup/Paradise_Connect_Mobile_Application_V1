@@ -5,8 +5,13 @@
 Branch `main`/`Main` pakai applicationId produksi (`id.co.progressgroup.connect`,
 lihat [build.gradle.kts:45](../android/app/build.gradle.kts#L45)) yang sudah beredar
 di HP sales. Kalau merge atau cherry-pick dari branch dev membawa perubahan appId/bundle
+<<<<<<< HEAD
 id/nama app/signing/Firebase client config secara gak sengaja, main bisa ketiban identity
 yang salah — device yang sudah install APK produksi bakal gagal update in-place (signature/
+=======
+id/signing/Firebase client config secara gak sengaja, main bisa ketiban identity yang
+salah — device yang sudah install APK produksi bakal gagal update in-place (signature/
+>>>>>>> Development-1.0.4
 package name berubah) atau malah nyasar ke Firebase project yang salah.
 
 ## Mekanisme
@@ -26,11 +31,15 @@ Dua lapis:
 
 File yang dikunci (murni identity, jarang berubah di luar itu):
 - [android/app/build.gradle.kts](../android/app/build.gradle.kts) — applicationId, namespace, signingConfig
+<<<<<<< HEAD
 - [android/app/src/main/AndroidManifest.xml](../android/app/src/main/AndroidManifest.xml) — nama app (`android:label`)
+=======
+>>>>>>> Development-1.0.4
 - [android/app/google-services.json](../android/app/google-services.json)
 - [ios/Runner/GoogleService-Info.plist](../ios/Runner/GoogleService-Info.plist)
 - [firebase.json](../firebase.json)
 - [lib/firebase_options.dart](../lib/firebase_options.dart)
+<<<<<<< HEAD
 - [lib/core/network/api_constants.dart](../lib/core/network/api_constants.dart) — base URL environment
   (hook ini awalnya dibuat gara-gara file ini pernah ketimpa versi dev lewat merge)
 
@@ -44,6 +53,15 @@ Sistem `_identity-guard.sh` ini awalnya dibangun & dites di branch `Development-
 baru di-port ke `Main` (ganti hook lama yang cuma jaga `api_constants.dart`) bareng
 penambahan `AndroidManifest.xml` ke daftar terkunci.
 
+=======
+
+**Sengaja TIDAK dikunci**: `lib/core/network/api_constants.dart` (banyak logic aktif
+selain base URL environment, kalau dikunci nambah fitur baru di file itu gak akan pernah
+lewat merge/cherry-pick ke main) dan `ios/Runner.xcodeproj/project.pbxproj` (file generated
+raksasa, bundle id cuma sebagian kecil isinya, locking bisa nge-block perubahan Xcode
+project yang legit).
+
+>>>>>>> Development-1.0.4
 ## Setup (sekali per clone/laptop/CI)
 
 ```bash

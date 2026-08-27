@@ -155,6 +155,8 @@ class DioClient {
             if (kDebugMode) {
               _printLong('[REQ DECRYPT] ${payload['method']} ${payload['path']} => ${jsonEncode(payload)}');
             }
+            options.extra['originalMethod'] = payload['method'];
+            options.extra['originalPath'] = payload['path'];
             options.method = 'POST';
             options.path = '/px';
             options.queryParameters.clear();
@@ -179,7 +181,8 @@ class DioClient {
           if (!isFileDownload) {
             response.data = ProxyCipher.decrypt(response.data);
             if (kDebugMode) {
-              _printLong('[RES Des ${response.statusCode}] ${response.requestOptions.path} => ${jsonEncode(response.data)}');
+              final originalPath = response.requestOptions.extra['originalPath'] as String? ?? response.requestOptions.path;
+              _printLong('[RES Des ${response.statusCode}] $originalPath => ${jsonEncode(response.data)}');
             }
             final data = response.data;
             if (data is Map) {
@@ -202,7 +205,8 @@ class DioClient {
             if (!isFileDownload) {
               e.response!.data = ProxyCipher.decrypt(e.response!.data);
               if (kDebugMode) {
-                _printLong('[RES ERR ${e.response!.statusCode}] ${e.requestOptions.path} => ${jsonEncode(e.response!.data)}');
+                final originalPath = e.requestOptions.extra['originalPath'] as String? ?? e.requestOptions.path;
+                _printLong('[RES ERR ${e.response!.statusCode}] $originalPath => ${jsonEncode(e.response!.data)}');
               }
             }
           }

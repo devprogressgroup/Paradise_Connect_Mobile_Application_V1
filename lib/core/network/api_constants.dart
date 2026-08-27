@@ -31,12 +31,12 @@ class ApiConstants {
     ),
 
 
-    // AppEnvironment.development: _EnvConfig(
-    //   label: 'Development IP',
-    //   baseUrl: 'http://192.168.8.36:8000/api',
-    //   storageUrl: 'http://192.168.8.36:8000/storage',
-    //   serverUrl: 'http://192.168.8.36:8000',
-    // ),
+    AppEnvironment.development: _EnvConfig(
+      label: 'Development IP',
+      baseUrl: 'http://192.168.8.67:8000/api',
+      storageUrl: 'http://192.168.8.67:8000/storage',
+      serverUrl: 'http://192.168.8.67:8000',
+    ),
 
     // AppEnvironment.development2: _EnvConfig(
     //   label: 'Development 2',
@@ -46,12 +46,12 @@ class ApiConstants {
     // ),
 
 
-    // AppEnvironment.developmnetDomain: _EnvConfig(
-    //   label: 'Development',
-    //   baseUrl: 'https://apidevconnect.paradise.id/api',
-    //   storageUrl: 'https://apidevconnect.paradise.id/storage',
-    //   serverUrl: 'https://apidevconnect.paradise.id',
-    // ),
+    AppEnvironment.developmnetDomain: _EnvConfig(
+      label: 'Development',
+      baseUrl: 'https://apidevconnect.paradise.id/api',
+      storageUrl: 'https://apidevconnect.paradise.id/storage',
+      serverUrl: 'https://apidevconnect.paradise.id',
+    ),
   };
 
 
@@ -109,26 +109,35 @@ class ApiConstants {
   static String _waServerUrl = '';
   static String _salesbookWebhookUrl = '';
   static String _salesbookWebhookToken = '';
-  static String _siteplanBaseUrl = '';
-  static String _siteplanToken = '';
   static String _landingPageUrl = '';
   static String _siapHuniUrl = '';
   static String _lastVersion = '';
   static String _appDownloadUrl = '';
   static String _saleskitUrl = '';
   static String _loginHelpMessage = '';
+  static String _prospectStatusDefaultRangePreset = '';
+  static String _prospectStatusApptRangePreset = '';
+  static String _prospectStatusVisitRangePreset = '';
+  static String _prospectStatusReserveRangePreset = '';
+  static String _prospectStatusSpRangePreset = '';
+  static String _prospectStatusLostRangePreset = '';
+  static final ValueNotifier<int> settingsVersion = ValueNotifier<int>(0);
 
   static String get waServerURL => _waServerUrl;
   static String get salesbookWebhookUrl => _salesbookWebhookUrl;
   static String get salesbookWebhookToken => _salesbookWebhookToken;
-  static String get siteplanBaseUrl => _siteplanBaseUrl;
-  static Map<String, String> get siteplanWebviewHeaders => {'X-App-Token': _siteplanToken};
   static String get landingPageUrl => _landingPageUrl;
   static String get siapHuniUrl => _siapHuniUrl;
   static String get lastVersion => _lastVersion;
   static String get appDownloadUrl => _appDownloadUrl;
   static String get saleskitUrl => _saleskitUrl;
   static String get loginHelpMessage => _loginHelpMessage;
+  static String get prospectStatusDefaultRangePreset => _prospectStatusDefaultRangePreset;
+  static String get prospectStatusApptRangePreset => _prospectStatusApptRangePreset;
+  static String get prospectStatusVisitRangePreset => _prospectStatusVisitRangePreset;
+  static String get prospectStatusReserveRangePreset => _prospectStatusReserveRangePreset;
+  static String get prospectStatusSpRangePreset => _prospectStatusSpRangePreset;
+  static String get prospectStatusLostRangePreset => _prospectStatusLostRangePreset;
 
   static void applySettings(List<Map<String, dynamic>> settings) {
     for (final s in settings) {
@@ -142,10 +151,6 @@ class ApiConstants {
           _salesbookWebhookUrl = value;
         case 'X-App-Token SalesBook':
           _salesbookWebhookToken = value;
-        case 'SITEPLAN_MOBILE_URL':
-          _siteplanBaseUrl = value;
-        case 'X-App-Token SitePlan':
-          _siteplanToken = value;
         case 'LANDING_PAGE_URL':
           _landingPageUrl = value;
         case 'SIAP_HUNI_URL':
@@ -158,8 +163,21 @@ class ApiConstants {
           _saleskitUrl = value;
         case 'LOGIN_HELP_MESSAGE':
           _loginHelpMessage = value;
+        case 'PROSPECT_STATUS_DEFAULT_RANGE_PRESET':
+          _prospectStatusDefaultRangePreset = value;
+        case 'PROSPECT_STATUS_APPT_RANGE_PRESET':
+          _prospectStatusApptRangePreset = value;
+        case 'PROSPECT_STATUS_VISIT_RANGE_PRESET':
+          _prospectStatusVisitRangePreset = value;
+        case 'PROSPECT_STATUS_RESERVE_RANGE_PRESET':
+          _prospectStatusReserveRangePreset = value;
+        case 'PROSPECT_STATUS_SP_RANGE_PRESET':
+          _prospectStatusSpRangePreset = value;
+        case 'PROSPECT_STATUS_LOST_RANGE_PRESET':
+          _prospectStatusLostRangePreset = value;
       }
     }
+    settingsVersion.value++;
   }
 
   static String townshipImageUrl(String slug, String fileName) => '$_saleskitUrl/bin/db/images/township/$slug/$fileName';
