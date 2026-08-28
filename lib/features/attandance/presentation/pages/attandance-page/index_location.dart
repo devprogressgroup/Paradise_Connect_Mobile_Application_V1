@@ -77,9 +77,7 @@ mixin AttendanceLocationMixin<T extends StatefulWidget> on State<T> {
             PermissionsHelper.canClockOutLuarLokasiRequestApprove);
 
     final bool allowed = officeAllowed || pameranAllowed || luarLokasiAllowed;
-    debugPrint('[_isClockButtonDisabled] flag=$flagParam -> ${allowed ? "ENABLED" : "DISABLED"} '
-        '(officeAllowed=$officeAllowed pameranAllowed=$pameranAllowed luarLokasiAllowed=$luarLokasiAllowed '
-        'inOffice=$_inOfficeRadius inPameran=$_inPameranRadius)');
+  
     return !allowed;
   }
 
@@ -148,14 +146,6 @@ mixin AttendanceLocationMixin<T extends StatefulWidget> on State<T> {
 
   Future<void> _initLocation() async {
     
-    debugPrint('[PermissionsHelper] canClockInOffice                    : ${PermissionsHelper.canClockInOffice} radius : $_inOfficeRadius');
-    debugPrint('[PermissionsHelper] canClockInPameran                   : ${PermissionsHelper.canClockInPameran} radius : $_inPameranRadius');
-    debugPrint('[PermissionsHelper] canClockInLuarLokasi                : ${PermissionsHelper.canClockInLuarLokasi}');
-    debugPrint('[PermissionsHelper] canClockInLuarLokasiRequestApprove  : ${PermissionsHelper.canClockInLuarLokasiRequestApprove}');
-    debugPrint('[PermissionsHelper] canClockOutOffice                   : ${PermissionsHelper.canClockOutOffice} radius : $_inOfficeRadius');
-    debugPrint('[PermissionsHelper] canClockOutPameran                  : ${PermissionsHelper.canClockOutPameran} radius : $_inPameranRadius');
-    debugPrint('[PermissionsHelper] canClockOutLuarLokasi               : ${PermissionsHelper.canClockOutLuarLokasi}');
-    debugPrint('[PermissionsHelper] canClockOutLuarLokasiRequestApprove : ${PermissionsHelper.canClockOutLuarLokasiRequestApprove}');
 
 
     final hasPermission = await _handleLocationPermission(fromUserGesture: false);

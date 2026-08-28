@@ -147,7 +147,6 @@ class _ProfilePageState extends State<ProfilePage> {
             onPressed: () {
               Navigator.pop(ctx);
               AnalyticsService.logEvent('profile_logout');
-              debugPrint('[Profile] LogoutEvent dipicu dari: tombol Logout di halaman Profile');
               web_debug.logDebugError('LogoutEvent dipicu dari: tombol Logout di halaman Profile');
               context.read<AuthBloc>().add(LogoutEvent());
             },

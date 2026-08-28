@@ -42,7 +42,6 @@ class _LandingPageState extends State<LandingPage> {
         onPageFinished: (_) => setState(() => _pageLoading = false),
         onNavigationRequest: (request) {
           final url = request.url;
-          debugPrint('[LandingPage NAV] $url');
           if (url.startsWith('whatsapp://') ||
               url.contains('wa.me') ||
               url.contains('api.whatsapp.com')) {

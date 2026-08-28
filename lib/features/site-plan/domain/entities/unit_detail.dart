@@ -23,19 +23,25 @@ class UnitDetail {
     this.priceSchemes = const [],
   });
 
+  /// Backend pakai "-" sebagai placeholder "tidak ada data" untuk field string
+  /// (cluster/product/is_sold/dst) — dianggap sama dengan tidak ada nilai.
+  static String? _cleanStr(dynamic v) => (v is String && v.isNotEmpty && v != '-') ? v : null;
+
   factory UnitDetail.fromJson(Map<String, dynamic> json) {
     return UnitDetail(
-      projectName: json['projects'] as String?,
-      clusterName: json['cluster'] as String?,
-      productName: json['product'] as String?,
-      blokUnit: json['blok_unit'] as String?,
-      status: json['status'] as String?,
-      isSold: json['is_sold'] as bool? ?? false,
+      projectName: _cleanStr(json['projects']),
+      clusterName: _cleanStr(json['cluster']),
+      productName: _cleanStr(json['product']),
+      blokUnit: _cleanStr(json['blok_unit']),
+      status: _cleanStr(json['status']),
+      isSold: json['is_sold'] is bool ? json['is_sold'] as bool : false,
+      // Kalau unit belum punya spec, backend balikin array kosong `[]` alih-alih object.
       spec: UnitSpec.fromJson(
-        (json['spec'] as Map<String, dynamic>?) ?? const {},
+        json['spec'] is Map<String, dynamic> ? json['spec'] as Map<String, dynamic> : const {},
       ),
       priceSchemes: ((json['price_schemes'] as List?) ?? const [])
-          .map((e) => PriceScheme.fromJson(e as Map<String, dynamic>))
+          .whereType<Map<String, dynamic>>()
+          .map((e) => PriceScheme.fromJson(e))
           .toList(),
     );
   }

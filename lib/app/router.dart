@@ -405,9 +405,6 @@ class AppRouter {
             path: '/attandance',
             name: 'attendance',
             redirect: (context, state) {
-              if (!PermissionsHelper.canAccessAttendance) {
-                debugPrint('[Router] /attandance redirect → "/" (canAccessAttendance=false)');
-              }
               return PermissionsHelper.canAccessAttendance ? null : '/';
             },
             builder: (context, state) {

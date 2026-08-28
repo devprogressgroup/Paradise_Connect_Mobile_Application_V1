@@ -5,7 +5,7 @@ import 'dart:io' show Platform;
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:dio/dio.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
-import 'package:flutter/foundation.dart' show debugPrint, kIsWeb;
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:progress_group/core/services/version_check_service.dart';
 import 'package:progress_group/core/utils/helpers/app_time.dart';
@@ -148,7 +148,6 @@ class PushNotificationService {
     _messaging.getToken(vapidKey: kIsWeb ? _vapidKey : null).then((token) {
       _sendTokenToBackend(token);
     }).catchError((e) {
-      debugPrint('[FCM] getToken failed: $e');
       _registerDevice(null);
     });
   }
@@ -161,8 +160,7 @@ class PushNotificationService {
       // gesture yang tidak pernah datang, memblokir seluruh app boot. Di web, permintaan
       // izin notifikasi sekarang didelegasikan ke DevicePermissionGate (tombol di layar gate).
       if (!kIsWeb) await _requestPermission();
-    } catch (e) {
-      debugPrint('[FCM] Browser tidak mendukung Firebase Messaging: $e');
+    } catch (_) {
       _supported = false;
       return;
     }
@@ -177,19 +175,18 @@ class PushNotificationService {
       // selesai dibentuk, supaya tidak jadi uncaught error yang membekukan stream ini.
       FirebaseMessaging.onMessage.listen(
         _handleForegroundMessage,
-        onError: (e, st) => debugPrint('[FCM] onMessage stream error: $e'),
+        onError: (e, st) {},
       );
       FirebaseMessaging.onMessageOpenedApp.listen(
         _handleNotificationTap,
-        onError: (e, st) => debugPrint('[FCM] onMessageOpenedApp stream error: $e'),
+        onError: (e, st) {},
       );
 
       final initialMessage = await _messaging.getInitialMessage();
       if (initialMessage != null) {
         _pendingMessage = initialMessage;
       }
-    } catch (e) {
-      debugPrint('[FCM] Messaging listener setup failed: $e');
+    } catch (_) {
       _supported = false;
     }
   }
@@ -339,9 +336,7 @@ class PushNotificationService {
       if (msg['type'] != 'fcm_notification_click') return;
       final data = (msg['data'] as Map?)?.cast<String, dynamic>() ?? <String, dynamic>{};
       _navigateFromData(data);
-    } catch (e) {
-      debugPrint('[FCM] gagal memproses pesan dari service worker: $e');
-    }
+    } catch (_) {}
   }
 
   // firebase_messaging_web kadang mengembalikan RemoteMessage.data yang bukan Map Dart
@@ -351,8 +346,7 @@ class PushNotificationService {
   static Map<String, dynamic> _safeData(RemoteMessage message) {
     try {
       return Map<String, dynamic>.from(message.data);
-    } catch (e) {
-      debugPrint('[FCM] gagal membaca data notifikasi: $e');
+    } catch (_) {
       return <String, dynamic>{};
     }
   }
@@ -472,9 +466,7 @@ class PushNotificationService {
         osName = 'iOS';
         osVersion = iosInfo.systemVersion;
       }
-    } catch (e) {
-      debugPrint('[Devices] gagal membaca device info: $e');
-    }
+    } catch (_) {}
 
     final activeToken = await _authLocalDataSource?.getToken();
 
@@ -502,9 +494,7 @@ class PushNotificationService {
     try {
       final payload = await _buildDevicePayload(fcmToken);
       await _dio!.post('/devices', data: payload);
-    } catch (e) {
-      debugPrint('[Devices] register failed: $e');
-    }
+    } catch (_) {}
   }
 
   static void _showWebBanner(String? title, String? body, {VoidCallback? onTap}) {

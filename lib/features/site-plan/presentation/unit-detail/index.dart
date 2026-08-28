@@ -221,21 +221,27 @@ class _UnitDetailPageState extends State<UnitDetailPage> {
               _buildStatusBadge(unit),
             ],
           ),
-          const SizedBox(height: 6),
-          Text(
-            unit.clusterName ?? '-',
-            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: Color(greyShade600)),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            unit.productName ?? '-',
-            style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 8),
-          Text(
-           "Blok No : ${unit.blokUnit ?? '-'}",
-            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(greyShade600)),
-          ),
+          if (unit.clusterName != null) ...[
+            const SizedBox(height: 6),
+            Text(
+              unit.clusterName!,
+              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: Color(greyShade600)),
+            ),
+          ],
+          if (unit.productName != null) ...[
+            const SizedBox(height: 6),
+            Text(
+              unit.productName!,
+              style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
+            ),
+          ],
+          if (unit.blokUnit != null) ...[
+            const SizedBox(height: 8),
+            Text(
+              "Blok No : ${unit.blokUnit}",
+              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(greyShade600)),
+            ),
+          ],
         ],
       ),
     );
@@ -362,12 +368,13 @@ class _UnitDetailPageState extends State<UnitDetailPage> {
     final items = <_InfoItem>[
       _InfoItem(Icons.straighten_outlined, 'Luas Tanah', _fmtArea(spec.luasTanah)),
       _InfoItem(Icons.home_outlined, 'Luas Bangunan', _fmtArea(spec.luasBangunan)),
-      _InfoItem(Icons.bed_outlined, 'Kamar Tidur', spec.kamarTidur?.toString() ?? '0'),
-      _InfoItem(Icons.bathtub_outlined, 'Kamar Mandi', spec.kamarMandi?.toString() ?? '0'),
-      _InfoItem(Icons.layers_outlined, 'Jumlah Lantai', spec.jumlahLantai?.toString() ?? '0'),
-      _InfoItem(Icons.garage_outlined, 'Jumlah Carport', spec.jumlahCarport?.toString() ?? '0'),
+      _InfoItem(Icons.bed_outlined, 'Kamar Tidur', spec.kamarTidur?.toString()),
+      _InfoItem(Icons.bathtub_outlined, 'Kamar Mandi', spec.kamarMandi?.toString()),
+      _InfoItem(Icons.layers_outlined, 'Jumlah Lantai', spec.jumlahLantai?.toString()),
+      _InfoItem(Icons.garage_outlined, 'Jumlah Carport', spec.jumlahCarport?.toString()),
+    ].where((e) => e.value != null).toList();
 
-    ];
+    if (items.isEmpty) return const SizedBox.shrink();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -402,8 +409,8 @@ class _UnitDetailPageState extends State<UnitDetailPage> {
     );
   }
 
-  String _fmtArea(num? value) {
-    if (value == null) return '0 m²';
+  String? _fmtArea(num? value) {
+    if (value == null) return null;
     final asString = value == value.roundToDouble() ? value.toInt().toString() : value.toString();
     return '$asString m²';
   }

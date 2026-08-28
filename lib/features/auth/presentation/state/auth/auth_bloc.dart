@@ -177,7 +177,6 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   }
 
   Future<void> _onLogout(LogoutEvent event, Emitter<AuthState> emit) async {
-    debugPrint('[AuthBloc] LogoutEvent diterima:\n${StackTrace.current}');
     web_debug.logDebugError('AuthBloc: LogoutEvent diterima — ${StackTrace.current}');
     try {
       await logoutUseCase();

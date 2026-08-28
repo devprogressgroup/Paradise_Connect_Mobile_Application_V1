@@ -36,7 +36,6 @@ class OldAppBanner extends StatelessWidget {
                   ),
                   TextButton.icon(
                     onPressed: () async {
-                      print("Uninstall");
                       final error = await OldAppCheckService.openUninstallOldApp();
 
                       if (error != null && context.mounted) {
@@ -44,7 +43,6 @@ class OldAppBanner extends StatelessWidget {
                           SnackBar(content: Text('Gagal membuka uninstall: $error')),
                         );
                       }
-                      print("Uninstall : $error");
                     },
                     icon: const Icon(Icons.delete_outline, color: Color(whiteColor), size: 16),
                     label: const Text('Uninstall', style: TextStyle(color: Color(whiteColor), fontWeight: FontWeight.bold)),

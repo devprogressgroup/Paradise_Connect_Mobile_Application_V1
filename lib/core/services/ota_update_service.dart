@@ -18,7 +18,6 @@ class OtaUpdateService {
     if (kIsWeb || !Platform.isAndroid) return;
 
     if (downloadUrl.isEmpty) {
-      debugPrint('[OtaUpdateService] downloadUrl kosong, batal download');
       onError('URL unduhan tidak tersedia. Hubungi admin.');
       return;
     }
@@ -26,7 +25,6 @@ class OtaUpdateService {
     _cancelToken = CancelToken();
 
     try {
-      debugPrint('[OtaUpdateService] mulai download dari $downloadUrl');
       final dir = await getTemporaryDirectory();
       final savePath = '${dir.path}/pg_update.apk';
 
@@ -52,13 +50,11 @@ class OtaUpdateService {
         },
       );
 
-      debugPrint('[OtaUpdateService] download selesai, buka installer: $savePath');
       onInstalling();
 
       await _channel.invokeMethod('installApk', {'filePath': savePath});
     } on DioException catch (e) {
       if (CancelToken.isCancel(e)) return;
-      debugPrint('[OtaUpdateService] DioException: ${e.type} - ${e.message}');
       switch (e.type) {
         case DioExceptionType.connectionTimeout:
         case DioExceptionType.sendTimeout:
@@ -70,10 +66,8 @@ class OtaUpdateService {
           onError('Download gagal, silakan coba lagi.');
       }
     } on PlatformException catch (e) {
-      debugPrint('[OtaUpdateService] PlatformException: ${e.code} - ${e.message}');
       onError('Gagal membuka installer: ${e.message}');
-    } catch (e) {
-      debugPrint('[OtaUpdateService] Error tak terduga: $e');
+    } catch (_) {
       onError('Gagal mengunduh pembaruan, silakan coba lagi.');
     }
   }
@@ -88,9 +82,8 @@ class OtaUpdateService {
     try {
       final result = await _channel.invokeMethod<bool>('canInstallPackages');
       return result ?? true;
-    } catch (e) {
+    } catch (_) {
       // MissingPluginException kalau native belum di-rebuild, atau error lain — jangan blokir alur update
-      debugPrint('[OtaUpdateService] canInstallPackages gagal: $e');
       return true;
     }
   }
@@ -99,8 +92,6 @@ class OtaUpdateService {
     if (kIsWeb || !Platform.isAndroid) return;
     try {
       await _channel.invokeMethod('openInstallPermissionSettings');
-    } catch (e) {
-      debugPrint('[OtaUpdateService] openInstallPermissionSettings gagal: $e');
-    }
+    } catch (_) {}
   }
 }

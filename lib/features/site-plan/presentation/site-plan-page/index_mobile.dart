@@ -1,6 +1,5 @@
 ﻿import 'dart:convert';
 
-import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
@@ -218,7 +217,6 @@ class _SitePlanPageState extends State<SitePlanPage> with RouteAware {
       ..addJavaScriptChannel(
         'SiteplanBridge',
         onMessageReceived: (JavaScriptMessage message) {
-          if (kDebugMode) debugPrint('[SitePlan][bridge] ${message.message}');
           web_debug.logDebugInfo('[SitePlan][bridge] ${message.message}');
 
           // Klik "Lihat Selengkapnya" versi BARU (vendor sudah diubah pakai fetch() alih-alih
@@ -282,7 +280,6 @@ class _SitePlanPageState extends State<SitePlanPage> with RouteAware {
             if (!request.isMainFrame || request.url.isEmpty) {
               return NavigationDecision.navigate;
             }
-            if (kDebugMode) debugPrint('[SitePlan] onNavigationRequest: ${request.url}');
             web_debug.logDebugInfo('[SitePlan] navigate: ${request.url}');
 
             final uri = Uri.tryParse(request.url);
@@ -360,8 +357,6 @@ class _SitePlanPageState extends State<SitePlanPage> with RouteAware {
   Future<void> _loadSite(ProjectSite site) async {
     setState(() => _isWebviewLoading = true);
     _currentSiteUrl = site.url;
-
-    if (kDebugMode) debugPrint('[SitePlan] loading url: ${site.url}');
 
     // site.url sudah menunjuk ke proxy Laravel (/property/siteplan-proxy) — backend yang
     // menyisipkan header X-App-Token ke server siteplan asli, WebView tidak perlu (dan

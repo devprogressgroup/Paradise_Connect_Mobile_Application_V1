@@ -1788,8 +1788,6 @@ class _ContactFormPageState extends State<ContactFormPage> {
                 final statusLoading = statusState == ProspectStatusEnum.initial || statusState == ProspectStatusEnum.loading;
                 final propertiesState = context.watch<ContactPropertiesBloc>().state.status;
                 final propertiesLoading = propertiesState == ContactPropertiesStatus.initial || propertiesState == ContactPropertiesStatus.loading;
-                if (propertiesState == ContactPropertiesStatus.error) debugPrint('[ContactForm] ContactProperties ERROR: ${context.watch<ContactPropertiesBloc>().state.errorMessage}');
-                if (statusState == ProspectStatusEnum.error) debugPrint('[ContactForm] ProspectStatus ERROR');
                 final detailLoading = contactState.status == ContactStatus.loadingDetail ||
                     contactState.status == ContactStatus.initial;
 

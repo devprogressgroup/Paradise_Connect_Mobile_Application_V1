@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:dio/dio.dart';
-import 'package:flutter/foundation.dart' show kIsWeb, debugPrint;
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:progress_group/core/utils/web_debug_util.dart' as web_debug;
 import 'package:progress_group/core/services/analytics_service.dart';
 import 'package:path_provider/path_provider.dart';
@@ -3174,7 +3174,6 @@ class _ActivityCardState extends State<_ActivityCard> {
   }
 
   void _openContactActivity(BuildContext context) {
-    print("debug contact ${widget.contactId} ${widget.contactName}");
     context.pushNamed(
       'detailContact',
       extra: ContactDetailArgs(

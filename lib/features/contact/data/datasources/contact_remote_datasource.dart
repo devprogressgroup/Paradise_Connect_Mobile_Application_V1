@@ -128,7 +128,6 @@ class ContactRemoteDataSourceImpl implements ContactRemoteDataSource {
         if (sort != null && sort.isNotEmpty) 'sort': sort,
       };
 
-      debugPrint('[CONTACT ENDPOINT] GET /contacts?$queryParameters');
 
       final response = await dio.get(
         '/contacts',
@@ -137,7 +136,6 @@ class ContactRemoteDataSourceImpl implements ContactRemoteDataSource {
 
       if (response.data['status'] == true) {
 
-        debugPrint('[RESPON CONTACT] ${response.data['data']}');
         return ContactResponseModel.fromJson(response.data['data']);
       }
 
@@ -186,7 +184,6 @@ class ContactRemoteDataSourceImpl implements ContactRemoteDataSource {
         queryParameters: {'owner_id': ownerId, 'phone': phone},
       );
 
-      debugPrint('[checkDuplicateContact] response: ${response.data}');
 
       if (response.data['status'] == true) {
         final data = response.data['data'];
@@ -195,7 +192,6 @@ class ContactRemoteDataSourceImpl implements ContactRemoteDataSource {
 
       throw Exception(response.data['message'] ?? 'Gagal memeriksa duplikat kontak');
     } on DioException catch (e) {
-      debugPrint('[checkDuplicateContact] error status: ${e.response?.statusCode}, body: ${e.response?.data}');
       throw Exception(getErrorMessage(e, 'Gagal memeriksa duplikat kontak'));
     }
   }
@@ -394,7 +390,6 @@ class ContactRemoteDataSourceImpl implements ContactRemoteDataSource {
 
   Future<ContactModel> createContact(CreateContactParams params) async {
     try {
-      debugPrint('[createContact] request body: ${jsonEncode(params.toJson())}');
       final response = await dio.post('/contacts/create', data: _buildFormData(params));
 
       if (response.data['status'] == true) {
@@ -410,7 +405,6 @@ class ContactRemoteDataSourceImpl implements ContactRemoteDataSource {
   Future<ContactModel> updateContact(int id, CreateContactParams params) async {
     try {
       final hasFiles = params.propertyFileBytes?.isNotEmpty == true;
-      debugPrint('[updateContact] request body: ${jsonEncode(params.toJson())}');
       final response = await dio.patch(
         '/contacts/$id',
         data: hasFiles ? _buildFormData(params) : params.toJson(),

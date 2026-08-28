@@ -27,8 +27,7 @@ class OldAppCheckService {
         {'packageName': oldPackageName},
       );
       return result ?? false;
-    } on PlatformException catch (e) {
-      debugPrint('[OldAppCheckService] isPackageInstalled failed: ${e.message}');
+    } on PlatformException {
       return false;
     }
   }
@@ -39,9 +38,7 @@ class OldAppCheckService {
       await _channel.invokeMethod('uninstallPackage', {'packageName': oldPackageName});
       return null;
     } on PlatformException catch (e) {
-      final message = '${e.code}: ${e.message}';
-      debugPrint('[OldAppCheckService] uninstallPackage failed: $message');
-      return message;
+      return '${e.code}: ${e.message}';
     }
   }
 }

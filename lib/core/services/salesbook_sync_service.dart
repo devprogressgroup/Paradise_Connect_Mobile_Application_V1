@@ -17,7 +17,7 @@ class SalesbookSyncService {
       );
       // debugPrint('[SalesbookSync] contact_id=$contactId → ${response.statusCode} ${response.data}');
     } catch (e) {
-      debugPrint('[SalesbookSync] ERROR contact_id=$contactId → $e');
+      // debugPrint('[SalesbookSync] ERROR contact_id=$contactId → $e');
     }
   }
 }

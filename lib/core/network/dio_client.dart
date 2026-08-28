@@ -24,12 +24,6 @@ class DioClient {
     _isHandling401 = false;
   }
 
-  static void _printLong(String text, {int chunkSize = 800}) {
-    for (var i = 0; i < text.length; i += chunkSize) {
-      // debugPrint(text.substring(i, i + chunkSize > text.length ? text.length : i + chunkSize));
-    }
-  }
-
   static void _showGlobalSnackbar(String message) {
     final context = AppRouter.rootNavigatorKey.currentContext;
     if (context == null || !context.mounted) return;
@@ -102,9 +96,6 @@ class DioClient {
           if (token != null && token.isNotEmpty) {
             options.headers["Authorization"] = "Bearer $token";
           }
-          if (kDebugMode && options.method.toUpperCase() == 'GET') {
-            debugPrint('[API GET] ${options.baseUrl}${options.path}${options.queryParameters.isNotEmpty ? '?${options.queryParameters}' : ''}');
-          }
           final isFileDownload = options.responseType == ResponseType.bytes ||
               options.responseType == ResponseType.stream;
           if (isFileDownload) {
@@ -152,9 +143,6 @@ class DioClient {
               'body': body,
               'ts': AppTime.nowUtcInstant().millisecondsSinceEpoch,
             };
-            if (kDebugMode) {
-              _printLong('[REQ DECRYPT] ${payload['method']} ${payload['path']} => ${jsonEncode(payload)}');
-            }
             options.extra['originalMethod'] = payload['method'];
             options.extra['originalPath'] = payload['path'];
             options.method = 'POST';
@@ -164,13 +152,6 @@ class DioClient {
             options.headers['Content-Type'] = 'application/json';
           }
 
-          if (kDebugMode) {
-            
-            if (options.data is Map) {
-              final r = (options.data as Map)['r']?.toString() ?? '';
-              _printLong('[REQ ENCRYPTED] $r');
-            }
-          }
           return handler.next(options);
         },
         onResponse: (response, handler) {
@@ -180,10 +161,6 @@ class DioClient {
               response.requestOptions.responseType == ResponseType.stream;
           if (!isFileDownload) {
             response.data = ProxyCipher.decrypt(response.data);
-            if (kDebugMode) {
-              final originalPath = response.requestOptions.extra['originalPath'] as String? ?? response.requestOptions.path;
-              _printLong('[RES Des ${response.statusCode}] $originalPath => ${jsonEncode(response.data)}');
-            }
             final data = response.data;
             if (data is Map) {
               final status = data['status'];
@@ -204,13 +181,8 @@ class DioClient {
                 e.requestOptions.responseType == ResponseType.stream;
             if (!isFileDownload) {
               e.response!.data = ProxyCipher.decrypt(e.response!.data);
-              if (kDebugMode) {
-                final originalPath = e.requestOptions.extra['originalPath'] as String? ?? e.requestOptions.path;
-                _printLong('[RES ERR ${e.response!.statusCode}] $originalPath => ${jsonEncode(e.response!.data)}');
-              }
             }
           }
-          if (kDebugMode) debugPrint("DIO ERROR: ${e.message}");
 
           if (e.response?.statusCode == 429) {
             final message = e.response?.data is Map
@@ -265,7 +237,6 @@ class DioClient {
                     return handler.resolve(retryResponse);
                   }
               } catch (refreshErr) {
-                debugPrint('[DioClient] Token refresh failed: $refreshErr');
                 web_debug.logDebugError('401 token refresh failed: $refreshErr');
               }
             }
@@ -281,7 +252,6 @@ class DioClient {
 
             final context = AppRouter.rootNavigatorKey.currentContext;
             if (context != null && context.mounted) {
-              debugPrint('[DioClient] 401 sesi habis — tampilkan dialog. url: ${e.requestOptions.path}');
               web_debug.logDebugError('401 sesi habis (dialog) — ${e.requestOptions.path}: $apiMessage');
               showDialog(
                 context: context,

@@ -2,7 +2,7 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'dart:ui' show PlatformDispatcher;
-import 'package:flutter/foundation.dart' show kIsWeb, kDebugMode, debugPrint;
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_web_plugins/url_strategy.dart';
@@ -241,9 +241,7 @@ void main() async {
     if (settings.isNotEmpty) ApiConstants.applySettings(settings);
     await analyticsFuture.timeout(
       const Duration(seconds: 8),
-      onTimeout: () {
-        if (kDebugMode) debugPrint('[main] refreshEnabledEvents() timeout, lanjut tanpa itu');
-      },
+      onTimeout: () {},
     );
   } catch (_) {}
 
@@ -258,11 +256,9 @@ void main() async {
     // batas waktu. Lebih baik lanjut tanpa push notification daripada app tidak bisa dibuka.
     await PushNotificationService.initialize().timeout(
       const Duration(seconds: 8),
-      onTimeout: () => debugPrint('[Firebase] PushNotificationService.initialize() timeout, lanjut tanpa push notification'),
+      onTimeout: () {},
     );
-  } catch (e) {
-    debugPrint('[Firebase] Init error: $e');
-  }
+  } catch (_) {}
 
   AppRouter.init();
 
@@ -275,11 +271,8 @@ void main() async {
     // code) dan kita teruskan ke go_router secara manual di sini.
     AppLinks().uriLinkStream.listen((uri) {
       final location = '${uri.path}${uri.hasQuery ? '?${uri.query}' : ''}';
-      if (kDebugMode) debugPrint('[AppLinks] uriLinkStream: $location');
       AppRouter.router.go(location.isEmpty ? '/' : location);
-    }, onError: (e) {
-      if (kDebugMode) debugPrint('[AppLinks] error: $e');
-    });
+    }, onError: (_) {});
   }
 
   SystemChrome.setSystemUIOverlayStyle(
@@ -588,15 +581,9 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
                     PushNotificationService.checkAndShowUpdateBanner();
                     AnalyticsService.logLogin();
                   } else if (state is AuthLoggedOut) {
-                    debugPrint('[App] AuthLoggedOut — _resetApp dipanggil (keluar dari semua halaman)');
-                    web_debug.logDebugError('App: AuthLoggedOut — _resetApp dipanggil (keluar dari semua halaman)');
                     AnalyticsService.clearUser();
                     _resetApp();
                   } else if (state is ImpersonationStarted || state is ImpersonationStopped) {
-                    
-                    
-                    debugPrint('[App] ImpersonationStarted/Stopped — go /splash');
-                    web_debug.logDebugError('App: ImpersonationStarted/Stopped — go /splash');
                     AppRouter.router.go('/splash');
                   }
                 },

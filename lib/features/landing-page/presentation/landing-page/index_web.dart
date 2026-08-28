@@ -51,7 +51,6 @@ class _LandingPageState extends State<LandingPage> {
       final dynamic loc = win.location;
       final String href = (loc.href as String?) ?? '';
       if (href.isEmpty) return false;
-      debugPrint('[LandingPage WEB NAV] iframe accessible href: $href');
       return true;
     } catch (_) {
       return false;

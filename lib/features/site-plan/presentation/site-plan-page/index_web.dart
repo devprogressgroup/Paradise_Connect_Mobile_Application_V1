@@ -4,7 +4,6 @@ import 'dart:convert';
 import 'dart:html' as html;
 import 'dart:ui_web' as ui_web;
 
-import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
@@ -43,11 +42,6 @@ class _SitePlanPageState extends State<SitePlanPage> with RouteAware {
   @override
   void initState() {
     super.initState();
-    // debugPrint (BUKAN web_debug.logDebugInfo) — script debug panel Eruda di web/index.html
-    // SAAT INI di-comment semua, jadi logDebugInfo diam-diam no-op (try/catch nelan error JS
-    // "logDebugLine is not defined"). debugPrint tetap muncul di terminal `flutter run` tanpa
-    // bergantung ke itu.
-    if (kDebugMode) debugPrint('[SitePlan] initState (widget baru/rebuild)');
     AnalyticsService.logScreenView('site_plan');
     _listenSiteplanBridge();
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -67,8 +61,6 @@ class _SitePlanPageState extends State<SitePlanPage> with RouteAware {
     _bridgeSub = html.window.onMessage.listen((event) {
       final data = event.data;
       if (data is Map && data['source'] == 'paradiseSiteplan') {
-        if (kDebugMode) debugPrint('[SitePlan][bridge] ${data['type']}: ${data['payload']}');
-
         // Klik "Lihat Selengkapnya" — kalau redirectParams (siteplan_id/company_id/product_id/
         // property_id plain, tanpa enkripsi) sudah ada, langsung navigasi ke UnitDetailPage
         // (fetch LIVE dari /property-pricing). Kalau belum (redirect versi lama, terenkripsi,
@@ -364,7 +356,6 @@ class _SitePlanPageState extends State<SitePlanPage> with RouteAware {
   // pakai flag ini — kalau tidak, peta ikut reload tiap kali sheet ditutup padahal tidak perlu.
   @override
   void didPopNext() {
-    if (kDebugMode) debugPrint('[SitePlan] didPopNext (state lama masih hidup, bukan rebuild)');
     if (_isUnitDetailSheetOpen) return;
     if (mounted && _selectedSite != null) _loadSite(_selectedSite!);
   }

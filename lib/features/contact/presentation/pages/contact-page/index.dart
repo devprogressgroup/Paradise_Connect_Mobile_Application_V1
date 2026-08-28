@@ -1306,6 +1306,7 @@ class _ContactPageState extends State<ContactPage> {
         isRefresh: true,
         clearStatus: true,
         clearSalesChannel: true,
+        clearSalesChannelDetail: true,
         clearOwner: true,
         clearSalesExecutive: true,
         clearSalesSupervisor: true,
