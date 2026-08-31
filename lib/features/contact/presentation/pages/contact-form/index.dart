@@ -2048,7 +2048,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
                           ),
                           
                           _buildUnitField(),
-                          if (_isVisitorWi(selectedStatusId))
+                          if (_statusGroup(selectedStatusId) == 'visit')
                             _buildFieldDown(
                               label: "Berapa kali datang",
                               value: vCountTC.text.isEmpty ? null : (vCountTC.text == '5' ? '>5' : vCountTC.text),
@@ -3071,18 +3071,6 @@ class _ContactFormPageState extends State<ContactFormPage> {
       if (s.statusProspectId == id) return s.group;
     }
     return 'db';
-  }
-
-  
-  
-  bool _isVisitorWi(int? id) {
-    if (id == null) return false;
-    final st = context.read<ContactFormProspectStatusBloc>().state;
-    if (st.status != ProspectStatusEnum.loaded) return false;
-    for (final s in st.statuses) {
-      if (s.statusProspectId == id) return s.isVisitorWi;
-    }
-    return false;
   }
 
   

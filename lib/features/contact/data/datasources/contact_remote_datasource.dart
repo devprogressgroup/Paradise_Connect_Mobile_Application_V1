@@ -405,10 +405,9 @@ class ContactRemoteDataSourceImpl implements ContactRemoteDataSource {
   Future<ContactModel> updateContact(int id, CreateContactParams params) async {
     try {
       final hasFiles = params.propertyFileBytes?.isNotEmpty == true;
-      final response = await dio.patch(
-        '/contacts/$id',
-        data: hasFiles ? _buildFormData(params) : params.toJson(),
-      );
+      final data = hasFiles ? _buildFormData(params) : params.toJson();
+      debugPrint('[updateContact] PATCH /contacts/$id body: ${const JsonEncoder.withIndent('  ').convert(params.toJson())}');
+      final response = await dio.patch('/contacts/$id', data: data);
 
       if (response.data['status'] != true) {
         throw Exception(response.data['message'] ?? 'Failed to update contact');

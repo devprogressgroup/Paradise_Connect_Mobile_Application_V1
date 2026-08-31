@@ -536,6 +536,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
         0,
       );
     });
+    debugPrint('[pickDateTime] selectedDate set to $selectedDate');
   }
 
   Future<void> _openGoogleCalendar({
@@ -754,7 +755,9 @@ class _ContactAddPageState extends State<ContactAddPage> {
     
     
     final group = _currentStatusGroup();
+    debugPrint('[updateStatus] group=$group selectedDate=$selectedDate selectedStatusId=$selectedStatusId');
     final d = _buildMilestoneDates(group, contact);
+    debugPrint('[updateStatus] milestoneDates=$d');
     final firstApptDate    = d['firstApptDate'];
     final lastApptDate     = d['lastApptDate'];
     final firstReserveDate = d['firstReserveDate'];

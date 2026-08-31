@@ -31,6 +31,28 @@ class ApiConstants {
     ),
 
 
+    AppEnvironment.development: _EnvConfig(
+      label: 'Development IP',
+      baseUrl: 'http://172.20.10.3:8000/api',
+      storageUrl: 'http://172.20.10.3:8000/storage',
+      serverUrl: 'http://172.20.10.3:8000',
+    ),
+
+    // AppEnvironment.development2: _EnvConfig(
+    //   label: 'Development 2',
+    //   baseUrl: 'http://172.20.10.2:8000/api',
+    //   storageUrl: 'http://172.20.10.2:8000/storage',
+    //   serverUrl: 'http://172.20.10.2:8000',
+    // ),
+
+
+    AppEnvironment.developmnetDomain: _EnvConfig(
+      label: 'Development',
+      baseUrl: 'https://apidevconnect.paradise.id/api',
+      storageUrl: 'https://apidevconnect.paradise.id/storage',
+      serverUrl: 'https://apidevconnect.paradise.id',
+    ),
+
   };
 
 
@@ -168,4 +190,6 @@ class ApiConstants {
   static String commercialImageUrl(String filePath) => filePath.startsWith('bin/db/') ? '$_saleskitUrl/$filePath' : '$_saleskitUrl/bin/db/images/commercial/$filePath';
 
 }
+
+
 
