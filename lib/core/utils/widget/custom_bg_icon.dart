@@ -35,10 +35,12 @@ class BgIcon extends StatelessWidget {
           child: asset != null && asset!.isNotEmpty
               ? Image.asset(
                   asset!,
-                  width: 35,
-                  height: 35,
+                  width: 28,
+                  height: 28,
+                  fit: BoxFit.contain,
                   errorBuilder: (_, __, ___) => Icon(fallbackIcon),
                   color: color,
+                  
                 )
               : Icon(fallbackIcon, size: 35,),
         ),

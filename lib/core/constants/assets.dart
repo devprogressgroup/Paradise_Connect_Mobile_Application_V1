@@ -18,6 +18,7 @@ const String icContactDetailWA = 'assets/img/ic-contact-detail-wa.png';
 const String icContactDetailMeeting = 'assets/img/ic-contact-detail-meeting.png';
 const String icContactDetailReminder = 'assets/img/ic-contact-detail-reminder.png';
 const String icContactDetailVisit = 'assets/img/ic-contact-detail-visit.png';
+const String icContactDetailReserveOrder = 'assets/img/ic-contact-detail-reserve-order.png';
 
 const String icEdit = 'assets/img/ic-edit.png';
 const String icDelete = 'assets/img/ic-delete.png';

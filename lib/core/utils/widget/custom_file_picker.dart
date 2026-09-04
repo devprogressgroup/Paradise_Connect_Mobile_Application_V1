@@ -46,6 +46,104 @@ class CustomFilePicker {
       ),
     );
   }
+
+  // Dipakai juga oleh sheet lain (mis. sheet Camera/Upload di Reserve Order) supaya logika
+  // ambil foto — termasuk percabangan web/mobile — cuma ada satu tempat.
+  static Future<PickedFileResult?> pickCamera() async {
+    try {
+      if (kIsWeb) {
+      
+      
+      
+        final XFile? file = await ImagePicker().pickImage(source: ImageSource.camera);
+        if (file == null) return null;
+        final bytes = await file.readAsBytes();
+        return PickedFileResult(path: null, bytes: bytes, name: file.name, isImage: true, isPdf: false);
+      }
+      final XFile? file = await ImagePicker().pickImage(
+        source: ImageSource.camera,
+        imageQuality: 85,
+        preferredCameraDevice: CameraDevice.rear,
+      );
+      if (file == null) return null;
+      final bytes = await file.readAsBytes();
+      return PickedFileResult(
+        path: file.path,
+        bytes: bytes,
+        name: file.name,
+        isImage: true,
+        isPdf: false,
+      );
+    } catch (e) {
+    
+      return null;
+    }
+  }
+
+
+
+
+  static Future<PickedFileResult?> pickGallery() async {
+    try {
+      if (kIsWeb) {
+        final result = await FilePicker.platform.pickFiles(
+          type: FileType.image,
+          withData: true,
+        );
+        if (result == null || result.files.isEmpty) return null;
+        final f = result.files.single;
+        return PickedFileResult(
+          path: null,
+          bytes: f.bytes,
+          name: f.name,
+          isImage: true,
+          isPdf: false,
+        );
+      } else {
+        final XFile? file =
+            await ImagePicker().pickImage(source: ImageSource.gallery);
+        if (file == null) return null;
+        final bytes = await file.readAsBytes();
+        return PickedFileResult(
+          path: file.path,
+          bytes: bytes,
+          name: file.name,
+          isImage: true,
+          isPdf: false,
+        );
+      }
+    } catch (e) {
+    
+      return null;
+    }
+  }
+
+
+
+  static Future<PickedFileResult?> pickDocument() async {
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: [
+          'pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'txt',
+        ],
+        withData: true,
+      );
+      if (result == null || result.files.isEmpty) return null;
+      final f = result.files.single;
+      final isPdf = f.name.toLowerCase().endsWith('.pdf');
+      return PickedFileResult(
+        path: kIsWeb ? null : f.path,
+        bytes: f.bytes,
+        name: f.name,
+        isImage: false,
+        isPdf: isPdf,
+      );
+    } catch (e) {
+    
+      return null;
+    }
+  }
 }
 
 class _FilePickerSheet extends StatelessWidget {
@@ -99,21 +197,21 @@ class _FilePickerSheet extends StatelessWidget {
                   
                     label: 'Kamera',
                     color: Color(primaryColor),
-                    onTap: () => _pick(context, _pickCamera),
+                    onTap: () => _pick(context, CustomFilePicker.pickCamera),
                   ),
                 if (allowImages)
                   _OptionButton(
                     icon: Icons.image_rounded,
                     label: kIsWeb ? 'Pilih Gambar' : 'Galeri',
                     color: Color(successColor),
-                    onTap: () => _pick(context, _pickGallery),
+                    onTap: () => _pick(context, CustomFilePicker.pickGallery),
                   ),
                 if (allowDocuments)
                   _OptionButton(
                     icon: Icons.description_rounded,
                     label: 'Dokumen',
                     color: Color(warningColor),
-                    onTap: () => _pick(context, _pickDocument),
+                    onTap: () => _pick(context, CustomFilePicker.pickDocument),
                   ),
               ],
             ),
@@ -131,106 +229,6 @@ class _FilePickerSheet extends StatelessWidget {
   ) async {
     final result = await picker();
     if (context.mounted) Navigator.pop(context, result);
-  }
-
-
-
-
-
-  Future<PickedFileResult?> _pickCamera() async {
-    try {
-      if (kIsWeb) {
-      
-      
-      
-        final XFile? file = await ImagePicker().pickImage(source: ImageSource.camera);
-        if (file == null) return null;
-        final bytes = await file.readAsBytes();
-        return PickedFileResult(path: null, bytes: bytes, name: file.name, isImage: true, isPdf: false);
-      }
-      final XFile? file = await ImagePicker().pickImage(
-        source: ImageSource.camera,
-        imageQuality: 85,
-        preferredCameraDevice: CameraDevice.rear,
-      );
-      if (file == null) return null;
-      final bytes = await file.readAsBytes();
-      return PickedFileResult(
-        path: file.path,
-        bytes: bytes,
-        name: file.name,
-        isImage: true,
-        isPdf: false,
-      );
-    } catch (e) {
-    
-      return null;
-    }
-  }
-
-
-
-
-  Future<PickedFileResult?> _pickGallery() async {
-    try {
-      if (kIsWeb) {
-        final result = await FilePicker.platform.pickFiles(
-          type: FileType.image,
-          withData: true,
-        );
-        if (result == null || result.files.isEmpty) return null;
-        final f = result.files.single;
-        return PickedFileResult(
-          path: null,
-          bytes: f.bytes,
-          name: f.name,
-          isImage: true,
-          isPdf: false,
-        );
-      } else {
-        final XFile? file =
-            await ImagePicker().pickImage(source: ImageSource.gallery);
-        if (file == null) return null;
-        final bytes = await file.readAsBytes();
-        return PickedFileResult(
-          path: file.path,
-          bytes: bytes,
-          name: file.name,
-          isImage: true,
-          isPdf: false,
-        );
-      }
-    } catch (e) {
-    
-      return null;
-    }
-  }
-
-
-
-  Future<PickedFileResult?> _pickDocument() async {
-    try {
-      final result = await FilePicker.platform.pickFiles(
-        type: FileType.custom,
-        allowedExtensions: [
-          'pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'txt',
-        ],
-        withData: true,
-      );
-      if (result == null || result.files.isEmpty) return null;
-      final f = result.files.single;
-      final isPdf = f.name.toLowerCase().endsWith('.pdf');
-      return PickedFileResult(
-        path: kIsWeb ? null : f.path,
-        bytes: f.bytes,
-        name: f.name,
-        isImage: false,
-        isPdf: isPdf,
-      );
-    } catch (e) {
-    
-      return null;
-    }
   }
 }
 

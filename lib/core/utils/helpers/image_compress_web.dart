@@ -4,7 +4,7 @@ import 'dart:js_interop';
 import 'dart:typed_data';
 import 'package:web/web.dart' as web;
 
-Future<Uint8List> compressImageBytes(Uint8List bytes) async {
+Future<Uint8List> compressImageBytes(Uint8List bytes, {int maxSide = 0}) async {
   try {
     final blob = web.Blob([bytes.toJS as JSAny].toJS);
     final url = web.URL.createObjectURL(blob);
@@ -24,11 +24,22 @@ Future<Uint8List> compressImageBytes(Uint8List bytes) async {
     await completer.future.timeout(const Duration(seconds: 5));
     web.URL.revokeObjectURL(url);
 
+    // maxSide = 0 → resolusi asli dipertahankan (perilaku lama). Kalau diisi, sisi terpanjang
+    // dibatasi supaya hasil upload-nya bisa diprediksi ukurannya; rasio tetap.
+    var width = img.naturalWidth;
+    var height = img.naturalHeight;
+    final longest = width > height ? width : height;
+    if (maxSide > 0 && longest > maxSide) {
+      final scale = maxSide / longest;
+      width = (width * scale).round();
+      height = (height * scale).round();
+    }
+
     final canvas = web.HTMLCanvasElement();
-    canvas.width = img.naturalWidth;
-    canvas.height = img.naturalHeight;
+    canvas.width = width;
+    canvas.height = height;
     final ctx = canvas.getContext('2d')! as web.CanvasRenderingContext2D;
-    ctx.drawImage(img, 0, 0);
+    ctx.drawImage(img, 0, 0, width, height);
 
     final dataUrl = canvas.toDataURL('image/jpeg', 0.8.toJS);
     return base64Decode(dataUrl.split(',').last);

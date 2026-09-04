@@ -146,6 +146,10 @@ class _ContactDetailPageState extends State<ContactDetailPage>with TickerProvide
     searchTC.clear();
   }
 
+  Future<void> _navigateToReserveOrder(ContactDetailArgs args) async {
+    await context.pushNamed('reserveOrder', extra: args.copyWith(initialTab: currentTab));
+  }
+
   void _init() async {
     await _getActivity();
     await _getAttachment();
@@ -542,6 +546,19 @@ class _ContactDetailPageState extends State<ContactDetailPage>with TickerProvide
               );
             },
           ),
+           ContactOptionsSheet.buildIconLink(
+            context,
+            icContactDetailReserveOrder,
+            "Reserve Order",
+            () {
+              _navigateToReserveOrder(
+                ContactDetailArgs(
+                  dataContact: context.read<ContactBloc>().state.contactDetail ?? widget.args.dataContact,
+                  namePage: "Reserve Order",
+                ),
+              );
+            },
+          ),
           ContactOptionsSheet.buildIconLink(
             context,
             icContactDetailVisit,
@@ -556,6 +573,7 @@ class _ContactDetailPageState extends State<ContactDetailPage>with TickerProvide
               );
             },
           ),
+         
           ContactOptionsSheet.buildIconLink(
             context,
             icSidebarSalesKit,

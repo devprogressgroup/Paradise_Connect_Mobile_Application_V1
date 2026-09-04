@@ -21,6 +21,8 @@ import '../features/contact/presentation/pages/contact-detail/index.dart';
 import '../features/contact/presentation/pages/contact-form/index.dart';
 import 'package:progress_group/features/contact/presentation/pages/date-selection/index.dart';
 import '../features/contact/presentation/pages/contact-page/index.dart';
+import '../features/contact/presentation/pages/reserve-order/index.dart';
+import '../features/contact/presentation/pages/reserve-order/reserve.dart';
 import '../features/home/presentation/pages/home/index.dart';
 import '../features/inbox/data/arguments/inbox_detail_args.dart';
 import '../features/inbox/presentation/pages/inbox-detail/index.dart';
@@ -323,6 +325,24 @@ class AppRouter {
                   final args = state.extra as ContactDetailArgs;
                   return ContactAddPage(args: args);
                 },
+              ),
+              GoRoute(
+                name: 'reserveOrder',
+                path: 'reserve-order',
+                builder: (context, state) {
+                  final args = state.extra as ContactDetailArgs;
+                  return ReserveOrderPage(args: args);
+                },
+                routes: [
+                  GoRoute(
+                    name: 'reserveOrderReserve',
+                    path: 'reserve',
+                    builder: (context, state) {
+                      final args = state.extra as ContactDetailArgs;
+                      return ReservePage(args: args);
+                    },
+                  ),
+                ],
               ),
               GoRoute(
                 name: 'attachmentWebView',

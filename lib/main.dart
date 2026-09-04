@@ -92,6 +92,8 @@ import 'package:progress_group/features/contact/presentation/state/product_type/
 import 'package:progress_group/features/contact/presentation/state/product_type/product_type_event.dart';
 import 'package:progress_group/features/contact/presentation/state/pameran_aktif/pameran_aktif_cubit.dart';
 import 'package:progress_group/features/contact/data/datasources/pipeline_remote_datasource.dart';
+import 'package:progress_group/features/contact/data/datasources/ktp_ocr_remote_datasource.dart';
+import 'package:progress_group/features/contact/presentation/state/ktp_ocr/ktp_ocr_cubit.dart';
 import 'package:progress_group/features/contact/presentation/state/pipeline/pipeline_cubit.dart';
 import 'package:progress_group/features/contact/presentation/state/whatsapp_activity/whatsapp_unread_summary_bloc.dart';
 import 'package:progress_group/core/network/api_constants.dart';
@@ -426,6 +428,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     final contactRepository = ContactRepositoryImpl(contactRemoteDataSource);
     
     final pipelineRemoteDataSource = PipelineRemoteDataSourceImpl(dioClient.dio);
+    final ktpOcrRemoteDataSource = KtpOcrRemoteDataSourceImpl(dioClient.dio);
     final globalNotificationRemoteDataSource = GlobalNotificationRemoteDataSourceImpl(dioClient.dio);
     final getContactsUseCase = GetContactsUseCase(contactRepository);
     final getContactDetailUseCase = GetContactDetailUseCase(contactRepository);
@@ -526,6 +529,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
             BlocProvider(create: (_) => ContactFormProspectStatusBloc(getContactFormProspectStatusesUseCase: getContactFormProspectStatusesUseCase)),
             BlocProvider(create: (_) => ContactPropertiesBloc(getContactPropertiesUseCase: getContactPropertiesUseCase)),
             BlocProvider(create: (_) => PipelineCubit(pipelineRemoteDataSource)),
+            BlocProvider(create: (_) => KtpOcrCubit(ktpOcrRemoteDataSource)),
             BlocProvider(create: (_) => ActivityBloc(getActivitiesUseCase: getActivitiesUseCase, createActivityUseCase: createActivityUseCase, postStatusFollowUseCase: postStatusFollowUseCase)),
             BlocProvider(create: (_) => NotifActivityBloc(getActivitiesUseCase: getActivitiesUseCase, createActivityUseCase: createActivityUseCase, postStatusFollowUseCase: postStatusFollowUseCase)),
             BlocProvider(create: (_) => ContactDetailActivityBloc(getActivitiesUseCase: getActivitiesUseCase, createActivityUseCase: createActivityUseCase, postStatusFollowUseCase: postStatusFollowUseCase)),
