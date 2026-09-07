@@ -94,6 +94,11 @@ import 'package:progress_group/features/contact/presentation/state/pameran_aktif
 import 'package:progress_group/features/contact/data/datasources/pipeline_remote_datasource.dart';
 import 'package:progress_group/features/contact/data/datasources/ktp_ocr_remote_datasource.dart';
 import 'package:progress_group/features/contact/presentation/state/ktp_ocr/ktp_ocr_cubit.dart';
+import 'package:progress_group/features/contact/data/datasources/reserve_unit_remote_datasource.dart';
+import 'package:progress_group/features/contact/data/datasources/reserve_order_remote_datasource.dart';
+import 'package:progress_group/features/contact/presentation/state/reserve_attachment/reserve_attachment_cubit.dart';
+import 'package:progress_group/features/contact/presentation/state/reserve_order_list/reserve_order_list_cubit.dart';
+import 'package:progress_group/features/contact/presentation/state/reserve_unit/reserve_unit_cubit.dart';
 import 'package:progress_group/features/contact/presentation/state/pipeline/pipeline_cubit.dart';
 import 'package:progress_group/features/contact/presentation/state/whatsapp_activity/whatsapp_unread_summary_bloc.dart';
 import 'package:progress_group/core/network/api_constants.dart';
@@ -429,6 +434,8 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     
     final pipelineRemoteDataSource = PipelineRemoteDataSourceImpl(dioClient.dio);
     final ktpOcrRemoteDataSource = KtpOcrRemoteDataSourceImpl(dioClient.dio);
+    final reserveUnitRemoteDataSource = ReserveUnitRemoteDataSourceImpl(dioClient.dio);
+    final reserveOrderRemoteDataSource = ReserveOrderRemoteDataSourceImpl(dioClient.dio);
     final globalNotificationRemoteDataSource = GlobalNotificationRemoteDataSourceImpl(dioClient.dio);
     final getContactsUseCase = GetContactsUseCase(contactRepository);
     final getContactDetailUseCase = GetContactDetailUseCase(contactRepository);
@@ -530,6 +537,9 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
             BlocProvider(create: (_) => ContactPropertiesBloc(getContactPropertiesUseCase: getContactPropertiesUseCase)),
             BlocProvider(create: (_) => PipelineCubit(pipelineRemoteDataSource)),
             BlocProvider(create: (_) => KtpOcrCubit(ktpOcrRemoteDataSource)),
+            BlocProvider(create: (_) => ReserveUnitCubit(reserveUnitRemoteDataSource)),
+            BlocProvider(create: (_) => ReserveAttachmentCubit(getAttachmentTypesUseCase, uploadAttachmentUseCase)),
+            BlocProvider(create: (_) => ReserveOrderListCubit(reserveOrderRemoteDataSource)),
             BlocProvider(create: (_) => ActivityBloc(getActivitiesUseCase: getActivitiesUseCase, createActivityUseCase: createActivityUseCase, postStatusFollowUseCase: postStatusFollowUseCase)),
             BlocProvider(create: (_) => NotifActivityBloc(getActivitiesUseCase: getActivitiesUseCase, createActivityUseCase: createActivityUseCase, postStatusFollowUseCase: postStatusFollowUseCase)),
             BlocProvider(create: (_) => ContactDetailActivityBloc(getActivitiesUseCase: getActivitiesUseCase, createActivityUseCase: createActivityUseCase, postStatusFollowUseCase: postStatusFollowUseCase)),

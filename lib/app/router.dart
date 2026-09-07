@@ -21,8 +21,13 @@ import '../features/contact/presentation/pages/contact-detail/index.dart';
 import '../features/contact/presentation/pages/contact-form/index.dart';
 import 'package:progress_group/features/contact/presentation/pages/date-selection/index.dart';
 import '../features/contact/presentation/pages/contact-page/index.dart';
+import '../features/contact/data/models/reserve/reserve_order_model.dart';
+import '../features/contact/presentation/pages/reserve-order/detail.dart';
 import '../features/contact/presentation/pages/reserve-order/index.dart';
+import '../features/contact/presentation/pages/reserve-order/list.dart';
 import '../features/contact/presentation/pages/reserve-order/reserve.dart';
+import '../features/contact/presentation/pages/reserve-order/revise.dart';
+import '../features/contact/presentation/pages/reserve-order/top_up.dart';
 import '../features/home/presentation/pages/home/index.dart';
 import '../features/inbox/data/arguments/inbox_detail_args.dart';
 import '../features/inbox/presentation/pages/inbox-detail/index.dart';
@@ -366,6 +371,38 @@ class AppRouter {
                 },
               ),
              
+            ],
+          ),
+          // Menu "Reserve Order" dari drawer: list transaksi + turunannya. Beda dari
+          // `/contact/reserve-order` yang isinya menu per-kontak (Reserve / Topup / RB).
+          GoRoute(
+            path: '/reserve-order',
+            name: 'reserveOrderList',
+            redirect: (context, state) => PermissionsHelper.canAccessContacts ? null : '/',
+            builder: (context, state) => const ReserveOrderListPage(),
+            routes: [
+              GoRoute(
+                name: 'reserveOrderDetail',
+                path: 'detail',
+                // `extra` hilang kalau URL-nya di-reload langsung (PWA), jadi dikembalikan ke list
+                // ketimbang crash saat casting.
+                redirect: (context, state) => state.extra is ReserveOrder ? null : '/reserve-order',
+                builder: (context, state) => ReserveOrderDetailPage(order: state.extra as ReserveOrder),
+                routes: [
+                  GoRoute(
+                    name: 'reserveOrderTopUp',
+                    path: 'top-up',
+                    redirect: (context, state) => state.extra is ReserveOrder ? null : '/reserve-order',
+                    builder: (context, state) => ReserveOrderTopUpPage(order: state.extra as ReserveOrder),
+                  ),
+                  GoRoute(
+                    name: 'reserveOrderRevise',
+                    path: 'revise',
+                    redirect: (context, state) => state.extra is ReserveOrder ? null : '/reserve-order',
+                    builder: (context, state) => ReserveOrderRevisePage(order: state.extra as ReserveOrder),
+                  ),
+                ],
+              ),
             ],
           ),
           GoRoute(

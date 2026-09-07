@@ -5,7 +5,13 @@ import '../../constants/colors.dart';
 class UnitStatusBadge extends StatelessWidget {
   final String label;
 
-  const UnitStatusBadge({super.key, required this.label});
+  /// Warna teks. Default putih (perilaku lama). Status "Available"/"Reserve" memakai warna latar
+  /// yang sangat terang (#00FF0C / #EAFF00) sehingga teks putih hampir tidak terbaca — pemanggil
+  /// yang menampilkan badge di atas latar terang bisa mengirim warna gelap. Sengaja opsional
+  /// supaya tampilan layar lain yang sudah ada tidak berubah.
+  final Color? textColor;
+
+  const UnitStatusBadge({super.key, required this.label, this.textColor});
 
   Color get _bgColor {
     switch (label.trim().toLowerCase()) {
@@ -36,7 +42,7 @@ class UnitStatusBadge extends StatelessWidget {
       ),
       child: Text(
         label,
-        style: const TextStyle(color: Color(whiteColor), fontSize: 11, fontWeight: FontWeight.bold),
+        style: TextStyle(color: textColor ?? const Color(whiteColor), fontSize: 11, fontWeight: FontWeight.bold),
       ),
     );
   }

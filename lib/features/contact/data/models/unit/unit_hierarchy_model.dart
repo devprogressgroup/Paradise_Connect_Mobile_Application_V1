@@ -160,6 +160,21 @@ class SelectedUnit {
     return '$t · Belum tentukan kavling';
   }
 
+  // Format tampilan "kavling produk cluster" (mis. "BB1-2 Grayson EcoArdence") — dipakai
+  // form contact-add DAN step Pilih Unit di Reserve Order supaya bunyinya sama di keduanya.
+  // Beda dari [label] yang pakai pemisah titik-tengah untuk daftar pilihan di unit picker.
+  String get displayLabel {
+    final tail = [productName, clusterName]
+        .where((e) => (e ?? '').toString().trim().isNotEmpty)
+        .map((e) => e!.trim())
+        .join(' ');
+    if (propertyId != null && (propertyName ?? '').trim().isNotEmpty) {
+      return [propertyName!.trim(), tail].where((e) => e.isNotEmpty).join(' ');
+    }
+    final status = isWaitingList ? 'Waiting list' : 'Belum tentukan kavling';
+    return tail.isNotEmpty ? '$tail · $status' : status;
+  }
+
   Map<String, dynamic> toApiJson() => {
         'township_id': townshipId,
         'company_id': companyId, 

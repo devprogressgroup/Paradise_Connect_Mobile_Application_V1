@@ -67,6 +67,7 @@ class _MainLayoutState extends State<MainLayout> {
   static const _drawerNavEventByPath = {
     '/': 'main_layout_drawer_nav_dashboard',
     '/contact': 'main_layout_drawer_nav_contacts',
+    '/reserve-order': 'main_layout_drawer_nav_reserve_order',
     '/inbox': 'main_layout_drawer_nav_inbox',
     '/site-plan': 'main_layout_drawer_nav_site_plan',
     '/sales-kit': 'main_layout_drawer_nav_sales_kit',
@@ -183,6 +184,7 @@ class _MainLayoutState extends State<MainLayout> {
   int get _currentIndex {
     final location = GoRouterState.of(context).uri.path;
     if (location == '/') return 0;
+    if (location.startsWith('/reserve-order')) return 10;
     if (location.startsWith('/contact')) return 1;
     if (location.startsWith('/inbox')) return 2;
     if (location.startsWith('/site-plan')) return 4;
@@ -451,6 +453,8 @@ class _MainLayoutState extends State<MainLayout> {
                 _buildDrawerItem(context, icSidebarDashboard, 'Dashboard', path: '/', index: 0),
                 if (PermissionsHelper.canAccessContacts)
                   _buildDrawerItem(context, icSidebarContacts, 'Contacts', path: '/contact', index: 1),
+                if (PermissionsHelper.canAccessContacts)
+                  _buildDrawerItem(context, '', 'Reserve Order', path: '/reserve-order', index: 10, iconData: Icons.local_offer_rounded, badge: 'BARU'),
                 if (PermissionsHelper.canAccessInbox)
                   _buildDrawerItem(context, icSidebarInbox, 'Inbox', path: '/inbox', index: 2),
                 if (PermissionsHelper.canAccessSitePlan)
@@ -530,7 +534,7 @@ class _MainLayoutState extends State<MainLayout> {
     );
   }
 
-  Widget _buildDrawerItem(BuildContext context, String icon, String title, {required String path, required int index, IconData? iconData}) {
+  Widget _buildDrawerItem(BuildContext context, String icon, String title, {required String path, required int index, IconData? iconData, String? badge}) {
     final currentIndex = _currentIndex;
     final isActive = currentIndex == index || (index == 4 && currentIndex == 3);
 
@@ -567,6 +571,17 @@ class _MainLayoutState extends State<MainLayout> {
                         color: isActive ? Color(primaryColor) : Color(grey2Color),
                       ),
                     ),
+                    if (badge != null) ...[
+                      const Spacer(),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: Color(primaryColor),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(badge, style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: Color(whiteColor))),
+                      ),
+                    ],
                   ],
                 ),
               ),

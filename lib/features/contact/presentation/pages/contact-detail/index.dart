@@ -546,19 +546,7 @@ class _ContactDetailPageState extends State<ContactDetailPage>with TickerProvide
               );
             },
           ),
-           ContactOptionsSheet.buildIconLink(
-            context,
-            icContactDetailReserveOrder,
-            "Reserve Order",
-            () {
-              _navigateToReserveOrder(
-                ContactDetailArgs(
-                  dataContact: context.read<ContactBloc>().state.contactDetail ?? widget.args.dataContact,
-                  namePage: "Reserve Order",
-                ),
-              );
-            },
-          ),
+           
           ContactOptionsSheet.buildIconLink(
             context,
             icContactDetailVisit,
@@ -588,6 +576,19 @@ class _ContactDetailPageState extends State<ContactDetailPage>with TickerProvide
               );
             },
             color: Color(primaryColor),
+          ),
+          ContactOptionsSheet.buildIconLink(
+            context,
+            icContactDetailReserveOrder,
+            "Reserve Order",
+            () {
+              _navigateToReserveOrder(
+                ContactDetailArgs(
+                  dataContact: context.read<ContactBloc>().state.contactDetail ?? widget.args.dataContact,
+                  namePage: "Reserve Order",
+                ),
+              );
+            },
           ),
         ],
       ),

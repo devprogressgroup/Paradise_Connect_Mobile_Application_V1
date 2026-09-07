@@ -1920,17 +1920,9 @@ class _ContactAddPageState extends State<ContactAddPage> {
       _allUnits.where((u) => !u.isLost && (townshipId == null || u.townshipId == townshipId)).toList();
 
   
-  String _unitDisplay(SelectedUnit u) {
-    final tail = [u.productName, u.clusterName]
-        .where((e) => (e ?? '').toString().trim().isNotEmpty)
-        .map((e) => e!.trim())
-        .join(' ');
-    if (u.propertyId != null && (u.propertyName ?? '').trim().isNotEmpty) {
-      return [u.propertyName!.trim(), tail].where((e) => e.isNotEmpty).join(' ');
-    }
-    final status = u.isWaitingList ? 'Waiting list' : 'Belum tentukan kavling';
-    return tail.isNotEmpty ? '$tail · $status' : status;
-  }
+  // Format tampilannya dipindah ke SelectedUnit.displayLabel supaya dipakai bareng dengan
+  // step Pilih Unit di Reserve Order.
+  String _unitDisplay(SelectedUnit u) => u.displayLabel;
 
   Future<void> _openUnitPicker() async {
     final tid = selectedTownshipId;

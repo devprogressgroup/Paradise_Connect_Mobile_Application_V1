@@ -1,0 +1,845 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Reserve Order — UI Sales</title>
+<style>
+  :root{
+    --primary:#2196F3;
+    --secondary:#3F51B5;
+    --bg:#F4F9FD;
+    --shadow:#C4CBD6;
+    --grey1:#615E83;
+    --grey4:#8D94A0;
+    --grey5:#91929E;
+    --grey7:#D8DDE6;
+    --grey10:#E6EDF5;
+    --grey11:#F3F8FC;
+    --white:#FFFFFF;
+    --black:#000000;
+    --purple:#6D5DD3;
+    --success:#22C55E;
+    --warning:#F59E0B;
+    --info:#06B6D4;
+    --red:#F65160;
+    --greyShade500:#9E9E9E;
+    --hold:#FF005A;
+    --available:#00FF0C;
+    --reserveClr:#EAFF00;
+    --rbb:#FEB900;
+    --rba:#FE9500;
+    --sp:#1800FE;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; padding:32px 24px 70px; background:var(--bg);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    color:#25262B;
+  }
+  h1{font-size:20px; margin:0 0 18px;}
+  .legend{display:flex; gap:18px; flex-wrap:wrap; margin-bottom:28px; font-size:12px; color:var(--grey1);}
+  .legend span{display:inline-flex; align-items:center; gap:6px;}
+  .legend .sw{width:12px; height:12px; border-radius:3px; display:inline-block;}
+  .sw-existing{background:var(--grey7);}
+  .sw-new{background:var(--primary);}
+
+  .bagian-head{display:flex; align-items:center; gap:10px; margin:0 0 18px;}
+  .bagian-tag{font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; padding:4px 11px; border-radius:20px; color:#fff;}
+  .bagian-tag.existing{background:var(--grey5);}
+  .bagian-tag.new{background:var(--primary);}
+  .bagian-title{font-size:16px; font-weight:700;}
+  .bagian-block{margin-bottom:44px;}
+
+  .board{display:flex; gap:22px; flex-wrap:wrap; align-items:flex-start;}
+  .col{width:300px;}
+  .col-label{font-size:12px; font-weight:700; color:var(--primary); text-transform:uppercase; letter-spacing:.03em; margin-bottom:8px; display:flex; align-items:center; gap:6px;}
+  .col-label .tag{font-size:9px; font-weight:700; padding:2px 8px; border-radius:10px; color:#fff; text-transform:uppercase; letter-spacing:.02em;}
+  .col-label .tag.existing{background:var(--grey5);}
+  .col-label .tag.new{background:var(--primary);}
+
+  .phone{
+    width:300px; height:640px; background:var(--white); border-radius:28px;
+    box-shadow:0 8px 24px rgba(30,50,90,.14), 0 0 0 8px #1c1c1e;
+    overflow:hidden; display:flex; flex-direction:column; position:relative;
+  }
+  .statusbar{height:22px; background:var(--white); display:flex; align-items:center; justify-content:space-between; padding:0 18px; font-size:10px; font-weight:600; color:#111; flex-shrink:0;}
+  .appbar{padding:10px 14px 12px; display:flex; align-items:center; gap:10px; background:var(--white); border-bottom:1px solid var(--grey10); flex-shrink:0;}
+  .appbar .back{font-size:18px; color:var(--grey1);}
+  .appbar .title{font-size:14.5px; font-weight:700;}
+  .appbar .sub{font-size:10.5px; color:var(--grey4); margin-top:1px;}
+  .scroll{flex:1; overflow-y:auto; padding:14px; font-size:12.5px;}
+  .scroll::-webkit-scrollbar{width:0;}
+  .card{background:var(--white); border:1px solid var(--grey10); border-radius:14px; padding:12px 13px; margin-bottom:10px; box-shadow:0 1px 3px rgba(20,40,80,.04);}
+  .badge{display:inline-flex; align-items:center; gap:5px; padding:5px 12px; border-radius:20px; font-size:10.5px; font-weight:700; color:#fff; flex-shrink:0;}
+  .field-label{font-size:11px; color:var(--grey1); font-weight:600; margin:10px 0 5px;}
+  .field-label:first-child{margin-top:0;}
+  .input{width:100%; border:1px solid var(--grey7); border-radius:9px; padding:9px 10px; font-size:12.5px; background:var(--grey11); color:#25262B;}
+  .btn{display:block; width:100%; text-align:center; padding:12px; border-radius:11px; font-size:13px; font-weight:700; border:none; cursor:pointer;}
+  .btn-primary{background:var(--primary); color:#fff;}
+  .btn-ghost{background:transparent; border:1.5px dashed var(--primary); color:var(--primary);}
+  .btn-secondary{background:transparent; border:1.5px solid var(--grey7); color:var(--grey1);}
+  .footer-cta{padding:12px 14px 16px; background:var(--white); border-top:1px solid var(--grey10); display:flex; flex-direction:column; gap:8px; flex-shrink:0;}
+  .doc-row{display:flex; align-items:center; gap:10px; padding:10px; border:1px solid var(--grey10); border-radius:12px; margin-bottom:8px;}
+  .doc-icon{width:34px; height:34px; border-radius:9px; background:#E6F1FB; display:flex; align-items:center; justify-content:center; font-size:16px; flex-shrink:0;}
+  .doc-name{font-size:12px; font-weight:700;}
+  .doc-sub{font-size:9.5px; color:var(--grey4); font-weight:400;}
+  .doc-status{font-size:10px; color:var(--grey4);}
+  .check-ok{margin-left:auto; color:var(--success); font-size:16px; flex-shrink:0;}
+  .notice{border-radius:11px; padding:9px 11px; font-size:11px; line-height:1.5; margin-bottom:10px;}
+  .notice-info{background:#E7F6FE; color:#065C7C;}
+  .notice-warn{background:#FFF6E5; color:#854F0B;}
+  .notice-lock{background:var(--grey11); color:var(--grey1); border:1px dashed var(--grey7);}
+  .unit-row{display:flex; align-items:center; gap:10px; padding:11px; border:1.5px solid var(--grey10); border-radius:12px; margin-bottom:8px; cursor:pointer;}
+  .unit-row.sel{border-color:var(--primary); background:#E8F2FE;}
+  .unit-row.disabled{opacity:.45; cursor:not-allowed;}
+  .chk{width:19px; height:19px; border-radius:6px; border:1.5px solid var(--grey7); background:#fff; flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:12px; color:#fff; font-weight:700;}
+  .unit-row.sel .chk{background:var(--primary); border-color:var(--primary);}
+  .unit-name{font-size:12.5px; font-weight:700;}
+  .unit-sub{font-size:10px; color:var(--grey4);}
+  .sticky-count{position:sticky; bottom:0; background:var(--white); border-top:1px solid var(--grey10); padding:10px 14px; margin:0 -14px -14px;}
+  .review-line{display:flex; justify-content:space-between; padding:6px 0; font-size:12px; border-bottom:1px dashed var(--grey10);}
+  .review-line:last-child{border-bottom:none;}
+  .review-unit-card{border:1px solid var(--grey10); border-radius:12px; padding:10px; margin-bottom:8px;}
+  .review-unit-card .rname{font-weight:700; font-size:12.5px;}
+  .review-unit-card .rprice{font-size:11px; color:var(--grey4);}
+  .success-wrap{display:flex; flex-direction:column; align-items:center; text-align:center; padding:36px 20px 10px;}
+  .success-icon{width:64px; height:64px; border-radius:50%; background:#E7F9EE; color:var(--success); font-size:32px; display:flex; align-items:center; justify-content:center; margin-bottom:16px;}
+  .success-wrap h2{font-size:15px; margin:0 0 6px;}
+  .success-wrap p{font-size:12px; color:var(--grey4); margin:0; line-height:1.6;}
+  .mini-ro-card{width:100%; text-align:left; border:1px solid var(--grey10); border-radius:12px; padding:10px 12px; margin-top:16px; display:flex; justify-content:space-between; align-items:center;}
+  .mini-ro-card .u{font-size:12px; font-weight:700;}
+  .mini-ro-card .s{font-size:9.5px; color:var(--grey4);}
+  .ministep{display:flex; align-items:center; gap:6px; padding:10px 14px 4px; background:var(--white); flex-shrink:0;}
+  .ministep .msitem{flex:1; height:4px; border-radius:3px; background:var(--grey10);}
+  .ministep .msitem.done{background:var(--success);}
+  .ministep .msitem.active{background:var(--primary);}
+  .msrow{display:flex; justify-content:space-between; padding:0 14px 8px; font-size:9.5px; color:var(--grey4); flex-shrink:0;}
+  .msrow b{color:var(--primary);}
+
+  /* existing-app chrome replicas */
+  .drawer-wrap{width:300px; height:640px; background:#00000055; border-radius:28px; overflow:hidden; box-shadow:0 8px 24px rgba(30,50,90,.14), 0 0 0 8px #1c1c1e; position:relative;}
+  .drawer{position:absolute; left:0; top:0; bottom:0; width:76%; background:var(--white); padding:16px 0; display:flex; flex-direction:column;}
+  .drawer-profile{display:flex; align-items:center; gap:10px; padding:6px 16px 14px;}
+  .drawer-avatar{width:48px; height:48px; border-radius:50%; background:var(--primary); color:#fff; display:flex; align-items:center; justify-content:center; font-size:20px; flex-shrink:0;}
+  .drawer-name{font-size:14px; font-weight:600; color:var(--grey1);}
+  .drawer-role{font-size:9.5px; color:var(--grey1);}
+  .drawer-item{display:flex; align-items:center; gap:12px; padding:11px 20px; font-size:13.5px; color:var(--grey1); cursor:pointer;}
+  .drawer-item .di-ic{font-size:16px; width:20px; text-align:center; flex-shrink:0;}
+  .drawer-item.new{background:#E8F2FE; color:var(--primary); font-weight:700; position:relative;}
+  .drawer-item.new::after{content:"BARU"; position:absolute; right:14px; font-size:8px; font-weight:700; background:var(--primary); color:#fff; padding:2px 6px; border-radius:8px;}
+  .drawer-div{margin:6px 16px; border-top:1px solid var(--grey10);}
+
+  .fab{position:absolute; right:16px; bottom:16px; width:52px; height:52px; border-radius:50%; background:var(--primary); color:#fff; display:flex; align-items:center; justify-content:center; font-size:24px; box-shadow:0 4px 12px rgba(33,150,243,.4);}
+  .tabbar-row{display:flex; border-bottom:1px solid var(--grey10); background:var(--white); flex-shrink:0;}
+  .tabbar-item{flex:1; text-align:center; padding:11px 0; font-size:12px; font-weight:600; color:var(--grey4);}
+  .tabbar-item.on{color:var(--primary); border-bottom:2px solid var(--primary);}
+
+  .sheet{position:absolute; left:0; right:0; bottom:0; background:var(--white); border-radius:20px 20px 0 0; box-shadow:0 -6px 20px rgba(20,40,80,.12); padding:14px 6px 10px;}
+  .sheet-title{text-align:center; font-size:15px; font-weight:700; margin-bottom:6px;}
+  .sheet-item{display:flex; align-items:center; gap:14px; padding:11px 18px; font-size:13px; font-weight:600; color:var(--grey1);}
+  .sheet-item .si-ic{width:34px; height:34px; border-radius:10px; background:var(--grey11); display:flex; align-items:center; justify-content:center; font-size:16px; flex-shrink:0;}
+  .sheet-item.new{color:var(--primary);}
+  .sheet-item.new .si-ic{background:#E8F2FE;}
+  .sheet-item.new .si-badge{margin-left:auto; font-size:8px; font-weight:700; background:var(--primary); color:#fff; padding:2px 7px; border-radius:8px;}
+  .dim-scrim{position:absolute; inset:0; background:rgba(20,30,50,.35);}
+
+  /* pipeline / reserve order list card */
+  .fchips{display:flex; gap:6px; overflow-x:auto; padding-bottom:2px; margin-bottom:10px;}
+  .fchip{flex-shrink:0; font-size:10.5px; font-weight:700; padding:6px 12px; border-radius:20px; border:1px solid var(--grey7); background:#fff; color:var(--grey1); cursor:pointer; white-space:nowrap;}
+  .fchip.on{background:var(--primary); border-color:var(--primary); color:#fff;}
+  .rocard{padding:12px; border-radius:12px; box-shadow:0 1px 8px rgba(20,40,80,.12); background:#fff; margin-bottom:10px; cursor:pointer;}
+  .rocard .rname{font-weight:700; font-size:13px;}
+  .rocard .runitrow{display:flex; align-items:flex-start; gap:6px; margin-top:6px; font-size:11.5px; color:var(--grey1);}
+  .rocard .runitrow .rsub{font-size:10px; color:var(--grey4); display:block;}
+  .rocard .rmeta{display:flex; gap:10px; flex-wrap:wrap; margin-top:6px; font-size:10.5px; color:var(--grey1);}
+  .rocard .rmeta span{display:inline-flex; align-items:center; gap:3px;}
+
+  /* journey tracker */
+  .jr-head{display:flex; gap:10px; align-items:center; margin-bottom:4px;}
+  .jr-avatar{width:40px; height:40px; border-radius:50%; background:#E6F1FB; color:#0C447C; font-size:14px; font-weight:700; display:flex; align-items:center; justify-content:center; flex-shrink:0;}
+  .jr-name{font-size:14px; font-weight:700;}
+  .jr-unit{font-size:11px; color:var(--grey4);}
+  .gate-mini{display:flex; gap:6px; margin:10px 0 4px;}
+  .gate-mini .gp{flex:1; border:1px solid var(--grey10); border-radius:9px; padding:6px 8px; font-size:9.5px; text-align:center;}
+  .gate-mini .gp b{display:block; font-size:10.5px; margin-top:1px;}
+  .timeline{position:relative; padding-left:26px;}
+  .tstep{position:relative; padding-bottom:16px;}
+  .tstep:last-child{padding-bottom:0;}
+  .tstep::before{content:""; position:absolute; left:-20px; top:2px; width:14px; height:14px; border-radius:50%; background:var(--grey10); border:2px solid var(--grey7);}
+  .tstep::after{content:""; position:absolute; left:-14px; top:16px; width:2px; height:calc(100% - 2px); background:var(--grey10);}
+  .tstep:last-child::after{display:none;}
+  .tstep.done::before{background:var(--success); border-color:var(--success);}
+  .tstep.done::after{background:var(--success);}
+  .tstep.active::before{background:var(--primary); border-color:var(--primary); width:18px; height:18px; left:-22px; top:0;}
+  .tstep.readonly::before{background:var(--grey7); border-color:var(--grey7);}
+  .tstep .tlbl{font-size:12px; font-weight:700;}
+  .tstep.active .tlbl{color:var(--primary);}
+  .tstep.todo .tlbl{color:var(--grey4); font-weight:600;}
+  .tstep .tsub{font-size:10px; color:var(--grey4); margin-top:1px;}
+  .lock-chip{display:inline-flex; align-items:center; gap:3px; font-size:8.5px; font-weight:700; color:#854F0B; background:#FFF6E5; padding:2px 7px; border-radius:8px; margin-top:3px;}
+  .goal-chip{display:inline-flex; align-items:center; gap:3px; font-size:9px; font-weight:700; color:#fff; background:var(--sp); padding:2px 8px; border-radius:8px; margin-top:3px;}
+  .tnote{margin-top:5px; padding:6px 8px; background:var(--grey11); border-radius:8px; font-size:10.5px; color:var(--grey1); line-height:1.45;}
+  .tnote .tn-who{font-weight:700;}
+  .tnote .tn-time{color:var(--grey4); white-space:nowrap;}
+
+  /* quick contact row + reject flow + in-place tabs */
+  .quick-contact{display:flex; align-items:center; gap:8px; margin:9px 0 2px; font-size:11px; color:var(--grey1);}
+  .quick-contact .qc-link{margin-left:auto; color:var(--primary); font-weight:700; cursor:pointer; white-space:nowrap;}
+  .reject-banner{background:#FDECEC; border:1px solid #F6B8B8; border-radius:12px; padding:10px 12px; margin:10px 0;}
+  .reject-banner .rb-title{font-size:12px; font-weight:700; color:var(--red); display:flex; align-items:center; gap:6px;}
+  .reject-banner .rb-reason{font-size:11px; color:#7A1F1F; margin-top:4px; line-height:1.5;}
+  .ro-tabpane{display:none; padding-top:10px;}
+  .ro-tabpane.on{display:block;}
+
+  /* Catatan (notes) thread tab */
+  .note-item{display:flex; gap:8px; margin-bottom:12px;}
+  .note-avatar{width:26px; height:26px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:10px; font-weight:700; color:#fff; flex-shrink:0;}
+  .note-avatar.sales{background:var(--primary);}
+  .note-avatar.kasir{background:var(--purple);}
+  .note-avatar.sa{background:var(--info);}
+  .note-body{flex:1; background:var(--grey11); border-radius:12px; padding:8px 10px;}
+  .note-head{display:flex; justify-content:space-between; align-items:baseline; font-size:10.5px; font-weight:700; color:var(--grey1); margin-bottom:2px; gap:6px;}
+  .note-head .role-tag{font-weight:400; color:var(--grey4);}
+  .note-time{font-size:9px; color:var(--grey4); font-weight:400; white-space:nowrap;}
+  .note-text{font-size:11.5px; color:#25262B; line-height:1.45;}
+  .note-input-row{display:flex; gap:8px; align-items:center; margin-top:4px; position:sticky; bottom:0; background:var(--white); padding-top:8px;}
+  .note-input-row input{flex:1;}
+  .note-send{width:36px; height:36px; border-radius:50%; background:var(--primary); color:#fff; border:none; font-size:15px; flex-shrink:0; cursor:pointer;}
+</style>
+</head>
+<body>
+
+<h1>Reserve Order — UI Sales</h1>
+<div class="legend">
+  <span><span class="sw sw-existing"></span> Existing</span>
+  <span><span class="sw sw-new"></span> Baru</span>
+</div>
+
+<!-- ============ BAGIAN 1 ============ -->
+<div class="bagian-block">
+  <div class="bagian-head"><span class="bagian-tag existing">Existing + Baru</span><span class="bagian-title">Bagian 1 — Titik Masuk dari Contact Detail</span></div>
+
+  <div class="board">
+
+    <div class="col">
+      <div class="col-label"><span class="tag existing">Existing</span> Drawer Menu + <span class="tag new">Baru</span> item Reserve Order</div>
+      <div class="drawer-wrap">
+        <div class="dim-scrim"></div>
+        <div class="drawer">
+          <div class="drawer-profile">
+            <div class="drawer-avatar">DA</div>
+            <div><div class="drawer-name">Dian Anggraeni</div><div class="drawer-role">Sales Executive · PAR2</div></div>
+          </div>
+          <div class="drawer-item"><span class="di-ic">📊</span>Dashboard</div>
+          <div class="drawer-item"><span class="di-ic">👥</span>Contacts</div>
+          <div class="drawer-item new"><span class="di-ic">🏷️</span>Reserve Order</div>
+          <div class="drawer-item"><span class="di-ic">💬</span>Inbox</div>
+          <div class="drawer-item"><span class="di-ic">🗺️</span>Site Plan</div>
+          <div class="drawer-item"><span class="di-ic">🧰</span>Sales Kit</div>
+          <div class="drawer-item"><span class="di-ic">🏠</span>Siap Huni</div>
+          <div class="drawer-div"></div>
+          <div class="drawer-item"><span class="di-ic">🕒</span>Attendance</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col">
+      <div class="col-label"><span class="tag existing">Existing</span> Contact Detail</div>
+      <div class="phone">
+        <div class="statusbar"><span>9:41</span><span>●●●</span></div>
+        <div class="appbar"><span class="back">‹</span>
+          <div class="jr-avatar" style="width:34px;height:34px;font-size:12px;">LF</div>
+          <div><div class="title">Luthfi Fajri</div><div class="sub">0812-xxxx-xxxx · Visitor</div></div>
+        </div>
+        <div class="tabbar-row">
+          <div class="tabbar-item on">Activity</div>
+          <div class="tabbar-item">About</div>
+          <div class="tabbar-item">Attachment</div>
+        </div>
+        <div class="scroll" style="position:relative;">
+          <div style="font-size:11px;font-weight:700;margin-bottom:8px;">02 Sep 2026</div>
+          <div class="card"><div style="border-left:4px solid var(--purple);padding-left:10px;"><b style="font-size:12px;">PAR2</b><div style="font-size:10px;color:var(--grey4);">14:20</div><div style="font-size:11px;margin-top:2px;">Status changed to L3 - Visitor</div></div></div>
+          <div class="card"><div style="border-left:4px solid var(--purple);padding-left:10px;"><b style="font-size:12px;">Call</b><div style="font-size:10px;color:var(--grey4);">10:05</div><div style="font-size:11px;margin-top:2px;">Follow up jadwal survei lokasi</div></div></div>
+          <div style="font-size:11px;font-weight:700;margin:14px 0 8px;">28 Aug 2026</div>
+          <div class="card"><div style="border-left:4px solid var(--purple);padding-left:10px;"><b style="font-size:12px;">Visit</b><div style="font-size:10px;color:var(--grey4);">11:00</div><div style="font-size:11px;margin-top:2px;">Kunjungan pertama ke site PAR2</div></div></div>
+          <div class="fab">+</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col">
+      <div class="col-label"><span class="tag existing">Existing</span> Bottom Sheet "+" + <span class="tag new">Baru</span> opsi ke-6</div>
+      <div class="drawer-wrap">
+        <div class="dim-scrim"></div>
+        <div class="sheet" style="height:390px;">
+          <div class="sheet-title">Log Activity</div>
+          <div class="sheet-item"><span class="si-ic">📞</span>Phone</div>
+          <div class="sheet-item"><span class="si-ic">🟢</span>WhatsApp</div>
+          <div class="sheet-item"><span class="si-ic">⏰</span>Reminder</div>
+          <div class="sheet-item"><span class="si-ic">📍</span>Visit</div>
+          <div class="sheet-item"><span class="si-ic">🔄</span>Update Status Prospect</div>
+          <div class="sheet-item new"><span class="si-ic">🏷️</span>Proses Reserve/Booking Reserve<span class="si-badge">BARU</span></div>
+        </div>
+      </div>
+      <div class="notice notice-warn" style="margin-top:6px;">Grup status "Reserve"/"SP" di "Update Status Prospect" dialihkan ke flow "Proses Reserve/Booking Reserve" ini. Grup Appt/Visit/Lost/DB tidak berubah.</div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ============ BAGIAN 2 ============ -->
+<div class="bagian-block">
+  <div class="bagian-head"><span class="bagian-tag new">Baru</span><span class="bagian-title">Bagian 2 — Proses Reserve/Booking Reserve</span></div>
+
+  <div class="board">
+
+    <div class="col">
+      <div class="col-label"><span class="tag new">Baru</span> 1/4 — Data Pembeli</div>
+      <div class="phone">
+        <div class="statusbar"><span>9:41</span><span>●●●</span></div>
+        <div class="appbar"><span class="back">‹</span><div><div class="title">Reserve Order — Luthfi Fajri</div><div class="sub">0812-xxxx-xxxx</div></div></div>
+        <div class="ministep"><div class="msitem active"></div><div class="msitem"></div><div class="msitem"></div><div class="msitem"></div></div>
+        <div class="msrow"><span><b>1</b>/4 Pembeli</span><span>Dokumen</span><span>Unit</span><span>Review</span></div>
+        <div class="scroll">
+          <button class="btn btn-ghost" style="margin-bottom:6px;">📷 Scan KTP</button>
+          <div style="font-size:10px;color:var(--grey4);margin-bottom:12px;">Otomatis isi field di bawah</div>
+          <div class="field-label">Nama Lengkap (sesuai KTP)</div>
+          <input class="input" value="Luthfi Fajri" style="margin-bottom:10px;">
+          <div class="field-label">No. KTP</div>
+          <input class="input" placeholder="16 digit NIK" style="margin-bottom:10px;">
+          <div class="field-label">Tempat, Tanggal Lahir</div>
+          <input class="input" placeholder="Jakarta, 01 Januari 1990" style="margin-bottom:10px;">
+          <div class="field-label">Alamat sesuai KTP</div>
+          <input class="input" placeholder="Jl. Contoh No. 1…" style="margin-bottom:10px;">
+          <div class="field-label">Status Pernikahan</div>
+          <div class="unit-row" style="cursor:pointer;margin-bottom:10px;"><div style="flex:1;">Menikah</div><span style="color:var(--grey4);">›</span></div>
+          <div class="field-label">Pekerjaan</div>
+          <input class="input" placeholder="Wiraswasta" style="margin-bottom:10px;">
+          <div class="field-label">Cara Pembayaran</div>
+          <div class="unit-row" style="cursor:pointer;"><div style="flex:1;">KPR</div><span style="color:var(--grey4);">›</span></div>
+        </div>
+        <div class="footer-cta"><button class="btn btn-primary">Lanjut ke Dokumen</button></div>
+      </div>
+    </div>
+
+    <div class="col">
+      <div class="col-label"><span class="tag new">Baru</span> 2/4 — Dokumen &amp; Bukti Bayar</div>
+      <div class="phone">
+        <div class="statusbar"><span>9:41</span><span>●●●</span></div>
+        <div class="appbar"><span class="back">‹</span><div><div class="title">Reserve Order — Luthfi Fajri</div><div class="sub">0812-xxxx-xxxx</div></div></div>
+        <div class="ministep"><div class="msitem done"></div><div class="msitem active"></div><div class="msitem"></div><div class="msitem"></div></div>
+        <div class="msrow"><span>Pembeli</span><span><b>2</b>/4 Dokumen</span><span>Unit</span><span>Review</span></div>
+        <div class="scroll">
+          <div style="font-size:11px;color:var(--grey4);margin-bottom:8px;">Dokumen Identitas</div>
+          <div class="doc-row"><div class="doc-icon">🪪</div><div><div class="doc-name">KTP <span class="doc-sub">· Wajib</span></div><div class="doc-status">Terupload · 240 KB</div></div><span class="check-ok">✓</span></div>
+          <div class="doc-row"><div class="doc-icon">📄</div><div><div class="doc-name">NPWP <span class="doc-sub">· Opsional</span></div><div class="doc-status" style="color:var(--primary);">Ketuk untuk upload</div></div></div>
+          <div style="font-size:11px;color:var(--grey4);margin:14px 0 8px;">Bukti Bayar</div>
+          <div class="doc-row"><div class="doc-icon">🧾</div><div><div class="doc-name">Bukti Transfer BCA <span class="doc-sub">· Wajib*</span></div><div class="doc-status">Terupload · 180 KB</div></div><span class="check-ok">✓</span></div>
+          <button class="btn btn-ghost" style="margin-bottom:12px;">+ Tambah Bukti Bayar Lain</button>
+
+          <div class="field-label">Jenis Transaksi</div>
+          <div class="fchips" style="margin-bottom:10px;">
+            <button class="fchip on">Reserve</button>
+            <button class="fchip">Booking Reserve (langsung)</button>
+          </div>
+
+          <div class="field-label">Nominal Pembayaran</div>
+          <input class="input" value="Rp 2.000.000" style="margin-bottom:10px;">
+
+          <div class="field-label">Catatan</div>
+          <textarea class="input" rows="2" style="resize:vertical;" placeholder="Mis: customer transfer DP awal, dokumen menyusul">Customer transfer DP awal via BCA, dokumen pelengkap menyusul minggu depan.</textarea>
+        </div>
+        <div class="footer-cta"><button class="btn btn-primary">Lanjut ke Pilih Unit</button></div>
+      </div>
+    </div>
+
+    <div class="col">
+      <div class="col-label"><span class="tag new">Baru</span> 3/4 — Pilih Unit <span style="color:var(--grey4);font-weight:400;">(bisa &gt;1)</span></div>
+      <div class="phone">
+        <div class="statusbar"><span>9:41</span><span>●●●</span></div>
+        <div class="appbar"><span class="back">‹</span><div><div class="title">Pilih Unit</div></div></div>
+        <div class="ministep"><div class="msitem done"></div><div class="msitem done"></div><div class="msitem active"></div><div class="msitem"></div></div>
+        <div class="msrow"><span>Pembeli</span><span>Dokumen</span><span><b>3</b>/4 Unit</span><span>Review</span></div>
+        <div class="scroll">
+          <input class="input" placeholder="🔍 Cari blok / no. unit…" style="margin-bottom:10px;">
+          <div class="unit-row sel">
+            <div class="chk">✓</div>
+            <div style="flex:1;"><div class="unit-name">Blok E1 No. 19</div><div class="unit-sub">PAR2 · Ecoscape · Rp 450.000.000</div></div>
+            <span class="badge" style="background:var(--available);color:#1a3d00;">Available</span>
+          </div>
+          <div class="unit-row">
+            <div class="chk"></div>
+            <div style="flex:1;"><div class="unit-name">Blok E1 No. 21</div><div class="unit-sub">PAR2 · Ecoscape · Rp 450.000.000</div></div>
+            <span class="badge" style="background:var(--available);color:#1a3d00;">Available</span>
+          </div>
+          <div class="unit-row disabled">
+            <div class="chk"></div>
+            <div style="flex:1;"><div class="unit-name">Blok E1 No. 20</div><div class="unit-sub">PAR2 · Ecoscape · Rp 465.000.000</div></div>
+            <span class="badge" style="background:var(--reserveClr);color:#5c5400;">Reserve</span>
+          </div>
+        </div>
+        <div class="sticky-count">
+          <div style="font-size:11.5px;font-weight:700;margin-bottom:8px;">1 unit dipilih</div>
+          <button class="btn btn-primary">Lanjut ke Review</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="col">
+      <div class="col-label"><span class="tag new">Baru</span> 4/4 — Review &amp; Submit</div>
+      <div class="phone">
+        <div class="statusbar"><span>9:41</span><span>●●●</span></div>
+        <div class="appbar"><span class="back">‹</span><div><div class="title">Review Reserve Order</div></div></div>
+        <div class="ministep"><div class="msitem done"></div><div class="msitem done"></div><div class="msitem done"></div><div class="msitem active"></div></div>
+        <div class="msrow"><span>Pembeli</span><span>Dokumen</span><span>Unit</span><span><b>4</b>/4 Review</span></div>
+        <div class="scroll">
+          <div class="card">
+            <div class="review-line"><span>Kontak</span><b>Luthfi Fajri</b></div>
+            <div class="review-line"><span>Data Pembeli</span><b style="color:var(--success);">Lengkap ✓</b></div>
+            <div class="review-line"><span>Dokumen</span><b style="color:var(--success);">KTP ✓ · Bukti Bayar ✓</b></div>
+            <div class="review-line"><span>Jenis Transaksi</span><b>Reserve</b></div>
+            <div class="review-line"><span>Nominal &amp; Catatan</span><b style="color:var(--success);">Rp 2.000.000 ✓</b></div>
+          </div>
+          <div class="review-unit-card">
+            <div class="rname">Blok E1 No. 19</div>
+            <div class="rprice">Rp 450.000.000 · PAR2 Ecoscape</div>
+          </div>
+        </div>
+        <div class="footer-cta"><button class="btn btn-primary">Submit Reserve Order</button></div>
+      </div>
+    </div>
+
+    <div class="col">
+      <div class="col-label"><span class="tag new">Baru</span> Sukses Submit</div>
+      <div class="phone">
+        <div class="statusbar"><span>9:41</span><span>●●●</span></div>
+        <div class="scroll" style="padding:0;">
+          <div class="success-wrap">
+            <div class="success-icon">✓</div>
+            <h2>Reserve Order Berhasil Diajukan</h2>
+            <p>Blok E1 No. 19 a.n. Luthfi Fajri sedang diproses.</p>
+            <div class="mini-ro-card"><div><div class="u">Blok E1 No. 19</div><div class="s">Luthfi Fajri</div></div><span class="badge" style="background:var(--warning);">Diproses</span></div>
+          </div>
+        </div>
+        <div class="footer-cta">
+          <button class="btn btn-primary">Lihat di Reserve Order</button>
+          <button class="btn btn-secondary">Kembali ke Kontak</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ============ BAGIAN 3 ============ -->
+<div class="bagian-block">
+  <div class="bagian-head"><span class="bagian-tag new">Baru</span><span class="bagian-title">Bagian 3 — Menu "Reserve Order" (List Transaksi)</span></div>
+
+  <div class="board">
+    <div class="col">
+      <div class="col-label"><span class="tag new">Baru</span> List Reserve Order</div>
+      <div class="phone">
+        <div class="statusbar"><span>9:41</span><span>●●●</span></div>
+        <div class="appbar"><div><div class="title">Reserve Order</div><div class="sub">8 transaksi aktif</div></div></div>
+        <div class="scroll">
+          <input class="input" placeholder="🔍 Cari nama / unit…" style="margin-bottom:10px;">
+          <div class="fchips">
+            <button class="fchip on">Semua</button>
+            <button class="fchip">Reserve / RBA / RBB</button>
+            <button class="fchip">SP</button>
+            <button class="fchip">Proses Bank</button>
+            <button class="fchip">Akad</button>
+          </div>
+
+          <div class="rocard">
+            <div style="display:flex;justify-content:space-between;"><span class="rname">Luthfi Fajri</span><span class="badge" style="background:var(--warning);">Diproses</span></div>
+            <div class="runitrow">🏠 <span>Blok E1 No. 19 <span class="rsub">PAR2 · Ecoscape</span></span></div>
+            <div class="rmeta"><span>👤 Dian A.</span><span>💰 Rp 450jt</span><span>📅 Reserve: 05 Sep</span></div>
+          </div>
+
+          <div class="rocard">
+            <div style="display:flex;justify-content:space-between;"><span class="rname">Salsabila Octariani</span><span class="badge" style="background:var(--rba);">RBA</span></div>
+            <div class="runitrow">🏠 <span>Blok BC7 No. 28 <span class="rsub">PAR2 · Arwood</span></span></div>
+            <div class="rmeta"><span>👤 Dian A.</span><span>💰 Rp 610jt</span><span>📅 R/BR: 28 Aug</span></div>
+          </div>
+
+          <div class="rocard">
+            <div style="display:flex;justify-content:space-between;"><span class="rname">Remira Danisk</span><span class="badge" style="background:var(--sp);">SP</span></div>
+            <div class="runitrow">🏠 <span>Blok BC6 No. 17 <span class="rsub">PAR2 · Delano</span></span></div>
+            <div class="rmeta"><span>👤 Dian A.</span><span>💰 Rp 780jt</span><span>📅 SP: 02 Sep</span></div>
+          </div>
+
+          <div class="rocard">
+            <div style="display:flex;justify-content:space-between;"><span class="rname">Marcell Yudhistira</span><span class="badge" style="background:var(--info);">Proses Bank</span></div>
+            <div class="runitrow">🏠 <span>OT Non-Office <span class="rsub">Bumi Sadayana BSD</span></span></div>
+            <div class="rmeta"><span>👤 Dian A.</span><span>📅 SP: 22 Aug</span></div>
+          </div>
+
+          <div class="rocard">
+            <div style="display:flex;justify-content:space-between;"><span class="rname">Ikram Wiksa</span><span class="badge" style="background:var(--success);">Akad ✓</span></div>
+            <div class="runitrow">🏠 <span>Blok BC6 No. 12 <span class="rsub">PAR2 · Delano</span></span></div>
+            <div class="rmeta"><span>👤 Dian A.</span><span>📅 Akad: 12 Aug</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col">
+      <div class="col-label"><span class="tag new">Baru</span> Detail — Perjalanan &amp; Dokumen <span style="color:var(--grey4);font-weight:400;">(tap kartu Luthfi Fajri)</span></div>
+      <div class="phone">
+        <div class="statusbar"><span>9:41</span><span>●●●</span></div>
+        <div class="appbar"><span class="back">‹</span><div><div class="title">Reserve Order</div><div class="sub">Blok E1 No. 19</div></div></div>
+        <div class="scroll" id="ro1">
+          <div class="jr-head">
+            <div class="jr-avatar">LF</div>
+            <div><div class="jr-name">Luthfi Fajri</div><div class="jr-unit">Blok E1 No. 19 · PAR2 Ecoscape · Rp 450.000.000</div></div>
+          </div>
+          <div class="quick-contact"><span>📞 0812-xxxx-xxxx</span><span class="qc-link">Profil &amp; Riwayat Lengkap ›</span></div>
+          <div class="gate-mini">
+            <div class="gp">Status<b style="color:var(--warning);">🕓 Masih Diproses</b></div>
+          </div>
+
+          <div class="tabbar-row" style="margin-top:12px;border-radius:10px;overflow:hidden;">
+            <div class="tabbar-item on" onclick="roTab('ro1','journey',this)">Perjalanan</div>
+            <div class="tabbar-item" onclick="roTab('ro1','buyer',this)">Data Pembeli</div>
+            <div class="tabbar-item" onclick="roTab('ro1','attach',this)">Attachment</div>
+            <div class="tabbar-item" onclick="roTab('ro1','notes',this)">Catatan</div>
+          </div>
+
+          <div class="ro-tabpane on" id="ro1-journey">
+            <div class="timeline">
+              <div class="tstep done"><div class="tlbl">L1 Leads</div><div class="tsub">18 Jul 2026</div></div>
+              <div class="tstep done"><div class="tlbl">L2 APPT</div><div class="tsub">20 Jul 2026</div></div>
+              <div class="tstep done"><div class="tlbl">L3 Visitor</div><div class="tsub">28 Jul 2026</div>
+                <div class="tnote">🗨 <span class="tn-who">Riwayat sebelum Reserve —</span> 4 aktivitas (2 telpon, 1 WA, 1 Visit) · Form Visitor: sesuai budget &amp; kebutuhan <span class="tn-time">(terakhir 28 Jul)</span><br><span class="qc-link" style="display:inline-block;margin-top:4px;">Lihat semua di Profil &amp; Riwayat Lengkap ›</span></div>
+              </div>
+              <div class="tstep active">
+                <div class="tlbl">L4 Reserve</div><div class="tsub">Diajukan 05 Sep 2026 · Rp 2.000.000 — sedang diverifikasi</div>
+                <div class="tnote">🗨 <span class="tn-who">Sistem ·</span> Top Up Booking Reserve Rp 3.000.000 diajukan — "Customer commit tambah DP, mau lanjut ke Booking Reserve" <span class="tn-time">(05 Sep, 11:30)</span></div>
+              </div>
+              <div class="tstep todo readonly"><div class="tlbl">L5 Reserve Booking (R/BR)</div><div class="tsub">Belum sampai tahap ini</div><div class="lock-chip">🔒 Masih Diproses</div></div>
+              <div class="tstep todo readonly"><div class="tlbl">L6 SP</div><div class="lock-chip">🔒 Masih Diproses</div></div>
+              <div class="tstep todo readonly"><div class="tlbl">L7 Collect Data</div><div class="lock-chip">🔒 Progress saja</div></div>
+              <div class="tstep todo readonly"><div class="tlbl">L8 Proses Bank</div><div class="lock-chip">🔒 Progress saja</div></div>
+              <div class="tstep todo readonly"><div class="tlbl">L9 SPK</div><div class="lock-chip">🔒 Progress saja</div></div>
+              <div class="tstep todo"><div class="tlbl">L10 AKAD</div><div class="goal-chip">🏁 Tujuan Akhir</div></div>
+            </div>
+            <button class="btn btn-ghost" style="margin-top:12px;">+ Top Up Pembayaran</button>
+          </div>
+
+          <div class="ro-tabpane" id="ro1-buyer">
+            <div class="field-label">Nama Lengkap (sesuai KTP)</div>
+            <div class="unit-row" style="cursor:pointer;"><div style="flex:1;">Luthfi Fajri</div><span style="color:var(--grey4);">›</span></div>
+            <div class="field-label" style="margin-top:10px;">No. KTP</div>
+            <div class="unit-row" style="cursor:pointer;"><div style="flex:1;">3201xxxxxxxxxxxx</div><span style="color:var(--grey4);">›</span></div>
+            <div class="field-label" style="margin-top:10px;">Alamat sesuai KTP</div>
+            <div class="unit-row" style="cursor:pointer;"><div style="flex:1;">Jl. Merdeka No. 12, Bekasi</div><span style="color:var(--grey4);">›</span></div>
+            <div class="field-label" style="margin-top:10px;">Status Pernikahan</div>
+            <div class="unit-row" style="cursor:pointer;"><div style="flex:1;">Menikah</div><span style="color:var(--grey4);">›</span></div>
+            <div class="field-label" style="margin-top:10px;">Cara Pembayaran</div>
+            <div class="unit-row" style="cursor:pointer;"><div style="flex:1;">KPR</div><span style="color:var(--grey4);">›</span></div>
+          </div>
+
+          <div class="ro-tabpane" id="ro1-attach">
+            <div class="doc-row"><div class="doc-icon">🪪</div><div><div class="doc-name">KTP <span class="doc-sub">· Wajib</span></div><div class="doc-status">Terupload · 240 KB</div></div><span class="check-ok">✓</span></div>
+            <div class="doc-row"><div class="doc-icon">🧾</div><div><div class="doc-name">Bukti Transfer BCA <span class="doc-sub">· Wajib*</span></div><div class="doc-status">Terupload · 180 KB</div></div><span class="check-ok">✓</span></div>
+            <div class="doc-row" style="border-color:var(--warning);"><div class="doc-icon" style="background:#FFF6E5;">💳</div><div><div class="doc-name">Bukti Top Up <span class="doc-sub">· Rp 3.000.000</span></div><div class="doc-status" style="color:var(--warning);">Menunggu verifikasi</div></div></div>
+            <button class="btn btn-ghost">+ Upload Dokumen Tambahan</button>
+          </div>
+
+          <div class="ro-tabpane" id="ro1-notes">
+            <div class="note-item">
+              <div class="note-avatar sales">DA</div>
+              <div class="note-body">
+                <div class="note-head"><span>Dian A. <span class="role-tag">· Sales</span></span><span class="note-time">05 Sep, 09:12</span></div>
+                <div class="note-text">Customer minta konfirmasi cicilan bisa mulai bulan depan, sudah saya sampaikan ke Kasir ya.</div>
+              </div>
+            </div>
+            <div class="note-item">
+              <div class="note-avatar kasir">KS</div>
+              <div class="note-body">
+                <div class="note-head"><span>Rina · <span class="role-tag">Kasir</span></span><span class="note-time">05 Sep, 10:40</span></div>
+                <div class="note-text">Noted, TTS akan saya buat setelah bukti transfer diverifikasi.</div>
+              </div>
+            </div>
+            <div class="note-item">
+              <div class="note-avatar sales">DA</div>
+              <div class="note-body">
+                <div class="note-head"><span>Sistem <span class="role-tag">· otomatis</span></span><span class="note-time">05 Sep, 11:30</span></div>
+                <div class="note-text">Dian A. mengajukan Top Up Booking Reserve Rp 3.000.000 — "Customer commit tambah DP, mau lanjut ke Booking Reserve".</div>
+              </div>
+            </div>
+            <div class="note-input-row">
+              <input class="input" placeholder="Tulis catatan…">
+              <button class="note-send">➤</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col">
+      <div class="col-label"><span class="tag existing">Existing</span> ↳ Tujuan "Profil &amp; Riwayat Lengkap ›" <span style="color:var(--grey4);font-weight:400;">(tap link di kolom kiri)</span></div>
+      <div class="phone">
+        <div class="statusbar"><span>9:41</span><span>●●●</span></div>
+        <div class="appbar"><span class="back">‹</span>
+          <div class="jr-avatar" style="width:34px;height:34px;font-size:12px;">LF</div>
+          <div><div class="title">Luthfi Fajri</div><div class="sub">0812-xxxx-xxxx · Visitor</div></div>
+        </div>
+        <div class="tabbar-row">
+          <div class="tabbar-item on">Activity</div>
+          <div class="tabbar-item">About</div>
+          <div class="tabbar-item">Attachment</div>
+        </div>
+        <div class="scroll" style="position:relative;">
+          <div style="font-size:11px;font-weight:700;margin-bottom:8px;">05 Sep 2026</div>
+          <div class="card"><div style="border-left:4px solid var(--purple);padding-left:10px;"><b style="font-size:12px;">Reserve Order</b><div style="font-size:10px;color:var(--grey4);">09:12</div><div style="font-size:11px;margin-top:2px;">Reserve Order Blok E1 No. 19 diajukan — sedang diproses</div></div></div>
+          <div style="font-size:11px;font-weight:700;margin:14px 0 8px;">02 Sep 2026</div>
+          <div class="card"><div style="border-left:4px solid var(--purple);padding-left:10px;"><b style="font-size:12px;">PAR2</b><div style="font-size:10px;color:var(--grey4);">14:20</div><div style="font-size:11px;margin-top:2px;">Status changed to L3 - Visitor</div></div></div>
+          <div class="fab">+</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col">
+      <div class="col-label"><span class="tag new">Baru</span> Top Up Pembayaran <span style="color:var(--grey4);font-weight:400;">(tap tombol di detail Luthfi)</span></div>
+      <div class="phone">
+        <div class="statusbar"><span>9:41</span><span>●●●</span></div>
+        <div class="appbar"><span class="back">‹</span><div><div class="title">Top Up Pembayaran</div><div class="sub">Blok E1 No. 19 · Luthfi Fajri</div></div></div>
+        <div class="scroll">
+          <div class="card">
+            <div class="review-line"><span>Status saat ini</span><b>Reserve</b></div>
+            <div class="review-line"><span>Total dibayar sejauh ini</span><b>Rp 2.000.000</b></div>
+            <div class="review-line"><span>Jenis Transaksi</span><b>Top Up Booking Reserve</b></div>
+          </div>
+          <div class="field-label" style="margin-top:10px;">Bukti Transfer Top Up</div>
+          <div class="doc-row"><div class="doc-icon">🧾</div><div><div class="doc-name">Upload bukti transfer baru <span class="doc-sub">· Wajib</span></div><div class="doc-status" style="color:var(--primary);">Ketuk untuk upload</div></div></div>
+          <div class="field-label" style="margin-top:10px;">Nominal Top Up</div>
+          <input class="input" placeholder="Rp 0">
+          <div class="field-label" style="margin-top:10px;">Catatan</div>
+          <textarea class="input" rows="3" style="resize:vertical;" placeholder="Mis: customer commit tambah DP, mau lanjut ke Booking Reserve"></textarea>
+        </div>
+        <div class="footer-cta"><button class="btn btn-primary">Ajukan Top Up</button></div>
+      </div>
+    </div>
+
+    <div class="col">
+      <div class="col-label"><span class="tag new">Baru</span> Top Up Diajukan</div>
+      <div class="phone">
+        <div class="statusbar"><span>9:41</span><span>●●●</span></div>
+        <div class="scroll" style="padding:0;">
+          <div class="success-wrap">
+            <div class="success-icon">✓</div>
+            <h2>Top Up Berhasil Diajukan</h2>
+            <p>Top Up Booking Reserve Rp 3.000.000 untuk Blok E1 No. 19 sedang diverifikasi.</p>
+            <div class="mini-ro-card"><div><div class="u">Total setelah top up</div><div class="s">Rp 2.000.000 + Rp 3.000.000</div></div><span class="badge" style="background:var(--warning);">Menunggu</span></div>
+          </div>
+        </div>
+        <div class="footer-cta">
+          <button class="btn btn-primary">Kembali ke Reserve Order</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="col">
+      <div class="col-label"><span class="tag new">Baru</span> Detail lain — sudah di L8 <span style="color:var(--grey4);font-weight:400;">(contoh posisi berbeda)</span></div>
+      <div class="phone">
+        <div class="statusbar"><span>9:41</span><span>●●●</span></div>
+        <div class="appbar"><span class="back">‹</span><div><div class="title">Reserve Order</div><div class="sub">OT Non-Office · Bumi Sadayana</div></div></div>
+        <div class="scroll" id="ro2">
+          <div class="jr-head">
+            <div class="jr-avatar">MY</div>
+            <div><div class="jr-name">Marcell Yudhistira</div><div class="jr-unit">Bumi Sadayana BSD</div></div>
+          </div>
+          <div class="quick-contact"><span>📞 0857-xxxx-xxxx</span><span class="qc-link">Profil &amp; Riwayat Lengkap ›</span></div>
+          <div class="tabbar-row" style="margin-top:12px;border-radius:10px;overflow:hidden;">
+            <div class="tabbar-item on" onclick="roTab('ro2','journey',this)">Perjalanan</div>
+            <div class="tabbar-item" onclick="roTab('ro2','buyer',this)">Data Pembeli</div>
+            <div class="tabbar-item" onclick="roTab('ro2','attach',this)">Attachment</div>
+            <div class="tabbar-item" onclick="roTab('ro2','notes',this)">Catatan</div>
+          </div>
+
+          <div class="ro-tabpane on" id="ro2-journey">
+            <div class="timeline">
+              <div class="tstep done"><div class="tlbl">L1 Leads</div><div class="tsub">02 Jul 2026</div></div>
+              <div class="tstep done"><div class="tlbl">L2 APPT</div><div class="tsub">06 Jul 2026</div></div>
+              <div class="tstep done"><div class="tlbl">L3 Visitor</div><div class="tsub">10 Jul 2026</div>
+                <div class="tnote">🗨 <span class="tn-who">Riwayat sebelum Reserve —</span> 3 aktivitas (1 telpon, 1 WA, 1 Visit) · Form Visitor: butuh unit non-office, budget sesuai <span class="tn-time">(terakhir 10 Jul)</span><br><span class="qc-link" style="display:inline-block;margin-top:4px;">Lihat semua di Profil &amp; Riwayat Lengkap ›</span></div>
+              </div>
+              <div class="tstep done"><div class="tlbl">L4 Reserve</div><div class="tsub">15 Jul 2026 · Rp 5.000.000</div></div>
+              <div class="tstep done"><div class="tlbl">L5 Reserve Booking (R/BR)</div><div class="tsub">02 Aug 2026 · Top Up Rp 20.000.000</div></div>
+              <div class="tstep done">
+                <div class="tlbl">L6 SP</div><div class="tsub">22 Aug 2026</div>
+                <div class="tnote">🗨 <span class="tn-who">Putri · Sales Admin —</span> SP terbit, unit dikunci sistem bank untuk proses KPR <span class="tn-time">(22 Aug, 13:05)</span></div>
+              </div>
+              <div class="tstep done readonly"><div class="tlbl">L7 Collect Data</div><div class="tsub">Selesai · 27 Aug 2026</div></div>
+              <div class="tstep active readonly">
+                <div class="tlbl">L8 Proses Bank</div><div class="tsub">Sedang di bank — estimasi 2 minggu</div><div class="lock-chip">🔒 Progress saja</div>
+                <div class="tnote">🗨 <span class="tn-who">Dian A. · Sales —</span> Slip Gaji tambahan sudah diupload, mohon dicek <span class="tn-time">(27 Aug, 08:50)</span></div>
+              </div>
+              <div class="tstep todo readonly"><div class="tlbl">L9 SPK</div><div class="lock-chip">🔒 Progress saja</div></div>
+              <div class="tstep todo"><div class="tlbl">L10 AKAD</div><div class="goal-chip">🏁 Tujuan Akhir</div></div>
+            </div>
+          </div>
+
+          <div class="ro-tabpane" id="ro2-buyer">
+            <div class="field-label">Nama Lengkap (sesuai KTP)</div>
+            <div class="unit-row" style="cursor:pointer;"><div style="flex:1;">Marcell Yudhistira</div><span style="color:var(--grey4);">›</span></div>
+            <div class="field-label" style="margin-top:10px;">Status Pernikahan</div>
+            <div class="unit-row" style="cursor:pointer;"><div style="flex:1;">Belum Menikah</div><span style="color:var(--grey4);">›</span></div>
+            <div class="field-label" style="margin-top:10px;">Cara Pembayaran</div>
+            <div class="unit-row" style="cursor:pointer;"><div style="flex:1;">KPR</div><span style="color:var(--grey4);">›</span></div>
+          </div>
+
+          <div class="ro-tabpane" id="ro2-attach">
+            <div class="doc-row"><div class="doc-icon">🪪</div><div><div class="doc-name">KTP <span class="doc-sub">· Wajib</span></div><div class="doc-status">Terupload · 210 KB</div></div><span class="check-ok">✓</span></div>
+            <div class="doc-row"><div class="doc-icon">🧾</div><div><div class="doc-name">Bukti Transfer Mandiri <span class="doc-sub">· Wajib*</span></div><div class="doc-status">Terupload · 195 KB</div></div><span class="check-ok">✓</span></div>
+            <div class="doc-row" style="border-color:var(--sp);"><div class="doc-icon" style="background:#E9E7FE;">📑</div><div><div class="doc-name">Surat Pesanan (SP).pdf <span class="doc-sub">· Diterbitkan Sales Admin</span></div><div class="doc-status">22 Aug 2026 · Ketuk untuk lihat/unduh</div></div></div>
+            <div class="doc-row"><div class="doc-icon">🏦</div><div><div class="doc-name">Slip Gaji <span class="doc-sub">· Diminta bank, saat Proses Bank</span></div><div class="doc-status">Terupload · 88 KB</div></div><span class="check-ok">✓</span></div>
+            <button class="btn btn-ghost">+ Upload Dokumen Tambahan</button>
+          </div>
+
+          <div class="ro-tabpane" id="ro2-notes">
+            <div class="note-item">
+              <div class="note-avatar sa">SA</div>
+              <div class="note-body">
+                <div class="note-head"><span>Putri · <span class="role-tag">Sales Admin</span></span><span class="note-time">22 Aug, 13:05</span></div>
+                <div class="note-text">SP sudah terbit, unit sudah dikunci sistem bank untuk proses KPR.</div>
+              </div>
+            </div>
+            <div class="note-item">
+              <div class="note-avatar sales">DA</div>
+              <div class="note-body">
+                <div class="note-head"><span>Dian A. <span class="role-tag">· Sales</span></span><span class="note-time">27 Aug, 08:50</span></div>
+                <div class="note-text">Customer sudah upload Slip Gaji tambahan yang diminta bank, mohon dicek.</div>
+              </div>
+            </div>
+            <div class="note-input-row">
+              <input class="input" placeholder="Tulis catatan…">
+              <button class="note-send">➤</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col">
+      <div class="col-label"><span class="tag new">Baru</span> Detail — Ditolak Kasir <span style="color:var(--grey4);font-weight:400;">(contoh reject)</span></div>
+      <div class="phone">
+        <div class="statusbar"><span>9:41</span><span>●●●</span></div>
+        <div class="appbar"><span class="back">‹</span><div><div class="title">Reserve Order</div><div class="sub">Blok E1 No. 22</div></div></div>
+        <div class="scroll" id="ro3">
+          <div class="jr-head">
+            <div class="jr-avatar">RP</div>
+            <div><div class="jr-name">Reyhan Pradipta</div><div class="jr-unit">Blok E1 No. 22 · PAR2 Ecoscape · Rp 450.000.000</div></div>
+          </div>
+          <div class="quick-contact"><span>📞 0813-xxxx-xxxx</span><span class="qc-link">Profil &amp; Riwayat Lengkap ›</span></div>
+          <div class="gate-mini">
+            <div class="gp">Status<b style="color:var(--red);">✗ Ditolak — Perlu Revisi</b></div>
+          </div>
+          <div class="reject-banner">
+            <div class="rb-title">✗ Ditolak — Perlu Revisi</div>
+            <div class="rb-reason">Nominal bukti transfer (Rp 400jt) tidak sesuai harga unit (Rp 450jt). Konfirmasi ke customer &amp; upload ulang bukti bayar yang benar.</div>
+          </div>
+          <button class="btn btn-primary" style="margin-bottom:4px;">Edit &amp; Ajukan Ulang</button>
+
+          <div class="tabbar-row" style="margin-top:12px;border-radius:10px;overflow:hidden;">
+            <div class="tabbar-item on" onclick="roTab('ro3','journey',this)">Perjalanan</div>
+            <div class="tabbar-item" onclick="roTab('ro3','buyer',this)">Data Pembeli</div>
+            <div class="tabbar-item" onclick="roTab('ro3','attach',this)">Attachment</div>
+            <div class="tabbar-item" onclick="roTab('ro3','notes',this)">Catatan</div>
+          </div>
+
+          <div class="ro-tabpane on" id="ro3-journey">
+            <div class="timeline">
+              <div class="tstep done"><div class="tlbl">L1 Leads</div><div class="tsub">20 Aug 2026</div></div>
+              <div class="tstep done"><div class="tlbl">L2 APPT</div><div class="tsub">23 Aug 2026</div></div>
+              <div class="tstep done"><div class="tlbl">L3 Visitor</div><div class="tsub">28 Aug 2026</div>
+                <div class="tnote">🗨 <span class="tn-who">Riwayat sebelum Reserve —</span> 2 aktivitas (1 telpon, 1 Visit) · Form Visitor: langsung tertarik di appt pertama <span class="tn-time">(terakhir 28 Aug)</span><br><span class="qc-link" style="display:inline-block;margin-top:4px;">Lihat semua di Profil &amp; Riwayat Lengkap ›</span></div>
+              </div>
+              <div class="tstep active">
+                <div class="tlbl">L4 Reserve</div><div class="tsub" style="color:var(--red);">Diajukan 05 Sep 2026 — Ditolak, Perlu Revisi</div>
+                <div class="tnote">🗨 <span class="tn-who">Rina · Kasir —</span> Nominal transfer kurang Rp 50jt dari harga unit <span class="tn-time">(05 Sep, 15:22)</span></div>
+              </div>
+              <div class="tstep todo readonly"><div class="tlbl">L5 Reserve Booking (R/BR)</div><div class="lock-chip">🔒 Masih Diproses</div></div>
+              <div class="tstep todo readonly"><div class="tlbl">L6 SP</div><div class="lock-chip">🔒 Masih Diproses</div></div>
+              <div class="tstep todo readonly"><div class="tlbl">L7 Collect Data</div><div class="lock-chip">🔒 Progress saja</div></div>
+              <div class="tstep todo readonly"><div class="tlbl">L8 Proses Bank</div><div class="lock-chip">🔒 Progress saja</div></div>
+              <div class="tstep todo readonly"><div class="tlbl">L9 SPK</div><div class="lock-chip">🔒 Progress saja</div></div>
+              <div class="tstep todo"><div class="tlbl">L10 AKAD</div><div class="goal-chip">🏁 Tujuan Akhir</div></div>
+            </div>
+          </div>
+
+          <div class="ro-tabpane" id="ro3-buyer">
+            <div class="field-label">Nama Lengkap (sesuai KTP)</div>
+            <div class="unit-row" style="cursor:pointer;"><div style="flex:1;">Reyhan Pradipta</div><span style="color:var(--grey4);">›</span></div>
+            <div class="field-label" style="margin-top:10px;">Cara Pembayaran</div>
+            <div class="unit-row" style="cursor:pointer;"><div style="flex:1;">Cash Bertahap</div><span style="color:var(--grey4);">›</span></div>
+          </div>
+
+          <div class="ro-tabpane" id="ro3-attach">
+            <div class="doc-row"><div class="doc-icon">🪪</div><div><div class="doc-name">KTP <span class="doc-sub">· Wajib</span></div><div class="doc-status">Terupload · 240 KB</div></div><span class="check-ok">✓</span></div>
+            <div class="doc-row" style="border-color:var(--red);"><div class="doc-icon" style="background:#FDECEC;">🧾</div><div><div class="doc-name">Bukti Transfer BCA <span class="doc-sub">· Ditolak</span></div><div class="doc-status" style="color:var(--red);">Nominal tidak sesuai</div></div></div>
+            <button class="btn btn-ghost">+ Upload Dokumen Tambahan</button>
+          </div>
+
+          <div class="ro-tabpane" id="ro3-notes">
+            <div class="note-item">
+              <div class="note-avatar kasir">KS</div>
+              <div class="note-body">
+                <div class="note-head"><span>Rina · <span class="role-tag">Kasir</span></span><span class="note-time">05 Sep, 15:22</span></div>
+                <div class="note-text">Tolong konfirmasi ke customer, nominal transfernya kurang Rp 50jt dari harga unit.</div>
+              </div>
+            </div>
+            <div class="note-input-row">
+              <input class="input" placeholder="Tulis catatan…">
+              <button class="note-send">➤</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col">
+      <div class="col-label"><span class="tag new">Baru</span> Edit &amp; Ajukan Ulang <span style="color:var(--grey4);font-weight:400;">(tap tombol di kolom sebelah)</span></div>
+      <div class="phone">
+        <div class="statusbar"><span>9:41</span><span>●●●</span></div>
+        <div class="appbar"><span class="back">‹</span><div><div class="title">Perbaiki Reserve Order</div><div class="sub">Reyhan Pradipta</div></div></div>
+        <div class="scroll">
+          <div class="reject-banner">
+            <div class="rb-title">✗ Ditolak — Perlu Revisi</div>
+            <div class="rb-reason">Nominal bukti transfer tidak sesuai harga unit. Upload ulang bukti bayar yang benar.</div>
+          </div>
+          <div style="font-size:11px;color:var(--grey4);margin-bottom:8px;">Dokumen Identitas</div>
+          <div class="doc-row"><div class="doc-icon">🪪</div><div><div class="doc-name">KTP <span class="doc-sub">· Wajib</span></div><div class="doc-status">Terupload · 240 KB</div></div><span class="check-ok">✓</span></div>
+          <div style="font-size:11px;color:var(--grey4);margin:14px 0 8px;">Bukti Bayar</div>
+          <div class="doc-row" style="border-color:var(--red);"><div class="doc-icon" style="background:#FDECEC;">🧾</div><div><div class="doc-name">Bukti Transfer BCA <span class="doc-sub">· Ditolak</span></div><div class="doc-status" style="color:var(--red);">Ketuk untuk upload ulang</div></div></div>
+          <div class="field-label" style="margin-top:10px;">Nominal Pembayaran</div>
+          <input class="input" value="Rp 400.000.000" style="border-color:var(--red);">
+          <div style="font-size:10px;color:var(--red);margin:4px 0 10px;">Kurang Rp 50.000.000 dari harga unit (Rp 450.000.000)</div>
+          <div class="field-label">Catatan</div>
+          <textarea class="input" rows="2" style="resize:vertical;" placeholder="Mis: customer akan transfer kekurangan minggu depan"></textarea>
+        </div>
+        <div class="footer-cta"><button class="btn btn-primary">Submit Ulang</button></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function roTab(id, pane, el){
+  var root = document.getElementById(id);
+  if(!root) return;
+  var tabs = root.querySelectorAll('.tabbar-item');
+  for(var i=0;i<tabs.length;i++){ tabs[i].classList.remove('on'); }
+  el.classList.add('on');
+  var panes = root.querySelectorAll('.ro-tabpane');
+  for(var j=0;j<panes.length;j++){ panes[j].classList.remove('on'); }
+  var target = document.getElementById(id+'-'+pane);
+  if(target){ target.classList.add('on'); }
+}
+</script>
+
+</body>
+</html>

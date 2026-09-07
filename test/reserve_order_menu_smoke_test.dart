@@ -1,0 +1,416 @@
+// Smoke test menu "Reserve Order" (mockup reserve-order-sales-final_12.html, Bagian 3):
+// list transaksi dari `GET /api/reserve` + pencarian, pemetaan response ke kartu & detail,
+// detail dengan 4 tab & timeline L1-L10, Top Up Pembayaran sampai layar sukses, dan
+// Edit & Ajukan Ulang untuk transaksi yang ditolak kasir.
+// Analyzer tidak bisa menangkap error layout, jadi ini satu-satunya pengaman otomatisnya.
+import 'dart:typed_data';
+
+import 'package:file_picker/file_picker.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
+import 'package:intl/date_symbol_data_local.dart';
+// Dependency transitif dari file_picker — dipakai hanya untuk mixin mock platform interface.
+// ignore: depend_on_referenced_packages
+import 'package:plugin_platform_interface/plugin_platform_interface.dart';
+import 'package:progress_group/features/contact/data/datasources/reserve_order_remote_datasource.dart';
+import 'package:progress_group/features/contact/data/models/reserve/reserve_order_model.dart';
+import 'package:progress_group/features/contact/presentation/pages/reserve-order/detail.dart';
+import 'package:progress_group/features/contact/presentation/pages/reserve-order/list.dart';
+import 'package:progress_group/features/contact/presentation/pages/reserve-order/revise.dart';
+import 'package:progress_group/features/contact/presentation/pages/reserve-order/top_up.dart';
+import 'package:progress_group/features/contact/presentation/state/reserve_order_list/reserve_order_list_cubit.dart';
+
+class _FakeFilePicker extends Fake with MockPlatformInterfaceMixin implements FilePicker {
+  int calls = 0;
+
+  @override
+  Future<FilePickerResult?> pickFiles({
+    String? dialogTitle,
+    String? initialDirectory,
+    FileType type = FileType.any,
+    List<String>? allowedExtensions,
+    Function(FilePickerStatus)? onFileLoading,
+    bool allowCompression = true,
+    int compressionQuality = 30,
+    bool allowMultiple = false,
+    bool withData = false,
+    bool withReadStream = false,
+    bool lockParentWindow = false,
+    bool readSequential = false,
+  }) async {
+    calls++;
+    return FilePickerResult([
+      PlatformFile(name: 'bukti-$calls.pdf', size: 4, bytes: Uint8List.fromList([1, 2, 3, 4])),
+    ]);
+  }
+}
+
+/// Baris `GET /api/reserve` seperti aslinya — sengaja JSON mentah supaya `ReserveOrder.fromJson`
+/// ikut teruji, bukan cuma widget-nya.
+Map<String, dynamic> _row({
+  required int id,
+  required String name,
+  String? projectName,
+  String? blokNo,
+  num? amount,
+  String? createdAt,
+  String? spDate,
+  String? rejectedAt,
+  String? rejectReason,
+  String? note,
+}) {
+  return {
+    'reserve_order_id': id,
+    'cust_name': name,
+    'contact_name': name.split(' ').first.toLowerCase(),
+    'phone_number': '081234567890',
+    'property_name': null,
+    'deal_blok_no': blokNo,
+    'deal_project_name': projectName,
+    'owner_name': 'Nadilla Qurnia Ramadhan',
+    'amount_rp': amount,
+    'created_datetime': createdAt ?? '2026-09-07T06:52:58.000000Z',
+    'rb_date': null,
+    'sp_date': spDate,
+    'kasir_rejected_datetime': rejectedAt,
+    'kasir_rejected_reason': rejectReason,
+    'sa_rejected_datetime': null,
+    'sa_rejected_reason': null,
+    'reserve_note': note,
+    'contact_id': 112192,
+    'deal_id': 112664,
+    'status_reserve_id': 4,
+  };
+}
+
+class _FakeReserveOrders implements ReserveOrderRemoteDataSource {
+  final List<Map<String, dynamic>> rows;
+  bool fail = false;
+
+  String? lastSearch;
+  int lastPage = 0;
+  int calls = 0;
+
+  _FakeReserveOrders(this.rows);
+
+  @override
+  Future<ReserveOrdersPage> getReserveOrders({
+    String? search,
+    List<int> statusReserveIds = const [],
+    String sort = 'created_desc',
+    int page = 1,
+    int perPage = 15,
+  }) async {
+    calls++;
+    lastSearch = search;
+    lastPage = page;
+    if (fail) throw Exception('koneksi terputus');
+
+    final keyword = (search ?? '').toLowerCase();
+    final filtered = keyword.isEmpty ? rows : rows.where((r) => '${r['cust_name']}'.toLowerCase().contains(keyword)).toList();
+
+    return ReserveOrdersPage(
+      items: filtered.map((e) => ReserveOrder.fromJson(e)).toList(),
+      page: page,
+      hasMore: false,
+      total: filtered.length,
+    );
+  }
+}
+
+late _FakeReserveOrders source;
+
+/// Susunan route yang sama dengan router aplikasi supaya `pushNamed` dari halaman list & detail
+/// menemukan tujuannya. `detailContact` diwakili halaman kosong — di app aslinya itu Contact Detail.
+GoRouter _router() => GoRouter(
+      routes: [
+        GoRoute(
+          path: '/',
+          builder: (_, __) => const ReserveOrderListPage(),
+          routes: [
+            GoRoute(
+              name: 'reserveOrderDetail',
+              path: 'detail',
+              builder: (_, state) => ReserveOrderDetailPage(order: state.extra as ReserveOrder),
+              routes: [
+                GoRoute(
+                  name: 'reserveOrderTopUp',
+                  path: 'top-up',
+                  builder: (_, state) => ReserveOrderTopUpPage(order: state.extra as ReserveOrder),
+                ),
+                GoRoute(
+                  name: 'reserveOrderRevise',
+                  path: 'revise',
+                  builder: (_, state) => ReserveOrderRevisePage(order: state.extra as ReserveOrder),
+                ),
+              ],
+            ),
+            GoRoute(
+              name: 'detailContact',
+              path: 'contact',
+              builder: (_, __) => Scaffold(
+                appBar: AppBar(title: const Text('Contact Detail')),
+                body: const Center(child: Text('Contact Detail')),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+
+Future<void> _pumpMenu(WidgetTester tester) async {
+  tester.view.physicalSize = const Size(390 * 3, 844 * 3);
+  tester.view.devicePixelRatio = 3;
+  addTearDown(tester.view.reset);
+
+  await tester.pumpWidget(BlocProvider(
+    create: (_) => ReserveOrderListCubit(source),
+    child: MaterialApp.router(routerConfig: _router()),
+  ));
+  await tester.pumpAndSettle();
+}
+
+/// Periksa pesan validasi, lalu habiskan SnackBar-nya supaya pesan berikutnya tidak terantre.
+Future<void> _expectSnack(WidgetTester tester, String message) async {
+  expect(find.text(message), findsOneWidget);
+  await tester.pump(const Duration(seconds: 5));
+  await tester.pumpAndSettle();
+}
+
+/// Lampirkan file lewat sheet pilih sumber (jalur "Dokumen" → FilePicker palsu).
+Future<void> _attachVia(WidgetTester tester, Finder row) async {
+  await tester.tap(row);
+  await tester.pumpAndSettle();
+  await tester.tap(find.text('Dokumen').last);
+  await tester.pumpAndSettle();
+}
+
+/// Kartu di luar layar belum dibangun ListView, jadi digulir dulu sebelum ditekan.
+Future<void> _openDetail(WidgetTester tester, String customerName) async {
+  final card = find.text(customerName);
+  if (card.evaluate().isEmpty) {
+    await tester.scrollUntilVisible(card, 200, scrollable: find.byType(Scrollable).last);
+  }
+  await tester.tap(card);
+  await tester.pumpAndSettle();
+}
+
+/// Menunggu debounce pencarian (400 ms) sebelum request-nya jalan.
+Future<void> _search(WidgetTester tester, String keyword) async {
+  await tester.enterText(find.byType(TextFormField), keyword);
+  await tester.pump(const Duration(milliseconds: 500));
+  await tester.pumpAndSettle();
+}
+
+/// Chip filter punya Key sendiri karena labelnya ("SP", "Akad") bisa sama persis dengan teks badge
+/// status di kartu. `ensureVisible` menghitung scroll offset horizontalnya persis, jadi aman dari
+/// chip yang sudah dibangun (masuk cache) tapi masih di luar area yang benar-benar terlihat.
+Future<void> _tapFilterChip(WidgetTester tester, String filterName) async {
+  final chip = find.byKey(ValueKey('reserve_order_filter_$filterName'));
+  await tester.ensureVisible(chip);
+  await tester.pumpAndSettle();
+  await tester.tap(chip);
+  await tester.pumpAndSettle();
+}
+
+void main() {
+  setUpAll(() => initializeDateFormatting('id_ID'));
+
+  setUp(() {
+    FilePicker.platform = _FakeFilePicker();
+    source = _FakeReserveOrders([
+      _row(id: 3, name: 'Andi Wijaya Aan', projectName: 'Paradise Serpong City 2', amount: 80000, note: 'test reserve_note'),
+      _row(id: 5, name: 'Budi Santoso', projectName: 'PAR2', blokNo: 'Blok BC6 No. 17', amount: 780000000, spDate: '2026-09-02T03:00:00.000000Z'),
+      _row(
+        id: 8,
+        name: 'Reyhan Pradipta',
+        projectName: 'PAR2',
+        blokNo: 'Blok E1 No. 22',
+        amount: 400000000,
+        createdAt: '2026-09-05T00:00:00.000000Z',
+        rejectedAt: '2026-09-05T08:22:00.000000Z',
+        rejectReason: 'Nominal bukti transfer tidak sesuai harga unit.',
+      ),
+    ]);
+  });
+
+  testWidgets('list memetakan response API ke kartu & pencarian dikirim ke server', (tester) async {
+    await _pumpMenu(tester);
+
+    expect(find.text('Reserve Order'), findsOneWidget);
+    expect(find.text('3 transaksi'), findsOneWidget);
+
+    // Baris pertama: property_name & deal_blok_no kosong → unitnya ditulis apa adanya.
+    expect(find.text('Andi Wijaya Aan'), findsOneWidget);
+    expect(find.textContaining('Unit belum ditentukan', findRichText: true), findsOneWidget);
+    expect(find.textContaining('Paradise Serpong City 2', findRichText: true), findsOneWidget);
+    expect(find.text('Nadilla Qurnia Ramadhan'), findsNWidgets(3));
+    expect(find.text('Rp 80.000'), findsOneWidget);
+    expect(find.textContaining('Reserve: 07 Sep'), findsOneWidget);
+    expect(find.text('Diproses'), findsOneWidget);
+
+    // Nominal besar diringkas seperti mockup, dan tahapnya ikut sp_date / penolakan kasir. Chip
+    // filter "SP" ikut kebangun di baris atas, jadi teksnya sengaja dicek 2 (chip + badge kartu).
+    expect(find.text('Rp 780jt'), findsOneWidget);
+    expect(find.text('SP'), findsNWidgets(2));
+    expect(find.text('Ditolak'), findsOneWidget);
+
+    // Pencarian: kata kuncinya sampai ke datasource, bukan disaring di aplikasi.
+    await _search(tester, 'budi');
+    expect(source.lastSearch, 'budi');
+    expect(find.text('Budi Santoso'), findsOneWidget);
+    expect(find.text('Andi Wijaya Aan'), findsNothing);
+    expect(find.text('1 transaksi'), findsOneWidget);
+
+    await _search(tester, 'zzz');
+    expect(find.textContaining('Tidak ada transaksi yang cocok'), findsOneWidget);
+  });
+
+  testWidgets('chip filter menyaring di app dari status yang sudah diturunkan', (tester) async {
+    await _pumpMenu(tester);
+
+    // Chip "SP" cuma menyisakan transaksi yang sudah SP.
+    await _tapFilterChip(tester, 'sp');
+    expect(find.text('Budi Santoso'), findsOneWidget);
+    expect(find.text('Andi Wijaya Aan'), findsNothing);
+    expect(find.text('Reyhan Pradipta'), findsNothing);
+    // Total di header tidak ikut berubah — itu angka dari server, bukan hasil filter chip.
+    expect(find.text('3 transaksi'), findsOneWidget);
+
+    // Chip "Reserve / RBA / RBB" mencakup juga transaksi yang ditolak kasir.
+    await _tapFilterChip(tester, 'reserve');
+    expect(find.text('Andi Wijaya Aan'), findsOneWidget);
+    expect(find.text('Reyhan Pradipta'), findsOneWidget);
+    expect(find.text('Budi Santoso'), findsNothing);
+
+    // Kategori yang belum bisa diturunkan dari data yang ada tetap tampil chip-nya (sesuai
+    // desain), tapi hasilnya kosong dengan pesan yang membedakan dari "tidak ada hasil pencarian".
+    await _tapFilterChip(tester, 'akad');
+    expect(find.text('Tidak ada transaksi untuk filter "Akad".'), findsOneWidget);
+
+    await _tapFilterChip(tester, 'semua');
+    expect(find.text('Andi Wijaya Aan'), findsOneWidget);
+    expect(find.text('Budi Santoso'), findsOneWidget);
+    expect(find.text('Reyhan Pradipta'), findsOneWidget);
+  });
+
+  testWidgets('gagal memuat menampilkan pesan + tombol coba lagi', (tester) async {
+    source.fail = true;
+    await _pumpMenu(tester);
+
+    expect(find.text('Coba lagi'), findsOneWidget);
+
+    source.fail = false;
+    await tester.tap(find.text('Coba lagi'));
+    await tester.pumpAndSettle();
+    expect(find.text('Andi Wijaya Aan'), findsOneWidget);
+  });
+
+  testWidgets('detail merender timeline L1-L10 & keempat tabnya', (tester) async {
+    await _pumpMenu(tester);
+    await _openDetail(tester, 'Andi Wijaya Aan');
+
+    expect(find.text('Andi Wijaya Aan'), findsOneWidget);
+    expect(find.text('Unit belum ditentukan · Paradise Serpong City 2'), findsOneWidget);
+    expect(find.text('Profil & Riwayat Lengkap ›'), findsOneWidget);
+
+    // Timeline lengkap, chip gembok, dan penanda tujuan akhir.
+    expect(find.text('L1 Leads'), findsOneWidget);
+    expect(find.text('L4 Reserve'), findsOneWidget);
+    expect(find.text('L10 AKAD'), findsOneWidget);
+    expect(find.text('Tujuan Akhir'), findsOneWidget);
+    expect(find.text('Progress saja'), findsNWidgets(3)); // L7, L8, L9
+    expect(find.textContaining('Diajukan 07 Sep 2026 · Rp 80.000 · sedang diverifikasi'), findsOneWidget);
+
+    // Tautan profil membuka halaman Contact Detail memakai contact_id dari response.
+    await tester.tap(find.text('Profil & Riwayat Lengkap ›'));
+    await tester.pumpAndSettle();
+    expect(find.text('Contact Detail'), findsWidgets);
+    await tester.tap(find.byType(BackButton));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Data Pembeli'));
+    await tester.pumpAndSettle();
+    expect(find.text('081234567890'), findsWidgets);
+
+    // Attachment & catatan belum ada di response list — Attachment kosong, catatan diisi
+    // reserve_note.
+    await tester.tap(find.text('Attachment'));
+    await tester.pumpAndSettle();
+    expect(find.text('Belum ada dokumen.'), findsOneWidget);
+
+    await tester.tap(find.text('Catatan'));
+    await tester.pumpAndSettle();
+    expect(find.text('test reserve_note'), findsOneWidget);
+
+    await tester.enterText(find.byType(TextField).first, 'Sudah saya follow up ke customer');
+    await tester.tap(find.byIcon(Icons.send_rounded));
+    await tester.pumpAndSettle();
+    expect(find.text('Sudah saya follow up ke customer'), findsOneWidget);
+  });
+
+  testWidgets('top up: validasi, pengajuan, lalu layar sukses & jejaknya di timeline', (tester) async {
+    await _pumpMenu(tester);
+    await _openDetail(tester, 'Andi Wijaya Aan');
+
+    await tester.ensureVisible(find.text('+ Top Up Pembayaran'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('+ Top Up Pembayaran'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Top Up Pembayaran'), findsOneWidget);
+    expect(find.text('Total dibayar sejauh ini'), findsOneWidget);
+    expect(find.text('Rp 80.000'), findsOneWidget);
+
+    await tester.tap(find.text('Ajukan Top Up'));
+    await tester.pumpAndSettle();
+    await _expectSnack(tester, 'Bukti transfer top up wajib dilampirkan');
+
+    await _attachVia(tester, find.textContaining('Upload bukti transfer baru', findRichText: true));
+    expect(find.textContaining('Terupload · '), findsOneWidget);
+
+    await tester.tap(find.text('Ajukan Top Up'));
+    await tester.pumpAndSettle();
+    await _expectSnack(tester, 'Nominal top up wajib diisi');
+
+    await tester.enterText(find.byType(TextField).first, '3000000');
+    await tester.pumpAndSettle();
+    expect(find.text('3.000.000'), findsOneWidget);
+
+    await tester.tap(find.text('Ajukan Top Up'));
+    await tester.pumpAndSettle();
+    expect(find.text('Top Up Berhasil Diajukan'), findsOneWidget);
+    expect(find.text('Rp 80.000 + Rp 3.000.000'), findsOneWidget);
+    expect(find.text('Menunggu'), findsOneWidget);
+
+    await tester.tap(find.text('Kembali ke Reserve Order'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('Top Up Booking Reserve Rp 3.000.000 diajukan', findRichText: true), findsOneWidget);
+  });
+
+  testWidgets('transaksi ditolak: banner, ajukan ulang, lalu balik ke Diproses', (tester) async {
+    await _pumpMenu(tester);
+    await _openDetail(tester, 'Reyhan Pradipta');
+
+    expect(find.text('Ditolak — Perlu Revisi'), findsOneWidget); // banner
+    expect(find.text('Ditolak - Perlu Revisi'), findsOneWidget); // kotak status
+    expect(find.textContaining('Nominal bukti transfer tidak sesuai'), findsWidgets);
+
+    await tester.tap(find.text('Edit & Ajukan Ulang'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Perbaiki Reserve Order'), findsOneWidget);
+    expect(find.text('400.000.000'), findsOneWidget); // prefill dari nominal yang ditolak
+
+    await tester.tap(find.text('Submit Ulang'));
+    await tester.pumpAndSettle();
+
+    // Balik ke detail: banner hilang, statusnya kembali menunggu verifikasi.
+    expect(find.text('Perbaiki Reserve Order'), findsNothing);
+    expect(find.text('Masih Diproses'), findsNWidgets(3)); // kotak status + 2 chip gembok (L5, L6)
+    expect(find.text('Edit & Ajukan Ulang'), findsNothing);
+    expect(find.textContaining('Reserve Order diajukan ulang dengan nominal', findRichText: true), findsOneWidget);
+  });
+}
