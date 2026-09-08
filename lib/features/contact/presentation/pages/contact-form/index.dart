@@ -4,7 +4,7 @@ import 'package:progress_group/core/utils/widget/custom_button.dart';
 import 'package:progress_group/core/utils/helpers/permissions_helper.dart';
 import 'package:progress_group/core/services/salesbook_sync_service.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_contacts/flutter_contacts.dart';
+import 'package:flutter_contacts/flutter_contacts.dart' hide ContactProperty;
 import 'dart:convert';
 import 'package:flutter/services.dart';
 import 'package:progress_group/core/utils/helpers/app_time.dart';
@@ -1435,7 +1435,8 @@ class _ContactFormPageState extends State<ContactFormPage> {
 
   Future<void> _importFromContacts() async {
     AnalyticsService.logEvent('contact_form_import_from_contacts');
-    final granted = await FlutterContacts.requestPermission(readonly: true);
+    final status = await FlutterContacts.permissions.request(PermissionType.read);
+    final granted = status == PermissionStatus.granted || status == PermissionStatus.limited;
     if (!granted) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -1445,13 +1446,14 @@ class _ContactFormPageState extends State<ContactFormPage> {
       return;
     }
     try {
-      final contact = await FlutterContacts.openExternalPick();
-      if (contact == null || !mounted) return;
+      final contact = await FlutterContacts.native.showPicker();
+      final contactId = contact?.id;
+      if (contactId == null || !mounted) return;
 
-      final full = await FlutterContacts.getContact(contact.id, withProperties: true);
+      final full = await FlutterContacts.get(contactId, properties: ContactProperties.allProperties);
       if (full == null || !mounted) return;
 
-      final name = full.displayName;
+      final name = full.displayName ?? '';
       final rawPhone = full.phones.isNotEmpty ? full.phones.first.number : '';
       String phone = rawPhone.replaceAll(RegExp(r'[\s\-\(\)]'), '');
       if (phone.startsWith('+62')) {
