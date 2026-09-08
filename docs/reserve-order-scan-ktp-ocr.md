@@ -7,7 +7,7 @@ Flutter-nya + endpoint pendukung di backend.
 ## Ringkasan
 
 Item **Reserve** di halaman menu Reserve Order membuka satu halaman
-([reserve.dart](lib/features/contact/presentation/pages/reserve-order/reserve.dart)) berisi 4 step
+([reserve.dart](lib/features/reserve-order/presentation/pages/reserve.dart)) berisi 4 step
 + layar sukses, dengan stepper di atas yang menandai step berjalan (hijau = selesai, biru =
 sekarang):
 
@@ -77,8 +77,8 @@ Sisi Flutter:
 
 - [unit_option_model.dart](lib/features/contact/data/models/unit/unit_option_model.dart) —
   `UnitOption` + `toSelectedUnit()` (dipakai saat unit dikirim keluar flow).
-- [reserve_unit_remote_datasource.dart](lib/features/contact/data/datasources/reserve_unit_remote_datasource.dart)
-  + [reserve_unit_cubit.dart](lib/features/contact/presentation/state/reserve_unit/reserve_unit_cubit.dart)
+- [reserve_unit_remote_datasource.dart](lib/features/reserve-order/data/datasources/reserve_unit_remote_datasource.dart)
+  + [reserve_unit_cubit.dart](lib/features/reserve-order/presentation/state/reserve_unit/reserve_unit_cubit.dart)
   — pola sama seperti `PipelineCubit` (datasource langsung, tanpa usecase/repository), dengan
   pencarian (debounce 400 ms) dan load-more saat daftar di-scroll mendekati bawah.
 - [main.dart:434](lib/main.dart#L434) + [main.dart:536](lib/main.dart#L536) — datasource & provider.
@@ -107,6 +107,41 @@ kursor melompat, sementara field ini praktis selalu diisi dari belakang.
 
 Nominal ini juga yang menjawab pertanyaan sebelumnya soal angka di kartu menu: sumbernya step
 **Dokumen & Bukti Bayar**, bukan input di step Unit atau harga unit.
+
+## Baris customer dibuat lewat `POST /api/reserve` (saat Submit, sebelum dokumen)
+
+Begitu **Submit Reserve Order** ditekan, langkah pertamanya bikin baris `m_customer_reserve` lewat
+`POST /api/reserve` — baru kalau itu sukses, lanjut ke upload dokumen (section di bawah). Gagal di
+sini menahan user di step Review dengan pesan errornya, dan dokumen **tidak** ikut diunggah.
+
+Payload-nya (`CreateReserveParams.toJson()` —
+[reserve_order_remote_datasource.dart](lib/features/reserve-order/data/datasources/reserve_order_remote_datasource.dart)):
+
+| Field JSON | Sumbernya di form |
+|---|---|
+| `contact_id` | `ContactEntity.contactId` (wajib — kalau null, submit ditahan sebelum ini) |
+| `cust_name` | Nama Lengkap |
+| `cust_ktp` | No. KTP |
+| `cust_birth_place` / `cust_birth_date` | "Tempat, Tanggal Lahir" — lihat catatan parsing di bawah |
+| `cust_gender_is_male` | `KtpOcrModel.jenisKelamin` hasil scan ("Laki-laki"/"Perempuan" → bool). **Belum ada input manual** — null kalau belum pernah scan KTP |
+| `cust_marital_status` | Status Pernikahan, di-`toUpperCase()` (mis. "Kawin" → "KAWIN") |
+| `cust_religion` | `KtpOcrModel.agama` hasil scan. **Belum ada input manual**, sama seperti jenis kelamin |
+| `cust_occupation` | Pekerjaan |
+| `cust_address1` | Alamat sesuai KTP |
+| `cara_bayar_id` | Cara Pembayaran — **id-nya** yang dikirim (dari `GET /api/reserve/cara-bayar`), bukan nama; lihat "Cara Pembayaran" di bawah |
+| `cust_telp_mobile1` | `ContactEntity.primaryPhone` |
+
+Field yang null/kosong tidak ikut dikirim (`toJson()` menyaringnya) ketimbang mengirim string kosong
+atau `null` literal.
+
+**Parsing "Tempat, Tanggal Lahir":** field ini teks bebas (bisa diisi manual maupun otomatis dari
+OCR). Kalau OCR pernah jalan, `cust_birth_place`/`cust_birth_date` diambil langsung dari hasil
+OCR-nya (`_birthPlace`/`_birthDate`, disimpan terpisah dari teks yang tampil). Kalau usernya isi
+manual tanpa pernah scan, `_resolvedBirth()` di
+[reserve.dart](lib/features/reserve-order/presentation/pages/reserve.dart) mem-parse-balik teks
+field-nya sesuai format hint-nya persis: `"<tempat>, dd MMMM yyyy"` (mis. "Jakarta, 09 Januari
+1990"). Format lain gagal parse tanggalnya dan `cust_birth_date` dikirim kosong (tempatnya tetap
+terkirim kalau ada koma).
 
 ## Dokumen dikirim ke attachment kontak (saat Submit)
 
@@ -145,28 +180,30 @@ dari transaksi mana, mis. `Reserve Order · Reserve · Blok E1 No. 19 · Rp 2.00
 
 Kode:
 
-- [reserve_attachment_cubit.dart](lib/features/contact/presentation/state/reserve_attachment/reserve_attachment_cubit.dart)
+- [reserve_attachment_cubit.dart](lib/features/reserve-order/presentation/state/reserve_attachment/reserve_attachment_cubit.dart)
   — `ReserveAttachmentCubit.submit()`, memakai `GetAttachmentTypesUseCase` &
   `UploadAttachmentUseCase` yang sudah ada. Master type di-cache di cubit.
 - [main.dart:538](lib/main.dart#L538) — provider-nya.
-- [reserve.dart:383](lib/features/contact/presentation/pages/reserve-order/reserve.dart#L383) —
+- [reserve.dart:383](lib/features/reserve-order/presentation/pages/reserve.dart#L383) —
   `_onSubmit()`.
 
 **Selama upload:** tombol Submit berubah jadi "Mengunggah dokumen 1/2..." dengan spinner dan tidak
 bisa ditekan dua kali, dan tombol back ditahan supaya tidak ada upload separuh jalan
-([reserve.dart:141](lib/features/contact/presentation/pages/reserve-order/reserve.dart#L141)).
+([reserve.dart:141](lib/features/reserve-order/presentation/pages/reserve.dart#L141)).
 Kalau ada satu kelompok yang gagal, sisanya dihentikan, user tetap di step Review, dan pesannya
 menyebut dokumen yang gagal ("Gagal mengunggah KTP: …") — jadi bisa langsung dicoba lagi.
 
 > Kalau upload berhasil tapi user lalu menutup app di layar sukses, dokumennya **tetap** ada di
-> attachment kontak. Itu memang disengaja: file-nya milik kontak, bukan milik order — dan order-nya
-> sendiri memang belum bisa disimpan (lihat "Yang belum jalan" di bawah). Kalau nanti order-nya
-> sudah punya tabel sendiri, upload ini tinggal dipindah supaya jalan setelah order-nya tersimpan.
+> attachment kontak. Itu memang disengaja: file-nya milik kontak, bukan milik order. Baris
+> customer-nya sendiri (`POST /api/reserve`, section di atas) sudah tersimpan **sebelum** dokumen
+> diunggah, jadi kasus "dokumen nyangkut tanpa baris customer" ini tidak berlaku lagi untuk baris
+> customer-nya — yang belum ada baru tabel unit/pembayaran (`t_reserve_order`, lihat "Yang belum
+> jalan" di bawah).
 
 ## Kembali ke halaman menu
 
 Halaman flow mengembalikan
-[`ReserveResult`](lib/features/contact/presentation/pages/reserve-order/reserve.dart) (unit,
+[`ReserveResult`](lib/features/reserve-order/presentation/pages/reserve.dart) (unit,
 nominal, jenis transaksi, nama, hasil OCR) lewat `context.pop()`:
 
 - **Lihat di Reserve Order** → pop ke halaman menu; kartu "Reserve" langsung menampilkan unit +
@@ -174,25 +211,44 @@ nominal, jenis transaksi, nama, hasil OCR) lewat `context.pop()`:
 - **Kembali ke Kontak** → pop dua kali (keluar dari flow **dan** dari halaman menu). Router
   diambil sebelum pop pertama, karena setelah route dilepas `context`-nya sudah tidak sah.
 
-Kartu di halaman menu: [reserve-order/index.dart](lib/features/contact/presentation/pages/reserve-order/index.dart)
+Kartu di halaman menu: [reserve-order/index.dart](lib/features/reserve-order/presentation/pages/index.dart)
 — judul, rincian (unit lalu nominal), kotak centang hijau saat selesai, dan ikon pensil di kanan.
 **Topup** dan **RB** menampilkan pensil juga (mengikuti mockup) tapi menekannya memunculkan pesan
 "… belum tersedia."
 
 ## Pengaman otomatis
 
-[test/reserve_page_smoke_test.dart](test/reserve_page_smoke_test.dart) — 4 test widget di layar
+[test/reserve_page_smoke_test.dart](test/reserve_page_smoke_test.dart) — 7 test widget di layar
 390x844:
 
 1. Kelima layar render tanpa error layout (overflow / unbounded height — **tidak** terdeteksi
    `flutter analyze`), sheet pilihan jalan, validasi tiap step menahan langkah, nominal diformat,
-   unit bisa dicari, sampai layar sukses.
+   unit bisa dicari, sampai layar sukses. Termasuk picker "Cara Pembayaran": isinya dari
+   `_FakeReserveOrders.getCaraBayarOptions()` (mis. "Cash Bertahap 3X"), bukan daftar hardcode lama
+   — yang tampil & dipilih di sheet tetap `name`.
 2. Submit mengirim KTP & bukti bayar ke `POST /contacts/1/attachments` dengan
    `attachment_type_id` hasil pencocokan nama, `file_names` yang benar, dan `deal_id` ikut terkirim.
    NPWP yang tidak dilampirkan tidak ikut dikirim.
 3. Upload yang gagal menahan user di step Review beserta pesan "Gagal mengunggah KTP: …".
 4. Flow penuh dari halaman menu → submit → **Lihat di Reserve Order**, memastikan kartu menu dapat
    unit + "Rp 2.000.000" + centang.
+5. "Jenis Transaksi" render dari `_FakeReserveOrders.getReserveFilters()` (bukan daftar hardcode),
+   dan `ReservePage` yang dibuka dua kali dengan `ReserveOrderListCubit` yang sama cuma memanggil
+   `getReserveFilters()` sekali (`filterCalls == 1`) — buktiin cache-nya kepakai. Dibuka "dua kali"
+   di test-nya sengaja pump `SizedBox.shrink()` dulu sebelum `MaterialApp` yang baru, supaya
+   elemen `ReservePage` sebelumnya benar-benar di-dispose (tree berbentuk sama + tanpa key cuma
+   di-rebuild oleh `pumpWidget`, bukan mount ulang — kalau tidak dipaksa lepas, `_step` dkk kebawa
+   dari sesi sebelumnya).
+6. Submit memanggil `POST /api/reserve` (`_FakeReserveOrders.createReserve()`) **sebelum**
+   mengunggah dokumen — Tempat/Tanggal Lahir diisi manual ("Jakarta, 09 Januari 1990", tanpa scan
+   KTP) buat membuktikan parsing-balik `_resolvedBirth()` jalan, lalu tiap field payloadnya dicek
+   satu-satu (`contact_id`, `cust_name`, `cust_ktp`, `cust_birth_place`/`cust_birth_date`,
+   `cust_marital_status` yang di-uppercase, `cust_occupation`, `cust_address1`, `cara_bayar_id` dari
+   opsi yang dipilih, `cust_telp_mobile1`), termasuk `toJson()`-nya (`cust_birth_date` jadi string
+   `"1990-01-09"`). `cust_gender_is_male`/`cust_religion` dicek null karena belum pernah scan KTP.
+7. `POST /api/reserve` yang gagal (`failCreate = true`) menahan user di step Review dengan pesan
+   errornya, dan dokumen **tidak** ikut diunggah (`repo.uploads` tetap kosong) — buktiin urutannya
+   customer dulu baru dokumen, bukan paralel.
 
 Daftar unit di step 3 sekarang diambil dari kavling yang sudah menempel di kontak
 (`ContactEntity.units`), bukan dari pencarian ke server — test-nya menyediakan unit lewat
@@ -203,18 +259,34 @@ Jalankan: `flutter test`. Menu Reserve Order (Bagian 3) punya test terpisah, lih
 
 ## Yang belum jalan / perlu diputuskan
 
-1. **Rincian transaksinya belum dikirim ke server** — yang sudah jalan baru dokumennya (lihat
-   "Dokumen dikirim ke attachment kontak" di atas). Endpoint untuk reserve order (unit, pembayaran
-   → `t_reserve_order` / `t_reserve_order_tts`) **belum ada**; yang sudah ada baru `POST /api/reserve`
-   untuk data customer (`m_customer_reserve`). Data pembeli sengaja **tidak** dikirim sepotong lebih
-   dulu supaya tidak ada baris customer tanpa order-nya.
+1. **Rincian unit/pembayaran belum dikirim ke server** — data customer sudah jalan
+   (`POST /api/reserve`, section "Baris customer dibuat lewat `POST /api/reserve`" di atas) dan
+   dokumennya juga (lihat "Dokumen dikirim ke attachment kontak"). Yang **belum ada** endpoint-nya:
+   unit yang dipilih & rincian pembayaran (jenis transaksi, nominal, catatan) → `t_reserve_order` /
+   `t_reserve_order_tts`. Selama itu belum ada, unit/nominal/catatan cuma tersimpan di
+   `ReserveResult` lokal (dipakai kartu di halaman menu), tidak ikut ke `POST /api/reserve`.
 2. **Tesseract perlu diinstall di server** sebelum OCR hidup:
    `sudo apt install tesseract-ocr tesseract-ocr-ind`. Selama belum ada, endpoint membalas 503
    dengan pesan cara installnya dan user diarahkan mengisi manual — bukan error 500.
-3. **Isi pilihan masih hardcode** — Status Pernikahan, Cara Pembayaran, Jenis Transaksi. Di DB
-   kolomnya string bebas (tidak ada tabel master), jadi kalau mau dibakukan perlu keputusan bisnis.
-   Istilah status pernikahan memakai versi KTP ("Kawin", bukan "Menikah" seperti di mockup) supaya
-   hasil OCR bisa dicocokkan otomatis.
+3. **Isi pilihan masih hardcode** — Status Pernikahan. Di DB kolomnya string bebas (tidak ada
+   tabel master), jadi kalau mau dibakukan perlu keputusan bisnis. Istilahnya memakai versi KTP
+   ("Kawin", bukan "Menikah" seperti di mockup) supaya hasil OCR bisa dicocokkan otomatis.
+   - **Jenis Transaksi** sudah tidak hardcode lagi — pakai master status reserve yang sama dengan
+     chip filter di menu List (`GET /api/reserve-filter`), lewat
+     `ReserveOrderListCubit.ensureFilters()` (di-cache di cubit, lihat
+     [reserve-order-menu-list.md](docs/reserve-order-menu-list.md) bagian "Chip filter tersambung
+     ke `GET /api/reserve-filter`") — [reserve.dart](lib/features/reserve-order/presentation/pages/reserve.dart)
+     `_loadTransactionTypes()`. Fallback `['Reserve', 'Booking Reserve (langsung)']` dipakai kalau
+     fetch-nya gagal/kosong, supaya form tetap bisa disubmit.
+   - **Cara Pembayaran** juga sudah tidak hardcode — `GET /api/reserve/cara-bayar`
+     (`{cara_bayar_id, name}`), lewat `ReserveOrderListCubit.ensureCaraBayarOptions()` (cache
+     terpisah dari `filters`, pola sama persis). `name` yang tampil di picker/sheet-nya
+     (`_caraPembayaran`), tapi yang **dikirim ke `POST /api/reserve`** adalah `cara_bayar_id`
+     (`_caraBayarId`, dicari lewat `_caraBayarIdOf(name)` di
+     [reserve.dart](lib/features/reserve-order/presentation/pages/reserve.dart) — lihat "Baris
+     customer dibuat lewat `POST /api/reserve`" di atas). Fallback
+     `['KPR', 'Cash', 'Cash Bertahap', 'Inhouse']` (tanpa id, jadi `cara_bayar_id` tidak terkirim)
+     dipakai kalau fetch-nya gagal/kosong.
 4. **Harga unit** — lihat "Harga unit tidak ditampilkan" di atas.
 5. **Bagian 3 sudah dikerjakan** di menu drawer terpisah — lihat
    [reserve-order-menu-list.md](docs/reserve-order-menu-list.md). Halaman menu per-kontak

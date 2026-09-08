@@ -71,7 +71,6 @@ class _UnitDetailPageState extends State<UnitDetailPage> {
   UnitDetail? _unit;
   String? _errorMessage;
 
-  bool _informasiExpanded = true;
   bool _spesifikasiExpanded = true;
   bool _hargaExpanded = true;
 
@@ -254,48 +253,7 @@ class _UnitDetailPageState extends State<UnitDetailPage> {
   // ---------------------------------------------------------------------
   // Informasi Unit
   // ---------------------------------------------------------------------
-  Widget _buildInformasiUnit(UnitDetail unit) {
-    final items = <_InfoItem>[
-      _InfoItem(Icons.qr_code_2_outlined, 'Blok Nomor', unit.blokUnit),
-      _InfoItem(Icons.home_outlined, 'Nama Unit', unit.productName),
-      _InfoItem(Icons.holiday_village_outlined, 'Nama Cluster', unit.clusterName),
-      _InfoItem(Icons.apartment_outlined, 'Proyek', unit.projectName),
-    ].where((e) => e.value != null && e.value!.isNotEmpty).toList();
-
-    if (items.isEmpty) return const SizedBox.shrink();
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        GestureDetector(
-          onTap: () => setState(() => _informasiExpanded = !_informasiExpanded),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text('Informasi Unit', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-              Icon(
-                _informasiExpanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
-                color: const Color(greyShade600),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 12),
-        AnimatedCrossFade(
-          firstCurve: Curves.easeOut,
-          secondCurve: Curves.easeOut,
-          sizeCurve: Curves.easeOut,
-          duration: const Duration(milliseconds: 200),
-          crossFadeState: _informasiExpanded ? CrossFadeState.showFirst : CrossFadeState.showSecond,
-          firstChild: _twoColumnGrid(
-            items.map((e) => _infoCard(icon: e.icon, label: e.label, value: e.value!)).toList(),
-          ),
-          secondChild: const SizedBox.shrink(),
-        ),
-        const SizedBox(height: 12),
-      ],
-    );
-  }
+  
 
   Widget _twoColumnGrid(List<Widget> children) {
     return LayoutBuilder(
@@ -307,56 +265,6 @@ class _UnitDetailPageState extends State<UnitDetailPage> {
           children: children.map((c) => SizedBox(width: itemWidth, child: c)).toList(),
         );
       },
-    );
-  }
-
-  Widget _infoCard({required IconData icon, required String label, required String value}) {
-    return Container(
-      padding: const EdgeInsets.all(8),
-      height: 75,
-      decoration: BoxDecoration(
-        color: const Color(whiteColor),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 34,
-            height: 34,
-            decoration: BoxDecoration(
-              color: const Color(grey11Color),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            alignment: Alignment.center,
-            child: Icon(icon, size: 18, color: const Color(primaryColor)),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  label,
-                  style: const TextStyle(fontSize: 11, color: Color(greyShade600)),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 2),
-                SizedBox(
-                  height: 34,
-                  child: Text(
-                    value,
-                    style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, height: 1.3),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
     );
   }
 

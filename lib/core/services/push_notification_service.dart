@@ -352,7 +352,7 @@ class PushNotificationService {
   }
 
   static Future<void> _requestPermission() async {
-    final settings = await _messaging.requestPermission(
+    await _messaging.requestPermission(
       alert: true,
       badge: true,
       sound: true,

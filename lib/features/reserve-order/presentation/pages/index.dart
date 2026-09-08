@@ -6,7 +6,7 @@ import 'package:progress_group/core/utils/helpers/number_helper.dart';
 import 'package:progress_group/core/utils/widget/custom_header.dart';
 import 'package:progress_group/core/utils/widget/custom_snackbar.dart';
 import 'package:progress_group/features/contact/data/arguments/contact_detail_args.dart';
-import 'package:progress_group/features/contact/presentation/pages/reserve-order/reserve.dart';
+import 'package:progress_group/features/reserve-order/presentation/pages/reserve.dart';
 
 class ReserveOrderPage extends StatefulWidget {
   final ContactDetailArgs args;

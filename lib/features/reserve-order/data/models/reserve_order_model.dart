@@ -36,33 +36,39 @@ extension ReserveOrderStatusX on ReserveOrderStatus {
       };
 }
 
-/// Chip filter di atas list. Desainnya tetap (mockup Bagian 3) — tampil apa adanya walaupun
-/// sebagian kategorinya ("Proses Bank", "Akad") belum bisa terisi dari data yang ada sekarang.
-///
-/// Filternya jalan **di sisi app**, atas status yang sudah diturunkan `ReserveOrder.fromJson()`
-/// (lihat catatan turunan status di sana) — bukan mengirim `status_reserve_id` ke server, karena
-/// mapping id ke nama tahap belum ada. Begitu master status reserve sudah ada endpoint-nya, tinggal
-/// alihkan `matches()` di bawah supaya membandingkan `statusReserveId`, atau kirim filternya ke
-/// server lewat `ReserveOrderListCubit.load(statusIds: …)` yang sudah siap menerimanya.
-enum ReserveOrderFilter { semua, reserve, sp, prosesBank, akad }
+/// Satu chip filter di atas list, dari `GET /api/reserve-filter` (master status reserve).
+/// [statusReserveId] dikirim ke server lewat `ReserveOrderListCubit.load(statusIds: …)` —
+/// filternya jalan di server, bukan disaring di app.
+class ReserveFilterOption {
+  final int statusReserveId;
+  final String name;
+  final bool isActive;
 
-extension ReserveOrderFilterX on ReserveOrderFilter {
-  String get label => switch (this) {
-        ReserveOrderFilter.semua => 'Semua',
-        ReserveOrderFilter.reserve => 'Reserve / RBA / RBB',
-        ReserveOrderFilter.sp => 'SP',
-        ReserveOrderFilter.prosesBank => 'Proses Bank',
-        ReserveOrderFilter.akad => 'Akad',
-      };
+  const ReserveFilterOption({required this.statusReserveId, required this.name, this.isActive = true});
 
-  bool matches(ReserveOrderStatus status) => switch (this) {
-        ReserveOrderFilter.semua => true,
-        ReserveOrderFilter.reserve =>
-          status == ReserveOrderStatus.diproses || status == ReserveOrderStatus.ditolak || status == ReserveOrderStatus.rba || status == ReserveOrderStatus.rbb,
-        ReserveOrderFilter.sp => status == ReserveOrderStatus.sp,
-        ReserveOrderFilter.prosesBank => status == ReserveOrderStatus.prosesBank,
-        ReserveOrderFilter.akad => status == ReserveOrderStatus.akad,
-      };
+  factory ReserveFilterOption.fromJson(Map<String, dynamic> json) {
+    return ReserveFilterOption(
+      statusReserveId: _int(json['status_reserve_id']) ?? 0,
+      name: _text(json['status_reserve_name']) ?? '-',
+      isActive: '${json['is_active']}' == '1' || json['is_active'] == true,
+    );
+  }
+}
+
+/// Satu opsi "Cara Pembayaran" di form Reserve, dari `GET /api/reserve/cara-bayar`.
+/// [caraBayarId] yang dipakai/disimpan; [name] cuma buat ditampilkan di picker.
+class CaraBayarOption {
+  final int caraBayarId;
+  final String name;
+
+  const CaraBayarOption({required this.caraBayarId, required this.name});
+
+  factory CaraBayarOption.fromJson(Map<String, dynamic> json) {
+    return CaraBayarOption(
+      caraBayarId: _int(json['cara_bayar_id']) ?? 0,
+      name: _text(json['name']) ?? '-',
+    );
+  }
 }
 
 enum ReserveOrderStepState { done, active, todo }
@@ -361,9 +367,15 @@ class ReserveOrder {
             ],
         },
       ),
+      // Baris tab "Data Pembeli" tetap tampil semua walau datanya belum ada — No. KTP, alamat,
+      // status pernikahan, & cara pembayaran belum dikirim `/api/reserve`, jadi ditulis "-" dulu
+      // (bukan disembunyikan) supaya layoutnya konsisten dengan mockup.
       buyer: [
         ReserveOrderField('Nama Lengkap (sesuai KTP)', customerName),
-        if (phone.isNotEmpty) ReserveOrderField('No. HP', phone),
+        const ReserveOrderField('No. KTP', '-'),
+        const ReserveOrderField('Alamat sesuai KTP', '-'),
+        const ReserveOrderField('Status Pernikahan', '-'),
+        const ReserveOrderField('Cara Pembayaran', '-'),
       ],
       notes: [
         if (note != null)

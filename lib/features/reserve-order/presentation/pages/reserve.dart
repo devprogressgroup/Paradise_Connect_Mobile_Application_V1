@@ -8,6 +8,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:progress_group/core/constants/colors.dart';
 import 'package:progress_group/core/services/analytics_service.dart';
+import 'package:progress_group/core/utils/helpers/error_message.dart';
 import 'package:progress_group/core/utils/helpers/image_compress_helper.dart';
 import 'package:progress_group/core/utils/helpers/number_helper.dart';
 import 'package:progress_group/core/utils/widget/custom_button.dart';
@@ -16,13 +17,16 @@ import 'package:progress_group/core/utils/widget/custom_file_picker.dart';
 import 'package:progress_group/core/utils/widget/custom_snackbar.dart';
 import 'package:progress_group/core/utils/widget/thousands_input_formatter.dart';
 import 'package:progress_group/features/contact/data/arguments/contact_detail_args.dart';
-import 'package:progress_group/features/contact/data/models/ktp/ktp_ocr_model.dart';
+import 'package:progress_group/features/reserve-order/data/datasources/reserve_order_remote_datasource.dart';
+import 'package:progress_group/features/reserve-order/data/models/ktp_ocr_model.dart';
+import 'package:progress_group/features/reserve-order/data/models/reserve_order_model.dart';
 import 'package:progress_group/features/contact/data/models/unit/unit_hierarchy_model.dart';
-import 'package:progress_group/features/contact/presentation/pages/reserve-order/widgets.dart';
-import 'package:progress_group/features/contact/presentation/state/ktp_ocr/ktp_ocr_cubit.dart';
-import 'package:progress_group/features/contact/presentation/state/ktp_ocr/ktp_ocr_state.dart';
-import 'package:progress_group/features/contact/presentation/state/reserve_attachment/reserve_attachment_cubit.dart';
-import 'package:progress_group/features/contact/presentation/state/reserve_attachment/reserve_attachment_state.dart';
+import 'package:progress_group/features/reserve-order/presentation/pages/widgets.dart';
+import 'package:progress_group/features/reserve-order/presentation/state/ktp_ocr/ktp_ocr_cubit.dart';
+import 'package:progress_group/features/reserve-order/presentation/state/ktp_ocr/ktp_ocr_state.dart';
+import 'package:progress_group/features/reserve-order/presentation/state/reserve_attachment/reserve_attachment_cubit.dart';
+import 'package:progress_group/features/reserve-order/presentation/state/reserve_attachment/reserve_attachment_state.dart';
+import 'package:progress_group/features/reserve-order/presentation/state/reserve_order_list/reserve_order_list_cubit.dart';
 enum ReserveStep { pembeli, dokumen, unit, review, sukses }
 class ReserveResult {
   final List<SelectedUnit> units;
@@ -62,6 +66,11 @@ class _ReservePageState extends State<ReservePage> {
   final pekerjaanTC = TextEditingController();
   String? _statusPernikahan;
   String? _caraPembayaran;
+  int? _caraBayarId;
+
+  // Loading terpisah dari `ReserveAttachmentCubit.state.isLoading` — `POST /api/reserve` (bikin
+  // baris customer-nya) dipanggil dulu, baru dokumen diunggah kalau itu sukses.
+  bool _creatingReserve = false;
 
   KtpOcrModel? _ocr;
   PickedFileResult? _ktpFile;
@@ -71,7 +80,11 @@ class _ReservePageState extends State<ReservePage> {
 
   late final List<_DocSlot> _identityDocs;
   final List<PickedFileResult> _paymentProofs = [];
-  String _jenisTransaksi = _transactionTypes.first;
+
+  // Fallback selagi `_loadTransactionTypes()` (endpoint yang sama dengan chip filter list —
+  // `GET /api/reserve-filter`) belum kembali / gagal, supaya form tetap bisa disubmit.
+  List<String> _transactionTypes = const ['Reserve', 'Booking Reserve (langsung)'];
+  String _jenisTransaksi = 'Reserve';
   final nominalTC = TextEditingController();
   final catatanTC = TextEditingController();
 
@@ -81,8 +94,11 @@ class _ReservePageState extends State<ReservePage> {
   final ScrollController _unitScroll = ScrollController();
 
   static const List<String> _maritalItems = ['Belum Kawin', 'Kawin', 'Cerai Hidup', 'Cerai Mati'];
-  static const List<String> _paymentMethods = ['KPR', 'Cash', 'Cash Bertahap', 'Inhouse'];
-  static const List<String> _transactionTypes = ['Reserve', 'Booking Reserve (langsung)'];
+
+  // Fallback selagi/kalau `_loadCaraBayarOptions()` (`GET /api/reserve/cara-bayar`) belum kembali
+  // atau gagal, supaya picker tetap bisa dipilih — id-nya (`_caraBayarId`) cuma null di kasus itu.
+  List<String> _paymentMethods = const ['KPR', 'Cash', 'Cash Bertahap', 'Inhouse'];
+  List<CaraBayarOption> _caraBayarOptions = const [];
 
   /// Nama attachment type untuk bukti bayar dicari berurutan dari yang paling spesifik, karena
   /// penamaannya di master data CRM belum tentu sama persis.
@@ -97,6 +113,8 @@ class _ReservePageState extends State<ReservePage> {
     AnalyticsService.logScreenView('reserve_order_reserve');
     context.read<KtpOcrCubit>().reset();
     context.read<ReserveAttachmentCubit>().reset();
+    _loadTransactionTypes();
+    _loadCaraBayarOptions();
 
     final contact = widget.args.dataContact;
     namaTC.text = contact?.fullName ?? '';
@@ -109,6 +127,46 @@ class _ReservePageState extends State<ReservePage> {
     ];
 
     _unitScroll.addListener(_onUnitScroll);
+  }
+
+  /// "Jenis Transaksi" pakai master status reserve yang sama dengan chip filter di menu List
+  /// (`GET /api/reserve-filter`) — lewat `ReserveOrderListCubit.ensureFilters()`, provider yang
+  /// sama dengan menu List, jadi kalau endpoint-nya sudah pernah dipanggil (mis. sales sempat buka
+  /// menu List duluan) di sini tinggal pakai cache-nya, tidak fetch ulang. Gagal/kosong dibiarkan
+  /// pakai [_transactionTypes] fallback di atas supaya form tetap bisa disubmit.
+  Future<void> _loadTransactionTypes() async {
+    final types = await context.read<ReserveOrderListCubit>().ensureFilters();
+    if (!mounted || types.isEmpty) return;
+    setState(() {
+      _transactionTypes = types.map((t) => t.name).toList();
+      if (!_transactionTypes.contains(_jenisTransaksi)) _jenisTransaksi = _transactionTypes.first;
+    });
+  }
+
+  /// "Cara Pembayaran" pakai master `GET /api/reserve/cara-bayar` — `cara_bayar_id` yang disimpan
+  /// ([_caraBayarId]), `name` yang ditampilkan di picker ([_caraPembayaran]/[_paymentMethods]).
+  /// Sama seperti [_loadTransactionTypes], lewat cache di `ReserveOrderListCubit` supaya endpoint
+  /// ini tidak fetch ulang tiap form Reserve dibuka.
+  Future<void> _loadCaraBayarOptions() async {
+    final options = await context.read<ReserveOrderListCubit>().ensureCaraBayarOptions();
+    if (!mounted || options.isEmpty) return;
+    setState(() {
+      _caraBayarOptions = options;
+      _paymentMethods = options.map((o) => o.name).toList();
+      if (_caraPembayaran != null && !_paymentMethods.contains(_caraPembayaran)) {
+        _caraPembayaran = null;
+        _caraBayarId = null;
+      }
+    });
+  }
+
+  /// [name] adalah label yang ditampilkan; dicari `cara_bayar_id`-nya dari opsi yang sudah dimuat.
+  /// Null kalau lagi pakai fallback lokal (endpoint gagal/belum kembali) — tidak ada id aslinya.
+  int? _caraBayarIdOf(String name) {
+    for (final option in _caraBayarOptions) {
+      if (option.name == name) return option.caraBayarId;
+    }
+    return null;
   }
 
   @override
@@ -244,7 +302,7 @@ class _ReservePageState extends State<ReservePage> {
     final date = _birthDate;
     final parts = [
       if (place != null && place.isNotEmpty) place,
-      if (date != null) DateFormat('d MMMM yyyy', 'id_ID').format(date),
+      if (date != null) DateFormat('dd MMMM yyyy', 'id_ID').format(date),
     ];
     return parts.isEmpty ? null : parts.join(', ');
   }
@@ -379,10 +437,12 @@ class _ReservePageState extends State<ReservePage> {
 
 
   /// Dokumen ditahan lokal sepanjang 3 step pertama, baru diunggah di sini — jadi kalau flow-nya
-  /// ditinggal di tengah jalan tidak ada attachment nyangkut di kontak.
+  /// ditinggal di tengah jalan tidak ada attachment nyangkut di kontak. Baris customer-nya
+  /// (`POST /api/reserve`) dibuat dulu sebelum dokumen diunggah — gagal di sini menahan di Review,
+  /// tidak lanjut upload.
   Future<void> _onSubmit() async {
     final cubit = context.read<ReserveAttachmentCubit>();
-    if (cubit.state.isLoading) return;
+    if (cubit.state.isLoading || _creatingReserve) return;
 
     final contact = widget.args.dataContact;
     final contactId = contact?.contactId;
@@ -392,6 +452,18 @@ class _ReservePageState extends State<ReservePage> {
     }
 
     AnalyticsService.logEvent('reserve_order_submit');
+
+    setState(() => _creatingReserve = true);
+    try {
+      await context.read<ReserveOrderListCubit>().dataSource.createReserve(_buildCreateReserveParams(contactId));
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _creatingReserve = false);
+      showSnackbar(context, cleanErrorMessage(e), isError: true);
+      return;
+    }
+    if (!mounted) return;
+    setState(() => _creatingReserve = false);
 
     final ok = await cubit.submit(
       contactId: contactId,
@@ -411,6 +483,55 @@ class _ReservePageState extends State<ReservePage> {
     }
 
     setState(() => _step = ReserveStep.sukses);
+  }
+
+  /// Payload `POST /api/reserve`. Jenis kelamin & agama cuma terisi kalau ada hasil scan KTP
+  /// (belum ada input manual buat keduanya di form ini). Tempat/tanggal lahir diambil dari
+  /// [_birthPlace]/[_birthDate] (hasil OCR) — kalau usernya isi manual di field "Tempat, Tanggal
+  /// Lahir" tanpa scan, di-parse balik dari teksnya (format sesuai hint: "Tempat, dd MMMM yyyy").
+  CreateReserveParams _buildCreateReserveParams(int contactId) {
+    final (birthPlace, birthDate) = _resolvedBirth();
+
+    return CreateReserveParams(
+      contactId: contactId,
+      custName: namaTC.text.trim(),
+      custKtp: nikTC.text.trim(),
+      custBirthPlace: birthPlace,
+      custBirthDate: birthDate,
+      custGenderIsMale: switch (_ocr?.jenisKelamin) {
+        'Laki-laki' => true,
+        'Perempuan' => false,
+        _ => null,
+      },
+      custMaritalStatus: _statusPernikahan?.toUpperCase(),
+      custReligion: _ocr?.agama,
+      custOccupation: pekerjaanTC.text.trim(),
+      custAddress1: alamatTC.text.trim(),
+      caraBayarId: _caraBayarId,
+      custTelpMobile1: widget.args.dataContact?.primaryPhone,
+    );
+  }
+
+  /// [_birthPlace]/[_birthDate] cuma keisi kalau dari hasil scan KTP ([_applyOcr]) — field
+  /// "Tempat, Tanggal Lahir" sendiri teks bebas, jadi kalau usernya ngetik manual (tanpa scan),
+  /// di-parse balik di sini dari `ttlTC.text` ("Tempat, dd MMMM yyyy", sesuai hint field-nya).
+  (String?, DateTime?) _resolvedBirth() {
+    if (_birthPlace != null || _birthDate != null) return (_birthPlace, _birthDate);
+
+    final text = ttlTC.text.trim();
+    if (text.isEmpty) return (null, null);
+
+    final idx = text.lastIndexOf(',');
+    if (idx == -1) return (text, null);
+
+    final place = text.substring(0, idx).trim();
+    DateTime? date;
+    try {
+      date = DateFormat('dd MMMM yyyy', 'id_ID').parseStrict(text.substring(idx + 1).trim());
+    } catch (_) {
+      date = null;
+    }
+    return (place.isEmpty ? null : place, date);
   }
 
   ReserveAttachmentGroup _attachmentGroup(String label, List<String> keywords, List<PickedFileResult> files) {
@@ -606,9 +727,13 @@ class _ReservePageState extends State<ReservePage> {
       ReserveStep.review => [
           BlocBuilder<ReserveAttachmentCubit, ReserveAttachmentState>(
             builder: (context, state) => roPrimaryButton(
-              state.isLoading ? "Mengunggah dokumen ${state.uploaded}/${state.total}..." : "Submit Reserve Order",
+              _creatingReserve
+                  ? "Membuat reserve order..."
+                  : state.isLoading
+                      ? "Mengunggah dokumen ${state.uploaded}/${state.total}..."
+                      : "Submit Reserve Order",
               _onSubmit,
-              loading: state.isLoading,
+              loading: _creatingReserve || state.isLoading,
             ),
           ),
         ],
@@ -722,7 +847,10 @@ class _ReservePageState extends State<ReservePage> {
               title: "Cara Pembayaran",
               items: _paymentMethods,
               selected: _caraPembayaran,
-              onPicked: (v) => setState(() => _caraPembayaran = v),
+              onPicked: (v) => setState(() {
+                _caraPembayaran = v;
+                _caraBayarId = _caraBayarIdOf(v);
+              }),
             ),
           ),
         ],

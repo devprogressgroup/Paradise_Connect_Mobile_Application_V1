@@ -1,5 +1,4 @@
 ﻿import 'package:dio/dio.dart';
-import 'package:flutter/foundation.dart';
 import '../network/api_constants.dart';
 
 class SalesbookSyncService {
@@ -10,7 +9,7 @@ class SalesbookSyncService {
 
   static Future<void> syncContact(int contactId) async {
     try {
-      final response = await _dio.post(
+      await _dio.post(
         ApiConstants.salesbookWebhookUrl,
         data: FormData.fromMap({'contact_id': contactId}),
         options: Options(headers: {'X-App-Token': ApiConstants.salesbookWebhookToken}),

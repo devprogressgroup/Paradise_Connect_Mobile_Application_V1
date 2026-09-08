@@ -32,19 +32,46 @@ Query yang dikirim: `search`, `status_reserve_id` (dipisah koma), `sort=created_
 `per_page=15`. Server membalas bentuk paginasi Laravel standar (`data.data[]` + `current_page` /
 `next_page_url` / `total`).
 
-**Yang masih menunggu keputusan Anda — chip filter dimatikan dulu:**
+## Chip filter tersambung ke `GET /api/reserve-filter`
 
-- Chip **Semua / Reserve / RBA / RBB / SP / Proses Bank / Akad** di mockup mengirim
-  `status_reserve_id` ke server, tapi mapping id → nama tahapnya belum ada (Anda akan kirim
-  endpoint master status reserve menyusul). Sampai itu ada, `_buildFilters` di
-  [list.dart](lib/features/contact/presentation/pages/reserve-order/list.dart) sengaja
-  mengembalikan `SizedBox.shrink()` — baris chip tidak digambar sama sekali, ketimbang menampilkan
-  chip yang mengirim id tebakan yang salah.
-- Begitu endpoint master-nya ada, tinggal isi `ReserveOrderListState.statusIds` dari situ dan
-  gambar ulang baris chip; `ReserveOrderListCubit.load(statusIds: …)` sudah siap menerimanya.
+Chip di atas list (Semua + satu chip per status) sekarang dari master status reserve, bukan
+kategori hardcode di app lagi:
 
-**Badge status di kartu & kotak status detail** untuk sementara diturunkan dari tanggal yang ada di
-response (bukan dari `status_reserve_id`, karena mapping-nya juga belum ada):
+- [reserve_order_model.dart](lib/features/reserve-order/data/models/reserve_order_model.dart) —
+  `ReserveFilterOption` (`statusReserveId`, `name` dari `status_reserve_name`, `isActive`)
+  menggantikan enum `ReserveOrderFilter` lama.
+- [reserve_order_remote_datasource.dart](lib/features/reserve-order/data/datasources/reserve_order_remote_datasource.dart) —
+  `getReserveFilters()`, `GET /reserve-filter`; baris dengan `is_active` 0 disaring keluar sebelum
+  sampai ke UI.
+- [reserve_order_list_cubit.dart](lib/features/reserve-order/presentation/state/reserve_order_list/reserve_order_list_cubit.dart) —
+  `loadFresh()` memuat filter & halaman pertama sekaligus lewat `Future.wait`; gagal memuat
+  filter cukup dibiarkan (chip tidak tampil), tidak menghalangi daftar transaksinya.
+  - **Di-cache di `state.filters`** — `_loadFilters()` langsung `return` kalau `state.filters`
+    sudah terisi, jadi `GET /reserve-filter` cuma dipanggil **sekali** per sesi app (cubit-nya
+    singleton, provider bersama di `main.dart`), bukan tiap kali halaman List / form Reserve
+    dibuka. `ensureFilters()` — method publik buat dipakai dari luar (lihat "Jenis Transaksi" di
+    [reserve-order-scan-ktp-ocr.md](reserve-order-scan-ktp-ocr.md)) — pola aksesnya sama: kalau
+    sudah ada cache-nya, langsung dikembalikan tanpa fetch ulang; gagal fetch berarti
+    `state.filters` tetap kosong, jadi percobaan berikutnya otomatis coba lagi.
+  - Pola cache yang sama dipakai lagi buat `state.caraBayarOptions` /
+    `ensureCaraBayarOptions()` — master "Cara Pembayaran" di form Reserve
+    (`GET /api/reserve/cara-bayar`), lihat "Isi pilihan masih hardcode" di
+    [reserve-order-scan-ktp-ocr.md](reserve-order-scan-ktp-ocr.md).
+- [list.dart](lib/features/reserve-order/presentation/pages/list.dart) — `_buildFilters()`
+  membangun chip dari `state.filters` (plus "Semua" buat reset). Tap chip memanggil
+  `cubit.load(statusIds: [id])` — **filternya jalan di server** (`status_reserve_id` beneran
+  dikirim), bukan disaring di app seperti sebelumnya, jadi total di header ikut berubah sesuai
+  hasil filter.
+
+Chip badge di kartu (`ReserveOrderStatus`/`badgeLabel`) **belum** ikut dialihkan ke
+`status_reserve_id` — masih diturunkan dari tanggal seperti sebelumnya (lihat section di bawah).
+Filter chip & badge kartu jadi dua sumbu independen buat sementara: chip menyaring by
+`status_reserve_id` asli dari server, badge masih tebakan dari tanggal.
+
+**Badge status di kartu & kotak status detail** untuk sementara masih diturunkan dari tanggal yang
+ada di response `/api/reserve`, bukan dari `status_reserve_id` — mapping id → namanya sekarang
+sudah ada (`GET /api/reserve-filter`, dipakai chip filter di atas), tapi badge kartu belum
+dialihkan (lihat "Belum dikerjakan" di bawah):
 
 | Kondisi | Badge |
 |---|---|
@@ -53,7 +80,7 @@ response (bukan dari `status_reserve_id`, karena mapping-nya juga belum ada):
 | `rb_date` terisi (tapi belum SP) | **R/BR** — response tidak membedakan RBA/RBB, jadi ditulis netral |
 | Selain itu | **Diproses** |
 
-Ini di `ReserveOrder.fromJson()` — [reserve_order_model.dart:263](lib/features/contact/data/models/reserve/reserve_order_model.dart#L263).
+Ini di `ReserveOrder.fromJson()` — [reserve_order_model.dart:263](lib/features/reserve-order/data/models/reserve_order_model.dart#L263).
 Begitu ada mapping `status_reserve_id`, badge-nya tinggal dialihkan untuk pakai nama status asli
 (termasuk membedakan RBA vs RBB) — field `statusReserveId` sudah disimpan di model, tinggal dipetakan.
 
@@ -66,20 +93,20 @@ tersambung:
 | Bagian | Sumbernya sekarang |
 |---|---|
 | Timeline L1–L3, L5–L10 | Ditandai "belum sampai tahap ini" / chip gembok; hanya L4 (Reserve) yang punya keterangan dari `created_datetime` + `amount_rp` |
-| Tab **Data Pembeli** | Cuma nama & no. HP dari baris list |
+| Tab **Data Pembeli** | Nama dari baris list; No. KTP / Alamat sesuai KTP / Status Pernikahan / Cara Pembayaran ditulis "-" (baris tetap tampil, tidak disembunyikan, supaya layoutnya konsisten dengan mockup) |
 | Tab **Attachment** | Kosong ("Belum ada dokumen.") |
 | Tab **Catatan** | Diisi `reserve_note` sebagai satu catatan, kalau ada |
 | `unitLabel` | `property_name` → `deal_blok_no` → "Unit belum ditentukan" (ketiganya sering null di response contoh) |
 
 **Waktu endpoint detailnya siap:** ganti pemanggilan di
-[detail.dart](lib/features/contact/presentation/pages/reserve-order/detail.dart) supaya mengambil
+[detail.dart](lib/features/reserve-order/presentation/pages/detail.dart) supaya mengambil
 data lengkap berbekal `order.id`, lalu isi ulang `journey` / `buyer` / `docs` / `notes` dari situ.
 Kartu di list tidak perlu berubah — datanya memang cukup dari `/api/reserve`.
 
 ## Link "Profil & Riwayat Lengkap ›" sudah jalan
 
 `contact_id` & `deal_id` dari response dipakai untuk membuka `ContactDetailPage` (route
-`detailContact`) — [detail.dart:541](lib/features/contact/presentation/pages/reserve-order/detail.dart#L541).
+`detailContact`) — [detail.dart:541](lib/features/reserve-order/presentation/pages/detail.dart#L541).
 `ContactEntity` yang dikirim cuma diisi seadanya (nama, HP, id); halaman Contact Detail sendiri yang
 memuat ulang detail & riwayat lengkapnya dari server begitu dibuka.
 
@@ -107,21 +134,21 @@ memuat ulang detail & riwayat lengkapnya dari server begitu dibuka.
 
 ### 3. Data
 
-- [reserve_order_remote_datasource.dart](lib/features/contact/data/datasources/reserve_order_remote_datasource.dart) —
+- [reserve_order_remote_datasource.dart](lib/features/reserve-order/data/datasources/reserve_order_remote_datasource.dart) —
   `ReserveOrderRemoteDataSource.getReserveOrders()`, `GET /reserve` + `ReserveOrdersPage`
   (items, page, hasMore dari `next_page_url`, total).
-- [reserve_order_list_cubit.dart](lib/features/contact/presentation/state/reserve_order_list/reserve_order_list_cubit.dart) —
+- [reserve_order_list_cubit.dart](lib/features/reserve-order/presentation/state/reserve_order_list/reserve_order_list_cubit.dart) —
   `ReserveOrderListCubit`, pola sama seperti `ReserveUnitCubit` (datasource langsung, tanpa
   usecase/repository): `load()` untuk halaman pertama + ganti pencarian/filter, `loadMore()` untuk
   infinite scroll, `refresh()` untuk pull-to-refresh.
-- [reserve_order_list_state.dart](lib/features/contact/presentation/state/reserve_order_list/reserve_order_list_state.dart) —
+- [reserve_order_list_state.dart](lib/features/reserve-order/presentation/state/reserve_order_list/reserve_order_list_state.dart) —
   `ReserveOrderListState`.
 - [main.dart:438](lib/main.dart#L438) + [main.dart:542](lib/main.dart#L542) — datasource &
   provider.
 
 ### 4. Model
 
-- [reserve_order_model.dart](lib/features/contact/data/models/reserve/reserve_order_model.dart) —
+- [reserve_order_model.dart](lib/features/reserve-order/data/models/reserve_order_model.dart) —
   `ReserveOrder.fromJson()` memetakan satu baris response (lihat dua section di atas untuk
   aturannya), plus `ReserveOrderStatus` / `ReserveOrderStep` / `ReserveOrderDoc` / `ReserveOrderNote`
   / `ReserveOrderField` dan helper `buildReserveJourney()` yang menyusun 10 tahap timeline dari satu
@@ -136,28 +163,70 @@ selagi endpoint aksinya belum ada.
 
 ### 5. Halaman
 
-- [list.dart](lib/features/contact/presentation/pages/reserve-order/list.dart) — `ReserveOrderListPage`.
+- [list.dart](lib/features/reserve-order/presentation/pages/list.dart) — `ReserveOrderListPage`.
   Pencarian didebounce 400 ms lalu dikirim ke server (bukan disaring di aplikasi); scroll mendekati
   bawah memicu `loadMore()`; shimmer (`buildContactListShimmer`) dipakai saat memuat, dan ada
   tombol "Coba lagi" saat gagal.
-- [detail.dart](lib/features/contact/presentation/pages/reserve-order/detail.dart) —
+- [detail.dart](lib/features/reserve-order/presentation/pages/detail.dart) —
   `ReserveOrderDetailPage` beserta timeline, keempat tab, dan kotak tulis catatan.
-- [top_up.dart](lib/features/contact/presentation/pages/reserve-order/top_up.dart) —
+- [top_up.dart](lib/features/reserve-order/presentation/pages/top_up.dart) —
   `ReserveOrderTopUpPage`, sekaligus layar suksesnya.
-- [revise.dart](lib/features/contact/presentation/pages/reserve-order/revise.dart) —
+- [revise.dart](lib/features/reserve-order/presentation/pages/revise.dart) —
   `ReserveOrderRevisePage`.
-- [widgets.dart](lib/features/contact/presentation/pages/reserve-order/widgets.dart) — potongan UI
+- [widgets.dart](lib/features/reserve-order/presentation/pages/widgets.dart) — potongan UI
   yang dipakai berulang: app bar, avatar, badge status (`roStatusBadge(label, color)` — label &
   warnanya dikirim terpisah karena badge kini bisa lebih spesifik dari `ReserveOrderStatus`), label,
   input, chip, baris dokumen, banner tolak, baris ringkasan, footer, dan `roPrimaryButton` (tombol
   utama dengan status loading).
 
-### 6. Formatter ribuan dipindah jadi milik bersama
+### 6. Perbaikan: baris tab "Data Pembeli" tidak disembunyikan lagi
+
+- [reserve_order_model.dart:364](lib/features/reserve-order/data/models/reserve_order_model.dart#L364) —
+  `buyer` sekarang selalu berisi 5 baris tetap (Nama Lengkap, No. KTP, Alamat sesuai KTP, Status
+  Pernikahan, Cara Pembayaran) sesuai mockup; yang datanya belum ada dari `/api/reserve` ditulis
+  "-", bukan dihapus dari list. Sebelumnya "No. HP" ikut nongol di tab ini kalau ada isinya —
+  dihapus karena sudah ada di baris kontak cepat atas tab (duplikat) dan memang tidak ada di mockup.
+
+### 7. Dipakai juga sebagai daftar transaksi per-kontak
+
+`ReserveOrderListPage` sekarang juga dibuka dari "Reserve Order" di bottom sheet Log Activity
+kontak (gantinya `ReserveOrderPage` blank) — detail lengkapnya di
+[contact-detail-reserve-order-menu.md](contact-detail-reserve-order-menu.md) bagian "Dialihkan ke
+daftar transaksi per-kontak". Ringkas: `contactArgs` (opsional) mengisi query `contact_id` ke
+`GET /api/reserve`, dan kontak yang belum punya transaksi sama sekali ditawari "+ Buat Reserve
+Baru" alih-alih pesan kosong polos.
+
+### 8. Pindah jadi feature module sendiri (`lib/features/reserve-order/`)
+
+Sebelumnya file data & state-nya menumpang di `lib/features/contact/` (datasources, models, state)
+sementara halamannya sempat lepas di `lib/features/reserve-order/` tanpa struktur — sekarang
+disatukan jadi satu feature module dengan pola `data/` + `presentation/{pages,state}/` yang sama
+seperti `contact/` (tanpa `domain/`, karena slice ini sengaja tanpa layer usecase/repository — lihat
+catatan di `ReserveOrderListCubit`):
+
+```
+lib/features/reserve-order/
+  data/
+    datasources/   reserve_order_remote_datasource.dart, reserve_unit_remote_datasource.dart,
+                    ktp_ocr_remote_datasource.dart
+    models/        reserve_order_model.dart, ktp_ocr_model.dart
+  presentation/
+    pages/          detail.dart, index.dart, list.dart, reserve.dart, revise.dart, top_up.dart,
+                    widgets.dart
+    state/          reserve_order_list/, reserve_unit/, reserve_attachment/, ktp_ocr/
+```
+
+Model unit (`unit_hierarchy_model.dart`/`unit_option_model.dart`) **tidak** ikut pindah — dipakai
+bersama `contact-add`/`contact-form`/`unit-picker` juga, jadi tetap di
+`lib/features/contact/data/models/unit/`. `reserve_attachment_cubit.dart` juga tetap mengimpor
+usecase attachment dari `contact/domain/` (dipakai bersama, bukan reserve-order-spesifik).
+
+### 9. Formatter ribuan dipindah jadi milik bersama
 
 - [thousands_input_formatter.dart](lib/core/utils/widget/thousands_input_formatter.dart) —
   `ThousandsInputFormatter`, sebelumnya class privat `_ThousandsFormatter` di dalam `reserve.dart`.
   Sekarang dipakai bertiga: flow Reserve, Top Up, dan Ajukan Ulang.
-- [reserve.dart:720](lib/features/contact/presentation/pages/reserve-order/reserve.dart#L720) —
+- [reserve.dart:720](lib/features/reserve-order/presentation/pages/reserve.dart#L720) —
   ikut memakai versi bersama; class privatnya dihapus.
 
 ## Aturan yang dipakai
@@ -180,24 +249,37 @@ Validasi (semua muncul sebagai snackbar, tidak memindahkan halaman):
 
 ## Test
 
-[test/reserve_order_menu_smoke_test.dart](test/reserve_order_menu_smoke_test.dart) — 5 kasus:
+[test/reserve_order_menu_smoke_test.dart](test/reserve_order_menu_smoke_test.dart) — 6 kasus:
 
 1. List memetakan JSON mentah (bentuk asli response Anda) ke kartu, dan kata kunci pencarian benar
    sampai ke datasource (bukan disaring di aplikasi).
-2. Gagal memuat menampilkan pesan + tombol "Coba lagi", dan menekannya memuat ulang.
-3. Detail: timeline L1–L10 & keempat tab, termasuk tab yang kosong karena responsnya belum lengkap,
+2. Chip filter dari `GET /api/reserve-filter`: status `is_active: 0` tidak tampil jadi chip, tap
+   chip mengirim `status_reserve_id` yang benar ke `getReserveOrders()` (bukan disaring di app),
+   dan "Semua" mereset ke daftar penuh.
+3. Gagal memuat menampilkan pesan + tombol "Coba lagi", dan menekannya memuat ulang.
+4. Detail: timeline L1–L10 & keempat tab, termasuk tab yang kosong karena responsnya belum lengkap,
    link "Profil & Riwayat Lengkap ›" membuka Contact Detail dengan `contact_id` yang benar, dan
    tambah catatan.
-4. Top up sampai layar sukses beserta jejaknya di timeline.
-5. Flow tolak → perbaiki → balik ke Diproses.
+5. Top up sampai layar sukses beserta jejaknya di timeline.
+6. Flow tolak → perbaiki → balik ke Diproses.
+
+Test chip filter & test pertama sengaja memakai viewport yang dilebarkan (`_pumpMenu(tester,
+width: 900)`) supaya semua chip kebangun tanpa gulir horizontal — drag scroll ke item yang di luar
+cache extent rapuh di widget test (`ensureVisible` butuh elemennya sudah kebangun; kalaupun pakai
+`scrollUntilVisible`, arah drag yang tetap bikin gagal begitu targetnya ada di belakang posisi
+scroll saat ini).
 
 Analyzer tidak menangkap error layout (overflow / unbounded height), jadi test ini yang menjaganya.
 
 ## Belum dikerjakan / menunggu Anda
 
-1. **Master status reserve** — endpoint yang memetakan `status_reserve_id` ke nama tahap (Reserve /
-   RBA / RBB / SP / Proses Bank / Akad). Begitu ada, chip filter di list bisa dinyalakan lagi dan
-   badge status bisa memakai nama asli alih-alih tebakan dari tanggal.
+1. **Badge status kartu & detail belum pakai `status_reserve_id`** — chip filter di atas list
+   sudah (lihat "Chip filter tersambung ke `GET /api/reserve-filter`" di atas), tapi
+   `ReserveOrder.fromJson()` masih menurunkan `ReserveOrderStatus`/`badgeLabel` dari tanggal
+   (`sp_date`/`rb_date`/status ditolak), bukan dari `status_reserve_id` baris itu sendiri. Begitu
+   diputuskan bagaimana memetakan tiap id master (RBB/Reserve/RKB/Reserve Batal/Waitinglist/SP/
+   RBA/SP Batal) ke `ReserveOrderStatus` & warnanya, badge bisa memakai nama asli alih-alih
+   tebakan dari tanggal.
 2. **Endpoint detail reserve order** — sudah Anda janjikan menyusul. Begitu ada, `detail.dart`
    disambungkan supaya timeline lengkap L1–L10, tab Data Pembeli, Attachment, dan Catatan terisi
    dari sana, bukan dari field seadanya di response list.

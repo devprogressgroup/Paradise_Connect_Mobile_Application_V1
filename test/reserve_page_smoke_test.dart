@@ -17,8 +17,10 @@ import 'package:intl/date_symbol_data_local.dart';
 // ignore: depend_on_referenced_packages
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';
 import 'package:progress_group/features/contact/data/arguments/contact_detail_args.dart';
-import 'package:progress_group/features/contact/data/datasources/ktp_ocr_remote_datasource.dart';
-import 'package:progress_group/features/contact/data/models/ktp/ktp_ocr_model.dart';
+import 'package:progress_group/features/reserve-order/data/datasources/ktp_ocr_remote_datasource.dart';
+import 'package:progress_group/features/reserve-order/data/datasources/reserve_order_remote_datasource.dart';
+import 'package:progress_group/features/reserve-order/data/models/ktp_ocr_model.dart';
+import 'package:progress_group/features/reserve-order/data/models/reserve_order_model.dart';
 import 'package:progress_group/features/contact/data/models/unit/unit_hierarchy_model.dart';
 import 'package:progress_group/features/contact/domain/entities/attachment/attachment_type.dart';
 import 'package:progress_group/features/contact/domain/entities/attachment/upload_attachment_params.dart';
@@ -26,15 +28,66 @@ import 'package:progress_group/features/contact/domain/entities/contact/contact_
 import 'package:progress_group/features/contact/domain/repositories/contact_repository.dart';
 import 'package:progress_group/features/contact/domain/usecases/attachment/get_attachment_types_usecase.dart';
 import 'package:progress_group/features/contact/domain/usecases/attachment/upload_attachment_usecase.dart';
-import 'package:progress_group/features/contact/presentation/pages/reserve-order/index.dart';
-import 'package:progress_group/features/contact/presentation/pages/reserve-order/reserve.dart';
-import 'package:progress_group/features/contact/presentation/state/ktp_ocr/ktp_ocr_cubit.dart';
-import 'package:progress_group/features/contact/presentation/state/reserve_attachment/reserve_attachment_cubit.dart';
+import 'package:progress_group/features/reserve-order/presentation/pages/index.dart';
+import 'package:progress_group/features/reserve-order/presentation/pages/reserve.dart';
+import 'package:progress_group/features/reserve-order/presentation/state/ktp_ocr/ktp_ocr_cubit.dart';
+import 'package:progress_group/features/reserve-order/presentation/state/reserve_attachment/reserve_attachment_cubit.dart';
+import 'package:progress_group/features/reserve-order/presentation/state/reserve_order_list/reserve_order_list_cubit.dart';
 
 class _FakeKtpOcr implements KtpOcrRemoteDataSource {
   @override
   Future<KtpOcrModel> scanKtp({required Uint8List bytes, required String fileName}) async =>
       const KtpOcrModel(nama: 'SAKUM', nik: '3273051290000012');
+}
+
+/// "Jenis Transaksi" (step Dokumen) & "Cara Pembayaran" (step Data Pembeli) di form Reserve dibaca
+/// dari sini — `GET /api/reserve-filter` (sama dengan chip filter menu List) &
+/// `GET /api/reserve/cara-bayar`. `filterCalls`/`caraBayarCalls` dipakai membuktikan cubit-nya
+/// nge-cache, bukan fetch ulang tiap `ReservePage` dibuka.
+class _FakeReserveOrders implements ReserveOrderRemoteDataSource {
+  int filterCalls = 0;
+  int caraBayarCalls = 0;
+  final List<CreateReserveParams> createCalls = [];
+  bool failCreate = false;
+
+  @override
+  Future<ReserveOrdersPage> getReserveOrders({
+    String? search,
+    List<int> statusReserveIds = const [],
+    String sort = 'created_desc',
+    int page = 1,
+    int perPage = 15,
+    int? contactId,
+  }) async {
+    throw UnimplementedError('tidak dipakai di test flow Reserve');
+  }
+
+  @override
+  Future<List<ReserveFilterOption>> getReserveFilters() async {
+    filterCalls++;
+    return const [
+      ReserveFilterOption(statusReserveId: 2, name: 'Reserve'),
+      ReserveFilterOption(statusReserveId: 1, name: 'Booking Reserve (langsung)'),
+    ];
+  }
+
+  @override
+  Future<List<CaraBayarOption>> getCaraBayarOptions() async {
+    caraBayarCalls++;
+    return const [
+      CaraBayarOption(caraBayarId: 1, name: 'Cash Keras'),
+      CaraBayarOption(caraBayarId: 2, name: 'Cash Bertahap 3X'),
+      CaraBayarOption(caraBayarId: 3, name: 'Cash Bertahap 6X'),
+      CaraBayarOption(caraBayarId: 4, name: 'Cash Bertahap 12X'),
+      CaraBayarOption(caraBayarId: 5, name: 'KPR'),
+    ];
+  }
+
+  @override
+  Future<void> createReserve(CreateReserveParams params) async {
+    if (failCreate) throw Exception('koneksi terputus');
+    createCalls.add(params);
+  }
 }
 
 /// Menampung request `POST /contacts/{id}/attachments` yang dikirim saat Submit Reserve Order,
@@ -113,6 +166,12 @@ ContactEntity _contact() => ContactEntity(
     );
 
 late _FakeContactRepository repo;
+late _FakeReserveOrders source;
+
+// Satu instance per test (bukan dibuat baru tiap `_wrap`) — dipakai bareng, sama seperti provider
+// aslinya di main.dart, supaya cache filter-nya ([ReserveOrderListCubit.ensureFilters]) kepakai
+// beneran kalau `_wrap` dipanggil berkali-kali dalam satu test.
+late ReserveOrderListCubit reserveOrderListCubit;
 
 Widget _wrap(Widget child) => MultiBlocProvider(
       providers: [
@@ -123,6 +182,7 @@ Widget _wrap(Widget child) => MultiBlocProvider(
             UploadAttachmentUseCase(repo),
           ),
         ),
+        BlocProvider.value(value: reserveOrderListCubit),
       ],
       child: child,
     );
@@ -134,6 +194,9 @@ Future<void> _expectSnack(WidgetTester tester, String message) async {
   await tester.pump(const Duration(seconds: 5));
   await tester.pumpAndSettle();
 }
+
+/// Cari `TextField` lewat hint-nya — lebih aman dari index kalau urutan field di step berubah.
+Finder _fieldWithHint(String hint) => find.byWidgetPredicate((w) => w is TextField && w.decoration?.hintText == hint);
 
 /// Lampirkan file lewat sheet pilih sumber (jalur "Dokumen" → FilePicker palsu).
 Future<void> _attachVia(WidgetTester tester, Finder row) async {
@@ -165,6 +228,8 @@ void main() {
   setUp(() {
     FilePicker.platform = _FakeFilePicker();
     repo = _FakeContactRepository();
+    source = _FakeReserveOrders();
+    reserveOrderListCubit = ReserveOrderListCubit(source);
   });
 
   testWidgets('4 step + layar sukses render tanpa error layout & validasinya jalan', (tester) async {
@@ -193,6 +258,18 @@ void main() {
     await tester.tap(find.text('Kawin').last);
     await tester.pumpAndSettle();
     expect(find.text('Kawin'), findsOneWidget);
+
+    // Picker "Cara Pembayaran" isinya dari `GET /api/reserve/cara-bayar` (bukan daftar hardcode
+    // lama ['KPR', 'Cash', 'Cash Bertahap', 'Inhouse']) — yang tampil di sheet & di picker-nya
+    // tetap `name`, id-nya (`cara_bayar_id`) cuma disimpan di balik layar.
+    await tester.tap(find.text('Pilih cara pembayaran'));
+    await tester.pumpAndSettle();
+    expect(find.text('Cash Bertahap 3X'), findsOneWidget);
+    expect(find.text('Cash Bertahap 6X'), findsOneWidget);
+    expect(find.text('Inhouse'), findsNothing);
+    await tester.tap(find.text('KPR').last);
+    await tester.pumpAndSettle();
+    expect(find.text('KPR'), findsOneWidget);
 
     // ── Step 1 → 2 ──
     await tester.tap(find.text('Lanjut ke Dokumen'));
@@ -374,5 +451,114 @@ void main() {
     expect(find.text('Blok E1 No. 19 Ecoscape PAR2'), findsOneWidget);
     expect(find.text('Rp 2.000.000'), findsOneWidget);
     expect(find.byIcon(Icons.check), findsOneWidget);
+  });
+
+  testWidgets('"Jenis Transaksi" pakai master status dari reserve-filter & di-cache di cubit', (tester) async {
+    tester.view.physicalSize = const Size(390 * 3, 844 * 3);
+    tester.view.devicePixelRatio = 3;
+    addTearDown(tester.view.reset);
+
+    Future<void> openReserveAndReachDokumen() async {
+      // Root-nya diganti tipe dulu (bukan langsung pumpWidget MaterialApp lagi) supaya elemen
+      // `ReservePage` sebelumnya benar-benar di-dispose — pumpWidget dengan tree yang bentuknya
+      // sama (tipe+key sama) cuma REBUILD elemen lama, bukan mount ulang, jadi `_step` dkk ikut
+      // kebawa dari sesi sebelumnya kalau tidak dipaksa lepas dulu.
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pumpWidget(_wrap(MaterialApp(
+        home: ReservePage(args: ContactDetailArgs(dataContact: _contact(), namePage: 'Reserve')),
+      )));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Lanjut ke Dokumen'));
+      await tester.pumpAndSettle();
+    }
+
+    await openReserveAndReachDokumen();
+    // Dari `getReserveFilters()` (bukan lagi daftar hardcode di app).
+    expect(find.text('Booking Reserve (langsung)'), findsOneWidget);
+    expect(source.filterCalls, 1);
+
+    // `ReserveOrderListCubit` yang sama dipakai lagi (cubit-nya provider bersama di app asli) —
+    // dibuka kedua kalinya tidak fetch ulang, tinggal pakai cache di state cubit.
+    await openReserveAndReachDokumen();
+    expect(find.text('Booking Reserve (langsung)'), findsOneWidget);
+    expect(source.filterCalls, 1);
+  });
+
+  testWidgets('submit bikin baris customer dulu lewat POST /api/reserve, baru unggah dokumen', (tester) async {
+    tester.view.physicalSize = const Size(390 * 3, 844 * 3);
+    tester.view.devicePixelRatio = 3;
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(_wrap(MaterialApp(
+      home: ReservePage(args: ContactDetailArgs(dataContact: _contact(), namePage: 'Reserve')),
+    )));
+    await tester.pumpAndSettle();
+
+    // Tempat/Tanggal Lahir diisi manual (tanpa scan KTP) — dites kalau parse balik dari teksnya
+    // ("Tempat, dd MMMM yyyy", sesuai hint field-nya) jalan buat `cust_birth_place`/`cust_birth_date`.
+    await tester.enterText(_fieldWithHint('Jakarta, 01 Januari 1990'), 'Jakarta, 09 Januari 1990');
+    await tester.enterText(_fieldWithHint('Wiraswasta'), 'Pedagang');
+
+    await tester.tap(find.text('Pilih status pernikahan'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Kawin').last);
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Pilih cara pembayaran'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('KPR').last);
+    await tester.pumpAndSettle();
+
+    await _fillUntilUnitPicked(tester);
+
+    expect(source.createCalls, isEmpty);
+    expect(repo.uploads, isEmpty);
+
+    await tester.tap(find.text('Submit Reserve Order'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Reserve Order Berhasil Diajukan'), findsOneWidget);
+    expect(source.createCalls.length, 1);
+
+    final params = source.createCalls.single;
+    expect(params.contactId, 1);
+    expect(params.custName, 'Sakum');
+    expect(params.custKtp, '3273051290000012');
+    expect(params.custBirthPlace, 'Jakarta');
+    expect(params.custBirthDate, DateTime(1990, 1, 9));
+    expect(params.custMaritalStatus, 'KAWIN');
+    expect(params.custOccupation, 'Pedagang');
+    expect(params.custAddress1, 'JL. MERDEKA NO. 45');
+    expect(params.caraBayarId, 5); // KPR
+    expect(params.custTelpMobile1, '0812-1111-2222');
+    // Belum ada input manual buat keduanya (cuma keisi dari hasil scan KTP, tidak dites di sini).
+    expect(params.custGenderIsMale, isNull);
+    expect(params.custReligion, isNull);
+
+    expect(params.toJson()['cust_birth_date'], '1990-01-09');
+
+    // Dokumen baru diunggah setelah baris customer-nya berhasil dibuat.
+    expect(repo.uploads, isNotEmpty);
+  });
+
+  testWidgets('POST /api/reserve gagal menahan di Review, dokumen tidak ikut diunggah', (tester) async {
+    tester.view.physicalSize = const Size(390 * 3, 844 * 3);
+    tester.view.devicePixelRatio = 3;
+    addTearDown(tester.view.reset);
+    source.failCreate = true;
+
+    await tester.pumpWidget(_wrap(MaterialApp(
+      home: ReservePage(args: ContactDetailArgs(dataContact: _contact(), namePage: 'Reserve')),
+    )));
+    await tester.pumpAndSettle();
+    await _fillUntilUnitPicked(tester);
+
+    await tester.tap(find.text('Submit Reserve Order'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Review Reserve Order'), findsOneWidget);
+    expect(find.textContaining('koneksi terputus'), findsOneWidget);
+    expect(source.createCalls, isEmpty);
+    expect(repo.uploads, isEmpty);
   });
 }

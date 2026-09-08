@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:progress_group/core/constants/colors.dart';
-import 'package:progress_group/features/contact/data/models/reserve/reserve_order_model.dart';
+import 'package:progress_group/features/reserve-order/data/models/reserve_order_model.dart';
 
 /// Potongan UI yang dipakai bareng oleh halaman-halaman menu Reserve Order (list, detail, top up,
 /// ajukan ulang). Ukuran & warnanya mengikuti mockup `reserve-order-sales-final_12.html` Bagian 3.

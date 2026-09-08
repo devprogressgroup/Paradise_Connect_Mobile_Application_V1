@@ -1,5 +1,5 @@
 import 'package:equatable/equatable.dart';
-import 'package:progress_group/features/contact/data/models/ktp/ktp_ocr_model.dart';
+import 'package:progress_group/features/reserve-order/data/models/ktp_ocr_model.dart';
 
 enum KtpOcrStatus { initial, loading, loaded, error }
 

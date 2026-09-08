@@ -14,13 +14,13 @@ import 'package:intl/date_symbol_data_local.dart';
 // Dependency transitif dari file_picker — dipakai hanya untuk mixin mock platform interface.
 // ignore: depend_on_referenced_packages
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';
-import 'package:progress_group/features/contact/data/datasources/reserve_order_remote_datasource.dart';
-import 'package:progress_group/features/contact/data/models/reserve/reserve_order_model.dart';
-import 'package:progress_group/features/contact/presentation/pages/reserve-order/detail.dart';
-import 'package:progress_group/features/contact/presentation/pages/reserve-order/list.dart';
-import 'package:progress_group/features/contact/presentation/pages/reserve-order/revise.dart';
-import 'package:progress_group/features/contact/presentation/pages/reserve-order/top_up.dart';
-import 'package:progress_group/features/contact/presentation/state/reserve_order_list/reserve_order_list_cubit.dart';
+import 'package:progress_group/features/reserve-order/data/datasources/reserve_order_remote_datasource.dart';
+import 'package:progress_group/features/reserve-order/data/models/reserve_order_model.dart';
+import 'package:progress_group/features/reserve-order/presentation/pages/detail.dart';
+import 'package:progress_group/features/reserve-order/presentation/pages/list.dart';
+import 'package:progress_group/features/reserve-order/presentation/pages/revise.dart';
+import 'package:progress_group/features/reserve-order/presentation/pages/top_up.dart';
+import 'package:progress_group/features/reserve-order/presentation/state/reserve_order_list/reserve_order_list_cubit.dart';
 
 class _FakeFilePicker extends Fake with MockPlatformInterfaceMixin implements FilePicker {
   int calls = 0;
@@ -60,6 +60,7 @@ Map<String, dynamic> _row({
   String? rejectedAt,
   String? rejectReason,
   String? note,
+  int statusReserveId = 2,
 }) {
   return {
     'reserve_order_id': id,
@@ -81,9 +82,21 @@ Map<String, dynamic> _row({
     'reserve_note': note,
     'contact_id': 112192,
     'deal_id': 112664,
-    'status_reserve_id': 4,
+    'status_reserve_id': statusReserveId,
   };
 }
+
+/// Master status reserve seperti aslinya (`GET /api/reserve-filter`).
+List<Map<String, dynamic>> _filterRows() => const [
+      {'status_reserve_id': 1, 'status_reserve_name': 'RBB', 'is_active': 1, 'id': 1, 'name': null},
+      {'status_reserve_id': 2, 'status_reserve_name': 'Reserve', 'is_active': 1, 'id': 2, 'name': null},
+      {'status_reserve_id': 3, 'status_reserve_name': 'RKB', 'is_active': 1, 'id': 3, 'name': null},
+      {'status_reserve_id': 4, 'status_reserve_name': 'Reserve Batal', 'is_active': 1, 'id': 4, 'name': null},
+      {'status_reserve_id': 5, 'status_reserve_name': 'Waitinglist', 'is_active': 1, 'id': 5, 'name': null},
+      {'status_reserve_id': 6, 'status_reserve_name': 'SP', 'is_active': 1, 'id': 6, 'name': null},
+      {'status_reserve_id': 7, 'status_reserve_name': 'RBA', 'is_active': 1, 'id': 7, 'name': null},
+      {'status_reserve_id': 8, 'status_reserve_name': 'SP Batal', 'is_active': 0, 'id': 8, 'name': null},
+    ];
 
 class _FakeReserveOrders implements ReserveOrderRemoteDataSource {
   final List<Map<String, dynamic>> rows;
@@ -91,6 +104,7 @@ class _FakeReserveOrders implements ReserveOrderRemoteDataSource {
 
   String? lastSearch;
   int lastPage = 0;
+  List<int> lastStatusIds = const [];
   int calls = 0;
 
   _FakeReserveOrders(this.rows);
@@ -102,14 +116,19 @@ class _FakeReserveOrders implements ReserveOrderRemoteDataSource {
     String sort = 'created_desc',
     int page = 1,
     int perPage = 15,
+    int? contactId,
   }) async {
     calls++;
     lastSearch = search;
     lastPage = page;
+    lastStatusIds = statusReserveIds;
     if (fail) throw Exception('koneksi terputus');
 
     final keyword = (search ?? '').toLowerCase();
-    final filtered = keyword.isEmpty ? rows : rows.where((r) => '${r['cust_name']}'.toLowerCase().contains(keyword)).toList();
+    var filtered = keyword.isEmpty ? rows : rows.where((r) => '${r['cust_name']}'.toLowerCase().contains(keyword)).toList();
+    if (statusReserveIds.isNotEmpty) {
+      filtered = filtered.where((r) => statusReserveIds.contains(r['status_reserve_id'])).toList();
+    }
 
     return ReserveOrdersPage(
       items: filtered.map((e) => ReserveOrder.fromJson(e)).toList(),
@@ -118,6 +137,17 @@ class _FakeReserveOrders implements ReserveOrderRemoteDataSource {
       total: filtered.length,
     );
   }
+
+  @override
+  Future<List<ReserveFilterOption>> getReserveFilters() async {
+    return _filterRows().map((e) => ReserveFilterOption.fromJson(e)).where((f) => f.isActive).toList();
+  }
+
+  @override
+  Future<List<CaraBayarOption>> getCaraBayarOptions() async => const [];
+
+  @override
+  Future<void> createReserve(CreateReserveParams params) async {}
 }
 
 late _FakeReserveOrders source;
@@ -160,8 +190,10 @@ GoRouter _router() => GoRouter(
       ],
     );
 
-Future<void> _pumpMenu(WidgetTester tester) async {
-  tester.view.physicalSize = const Size(390 * 3, 844 * 3);
+/// [width] dilebarkan dari lebar HP normal (390) buat test yang perlu semua chip filter tampil
+/// sekaligus tanpa gulir horizontal — drag scroll di widget test rapuh untuk baris chip pendek.
+Future<void> _pumpMenu(WidgetTester tester, {double width = 390}) async {
+  tester.view.physicalSize = Size(width * 3, 844 * 3);
   tester.view.devicePixelRatio = 3;
   addTearDown(tester.view.reset);
 
@@ -204,14 +236,23 @@ Future<void> _search(WidgetTester tester, String keyword) async {
   await tester.pumpAndSettle();
 }
 
-/// Chip filter punya Key sendiri karena labelnya ("SP", "Akad") bisa sama persis dengan teks badge
-/// status di kartu. `ensureVisible` menghitung scroll offset horizontalnya persis, jadi aman dari
-/// chip yang sudah dibangun (masuk cache) tapi masih di luar area yang benar-benar terlihat.
-Future<void> _tapFilterChip(WidgetTester tester, String filterName) async {
-  final chip = find.byKey(ValueKey('reserve_order_filter_$filterName'));
-  await tester.ensureVisible(chip);
+/// Chip filter di-key pakai `status_reserve_id` ("semua" buat chip reset) — labelnya ("SP") bisa
+/// sama persis dengan teks badge status di kartu, jadi key numerik yang dipakai, bukan teks.
+/// `scrollUntilVisible` (bukan `ensureVisible`) karena chip di luar cache extent belum tentu
+/// sudah dibangun — `ensureVisible` butuh elemennya sudah ada, `scrollUntilVisible` yang
+/// menggulir sampai kebangun.
+Future<void> _showFilterChip(WidgetTester tester, String key) async {
+  final scrollable = find.descendant(
+    of: find.byKey(const ValueKey('reserve_order_filter_list')),
+    matching: find.byType(Scrollable),
+  );
+  await tester.scrollUntilVisible(find.byKey(ValueKey('reserve_order_filter_$key')), 60, scrollable: scrollable);
   await tester.pumpAndSettle();
-  await tester.tap(chip);
+}
+
+Future<void> _tapFilterChip(WidgetTester tester, String key) async {
+  await _showFilterChip(tester, key);
+  await tester.tap(find.byKey(ValueKey('reserve_order_filter_$key')));
   await tester.pumpAndSettle();
 }
 
@@ -221,8 +262,8 @@ void main() {
   setUp(() {
     FilePicker.platform = _FakeFilePicker();
     source = _FakeReserveOrders([
-      _row(id: 3, name: 'Andi Wijaya Aan', projectName: 'Paradise Serpong City 2', amount: 80000, note: 'test reserve_note'),
-      _row(id: 5, name: 'Budi Santoso', projectName: 'PAR2', blokNo: 'Blok BC6 No. 17', amount: 780000000, spDate: '2026-09-02T03:00:00.000000Z'),
+      _row(id: 3, name: 'Andi Wijaya Aan', projectName: 'Paradise Serpong City 2', amount: 80000, note: 'test reserve_note', statusReserveId: 2),
+      _row(id: 5, name: 'Budi Santoso', projectName: 'PAR2', blokNo: 'Blok BC6 No. 17', amount: 780000000, spDate: '2026-09-02T03:00:00.000000Z', statusReserveId: 6),
       _row(
         id: 8,
         name: 'Reyhan Pradipta',
@@ -232,12 +273,14 @@ void main() {
         createdAt: '2026-09-05T00:00:00.000000Z',
         rejectedAt: '2026-09-05T08:22:00.000000Z',
         rejectReason: 'Nominal bukti transfer tidak sesuai harga unit.',
+        statusReserveId: 4,
       ),
     ]);
   });
 
   testWidgets('list memetakan response API ke kartu & pencarian dikirim ke server', (tester) async {
-    await _pumpMenu(tester);
+    // Dilebarkan supaya semua chip filter kebangun sekaligus (dipakai assert "SP" di bawah).
+    await _pumpMenu(tester, width: 900);
 
     expect(find.text('Reserve Order'), findsOneWidget);
     expect(find.text('3 transaksi'), findsOneWidget);
@@ -252,7 +295,8 @@ void main() {
     expect(find.text('Diproses'), findsOneWidget);
 
     // Nominal besar diringkas seperti mockup, dan tahapnya ikut sp_date / penolakan kasir. Chip
-    // filter "SP" ikut kebangun di baris atas, jadi teksnya sengaja dicek 2 (chip + badge kartu).
+    // filter "SP" (dari GET /api/reserve-filter) ikut kebangun di baris atas (viewport dilebarkan
+    // di _pumpMenu), jadi teksnya sengaja dicek 2 (chip + badge kartu).
     expect(find.text('Rp 780jt'), findsOneWidget);
     expect(find.text('SP'), findsNWidgets(2));
     expect(find.text('Ditolak'), findsOneWidget);
@@ -268,29 +312,34 @@ void main() {
     expect(find.textContaining('Tidak ada transaksi yang cocok'), findsOneWidget);
   });
 
-  testWidgets('chip filter menyaring di app dari status yang sudah diturunkan', (tester) async {
-    await _pumpMenu(tester);
+  testWidgets('chip filter dari GET /api/reserve-filter mengirim status_reserve_id ke server', (tester) async {
+    await _pumpMenu(tester, width: 900);
 
-    // Chip "SP" cuma menyisakan transaksi yang sudah SP.
-    await _tapFilterChip(tester, 'sp');
+    // Master status yang `is_active: 0` (SP Batal) tidak ikut tampil jadi chip.
+    expect(find.text('SP Batal'), findsNothing);
+
+    // Chip "SP" (status_reserve_id 6) cuma menyisakan Budi — dikirim ke server, bukan disaring
+    // di app, jadi total header ikut berubah.
+    await _tapFilterChip(tester, '6');
+    expect(source.lastStatusIds, [6]);
     expect(find.text('Budi Santoso'), findsOneWidget);
     expect(find.text('Andi Wijaya Aan'), findsNothing);
     expect(find.text('Reyhan Pradipta'), findsNothing);
-    // Total di header tidak ikut berubah — itu angka dari server, bukan hasil filter chip.
-    expect(find.text('3 transaksi'), findsOneWidget);
+    expect(find.text('1 transaksi'), findsOneWidget);
 
-    // Chip "Reserve / RBA / RBB" mencakup juga transaksi yang ditolak kasir.
-    await _tapFilterChip(tester, 'reserve');
+    // Chip "Reserve" (id 2) cuma menyisakan Andi.
+    await _tapFilterChip(tester, '2');
+    expect(source.lastStatusIds, [2]);
     expect(find.text('Andi Wijaya Aan'), findsOneWidget);
-    expect(find.text('Reyhan Pradipta'), findsOneWidget);
+    expect(find.text('Reyhan Pradipta'), findsNothing);
     expect(find.text('Budi Santoso'), findsNothing);
 
-    // Kategori yang belum bisa diturunkan dari data yang ada tetap tampil chip-nya (sesuai
-    // desain), tapi hasilnya kosong dengan pesan yang membedakan dari "tidak ada hasil pencarian".
-    await _tapFilterChip(tester, 'akad');
-    expect(find.text('Tidak ada transaksi untuk filter "Akad".'), findsOneWidget);
+    // Chip yang tidak ada transaksinya tetap bisa dipilih, pesan kosongnya beda dari pencarian.
+    await _tapFilterChip(tester, '7'); // RBA
+    expect(find.text('Tidak ada transaksi untuk filter "RBA".'), findsOneWidget);
 
     await _tapFilterChip(tester, 'semua');
+    expect(source.lastStatusIds, isEmpty);
     expect(find.text('Andi Wijaya Aan'), findsOneWidget);
     expect(find.text('Budi Santoso'), findsOneWidget);
     expect(find.text('Reyhan Pradipta'), findsOneWidget);

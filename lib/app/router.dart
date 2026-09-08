@@ -21,13 +21,13 @@ import '../features/contact/presentation/pages/contact-detail/index.dart';
 import '../features/contact/presentation/pages/contact-form/index.dart';
 import 'package:progress_group/features/contact/presentation/pages/date-selection/index.dart';
 import '../features/contact/presentation/pages/contact-page/index.dart';
-import '../features/contact/data/models/reserve/reserve_order_model.dart';
-import '../features/contact/presentation/pages/reserve-order/detail.dart';
-import '../features/contact/presentation/pages/reserve-order/index.dart';
-import '../features/contact/presentation/pages/reserve-order/list.dart';
-import '../features/contact/presentation/pages/reserve-order/reserve.dart';
-import '../features/contact/presentation/pages/reserve-order/revise.dart';
-import '../features/contact/presentation/pages/reserve-order/top_up.dart';
+import '../features/reserve-order/data/models/reserve_order_model.dart';
+import '../features/reserve-order/presentation/pages/detail.dart';
+import '../features/reserve-order/presentation/pages/index.dart';
+import '../features/reserve-order/presentation/pages/list.dart';
+import '../features/reserve-order/presentation/pages/reserve.dart';
+import '../features/reserve-order/presentation/pages/revise.dart';
+import '../features/reserve-order/presentation/pages/top_up.dart';
 import '../features/home/presentation/pages/home/index.dart';
 import '../features/inbox/data/arguments/inbox_detail_args.dart';
 import '../features/inbox/presentation/pages/inbox-detail/index.dart';
@@ -379,7 +379,9 @@ class AppRouter {
             path: '/reserve-order',
             name: 'reserveOrderList',
             redirect: (context, state) => PermissionsHelper.canAccessContacts ? null : '/',
-            builder: (context, state) => const ReserveOrderListPage(),
+            // `extra` diisi `ContactDetailArgs` saat dibuka dari "Reserve Order" di Log Activity
+            // kontak (daftar disaring `contact_id`); kosong dari drawer (semua transaksi).
+            builder: (context, state) => ReserveOrderListPage(contactArgs: state.extra is ContactDetailArgs ? state.extra as ContactDetailArgs : null),
             routes: [
               GoRoute(
                 name: 'reserveOrderDetail',

@@ -35,6 +35,7 @@ class ContactOptionsSheet extends StatelessWidget {
     String label,
     VoidCallback onTap, {
     Color? color,
+    IconData? icon,
   }) {
 
     return InkWell(
@@ -46,7 +47,7 @@ class ContactOptionsSheet extends StatelessWidget {
         padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
         child: Row(
           children: [
-            BgIcon(asset: asset, onTap: null, color: color),
+            BgIcon(asset: asset, onTap: null, color: color, fallbackIcon: icon ?? Icons.more_vert),
             const SizedBox(width: 10),
             Text(
               label,

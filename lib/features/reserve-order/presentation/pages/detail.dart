@@ -7,9 +7,9 @@ import 'package:progress_group/core/utils/widget/custom_button.dart';
 import 'package:progress_group/core/utils/widget/custom_file_picker.dart';
 import 'package:progress_group/core/utils/widget/custom_snackbar.dart';
 import 'package:progress_group/features/contact/data/arguments/contact_detail_args.dart';
-import 'package:progress_group/features/contact/data/models/reserve/reserve_order_model.dart';
+import 'package:progress_group/features/reserve-order/data/models/reserve_order_model.dart';
 import 'package:progress_group/features/contact/domain/entities/contact/contact_entity.dart';
-import 'package:progress_group/features/contact/presentation/pages/reserve-order/widgets.dart';
+import 'package:progress_group/features/reserve-order/presentation/pages/widgets.dart';
 
 /// Detail satu transaksi Reserve Order — Bagian 3 mockup, kolom "Detail — Perjalanan & Dokumen".
 ///

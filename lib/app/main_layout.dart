@@ -454,7 +454,7 @@ class _MainLayoutState extends State<MainLayout> {
                 if (PermissionsHelper.canAccessContacts)
                   _buildDrawerItem(context, icSidebarContacts, 'Contacts', path: '/contact', index: 1),
                 if (PermissionsHelper.canAccessContacts)
-                  _buildDrawerItem(context, '', 'Reserve Order', path: '/reserve-order', index: 10, iconData: Icons.local_offer_rounded, badge: 'BARU'),
+                  _buildDrawerItem(context, '', 'Reserve Order', path: '/reserve-order', index: 10, iconData: Icons.local_offer_rounded),
                 if (PermissionsHelper.canAccessInbox)
                   _buildDrawerItem(context, icSidebarInbox, 'Inbox', path: '/inbox', index: 2),
                 if (PermissionsHelper.canAccessSitePlan)

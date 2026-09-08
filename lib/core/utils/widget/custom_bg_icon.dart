@@ -38,11 +38,11 @@ class BgIcon extends StatelessWidget {
                   width: 28,
                   height: 28,
                   fit: BoxFit.contain,
-                  errorBuilder: (_, __, ___) => Icon(fallbackIcon),
+                  errorBuilder: (_, __, ___) => Icon(fallbackIcon, color: color),
                   color: color,
-                  
+
                 )
-              : Icon(fallbackIcon, size: 35,),
+              : Icon(fallbackIcon, size: 35, color: color),
         ),
       ),
     );

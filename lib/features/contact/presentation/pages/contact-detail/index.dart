@@ -147,7 +147,10 @@ class _ContactDetailPageState extends State<ContactDetailPage>with TickerProvide
   }
 
   Future<void> _navigateToReserveOrder(ContactDetailArgs args) async {
-    await context.pushNamed('reserveOrder', extra: args.copyWith(initialTab: currentTab));
+    // Dulu ke `reserveOrder` (menu Reserve/Topup/RB per-kontak); sekarang dialihkan ke
+    // `reserveOrderList` (daftar transaksi menu drawer) yang disaring `contact_id` supaya cuma
+    // menampilkan transaksi kontak ini — lihat ReserveOrderListPage.contactArgs.
+    await context.pushNamed('reserveOrderList', extra: args.copyWith(initialTab: currentTab));
   }
 
   void _init() async {
@@ -579,7 +582,7 @@ class _ContactDetailPageState extends State<ContactDetailPage>with TickerProvide
           ),
           ContactOptionsSheet.buildIconLink(
             context,
-            icContactDetailReserveOrder,
+            '',
             "Reserve Order",
             () {
               _navigateToReserveOrder(
@@ -589,6 +592,8 @@ class _ContactDetailPageState extends State<ContactDetailPage>with TickerProvide
                 ),
               );
             },
+            icon: Icons.local_offer_rounded,
+            color: Color(primaryColor)
           ),
         ],
       ),

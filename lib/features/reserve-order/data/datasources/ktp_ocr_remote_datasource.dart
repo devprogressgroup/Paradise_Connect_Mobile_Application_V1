@@ -2,7 +2,7 @@ import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
 import 'package:progress_group/core/utils/helpers/error_message.dart';
-import 'package:progress_group/features/contact/data/models/ktp/ktp_ocr_model.dart';
+import 'package:progress_group/features/reserve-order/data/models/ktp_ocr_model.dart';
 
 abstract class KtpOcrRemoteDataSource {
   Future<KtpOcrModel> scanKtp({required Uint8List bytes, required String fileName});

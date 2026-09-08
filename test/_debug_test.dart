@@ -3,9 +3,7 @@
 // detail dengan 4 tab & timeline L1-L10, Top Up Pembayaran sampai layar sukses, dan
 // Edit & Ajukan Ulang untuk transaksi yang ditolak kasir.
 // Analyzer tidak bisa menangkap error layout, jadi ini satu-satunya pengaman otomatisnya.
-import 'dart:typed_data';
 
-import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -13,39 +11,14 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/date_symbol_data_local.dart';
 // Dependency transitif dari file_picker — dipakai hanya untuk mixin mock platform interface.
 // ignore: depend_on_referenced_packages
-import 'package:plugin_platform_interface/plugin_platform_interface.dart';
-import 'package:progress_group/features/contact/data/datasources/reserve_order_remote_datasource.dart';
-import 'package:progress_group/features/contact/data/models/reserve/reserve_order_model.dart';
-import 'package:progress_group/features/contact/presentation/pages/reserve-order/detail.dart';
-import 'package:progress_group/features/contact/presentation/pages/reserve-order/list.dart';
-import 'package:progress_group/features/contact/presentation/pages/reserve-order/revise.dart';
-import 'package:progress_group/features/contact/presentation/pages/reserve-order/top_up.dart';
-import 'package:progress_group/features/contact/presentation/state/reserve_order_list/reserve_order_list_cubit.dart';
+import 'package:progress_group/features/reserve-order/data/datasources/reserve_order_remote_datasource.dart';
+import 'package:progress_group/features/reserve-order/data/models/reserve_order_model.dart';
+import 'package:progress_group/features/reserve-order/presentation/pages/detail.dart';
+import 'package:progress_group/features/reserve-order/presentation/pages/list.dart';
+import 'package:progress_group/features/reserve-order/presentation/pages/revise.dart';
+import 'package:progress_group/features/reserve-order/presentation/pages/top_up.dart';
+import 'package:progress_group/features/reserve-order/presentation/state/reserve_order_list/reserve_order_list_cubit.dart';
 
-class _FakeFilePicker extends Fake with MockPlatformInterfaceMixin implements FilePicker {
-  int calls = 0;
-
-  @override
-  Future<FilePickerResult?> pickFiles({
-    String? dialogTitle,
-    String? initialDirectory,
-    FileType type = FileType.any,
-    List<String>? allowedExtensions,
-    Function(FilePickerStatus)? onFileLoading,
-    bool allowCompression = true,
-    int compressionQuality = 30,
-    bool allowMultiple = false,
-    bool withData = false,
-    bool withReadStream = false,
-    bool lockParentWindow = false,
-    bool readSequential = false,
-  }) async {
-    calls++;
-    return FilePickerResult([
-      PlatformFile(name: 'bukti-$calls.pdf', size: 4, bytes: Uint8List.fromList([1, 2, 3, 4])),
-    ]);
-  }
-}
 
 /// Baris `GET /api/reserve` seperti aslinya — sengaja JSON mentah supaya `ReserveOrder.fromJson`
 /// ikut teruji, bukan cuma widget-nya.
@@ -102,6 +75,7 @@ class _FakeReserveOrders implements ReserveOrderRemoteDataSource {
     String sort = 'created_desc',
     int page = 1,
     int perPage = 15,
+    int? contactId,
   }) async {
     calls++;
     lastSearch = search;
@@ -118,6 +92,15 @@ class _FakeReserveOrders implements ReserveOrderRemoteDataSource {
       total: filtered.length,
     );
   }
+
+  @override
+  Future<List<ReserveFilterOption>> getReserveFilters() async => const [];
+
+  @override
+  Future<List<CaraBayarOption>> getCaraBayarOptions() async => const [];
+
+  @override
+  Future<void> createReserve(CreateReserveParams params) async {}
 }
 
 late _FakeReserveOrders source;
@@ -172,48 +155,10 @@ Future<void> _pumpMenu(WidgetTester tester) async {
   await tester.pumpAndSettle();
 }
 
-/// Periksa pesan validasi, lalu habiskan SnackBar-nya supaya pesan berikutnya tidak terantre.
-Future<void> _expectSnack(WidgetTester tester, String message) async {
-  expect(find.text(message), findsOneWidget);
-  await tester.pump(const Duration(seconds: 5));
-  await tester.pumpAndSettle();
-}
 
-/// Lampirkan file lewat sheet pilih sumber (jalur "Dokumen" → FilePicker palsu).
-Future<void> _attachVia(WidgetTester tester, Finder row) async {
-  await tester.tap(row);
-  await tester.pumpAndSettle();
-  await tester.tap(find.text('Dokumen').last);
-  await tester.pumpAndSettle();
-}
 
-/// Kartu di luar layar belum dibangun ListView, jadi digulir dulu sebelum ditekan.
-Future<void> _openDetail(WidgetTester tester, String customerName) async {
-  final card = find.text(customerName);
-  if (card.evaluate().isEmpty) {
-    await tester.scrollUntilVisible(card, 200, scrollable: find.byType(Scrollable).last);
-  }
-  await tester.tap(card);
-  await tester.pumpAndSettle();
-}
 
-/// Menunggu debounce pencarian (400 ms) sebelum request-nya jalan.
-Future<void> _search(WidgetTester tester, String keyword) async {
-  await tester.enterText(find.byType(TextFormField), keyword);
-  await tester.pump(const Duration(milliseconds: 500));
-  await tester.pumpAndSettle();
-}
 
-/// Chip filter punya Key sendiri karena labelnya ("SP", "Akad") bisa sama persis dengan teks badge
-/// status di kartu. `ensureVisible` menghitung scroll offset horizontalnya persis, jadi aman dari
-/// chip yang sudah dibangun (masuk cache) tapi masih di luar area yang benar-benar terlihat.
-Future<void> _tapFilterChip(WidgetTester tester, String filterName) async {
-  final chip = find.byKey(ValueKey('reserve_order_filter_$filterName'));
-  await tester.ensureVisible(chip);
-  await tester.pumpAndSettle();
-  await tester.tap(chip);
-  await tester.pumpAndSettle();
-}
 
 
 void main() {

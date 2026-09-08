@@ -2,7 +2,7 @@ import 'dart:typed_data';
 
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:progress_group/core/utils/helpers/error_message.dart';
-import 'package:progress_group/features/contact/data/datasources/ktp_ocr_remote_datasource.dart';
+import 'package:progress_group/features/reserve-order/data/datasources/ktp_ocr_remote_datasource.dart';
 import 'ktp_ocr_state.dart';
 
 class KtpOcrCubit extends Cubit<KtpOcrState> {
