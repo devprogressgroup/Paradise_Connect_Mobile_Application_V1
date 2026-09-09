@@ -101,7 +101,7 @@ class _ReserveOrderPageState extends State<ReserveOrderPage> {
   }) {
     // Topup & RB belum punya tujuan; pensilnya tetap ditampilkan seperti mockup, tapi menjelaskan
     // statusnya saat ditekan ketimbang jadi tombol mati tanpa reaksi.
-    final action = onTap ?? () => showSnackbar(context, '$title belum tersedia.');
+    final action = onTap ?? () => showSnackbar(context, '$title is not available yet.');
 
     return InkWell(
       onTap: action,

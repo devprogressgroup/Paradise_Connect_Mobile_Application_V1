@@ -3,13 +3,10 @@ import 'package:flutter/services.dart';
 import 'package:progress_group/core/constants/colors.dart';
 import 'package:progress_group/features/reserve-order/data/models/reserve_order_model.dart';
 
-/// Potongan UI yang dipakai bareng oleh halaman-halaman menu Reserve Order (list, detail, top up,
-/// ajukan ulang). Ukuran & warnanya mengikuti mockup `reserve-order-sales-final_12.html` Bagian 3.
 
-const Color roIconBg = Color(0xFFE6F1FB);
-const Color roSelectedBg = Color(0xFFE8F2FE);
+const Color roIconBg = Color(roIconBgColor);
+const Color roSelectedBg = Color(roSelectedBgColor);
 
-/// App bar mockup: tombol back, avatar inisial opsional, judul + subjudul kecil.
 Widget roAppBar({
   required String title,
   String? subtitle,
@@ -65,8 +62,6 @@ Widget roAppBar({
   );
 }
 
-/// Lingkaran inisial pembeli / penulis catatan. Default-nya biru muda ala header mockup; avatar
-/// catatan mengirim warna solid per peran + teks putih.
 Widget roAvatar(String initials, {double size = 40, Color? color, Color? textColor}) {
   return Container(
     width: size,
@@ -75,16 +70,12 @@ Widget roAvatar(String initials, {double size = 40, Color? color, Color? textCol
     decoration: BoxDecoration(color: color ?? roIconBg, shape: BoxShape.circle),
     child: Text(
       initials,
-      style: TextStyle(fontSize: size * 0.36, fontWeight: FontWeight.w700, color: textColor ?? const Color(0xFF0C447C)),
+      style: TextStyle(fontSize: size * 0.36, fontWeight: FontWeight.w700, color: textColor ?? const Color(roAvatarTextColor)),
     ),
   );
 }
 
-/// Badge tahap transaksi (Diproses / R/BR / SP / …). Label dikirim terpisah dari warnanya karena
-/// nama tahap bisa lebih spesifik daripada enum statusnya — lihat `ReserveOrder.badgeLabel`.
 Widget roStatusBadge(String label, Color color) {
-  // SP & Reserve Booking memakai latar gelap/pekat, teks putih tetap terbaca. Warna RBB (#FEB900)
-  // paling terang di antara semuanya tapi masih aman dengan teks putih tebal.
   return Container(
     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
     decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(20)),
@@ -150,8 +141,6 @@ Widget roInput(
   );
 }
 
-/// Tombol utama dengan status loading — dipakai saat mengajukan top up / submit ulang supaya
-/// tombolnya tidak bisa ditekan dua kali dan prosesnya kelihatan.
 Widget roPrimaryButton(String text, VoidCallback? onTap, {bool loading = false}) {
   final enabled = onTap != null && !loading;
 
@@ -234,15 +223,13 @@ Widget roChip(String text, bool selected, VoidCallback onTap) {
   );
 }
 
-/// Baris dokumen di tab Attachment / halaman top up & ajukan ulang. Warna border dan teks status
-/// mengikuti [ReserveOrderDocState] — merah untuk yang ditolak, kuning untuk yang masih diverifikasi.
 Widget roDocTile(ReserveOrderDoc doc, {VoidCallback? onTap}) {
   final (Color border, Color iconBg, Color iconColor, Color statusColor) = switch (doc.state) {
     ReserveOrderDocState.awaitingUpload => (const Color(grey10Color), roIconBg, const Color(primaryColor), const Color(primaryColor)),
     ReserveOrderDocState.uploaded => (const Color(grey10Color), roIconBg, const Color(primaryColor), const Color(grey4Color)),
-    ReserveOrderDocState.pending => (const Color(warningColor), const Color(0xFFFFF6E5), const Color(warningColor), const Color(warningColor)),
-    ReserveOrderDocState.rejected => (const Color(redColor), const Color(0xFFFDECEC), const Color(redColor), const Color(redColor)),
-    ReserveOrderDocState.issued => (const Color(spColor), const Color(0xFFE9E7FE), const Color(spColor), const Color(grey4Color)),
+    ReserveOrderDocState.pending => (const Color(warningColor), const Color(roAmberBgColor), const Color(warningColor), const Color(warningColor)),
+    ReserveOrderDocState.rejected => (const Color(redColor), const Color(roLightRedBgColor), const Color(redColor), const Color(redColor)),
+    ReserveOrderDocState.issued => (const Color(spColor), const Color(roLightPurpleBgColor), const Color(spColor), const Color(grey4Color)),
   };
 
   return InkWell(
@@ -298,15 +285,14 @@ Widget roDocTile(ReserveOrderDoc doc, {VoidCallback? onTap}) {
   );
 }
 
-/// Banner merah "Ditolak — Perlu Revisi" beserta alasannya.
 Widget roRejectBanner(String reason) {
   return Container(
     width: double.infinity,
     margin: const EdgeInsets.only(bottom: 10),
     padding: const EdgeInsets.all(11),
     decoration: BoxDecoration(
-      color: const Color(0xFFFDECEC),
-      border: Border.all(color: const Color(0xFFF6B8B8)),
+      color: const Color(roLightRedBgColor),
+      border: Border.all(color: const Color(roRejectBorderColor)),
       borderRadius: BorderRadius.circular(12),
     ),
     child: Column(
@@ -317,19 +303,18 @@ Widget roRejectBanner(String reason) {
             const Icon(Icons.close_rounded, size: 15, color: Color(redColor)),
             const SizedBox(width: 4),
             const Text(
-              'Ditolak — Perlu Revisi',
+              'Rejected — Needs Revision',
               style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(redColor)),
             ),
           ],
         ),
         const SizedBox(height: 4),
-        Text(reason, style: const TextStyle(fontSize: 11, height: 1.5, color: Color(0xFF7A1F1F))),
+        Text(reason, style: const TextStyle(fontSize: 11, height: 1.5, color: Color(roRejectTextColor))),
       ],
     ),
   );
 }
 
-/// Baris "label ..... nilai" di kartu ringkasan.
 Widget roSummaryLine(String label, String value, {bool isLast = false}) {
   return Container(
     padding: const EdgeInsets.symmetric(vertical: 6),
@@ -353,7 +338,6 @@ Widget roSummaryLine(String label, String value, {bool isLast = false}) {
   );
 }
 
-/// Footer putih dengan garis atas untuk tombol utama.
 Widget roFooter(List<Widget> children) {
   return Container(
     width: double.infinity,

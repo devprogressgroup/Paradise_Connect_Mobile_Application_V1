@@ -1,7 +1,7 @@
-// Smoke test menu "Reserve Order" (mockup reserve-order-sales-final_12.html, Bagian 3):
+﻿// Smoke test menu "Reserve Order" (mockup reserve-order-sales-final_12.html, Bagian 3):
 // list transaksi dari `GET /api/reserve` + pencarian, pemetaan response ke kartu & detail,
 // detail dengan 4 tab & timeline L1-L10, Top Up Pembayaran sampai layar sukses, dan
-// Edit & Ajukan Ulang untuk transaksi yang ditolak kasir.
+// Edit & Resubmit untuk transaksi yang ditolak kasir.
 // Analyzer tidak bisa menangkap error layout, jadi ini satu-satunya pengaman otomatisnya.
 import 'dart:typed_data';
 
@@ -321,33 +321,33 @@ void main() {
     await _pumpMenu(tester, width: 900);
 
     expect(find.text('Reserve Order'), findsOneWidget);
-    expect(find.text('3 transaksi'), findsOneWidget);
+    expect(find.text('3 transactions'), findsOneWidget);
 
     // Baris pertama: property_name & deal_blok_no kosong → unitnya ditulis apa adanya.
     expect(find.text('Andi Wijaya Aan'), findsOneWidget);
-    expect(find.textContaining('Unit belum ditentukan', findRichText: true), findsOneWidget);
+    expect(find.textContaining('Unit not yet determined', findRichText: true), findsOneWidget);
     expect(find.textContaining('Paradise Serpong City 2', findRichText: true), findsOneWidget);
     expect(find.text('Nadilla Qurnia Ramadhan'), findsNWidgets(3));
     expect(find.text('Rp 80.000'), findsOneWidget);
     expect(find.textContaining('Reserve: 07 Sep'), findsOneWidget);
-    expect(find.text('Diproses'), findsOneWidget);
+    expect(find.text('Processing'), findsOneWidget);
 
     // Nominal besar diringkas seperti mockup, dan tahapnya ikut sp_date / penolakan kasir. Chip
     // filter "SP" (dari GET /api/reserve-filter) ikut kebangun di baris atas (viewport dilebarkan
     // di _pumpMenu), jadi teksnya sengaja dicek 2 (chip + badge kartu).
-    expect(find.text('Rp 780jt'), findsOneWidget);
+    expect(find.text('Rp 780M'), findsOneWidget);
     expect(find.text('SP'), findsNWidgets(2));
-    expect(find.text('Ditolak'), findsOneWidget);
+    expect(find.text('Rejected'), findsOneWidget);
 
     // Pencarian: kata kuncinya sampai ke datasource, bukan disaring di aplikasi.
     await _search(tester, 'budi');
     expect(source.lastSearch, 'budi');
     expect(find.text('Budi Santoso'), findsOneWidget);
     expect(find.text('Andi Wijaya Aan'), findsNothing);
-    expect(find.text('1 transaksi'), findsOneWidget);
+    expect(find.text('1 transaction'), findsOneWidget);
 
     await _search(tester, 'zzz');
-    expect(find.textContaining('Tidak ada transaksi yang cocok'), findsOneWidget);
+    expect(find.textContaining('No transactions matching'), findsOneWidget);
   });
 
   testWidgets('chip filter dari GET /api/reserve-filter mengirim status_reserve_id ke server', (tester) async {
@@ -363,7 +363,7 @@ void main() {
     expect(find.text('Budi Santoso'), findsOneWidget);
     expect(find.text('Andi Wijaya Aan'), findsNothing);
     expect(find.text('Reyhan Pradipta'), findsNothing);
-    expect(find.text('1 transaksi'), findsOneWidget);
+    expect(find.text('1 transaction'), findsOneWidget);
 
     // Chip "Reserve" (id 2) cuma menyisakan Andi.
     await _tapFilterChip(tester, '2');
@@ -374,7 +374,7 @@ void main() {
 
     // Chip yang tidak ada transaksinya tetap bisa dipilih, pesan kosongnya beda dari pencarian.
     await _tapFilterChip(tester, '7'); // RBA
-    expect(find.text('Tidak ada transaksi untuk filter "RBA".'), findsOneWidget);
+    expect(find.text('No transactions for filter "RBA".'), findsOneWidget);
 
     await _tapFilterChip(tester, 'semua');
     expect(source.lastStatusIds, isEmpty);
@@ -387,10 +387,10 @@ void main() {
     source.fail = true;
     await _pumpMenu(tester);
 
-    expect(find.text('Coba lagi'), findsOneWidget);
+    expect(find.text('Retry'), findsOneWidget);
 
     source.fail = false;
-    await tester.tap(find.text('Coba lagi'));
+    await tester.tap(find.text('Retry'));
     await tester.pumpAndSettle();
     expect(find.text('Andi Wijaya Aan'), findsOneWidget);
   });
@@ -400,25 +400,25 @@ void main() {
     await _openDetail(tester, 'Andi Wijaya Aan');
 
     expect(find.text('Andi Wijaya Aan'), findsOneWidget);
-    expect(find.text('Unit belum ditentukan · Paradise Serpong City 2'), findsOneWidget);
-    expect(find.text('Profil & Riwayat Lengkap ›'), findsOneWidget);
+    expect(find.text('Unit not yet determined · Paradise Serpong City 2'), findsOneWidget);
+    expect(find.text('Full Profile & History ›'), findsOneWidget);
 
     // Timeline lengkap, chip gembok, dan penanda tujuan akhir.
     expect(find.text('L1 Leads'), findsOneWidget);
     expect(find.text('L4 Reserve'), findsOneWidget);
     expect(find.text('L10 AKAD'), findsOneWidget);
-    expect(find.text('Tujuan Akhir'), findsOneWidget);
-    expect(find.text('Progress saja'), findsNWidgets(3)); // L7, L8, L9
-    expect(find.textContaining('Diajukan 07 Sep 2026 · Rp 80.000 · sedang diverifikasi'), findsOneWidget);
+    expect(find.text('Final Goal'), findsOneWidget);
+    expect(find.text('Progress Only'), findsNWidgets(3)); // L7, L8, L9
+    expect(find.textContaining('Submitted 07 Sep 2026 · Rp 80.000 · under verification'), findsOneWidget);
 
     // Tautan profil membuka halaman Contact Detail memakai contact_id dari response.
-    await tester.tap(find.text('Profil & Riwayat Lengkap ›'));
+    await tester.tap(find.text('Full Profile & History ›'));
     await tester.pumpAndSettle();
     expect(find.text('Contact Detail'), findsWidgets);
     await tester.tap(find.byType(BackButton));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Data Pembeli'));
+    await tester.tap(find.text('Buyer Data'));
     await tester.pumpAndSettle();
     expect(find.text('081234567890'), findsWidgets);
 
@@ -427,9 +427,9 @@ void main() {
     // "belum bisa ditampilkan", bukan "belum ada dokumen". Catatan diisi dari `reserve_note`.
     await tester.tap(find.text('Attachment'));
     await tester.pumpAndSettle();
-    expect(find.text('Dokumen transaksi ini belum bisa ditampilkan di sini.'), findsOneWidget);
+    expect(find.text('Documents for this transaction cannot be shown here yet.'), findsOneWidget);
 
-    await tester.tap(find.text('Catatan'));
+    await tester.tap(find.text('Notes'));
     await tester.pumpAndSettle();
     expect(find.text('test reserve_note'), findsOneWidget);
 
@@ -462,7 +462,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Bukti Transfer'), findsOneWidget);
-    expect(find.textContaining('Diunggah iman'), findsOneWidget);
+    expect(find.textContaining('Uploaded by iman'), findsOneWidget);
     expect(find.textContaining('09 Sep 2026'), findsOneWidget);
 
     // Tap kartunya membuka preview lewat route `attachmentWebView`, bawa `attachment_url`-nya.
@@ -476,62 +476,62 @@ void main() {
     await _pumpMenu(tester);
     await _openDetail(tester, 'Andi Wijaya Aan');
 
-    await tester.ensureVisible(find.text('+ Top Up Pembayaran'));
+    await tester.ensureVisible(find.text('+ Top Up Payment'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('+ Top Up Pembayaran'));
+    await tester.tap(find.text('+ Top Up Payment'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Top Up Pembayaran'), findsOneWidget);
-    expect(find.text('Total dibayar sejauh ini'), findsOneWidget);
+    expect(find.text('Top Up Payment'), findsOneWidget);
+    expect(find.text('Total Paid So Far'), findsOneWidget);
     expect(find.text('Rp 80.000'), findsOneWidget);
 
-    await tester.tap(find.text('Ajukan Top Up'));
+    await tester.tap(find.text('Submit Top Up'));
     await tester.pumpAndSettle();
-    await _expectSnack(tester, 'Bukti transfer top up wajib dilampirkan');
+    await _expectSnack(tester, 'Top up transfer proof is required');
 
-    await _attachVia(tester, find.textContaining('Upload bukti transfer baru', findRichText: true));
-    expect(find.textContaining('Terupload · '), findsOneWidget);
+    await _attachVia(tester, find.textContaining('Upload new transfer proof', findRichText: true));
+    expect(find.textContaining('Uploaded · '), findsOneWidget);
 
-    await tester.tap(find.text('Ajukan Top Up'));
+    await tester.tap(find.text('Submit Top Up'));
     await tester.pumpAndSettle();
-    await _expectSnack(tester, 'Nominal top up wajib diisi');
+    await _expectSnack(tester, 'Top up amount is required');
 
     await tester.enterText(find.byType(TextField).first, '3000000');
     await tester.pumpAndSettle();
     expect(find.text('3.000.000'), findsOneWidget);
 
-    await tester.tap(find.text('Ajukan Top Up'));
+    await tester.tap(find.text('Submit Top Up'));
     await tester.pumpAndSettle();
-    expect(find.text('Top Up Berhasil Diajukan'), findsOneWidget);
+    expect(find.text('Top Up Successfully Submitted'), findsOneWidget);
     expect(find.text('Rp 80.000 + Rp 3.000.000'), findsOneWidget);
-    expect(find.text('Menunggu'), findsOneWidget);
+    expect(find.text('Pending'), findsOneWidget);
 
-    await tester.tap(find.text('Kembali ke Reserve Order'));
+    await tester.tap(find.text('Back to Reserve Order'));
     await tester.pumpAndSettle();
-    expect(find.textContaining('Top Up Booking Reserve Rp 3.000.000 diajukan', findRichText: true), findsOneWidget);
+    expect(find.textContaining('Top Up Booking Reserve Rp 3.000.000 submitted', findRichText: true), findsOneWidget);
   });
 
   testWidgets('transaksi ditolak: banner, ajukan ulang, lalu balik ke Diproses', (tester) async {
     await _pumpMenu(tester);
     await _openDetail(tester, 'Reyhan Pradipta');
 
-    expect(find.text('Ditolak — Perlu Revisi'), findsOneWidget); // banner
-    expect(find.text('Ditolak - Perlu Revisi'), findsOneWidget); // kotak status
+    expect(find.text('Rejected — Needs Revision'), findsOneWidget); // banner
+    expect(find.text('Rejected - Needs Revision'), findsOneWidget); // kotak status
     expect(find.textContaining('Nominal bukti transfer tidak sesuai'), findsWidgets);
 
-    await tester.tap(find.text('Edit & Ajukan Ulang'));
+    await tester.tap(find.text('Edit & Resubmit'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Perbaiki Reserve Order'), findsOneWidget);
+    expect(find.text('Fix Reserve Order'), findsOneWidget);
     expect(find.text('400.000.000'), findsOneWidget); // prefill dari nominal yang ditolak
 
-    await tester.tap(find.text('Submit Ulang'));
+    await tester.tap(find.text('Resubmit'));
     await tester.pumpAndSettle();
 
     // Balik ke detail: banner hilang, statusnya kembali menunggu verifikasi.
-    expect(find.text('Perbaiki Reserve Order'), findsNothing);
-    expect(find.text('Masih Diproses'), findsNWidgets(3)); // kotak status + 2 chip gembok (L5, L6)
-    expect(find.text('Edit & Ajukan Ulang'), findsNothing);
-    expect(find.textContaining('Reserve Order diajukan ulang dengan nominal', findRichText: true), findsOneWidget);
+    expect(find.text('Fix Reserve Order'), findsNothing);
+    expect(find.text('Still Processing'), findsNWidgets(3)); // kotak status + 2 chip gembok (L5, L6)
+    expect(find.text('Edit & Resubmit'), findsNothing);
+    expect(find.textContaining('Reserve Order resubmitted with an amount', findRichText: true), findsOneWidget);
   });
 }

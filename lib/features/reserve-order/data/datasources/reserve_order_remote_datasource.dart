@@ -203,9 +203,9 @@ class ReserveOrderRemoteDataSourceImpl implements ReserveOrderRemoteDataSource {
         );
       }
 
-      throw Exception(body is Map ? (body['message'] ?? 'Gagal memuat reserve order') : 'Gagal memuat reserve order');
+      throw Exception(body is Map ? (body['message'] ?? 'Failed to load reserve order') : 'Failed to load reserve order');
     } on DioException catch (e) {
-      throw Exception(getErrorMessage(e, 'Gagal memuat reserve order'));
+      throw Exception(getErrorMessage(e, 'Failed to load reserve order'));
     }
   }
 
@@ -223,9 +223,9 @@ class ReserveOrderRemoteDataSourceImpl implements ReserveOrderRemoteDataSource {
             .toList();
       }
 
-      throw Exception(body is Map ? (body['message'] ?? 'Gagal memuat filter reserve order') : 'Gagal memuat filter reserve order');
+      throw Exception(body is Map ? (body['message'] ?? 'Failed to load reserve order filter') : 'Failed to load reserve order filter');
     } on DioException catch (e) {
-      throw Exception(getErrorMessage(e, 'Gagal memuat filter reserve order'));
+      throw Exception(getErrorMessage(e, 'Failed to load reserve order filter'));
     }
   }
 
@@ -239,9 +239,9 @@ class ReserveOrderRemoteDataSourceImpl implements ReserveOrderRemoteDataSource {
         return (body['data'] as List).map((e) => CaraBayarOption.fromJson(Map<String, dynamic>.from(e as Map))).toList();
       }
 
-      throw Exception(body is Map ? (body['message'] ?? 'Gagal memuat cara pembayaran') : 'Gagal memuat cara pembayaran');
+      throw Exception(body is Map ? (body['message'] ?? 'Failed to load payment method') : 'Failed to load payment method');
     } on DioException catch (e) {
-      throw Exception(getErrorMessage(e, 'Gagal memuat cara pembayaran'));
+      throw Exception(getErrorMessage(e, 'Failed to load payment method'));
     }
   }
 
@@ -261,11 +261,11 @@ class ReserveOrderRemoteDataSourceImpl implements ReserveOrderRemoteDataSource {
         if (reserveOrderId != null && customerId != null) {
           return CreateReserveResult(reserveOrderId: reserveOrderId, customerId: customerId);
         }
-        throw Exception('reserve_order_id/customer_id tidak ditemukan di response');
+        throw Exception('reserve_order_id/customer_id not found in response');
       }
-      throw Exception(body is Map ? (body['message'] ?? 'Gagal membuat reserve order') : 'Gagal membuat reserve order');
+      throw Exception(body is Map ? (body['message'] ?? 'Failed to create reserve order') : 'Failed to create reserve order');
     } on DioException catch (e) {
-      throw Exception(getErrorMessage(e, 'Gagal membuat reserve order'));
+      throw Exception(getErrorMessage(e, 'Failed to create reserve order'));
     }
   }
 
@@ -276,9 +276,9 @@ class ReserveOrderRemoteDataSourceImpl implements ReserveOrderRemoteDataSource {
       final body = response.data;
 
       if (body is Map && body['status'] == true) return;
-      throw Exception(body is Map ? (body['message'] ?? 'Gagal menyimpan unit') : 'Gagal menyimpan unit');
+      throw Exception(body is Map ? (body['message'] ?? 'Failed to save unit') : 'Failed to save unit');
     } on DioException catch (e) {
-      throw Exception(getErrorMessage(e, 'Gagal menyimpan unit'));
+      throw Exception(getErrorMessage(e, 'Failed to save unit'));
     }
   }
 
@@ -330,13 +330,13 @@ class ReserveOrderRemoteDataSourceImpl implements ReserveOrderRemoteDataSource {
         final id = tts is Map ? tts['reserve_order_tts_id'] : null;
         final reserveOrderTtsId = id is int ? id : int.tryParse('$id');
         if (reserveOrderTtsId != null) return reserveOrderTtsId;
-        throw Exception('reserve_order_tts_id tidak ditemukan di response');
+        throw Exception('reserve_order_tts_id not found in response');
       }
       throw Exception(
-        body is Map ? (body['message'] ?? 'Gagal menyimpan dokumen & pembayaran') : 'Gagal menyimpan dokumen & pembayaran',
+        body is Map ? (body['message'] ?? 'Failed to save documents & payment') : 'Failed to save documents & payment',
       );
     } on DioException catch (e) {
-      throw Exception(getErrorMessage(e, 'Gagal menyimpan dokumen & pembayaran'));
+      throw Exception(getErrorMessage(e, 'Failed to save documents & payment'));
     }
   }
 
@@ -350,9 +350,9 @@ class ReserveOrderRemoteDataSourceImpl implements ReserveOrderRemoteDataSource {
         return ReserveCustomerDetail.fromJson(Map<String, dynamic>.from(body['data'] as Map));
       }
 
-      throw Exception(body is Map ? (body['message'] ?? 'Gagal memuat data pembeli') : 'Gagal memuat data pembeli');
+      throw Exception(body is Map ? (body['message'] ?? 'Failed to load buyer data') : 'Failed to load buyer data');
     } on DioException catch (e) {
-      throw Exception(getErrorMessage(e, 'Gagal memuat data pembeli'));
+      throw Exception(getErrorMessage(e, 'Failed to load buyer data'));
     }
   }
 
@@ -374,9 +374,9 @@ class ReserveOrderRemoteDataSourceImpl implements ReserveOrderRemoteDataSource {
             .toList();
       }
 
-      throw Exception(body is Map ? (body['message'] ?? 'Gagal memuat dokumen') : 'Gagal memuat dokumen');
+      throw Exception(body is Map ? (body['message'] ?? 'Failed to load documents') : 'Failed to load documents');
     } on DioException catch (e) {
-      throw Exception(getErrorMessage(e, 'Gagal memuat dokumen'));
+      throw Exception(getErrorMessage(e, 'Failed to load documents'));
     }
   }
 }

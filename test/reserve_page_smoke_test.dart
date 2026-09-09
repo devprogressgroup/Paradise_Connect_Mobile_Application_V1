@@ -1,9 +1,9 @@
-// Smoke test flow Reserve Order (mockup reserve-order-sales-final_12.html, Bagian 2):
-// memastikan kelima layar — Data Pembeli, Dokumen & Bukti Bayar, Pilih Unit, Review, Sukses —
+﻿// Smoke test flow Reserve Order (mockup reserve-order-sales-final_12.html, Bagian 2):
+// memastikan kelima layar — Data Pembeli, Dokumen & Payment Proof, Select Unit, Review, Sukses —
 // bisa dirender di ukuran layar HP tanpa error layout (overflow / unbounded height), validasi
 // tiap step menahan langkah berikutnya, `POST /api/reserve` (baris customer) terkirim begitu lepas
 // dari step Dokumen, `POST /api/reserve-unit` (deal_id + customer_id) terkirim begitu lepas dari
-// step Pilih Unit, dokumen & rincian pembayarannya terkirim ke `POST /api/reserve/doc-payment` saat
+// step Select Unit, dokumen & rincian pembayarannya terkirim ke `POST /api/reserve/doc-payment` saat
 // submit di Review, dan hasilnya sampai ke kartu di halaman menu.
 // Analyzer tidak bisa menangkap error layout, jadi ini satu-satunya pengaman otomatisnya.
 import 'dart:typed_data';
@@ -37,7 +37,7 @@ class _FakeKtpOcr implements KtpOcrRemoteDataSource {
       const KtpOcrModel(nama: 'SAKUM', nik: '3273051290000012');
 }
 
-/// "Jenis Transaksi" (step Dokumen) & "Cara Pembayaran" (step Data Pembeli) di form Reserve dibaca
+/// "Transaction Type" (step Dokumen) & "Payment Method" (step Data Pembeli) di form Reserve dibaca
 /// dari sini — `GET /api/reserve-filter` (sama dengan chip filter menu List) &
 /// `GET /api/reserve/cara-bayar`. `filterCalls`/`caraBayarCalls` dipakai membuktikan cubit-nya
 /// nge-cache, bukan fetch ulang tiap `ReservePage` dibuka.
@@ -131,7 +131,7 @@ class _FakeReserveOrders implements ReserveOrderRemoteDataSource {
   }
 }
 
-/// Step "Pilih Unit" — `GET /api/reserve/unit-status?contact_id=…`. Filter `search`-nya meniru
+/// Step "Select Unit" — `GET /api/reserve/unit-status?contact_id=…`. Filter `search`-nya meniru
 /// pencarian client-side lama (clusterName/productName/propertyName/displayLabel, case-insensitive)
 /// supaya test pencarian yang sudah ada tetap berlaku sama persis walau sumbernya kini server.
 class _FakeReserveUnits implements ReserveUnitRemoteDataSource {
@@ -190,7 +190,7 @@ class _FakeFilePicker extends Fake with MockPlatformInterfaceMixin implements Fi
   }
 }
 
-/// Unit di step "Pilih Unit" diambil dari kavling yang sudah menempel di kontak, bukan dari
+/// Unit di step "Select Unit" diambil dari kavling yang sudah menempel di kontak, bukan dari
 /// pencarian ke server. [dealId] disertakan supaya `POST /api/reserve-unit` (deal_id + customer_id,
 /// lihat [_FakeReserveOrders.saveReserveUnit]) punya id yang bisa dikirim — tanpanya [_onNextUnit]
 /// melewati unit itu (lihat catatan di `reserve.dart`).
@@ -264,18 +264,18 @@ Future<void> _attachVia(WidgetTester tester, Finder row) async {
 /// Step 1 → 3: isi dokumen wajib & nominal (dua bukti bayar, buat membuktikan
 /// `bukti_transfer` boleh lebih dari 1 file), lalu pilih satu unit.
 Future<void> _fillUntilUnitPicked(WidgetTester tester) async {
-  await tester.tap(find.text('Lanjut ke Dokumen'));
+  await tester.tap(find.text('Continue to Documents'));
   await tester.pumpAndSettle();
   await _attachVia(tester, find.textContaining('KTP', findRichText: true).first);
-  await _attachVia(tester, find.text('+ Tambah Bukti Bayar Lain'));
-  await _attachVia(tester, find.text('+ Tambah Bukti Bayar Lain'));
+  await _attachVia(tester, find.text('+ Add Another Payment Proof'));
+  await _attachVia(tester, find.text('+ Add Another Payment Proof'));
   await tester.enterText(find.byType(TextField).first, '2000000');
   await tester.pumpAndSettle();
-  await tester.tap(find.text('Lanjut ke Pilih Unit'));
+  await tester.tap(find.text('Continue to Select Unit'));
   await tester.pumpAndSettle();
   await tester.tap(find.text('Blok E1 No. 19'));
   await tester.pumpAndSettle();
-  await tester.tap(find.text('Lanjut ke Review'));
+  await tester.tap(find.text('Continue to Review'));
   await tester.pumpAndSettle();
 }
 
@@ -304,23 +304,23 @@ void main() {
     expect(find.text('Reserve Order — Sakum'), findsOneWidget);
     expect(find.text('0812-1111-2222'), findsOneWidget);
     expect(find.text('📷  Scan KTP'), findsOneWidget);
-    expect(find.text('Nama Lengkap (sesuai KTP)'), findsOneWidget);
-    expect(find.text('Tempat, Tanggal Lahir'), findsOneWidget);
-    expect(find.text('Cara Pembayaran'), findsOneWidget);
+    expect(find.text('Full Name (as per KTP)'), findsOneWidget);
+    expect(find.text('Place, Date of Birth'), findsOneWidget);
+    expect(find.text('Payment Method'), findsOneWidget);
     expect(find.text('Sakum'), findsOneWidget); // prefill dari kontak
-    expect(find.text('Lanjut ke Dokumen'), findsOneWidget);
+    expect(find.text('Continue to Documents'), findsOneWidget);
 
     // Picker "Status Pernikahan" membuka sheet pilihan.
-    await tester.tap(find.text('Pilih status pernikahan'));
+    await tester.tap(find.text('Select marital status'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Kawin').last);
     await tester.pumpAndSettle();
     expect(find.text('Kawin'), findsOneWidget);
 
-    // Picker "Cara Pembayaran" isinya dari `GET /api/reserve/cara-bayar` (bukan daftar hardcode
+    // Picker "Payment Method" isinya dari `GET /api/reserve/cara-bayar` (bukan daftar hardcode
     // lama ['KPR', 'Cash', 'Cash Bertahap', 'Inhouse']) — yang tampil di sheet & di picker-nya
     // tetap `name`, id-nya (`cara_bayar_id`) cuma disimpan di balik layar.
-    await tester.tap(find.text('Pilih cara pembayaran'));
+    await tester.tap(find.text('Select payment method'));
     await tester.pumpAndSettle();
     expect(find.text('Cash Bertahap 3X'), findsOneWidget);
     expect(find.text('Cash Bertahap 6X'), findsOneWidget);
@@ -330,56 +330,56 @@ void main() {
     expect(find.text('KPR'), findsOneWidget);
 
     // ── Step 1 → 2 ──
-    await tester.tap(find.text('Lanjut ke Dokumen'));
+    await tester.tap(find.text('Continue to Documents'));
     await tester.pumpAndSettle();
-    expect(find.text('Dokumen Identitas'), findsOneWidget);
-    expect(find.text('Bukti Bayar'), findsOneWidget);
-    expect(find.text('+ Tambah Bukti Bayar Lain'), findsOneWidget);
+    expect(find.text('Identity Documents'), findsOneWidget);
+    expect(find.text('Payment Proof'), findsOneWidget);
+    expect(find.text('+ Add Another Payment Proof'), findsOneWidget);
     expect(find.text('Booking Reserve (langsung)'), findsOneWidget);
-    expect(find.text('Nominal Pembayaran'), findsOneWidget);
+    expect(find.text('Payment Amount'), findsOneWidget);
 
     // Belum ada lampiran → ditahan di step Dokumen.
-    await tester.tap(find.text('Lanjut ke Pilih Unit'));
+    await tester.tap(find.text('Continue to Select Unit'));
     await tester.pumpAndSettle();
-    await _expectSnack(tester, 'Dokumen KTP wajib dilampirkan');
+    await _expectSnack(tester, 'KTP document is required');
 
     // Lampirkan KTP → pesan bergeser ke bukti bayar.
     await _attachVia(tester, find.textContaining('KTP', findRichText: true).first);
-    expect(find.textContaining('Terupload · '), findsOneWidget);
-    await tester.tap(find.text('Lanjut ke Pilih Unit'));
+    expect(find.textContaining('Uploaded · '), findsOneWidget);
+    await tester.tap(find.text('Continue to Select Unit'));
     await tester.pumpAndSettle();
-    await _expectSnack(tester, 'Bukti bayar wajib dilampirkan minimal 1');
+    await _expectSnack(tester, 'At least 1 payment proof is required');
 
     // Lampirkan bukti bayar → tinggal nominal yang kosong.
-    await _attachVia(tester, find.text('+ Tambah Bukti Bayar Lain'));
-    await tester.tap(find.text('Lanjut ke Pilih Unit'));
+    await _attachVia(tester, find.text('+ Add Another Payment Proof'));
+    await tester.tap(find.text('Continue to Select Unit'));
     await tester.pumpAndSettle();
-    await _expectSnack(tester, 'Nominal pembayaran wajib diisi');
+    await _expectSnack(tester, 'Payment amount is required');
 
     // Nominal: angka mentah diformat jadi ribuan.
     await tester.enterText(find.byType(TextField).first, '2000000');
     await tester.pumpAndSettle();
     expect(find.text('2.000.000'), findsOneWidget);
 
-    // ── Step 2 → 3: Pilih Unit (kavling yang menempel di kontak) ──
-    await tester.tap(find.text('Lanjut ke Pilih Unit'));
+    // ── Step 2 → 3: Select Unit (kavling yang menempel di kontak) ──
+    await tester.tap(find.text('Continue to Select Unit'));
     await tester.pumpAndSettle();
-    expect(find.text('Pilih Unit'), findsOneWidget);
+    expect(find.text('Select Unit'), findsOneWidget);
     expect(find.text('Blok E1 No. 19'), findsOneWidget);
     expect(find.text('PAR2 · Ecoscape'), findsNWidgets(2));
     expect(find.text('Waiting list'), findsOneWidget);
-    expect(find.text('0 unit dipilih'), findsOneWidget);
+    expect(find.text('0 unit(s) selected'), findsOneWidget);
 
     // Belum ada unit dipilih → ditahan.
-    await tester.tap(find.text('Lanjut ke Review'));
+    await tester.tap(find.text('Continue to Review'));
     await tester.pumpAndSettle();
-    await _expectSnack(tester, 'Pilih minimal 1 unit');
+    await _expectSnack(tester, 'Select at least 1 unit');
 
     await tester.tap(find.text('Blok E1 No. 19'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Blok E1 No. 21'));
     await tester.pumpAndSettle();
-    expect(find.text('2 unit dipilih'), findsOneWidget);
+    expect(find.text('2 unit(s) selected'), findsOneWidget);
 
     // Pencarian menyaring daftar.
     await tester.enterText(find.byType(TextField).first, '19');
@@ -387,26 +387,26 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Blok E1 No. 21'), findsNothing);
     expect(find.text('Blok E1 No. 19'), findsOneWidget);
-    expect(find.text('2 unit dipilih'), findsOneWidget); // pilihan tidak hilang saat menyaring
+    expect(find.text('2 unit(s) selected'), findsOneWidget); // pilihan tidak hilang saat menyaring
 
     // ── Step 3 → 4: Review ──
-    await tester.tap(find.text('Lanjut ke Review'));
+    await tester.tap(find.text('Continue to Review'));
     await tester.pumpAndSettle();
     expect(find.text('Review Reserve Order'), findsOneWidget);
-    expect(find.text('Kontak'), findsOneWidget);
-    expect(find.text('Lengkap ✓'), findsOneWidget);
-    expect(find.text('Jenis Transaksi'), findsOneWidget);
+    expect(find.text('Contact'), findsOneWidget);
+    expect(find.text('Complete ✓'), findsOneWidget);
+    expect(find.text('Transaction Type'), findsOneWidget);
     expect(find.text('Rp 2.000.000 ✓'), findsOneWidget);
-    expect(find.textContaining('Bukti Bayar ✓'), findsOneWidget);
+    expect(find.textContaining('Payment Proof ✓'), findsOneWidget);
 
     // ── Step 4 → Sukses ──
     await tester.tap(find.text('Submit Reserve Order'));
     await tester.pumpAndSettle();
-    expect(find.text('Reserve Order Berhasil Diajukan'), findsOneWidget);
-    expect(find.textContaining('a.n. Sakum sedang diproses.'), findsOneWidget);
-    expect(find.text('Diproses'), findsOneWidget);
-    expect(find.text('Lihat di Reserve Order'), findsOneWidget);
-    expect(find.text('Kembali ke Kontak'), findsOneWidget);
+    expect(find.text('Reserve Order Successfully Submitted'), findsOneWidget);
+    expect(find.textContaining('on behalf of Sakum is being processed.'), findsOneWidget);
+    expect(find.text('Processing'), findsOneWidget);
+    expect(find.text('View in Reserve Order'), findsOneWidget);
+    expect(find.text('Back to Contact'), findsOneWidget);
   });
 
   testWidgets('submit mengirim KTP, bukti bayar & rincian pembayaran ke doc-payment', (tester) async {
@@ -425,7 +425,7 @@ void main() {
 
     await tester.tap(find.text('Submit Reserve Order'));
     await tester.pumpAndSettle();
-    expect(find.text('Reserve Order Berhasil Diajukan'), findsOneWidget);
+    expect(find.text('Reserve Order Successfully Submitted'), findsOneWidget);
 
     // Satu request `doc-payment`, pakai `reserve_order_id` dari response `createReserve`. NPWP
     // tidak dilampirkan, jadi tidak ikut dikirim. Dua bukti bayar ikut terkirim semuanya (bukan
@@ -457,7 +457,7 @@ void main() {
     await tester.tap(find.text('Submit Reserve Order'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Reserve Order Berhasil Diajukan'), findsNothing);
+    expect(find.text('Reserve Order Successfully Submitted'), findsNothing);
     expect(find.text('Review Reserve Order'), findsOneWidget);
     expect(find.textContaining('koneksi terputus'), findsOneWidget);
   });
@@ -499,8 +499,8 @@ void main() {
     await tester.tap(find.text('Submit Reserve Order'));
     await tester.pumpAndSettle();
 
-    // "Lihat di Reserve Order" mengembalikan hasilnya ke halaman menu.
-    await tester.tap(find.text('Lihat di Reserve Order'));
+    // "View in Reserve Order" mengembalikan hasilnya ke halaman menu.
+    await tester.tap(find.text('View in Reserve Order'));
     await tester.pumpAndSettle();
 
     expect(find.text('Topup'), findsOneWidget);
@@ -548,13 +548,13 @@ void main() {
       home: ReservePage(args: ContactDetailArgs(dataContact: _contact(), namePage: 'Reserve')),
     )));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Lanjut ke Dokumen'));
+    await tester.tap(find.text('Continue to Documents'));
     await tester.pumpAndSettle();
     await _attachVia(tester, find.textContaining('KTP', findRichText: true).first);
-    await _attachVia(tester, find.text('+ Tambah Bukti Bayar Lain'));
+    await _attachVia(tester, find.text('+ Add Another Payment Proof'));
     await tester.enterText(find.byType(TextField).first, '2000000');
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Lanjut ke Pilih Unit'));
+    await tester.tap(find.text('Continue to Select Unit'));
     await tester.pumpAndSettle();
 
     expect(find.textContaining('Rp 450.000.000'), findsOneWidget);
@@ -564,15 +564,15 @@ void main() {
     // Unit tidak sellable (is_property_sellable: false) tidak bisa dicentang.
     await tester.tap(find.text('Blok E1 No. 20'));
     await tester.pumpAndSettle();
-    expect(find.text('0 unit dipilih'), findsOneWidget);
+    expect(find.text('0 unit(s) selected'), findsOneWidget);
 
     // Unit sellable tetap bisa dicentang seperti biasa.
     await tester.tap(find.text('Blok E1 No. 19'));
     await tester.pumpAndSettle();
-    expect(find.text('1 unit dipilih'), findsOneWidget);
+    expect(find.text('1 unit(s) selected'), findsOneWidget);
   });
 
-  testWidgets('"Jenis Transaksi" pakai master status dari reserve-filter & di-cache di cubit', (tester) async {
+  testWidgets('"Transaction Type" pakai master status dari reserve-filter & di-cache di cubit', (tester) async {
     tester.view.physicalSize = const Size(390 * 3, 844 * 3);
     tester.view.devicePixelRatio = 3;
     addTearDown(tester.view.reset);
@@ -587,7 +587,7 @@ void main() {
         home: ReservePage(args: ContactDetailArgs(dataContact: _contact(), namePage: 'Reserve')),
       )));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Lanjut ke Dokumen'));
+      await tester.tap(find.text('Continue to Documents'));
       await tester.pumpAndSettle();
     }
 
@@ -603,7 +603,7 @@ void main() {
     expect(source.filterCalls, 1);
   });
 
-  testWidgets('Lanjut ke Pilih Unit bikin baris customer lewat POST /api/reserve; Lanjut ke Review menautkan unit lewat POST /api/reserve-unit; submit baru kirim doc-payment', (tester) async {
+  testWidgets('Continue to Select Unit bikin baris customer lewat POST /api/reserve; Continue to Review menautkan unit lewat POST /api/reserve-unit; submit baru kirim doc-payment', (tester) async {
     tester.view.physicalSize = const Size(390 * 3, 844 * 3);
     tester.view.devicePixelRatio = 3;
     addTearDown(tester.view.reset);
@@ -616,14 +616,14 @@ void main() {
     // Tempat/Tanggal Lahir diisi manual (tanpa scan KTP) — dites kalau parse balik dari teksnya
     // ("Tempat, dd MMMM yyyy", sesuai hint field-nya) jalan buat `cust_birth_place`/`cust_birth_date`.
     await tester.enterText(_fieldWithHint('Jakarta, 01 Januari 1990'), 'Jakarta, 09 Januari 1990');
-    await tester.enterText(_fieldWithHint('Wiraswasta'), 'Pedagang');
+    await tester.enterText(_fieldWithHint('Self-employed'), 'Pedagang');
 
-    await tester.tap(find.text('Pilih status pernikahan'));
+    await tester.tap(find.text('Select marital status'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Kawin').last);
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Pilih cara pembayaran'));
+    await tester.tap(find.text('Select payment method'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('KPR').last);
     await tester.pumpAndSettle();
@@ -663,7 +663,7 @@ void main() {
     await tester.tap(find.text('Submit Reserve Order'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Reserve Order Berhasil Diajukan'), findsOneWidget);
+    expect(find.text('Reserve Order Successfully Submitted'), findsOneWidget);
     // Tidak dipanggil ulang saat submit — baris customer-nya sudah dibuat lebih awal.
     expect(source.createCalls.length, 1);
 
@@ -673,7 +673,7 @@ void main() {
     expect(source.docPaymentCalls.single.reserveOrderId, source.nextReserveOrderId);
   });
 
-  testWidgets('POST /api/reserve gagal menahan di step Dokumen, tidak lanjut ke Pilih Unit', (tester) async {
+  testWidgets('POST /api/reserve gagal menahan di step Dokumen, tidak lanjut ke Select Unit', (tester) async {
     tester.view.physicalSize = const Size(390 * 3, 844 * 3);
     tester.view.devicePixelRatio = 3;
     addTearDown(tester.view.reset);
@@ -684,25 +684,25 @@ void main() {
     )));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Lanjut ke Dokumen'));
+    await tester.tap(find.text('Continue to Documents'));
     await tester.pumpAndSettle();
     await _attachVia(tester, find.textContaining('KTP', findRichText: true).first);
-    await _attachVia(tester, find.text('+ Tambah Bukti Bayar Lain'));
+    await _attachVia(tester, find.text('+ Add Another Payment Proof'));
     await tester.enterText(find.byType(TextField).first, '2000000');
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Lanjut ke Pilih Unit'));
+    await tester.tap(find.text('Continue to Select Unit'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Pilih Unit'), findsNothing);
-    expect(find.text('Dokumen Identitas'), findsOneWidget); // tetap di step Dokumen
+    expect(find.text('Select Unit'), findsNothing);
+    expect(find.text('Identity Documents'), findsOneWidget); // tetap di step Dokumen
     expect(find.textContaining('koneksi terputus'), findsOneWidget);
     expect(source.createCalls, isEmpty);
     expect(source.saveUnitCalls, isEmpty);
     expect(source.docPaymentCalls, isEmpty);
   });
 
-  testWidgets('POST /api/reserve-unit gagal menahan di step Pilih Unit, tidak lanjut ke Review', (tester) async {
+  testWidgets('POST /api/reserve-unit gagal menahan di step Select Unit, tidak lanjut ke Review', (tester) async {
     tester.view.physicalSize = const Size(390 * 3, 844 * 3);
     tester.view.devicePixelRatio = 3;
     addTearDown(tester.view.reset);
@@ -713,22 +713,22 @@ void main() {
     )));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Lanjut ke Dokumen'));
+    await tester.tap(find.text('Continue to Documents'));
     await tester.pumpAndSettle();
     await _attachVia(tester, find.textContaining('KTP', findRichText: true).first);
-    await _attachVia(tester, find.text('+ Tambah Bukti Bayar Lain'));
+    await _attachVia(tester, find.text('+ Add Another Payment Proof'));
     await tester.enterText(find.byType(TextField).first, '2000000');
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Lanjut ke Pilih Unit'));
+    await tester.tap(find.text('Continue to Select Unit'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Blok E1 No. 19'));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Lanjut ke Review'));
+    await tester.tap(find.text('Continue to Review'));
     await tester.pumpAndSettle();
 
     expect(find.text('Review Reserve Order'), findsNothing);
-    expect(find.text('Pilih Unit'), findsOneWidget); // tetap di step Unit
+    expect(find.text('Select Unit'), findsOneWidget); // tetap di step Unit
     expect(find.textContaining('koneksi terputus'), findsOneWidget);
     expect(source.createCalls.length, 1); // baris customer-nya tetap sudah dibuat
     expect(source.saveUnitCalls, isEmpty);

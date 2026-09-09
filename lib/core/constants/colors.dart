@@ -95,4 +95,20 @@ const int rbbColor = 0xFFFEB900;         // #FEB900
 const int rbaColor = 0xFFFE9500;         // #fe9500
 const int spColor = 0xFF1800FE;          // #1800FE
 const int defaultColor = 0xFFFFFFFF;     // #FFFFFF
+
+// reserve order — sebelumnya di-hardcode terpisah di beberapa file (widgets.dart, reserve.dart,
+// detail.dart, top_up.dart), termasuk beberapa yang nilainya sama persis tapi didefinisikan dua
+// kali dengan nama berbeda. Disatukan di sini supaya satu sumber, dipakai lintas file.
+const int roIconBgColor = 0xFFE6F1FB;      // latar ikon dokumen (roDocTile, kartu unit terpilih)
+const int roSelectedBgColor = 0xFFE8F2FE;  // latar baris/kartu yang sedang dipilih
+const int roAvatarTextColor = 0xFF0C447C;  // teks inisial di roAvatar
+const int roAmberBgColor = 0xFFFFF6E5;     // latar pucat: dokumen "pending", badge Hook, chip gembok
+const int roHookTextColor = 0xFFB26A00;    // teks badge "Hook" (unit tipe hoek)
+const int roLockTextColor = 0xFF854F0B;    // ikon & teks chip gembok ("Masih Diproses"/"Progress Only")
+const int roLightRedBgColor = 0xFFFDECEC;  // latar pucat: dokumen ditolak, banner "Rejected"
+const int roRejectBorderColor = 0xFFF6B8B8; // border banner "Rejected — Needs Revision"
+const int roRejectTextColor = 0xFF7A1F1F;   // teks alasan penolakan di banner
+const int roLightPurpleBgColor = 0xFFE9E7FE; // latar pucat: dokumen "issued" (SP dari Sales Admin)
+const int roNoteTextColor = 0xFF25262B;     // teks isi catatan di tab Catatan
+const int roSuccessBgColor = 0xFFE7F9EE;    // latar lingkaran ikon centang di layar sukses
 //dark

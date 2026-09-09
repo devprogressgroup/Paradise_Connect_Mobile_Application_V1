@@ -60,9 +60,9 @@ class ReserveUnitRemoteDataSourceImpl implements ReserveUnitRemoteDataSource {
           hasMore: data['next_page_url'] != null,
         );
       }
-      throw Exception(body is Map ? (body['message'] ?? 'Gagal memuat unit') : 'Gagal memuat unit');
+      throw Exception(body is Map ? (body['message'] ?? 'Failed to load units') : 'Failed to load units');
     } on DioException catch (e) {
-      throw Exception(getErrorMessage(e, 'Gagal memuat unit'));
+      throw Exception(getErrorMessage(e, 'Failed to load units'));
     }
   }
 }

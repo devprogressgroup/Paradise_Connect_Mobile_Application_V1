@@ -68,15 +68,15 @@ class _ReserveOrderTopUpPageState extends State<ReserveOrderTopUpPage> {
             children: [
               if (!_submitted)
                 roAppBar(
-                  title: 'Top Up Pembayaran',
+                  title: 'Top Up Payment',
                   subtitle: '${order.unitLabel} · ${order.customerName}',
                   onBack: () => context.pop(),
                 ),
               Expanded(child: _submitted ? _buildSukses() : _buildForm()),
               roFooter([
                 _submitted
-                    ? roPrimaryButton('Kembali ke Reserve Order', () => context.pop())
-                    : roPrimaryButton('Ajukan Top Up', _onSubmit, loading: _submitting),
+                    ? roPrimaryButton('Back to Reserve Order', () => context.pop())
+                    : roPrimaryButton('Submit Top Up', _onSubmit, loading: _submitting),
               ]),
             ],
           ),
@@ -99,17 +99,17 @@ class _ReserveOrderTopUpPageState extends State<ReserveOrderTopUpPage> {
             ),
             child: Column(
               children: [
-                roSummaryLine('Status saat ini', order.stageLabel),
-                roSummaryLine('Total dibayar sejauh ini', 'Rp ${NumberHelper.thousands(order.paidSoFar)}'),
-                roSummaryLine('Jenis Transaksi', _transactionType, isLast: true),
+                roSummaryLine('Current Status', order.stageLabel),
+                roSummaryLine('Total Paid So Far', 'Rp ${NumberHelper.thousands(order.paidSoFar)}'),
+                roSummaryLine('Transaction Type', _transactionType, isLast: true),
               ],
             ),
           ),
           const SizedBox(height: 12),
-          roFieldLabel('Bukti Transfer Top Up'),
+          roFieldLabel('Top Up Transfer Proof'),
           roDocTile(_proofDoc, onTap: _submitting ? null : _pickProof),
           const SizedBox(height: 6),
-          roFieldLabel('Nominal Top Up'),
+          roFieldLabel('Top Up Amount'),
           roInput(
             nominalTC,
             hint: 'Rp 0',
@@ -118,10 +118,10 @@ class _ReserveOrderTopUpPageState extends State<ReserveOrderTopUpPage> {
             onChanged: (_) => setState(() {}),
           ),
           const SizedBox(height: 12),
-          roFieldLabel('Catatan'),
+          roFieldLabel('Notes'),
           roInput(
             catatanTC,
-            hint: 'Mis: customer commit tambah DP, mau lanjut ke Booking Reserve',
+            hint: 'E.g.: customer commits to an additional down payment, will proceed to Booking Reserve',
             maxLines: 3,
           ),
         ],
@@ -136,9 +136,9 @@ class _ReserveOrderTopUpPageState extends State<ReserveOrderTopUpPage> {
     if (proof == null) {
       return const ReserveOrderDoc(
         icon: Icons.receipt_long_outlined,
-        name: 'Upload bukti transfer baru',
-        badge: '· Wajib',
-        status: 'Ketuk untuk upload',
+        name: 'Upload new transfer proof',
+        badge: '· Required',
+        status: 'Tap to upload',
         state: ReserveOrderDocState.awaitingUpload,
         isPaymentProof: true,
       );
@@ -147,8 +147,8 @@ class _ReserveOrderTopUpPageState extends State<ReserveOrderTopUpPage> {
     return ReserveOrderDoc(
       icon: proof.isPdf ? Icons.picture_as_pdf_outlined : Icons.receipt_long_outlined,
       name: proof.name,
-      badge: '· Wajib',
-      status: 'Terupload · ${_fileSize(proof)}',
+      badge: '· Required',
+      status: 'Uploaded · ${_fileSize(proof)}',
       isPaymentProof: true,
     );
   }
@@ -162,18 +162,18 @@ class _ReserveOrderTopUpPageState extends State<ReserveOrderTopUpPage> {
             width: 64,
             height: 64,
             alignment: Alignment.center,
-            decoration: const BoxDecoration(color: Color(0xFFE7F9EE), shape: BoxShape.circle),
+            decoration: const BoxDecoration(color: Color(roSuccessBgColor), shape: BoxShape.circle),
             child: const Icon(Icons.check, size: 32, color: Color(successColor)),
           ),
           const SizedBox(height: 16),
           const Text(
-            'Top Up Berhasil Diajukan',
+            'Top Up Successfully Submitted',
             textAlign: TextAlign.center,
             style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Color(blue2Color)),
           ),
           const SizedBox(height: 6),
           Text(
-            '$_transactionType Rp ${NumberHelper.thousands(_submittedAmount)} untuk ${order.unitLabel} sedang diverifikasi.',
+            '$_transactionType of Rp ${NumberHelper.thousands(_submittedAmount)} for ${order.unitLabel} is being verified.',
             textAlign: TextAlign.center,
             style: const TextStyle(fontSize: 12, height: 1.6, color: Color(grey4Color)),
           ),
@@ -193,7 +193,7 @@ class _ReserveOrderTopUpPageState extends State<ReserveOrderTopUpPage> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       const Text(
-                        'Total setelah top up',
+                        'Total after top up',
                         style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(blue2Color)),
                       ),
                       Text(
@@ -210,7 +210,7 @@ class _ReserveOrderTopUpPageState extends State<ReserveOrderTopUpPage> {
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: const Text(
-                    'Menunggu',
+                    'Pending',
                     style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w700, color: Color(whiteColor)),
                   ),
                 ),
@@ -232,12 +232,12 @@ class _ReserveOrderTopUpPageState extends State<ReserveOrderTopUpPage> {
 
   Future<void> _onSubmit() async {
     if (_proof == null) {
-      showSnackbar(context, 'Bukti transfer top up wajib dilampirkan', isError: true);
+      showSnackbar(context, 'Top up transfer proof is required', isError: true);
       return;
     }
     final nominal = _nominal;
     if (nominal == null || nominal <= 0) {
-      showSnackbar(context, 'Nominal top up wajib diisi', isError: true);
+      showSnackbar(context, 'Top up amount is required', isError: true);
       return;
     }
 
@@ -267,9 +267,9 @@ class _ReserveOrderTopUpPageState extends State<ReserveOrderTopUpPage> {
 
     order.docs.add(ReserveOrderDoc(
       icon: Icons.credit_card,
-      name: 'Bukti Top Up',
+      name: 'Top Up Proof',
       badge: '· $amount',
-      status: 'Menunggu verifikasi',
+      status: 'Awaiting verification',
       state: ReserveOrderDocState.pending,
       isPaymentProof: true,
     ));
@@ -279,17 +279,17 @@ class _ReserveOrderTopUpPageState extends State<ReserveOrderTopUpPage> {
       orElse: () => order.journey.last,
     );
     activeStep.notes.add(ReserveOrderTimelineNote(
-      who: 'Sistem ·',
-      text: '$_transactionType $amount diajukan$quoted',
+      who: 'System ·',
+      text: '$_transactionType $amount submitted$quoted',
       time: '($now)',
     ));
 
     order.notes.add(ReserveOrderNote(
-      author: 'Sistem',
-      role: 'otomatis',
+      author: 'System',
+      role: 'automated',
       roleKind: ReserveOrderNoteRole.sistem,
       time: now,
-      text: '$_transactionType $amount diajukan$quoted.',
+      text: '$_transactionType $amount submitted$quoted.',
     ));
   }
 

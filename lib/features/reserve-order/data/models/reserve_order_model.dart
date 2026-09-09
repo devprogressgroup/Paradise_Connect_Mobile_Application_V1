@@ -14,13 +14,13 @@ enum ReserveOrderStatus { diproses, ditolak, rba, rbb, sp, prosesBank, akad }
 
 extension ReserveOrderStatusX on ReserveOrderStatus {
   String get label => switch (this) {
-        ReserveOrderStatus.diproses => 'Diproses',
-        ReserveOrderStatus.ditolak => 'Ditolak',
+        ReserveOrderStatus.diproses => 'Processing',
+        ReserveOrderStatus.ditolak => 'Rejected',
         ReserveOrderStatus.rba => 'RBA',
         ReserveOrderStatus.rbb => 'RBB',
         ReserveOrderStatus.sp => 'SP',
-        ReserveOrderStatus.prosesBank => 'Proses Bank',
-        ReserveOrderStatus.akad => 'Akad ✓',
+        ReserveOrderStatus.prosesBank => 'Bank Process',
+        ReserveOrderStatus.akad => 'AKAD ✓',
       };
 
   /// Warna badge. RBA/RBB/SP memakai warna status unit yang sudah dipakai site plan supaya
@@ -272,7 +272,7 @@ class ReserveOrderAttachment {
       // `attachment_url` biasanya sama dengan `attachment_path` (link Google Drive) — dijaga kalau
       // salah satu tidak diisi.
       attachmentUrl: _text(json['attachment_url']) ?? _text(json['attachment_path']) ?? '',
-      attachmentTypeName: _text(json['attachment_type_name']) ?? 'Dokumen',
+      attachmentTypeName: _text(json['attachment_type_name']) ?? 'Document',
       attachmentNote: _text(json['attachment_note']) ?? '',
       createDatetime: DateTime.tryParse('${json['create_datetime']}'),
       createUserName: _text(json['create_user_name']),
@@ -384,11 +384,11 @@ class ReserveOrder {
     final amountLabel = amount == null || amount <= 0 ? null : 'Rp ${NumberHelper.thousands(amount)}';
 
     final (status, label, statusText) = switch (true) {
-      _ when isRejected => (ReserveOrderStatus.ditolak, 'Ditolak', 'Ditolak - Perlu Revisi'),
-      _ when spDate != null => (ReserveOrderStatus.sp, 'SP', 'SP Terbit'),
+      _ when isRejected => (ReserveOrderStatus.ditolak, 'Rejected', 'Rejected - Needs Revision'),
+      _ when spDate != null => (ReserveOrderStatus.sp, 'SP', 'SP Issued'),
       // `rb_date` tidak membedakan RBA & RBB, jadi badge-nya ditulis netral.
-      _ when rbDate != null => (ReserveOrderStatus.rba, 'R/BR', 'Reserve Booking Aktif'),
-      _ => (ReserveOrderStatus.diproses, 'Diproses', 'Masih Diproses'),
+      _ when rbDate != null => (ReserveOrderStatus.rba, 'R/BR', 'Reserve Booking Active'),
+      _ => (ReserveOrderStatus.diproses, 'Processing', 'Still Processing'),
     };
 
     final customerName = _text(json['cust_name']) ?? _text(json['contact_name']) ?? '-';
@@ -400,7 +400,7 @@ class ReserveOrder {
       id: '${json['reserve_order_id'] ?? ''}',
       customerName: customerName,
       phone: phone,
-      unitLabel: _text(json['property_name']) ?? _text(json['deal_blok_no']) ?? 'Unit belum ditentukan',
+      unitLabel: _text(json['property_name']) ?? _text(json['deal_blok_no']) ?? 'Unit not yet determined',
       unitSub: _text(json['deal_project_name']) ?? '',
       salesName: salesName,
       amountShort: amount == null || amount <= 0 ? null : _compactRupiah(amount),
@@ -415,7 +415,7 @@ class ReserveOrder {
       statusReserveId: _int(json['status_reserve_id']),
       contactId: _int(json['contact_id']),
       dealId: _int(json['deal_id']),
-      rejectReason: isRejected ? (rejectReason ?? 'Ditolak tanpa keterangan. Hubungi kasir untuk detailnya.') : null,
+      rejectReason: isRejected ? (rejectReason ?? 'Rejected without a reason. Contact the cashier for details.') : null,
       stageLabel: label,
       paidSoFar: amount ?? 0,
       // Top up cuma masuk akal selagi transaksinya masih di tahap reserve / reserve booking.
@@ -424,9 +424,9 @@ class ReserveOrder {
         reached: spDate != null ? 5 : (rbDate != null ? 4 : 3),
         subs: {
           3: [
-            if (createdAt != null) 'Diajukan ${_longDate(createdAt)}',
+            if (createdAt != null) 'Submitted ${_longDate(createdAt)}',
             if (amountLabel != null) amountLabel,
-            if (isRejected) 'Ditolak, Perlu Revisi' else 'sedang diverifikasi',
+            if (isRejected) 'Rejected, Needs Revision' else 'under verification',
           ].join(' · '),
           if (rbDate != null) 4: _longDate(rbDate),
           if (spDate != null) 5: _longDate(spDate),
@@ -436,7 +436,7 @@ class ReserveOrder {
           if (isRejected && rejectReason != null)
             3: [
               ReserveOrderTimelineNote(
-                who: 'Kasir —',
+                who: 'Cashier —',
                 text: rejectReason,
                 time: rejectedAt == null ? '' : '(${_noteTime(rejectedAt)})',
               ),
@@ -447,11 +447,11 @@ class ReserveOrder {
       // status pernikahan, & cara pembayaran belum dikirim `/api/reserve`, jadi ditulis "-" dulu
       // (bukan disembunyikan) supaya layoutnya konsisten dengan mockup.
       buyer: [
-        ReserveOrderField('Nama Lengkap (sesuai KTP)', customerName),
-        const ReserveOrderField('No. KTP', '-'),
-        const ReserveOrderField('Alamat sesuai KTP', '-'),
-        const ReserveOrderField('Status Pernikahan', '-'),
-        const ReserveOrderField('Cara Pembayaran', '-'),
+        ReserveOrderField('Full Name (as per KTP)', customerName),
+        const ReserveOrderField('KTP No.', '-'),
+        const ReserveOrderField('Address (as per KTP)', '-'),
+        const ReserveOrderField('Marital Status', '-'),
+        const ReserveOrderField('Payment Method', '-'),
       ],
       notes: [
         if (note != null)
@@ -482,11 +482,11 @@ class ReserveOrder {
     buyer
       ..clear()
       ..addAll([
-        ReserveOrderField('Nama Lengkap (sesuai KTP)', detail.custName),
-        ReserveOrderField('No. KTP', detail.custKtp ?? '-'),
-        ReserveOrderField('Alamat sesuai KTP', detail.custAddress1 ?? '-'),
-        ReserveOrderField('Status Pernikahan', detail.custMaritalStatus ?? '-'),
-        ReserveOrderField('Cara Pembayaran', caraBayarName ?? '-'),
+        ReserveOrderField('Full Name (as per KTP)', detail.custName),
+        ReserveOrderField('KTP No.', detail.custKtp ?? '-'),
+        ReserveOrderField('Address (as per KTP)', detail.custAddress1 ?? '-'),
+        ReserveOrderField('Marital Status', detail.custMaritalStatus ?? '-'),
+        ReserveOrderField('Payment Method', caraBayarName ?? '-'),
       ]);
   }
 
@@ -518,7 +518,7 @@ const List<String> reserveStageLabels = [
   'L5 Reserve Booking (R/BR)',
   'L6 SP',
   'L7 Collect Data',
-  'L8 Proses Bank',
+  'L8 Bank Process',
   'L9 SPK',
   'L10 AKAD',
 ];
@@ -526,11 +526,11 @@ const List<String> reserveStageLabels = [
 /// Tahap yang tidak bisa digerakkan sales sendiri. L5/L6 menunggu verifikasi kasir & sales admin,
 /// L7-L9 murni progress dari tim lain.
 const Map<int, String> _reserveLockLabels = {
-  4: 'Masih Diproses',
-  5: 'Masih Diproses',
-  6: 'Progress saja',
-  7: 'Progress saja',
-  8: 'Progress saja',
+  4: 'Still Processing',
+  5: 'Still Processing',
+  6: 'Progress Only',
+  7: 'Progress Only',
+  8: 'Progress Only',
 };
 
 /// Menyusun 10 tahap sekaligus: apa pun di bawah [reached] dianggap selesai, [reached] jadi tahap
@@ -579,16 +579,18 @@ String _longDate(DateTime date) => DateFormat('dd MMM yyyy').format(date);
 
 String _noteTime(DateTime date) => DateFormat('dd MMM, HH:mm').format(date);
 
-/// Nilai ringkas untuk kartu list: "Rp 450jt" / "Rp 1,2M" seperti mockup, tapi angka kecil tetap
-/// ditulis utuh supaya tidak jadi "Rp 0jt".
+/// Nilai ringkas untuk kartu list: "Rp 450M" / "Rp 1.2B" (M = million, B = billion — konvensi
+/// Inggris, beda dari singkatan "jt"/"M" ala Indonesia di mockup aslinya supaya tidak ketuker
+/// dengan makna "M" = juta di Indonesia), tapi angka kecil tetap ditulis utuh supaya tidak jadi
+/// "Rp 0M".
 String _compactRupiah(num value) {
   if (value >= 1000000000) {
-    final miliar = value / 1000000000;
-    return 'Rp ${miliar.toStringAsFixed(miliar % 1 == 0 ? 0 : 1).replaceAll('.', ',')}M';
+    final billions = value / 1000000000;
+    return 'Rp ${billions.toStringAsFixed(billions % 1 == 0 ? 0 : 1)}B';
   }
   if (value >= 1000000) {
-    final juta = value / 1000000;
-    return 'Rp ${juta.toStringAsFixed(juta % 1 == 0 ? 0 : 1).replaceAll('.', ',')}jt';
+    final millions = value / 1000000;
+    return 'Rp ${millions.toStringAsFixed(millions % 1 == 0 ? 0 : 1)}M';
   }
   return 'Rp ${NumberHelper.thousands(value)}';
 }

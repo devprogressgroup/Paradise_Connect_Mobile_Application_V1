@@ -108,7 +108,7 @@ class _ReserveOrderListPageState extends State<ReserveOrderListPage> {
                   child: customSearchField(
                     controller: searchTC,
                     focusNode: searchFN,
-                    hintText: 'Cari nama / unit...',
+                    hintText: 'Search name / unit...',
                     onChanged: _onSearchChanged,
                   ),
                 ),
@@ -141,7 +141,9 @@ class _ReserveOrderListPageState extends State<ReserveOrderListPage> {
           const SizedBox(height: 2),
           Text(
             // Angkanya dari `total` response, bukan dari jumlah baris yang sudah dimuat.
-            state.status == ReserveOrderListStatus.loaded ? '${state.total} transaksi' : 'Memuat transaksi...',
+            state.status == ReserveOrderListStatus.loaded
+                ? '${state.total} transaction${state.total == 1 ? '' : 's'}'
+                : 'Loading transactions...',
             style: const TextStyle(fontSize: 11, color: Color(grey4Color)),
           ),
         ],
@@ -167,7 +169,7 @@ class _ReserveOrderListPageState extends State<ReserveOrderListPage> {
           if (index == 0) {
             return KeyedSubtree(
               key: const ValueKey('reserve_order_filter_semua'),
-              child: roChip('Semua', state.statusIds.isEmpty, () => _onFilterTap(const [])),
+              child: roChip('All', state.statusIds.isEmpty, () => _onFilterTap(const [])),
             );
           }
 
@@ -194,8 +196,8 @@ class _ReserveOrderListPageState extends State<ReserveOrderListPage> {
           child: buildContactListShimmer(),
         ),
       ReserveOrderListStatus.error => _buildMessage(
-          state.error ?? 'Gagal memuat reserve order',
-          action: 'Coba lagi',
+          state.error ?? 'Failed to load reserve order',
+          action: 'Retry',
           onAction: () => context.read<ReserveOrderListCubit>().refresh(),
         ),
       ReserveOrderListStatus.loaded => _buildLoaded(state),
@@ -209,8 +211,8 @@ class _ReserveOrderListPageState extends State<ReserveOrderListPage> {
     // kosong. Bukan saat pencarian/filter aktif, supaya tidak salah tempat.
     if (widget.contactArgs != null && state.search.isEmpty && state.statusIds.isEmpty) {
       return _buildMessage(
-        'Kontak ini belum punya transaksi reserve order.',
-        action: '+ Buat Reserve Baru',
+        'This contact has no reserve order transactions yet.',
+        action: '+ Create New Reserve',
         onAction: _openCreateReserve,
       );
     }
@@ -219,11 +221,11 @@ class _ReserveOrderListPageState extends State<ReserveOrderListPage> {
     if (state.statusIds.isNotEmpty) {
       // Nama status dari chip yang aktif — beda dari pesan pencarian supaya jelas ini soal filter.
       final names = state.filters.where((f) => state.statusIds.contains(f.statusReserveId)).map((f) => f.name).join(', ');
-      message = 'Tidak ada transaksi untuk filter "$names".';
+      message = 'No transactions for filter "$names".';
     } else if (state.search.isNotEmpty) {
-      message = 'Tidak ada transaksi yang cocok dengan "${state.search}".';
+      message = 'No transactions matching "${state.search}".';
     } else {
-      message = 'Belum ada transaksi reserve order.';
+      message = 'No reserve order transactions yet.';
     }
     return _buildMessage(message);
   }

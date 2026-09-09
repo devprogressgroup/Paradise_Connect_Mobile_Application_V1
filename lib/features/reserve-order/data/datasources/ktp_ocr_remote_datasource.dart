@@ -42,7 +42,7 @@ class KtpOcrRemoteDataSourceImpl implements KtpOcrRemoteDataSource {
 
         return KtpOcrModel.fromJson(merged.isEmpty ? data : merged);
       }
-      throw Exception(body is Map ? (body['message'] ?? 'Gagal membaca KTP') : 'Gagal membaca KTP');
+      throw Exception(body is Map ? (body['message'] ?? 'Failed to read KTP') : 'Failed to read KTP');
     } on DioException catch (e) {
       // 404/405/501 = endpoint-nya belum ada di server yang dipakai (mis. backend belum
       // di-deploy) → jangan tampilkan error mentah, arahkan ke isi manual. Untuk 503 server
@@ -50,9 +50,9 @@ class KtpOcrRemoteDataSourceImpl implements KtpOcrRemoteDataSource {
       // apa adanya lewat getErrorMessage.
       final code = e.response?.statusCode;
       if (code == 404 || code == 405 || code == 501) {
-        throw Exception('Scan OCR KTP belum tersedia di server. Silakan isi data manual.');
+        throw Exception('KTP OCR scan is not available on the server yet. Please fill in the data manually.');
       }
-      throw Exception(getErrorMessage(e, 'Gagal membaca KTP'));
+      throw Exception(getErrorMessage(e, 'Failed to read KTP'));
     }
   }
 }

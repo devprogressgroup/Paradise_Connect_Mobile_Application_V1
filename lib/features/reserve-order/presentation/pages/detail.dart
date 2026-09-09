@@ -16,7 +16,7 @@ import 'package:progress_group/features/reserve-order/presentation/state/reserve
 /// Detail satu transaksi Reserve Order — Bagian 3 mockup, kolom "Detail — Perjalanan & Dokumen".
 ///
 /// Empat tab: Perjalanan (timeline L1–L10), Data Pembeli, Attachment, dan Catatan. Transaksi yang
-/// ditolak kasir menampilkan banner merah + tombol "Edit & Ajukan Ulang" di atas tab.
+/// ditolak kasir menampilkan banner merah + tombol "Edit & Resubmit" di atas tab.
 class ReserveOrderDetailPage extends StatefulWidget {
   final ReserveOrder order;
 
@@ -137,7 +137,7 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage> {
                     if (order.isRejected) ...[
                       const SizedBox(height: 10),
                       roRejectBanner(order.rejectReason!),
-                      customButton(_openRevise, 'Edit & Ajukan Ulang'),
+                      customButton(_openRevise, 'Edit & Resubmit'),
                     ],
                     const SizedBox(height: 12),
                     _buildTabBar(),
@@ -194,7 +194,7 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage> {
           InkWell(
             onTap: _openFullProfile,
             child: const Text(
-              'Profil & Riwayat Lengkap ›',
+              'Full Profile & History ›',
               style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(primaryColor)),
             ),
           ),
@@ -243,10 +243,10 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage> {
 
   Widget _buildTabBar() {
     const labels = {
-      _RoTab.perjalanan: 'Perjalanan',
-      _RoTab.pembeli: 'Data Pembeli',
+      _RoTab.perjalanan: 'Journey',
+      _RoTab.pembeli: 'Buyer Data',
       _RoTab.attachment: 'Attachment',
-      _RoTab.catatan: 'Catatan',
+      _RoTab.catatan: 'Notes',
     };
 
     return Container(
@@ -306,7 +306,7 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage> {
         for (var i = 0; i < order.journey.length; i++) _buildStep(order.journey[i], isLast: i == order.journey.length - 1),
         if (order.canTopUp) ...[
           const SizedBox(height: 12),
-          roGhostButton('+ Top Up Pembayaran', _openTopUp),
+          roGhostButton('+ Top Up Payment', _openTopUp),
         ],
       ],
     );
@@ -388,15 +388,15 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage> {
   Widget _lockChip(String label) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-      decoration: BoxDecoration(color: const Color(0xFFFFF6E5), borderRadius: BorderRadius.circular(8)),
+      decoration: BoxDecoration(color: const Color(roAmberBgColor), borderRadius: BorderRadius.circular(8)),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.lock_outline, size: 9, color: Color(0xFF854F0B)),
+          const Icon(Icons.lock_outline, size: 9, color: Color(roLockTextColor)),
           const SizedBox(width: 3),
           Text(
             label,
-            style: const TextStyle(fontSize: 8.5, fontWeight: FontWeight.w700, color: Color(0xFF854F0B)),
+            style: const TextStyle(fontSize: 8.5, fontWeight: FontWeight.w700, color: Color(roLockTextColor)),
           ),
         ],
       ),
@@ -413,7 +413,7 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage> {
           Icon(Icons.flag_rounded, size: 9, color: Color(whiteColor)),
           SizedBox(width: 3),
           Text(
-            'Tujuan Akhir',
+            'Final Goal',
             style: TextStyle(fontSize: 9, fontWeight: FontWeight.w700, color: Color(whiteColor)),
           ),
         ],
@@ -460,7 +460,7 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage> {
   }
 
   Widget _buildBuyer() {
-    // Data pembeli hanya bisa diubah lewat "Edit & Ajukan Ulang", jadi tanda panah cuma muncul
+    // Data pembeli hanya bisa diubah lewat "Edit & Resubmit", jadi tanda panah cuma muncul
     // saat transaksinya memang ditolak — supaya tidak ada baris yang terlihat bisa ditekan padahal
     // tidak ada tujuannya.
     final editable = order.isRejected;
@@ -499,7 +499,7 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage> {
             ),
           ),
         ],
-        if (order.buyer.isEmpty) _buildEmpty('Data pembeli belum diisi.'),
+        if (order.buyer.isEmpty) _buildEmpty('Buyer data has not been filled in yet.'),
       ],
     );
   }
@@ -519,7 +519,7 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage> {
           roDocTile(_docFrom(attachment), onTap: () => _openAttachment(attachment)),
         for (final doc in order.docs) roDocTile(doc, onTap: () => _onDocTap(doc)),
         if (_attachments.isEmpty && order.docs.isEmpty)
-          _buildEmpty(_attachmentsUnavailable ? 'Dokumen transaksi ini belum bisa ditampilkan di sini.' : 'Belum ada dokumen.'),
+          _buildEmpty(_attachmentsUnavailable ? 'Documents for this transaction cannot be shown here yet.' : 'No documents yet.'),
         const SizedBox(height: 4),
         roGhostButton('+ Upload Dokumen Tambahan', _uploadExtraDoc),
       ],
@@ -531,21 +531,21 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage> {
   ReserveOrderDoc _docFrom(ReserveOrderAttachment attachment) {
     final uploadedAt = attachment.createDatetime != null ? DateFormat('dd MMM yyyy', 'id_ID').format(attachment.createDatetime!) : null;
     final status = [
-      if (attachment.createUserName != null) 'Diunggah ${attachment.createUserName}',
+      if (attachment.createUserName != null) 'Uploaded by ${attachment.createUserName}',
       if (uploadedAt != null) uploadedAt,
     ].join(' · ');
 
     return ReserveOrderDoc(
       icon: Icons.insert_drive_file_outlined,
       name: attachment.attachmentTypeName,
-      status: status.isEmpty ? 'Tersimpan di server' : status,
+      status: status.isEmpty ? 'Saved on server' : status,
       state: ReserveOrderDocState.uploaded,
     );
   }
 
   void _openAttachment(ReserveOrderAttachment attachment) {
     if (attachment.attachmentUrl.isEmpty) {
-      showSnackbar(context, 'Link dokumen tidak tersedia');
+      showSnackbar(context, 'Document link not available');
       return;
     }
     AnalyticsService.logEvent('reserve_order_detail_open_attachment');
@@ -553,7 +553,7 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage> {
   }
 
   Widget _buildNotes() {
-    if (order.notes.isEmpty) return _buildEmpty('Belum ada catatan.');
+    if (order.notes.isEmpty) return _buildEmpty('No notes yet.');
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -599,7 +599,7 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage> {
                     ],
                   ),
                   const SizedBox(height: 2),
-                  Text(note.text, style: const TextStyle(fontSize: 11.5, height: 1.45, color: Color(0xFF25262B))),
+                  Text(note.text, style: const TextStyle(fontSize: 11.5, height: 1.45, color: Color(roNoteTextColor))),
                 ],
               ),
             ),
@@ -620,7 +620,7 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage> {
         top: false,
         child: Row(
           children: [
-            Expanded(child: roInput(noteTC, hint: 'Tulis catatan...')),
+            Expanded(child: roInput(noteTC, hint: 'Write a note...')),
             const SizedBox(width: 8),
             InkWell(
               onTap: _sendNote,
@@ -653,7 +653,7 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage> {
 
     final contactId = order.contactId;
     if (contactId == null) {
-      showSnackbar(context, 'Transaksi ini belum tertaut ke kontak mana pun', isError: true);
+      showSnackbar(context, 'This transaction is not linked to any contact yet', isError: true);
       return;
     }
 
@@ -689,7 +689,7 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage> {
       _openRevise();
       return;
     }
-    showSnackbar(context, 'Pratinjau dokumen tersedia setelah file-nya tersimpan di server.');
+    showSnackbar(context, 'Document preview is available once the file is saved on the server.');
   }
 
   Future<void> _uploadExtraDoc() async {
@@ -705,17 +705,17 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage> {
       order.docs.add(ReserveOrderDoc(
         icon: picked.isPdf ? Icons.picture_as_pdf_outlined : Icons.image_outlined,
         name: picked.name,
-        badge: '· Dokumen tambahan',
-        status: 'Terupload · $size',
+        badge: '· Additional document',
+        status: 'Uploaded · $size',
       ));
     });
-    if (mounted) showSnackbar(context, 'Dokumen ditambahkan.');
+    if (mounted) showSnackbar(context, 'Document added.');
   }
 
   void _sendNote() {
     final text = noteTC.text.trim();
     if (text.isEmpty) {
-      showSnackbar(context, 'Catatan masih kosong', isError: true);
+      showSnackbar(context, 'Note is still empty', isError: true);
       return;
     }
 

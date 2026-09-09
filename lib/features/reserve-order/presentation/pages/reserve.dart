@@ -110,8 +110,6 @@ class _ReservePageState extends State<ReservePage> {
   List<String> _paymentMethods = const ['KPR', 'Cash', 'Cash Bertahap', 'Inhouse'];
   List<CaraBayarOption> _caraBayarOptions = const [];
 
-  static const Color _iconBg = Color(0xFFE6F1FB);
-  static const Color _selectedBg = Color(0xFFE8F2FE);
 
   @override
   void initState() {
@@ -299,11 +297,11 @@ class _ReservePageState extends State<ReservePage> {
 
     if (ocrState.status == KtpOcrStatus.loaded && result != null && !result.isEmpty) {
       _applyOcr(result);
-      showSnackbar(context, 'Data KTP berhasil dibaca. Mohon periksa kembali.');
+      showSnackbar(context, 'KTP data read successfully. Please review it.');
     } else if (ocrState.status == KtpOcrStatus.error) {
-      showSnackbar(context, ocrState.error ?? 'Gagal membaca KTP', isError: true);
+      showSnackbar(context, ocrState.error ?? 'Failed to read KTP', isError: true);
     } else {
-      showSnackbar(context, 'Data KTP tidak terbaca. Silakan isi manual.', isError: true);
+      showSnackbar(context, 'KTP data could not be read. Please fill in manually.', isError: true);
     }
   }
 
@@ -358,11 +356,11 @@ class _ReservePageState extends State<ReservePage> {
 
   void _onNextPembeli() {
     if (namaTC.text.trim().isEmpty) {
-      showSnackbar(context, 'Nama lengkap wajib diisi', isError: true);
+      showSnackbar(context, 'Full name is required', isError: true);
       return;
     }
     if (nikTC.text.trim().length != 16) {
-      showSnackbar(context, 'No. KTP harus 16 digit', isError: true);
+      showSnackbar(context, 'KTP No. must be 16 digits', isError: true);
       return;
     }
 
@@ -408,16 +406,16 @@ class _ReservePageState extends State<ReservePage> {
     if (_creatingReserve) return;
 
     if (_identityDocs.first.file == null) {
-      showSnackbar(context, 'Dokumen KTP wajib dilampirkan', isError: true);
+      showSnackbar(context, 'KTP document is required', isError: true);
       return;
     }
     if (_paymentProofs.isEmpty) {
-      showSnackbar(context, 'Bukti bayar wajib dilampirkan minimal 1', isError: true);
+      showSnackbar(context, 'At least 1 payment proof is required', isError: true);
       return;
     }
     final nominal = _nominal;
     if (nominal == null || nominal <= 0) {
-      showSnackbar(context, 'Nominal pembayaran wajib diisi', isError: true);
+      showSnackbar(context, 'Payment amount is required', isError: true);
       return;
     }
 
@@ -433,7 +431,7 @@ class _ReservePageState extends State<ReservePage> {
     final contact = widget.args.dataContact;
     final contactId = contact?.contactId;
     if (contactId == null) {
-      showSnackbar(context, 'Kontak tidak dikenali, reserve order tidak bisa dibuat', isError: true);
+      showSnackbar(context, 'Contact not recognized, reserve order cannot be created', isError: true);
       return;
     }
 
@@ -493,12 +491,12 @@ class _ReservePageState extends State<ReservePage> {
     if (_savingUnit) return;
 
     if (_selectedUnits.isEmpty) {
-      showSnackbar(context, 'Pilih minimal 1 unit', isError: true);
+      showSnackbar(context, 'Select at least 1 unit', isError: true);
       return;
     }
     final customerId = _customerId;
     if (customerId == null) {
-      showSnackbar(context, 'Data pembeli belum tersimpan, ulangi dari awal', isError: true);
+      showSnackbar(context, 'Buyer data not saved yet, please start over', isError: true);
       return;
     }
 
@@ -535,13 +533,13 @@ class _ReservePageState extends State<ReservePage> {
 
     final reserveOrderId = _reserveOrderId;
     if (reserveOrderId == null) {
-      showSnackbar(context, 'Reserve order belum tersimpan, ulangi dari awal', isError: true);
+      showSnackbar(context, 'Reserve order not saved yet, please start over', isError: true);
       return;
     }
 
     final statusReserveId = _statusReserveIdOf(_jenisTransaksi);
     if (statusReserveId == null) {
-      showSnackbar(context, 'Jenis transaksi tidak dikenali, coba lagi', isError: true);
+      showSnackbar(context, 'Transaction type not recognized, please try again', isError: true);
       return;
     }
 
@@ -694,7 +692,7 @@ class _ReservePageState extends State<ReservePage> {
     final contact = widget.args.dataContact;
     final withContact = _step == ReserveStep.pembeli || _step == ReserveStep.dokumen;
     final title = switch (_step) {
-      ReserveStep.unit => 'Pilih Unit',
+      ReserveStep.unit => 'Select Unit',
       ReserveStep.review => 'Review Reserve Order',
       _ => 'Reserve Order — ${contact?.fullName ?? '-'}',
     };
@@ -745,7 +743,7 @@ class _ReservePageState extends State<ReservePage> {
 
   Widget _buildStepper() {
     final currentIndex = _numberedSteps.indexOf(_step);
-    const labels = ['Pembeli', 'Dokumen', 'Unit', 'Review'];
+    const labels = ['Buyer', 'Documents', 'Unit', 'Review'];
 
     return Container(
       color: Color(whiteColor),
@@ -798,10 +796,10 @@ class _ReservePageState extends State<ReservePage> {
 
   Widget _buildFooter() {
     final buttons = switch (_step) {
-      ReserveStep.pembeli => [customButton(_onNextPembeli, "Lanjut ke Dokumen")],
+      ReserveStep.pembeli => [customButton(_onNextPembeli, "Continue to Documents")],
       ReserveStep.dokumen => [
           roPrimaryButton(
-            _creatingReserve ? "Membuat reserve order..." : "Lanjut ke Pilih Unit",
+            _creatingReserve ? "Creating reserve order..." : "Continue to Select Unit",
             _onNextDokumen,
             loading: _creatingReserve,
           ),
@@ -809,17 +807,17 @@ class _ReservePageState extends State<ReservePage> {
       ReserveStep.unit => const <Widget>[],
       ReserveStep.review => [
           roPrimaryButton(
-            _submittingDocPayment ? "Mengunggah dokumen..." : "Submit Reserve Order",
+            _submittingDocPayment ? "Uploading documents..." : "Submit Reserve Order",
             _onSubmit,
             loading: _submittingDocPayment,
           ),
         ],
       ReserveStep.sukses => [
-          customButton(() => context.pop(_result), "Lihat di Reserve Order"),
+          customButton(() => context.pop(_result), "View in Reserve Order"),
           SizedBox(height: 8),
           customButton(
             _backToContact,
-            "Kembali ke Kontak",
+            "Back to Contact",
             colorBg: Color(whiteColor),
             colorText: Color(grey1Color),
           ),
@@ -861,7 +859,7 @@ class _ReservePageState extends State<ReservePage> {
               children: [
                 CircularProgressIndicator(),
                 SizedBox(height: 12),
-                Text("Membaca data KTP...", style: TextStyle(fontSize: 13, color: Color(grey2Color))),
+                Text("Reading KTP data...", style: TextStyle(fontSize: 13, color: Color(grey2Color))),
               ],
             ),
           ),
@@ -879,49 +877,52 @@ class _ReservePageState extends State<ReservePage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _ghostButton(
-            _ktpFile == null ? "📷  Scan KTP" : "📷  Scan KTP ulang",
+            _ktpFile == null ? "📷  Scan KTP" : "📷  Scan KTP Again",
             _showScanSourceSheet,
           ),
           SizedBox(height: 6),
           Text(
             _ktpFile == null
-                ? "Otomatis isi field di bawah"
-                : "Foto KTP terlampir (${_fileSize(_ktpFile!)}) — sekaligus dipakai di step Dokumen",
+                ? "Automatically fills the fields below"
+                : "KTP photo attached (${_fileSize(_ktpFile!)}) — also used in the Documents step",
             style: TextStyle(fontSize: 10, color: Color(grey4Color)),
           ),
           SizedBox(height: 12),
-          _label("Nama Lengkap (sesuai KTP)"),
-          _input(namaTC, hint: "Nama sesuai KTP"),
-          _label("No. KTP"),
+          _label("Full Name (as per KTP)"),
+          _input(namaTC, hint: "Name as per KTP"),
+          _label("KTP No."),
           _input(
             nikTC,
-            hint: "16 digit NIK",
+            hint: "16-digit NIK",
             keyboardType: TextInputType.number,
             inputFormatters: [FilteringTextInputFormatter.digitsOnly, LengthLimitingTextInputFormatter(16)],
           ),
-          _label("Tempat, Tanggal Lahir"),
+          _label("Place, Date of Birth"),
+          // Format hint sengaja dibiarkan format Indonesia (id_ID) — `_resolvedBirth()` mem-parse-balik
+          // teks ini dengan locale yang sama (nama bulan Indonesia), jadi contoh & parsing harus tetap
+          // sinkron; hasil scan KTP juga selalu bahasa Indonesia.
           _input(ttlTC, hint: "Jakarta, 01 Januari 1990"),
-          _label("Alamat sesuai KTP"),
-          _input(alamatTC, hint: "Jl. Contoh No. 1…", maxLines: 2),
-          _label("Status Pernikahan"),
+          _label("Address (as per KTP)"),
+          _input(alamatTC, hint: "e.g. Street Name No. 1…", maxLines: 2),
+          _label("Marital Status"),
           _pickerRow(
             value: _statusPernikahan,
-            hint: "Pilih status pernikahan",
+            hint: "Select marital status",
             onTap: () => _showOptionSheet(
-              title: "Status Pernikahan",
+              title: "Marital Status",
               items: _maritalItems,
               selected: _statusPernikahan,
               onPicked: (v) => setState(() => _statusPernikahan = v),
             ),
           ),
-          _label("Pekerjaan"),
-          _input(pekerjaanTC, hint: "Wiraswasta"),
-          _label("Cara Pembayaran"),
+          _label("Occupation"),
+          _input(pekerjaanTC, hint: "Self-employed"),
+          _label("Payment Method"),
           _pickerRow(
             value: _caraPembayaran,
-            hint: "Pilih cara pembayaran",
+            hint: "Select payment method",
             onTap: () => _showOptionSheet(
-              title: "Cara Pembayaran",
+              title: "Payment Method",
               items: _paymentMethods,
               selected: _caraPembayaran,
               onPicked: (v) => setState(() {
@@ -943,23 +944,23 @@ class _ReservePageState extends State<ReservePage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _sectionLabel("Dokumen Identitas"),
+          _sectionLabel("Identity Documents"),
           for (final doc in _identityDocs)
             _docRow(
               icon: doc.icon,
               name: doc.title,
-              badge: doc.required ? "· Wajib" : "· Opsional",
+              badge: doc.required ? "· Required" : "· Optional",
               file: doc.file,
               onTap: () => _pickIdentityDoc(doc),
               onRemove: doc.file == null ? null : () => setState(() => doc.file = null),
             ),
           SizedBox(height: 14),
-          _sectionLabel("Bukti Bayar"),
+          _sectionLabel("Payment Proof"),
           if (_paymentProofs.isEmpty)
             _docRow(
               icon: Icons.receipt_long_outlined,
-              name: "Bukti Transfer",
-              badge: "· Wajib*",
+              name: "Transfer Proof",
+              badge: "· Required*",
               file: null,
               onTap: _addPaymentProof,
             )
@@ -968,14 +969,14 @@ class _ReservePageState extends State<ReservePage> {
               _docRow(
                 icon: Icons.receipt_long_outlined,
                 name: _paymentProofs[i].name,
-                badge: i == 0 ? "· Wajib*" : null,
+                badge: i == 0 ? "· Required*" : null,
                 file: _paymentProofs[i],
                 onTap: _addPaymentProof,
                 onRemove: () => setState(() => _paymentProofs.removeAt(i)),
               ),
-          _ghostButton("+ Tambah Bukti Bayar Lain", _addPaymentProof),
+          _ghostButton("+ Add Another Payment Proof", _addPaymentProof),
           SizedBox(height: 12),
-          _label("Jenis Transaksi"),
+          _label("Transaction Type"),
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             child: Row(
@@ -988,7 +989,7 @@ class _ReservePageState extends State<ReservePage> {
               ],
             ),
           ),
-          _label("Nominal Pembayaran"),
+          _label("Payment Amount"),
           _input(
             nominalTC,
             hint: "0",
@@ -996,8 +997,8 @@ class _ReservePageState extends State<ReservePage> {
             keyboardType: TextInputType.number,
             inputFormatters: [FilteringTextInputFormatter.digitsOnly, const ThousandsInputFormatter()],
           ),
-          _label("Catatan"),
-          _input(catatanTC, hint: "Mis: customer transfer DP awal, dokumen menyusul", maxLines: 3),
+          _label("Notes"),
+          _input(catatanTC, hint: "E.g.: customer transferred initial down payment, documents to follow", maxLines: 3),
         ],
       ),
     );
@@ -1012,7 +1013,7 @@ class _ReservePageState extends State<ReservePage> {
             padding: EdgeInsets.fromLTRB(14, 14, 14, 10),
             child: _input(
               searchTC,
-              hint: "Cari blok / no. unit…",
+              hint: "Search block / unit no.…",
               prefixIcon: Icons.search,
               onChanged: _onSearchChanged,
             ),
@@ -1029,12 +1030,12 @@ class _ReservePageState extends State<ReservePage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  "${_selectedUnits.length} unit dipilih",
+                  "${_selectedUnits.length} unit(s) selected",
                   style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w700, color: Color(blue2Color)),
                 ),
                 SizedBox(height: 8),
                 roPrimaryButton(
-                  _savingUnit ? "Menyimpan unit..." : "Lanjut ke Review",
+                  _savingUnit ? "Saving unit..." : "Continue to Review",
                   _onNextUnit,
                   loading: _savingUnit,
                 ),
@@ -1054,11 +1055,11 @@ class _ReservePageState extends State<ReservePage> {
       return const Center(child: CircularProgressIndicator());
     }
     if (state.status == ReserveUnitStatus.error && state.items.isEmpty) {
-      return _emptyInfo(state.error ?? 'Gagal memuat unit', action: 'Coba lagi', onAction: _loadUnits);
+      return _emptyInfo(state.error ?? 'Failed to load units', action: 'Retry', onAction: _loadUnits);
     }
     if (state.items.isEmpty) {
       final q = searchTC.text.trim();
-      return _emptyInfo(q.isEmpty ? "Belum ada unit untuk kontak ini." : "Unit \"$q\" tidak ditemukan.");
+      return _emptyInfo(q.isEmpty ? "No units available for this contact." : "Unit \"$q\" not found.");
     }
 
     return ListView.builder(
@@ -1082,7 +1083,7 @@ class _ReservePageState extends State<ReservePage> {
       return unit.propertyName!.trim();
     }
  
-    return unit.isWaitingList ? 'Waiting list' : 'Belum tentukan kavling';
+    return unit.isWaitingList ? 'Waiting list' : 'Lot not yet determined';
   }
 
   String _unitRowSubtitle(SelectedUnit unit) {
@@ -1109,12 +1110,12 @@ class _ReservePageState extends State<ReservePage> {
       margin: const EdgeInsets.only(left: 6),
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
       decoration: BoxDecoration(
-        color: const Color(0xFFFFF6E5),
+        color: const Color(roAmberBgColor),
         borderRadius: BorderRadius.circular(20),
       ),
       child: const Text(
         'Hook',
-        style: TextStyle(fontSize: 9, color: Color(0xFFB26A00), fontWeight: FontWeight.w600),
+        style: TextStyle(fontSize: 9, color: Color(roHookTextColor), fontWeight: FontWeight.w600),
       ),
     );
   }
@@ -1137,7 +1138,7 @@ class _ReservePageState extends State<ReservePage> {
           margin: EdgeInsets.only(bottom: 8),
           padding: EdgeInsets.all(11),
           decoration: BoxDecoration(
-            color: selected ? _selectedBg : Color(whiteColor),
+            color: selected ? roSelectedBg : Color(whiteColor),
             border: Border.all(color: selected ? Color(primaryColor) : Color(grey10Color), width: 1.5),
             borderRadius: BorderRadius.circular(12),
           ),
@@ -1210,16 +1211,16 @@ class _ReservePageState extends State<ReservePage> {
             ),
             child: Column(
               children: [
-                _reviewLine("Kontak", contact?.fullName ?? namaTC.text.trim()),
-                _reviewLine("Data Pembeli", "Lengkap ✓", ok: true),
+                _reviewLine("Contact", contact?.fullName ?? namaTC.text.trim()),
+                _reviewLine("Buyer Data", "Complete ✓", ok: true),
                 _reviewLine(
-                  "Dokumen",
-                  "KTP ✓ · Bukti Bayar ✓ ${proofCount > 1 ? '($proofCount)' : ''}".trim(),
+                  "Documents",
+                  "KTP ✓ · Payment Proof ✓ ${proofCount > 1 ? '($proofCount)' : ''}".trim(),
                   ok: true,
                 ),
-                _reviewLine("Jenis Transaksi", _jenisTransaksi),
+                _reviewLine("Transaction Type", _jenisTransaksi),
                 _reviewLine(
-                  "Nominal & Catatan",
+                  "Amount & Notes",
                   nominal == null ? '-' : 'Rp ${NumberHelper.thousands(nominal)} ✓',
                   ok: nominal != null,
                   isLast: catatan.isEmpty,
@@ -1312,20 +1313,20 @@ class _ReservePageState extends State<ReservePage> {
             width: 64,
             height: 64,
             alignment: Alignment.center,
-            decoration: BoxDecoration(color: Color(0xFFE7F9EE), shape: BoxShape.circle),
+            decoration: BoxDecoration(color: Color(roSuccessBgColor), shape: BoxShape.circle),
             child: Icon(Icons.check, size: 32, color: Color(successColor)),
           ),
           SizedBox(height: 16),
           Text(
-            "Reserve Order Berhasil Diajukan",
+            "Reserve Order Successfully Submitted",
             textAlign: TextAlign.center,
             style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Color(blue2Color)),
           ),
           SizedBox(height: 6),
           Text(
             unitLabel == null
-                ? "Pengajuan a.n. $nama sedang diproses."
-                : "$unitLabel a.n. $nama sedang diproses.",
+                ? "The submission on behalf of $nama is being processed."
+                : "$unitLabel on behalf of $nama is being processed.",
             textAlign: TextAlign.center,
             style: TextStyle(fontSize: 12, height: 1.6, color: Color(grey4Color)),
           ),
@@ -1366,7 +1367,7 @@ class _ReservePageState extends State<ReservePage> {
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Text(
-                    "Diproses",
+                    "Processing",
                     style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w700, color: Color(whiteColor)),
                   ),
                 ),
@@ -1375,7 +1376,7 @@ class _ReservePageState extends State<ReservePage> {
           ),
           SizedBox(height: 12),
           Text(
-            "Dokumen & rincian pembayaran sudah dikirim ke reserve order ini.",
+            "Documents & payment details have been sent to this reserve order.",
             textAlign: TextAlign.center,
             style: TextStyle(fontSize: 10, color: Color(grey5Color)),
           ),
@@ -1542,7 +1543,7 @@ class _ReservePageState extends State<ReservePage> {
               width: 34,
               height: 34,
               alignment: Alignment.center,
-              decoration: BoxDecoration(color: _iconBg, borderRadius: BorderRadius.circular(9)),
+              decoration: BoxDecoration(color: roIconBg, borderRadius: BorderRadius.circular(9)),
               child: Icon(icon, size: 17, color: Color(primaryColor)),
             ),
             SizedBox(width: 10),
@@ -1568,7 +1569,7 @@ class _ReservePageState extends State<ReservePage> {
                   ),
                   SizedBox(height: 2),
                   Text(
-                    file == null ? "Ketuk untuk upload" : "Terupload · ${_fileSize(file)}",
+                    file == null ? "Tap to upload" : "Uploaded · ${_fileSize(file)}",
                     style: TextStyle(
                       fontSize: 10,
                       color: file == null ? Color(primaryColor) : Color(grey4Color),
