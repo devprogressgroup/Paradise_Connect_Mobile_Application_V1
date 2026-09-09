@@ -123,12 +123,22 @@ class DioClient {
               for (final f in fd.files) {
                 final chunks = await f.value.finalize().toList();
                 final bytes = chunks.fold<List<int>>([], (a, b) => a..addAll(b));
-                map[f.key] = {
+                final fileEntry = {
                   '__file': true,
                   'filename': f.value.filename ?? 'file',
                   'data': base64Encode(bytes),
                   'contentType': f.value.contentType?.mimeType ?? 'application/octet-stream',
                 };
+                // Field array (mis. `ktp[]` dikirim >1 file dengan key yang sama) — tanpa ini,
+                // entri berikutnya menimpa entri sebelumnya karena `map` cuma nyimpan 1 value/key.
+                final existing = map[f.key];
+                if (existing == null) {
+                  map[f.key] = fileEntry;
+                } else if (existing is List) {
+                  existing.add(fileEntry);
+                } else {
+                  map[f.key] = [existing, fileEntry];
+                }
               }
               body = map;
             } else if (options.data is Map) {

@@ -16,6 +16,7 @@ import 'package:progress_group/core/utils/widget/custom_buttomsheet.dart';
 import 'package:progress_group/core/utils/widget/custom_file_picker.dart';
 import 'package:progress_group/core/utils/widget/custom_snackbar.dart';
 import 'package:progress_group/core/utils/widget/thousands_input_formatter.dart';
+import 'package:progress_group/core/utils/widget/unit_status_badge.dart';
 import 'package:progress_group/features/contact/data/arguments/contact_detail_args.dart';
 import 'package:progress_group/features/reserve-order/data/datasources/reserve_order_remote_datasource.dart';
 import 'package:progress_group/features/reserve-order/data/models/ktp_ocr_model.dart';
@@ -24,9 +25,9 @@ import 'package:progress_group/features/contact/data/models/unit/unit_hierarchy_
 import 'package:progress_group/features/reserve-order/presentation/pages/widgets.dart';
 import 'package:progress_group/features/reserve-order/presentation/state/ktp_ocr/ktp_ocr_cubit.dart';
 import 'package:progress_group/features/reserve-order/presentation/state/ktp_ocr/ktp_ocr_state.dart';
-import 'package:progress_group/features/reserve-order/presentation/state/reserve_attachment/reserve_attachment_cubit.dart';
-import 'package:progress_group/features/reserve-order/presentation/state/reserve_attachment/reserve_attachment_state.dart';
 import 'package:progress_group/features/reserve-order/presentation/state/reserve_order_list/reserve_order_list_cubit.dart';
+import 'package:progress_group/features/reserve-order/presentation/state/reserve_unit/reserve_unit_cubit.dart';
+import 'package:progress_group/features/reserve-order/presentation/state/reserve_unit/reserve_unit_state.dart';
 enum ReserveStep { pembeli, dokumen, unit, review, sukses }
 class ReserveResult {
   final List<SelectedUnit> units;
@@ -68,9 +69,11 @@ class _ReservePageState extends State<ReservePage> {
   String? _caraPembayaran;
   int? _caraBayarId;
 
-  // Loading terpisah dari `ReserveAttachmentCubit.state.isLoading` — `POST /api/reserve` (bikin
-  // baris customer-nya) dipanggil dulu, baru dokumen diunggah kalau itu sukses.
+  // `POST /api/reserve` (bikin baris customer-nya) dipanggil dulu, baru dokumen & rincian
+  // pembayaran dikirim ke `POST /api/reserve/doc-payment` kalau itu sukses — dua loading state
+  // terpisah supaya footer bisa menunjukkan tahap mana yang lagi berjalan.
   bool _creatingReserve = false;
+  bool _submittingDocPayment = false;
 
   KtpOcrModel? _ocr;
   PickedFileResult? _ktpFile;
@@ -84,6 +87,9 @@ class _ReservePageState extends State<ReservePage> {
   // Fallback selagi `_loadTransactionTypes()` (endpoint yang sama dengan chip filter list —
   // `GET /api/reserve-filter`) belum kembali / gagal, supaya form tetap bisa disubmit.
   List<String> _transactionTypes = const ['Reserve', 'Booking Reserve (langsung)'];
+  // Opsi asli (nama + `status_reserve_id`) dari `GET /api/reserve-filter` — dipakai [_statusReserveIdOf]
+  // buat cari id-nya. Kosong berarti masih pakai fallback [_transactionTypes] di atas.
+  List<ReserveFilterOption> _transactionTypeOptions = const [];
   String _jenisTransaksi = 'Reserve';
   final nominalTC = TextEditingController();
   final catatanTC = TextEditingController();
@@ -100,10 +106,6 @@ class _ReservePageState extends State<ReservePage> {
   List<String> _paymentMethods = const ['KPR', 'Cash', 'Cash Bertahap', 'Inhouse'];
   List<CaraBayarOption> _caraBayarOptions = const [];
 
-  /// Nama attachment type untuk bukti bayar dicari berurutan dari yang paling spesifik, karena
-  /// penamaannya di master data CRM belum tentu sama persis.
-  static const List<String> _paymentTypeKeywords = ['bukti bayar', 'bukti transfer', 'bukti pembayaran', 'bukti', 'pembayaran'];
-
   static const Color _iconBg = Color(0xFFE6F1FB);
   static const Color _selectedBg = Color(0xFFE8F2FE);
 
@@ -112,9 +114,9 @@ class _ReservePageState extends State<ReservePage> {
     super.initState();
     AnalyticsService.logScreenView('reserve_order_reserve');
     context.read<KtpOcrCubit>().reset();
-    context.read<ReserveAttachmentCubit>().reset();
     _loadTransactionTypes();
     _loadCaraBayarOptions();
+    _loadUnits();
 
     final contact = widget.args.dataContact;
     namaTC.text = contact?.fullName ?? '';
@@ -122,8 +124,8 @@ class _ReservePageState extends State<ReservePage> {
     alamatTC.text = contact?.ktpAddress ?? '';
 
     _identityDocs = [
-      _DocSlot(title: 'KTP', icon: Icons.badge_outlined, typeKeywords: const ['ktp'], required: true),
-      _DocSlot(title: 'NPWP', icon: Icons.description_outlined, typeKeywords: const ['npwp']),
+      _DocSlot(title: 'KTP', icon: Icons.badge_outlined, required: true),
+      _DocSlot(title: 'NPWP', icon: Icons.description_outlined),
     ];
 
     _unitScroll.addListener(_onUnitScroll);
@@ -138,9 +140,20 @@ class _ReservePageState extends State<ReservePage> {
     final types = await context.read<ReserveOrderListCubit>().ensureFilters();
     if (!mounted || types.isEmpty) return;
     setState(() {
+      _transactionTypeOptions = types;
       _transactionTypes = types.map((t) => t.name).toList();
       if (!_transactionTypes.contains(_jenisTransaksi)) _jenisTransaksi = _transactionTypes.first;
     });
+  }
+
+  /// [name] label "Jenis Transaksi" yang dipilih user; dicari `status_reserve_id`-nya dari master
+  /// yang sama dipakai buat isi chip-nya. Null kalau lagi pakai fallback lokal (endpoint gagal/belum
+  /// kembali) — tidak ada id aslinya, sama seperti [_caraBayarIdOf].
+  int? _statusReserveIdOf(String name) {
+    for (final option in _transactionTypeOptions) {
+      if (option.name == name) return option.statusReserveId;
+    }
+    return null;
   }
 
   /// "Cara Pembayaran" pakai master `GET /api/reserve/cara-bayar` — `cara_bayar_id` yang disimpan
@@ -169,6 +182,15 @@ class _ReservePageState extends State<ReservePage> {
     return null;
   }
 
+  /// Daftar step "Pilih Unit" — `GET /api/reserve/unit-status?contact_id=…`, dimuat lebih awal
+  /// (bareng "Jenis Transaksi"/"Cara Pembayaran") supaya sudah siap begitu user sampai step Unit,
+  /// bukan menunggu sampai step-nya baru dibuka.
+  void _loadUnits() {
+    final contactId = widget.args.dataContact?.contactId;
+    if (contactId == null) return;
+    context.read<ReserveUnitCubit>().load(contactId: contactId);
+  }
+
   @override
   void dispose() {
     namaTC.dispose();
@@ -195,8 +217,9 @@ class _ReservePageState extends State<ReservePage> {
 
   void _goToPreviousStep() {
     if (_step == ReserveStep.sukses) return;
-    // Selagi dokumen sedang diunggah, mundur akan menyisakan upload separuh jalan.
-    if (context.read<ReserveAttachmentCubit>().state.isLoading) return;
+    // Selagi submit (bikin reserve order / kirim dokumen) sedang berjalan, mundur akan menyisakan
+    // proses itu separuh jalan.
+    if (_creatingReserve || _submittingDocPayment) return;
 
     final index = _numberedSteps.indexOf(_step);
     if (index > 0) setState(() => _step = _numberedSteps[index - 1]);
@@ -394,25 +417,21 @@ class _ReservePageState extends State<ReservePage> {
 
   void _onUnitScroll() {
     if (!_unitScroll.hasClients) return;
+    // Ambil halaman berikutnya sebelum benar-benar mentok supaya scroll-nya tidak tersendat.
+    if (_unitScroll.position.pixels >= _unitScroll.position.maxScrollExtent - 240) {
+      context.read<ReserveUnitCubit>().loadMore();
+    }
   }
 
+  /// Pencarian unit sekarang jalan di server (`GET /api/reserve/unit-status?search=…`), bukan
+  /// filter lokal — di-debounce 300ms sama seperti pencarian lain di app ini supaya tidak nembak
+  /// API tiap ketikan.
   void _onSearchChanged(String value) {
     _searchDebounce?.cancel();
     _searchDebounce = Timer(const Duration(milliseconds: 300), () {
-      if (mounted) setState(() {});
+      if (!mounted) return;
+      context.read<ReserveUnitCubit>().setSearch(value);
     });
-  }
-
-  List<SelectedUnit> _filteredContactUnits() {
-    final all = widget.args.dataContact?.units ?? [];
-    final q = searchTC.text.trim().toLowerCase();
-    if (q.isEmpty) return all;
-    return all.where((u) {
-      return (u.clusterName.toLowerCase().contains(q)) ||
-          (u.productName?.toLowerCase().contains(q) ?? false) ||
-          (u.propertyName?.toLowerCase().contains(q) ?? false) ||
-          u.displayLabel.toLowerCase().contains(q);
-    }).toList();
   }
 
   void _toggleSelectedUnit(SelectedUnit unit) {
@@ -436,13 +455,14 @@ class _ReservePageState extends State<ReservePage> {
   }
 
 
-  /// Dokumen ditahan lokal sepanjang 3 step pertama, baru diunggah di sini — jadi kalau flow-nya
-  /// ditinggal di tengah jalan tidak ada attachment nyangkut di kontak. Baris customer-nya
-  /// (`POST /api/reserve`) dibuat dulu sebelum dokumen diunggah — gagal di sini menahan di Review,
-  /// tidak lanjut upload.
+  /// Dokumen ditahan lokal sepanjang 3 step pertama, baru dikirim di sini — jadi kalau flow-nya
+  /// ditinggal di tengah jalan tidak ada dokumen/pembayaran nyangkut di reserve order manapun.
+  /// Dua panggilan berurutan: baris customer-nya (`POST /api/reserve`) dibuat dulu untuk dapat
+  /// `reserve_order_id`, baru dokumen (KTP/NPWP/bukti bayar) + rincian pembayaran dikirim lewat
+  /// `POST /api/reserve/doc-payment` yang butuh id itu. Gagal di salah satu tahap menahan di
+  /// Review, tidak lanjut ke tahap berikutnya.
   Future<void> _onSubmit() async {
-    final cubit = context.read<ReserveAttachmentCubit>();
-    if (cubit.state.isLoading || _creatingReserve) return;
+    if (_creatingReserve || _submittingDocPayment) return;
 
     final contact = widget.args.dataContact;
     final contactId = contact?.contactId;
@@ -451,11 +471,19 @@ class _ReservePageState extends State<ReservePage> {
       return;
     }
 
+    final statusReserveId = _statusReserveIdOf(_jenisTransaksi);
+    if (statusReserveId == null) {
+      showSnackbar(context, 'Jenis transaksi tidak dikenali, coba lagi', isError: true);
+      return;
+    }
+
     AnalyticsService.logEvent('reserve_order_submit');
+    final dataSource = context.read<ReserveOrderListCubit>().dataSource;
 
     setState(() => _creatingReserve = true);
+    final int reserveOrderId;
     try {
-      await context.read<ReserveOrderListCubit>().dataSource.createReserve(_buildCreateReserveParams(contactId));
+      reserveOrderId = await dataSource.createReserve(_buildCreateReserveParams(contactId));
     } catch (e) {
       if (!mounted) return;
       setState(() => _creatingReserve = false);
@@ -463,26 +491,41 @@ class _ReservePageState extends State<ReservePage> {
       return;
     }
     if (!mounted) return;
-    setState(() => _creatingReserve = false);
+    setState(() {
+      _creatingReserve = false;
+      _submittingDocPayment = true;
+    });
 
-    final ok = await cubit.submit(
-      contactId: contactId,
-      dealId: contact?.dealId,
-      note: _attachmentNote,
-      groups: [
-        for (final doc in _identityDocs)
-          _attachmentGroup(doc.title, doc.typeKeywords, [if (doc.file != null) doc.file!]),
-        _attachmentGroup('Bukti Bayar', _paymentTypeKeywords, _paymentProofs),
-      ],
-    );
-    if (!mounted) return;
+    final ktpFile = _identityDocs[0].file;
+    final npwpFile = _identityDocs.length > 1 ? _identityDocs[1].file : null;
+    final buktiTransferProofs = _paymentProofs.where((f) => f.bytes != null).toList();
+    final catatan = catatanTC.text.trim();
 
-    if (!ok) {
-      showSnackbar(context, cubit.state.error ?? 'Gagal mengunggah dokumen', isError: true);
+    try {
+      await dataSource.submitDocPayment(DocPaymentParams(
+        reserveOrderId: reserveOrderId,
+        statusReserveId: statusReserveId,
+        ttsAmountRp: _nominal ?? 0,
+        note: catatan.isEmpty ? null : catatan,
+        ktpBytes: [if (ktpFile?.bytes != null) ktpFile!.bytes!],
+        ktpFileNames: [if (ktpFile?.bytes != null) ktpFile!.name],
+        npwpBytes: npwpFile?.bytes,
+        npwpFileName: npwpFile?.name,
+        buktiTransferBytes: [for (final proof in buktiTransferProofs) proof.bytes!],
+        buktiTransferFileNames: [for (final proof in buktiTransferProofs) proof.name],
+      ));
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _submittingDocPayment = false);
+      showSnackbar(context, cleanErrorMessage(e), isError: true);
       return;
     }
+    if (!mounted) return;
 
-    setState(() => _step = ReserveStep.sukses);
+    setState(() {
+      _submittingDocPayment = false;
+      _step = ReserveStep.sukses;
+    });
   }
 
   /// Payload `POST /api/reserve`. Jenis kelamin & agama cuma terisi kalau ada hasil scan KTP
@@ -532,31 +575,6 @@ class _ReservePageState extends State<ReservePage> {
       date = null;
     }
     return (place.isEmpty ? null : place, date);
-  }
-
-  ReserveAttachmentGroup _attachmentGroup(String label, List<String> keywords, List<PickedFileResult> files) {
-    final usable = files.where((f) => f.bytes != null).toList();
-
-    return ReserveAttachmentGroup(
-      label: label,
-      typeKeywords: keywords,
-      bytes: [for (final file in usable) file.bytes!],
-      fileNames: [for (final file in usable) file.name],
-    );
-  }
-
-  /// Menempel di tiap attachment supaya di halaman Attachment kontak kelihatan dokumen ini datang
-  /// dari transaksi yang mana.
-  String get _attachmentNote {
-    final units = _selectedUnits.values.map((u) => u.displayLabel).join(', ');
-    final nominal = _nominal;
-
-    return [
-      'Reserve Order',
-      _jenisTransaksi,
-      if (units.isNotEmpty) units,
-      if (nominal != null) 'Rp ${NumberHelper.thousands(nominal)}',
-    ].join(' · ');
   }
 
   ReserveResult get _result => ReserveResult(
@@ -725,16 +743,14 @@ class _ReservePageState extends State<ReservePage> {
       ReserveStep.dokumen => [customButton(_onNextDokumen, "Lanjut ke Pilih Unit")],
       ReserveStep.unit => const <Widget>[],
       ReserveStep.review => [
-          BlocBuilder<ReserveAttachmentCubit, ReserveAttachmentState>(
-            builder: (context, state) => roPrimaryButton(
-              _creatingReserve
-                  ? "Membuat reserve order..."
-                  : state.isLoading
-                      ? "Mengunggah dokumen ${state.uploaded}/${state.total}..."
-                      : "Submit Reserve Order",
-              _onSubmit,
-              loading: _creatingReserve || state.isLoading,
-            ),
+          roPrimaryButton(
+            _creatingReserve
+                ? "Membuat reserve order..."
+                : _submittingDocPayment
+                    ? "Mengunggah dokumen..."
+                    : "Submit Reserve Order",
+            _onSubmit,
+            loading: _creatingReserve || _submittingDocPayment,
           ),
         ],
       ReserveStep.sukses => [
@@ -928,55 +944,71 @@ class _ReservePageState extends State<ReservePage> {
 
 
   Widget _buildUnit() {
-    final units = _filteredContactUnits();
-    return Column(
-      children: [
-        Padding(
-          padding: EdgeInsets.fromLTRB(14, 14, 14, 10),
-          child: _input(
-            searchTC,
-            hint: "Cari blok / no. unit…",
-            prefixIcon: Icons.search,
-            onChanged: _onSearchChanged,
+    return BlocBuilder<ReserveUnitCubit, ReserveUnitState>(
+      builder: (context, state) => Column(
+        children: [
+          Padding(
+            padding: EdgeInsets.fromLTRB(14, 14, 14, 10),
+            child: _input(
+              searchTC,
+              hint: "Cari blok / no. unit…",
+              prefixIcon: Icons.search,
+              onChanged: _onSearchChanged,
+            ),
           ),
-        ),
-        Expanded(child: _buildContactUnitList(units)),
-        Container(
-          width: double.infinity,
-          padding: EdgeInsets.fromLTRB(14, 10, 14, 16),
-          decoration: BoxDecoration(
-            color: Color(whiteColor),
-            border: Border(top: BorderSide(color: Color(grey10Color))),
+          Expanded(child: _buildUnitList(state)),
+          Container(
+            width: double.infinity,
+            padding: EdgeInsets.fromLTRB(14, 10, 14, 16),
+            decoration: BoxDecoration(
+              color: Color(whiteColor),
+              border: Border(top: BorderSide(color: Color(grey10Color))),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  "${_selectedUnits.length} unit dipilih",
+                  style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w700, color: Color(blue2Color)),
+                ),
+                SizedBox(height: 8),
+                customButton(_onNextUnit, "Lanjut ke Review"),
+              ],
+            ),
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                "${_selectedUnits.length} unit dipilih",
-                style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w700, color: Color(blue2Color)),
-              ),
-              SizedBox(height: 8),
-              customButton(_onNextUnit, "Lanjut ke Review"),
-            ],
-          ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
-  Widget _buildContactUnitList(List<SelectedUnit> units) {
-    if (units.isEmpty) {
+  /// Daftar unit dari `ReserveUnitCubit` (`GET /api/reserve/unit-status`) — loading di awal/pas
+  /// nyari, error dengan tombol coba lagi, kosong, atau daftarnya + spinner kecil di baris terakhir
+  /// selagi [ReserveUnitState.loadingMore] (dipicu [_onUnitScroll] saat mendekati bawah).
+  Widget _buildUnitList(ReserveUnitState state) {
+    if (state.status == ReserveUnitStatus.loading && state.items.isEmpty) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    if (state.status == ReserveUnitStatus.error && state.items.isEmpty) {
+      return _emptyInfo(state.error ?? 'Gagal memuat unit', action: 'Coba lagi', onAction: _loadUnits);
+    }
+    if (state.items.isEmpty) {
       final q = searchTC.text.trim();
-      return _emptyInfo(
-        q.isEmpty ? "Belum ada unit untuk project ini." : "Unit \"$q\" tidak ditemukan.",
-      );
+      return _emptyInfo(q.isEmpty ? "Belum ada unit untuk kontak ini." : "Unit \"$q\" tidak ditemukan.");
     }
 
     return ListView.builder(
       controller: _unitScroll,
       padding: EdgeInsets.fromLTRB(14, 0, 14, 14),
-      itemCount: units.length,
-      itemBuilder: (context, index) => _contactUnitRow(units[index]),
+      itemCount: state.items.length + (state.loadingMore ? 1 : 0),
+      itemBuilder: (context, index) {
+        if (index >= state.items.length) {
+          return const Padding(
+            padding: EdgeInsets.symmetric(vertical: 12),
+            child: Center(child: CircularProgressIndicator()),
+          );
+        }
+        return _contactUnitRow(state.items[index]);
+      },
     );
   }
 
@@ -993,10 +1025,18 @@ class _ReservePageState extends State<ReservePage> {
       final names = [
         if (unit.clusterName.trim().isNotEmpty) unit.clusterName.trim(),
         if ((unit.productName ?? '').trim().isNotEmpty) unit.productName!.trim(),
+        if ((unit.dealValue ?? 0) > 0) 'Rp ${NumberHelper.thousands(unit.dealValue!)}',
       ];
       return names.join(' · ');
     }
     return '';
+  }
+
+  /// "Available"/"Reserve" ("hijau"/"kuning" neon, lihat `UnitStatusBadge`) butuh teks gelap supaya
+  /// terbaca — status lain (Hold/RBA/RBB/SP) sudah cukup gelap latarnya buat teks putih default.
+  Color? _statusBadgeTextColor(String statusName) {
+    const bright = {'available', 'reserve'};
+    return bright.contains(statusName.toLowerCase()) ? Color(blue2Color) : null;
   }
 
   Widget _unitHookBadge() {
@@ -1016,58 +1056,69 @@ class _ReservePageState extends State<ReservePage> {
 
   Widget _contactUnitRow(SelectedUnit unit) {
     final selected = _selectedUnits.containsKey(unit.key);
+    final sellable = unit.isPropertySellable;
     final title = _unitRowTitle(unit);
     final subtitle = _unitRowSubtitle(unit);
+    final statusName = (unit.statusName ?? '').trim();
 
-    return InkWell(
-      onTap: () => _toggleSelectedUnit(unit),
-      borderRadius: BorderRadius.circular(12),
-      child: Container(
-        margin: EdgeInsets.only(bottom: 8),
-        padding: EdgeInsets.all(11),
-        decoration: BoxDecoration(
-          color: selected ? _selectedBg : Color(whiteColor),
-          border: Border.all(color: selected ? Color(primaryColor) : Color(grey10Color), width: 1.5),
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 19,
-              height: 19,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: selected ? Color(primaryColor) : Color(whiteColor),
-                border: Border.all(color: selected ? Color(primaryColor) : Color(grey7Color), width: 1.5),
-                borderRadius: BorderRadius.circular(6),
+    return Opacity(
+      opacity: sellable ? 1 : 0.5,
+      child: InkWell(
+        // Unit yang tidak sellable (mis. sudah SP/akad di kontak lain) tetap tampil pudar, tapi
+        // tidak bisa dicentang — sama seperti unit picker contact-add yang sudah ada.
+        onTap: sellable ? () => _toggleSelectedUnit(unit) : null,
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          margin: EdgeInsets.only(bottom: 8),
+          padding: EdgeInsets.all(11),
+          decoration: BoxDecoration(
+            color: selected ? _selectedBg : Color(whiteColor),
+            border: Border.all(color: selected ? Color(primaryColor) : Color(grey10Color), width: 1.5),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 19,
+                height: 19,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: selected ? Color(primaryColor) : Color(whiteColor),
+                  border: Border.all(color: selected ? Color(primaryColor) : Color(grey7Color), width: 1.5),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: selected ? Icon(Icons.check, size: 12, color: Color(whiteColor)) : null,
               ),
-              child: selected ? Icon(Icons.check, size: 12, color: Color(whiteColor)) : null,
-            ),
-            SizedBox(width: 10),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Row(
-                    children: [
-                      Flexible(
-                        child: Text(
-                          title,
-                          style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700, color: Color(blue2Color)),
+              SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Row(
+                      children: [
+                        Flexible(
+                          child: Text(
+                            title,
+                            style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700, color: Color(blue2Color)),
+                          ),
                         ),
-                      ),
-                      if (unit.isTipeHoek) _unitHookBadge(),
+                        if (unit.isTipeHoek) _unitHookBadge(),
+                      ],
+                    ),
+                    if (subtitle.isNotEmpty) ...[
+                      SizedBox(height: 2),
+                      Text(subtitle, style: TextStyle(fontSize: 10, color: Color(grey4Color))),
                     ],
-                  ),
-                  if (subtitle.isNotEmpty) ...[
-                    SizedBox(height: 2),
-                    Text(subtitle, style: TextStyle(fontSize: 10, color: Color(grey4Color))),
                   ],
-                ],
+                ),
               ),
-            ),
-          ],
+              if (statusName.isNotEmpty) ...[
+                SizedBox(width: 8),
+                UnitStatusBadge(label: statusName, textColor: _statusBadgeTextColor(statusName)),
+              ],
+            ],
+          ),
         ),
       ),
     );
@@ -1259,7 +1310,7 @@ class _ReservePageState extends State<ReservePage> {
           ),
           SizedBox(height: 12),
           Text(
-            "Dokumen sudah tersimpan di Attachment kontak. Rincian transaksinya masih tersimpan di aplikasi ini saja — endpoint reserve order di server belum tersedia.",
+            "Dokumen & rincian pembayaran sudah dikirim ke reserve order ini.",
             textAlign: TextAlign.center,
             style: TextStyle(fontSize: 10, color: Color(grey5Color)),
           ),
@@ -1478,14 +1529,29 @@ class _ReservePageState extends State<ReservePage> {
     );
   }
 
-  Widget _emptyInfo(String message) {
+  Widget _emptyInfo(String message, {String? action, VoidCallback? onAction}) {
     return Center(
       child: Padding(
         padding: EdgeInsets.all(24),
-        child: Text(
-          message,
-          textAlign: TextAlign.center,
-          style: TextStyle(fontSize: 12, color: Color(grey4Color)),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              message,
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 12, color: Color(grey4Color)),
+            ),
+            if (action != null) ...[
+              SizedBox(height: 10),
+              InkWell(
+                onTap: onAction,
+                child: Text(
+                  action,
+                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(primaryColor)),
+                ),
+              ),
+            ],
+          ],
         ),
       ),
     );
@@ -1544,15 +1610,11 @@ class _DocSlot {
   final IconData icon;
   final bool required;
 
-  /// Kata kunci untuk mencari attachment type-nya saat diunggah ke kontak.
-  final List<String> typeKeywords;
-
   PickedFileResult? file;
 
   _DocSlot({
     required this.title,
     required this.icon,
-    required this.typeKeywords,
     this.required = false,
   });
 }

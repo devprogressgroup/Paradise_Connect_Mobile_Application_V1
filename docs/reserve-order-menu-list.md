@@ -93,15 +93,46 @@ tersambung:
 | Bagian | Sumbernya sekarang |
 |---|---|
 | Timeline L1–L3, L5–L10 | Ditandai "belum sampai tahap ini" / chip gembok; hanya L4 (Reserve) yang punya keterangan dari `created_datetime` + `amount_rp` |
-| Tab **Data Pembeli** | Nama dari baris list; No. KTP / Alamat sesuai KTP / Status Pernikahan / Cara Pembayaran ditulis "-" (baris tetap tampil, tidak disembunyikan, supaya layoutnya konsisten dengan mockup) |
+| Tab **Data Pembeli** | Sudah tersambung ke `GET /api/reserve/customer` — lihat section "Tab Data Pembeli tersambung ke `GET /api/reserve/customer`" di bawah |
 | Tab **Attachment** | Kosong ("Belum ada dokumen.") |
 | Tab **Catatan** | Diisi `reserve_note` sebagai satu catatan, kalau ada |
 | `unitLabel` | `property_name` → `deal_blok_no` → "Unit belum ditentukan" (ketiganya sering null di response contoh) |
 
 **Waktu endpoint detailnya siap:** ganti pemanggilan di
 [detail.dart](lib/features/reserve-order/presentation/pages/detail.dart) supaya mengambil
-data lengkap berbekal `order.id`, lalu isi ulang `journey` / `buyer` / `docs` / `notes` dari situ.
-Kartu di list tidak perlu berubah — datanya memang cukup dari `/api/reserve`.
+timeline lengkap berbekal `order.id`, lalu isi ulang `journey` / `docs` / `notes` dari situ (`buyer`
+sudah duluan, lihat section di bawah). Kartu di list tidak perlu berubah — datanya memang cukup
+dari `/api/reserve`.
+
+## Tab Data Pembeli tersambung ke `GET /api/reserve/customer`
+
+`GET /api/reserve/customer?reserve_order_id=…` membalas `data.reserve_order` + `data.customer` —
+dipanggil dari `ReserveOrderDetailPage.initState` (bukan dari list, supaya list tetap ringan), lalu
+dipetakan ke 5 baris tab **Data Pembeli**:
+
+| Baris | Sumbernya |
+|---|---|
+| Nama Lengkap (sesuai KTP) | `customer.cust_name` |
+| No. KTP | `customer.cust_ktp` |
+| Alamat sesuai KTP | `customer.cust_address1` |
+| Status Pernikahan | `customer.cust_marital_status` (ditulis apa adanya, tidak diubah kapitalisasinya) |
+| Cara Pembayaran | `reserve_order.cara_bayar_id` dipetakan ke nama lewat master `GET /api/reserve/cara-bayar` (`ReserveOrderListCubit.ensureCaraBayarOptions()`, sudah di-cache) |
+
+Field yang null tetap ditulis "-", sama seperti sebelum endpoint ini ada. Gagal fetch (koneksi
+putus dkk.) juga cuma dibiarkan — tab tetap tampil field "-" bawaan `ReserveOrder.fromJson()`
+daripada memblokir seluruh halaman detail.
+
+- [reserve_order_remote_datasource.dart](lib/features/reserve-order/data/datasources/reserve_order_remote_datasource.dart) —
+  `ReserveOrderRemoteDataSource.getReserveCustomer(reserveOrderId)`, `GET /reserve/customer`.
+- [reserve_order_model.dart](lib/features/reserve-order/data/models/reserve_order_model.dart) —
+  `ReserveCustomerDetail.fromJson()` memetakan responsnya; `ReserveOrder.applyCustomerDetail()`
+  menulis ulang isi `buyer` (field ini sekarang selalu list baru yang bisa di-`clear()`/`addAll()`,
+  bukan `const []` bawaan konstruktor lagi).
+- [detail.dart](lib/features/reserve-order/presentation/pages/detail.dart) —
+  `_loadBuyerDetail()` dipanggil di `initState`, pakai `context.read<ReserveOrderListCubit>()`
+  buat akses `dataSource` + `ensureCaraBayarOptions()` (pola yang sama dengan `reserve.dart`, cubit
+  yang sama dipakai bareng, tanpa cubit baru khusus detail). Tab-nya tampil `CircularProgressIndicator`
+  kecil selama fetch berjalan.
 
 ## Link "Profil & Riwayat Lengkap ›" sudah jalan
 
@@ -280,9 +311,9 @@ Analyzer tidak menangkap error layout (overflow / unbounded height), jadi test i
    diputuskan bagaimana memetakan tiap id master (RBB/Reserve/RKB/Reserve Batal/Waitinglist/SP/
    RBA/SP Batal) ke `ReserveOrderStatus` & warnanya, badge bisa memakai nama asli alih-alih
    tebakan dari tanggal.
-2. **Endpoint detail reserve order** — sudah Anda janjikan menyusul. Begitu ada, `detail.dart`
-   disambungkan supaya timeline lengkap L1–L10, tab Data Pembeli, Attachment, dan Catatan terisi
-   dari sana, bukan dari field seadanya di response list.
+2. **Endpoint detail reserve order** — tab **Data Pembeli** sudah tersambung
+   (`GET /api/reserve/customer`, lihat section di atas). Timeline L1–L10 lengkap, tab Attachment,
+   dan Catatan masih menunggu endpoint detailnya menyusul.
 3. **Aksi Top Up & Ajukan Ulang belum mengirim apa pun ke server** — keduanya masih mengubah
    `ReserveOrder` di memori saja, sama seperti submit reserve order (lihat "Yang belum jalan" di
    [reserve-order-scan-ktp-ocr.md](docs/reserve-order-scan-ktp-ocr.md)). Menunggu endpoint aksinya.

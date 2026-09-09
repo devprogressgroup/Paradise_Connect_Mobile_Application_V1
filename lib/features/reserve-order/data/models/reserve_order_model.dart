@@ -206,6 +206,42 @@ class ReserveOrderField {
   const ReserveOrderField(this.label, this.value);
 }
 
+/// Detail satu customer reserve, dari `GET /api/reserve/customer?reserve_order_id=…`. Melengkapi
+/// field yang tidak ada di `GET /api/reserve` (list) — No. KTP, alamat, status pernikahan, & cara
+/// bayar — dipakai [ReserveOrder.applyCustomerDetail] buat mengisi tab "Data Pembeli" begitu
+/// halaman detailnya dibuka.
+class ReserveCustomerDetail {
+  final String custName;
+  final String? custKtp;
+  final String? custAddress1;
+  final String? custMaritalStatus;
+
+  /// Ada di objek `reserve_order`, bukan `customer` — cuma id, namanya dipetakan lewat master
+  /// `GET /api/reserve/cara-bayar` (`ReserveOrderListCubit.ensureCaraBayarOptions`).
+  final int? caraBayarId;
+
+  const ReserveCustomerDetail({
+    required this.custName,
+    this.custKtp,
+    this.custAddress1,
+    this.custMaritalStatus,
+    this.caraBayarId,
+  });
+
+  factory ReserveCustomerDetail.fromJson(Map<String, dynamic> json) {
+    final reserveOrder = json['reserve_order'] is Map ? Map<String, dynamic>.from(json['reserve_order'] as Map) : const {};
+    final customer = json['customer'] is Map ? Map<String, dynamic>.from(json['customer'] as Map) : const {};
+
+    return ReserveCustomerDetail(
+      custName: _text(customer['cust_name']) ?? _text(reserveOrder['cust_name']) ?? '-',
+      custKtp: _text(customer['cust_ktp']),
+      custAddress1: _text(customer['cust_address1']),
+      custMaritalStatus: _text(customer['cust_marital_status']),
+      caraBayarId: _int(reserveOrder['cara_bayar_id']),
+    );
+  }
+}
+
 class ReserveOrder {
   final String id;
   final String customerName;
@@ -284,10 +320,11 @@ class ReserveOrder {
     this.paidSoFar = 0,
     this.canTopUp = false,
     required this.journey,
-    this.buyer = const [],
+    List<ReserveOrderField>? buyer,
     List<ReserveOrderDoc>? docs,
     List<ReserveOrderNote>? notes,
-  })  : docs = List.of(docs ?? const []),
+  })  : buyer = List.of(buyer ?? const []),
+        docs = List.of(docs ?? const []),
         notes = List.of(notes ?? const []);
 
   /// Memetakan satu baris `GET /api/reserve`.
@@ -388,6 +425,30 @@ class ReserveOrder {
           ),
       ],
     );
+  }
+
+  /// Melengkapi tab "Data Pembeli" dengan hasil `GET /api/reserve/customer` — dipanggil dari
+  /// `ReserveOrderDetailPage.initState` begitu detailnya berhasil dimuat. [caraBayarOptions] dipakai
+  /// memetakan `cara_bayar_id` (angka) ke namanya; kalau id-nya tidak ketemu di master (atau memang
+  /// null), barisnya tetap ditulis "-" sama seperti field yang belum diisi.
+  void applyCustomerDetail(ReserveCustomerDetail detail, List<CaraBayarOption> caraBayarOptions) {
+    String? caraBayarName;
+    for (final option in caraBayarOptions) {
+      if (option.caraBayarId == detail.caraBayarId) {
+        caraBayarName = option.name;
+        break;
+      }
+    }
+
+    buyer
+      ..clear()
+      ..addAll([
+        ReserveOrderField('Nama Lengkap (sesuai KTP)', detail.custName),
+        ReserveOrderField('No. KTP', detail.custKtp ?? '-'),
+        ReserveOrderField('Alamat sesuai KTP', detail.custAddress1 ?? '-'),
+        ReserveOrderField('Status Pernikahan', detail.custMaritalStatus ?? '-'),
+        ReserveOrderField('Cara Pembayaran', caraBayarName ?? '-'),
+      ]);
   }
 
   String get initials => initialsOf(customerName);

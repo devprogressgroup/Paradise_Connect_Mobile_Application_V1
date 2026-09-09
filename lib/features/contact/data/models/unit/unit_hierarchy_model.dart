@@ -98,14 +98,14 @@ class UnitLot {
 
 
 class SelectedUnit {
-  final int townshipId; 
-  final int companyId; 
-  final int clusterId; 
+  final int townshipId;
+  final int companyId;
+  final int clusterId;
   final String clusterName;
-  final int? productId; 
+  final int? productId;
   final String? productName;
-  final int? propertyId; 
-  final String? propertyName; 
+  final int? propertyId;
+  final String? propertyName;
   final bool isWaitingList;
   final bool isTipeHoek;
 
@@ -122,14 +122,37 @@ class SelectedUnit {
     this.isTipeHoek = false,
     this.statusProspectId,
     this.lostDate,
+    this.dealId,
+    this.statusName,
+    this.dealValue,
+    this.isPropertySellable = true,
   });
 
-  
+
   final int? statusProspectId;
-  
+
   final String? lostDate;
 
-  
+  /// Id deal yang menghasilkan baris ini — cuma keisi dari [fromUnitStatusJson] (`GET
+  /// /api/reserve/unit-status`, satu baris per deal). Null buat unit dari [fromContactJson] atau
+  /// dari unit picker contact-add.
+  final int? dealId;
+
+  /// Nama status deal-nya (mis. "Hold") dari [fromUnitStatusJson] — dipakai badge di step "Pilih
+  /// Unit" lewat `UnitStatusBadge`. Null buat sumber lain.
+  final String? statusName;
+
+  /// Nominal deal — dipakai sebagai harga di baris kedua kartu step "Pilih Unit". Null/0 tidak
+  /// ditampilkan.
+  final num? dealValue;
+
+  /// Dari `is_property_sellable` — kavling yang sudah tidak sellable (mis. sudah SP/akad kontak
+  /// lain) tetap tampil tapi pudar & tidak bisa dicentang di step "Pilih Unit". Default true supaya
+  /// sumber lain ([fromContactJson], unit picker contact-add) yang tidak punya field ini tetap bisa
+  /// dipilih seperti sebelumnya.
+  final bool isPropertySellable;
+
+
   factory SelectedUnit.fromContactJson(Map<String, dynamic> j) => SelectedUnit(
         townshipId: j['township_id'] ?? 0,
         companyId: j['company_id'] ?? 0,
@@ -145,12 +168,40 @@ class SelectedUnit {
         lostDate: j['lost_date']?.toString(),
       );
 
-  
+  /// Satu baris (per deal) dari `GET /api/reserve/unit-status?contact_id=…` — step "Pilih Unit" di
+  /// form Reserve. Beda dari [fromContactJson]: cluster/product/property-nya bisa null sekaligus
+  /// (deal yang belum ditentukan kavlingnya), makanya di-`?? 0` sama seperti field lain yang
+  /// nullable di sini.
+  factory SelectedUnit.fromUnitStatusJson(Map<String, dynamic> j) => SelectedUnit(
+        dealId: j['deal_id'],
+        townshipId: j['township_id'] ?? 0,
+        companyId: j['company_id'] ?? 0,
+        clusterId: j['cluster_id'] ?? 0,
+        clusterName: (j['cluster_name'] ?? '').toString(),
+        productId: j['product_id'],
+        productName: j['product_name']?.toString(),
+        propertyId: j['property_id'],
+        propertyName: j['property_name']?.toString(),
+        isWaitingList: j['is_waiting_list'] == true || j['is_waiting_list'] == 1,
+        isTipeHoek: j['is_tipe_hoek'] == true || j['is_tipe_hoek'] == 1,
+        statusProspectId: j['status_prospect_id'],
+        statusName: j['status_name']?.toString(),
+        dealValue: j['deal_value'] is num ? j['deal_value'] as num : num.tryParse('${j['deal_value']}'),
+        isPropertySellable: j['is_property_sellable'] == null
+            ? true
+            : (j['is_property_sellable'] == true || j['is_property_sellable'] == 1),
+      );
+
+
   bool get isLost => lostDate != null && lostDate!.isNotEmpty;
 
-  
-  String get key =>
-      '$clusterId|${productId ?? 0}|${propertyId ?? 0}|${isWaitingList ? 1 : 0}';
+  /// [dealId] dipakai duluan kalau ada (dari [fromUnitStatusJson]) — satu kontak bisa punya lebih
+  /// dari satu deal tanpa kavling (cluster/product/property semuanya null), yang tanpa ini bakal
+  /// tabrakan jadi satu key yang sama. Sumber lain ([fromContactJson], unit picker contact-add)
+  /// tidak punya `dealId` — key-nya tetap seperti sebelumnya.
+  String get key => dealId != null
+      ? 'deal:$dealId'
+      : '$clusterId|${productId ?? 0}|${propertyId ?? 0}|${isWaitingList ? 1 : 0}';
 
   
   String get label {

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:progress_group/core/constants/colors.dart';
@@ -10,6 +11,7 @@ import 'package:progress_group/features/contact/data/arguments/contact_detail_ar
 import 'package:progress_group/features/reserve-order/data/models/reserve_order_model.dart';
 import 'package:progress_group/features/contact/domain/entities/contact/contact_entity.dart';
 import 'package:progress_group/features/reserve-order/presentation/pages/widgets.dart';
+import 'package:progress_group/features/reserve-order/presentation/state/reserve_order_list/reserve_order_list_cubit.dart';
 
 /// Detail satu transaksi Reserve Order — Bagian 3 mockup, kolom "Detail — Perjalanan & Dokumen".
 ///
@@ -29,6 +31,7 @@ enum _RoTab { perjalanan, pembeli, attachment, catatan }
 class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage> {
   _RoTab _tab = _RoTab.perjalanan;
   final noteTC = TextEditingController();
+  bool _loadingBuyer = true;
 
   ReserveOrder get order => widget.order;
 
@@ -36,6 +39,30 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage> {
   void initState() {
     super.initState();
     AnalyticsService.logScreenView('reserve_order_detail');
+    _loadBuyerDetail();
+  }
+
+  /// `GET /api/reserve` (list) cuma punya nama pembeli — No. KTP, alamat, status pernikahan, &
+  /// cara bayar baru datang dari `GET /api/reserve/customer` di sini. Gagal dimuat cuma dibiarkan:
+  /// tab tetap tampil field "-" bawaan `ReserveOrder.fromJson` (lihat komentarnya) daripada
+  /// memblokir seluruh halaman detail karena satu tab gagal.
+  Future<void> _loadBuyerDetail() async {
+    final reserveOrderId = int.tryParse(order.id);
+    if (reserveOrderId == null) {
+      setState(() => _loadingBuyer = false);
+      return;
+    }
+
+    final cubit = context.read<ReserveOrderListCubit>();
+    try {
+      final detail = await cubit.dataSource.getReserveCustomer(reserveOrderId);
+      final caraBayarOptions = await cubit.ensureCaraBayarOptions();
+      order.applyCustomerDetail(detail, caraBayarOptions);
+    } catch (_) {
+      // Diamkan — lihat catatan di atas.
+    } finally {
+      if (mounted) setState(() => _loadingBuyer = false);
+    }
   }
 
   @override
@@ -399,6 +426,13 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage> {
     // saat transaksinya memang ditolak — supaya tidak ada baris yang terlihat bisa ditekan padahal
     // tidak ada tujuannya.
     final editable = order.isRejected;
+
+    if (_loadingBuyer) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: 24),
+        child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
+      );
+    }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,

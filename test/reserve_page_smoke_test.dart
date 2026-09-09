@@ -1,12 +1,12 @@
 // Smoke test flow Reserve Order (mockup reserve-order-sales-final_12.html, Bagian 2):
 // memastikan kelima layar — Data Pembeli, Dokumen & Bukti Bayar, Pilih Unit, Review, Sukses —
 // bisa dirender di ukuran layar HP tanpa error layout (overflow / unbounded height), validasi
-// tiap step menahan langkah berikutnya, dokumennya terkirim ke endpoint attachment kontak saat
-// submit, dan hasilnya sampai ke kartu di halaman menu.
+// tiap step menahan langkah berikutnya, dokumen & rincian pembayarannya terkirim ke
+// `POST /api/reserve/doc-payment` (pakai `reserve_order_id` dari `POST /api/reserve`) saat submit,
+// dan hasilnya sampai ke kartu di halaman menu.
 // Analyzer tidak bisa menangkap error layout, jadi ini satu-satunya pengaman otomatisnya.
 import 'dart:typed_data';
 
-import 'package:dartz/dartz.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -19,20 +19,16 @@ import 'package:plugin_platform_interface/plugin_platform_interface.dart';
 import 'package:progress_group/features/contact/data/arguments/contact_detail_args.dart';
 import 'package:progress_group/features/reserve-order/data/datasources/ktp_ocr_remote_datasource.dart';
 import 'package:progress_group/features/reserve-order/data/datasources/reserve_order_remote_datasource.dart';
+import 'package:progress_group/features/reserve-order/data/datasources/reserve_unit_remote_datasource.dart';
 import 'package:progress_group/features/reserve-order/data/models/ktp_ocr_model.dart';
 import 'package:progress_group/features/reserve-order/data/models/reserve_order_model.dart';
 import 'package:progress_group/features/contact/data/models/unit/unit_hierarchy_model.dart';
-import 'package:progress_group/features/contact/domain/entities/attachment/attachment_type.dart';
-import 'package:progress_group/features/contact/domain/entities/attachment/upload_attachment_params.dart';
 import 'package:progress_group/features/contact/domain/entities/contact/contact_entity.dart';
-import 'package:progress_group/features/contact/domain/repositories/contact_repository.dart';
-import 'package:progress_group/features/contact/domain/usecases/attachment/get_attachment_types_usecase.dart';
-import 'package:progress_group/features/contact/domain/usecases/attachment/upload_attachment_usecase.dart';
 import 'package:progress_group/features/reserve-order/presentation/pages/index.dart';
 import 'package:progress_group/features/reserve-order/presentation/pages/reserve.dart';
 import 'package:progress_group/features/reserve-order/presentation/state/ktp_ocr/ktp_ocr_cubit.dart';
-import 'package:progress_group/features/reserve-order/presentation/state/reserve_attachment/reserve_attachment_cubit.dart';
 import 'package:progress_group/features/reserve-order/presentation/state/reserve_order_list/reserve_order_list_cubit.dart';
+import 'package:progress_group/features/reserve-order/presentation/state/reserve_unit/reserve_unit_cubit.dart';
 
 class _FakeKtpOcr implements KtpOcrRemoteDataSource {
   @override
@@ -49,6 +45,13 @@ class _FakeReserveOrders implements ReserveOrderRemoteDataSource {
   int caraBayarCalls = 0;
   final List<CreateReserveParams> createCalls = [];
   bool failCreate = false;
+
+  /// Id yang dikembalikan [createReserve] — dipakai `_onSubmit` sebagai
+  /// `DocPaymentParams.reserveOrderId` di [submitDocPayment].
+  int nextReserveOrderId = 12;
+
+  final List<DocPaymentParams> docPaymentCalls = [];
+  bool failDocPayment = false;
 
   @override
   Future<ReserveOrdersPage> getReserveOrders({
@@ -84,31 +87,53 @@ class _FakeReserveOrders implements ReserveOrderRemoteDataSource {
   }
 
   @override
-  Future<void> createReserve(CreateReserveParams params) async {
+  Future<int> createReserve(CreateReserveParams params) async {
     if (failCreate) throw Exception('koneksi terputus');
     createCalls.add(params);
+    return nextReserveOrderId;
+  }
+
+  @override
+  Future<void> submitDocPayment(DocPaymentParams params) async {
+    if (failDocPayment) throw Exception('koneksi terputus');
+    docPaymentCalls.add(params);
+  }
+
+  @override
+  Future<ReserveCustomerDetail> getReserveCustomer(int reserveOrderId) async {
+    throw UnimplementedError('tidak dipakai di test flow Reserve');
   }
 }
 
-/// Menampung request `POST /contacts/{id}/attachments` yang dikirim saat Submit Reserve Order,
-/// plus master attachment type yang namanya dicocokkan cubit-nya.
-class _FakeContactRepository extends Fake implements ContactRepository {
-  final List<UploadAttachmentParams> uploads = [];
-  bool failUpload = false;
+/// Step "Pilih Unit" — `GET /api/reserve/unit-status?contact_id=…`. Filter `search`-nya meniru
+/// pencarian client-side lama (clusterName/productName/propertyName/displayLabel, case-insensitive)
+/// supaya test pencarian yang sudah ada tetap berlaku sama persis walau sumbernya kini server.
+class _FakeReserveUnits implements ReserveUnitRemoteDataSource {
+  List<SelectedUnit> units = const [];
+  int calls = 0;
+  String? lastSearch;
 
   @override
-  Future<Either<String, List<AttachmentType>>> getAttachmentTypes() async => Right([
-        AttachmentType(id: 1, name: 'Lainnya'),
-        AttachmentType(id: 3, name: 'KTP'),
-        AttachmentType(id: 4, name: 'NPWP'),
-        AttachmentType(id: 7, name: 'Bukti Transfer'),
-      ]);
+  Future<ReserveUnitsPage> getUnits({
+    required int contactId,
+    String? search,
+    String sort = 'created_desc',
+    int page = 1,
+    int perPage = 15,
+  }) async {
+    calls++;
+    lastSearch = search;
+    final q = (search ?? '').trim().toLowerCase();
+    final items = q.isEmpty
+        ? units
+        : units.where((u) {
+            return u.clusterName.toLowerCase().contains(q) ||
+                (u.productName?.toLowerCase().contains(q) ?? false) ||
+                (u.propertyName?.toLowerCase().contains(q) ?? false) ||
+                u.displayLabel.toLowerCase().contains(q);
+          }).toList();
 
-  @override
-  Future<Either<String, void>> uploadAttachment(UploadAttachmentParams params) async {
-    if (failUpload) return const Left('koneksi terputus');
-    uploads.add(params);
-    return const Right(null);
+    return ReserveUnitsPage(items: items, page: page, hasMore: false);
   }
 }
 
@@ -165,24 +190,21 @@ ContactEntity _contact() => ContactEntity(
       units: [_unit(19, 'Blok E1 No. 19'), _unit(21, 'Blok E1 No. 21'), _unit(0, null)],
     );
 
-late _FakeContactRepository repo;
 late _FakeReserveOrders source;
+late _FakeReserveUnits unitsSource;
 
 // Satu instance per test (bukan dibuat baru tiap `_wrap`) — dipakai bareng, sama seperti provider
 // aslinya di main.dart, supaya cache filter-nya ([ReserveOrderListCubit.ensureFilters]) kepakai
-// beneran kalau `_wrap` dipanggil berkali-kali dalam satu test.
+// beneran kalau `_wrap` dipanggil berkali-kali dalam satu test. `ReserveUnitCubit` juga singleton
+// di `main.dart` asli, jadi diperlakukan sama di sini.
 late ReserveOrderListCubit reserveOrderListCubit;
+late ReserveUnitCubit reserveUnitCubit;
 
 Widget _wrap(Widget child) => MultiBlocProvider(
       providers: [
         BlocProvider(create: (_) => KtpOcrCubit(_FakeKtpOcr())),
-        BlocProvider(
-          create: (_) => ReserveAttachmentCubit(
-            GetAttachmentTypesUseCase(repo),
-            UploadAttachmentUseCase(repo),
-          ),
-        ),
         BlocProvider.value(value: reserveOrderListCubit),
+        BlocProvider.value(value: reserveUnitCubit),
       ],
       child: child,
     );
@@ -206,11 +228,13 @@ Future<void> _attachVia(WidgetTester tester, Finder row) async {
   await tester.pumpAndSettle();
 }
 
-/// Step 1 → 3: isi dokumen wajib & nominal, lalu pilih satu unit.
+/// Step 1 → 3: isi dokumen wajib & nominal (dua bukti bayar, buat membuktikan
+/// `bukti_transfer` boleh lebih dari 1 file), lalu pilih satu unit.
 Future<void> _fillUntilUnitPicked(WidgetTester tester) async {
   await tester.tap(find.text('Lanjut ke Dokumen'));
   await tester.pumpAndSettle();
   await _attachVia(tester, find.textContaining('KTP', findRichText: true).first);
+  await _attachVia(tester, find.text('+ Tambah Bukti Bayar Lain'));
   await _attachVia(tester, find.text('+ Tambah Bukti Bayar Lain'));
   await tester.enterText(find.byType(TextField).first, '2000000');
   await tester.pumpAndSettle();
@@ -227,9 +251,10 @@ void main() {
 
   setUp(() {
     FilePicker.platform = _FakeFilePicker();
-    repo = _FakeContactRepository();
     source = _FakeReserveOrders();
     reserveOrderListCubit = ReserveOrderListCubit(source);
+    unitsSource = _FakeReserveUnits()..units = _contact().units ?? const [];
+    reserveUnitCubit = ReserveUnitCubit(unitsSource);
   });
 
   testWidgets('4 step + layar sukses render tanpa error layout & validasinya jalan', (tester) async {
@@ -351,7 +376,7 @@ void main() {
     expect(find.text('Kembali ke Kontak'), findsOneWidget);
   });
 
-  testWidgets('submit mengirim KTP & bukti bayar ke attachment kontak', (tester) async {
+  testWidgets('submit mengirim KTP, bukti bayar & rincian pembayaran ke doc-payment', (tester) async {
     tester.view.physicalSize = const Size(390 * 3, 844 * 3);
     tester.view.devicePixelRatio = 3;
     addTearDown(tester.view.reset);
@@ -363,34 +388,32 @@ void main() {
     await _fillUntilUnitPicked(tester);
 
     // Sebelum submit belum ada request yang dikirim.
-    expect(repo.uploads, isEmpty);
+    expect(source.docPaymentCalls, isEmpty);
 
     await tester.tap(find.text('Submit Reserve Order'));
     await tester.pumpAndSettle();
     expect(find.text('Reserve Order Berhasil Diajukan'), findsOneWidget);
 
-    // Dua request: KTP dan bukti bayar. NPWP tidak dilampirkan, jadi tidak ikut dikirim.
-    expect(repo.uploads.length, 2);
-
-    final ktp = repo.uploads.first;
-    expect(ktp.contactId, 1);
-    expect(ktp.dealId, 99);
-    expect(ktp.attachmentTypeId, 3); // dicocokkan dari nama tipe "KTP"
-    expect(ktp.fileNames, ['dokumen-1.pdf']);
-    expect(ktp.filesBytesList?.length, 1);
-    expect(ktp.attachmentNote, contains('Reserve Order'));
-    expect(ktp.attachmentNote, contains('Blok E1 No. 19'));
-
-    final bukti = repo.uploads.last;
-    expect(bukti.attachmentTypeId, 7); // dicocokkan dari nama tipe "Bukti Transfer"
-    expect(bukti.fileNames, ['dokumen-2.pdf']);
+    // Satu request `doc-payment`, pakai `reserve_order_id` dari response `createReserve`. NPWP
+    // tidak dilampirkan, jadi tidak ikut dikirim. Dua bukti bayar ikut terkirim semuanya (bukan
+    // cuma yang pertama) — `bukti_transfer` boleh lebih dari 1 file.
+    expect(source.docPaymentCalls.length, 1);
+    final params = source.docPaymentCalls.single;
+    expect(params.reserveOrderId, source.nextReserveOrderId);
+    expect(params.statusReserveId, 2); // "Reserve" (default `_jenisTransaksi`)
+    expect(params.ttsAmountRp, 2000000);
+    expect(params.ktpFileNames, ['dokumen-1.pdf']);
+    expect(params.ktpBytes.length, 1);
+    expect(params.npwpBytes, isNull);
+    expect(params.buktiTransferFileNames, ['dokumen-2.pdf', 'dokumen-3.pdf']);
+    expect(params.buktiTransferBytes.length, 2);
   });
 
-  testWidgets('upload gagal menahan di Review dengan pesan errornya', (tester) async {
+  testWidgets('doc-payment gagal menahan di Review dengan pesan errornya', (tester) async {
     tester.view.physicalSize = const Size(390 * 3, 844 * 3);
     tester.view.devicePixelRatio = 3;
     addTearDown(tester.view.reset);
-    repo.failUpload = true;
+    source.failDocPayment = true;
 
     await tester.pumpWidget(_wrap(MaterialApp(
       home: ReservePage(args: ContactDetailArgs(dataContact: _contact(), namePage: 'Reserve')),
@@ -403,7 +426,7 @@ void main() {
 
     expect(find.text('Reserve Order Berhasil Diajukan'), findsNothing);
     expect(find.text('Review Reserve Order'), findsOneWidget);
-    expect(find.textContaining('Gagal mengunggah KTP'), findsOneWidget);
+    expect(find.textContaining('koneksi terputus'), findsOneWidget);
   });
 
   testWidgets('hasil submit sampai ke kartu Reserve di halaman menu', (tester) async {
@@ -453,6 +476,69 @@ void main() {
     expect(find.byIcon(Icons.check), findsOneWidget);
   });
 
+  testWidgets('unit tidak sellable pudar & tidak bisa dicentang; harga & badge status tampil', (tester) async {
+    tester.view.physicalSize = const Size(390 * 3, 844 * 3);
+    tester.view.devicePixelRatio = 3;
+    addTearDown(tester.view.reset);
+
+    // Ganti dari data `_contact()` (dari `GET /api/reserve/unit-status`, format desain terbaru):
+    // harga (`deal_value`), badge status (`status_name`), dan unit yang tidak sellable.
+    unitsSource.units = [
+      SelectedUnit(
+        dealId: 1,
+        townshipId: 1,
+        clusterId: 660,
+        clusterName: 'PAR2',
+        productId: 5,
+        productName: 'Ecoscape',
+        propertyId: 19,
+        propertyName: 'Blok E1 No. 19',
+        statusName: 'Available',
+        dealValue: 450000000,
+      ),
+      SelectedUnit(
+        dealId: 2,
+        townshipId: 1,
+        clusterId: 660,
+        clusterName: 'PAR2',
+        productId: 5,
+        productName: 'Ecoscape',
+        propertyId: 20,
+        propertyName: 'Blok E1 No. 20',
+        statusName: 'Reserve',
+        dealValue: 465000000,
+        isPropertySellable: false,
+      ),
+    ];
+
+    await tester.pumpWidget(_wrap(MaterialApp(
+      home: ReservePage(args: ContactDetailArgs(dataContact: _contact(), namePage: 'Reserve')),
+    )));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Lanjut ke Dokumen'));
+    await tester.pumpAndSettle();
+    await _attachVia(tester, find.textContaining('KTP', findRichText: true).first);
+    await _attachVia(tester, find.text('+ Tambah Bukti Bayar Lain'));
+    await tester.enterText(find.byType(TextField).first, '2000000');
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Lanjut ke Pilih Unit'));
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('Rp 450.000.000'), findsOneWidget);
+    expect(find.text('Available'), findsOneWidget);
+    expect(find.text('Reserve'), findsOneWidget); // badge status baris kedua, bukan chip step Dokumen
+
+    // Unit tidak sellable (is_property_sellable: false) tidak bisa dicentang.
+    await tester.tap(find.text('Blok E1 No. 20'));
+    await tester.pumpAndSettle();
+    expect(find.text('0 unit dipilih'), findsOneWidget);
+
+    // Unit sellable tetap bisa dicentang seperti biasa.
+    await tester.tap(find.text('Blok E1 No. 19'));
+    await tester.pumpAndSettle();
+    expect(find.text('1 unit dipilih'), findsOneWidget);
+  });
+
   testWidgets('"Jenis Transaksi" pakai master status dari reserve-filter & di-cache di cubit', (tester) async {
     tester.view.physicalSize = const Size(390 * 3, 844 * 3);
     tester.view.devicePixelRatio = 3;
@@ -484,7 +570,7 @@ void main() {
     expect(source.filterCalls, 1);
   });
 
-  testWidgets('submit bikin baris customer dulu lewat POST /api/reserve, baru unggah dokumen', (tester) async {
+  testWidgets('submit bikin baris customer dulu lewat POST /api/reserve, baru kirim doc-payment', (tester) async {
     tester.view.physicalSize = const Size(390 * 3, 844 * 3);
     tester.view.devicePixelRatio = 3;
     addTearDown(tester.view.reset);
@@ -512,7 +598,7 @@ void main() {
     await _fillUntilUnitPicked(tester);
 
     expect(source.createCalls, isEmpty);
-    expect(repo.uploads, isEmpty);
+    expect(source.docPaymentCalls, isEmpty);
 
     await tester.tap(find.text('Submit Reserve Order'));
     await tester.pumpAndSettle();
@@ -537,11 +623,13 @@ void main() {
 
     expect(params.toJson()['cust_birth_date'], '1990-01-09');
 
-    // Dokumen baru diunggah setelah baris customer-nya berhasil dibuat.
-    expect(repo.uploads, isNotEmpty);
+    // Dokumen & pembayaran baru dikirim ke doc-payment setelah baris customer-nya berhasil dibuat,
+    // pakai `reserve_order_id` dari response `createReserve` itu.
+    expect(source.docPaymentCalls, isNotEmpty);
+    expect(source.docPaymentCalls.single.reserveOrderId, source.nextReserveOrderId);
   });
 
-  testWidgets('POST /api/reserve gagal menahan di Review, dokumen tidak ikut diunggah', (tester) async {
+  testWidgets('POST /api/reserve gagal menahan di Review, doc-payment tidak ikut dikirim', (tester) async {
     tester.view.physicalSize = const Size(390 * 3, 844 * 3);
     tester.view.devicePixelRatio = 3;
     addTearDown(tester.view.reset);
@@ -559,6 +647,6 @@ void main() {
     expect(find.text('Review Reserve Order'), findsOneWidget);
     expect(find.textContaining('koneksi terputus'), findsOneWidget);
     expect(source.createCalls, isEmpty);
-    expect(repo.uploads, isEmpty);
+    expect(source.docPaymentCalls, isEmpty);
   });
 }

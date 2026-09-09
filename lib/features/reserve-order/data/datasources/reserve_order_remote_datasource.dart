@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:dio/dio.dart';
 import 'package:intl/intl.dart';
 import 'package:progress_group/core/utils/helpers/error_message.dart';
@@ -51,6 +53,38 @@ class CreateReserveParams {
       };
 }
 
+/// Payload `POST /api/reserve/doc-payment` — kirim dokumen (KTP/NPWP/bukti transfer) + rincian
+/// pembayaran untuk reserve order yang sudah dibuat lewat [CreateReserveParams]. `ktp` & `bukti_transfer`
+/// boleh lebih dari 1 file; `npwp` cuma 1. Nama field `ktp[]` dikirim dengan kurung (array), tapi
+/// `bukti_transfer` TETAP tanpa kurung walau isinya array juga — sesuai instruksi eksplisit,
+/// beda dari `ktp[]`. Lihat catatan gotcha `FormData`+kurung array file di
+/// `ReserveOrderRemoteDataSourceImpl.submitDocPayment`.
+class DocPaymentParams {
+  final int reserveOrderId;
+  final int statusReserveId;
+  final num ttsAmountRp;
+  final String? note;
+  final List<Uint8List> ktpBytes;
+  final List<String> ktpFileNames;
+  final Uint8List? npwpBytes;
+  final String? npwpFileName;
+  final List<Uint8List> buktiTransferBytes;
+  final List<String> buktiTransferFileNames;
+
+  const DocPaymentParams({
+    required this.reserveOrderId,
+    required this.statusReserveId,
+    required this.ttsAmountRp,
+    this.note,
+    this.ktpBytes = const [],
+    this.ktpFileNames = const [],
+    this.npwpBytes,
+    this.npwpFileName,
+    this.buktiTransferBytes = const [],
+    this.buktiTransferFileNames = const [],
+  });
+}
+
 /// Satu halaman hasil `GET /api/reserve`.
 class ReserveOrdersPage {
   final List<ReserveOrder> items;
@@ -85,8 +119,19 @@ abstract class ReserveOrderRemoteDataSource {
   Future<List<CaraBayarOption>> getCaraBayarOptions();
 
   /// Bikin baris `m_customer_reserve` baru — `POST /api/reserve`. Dipanggil saat Submit di step
-  /// Review form Reserve, sebelum dokumen (KTP/bukti bayar) diunggah ke attachment kontak.
-  Future<void> createReserve(CreateReserveParams params);
+  /// Review form Reserve, sebelum dokumen (KTP/NPWP/bukti bayar) diunggah lewat [submitDocPayment].
+  /// Mengembalikan `data.reserve_order.reserve_order_id` dari response — dibutuhkan sebagai
+  /// [DocPaymentParams.reserveOrderId] di langkah berikutnya.
+  Future<int> createReserve(CreateReserveParams params);
+
+  /// Kirim dokumen + rincian pembayaran ke reserve order yang barusan dibuat —
+  /// `POST /api/reserve/doc-payment`. Wajib dipanggil setelah [createReserve].
+  Future<void> submitDocPayment(DocPaymentParams params);
+
+  /// Detail customer satu reserve order — `GET /api/reserve/customer?reserve_order_id=…`. Dipanggil
+  /// dari halaman Detail buat melengkapi tab "Data Pembeli" (No. KTP, alamat, status pernikahan,
+  /// cara bayar) yang tidak ada di response `GET /api/reserve` (list).
+  Future<ReserveCustomerDetail> getReserveCustomer(int reserveOrderId);
 }
 
 class ReserveOrderRemoteDataSourceImpl implements ReserveOrderRemoteDataSource {
@@ -176,15 +221,89 @@ class ReserveOrderRemoteDataSourceImpl implements ReserveOrderRemoteDataSource {
   }
 
   @override
-  Future<void> createReserve(CreateReserveParams params) async {
+  Future<int> createReserve(CreateReserveParams params) async {
     try {
       final response = await dio.post('/reserve', data: params.toJson());
       final body = response.data;
 
-      if (body is Map && body['status'] == true) return;
+      if (body is Map && body['status'] == true) {
+        final data = body['data'];
+        final reserveOrder = data is Map ? data['reserve_order'] : null;
+        final id = reserveOrder is Map ? reserveOrder['reserve_order_id'] : null;
+        final reserveOrderId = id is int ? id : int.tryParse('$id');
+        if (reserveOrderId != null) return reserveOrderId;
+        throw Exception('reserve_order_id tidak ditemukan di response');
+      }
       throw Exception(body is Map ? (body['message'] ?? 'Gagal membuat reserve order') : 'Gagal membuat reserve order');
     } on DioException catch (e) {
       throw Exception(getErrorMessage(e, 'Gagal membuat reserve order'));
+    }
+  }
+
+  // `filename` cukup buat Dio nebak `contentType`-nya sendiri (lewat ekstensinya) — lihat
+  // `MultipartFile.fromBytes`.
+  MultipartFile _multipart(Uint8List bytes, String? fileName) =>
+      MultipartFile.fromBytes(bytes, filename: fileName ?? 'file');
+
+  @override
+  Future<void> submitDocPayment(DocPaymentParams params) async {
+    try {
+      final data = <String, dynamic>{
+        'reserve_order_id': params.reserveOrderId,
+        'status_reserve_id': params.statusReserveId,
+        'tts_amount_rp': params.ttsAmountRp,
+        if (params.note != null && params.note!.isNotEmpty) 'note': params.note,
+        // Key literal `ktp[]` (bukan `ktp`) — `FormData.fromMap` TIDAK menambahkan tanda kurung
+        // otomatis buat list berisi `MultipartFile` (beda dari list Map/List biasa), jadi kalau
+        // key-nya cuma `ktp` yang terkirim adalah beberapa field literal bernama `ktp` (tanpa
+        // kurung) yang oleh Laravel tidak dianggap array — persis bunyi error "ktp field must be
+        // an array" yang pernah muncul. Harus disamakan persis dengan koleksi Postman.
+        if (params.ktpBytes.isNotEmpty)
+          'ktp[]': [
+            for (var i = 0; i < params.ktpBytes.length; i++)
+              _multipart(params.ktpBytes[i], i < params.ktpFileNames.length ? params.ktpFileNames[i] : null),
+          ],
+        if (params.npwpBytes != null) 'npwp': _multipart(params.npwpBytes!, params.npwpFileName),
+        // `bukti_transfer` boleh >1 file (beda dari contoh Postman awal yang cuma 1) — TAPI
+        // key-nya tetap literal tanpa kurung, tidak seperti `ktp[]`. Mekanismenya sama: Dio
+        // mengirim beberapa part dengan nama field yang PERSIS sama untuk tiap elemen List, jadi
+        // menaruh key tanpa kurung di sini otomatis menghasilkan beberapa `bukti_transfer` (bukan
+        // `bukti_transfer[]`) — bukan bug, ini yang diminta.
+        if (params.buktiTransferBytes.isNotEmpty)
+          'bukti_transfer': [
+            for (var i = 0; i < params.buktiTransferBytes.length; i++)
+              _multipart(
+                params.buktiTransferBytes[i],
+                i < params.buktiTransferFileNames.length ? params.buktiTransferFileNames[i] : null,
+              ),
+          ],
+      };
+
+      final response = await dio.post('/reserve/doc-payment', data: FormData.fromMap(data));
+      final body = response.data;
+
+      if (body is Map && body['status'] == true) return;
+      throw Exception(
+        body is Map ? (body['message'] ?? 'Gagal menyimpan dokumen & pembayaran') : 'Gagal menyimpan dokumen & pembayaran',
+      );
+    } on DioException catch (e) {
+      throw Exception(getErrorMessage(e, 'Gagal menyimpan dokumen & pembayaran'));
+    }
+  }
+
+  @override
+  Future<ReserveCustomerDetail> getReserveCustomer(int reserveOrderId) async {
+    try {
+      final response = await dio.get('/reserve/customer', queryParameters: {'reserve_order_id': reserveOrderId});
+      final body = response.data;
+
+      if (body is Map && body['status'] == true && body['data'] is Map) {
+        return ReserveCustomerDetail.fromJson(Map<String, dynamic>.from(body['data'] as Map));
+      }
+
+      throw Exception(body is Map ? (body['message'] ?? 'Gagal memuat data pembeli') : 'Gagal memuat data pembeli');
+    } on DioException catch (e) {
+      throw Exception(getErrorMessage(e, 'Gagal memuat data pembeli'));
     }
   }
 }

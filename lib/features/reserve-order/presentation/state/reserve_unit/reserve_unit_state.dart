@@ -1,11 +1,11 @@
 import 'package:equatable/equatable.dart';
-import 'package:progress_group/features/contact/data/models/unit/unit_option_model.dart';
+import 'package:progress_group/features/contact/data/models/unit/unit_hierarchy_model.dart';
 
 enum ReserveUnitStatus { initial, loading, loaded, error }
 
 class ReserveUnitState extends Equatable {
   final ReserveUnitStatus status;
-  final List<UnitOption> items;
+  final List<SelectedUnit> items;
   final int page;
   final bool hasMore;
   final bool loadingMore;
@@ -26,7 +26,7 @@ class ReserveUnitState extends Equatable {
 
   ReserveUnitState copyWith({
     ReserveUnitStatus? status,
-    List<UnitOption>? items,
+    List<SelectedUnit>? items,
     int? page,
     bool? hasMore,
     bool? loadingMore,
