@@ -69,10 +69,14 @@ class _ReservePageState extends State<ReservePage> {
   String? _caraPembayaran;
   int? _caraBayarId;
 
-  // `POST /api/reserve` (bikin baris customer-nya) dipanggil dulu, baru dokumen & rincian
-  // pembayaran dikirim ke `POST /api/reserve/doc-payment` kalau itu sukses — dua loading state
-  // terpisah supaya footer bisa menunjukkan tahap mana yang lagi berjalan.
+  // `POST /api/reserve` (bikin baris customer-nya) sekarang dipanggil begitu lepas dari step
+  // Dokumen (lihat `_onNextDokumen`) — BUKAN saat submit di Review — karena `POST /api/reserve-unit`
+  // (step Unit → Review, `_onNextUnit`) butuh `customer_id` dari situ. Submit di Review (`_onSubmit`)
+  // tinggal kirim `POST /api/reserve/doc-payment` pakai `_reserveOrderId` yang sudah ada.
+  int? _reserveOrderId;
+  int? _customerId;
   bool _creatingReserve = false;
+  bool _savingUnit = false;
   bool _submittingDocPayment = false;
 
   KtpOcrModel? _ocr;
@@ -217,9 +221,9 @@ class _ReservePageState extends State<ReservePage> {
 
   void _goToPreviousStep() {
     if (_step == ReserveStep.sukses) return;
-    // Selagi submit (bikin reserve order / kirim dokumen) sedang berjalan, mundur akan menyisakan
-    // proses itu separuh jalan.
-    if (_creatingReserve || _submittingDocPayment) return;
+    // Selagi submit (bikin reserve order / simpan unit / kirim dokumen) sedang berjalan, mundur
+    // akan menyisakan proses itu separuh jalan.
+    if (_creatingReserve || _savingUnit || _submittingDocPayment) return;
 
     final index = _numberedSteps.indexOf(_step);
     if (index > 0) setState(() => _step = _numberedSteps[index - 1]);
@@ -395,7 +399,14 @@ class _ReservePageState extends State<ReservePage> {
     return num.tryParse(digits);
   }
 
-  void _onNextDokumen() {
+  /// Begitu lolos validasi Dokumen, baris `m_customer_reserve` dibuat lewat `POST /api/reserve` —
+  /// hasilnya (`_reserveOrderId`/`_customerId`) dibutuhkan step Unit buat `POST /api/reserve-unit`
+  /// ([_onNextUnit]) dan step Review buat `POST /api/reserve/doc-payment` ([_onSubmit]). Dokumen
+  /// sendiri tetap ditahan lokal sampai submit di Review — cuma baris customer & unitnya yang mulai
+  /// tersimpan lebih awal.
+  Future<void> _onNextDokumen() async {
+    if (_creatingReserve) return;
+
     if (_identityDocs.first.file == null) {
       showSnackbar(context, 'Dokumen KTP wajib dilampirkan', isError: true);
       return;
@@ -411,7 +422,37 @@ class _ReservePageState extends State<ReservePage> {
     }
 
     AnalyticsService.logEvent('reserve_order_step_dokumen_next');
-    setState(() => _step = ReserveStep.unit);
+
+    // Sudah pernah berhasil dibuat (mis. user mundur dari Unit lalu maju lagi) — tidak usah bikin
+    // baris baru lagi, tinggal lanjut ke Unit dengan id yang sama.
+    if (_reserveOrderId != null && _customerId != null) {
+      setState(() => _step = ReserveStep.unit);
+      return;
+    }
+
+    final contact = widget.args.dataContact;
+    final contactId = contact?.contactId;
+    if (contactId == null) {
+      showSnackbar(context, 'Kontak tidak dikenali, reserve order tidak bisa dibuat', isError: true);
+      return;
+    }
+
+    final dataSource = context.read<ReserveOrderListCubit>().dataSource;
+    setState(() => _creatingReserve = true);
+    try {
+      final result = await dataSource.createReserve(_buildCreateReserveParams(contactId));
+      if (!mounted) return;
+      setState(() {
+        _creatingReserve = false;
+        _reserveOrderId = result.reserveOrderId;
+        _customerId = result.customerId;
+        _step = ReserveStep.unit;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _creatingReserve = false);
+      showSnackbar(context, cleanErrorMessage(e), isError: true);
+    }
   }
 
 
@@ -444,30 +485,57 @@ class _ReservePageState extends State<ReservePage> {
     });
   }
 
-  void _onNextUnit() {
+  /// Menautkan tiap unit yang dipilih ke customer yang barusan dibuat ([_onNextDokumen]) lewat
+  /// `POST /api/reserve-unit` (`deal_id` + `customer_id`), satu request per unit. Unit yang tidak
+  /// punya `dealId` (mis. dari sumber selain `GET /api/reserve/unit-status`) dilewati — tidak ada
+  /// deal yang bisa ditautkan.
+  Future<void> _onNextUnit() async {
+    if (_savingUnit) return;
+
     if (_selectedUnits.isEmpty) {
       showSnackbar(context, 'Pilih minimal 1 unit', isError: true);
       return;
     }
+    final customerId = _customerId;
+    if (customerId == null) {
+      showSnackbar(context, 'Data pembeli belum tersimpan, ulangi dari awal', isError: true);
+      return;
+    }
 
     AnalyticsService.logEvent('reserve_order_step_unit_next');
-    setState(() => _step = ReserveStep.review);
+
+    final dataSource = context.read<ReserveOrderListCubit>().dataSource;
+    setState(() => _savingUnit = true);
+    try {
+      for (final unit in _selectedUnits.values) {
+        final dealId = unit.dealId;
+        if (dealId == null) continue;
+        await dataSource.saveReserveUnit(dealId: dealId, customerId: customerId);
+      }
+      if (!mounted) return;
+      setState(() {
+        _savingUnit = false;
+        _step = ReserveStep.review;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _savingUnit = false);
+      showSnackbar(context, cleanErrorMessage(e), isError: true);
+    }
   }
 
 
   /// Dokumen ditahan lokal sepanjang 3 step pertama, baru dikirim di sini — jadi kalau flow-nya
   /// ditinggal di tengah jalan tidak ada dokumen/pembayaran nyangkut di reserve order manapun.
-  /// Dua panggilan berurutan: baris customer-nya (`POST /api/reserve`) dibuat dulu untuk dapat
-  /// `reserve_order_id`, baru dokumen (KTP/NPWP/bukti bayar) + rincian pembayaran dikirim lewat
-  /// `POST /api/reserve/doc-payment` yang butuh id itu. Gagal di salah satu tahap menahan di
-  /// Review, tidak lanjut ke tahap berikutnya.
+  /// Baris customer & unitnya sendiri sudah dibuat lebih awal ([_onNextDokumen]/[_onNextUnit]),
+  /// jadi submit di sini tinggal kirim dokumen (KTP/NPWP/bukti bayar) + rincian pembayaran lewat
+  /// `POST /api/reserve/doc-payment` pakai `_reserveOrderId` yang sudah ada.
   Future<void> _onSubmit() async {
-    if (_creatingReserve || _submittingDocPayment) return;
+    if (_submittingDocPayment) return;
 
-    final contact = widget.args.dataContact;
-    final contactId = contact?.contactId;
-    if (contactId == null) {
-      showSnackbar(context, 'Kontak tidak dikenali, dokumen tidak bisa diunggah', isError: true);
+    final reserveOrderId = _reserveOrderId;
+    if (reserveOrderId == null) {
+      showSnackbar(context, 'Reserve order belum tersimpan, ulangi dari awal', isError: true);
       return;
     }
 
@@ -478,23 +546,10 @@ class _ReservePageState extends State<ReservePage> {
     }
 
     AnalyticsService.logEvent('reserve_order_submit');
-    final dataSource = context.read<ReserveOrderListCubit>().dataSource;
+    final cubit = context.read<ReserveOrderListCubit>();
+    final dataSource = cubit.dataSource;
 
-    setState(() => _creatingReserve = true);
-    final int reserveOrderId;
-    try {
-      reserveOrderId = await dataSource.createReserve(_buildCreateReserveParams(contactId));
-    } catch (e) {
-      if (!mounted) return;
-      setState(() => _creatingReserve = false);
-      showSnackbar(context, cleanErrorMessage(e), isError: true);
-      return;
-    }
-    if (!mounted) return;
-    setState(() {
-      _creatingReserve = false;
-      _submittingDocPayment = true;
-    });
+    setState(() => _submittingDocPayment = true);
 
     final ktpFile = _identityDocs[0].file;
     final npwpFile = _identityDocs.length > 1 ? _identityDocs[1].file : null;
@@ -502,7 +557,7 @@ class _ReservePageState extends State<ReservePage> {
     final catatan = catatanTC.text.trim();
 
     try {
-      await dataSource.submitDocPayment(DocPaymentParams(
+      final reserveOrderTtsId = await dataSource.submitDocPayment(DocPaymentParams(
         reserveOrderId: reserveOrderId,
         statusReserveId: statusReserveId,
         ttsAmountRp: _nominal ?? 0,
@@ -514,6 +569,10 @@ class _ReservePageState extends State<ReservePage> {
         buktiTransferBytes: [for (final proof in buktiTransferProofs) proof.bytes!],
         buktiTransferFileNames: [for (final proof in buktiTransferProofs) proof.name],
       ));
+      // Disimpan supaya tab "Attachment" di halaman Detail bisa memanggil `GET
+      // /api/reserve/attachment` — endpoint itu butuh `reserve_order_tts_id`, yang tidak ada di
+      // `GET /api/reserve` (list) sama sekali. Lihat `ReserveOrderListCubit.rememberTtsId`.
+      cubit.rememberTtsId(reserveOrderId, reserveOrderTtsId);
     } catch (e) {
       if (!mounted) return;
       setState(() => _submittingDocPayment = false);
@@ -740,17 +799,19 @@ class _ReservePageState extends State<ReservePage> {
   Widget _buildFooter() {
     final buttons = switch (_step) {
       ReserveStep.pembeli => [customButton(_onNextPembeli, "Lanjut ke Dokumen")],
-      ReserveStep.dokumen => [customButton(_onNextDokumen, "Lanjut ke Pilih Unit")],
+      ReserveStep.dokumen => [
+          roPrimaryButton(
+            _creatingReserve ? "Membuat reserve order..." : "Lanjut ke Pilih Unit",
+            _onNextDokumen,
+            loading: _creatingReserve,
+          ),
+        ],
       ReserveStep.unit => const <Widget>[],
       ReserveStep.review => [
           roPrimaryButton(
-            _creatingReserve
-                ? "Membuat reserve order..."
-                : _submittingDocPayment
-                    ? "Mengunggah dokumen..."
-                    : "Submit Reserve Order",
+            _submittingDocPayment ? "Mengunggah dokumen..." : "Submit Reserve Order",
             _onSubmit,
-            loading: _creatingReserve || _submittingDocPayment,
+            loading: _submittingDocPayment,
           ),
         ],
       ReserveStep.sukses => [
@@ -972,7 +1033,11 @@ class _ReservePageState extends State<ReservePage> {
                   style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w700, color: Color(blue2Color)),
                 ),
                 SizedBox(height: 8),
-                customButton(_onNextUnit, "Lanjut ke Review"),
+                roPrimaryButton(
+                  _savingUnit ? "Menyimpan unit..." : "Lanjut ke Review",
+                  _onNextUnit,
+                  loading: _savingUnit,
+                ),
               ],
             ),
           ),

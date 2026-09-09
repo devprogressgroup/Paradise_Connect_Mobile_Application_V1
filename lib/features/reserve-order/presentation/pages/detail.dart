@@ -33,6 +33,12 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage> {
   final noteTC = TextEditingController();
   bool _loadingBuyer = true;
 
+  List<ReserveOrderAttachment> _attachments = [];
+  bool _loadingAttachments = false;
+  // true kalau `reserve_order_tts_id`-nya tidak diketahui (lihat _loadAttachments) — beda dari
+  // "sudah dicek ke server, memang belum ada dokumen" supaya pesannya tidak menyesatkan.
+  bool _attachmentsUnavailable = false;
+
   ReserveOrder get order => widget.order;
 
   @override
@@ -40,6 +46,7 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage> {
     super.initState();
     AnalyticsService.logScreenView('reserve_order_detail');
     _loadBuyerDetail();
+    _loadAttachments();
   }
 
   /// `GET /api/reserve` (list) cuma punya nama pembeli — No. KTP, alamat, status pernikahan, &
@@ -62,6 +69,37 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage> {
       // Diamkan — lihat catatan di atas.
     } finally {
       if (mounted) setState(() => _loadingBuyer = false);
+    }
+  }
+
+  /// Dokumen yang tersimpan lewat `POST /api/reserve/doc-payment` — `GET /api/reserve/attachment`
+  /// butuh `reserve_order_tts_id`, yang tidak ada di `GET /api/reserve` (list) sama sekali & satu
+  /// reserve order bisa punya lebih dari satu TTS. Cuma tersedia kalau reserve order ini baru saja
+  /// disubmit dokumennya di sesi app yang sama (lihat `ReserveOrderListCubit.rememberTtsId`,
+  /// dipanggil dari `reserve.dart` `_onSubmit`) — reserve order lama/dari sesi app lain tampil
+  /// "Belum bisa ditampilkan" sampai ada endpoint buat menelusuri riwayat TTS dari
+  /// `reserve_order_id` saja.
+  Future<void> _loadAttachments() async {
+    final reserveOrderId = int.tryParse(order.id);
+    final cubit = context.read<ReserveOrderListCubit>();
+    final reserveOrderTtsId = reserveOrderId == null ? null : cubit.ttsIdFor(reserveOrderId);
+
+    if (reserveOrderId == null || reserveOrderTtsId == null) {
+      setState(() => _attachmentsUnavailable = true);
+      return;
+    }
+
+    setState(() => _loadingAttachments = true);
+    try {
+      final attachments = await cubit.dataSource.getReserveAttachments(
+        reserveOrderId: reserveOrderId,
+        reserveOrderTtsId: reserveOrderTtsId,
+      );
+      if (mounted) setState(() => _attachments = attachments);
+    } catch (_) {
+      // Diamkan — tab tetap tampil "Belum ada dokumen." daripada memblokir halaman.
+    } finally {
+      if (mounted) setState(() => _loadingAttachments = false);
     }
   }
 
@@ -467,15 +505,51 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage> {
   }
 
   Widget _buildAttachment() {
+    if (_loadingAttachments) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: 24),
+        child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
+      );
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        for (final attachment in _attachments)
+          roDocTile(_docFrom(attachment), onTap: () => _openAttachment(attachment)),
         for (final doc in order.docs) roDocTile(doc, onTap: () => _onDocTap(doc)),
-        if (order.docs.isEmpty) _buildEmpty('Belum ada dokumen.'),
+        if (_attachments.isEmpty && order.docs.isEmpty)
+          _buildEmpty(_attachmentsUnavailable ? 'Dokumen transaksi ini belum bisa ditampilkan di sini.' : 'Belum ada dokumen.'),
         const SizedBox(height: 4),
         roGhostButton('+ Upload Dokumen Tambahan', _uploadExtraDoc),
       ],
     );
+  }
+
+  /// Bungkus [ReserveOrderAttachment] (dari server) jadi [ReserveOrderDoc] supaya bisa dirender
+  /// pakai `roDocTile` yang sudah ada — tidak menambah widget/model tile baru buat ini.
+  ReserveOrderDoc _docFrom(ReserveOrderAttachment attachment) {
+    final uploadedAt = attachment.createDatetime != null ? DateFormat('dd MMM yyyy', 'id_ID').format(attachment.createDatetime!) : null;
+    final status = [
+      if (attachment.createUserName != null) 'Diunggah ${attachment.createUserName}',
+      if (uploadedAt != null) uploadedAt,
+    ].join(' · ');
+
+    return ReserveOrderDoc(
+      icon: Icons.insert_drive_file_outlined,
+      name: attachment.attachmentTypeName,
+      status: status.isEmpty ? 'Tersimpan di server' : status,
+      state: ReserveOrderDocState.uploaded,
+    );
+  }
+
+  void _openAttachment(ReserveOrderAttachment attachment) {
+    if (attachment.attachmentUrl.isEmpty) {
+      showSnackbar(context, 'Link dokumen tidak tersedia');
+      return;
+    }
+    AnalyticsService.logEvent('reserve_order_detail_open_attachment');
+    context.pushNamed('attachmentWebView', extra: attachment.attachmentUrl);
   }
 
   Widget _buildNotes() {

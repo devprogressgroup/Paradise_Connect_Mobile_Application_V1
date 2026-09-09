@@ -85,6 +85,16 @@ class DocPaymentParams {
   });
 }
 
+/// Hasil `POST /api/reserve` — `reserveOrderId` dibutuhkan [DocPaymentParams.reserveOrderId]
+/// (lewat [ReserveOrderRemoteDataSource.submitDocPayment]), `customerId` dibutuhkan
+/// [ReserveOrderRemoteDataSource.saveReserveUnit] buat menautkan unit yang dipilih ke customer ini.
+class CreateReserveResult {
+  final int reserveOrderId;
+  final int customerId;
+
+  const CreateReserveResult({required this.reserveOrderId, required this.customerId});
+}
+
 /// Satu halaman hasil `GET /api/reserve`.
 class ReserveOrdersPage {
   final List<ReserveOrder> items;
@@ -118,20 +128,35 @@ abstract class ReserveOrderRemoteDataSource {
   /// Master "Cara Pembayaran" di form Reserve — `GET /api/reserve/cara-bayar`.
   Future<List<CaraBayarOption>> getCaraBayarOptions();
 
-  /// Bikin baris `m_customer_reserve` baru — `POST /api/reserve`. Dipanggil saat Submit di step
-  /// Review form Reserve, sebelum dokumen (KTP/NPWP/bukti bayar) diunggah lewat [submitDocPayment].
-  /// Mengembalikan `data.reserve_order.reserve_order_id` dari response — dibutuhkan sebagai
-  /// [DocPaymentParams.reserveOrderId] di langkah berikutnya.
-  Future<int> createReserve(CreateReserveParams params);
+  /// Bikin baris `m_customer_reserve` baru — `POST /api/reserve`. Dipanggil begitu lepas dari step
+  /// Dokumen form Reserve (sebelum step Pilih Unit), supaya `customer_id`-nya sudah ada waktu
+  /// [saveReserveUnit] dipanggil. Mengembalikan `reserve_order_id` (dipakai
+  /// [DocPaymentParams.reserveOrderId] lewat [submitDocPayment]) & `customer_id` dari
+  /// `data.reserve_order`.
+  Future<CreateReserveResult> createReserve(CreateReserveParams params);
+
+  /// Menautkan satu unit (deal) ke customer yang baru dibuat [createReserve] — `POST
+  /// /api/reserve-unit`. Dipanggil sekali per unit begitu lepas dari step Pilih Unit form Reserve.
+  Future<void> saveReserveUnit({required int dealId, required int customerId});
 
   /// Kirim dokumen + rincian pembayaran ke reserve order yang barusan dibuat —
-  /// `POST /api/reserve/doc-payment`. Wajib dipanggil setelah [createReserve].
-  Future<void> submitDocPayment(DocPaymentParams params);
+  /// `POST /api/reserve/doc-payment`. Wajib dipanggil setelah [createReserve]. Mengembalikan
+  /// `data.tts.reserve_order_tts_id` — dibutuhkan sebagai param [getReserveAttachments] kalau mau
+  /// menampilkan lagi dokumen yang baru dikirim ini.
+  Future<int> submitDocPayment(DocPaymentParams params);
 
   /// Detail customer satu reserve order — `GET /api/reserve/customer?reserve_order_id=…`. Dipanggil
   /// dari halaman Detail buat melengkapi tab "Data Pembeli" (No. KTP, alamat, status pernikahan,
   /// cara bayar) yang tidak ada di response `GET /api/reserve` (list).
   Future<ReserveCustomerDetail> getReserveCustomer(int reserveOrderId);
+
+  /// Dokumen yang tersimpan lewat [submitDocPayment] untuk satu TTS —
+  /// `GET /api/reserve/attachment?reserve_order_id=…&reserve_order_tts_id=…`. Dipanggil dari tab
+  /// "Attachment" di halaman Detail.
+  Future<List<ReserveOrderAttachment>> getReserveAttachments({
+    required int reserveOrderId,
+    required int reserveOrderTtsId,
+  });
 }
 
 class ReserveOrderRemoteDataSourceImpl implements ReserveOrderRemoteDataSource {
@@ -221,7 +246,7 @@ class ReserveOrderRemoteDataSourceImpl implements ReserveOrderRemoteDataSource {
   }
 
   @override
-  Future<int> createReserve(CreateReserveParams params) async {
+  Future<CreateReserveResult> createReserve(CreateReserveParams params) async {
     try {
       final response = await dio.post('/reserve', data: params.toJson());
       final body = response.data;
@@ -229,14 +254,31 @@ class ReserveOrderRemoteDataSourceImpl implements ReserveOrderRemoteDataSource {
       if (body is Map && body['status'] == true) {
         final data = body['data'];
         final reserveOrder = data is Map ? data['reserve_order'] : null;
-        final id = reserveOrder is Map ? reserveOrder['reserve_order_id'] : null;
-        final reserveOrderId = id is int ? id : int.tryParse('$id');
-        if (reserveOrderId != null) return reserveOrderId;
-        throw Exception('reserve_order_id tidak ditemukan di response');
+        final rawReserveOrderId = reserveOrder is Map ? reserveOrder['reserve_order_id'] : null;
+        final rawCustomerId = reserveOrder is Map ? reserveOrder['customer_id'] : null;
+        final reserveOrderId = rawReserveOrderId is int ? rawReserveOrderId : int.tryParse('$rawReserveOrderId');
+        final customerId = rawCustomerId is int ? rawCustomerId : int.tryParse('$rawCustomerId');
+        if (reserveOrderId != null && customerId != null) {
+          return CreateReserveResult(reserveOrderId: reserveOrderId, customerId: customerId);
+        }
+        throw Exception('reserve_order_id/customer_id tidak ditemukan di response');
       }
       throw Exception(body is Map ? (body['message'] ?? 'Gagal membuat reserve order') : 'Gagal membuat reserve order');
     } on DioException catch (e) {
       throw Exception(getErrorMessage(e, 'Gagal membuat reserve order'));
+    }
+  }
+
+  @override
+  Future<void> saveReserveUnit({required int dealId, required int customerId}) async {
+    try {
+      final response = await dio.post('/reserve-unit', data: {'deal_id': dealId, 'customer_id': customerId});
+      final body = response.data;
+
+      if (body is Map && body['status'] == true) return;
+      throw Exception(body is Map ? (body['message'] ?? 'Gagal menyimpan unit') : 'Gagal menyimpan unit');
+    } on DioException catch (e) {
+      throw Exception(getErrorMessage(e, 'Gagal menyimpan unit'));
     }
   }
 
@@ -246,7 +288,7 @@ class ReserveOrderRemoteDataSourceImpl implements ReserveOrderRemoteDataSource {
       MultipartFile.fromBytes(bytes, filename: fileName ?? 'file');
 
   @override
-  Future<void> submitDocPayment(DocPaymentParams params) async {
+  Future<int> submitDocPayment(DocPaymentParams params) async {
     try {
       final data = <String, dynamic>{
         'reserve_order_id': params.reserveOrderId,
@@ -282,7 +324,14 @@ class ReserveOrderRemoteDataSourceImpl implements ReserveOrderRemoteDataSource {
       final response = await dio.post('/reserve/doc-payment', data: FormData.fromMap(data));
       final body = response.data;
 
-      if (body is Map && body['status'] == true) return;
+      if (body is Map && body['status'] == true) {
+        final data = body['data'];
+        final tts = data is Map ? data['tts'] : null;
+        final id = tts is Map ? tts['reserve_order_tts_id'] : null;
+        final reserveOrderTtsId = id is int ? id : int.tryParse('$id');
+        if (reserveOrderTtsId != null) return reserveOrderTtsId;
+        throw Exception('reserve_order_tts_id tidak ditemukan di response');
+      }
       throw Exception(
         body is Map ? (body['message'] ?? 'Gagal menyimpan dokumen & pembayaran') : 'Gagal menyimpan dokumen & pembayaran',
       );
@@ -304,6 +353,30 @@ class ReserveOrderRemoteDataSourceImpl implements ReserveOrderRemoteDataSource {
       throw Exception(body is Map ? (body['message'] ?? 'Gagal memuat data pembeli') : 'Gagal memuat data pembeli');
     } on DioException catch (e) {
       throw Exception(getErrorMessage(e, 'Gagal memuat data pembeli'));
+    }
+  }
+
+  @override
+  Future<List<ReserveOrderAttachment>> getReserveAttachments({
+    required int reserveOrderId,
+    required int reserveOrderTtsId,
+  }) async {
+    try {
+      final response = await dio.get('/reserve/attachment', queryParameters: {
+        'reserve_order_id': reserveOrderId,
+        'reserve_order_tts_id': reserveOrderTtsId,
+      });
+      final body = response.data;
+
+      if (body is Map && body['status'] == true && body['data'] is List) {
+        return (body['data'] as List)
+            .map((e) => ReserveOrderAttachment.fromJson(Map<String, dynamic>.from(e as Map)))
+            .toList();
+      }
+
+      throw Exception(body is Map ? (body['message'] ?? 'Gagal memuat dokumen') : 'Gagal memuat dokumen');
+    } on DioException catch (e) {
+      throw Exception(getErrorMessage(e, 'Gagal memuat dokumen'));
     }
   }
 }

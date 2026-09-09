@@ -147,16 +147,30 @@ class _FakeReserveOrders implements ReserveOrderRemoteDataSource {
   Future<List<CaraBayarOption>> getCaraBayarOptions() async => const [];
 
   @override
-  Future<int> createReserve(CreateReserveParams params) async => 0;
+  Future<CreateReserveResult> createReserve(CreateReserveParams params) async =>
+      const CreateReserveResult(reserveOrderId: 0, customerId: 0);
 
   @override
-  Future<void> submitDocPayment(DocPaymentParams params) async {}
+  Future<void> saveReserveUnit({required int dealId, required int customerId}) async {}
+
+  @override
+  Future<int> submitDocPayment(DocPaymentParams params) async => 0;
 
   @override
   Future<ReserveCustomerDetail> getReserveCustomer(int reserveOrderId) async {
     final row = rows.firstWhere((r) => r['reserve_order_id'] == reserveOrderId);
     return ReserveCustomerDetail(custName: '${row['cust_name']}');
   }
+
+  /// Diisi manual per test lewat key `(reserve_order_id, reserve_order_tts_id)` — default kosong.
+  Map<(int, int), List<ReserveOrderAttachment>> attachmentsByKey = {};
+
+  @override
+  Future<List<ReserveOrderAttachment>> getReserveAttachments({
+    required int reserveOrderId,
+    required int reserveOrderTtsId,
+  }) async =>
+      attachmentsByKey[(reserveOrderId, reserveOrderTtsId)] ?? const [];
 }
 
 late _FakeReserveOrders source;
@@ -194,6 +208,17 @@ GoRouter _router() => GoRouter(
                 body: const Center(child: Text('Contact Detail')),
               ),
             ),
+            // Halaman asli (`AttachmentWebViewPage`) pakai webview_flutter/iframe platform —
+            // diwakili halaman kosong di sini, sama seperti `detailContact`, cukup buat
+            // membuktikan navigasinya jalan dengan URL yang benar.
+            GoRoute(
+              name: 'attachmentWebView',
+              path: 'attachment-web-view',
+              builder: (_, state) => Scaffold(
+                appBar: AppBar(title: const Text('Preview Attachment')),
+                body: Center(child: Text('url: ${state.extra}')),
+              ),
+            ),
           ],
         ),
       ],
@@ -201,16 +226,20 @@ GoRouter _router() => GoRouter(
 
 /// [width] dilebarkan dari lebar HP normal (390) buat test yang perlu semua chip filter tampil
 /// sekaligus tanpa gulir horizontal — drag scroll di widget test rapuh untuk baris chip pendek.
-Future<void> _pumpMenu(WidgetTester tester, {double width = 390}) async {
+/// [cubit] opsional — dipakai test yang perlu memanggil `rememberTtsId()` SEBELUM widget-nya
+/// dibangun (tab Attachment); kalau tidak diisi, cubit baru dibuat seperti biasa.
+Future<ReserveOrderListCubit> _pumpMenu(WidgetTester tester, {double width = 390, ReserveOrderListCubit? cubit}) async {
   tester.view.physicalSize = Size(width * 3, 844 * 3);
   tester.view.devicePixelRatio = 3;
   addTearDown(tester.view.reset);
 
-  await tester.pumpWidget(BlocProvider(
-    create: (_) => ReserveOrderListCubit(source),
+  final resolvedCubit = cubit ?? ReserveOrderListCubit(source);
+  await tester.pumpWidget(BlocProvider.value(
+    value: resolvedCubit,
     child: MaterialApp.router(routerConfig: _router()),
   ));
   await tester.pumpAndSettle();
+  return resolvedCubit;
 }
 
 /// Periksa pesan validasi, lalu habiskan SnackBar-nya supaya pesan berikutnya tidak terantre.
@@ -393,11 +422,12 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('081234567890'), findsWidgets);
 
-    // Attachment & catatan belum ada di response list — Attachment kosong, catatan diisi
-    // reserve_note.
+    // Attachment butuh `reserve_order_tts_id` (dari `ReserveOrderListCubit.rememberTtsId`, diisi
+    // pas submit doc-payment di form Reserve) yang tidak diketahui di sini — jadi tampil pesan
+    // "belum bisa ditampilkan", bukan "belum ada dokumen". Catatan diisi dari `reserve_note`.
     await tester.tap(find.text('Attachment'));
     await tester.pumpAndSettle();
-    expect(find.text('Belum ada dokumen.'), findsOneWidget);
+    expect(find.text('Dokumen transaksi ini belum bisa ditampilkan di sini.'), findsOneWidget);
 
     await tester.tap(find.text('Catatan'));
     await tester.pumpAndSettle();
@@ -407,6 +437,39 @@ void main() {
     await tester.tap(find.byIcon(Icons.send_rounded));
     await tester.pumpAndSettle();
     expect(find.text('Sudah saya follow up ke customer'), findsOneWidget);
+  });
+
+  testWidgets('tab Attachment menampilkan dokumen kalau reserve_order_tts_id sudah diketahui, & bisa dibuka', (tester) async {
+    // `rememberTtsId` mensimulasikan reserve order yang doc-payment-nya baru saja disubmit lewat
+    // form Reserve di sesi app yang sama (lihat reserve.dart `_onSubmit`) — beda dari test
+    // "detail merender..." yang membuka reserve order TANPA tts id yang diketahui.
+    final cubit = ReserveOrderListCubit(source)..rememberTtsId(5, 42);
+    source.attachmentsByKey[(5, 42)] = [
+      ReserveOrderAttachment(
+        contactAttachmentId: 316,
+        attachmentUrl: 'https://drive.google.com/file/d/14nOjb__5bibGU9ts6bk8M0UoDQtp60fV/view?usp=drivesdk',
+        attachmentTypeName: 'Bukti Transfer',
+        attachmentNote: 'Reserve Order #5 · TTS #42',
+        createDatetime: DateTime(2026, 9, 9),
+        createUserName: 'iman',
+      ),
+    ];
+
+    await _pumpMenu(tester, cubit: cubit);
+    await _openDetail(tester, 'Budi Santoso');
+
+    await tester.tap(find.text('Attachment'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Bukti Transfer'), findsOneWidget);
+    expect(find.textContaining('Diunggah iman'), findsOneWidget);
+    expect(find.textContaining('09 Sep 2026'), findsOneWidget);
+
+    // Tap kartunya membuka preview lewat route `attachmentWebView`, bawa `attachment_url`-nya.
+    await tester.tap(find.text('Bukti Transfer'));
+    await tester.pumpAndSettle();
+    expect(find.text('Preview Attachment'), findsOneWidget);
+    expect(find.textContaining('drive.google.com'), findsOneWidget);
   });
 
   testWidgets('top up: validasi, pengajuan, lalu layar sukses & jejaknya di timeline', (tester) async {

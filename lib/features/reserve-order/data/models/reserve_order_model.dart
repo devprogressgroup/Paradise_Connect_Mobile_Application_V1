@@ -242,6 +242,45 @@ class ReserveCustomerDetail {
   }
 }
 
+/// Satu dokumen dari `GET /api/reserve/attachment?reserve_order_id=…&reserve_order_tts_id=…` —
+/// file (KTP/NPWP/bukti transfer) yang tersimpan lewat `POST /api/reserve/doc-payment`. Baris ini
+/// sebenarnya row `contact_attachments` yang sama dengan attachment kontak biasa, tapi diekspos
+/// lewat endpoint bergaris reserve order + di-lengkapi info verifikasi & nama pengunggah — beda
+/// struktur dari `ContactAttachment` (fitur contact), jadi sengaja model terpisah, bukan reuse.
+class ReserveOrderAttachment {
+  final int contactAttachmentId;
+  final String attachmentUrl;
+  final String attachmentTypeName;
+  final String attachmentNote;
+  final DateTime? createDatetime;
+  final String? createUserName;
+  final String? verificationStatus;
+
+  const ReserveOrderAttachment({
+    required this.contactAttachmentId,
+    required this.attachmentUrl,
+    required this.attachmentTypeName,
+    required this.attachmentNote,
+    this.createDatetime,
+    this.createUserName,
+    this.verificationStatus,
+  });
+
+  factory ReserveOrderAttachment.fromJson(Map<String, dynamic> json) {
+    return ReserveOrderAttachment(
+      contactAttachmentId: _int(json['contact_attachment_id']) ?? 0,
+      // `attachment_url` biasanya sama dengan `attachment_path` (link Google Drive) — dijaga kalau
+      // salah satu tidak diisi.
+      attachmentUrl: _text(json['attachment_url']) ?? _text(json['attachment_path']) ?? '',
+      attachmentTypeName: _text(json['attachment_type_name']) ?? 'Dokumen',
+      attachmentNote: _text(json['attachment_note']) ?? '',
+      createDatetime: DateTime.tryParse('${json['create_datetime']}'),
+      createUserName: _text(json['create_user_name']),
+      verificationStatus: _text(json['verification_status']),
+    );
+  }
+}
+
 class ReserveOrder {
   final String id;
   final String customerName;

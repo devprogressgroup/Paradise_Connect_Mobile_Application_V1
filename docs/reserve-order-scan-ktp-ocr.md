@@ -135,11 +135,21 @@ kursor melompat, sementara field ini praktis selalu diisi dari belakang.
 Nominal ini juga yang menjawab pertanyaan sebelumnya soal angka di kartu menu: sumbernya step
 **Dokumen & Bukti Bayar**, bukan input di step Unit atau harga unit.
 
-## Baris customer dibuat lewat `POST /api/reserve` (saat Submit, sebelum dokumen)
+## Baris customer dibuat lewat `POST /api/reserve` (begitu lepas dari step Dokumen)
 
-Begitu **Submit Reserve Order** ditekan, langkah pertamanya bikin baris `m_customer_reserve` lewat
-`POST /api/reserve` — baru kalau itu sukses, lanjut ke upload dokumen (section di bawah). Gagal di
-sini menahan user di step Review dengan pesan errornya, dan dokumen **tidak** ikut diunggah.
+Begitu tombol **Lanjut ke Pilih Unit** (step Dokumen) ditekan dan lolos validasi, langkah
+berikutnya bikin baris `m_customer_reserve` lewat `POST /api/reserve` — **bukan** menunggu sampai
+Submit di Review lagi. Alasannya: step Pilih Unit butuh `customer_id` buat menautkan unit yang
+dipilih lewat `POST /api/reserve-unit` (section di bawah), jadi baris customer-nya harus sudah ada
+sebelum step itu dibuka. Gagal di sini menahan user di step Dokumen dengan pesan errornya, dan
+tidak lanjut ke Pilih Unit.
+
+`createReserve()` mengembalikan `CreateReserveResult` (`reserveOrderId` + `customerId`, dari
+`data.reserve_order.reserve_order_id`/`customer_id`) — disimpan sebagai `_reserveOrderId`/
+`_customerId` di [reserve.dart](lib/features/reserve-order/presentation/pages/reserve.dart),
+dipakai lagi oleh `_onNextUnit` (`saveReserveUnit`) dan `_onSubmit` (`submitDocPayment`). Kalau
+user mundur dari Unit ke Dokumen lalu maju lagi, `_onNextDokumen` **tidak** bikin baris baru lagi
+selama `_reserveOrderId`/`_customerId` sudah ada — cukup lanjut ke Unit dengan id yang sama.
 
 Payload-nya (`CreateReserveParams.toJson()` —
 [reserve_order_remote_datasource.dart](lib/features/reserve-order/data/datasources/reserve_order_remote_datasource.dart)):
@@ -170,21 +180,37 @@ field-nya sesuai format hint-nya persis: `"<tempat>, dd MMMM yyyy"` (mis. "Jakar
 1990"). Format lain gagal parse tanggalnya dan `cust_birth_date` dikirim kosong (tempatnya tetap
 terkirim kalau ada koma).
 
+## Unit ditautkan ke customer lewat `POST /api/reserve-unit` (begitu lepas dari step Pilih Unit)
+
+Begitu tombol **Lanjut ke Review** (step Unit) ditekan dan minimal 1 unit terpilih, tiap unit yang
+dicentang ditautkan ke customer yang barusan dibuat (section di atas) lewat `POST
+/api/reserve-unit` — satu request per unit, payload `{ "deal_id": …, "customer_id": … }`.
+`deal_id`-nya dari `SelectedUnit.dealId` (field ini yang membedakan satu baris deal di
+`GET /api/reserve/unit-status`, lihat "Daftar unit (step 3)" di atas); unit yang tidak punya
+`dealId` (mis. kalau suatu saat `SelectedUnit` dibuat dari sumber lain) dilewati begitu saja — tidak
+ada deal yang bisa ditautkan.
+
+Gagal di sini menahan user di step Unit dengan pesan errornya (baris customer-nya **tetap**
+tersimpan — cuma penautan unitnya yang perlu dicoba ulang), dan tidak lanjut ke Review.
+
+Kode: `saveReserveUnit()` — [reserve_order_remote_datasource.dart](lib/features/reserve-order/data/datasources/reserve_order_remote_datasource.dart).
+[reserve.dart](lib/features/reserve-order/presentation/pages/reserve.dart) `_onNextUnit()` yang
+mengirim satu-per-satu (bukan `Future.wait` paralel) — kalau ada yang gagal di tengah, sisanya tidak
+usah dilanjutkan.
+
 ## Dokumen & rincian pembayaran dikirim ke `POST /api/reserve/doc-payment` (saat Submit)
 
-`createReserve()` (section di atas) sekarang mem-parse `data.reserve_order.reserve_order_id` dari
-response `POST /api/reserve` dan mengembalikannya (`Future<int>`, dulu `Future<void>`). Id itu jadi
-syarat panggilan kedua: `POST /api/reserve/doc-payment` — endpoint khusus reserve order (bukan
-attachment kontak lagi) yang sekaligus menyimpan KTP/NPWP/bukti transfer **dan** rincian pembayaran
-(jenis transaksi, nominal, catatan) sebagai baris `t_reserve_order_tts` milik order itu.
+`POST /api/reserve/doc-payment` — endpoint khusus reserve order (bukan attachment kontak lagi) yang
+menyimpan KTP/NPWP/bukti transfer **dan** rincian pembayaran (jenis transaksi, nominal, catatan)
+sebagai baris `t_reserve_order_tts` milik order itu, pakai `reserve_order_id` dari `createReserve()`
+(section di atas — sudah didapat lebih awal, begitu lepas dari step Dokumen).
 
 **Kapan:** sekali di akhir, waktu tombol **Submit Reserve Order** ditekan — bukan saat file dipilih.
 Selama 3 step pertama berkasnya ditahan di memori halaman, jadi kalau flow-nya ditinggal di tengah
-jalan tidak ada dokumen/pembayaran nyangkut di reserve order manapun. Gagal di `createReserve()`
-menahan di Review sebelum `doc-payment` sempat dipanggil sama sekali (lihat urutan di section di
-atas); gagal di `doc-payment` juga menahan di Review, tapi baris customer & reserve order-nya sudah
-kadung tersimpan (`reserve_order_id`-nya tetap ada di server, cuma dokumennya yang perlu dicoba
-ulang).
+jalan tidak ada dokumen/pembayaran nyangkut di reserve order manapun (baris customer & unitnya
+sendiri sudah kadung tersimpan lebih awal — lihat dua section di atas). Gagal di `doc-payment`
+menahan di Review dengan pesan errornya; `reserve_order_id`-nya tetap ada di server, cuma
+dokumennya yang perlu dicoba ulang.
 
 **Bentuk request** (`FormData`, bukan JSON) — field-nya disamakan persis dengan koleksi Postman yang
 dipakai backend buat uji endpoint ini:
@@ -227,10 +253,14 @@ semuanya.
 > kurung di key-nya — mekanisme yang sama (beberapa part dengan nama field yang sama persis) di sini
 > justru diminta: hasilnya beberapa field literal bernama `bukti_transfer`, bukan `bukti_transfer[]`.
 
-**Selama proses submit:** tombol berubah jadi "Membuat reserve order..." lalu "Mengunggah
-dokumen..." (tanpa progress N/M — beda dari mekanisme attachment lama, karena sekarang cuma 1
-request `doc-payment`), dan tombol back ditahan di kedua tahap supaya tidak ada proses separuh
-jalan.
+**Loading state per step** (tombol berubah teks + spinner, tombol back ditahan supaya tidak ada
+proses separuh jalan):
+
+| Step | Tombol saat loading |
+|---|---|
+| Dokumen → Unit | "Membuat reserve order..." (`_creatingReserve`) |
+| Unit → Review | "Menyimpan unit..." (`_savingUnit`) |
+| Review → Sukses | "Mengunggah dokumen..." (`_submittingDocPayment`, tanpa progress N/M — cuma 1 request `doc-payment`) |
 
 ## Kembali ke halaman menu
 
@@ -250,7 +280,7 @@ Kartu di halaman menu: [reserve-order/index.dart](lib/features/reserve-order/pre
 
 ## Pengaman otomatis
 
-[test/reserve_page_smoke_test.dart](test/reserve_page_smoke_test.dart) — 7 test widget di layar
+[test/reserve_page_smoke_test.dart](test/reserve_page_smoke_test.dart) — 9 test widget di layar
 390x844:
 
 1. Kelima layar render tanpa error layout (overflow / unbounded height — **tidak** terdeteksi
@@ -273,19 +303,25 @@ Kartu di halaman menu: [reserve-order/index.dart](lib/features/reserve-order/pre
    elemen `ReservePage` sebelumnya benar-benar di-dispose (tree berbentuk sama + tanpa key cuma
    di-rebuild oleh `pumpWidget`, bukan mount ulang — kalau tidak dipaksa lepas, `_step` dkk kebawa
    dari sesi sebelumnya).
-6. Submit memanggil `POST /api/reserve` (`_FakeReserveOrders.createReserve()`) **sebelum**
-   `doc-payment` — Tempat/Tanggal Lahir diisi manual ("Jakarta, 09 Januari 1990", tanpa scan
-   KTP) buat membuktikan parsing-balik `_resolvedBirth()` jalan, lalu tiap field payloadnya dicek
-   satu-satu (`contact_id`, `cust_name`, `cust_ktp`, `cust_birth_place`/`cust_birth_date`,
-   `cust_marital_status` yang di-uppercase, `cust_occupation`, `cust_address1`, `cara_bayar_id` dari
-   opsi yang dipilih, `cust_telp_mobile1`), termasuk `toJson()`-nya (`cust_birth_date` jadi string
-   `"1990-01-09"`). `cust_gender_is_male`/`cust_religion` dicek null karena belum pernah scan KTP.
-   Terakhir dicek `docPaymentCalls.single.reserveOrderId` sama dengan id yang dikembalikan
-   `createReserve()`.
-7. `POST /api/reserve` yang gagal (`failCreate = true`) menahan user di step Review dengan pesan
-   errornya, dan `doc-payment` **tidak** ikut dipanggil (`docPaymentCalls` tetap kosong) — buktiin
-   urutannya customer dulu baru dokumen, bukan paralel.
-8. Unit yang `is_property_sellable: false` tetap tampil (pudar) tapi tidak bertambah ke "N unit
+6. `POST /api/reserve` (`_FakeReserveOrders.createReserve()`) terkirim begitu lepas dari step
+   Dokumen (**bukan** menunggu Submit di Review) — Tempat/Tanggal Lahir diisi manual ("Jakarta, 09
+   Januari 1990", tanpa scan KTP) buat membuktikan parsing-balik `_resolvedBirth()` jalan, lalu tiap
+   field payloadnya dicek satu-satu (`contact_id`, `cust_name`, `cust_ktp`,
+   `cust_birth_place`/`cust_birth_date`, `cust_marital_status` yang di-uppercase, `cust_occupation`,
+   `cust_address1`, `cara_bayar_id` dari opsi yang dipilih, `cust_telp_mobile1`), termasuk
+   `toJson()`-nya (`cust_birth_date` jadi string `"1990-01-09"`). `cust_gender_is_male`/
+   `cust_religion` dicek null karena belum pernah scan KTP. `POST /api/reserve-unit`
+   (`saveReserveUnit()`) lalu dicek terkirim begitu lepas dari step Unit, dengan `deal_id` unit yang
+   dipilih + `customer_id` dari `createReserve()`. Terakhir, Submit di Review cuma menambah
+   `docPaymentCalls` (bukan `createCalls` — tidak dipanggil ulang), pakai `reserve_order_id` yang
+   sama dari `createReserve()` tadi.
+7. `POST /api/reserve` yang gagal (`failCreate = true`) menahan user di step **Dokumen** (tidak
+   lanjut ke Pilih Unit) dengan pesan errornya; `saveReserveUnit`/`doc-payment` **tidak** ikut
+   dipanggil.
+8. `POST /api/reserve-unit` yang gagal (`failSaveUnit = true`) menahan user di step **Unit** (tidak
+   lanjut ke Review) dengan pesan errornya — baris customer-nya (`createCalls`) tetap sudah dibuat
+   sebelumnya, cuma penautan unitnya yang gagal; `doc-payment` **tidak** ikut dipanggil.
+9. Unit yang `is_property_sellable: false` tetap tampil (pudar) tapi tidak bertambah ke "N unit
    dipilih" saat ditap, sementara unit sellable di sebelahnya tetap bisa; harga (`deal_value`) dan
    badge status (`status_name`, mis. "Available"/"Reserve") ikut tampil di kartunya.
 
@@ -300,16 +336,10 @@ Jalankan: `flutter test`. Menu Reserve Order (Bagian 3) punya test terpisah, lih
 
 ## Yang belum jalan / perlu diputuskan
 
-1. **Unit yang dipilih belum dikirim ke server** — data customer (`POST /api/reserve`) dan dokumen +
-   rincian pembayaran (jenis transaksi/nominal/catatan, lewat `POST /api/reserve/doc-payment`,
-   section "Dokumen & rincian pembayaran dikirim ke `POST /api/reserve/doc-payment`" di atas) sudah
-   jalan. Yang **belum ada** endpoint-nya: unit yang dipilih di step 3 → belum jelas tabelnya
-   (`t_reserve_order` unit assignment). Selama itu belum ada, unit cuma tersimpan di `ReserveResult`
-   lokal (dipakai kartu di halaman menu), tidak ikut ke server manapun.
-2. **Tesseract perlu diinstall di server** sebelum OCR hidup:
+1. **Tesseract perlu diinstall di server** sebelum OCR hidup:
    `sudo apt install tesseract-ocr tesseract-ocr-ind`. Selama belum ada, endpoint membalas 503
    dengan pesan cara installnya dan user diarahkan mengisi manual — bukan error 500.
-3. **Isi pilihan masih hardcode** — Status Pernikahan. Di DB kolomnya string bebas (tidak ada
+2. **Isi pilihan masih hardcode** — Status Pernikahan. Di DB kolomnya string bebas (tidak ada
    tabel master), jadi kalau mau dibakukan perlu keputusan bisnis. Istilahnya memakai versi KTP
    ("Kawin", bukan "Menikah" seperti di mockup) supaya hasil OCR bisa dicocokkan otomatis.
    - **Jenis Transaksi** sudah tidak hardcode lagi — pakai master status reserve yang sama dengan
@@ -328,9 +358,9 @@ Jalankan: `flutter test`. Menu Reserve Order (Bagian 3) punya test terpisah, lih
      customer dibuat lewat `POST /api/reserve`" di atas). Fallback
      `['KPR', 'Cash', 'Cash Bertahap', 'Inhouse']` (tanpa id, jadi `cara_bayar_id` tidak terkirim)
      dipakai kalau fetch-nya gagal/kosong.
-4. **Bagian 3 sudah dikerjakan** di menu drawer terpisah — lihat
+3. **Bagian 3 sudah dikerjakan** di menu drawer terpisah — lihat
    [reserve-order-menu-list.md](docs/reserve-order-menu-list.md). Halaman menu per-kontak
    (`/contact/reserve-order`) tetap versi kartu Reserve/Topup/RB yang lama.
-5. **Camera di PWA desktop** — `ImagePicker` dengan `ImageSource.camera` di browser desktop
+4. **Camera di PWA desktop** — `ImagePicker` dengan `ImageSource.camera` di browser desktop
    membuka dialog file, bukan kamera; di browser HP baru membuka kamera. Perilaku `image_picker`
    di web, sama seperti fitur lain di app ini.

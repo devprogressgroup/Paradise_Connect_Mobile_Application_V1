@@ -100,16 +100,27 @@ class _FakeReserveOrders implements ReserveOrderRemoteDataSource {
   Future<List<CaraBayarOption>> getCaraBayarOptions() async => const [];
 
   @override
-  Future<int> createReserve(CreateReserveParams params) async => 0;
+  Future<CreateReserveResult> createReserve(CreateReserveParams params) async =>
+      const CreateReserveResult(reserveOrderId: 0, customerId: 0);
 
   @override
-  Future<void> submitDocPayment(DocPaymentParams params) async {}
+  Future<void> saveReserveUnit({required int dealId, required int customerId}) async {}
+
+  @override
+  Future<int> submitDocPayment(DocPaymentParams params) async => 0;
 
   @override
   Future<ReserveCustomerDetail> getReserveCustomer(int reserveOrderId) async {
     final row = rows.firstWhere((r) => r['reserve_order_id'] == reserveOrderId);
     return ReserveCustomerDetail(custName: '${row['cust_name']}');
   }
+
+  @override
+  Future<List<ReserveOrderAttachment>> getReserveAttachments({
+    required int reserveOrderId,
+    required int reserveOrderTtsId,
+  }) async =>
+      const [];
 }
 
 late _FakeReserveOrders source;

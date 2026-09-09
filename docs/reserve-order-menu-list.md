@@ -94,7 +94,7 @@ tersambung:
 |---|---|
 | Timeline L1–L3, L5–L10 | Ditandai "belum sampai tahap ini" / chip gembok; hanya L4 (Reserve) yang punya keterangan dari `created_datetime` + `amount_rp` |
 | Tab **Data Pembeli** | Sudah tersambung ke `GET /api/reserve/customer` — lihat section "Tab Data Pembeli tersambung ke `GET /api/reserve/customer`" di bawah |
-| Tab **Attachment** | Kosong ("Belum ada dokumen.") |
+| Tab **Attachment** | Sudah tersambung ke `GET /api/reserve/attachment` — tapi cuma untuk reserve order yang `reserve_order_tts_id`-nya diketahui (lihat section "Tab Attachment tersambung ke `GET /api/reserve/attachment`" di bawah); selain itu tampil "Dokumen transaksi ini belum bisa ditampilkan di sini." |
 | Tab **Catatan** | Diisi `reserve_note` sebagai satu catatan, kalau ada |
 | `unitLabel` | `property_name` → `deal_blok_no` → "Unit belum ditentukan" (ketiganya sering null di response contoh) |
 
@@ -133,6 +133,47 @@ daripada memblokir seluruh halaman detail.
   buat akses `dataSource` + `ensureCaraBayarOptions()` (pola yang sama dengan `reserve.dart`, cubit
   yang sama dipakai bareng, tanpa cubit baru khusus detail). Tab-nya tampil `CircularProgressIndicator`
   kecil selama fetch berjalan.
+
+## Tab Attachment tersambung ke `GET /api/reserve/attachment` — tapi cuma untuk reserve order yang baru disubmit di sesi ini
+
+`GET /api/reserve/attachment?reserve_order_id=…&reserve_order_tts_id=…` membalas array dokumen
+(KTP/NPWP/bukti transfer) yang tersimpan lewat `POST /api/reserve/doc-payment` — lihat
+[reserve-order-scan-ktp-ocr.md](reserve-order-scan-ktp-ocr.md) bagian "Dokumen & rincian pembayaran
+dikirim ke `POST /api/reserve/doc-payment`".
+
+**Kendalanya:** `GET /api/reserve` (list, sumber `ReserveOrder` yang dipakai halaman ini) **sama
+sekali tidak membawa `reserve_order_tts_id`**, dan satu reserve order bisa punya lebih dari satu TTS
+(tiap kali `doc-payment` dipanggil, TTS baru dibuat). Jadi halaman Detail tidak bisa tahu
+`reserve_order_tts_id` mana yang mau diambil dokumennya hanya dari `order.id` saja.
+
+**Solusi sementara:** `submitDocPayment()` (dipanggil dari `reserve.dart` `_onSubmit`) sekarang
+mengembalikan `reserve_order_tts_id` dari response-nya (`data.tts.reserve_order_tts_id`), langsung
+disimpan ke cache di memori lewat `ReserveOrderListCubit.rememberTtsId(reserveOrderId,
+reserveOrderTtsId)` — cubit ini singleton (provider bersama `main.dart`, dipakai juga oleh
+`list.dart`/`detail.dart`), jadi cache-nya kebawa begitu user pindah dari layar sukses form Reserve
+ke menu list lalu buka detailnya. **Cuma menutupi reserve order yang doc-payment-nya dikirim lewat
+app ini di sesi app yang sama** — reserve order lama, atau yang di-refresh/dibuka lagi setelah app
+di-restart, `ttsIdFor()`-nya `null` dan tab-nya tampil "Dokumen transaksi ini belum bisa ditampilkan
+di sini." (beda pesannya dari "Belum ada dokumen." — biar jelas ini keterbatasan sistem, bukan
+memang belum ada dokumen). Perbaikan permanennya butuh salah satu dari: endpoint attachment yang
+menerima `reserve_order_id` saja (tanpa `reserve_order_tts_id`, ambil semua TTS sekaligus), atau
+endpoint buat menelusuri daftar TTS milik satu `reserve_order_id`.
+
+- [reserve_order_model.dart](lib/features/reserve-order/data/models/reserve_order_model.dart) —
+  `ReserveOrderAttachment.fromJson()` (row `contact_attachments` yang sama dengan attachment kontak
+  biasa, tapi field-nya beda — ada `verification_status`/`create_user_name`/dll — jadi model
+  terpisah, bukan reuse `ContactAttachment` dari fitur contact).
+- [reserve_order_remote_datasource.dart](lib/features/reserve-order/data/datasources/reserve_order_remote_datasource.dart) —
+  `getReserveAttachments({reserveOrderId, reserveOrderTtsId})`, `GET /reserve/attachment`.
+- [reserve_order_list_cubit.dart](lib/features/reserve-order/presentation/state/reserve_order_list/reserve_order_list_cubit.dart) —
+  `rememberTtsId()`/`ttsIdFor()`, cache `Map<int, int>` di memori (bukan bagian dari
+  `ReserveOrderListState` yang Equatable — tidak perlu memicu rebuild).
+- [detail.dart](lib/features/reserve-order/presentation/pages/detail.dart) — `_loadAttachments()`
+  dipanggil di `initState` bareng `_loadBuyerDetail()`, pola yang sama (silent-fail, spinner kecil
+  selama fetch). Tiap `ReserveOrderAttachment` dibungkus jadi `ReserveOrderDoc` (`_docFrom()`) supaya
+  bisa dirender pakai `roDocTile()` yang sudah ada — tidak ada tile baru dibuat khusus untuk ini.
+  Tap kartunya buka `context.pushNamed('attachmentWebView', extra: attachment.attachmentUrl)` —
+  route yang sama persis dipakai attachment kontak (`contact-detail/index.dart`), bukan webview baru.
 
 ## Link "Profil & Riwayat Lengkap ›" sudah jalan
 
@@ -280,7 +321,7 @@ Validasi (semua muncul sebagai snackbar, tidak memindahkan halaman):
 
 ## Test
 
-[test/reserve_order_menu_smoke_test.dart](test/reserve_order_menu_smoke_test.dart) — 6 kasus:
+[test/reserve_order_menu_smoke_test.dart](test/reserve_order_menu_smoke_test.dart) — 7 kasus:
 
 1. List memetakan JSON mentah (bentuk asli response Anda) ke kartu, dan kata kunci pencarian benar
    sampai ke datasource (bukan disaring di aplikasi).
@@ -288,11 +329,17 @@ Validasi (semua muncul sebagai snackbar, tidak memindahkan halaman):
    chip mengirim `status_reserve_id` yang benar ke `getReserveOrders()` (bukan disaring di app),
    dan "Semua" mereset ke daftar penuh.
 3. Gagal memuat menampilkan pesan + tombol "Coba lagi", dan menekannya memuat ulang.
-4. Detail: timeline L1–L10 & keempat tab, termasuk tab yang kosong karena responsnya belum lengkap,
-   link "Profil & Riwayat Lengkap ›" membuka Contact Detail dengan `contact_id` yang benar, dan
-   tambah catatan.
-5. Top up sampai layar sukses beserta jejaknya di timeline.
-6. Flow tolak → perbaiki → balik ke Diproses.
+4. Detail: timeline L1–L10 & keempat tab, termasuk tab Attachment yang tampil "belum bisa
+   ditampilkan" karena `reserve_order_tts_id`-nya tidak diketahui (lihat kasus #5), link
+   "Profil & Riwayat Lengkap ›" membuka Contact Detail dengan `contact_id` yang benar, dan tambah
+   catatan.
+5. Tab Attachment **dengan** `reserve_order_tts_id` yang sudah di-`rememberTtsId()` duluan (meniru
+   reserve order yang doc-payment-nya baru disubmit di sesi app yang sama) — dokumennya tampil
+   (nama tipe + "Diunggah <nama> · <tanggal>"), dan tap kartunya membuka route `attachmentWebView`
+   bawa `attachment_url`-nya. `_pumpMenu()` dapat parameter opsional `cubit` khusus test ini, supaya
+   `rememberTtsId()` bisa dipanggil di cubit yang sama sebelum widget-nya dibangun.
+6. Top up sampai layar sukses beserta jejaknya di timeline.
+7. Flow tolak → perbaiki → balik ke Diproses.
 
 Test chip filter & test pertama sengaja memakai viewport yang dilebarkan (`_pumpMenu(tester,
 width: 900)`) supaya semua chip kebangun tanpa gulir horizontal — drag scroll ke item yang di luar
@@ -312,8 +359,11 @@ Analyzer tidak menangkap error layout (overflow / unbounded height), jadi test i
    RBA/SP Batal) ke `ReserveOrderStatus` & warnanya, badge bisa memakai nama asli alih-alih
    tebakan dari tanggal.
 2. **Endpoint detail reserve order** — tab **Data Pembeli** sudah tersambung
-   (`GET /api/reserve/customer`, lihat section di atas). Timeline L1–L10 lengkap, tab Attachment,
-   dan Catatan masih menunggu endpoint detailnya menyusul.
+   (`GET /api/reserve/customer`, lihat section di atas), tab **Attachment** juga sudah
+   (`GET /api/reserve/attachment`, lihat section "Tab Attachment tersambung ke
+   `GET /api/reserve/attachment`" di atas) tapi terbatas ke reserve order yang
+   `reserve_order_tts_id`-nya diketahui (baru disubmit di sesi app yang sama). Timeline L1–L10
+   lengkap & Catatan masih menunggu endpoint detailnya menyusul.
 3. **Aksi Top Up & Ajukan Ulang belum mengirim apa pun ke server** — keduanya masih mengubah
    `ReserveOrder` di memori saja, sama seperti submit reserve order (lihat "Yang belum jalan" di
    [reserve-order-scan-ktp-ocr.md](docs/reserve-order-scan-ktp-ocr.md)). Menunggu endpoint aksinya.
