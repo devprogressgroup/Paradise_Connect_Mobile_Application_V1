@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:progress_group/core/constants/colors.dart';
+import 'package:progress_group/core/utils/widget/custom_buttomsheet.dart';
 import 'package:progress_group/features/reserve-order/data/models/reserve_order_model.dart';
 
 
@@ -347,5 +348,112 @@ Widget roFooter(List<Widget> children) {
       border: Border(top: BorderSide(color: const Color(grey10Color))),
     ),
     child: Column(children: children),
+  );
+}
+
+/// Baris tappable buat field pilihan (Marital Status, Payment Plan, dll) — dipasangkan dengan
+/// [roShowOptionSheet]. Dipakai bareng oleh form Reserve & halaman Edit Customer.
+Widget roPickerRow({required String? value, required String hint, required VoidCallback onTap}) {
+  return InkWell(
+    onTap: onTap,
+    borderRadius: BorderRadius.circular(12),
+    child: Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(11),
+      decoration: BoxDecoration(
+        border: Border.all(color: const Color(grey10Color), width: 1.5),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              value ?? hint,
+              style: TextStyle(
+                fontSize: 12.5,
+                color: value == null ? const Color(grey5Color) : const Color(blue2Color),
+              ),
+            ),
+          ),
+          const Icon(Icons.arrow_drop_down, size: 22, color: Color(grey4Color)),
+        ],
+      ),
+    ),
+  );
+}
+
+/// Sheet pilihan teks polos buat [roPickerRow] — daftar [items], centang di [selected].
+void roShowOptionSheet({
+  required BuildContext context,
+  required String title,
+  required List<String> items,
+  required String? selected,
+  required ValueChanged<String> onPicked,
+}) {
+  showCustomBottomSheet(
+    context: context,
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(left: 4, bottom: 8),
+          child: Text(
+            title,
+            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Color(blue2Color)),
+          ),
+        ),
+        for (final item in items)
+          InkWell(
+            onTap: () {
+              Navigator.pop(context);
+              onPicked(item);
+            },
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(item, style: const TextStyle(fontSize: 13, color: Color(blue2Color))),
+                  ),
+                  if (item == selected) const Icon(Icons.check, size: 18, color: Color(primaryColor)),
+                ],
+              ),
+            ),
+          ),
+        const SizedBox(height: 8),
+      ],
+    ),
+  );
+}
+
+/// Header section yang bisa expand/collapse (garis bawah + panah yang berputar 180° saat kebuka)
+/// — dipakai `ReserveOrderEditCustomerPage` & tab "Customer" di `ReserveOrderDetailPage` supaya
+/// gaya & interaksinya konsisten di kedua halaman.
+Widget roCollapsibleSectionHeader({required String title, required bool collapsed, required VoidCallback onTap}) {
+  return InkWell(
+    onTap: onTap,
+    child: Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.only(bottom: 8),
+      decoration: BoxDecoration(
+        border: Border(bottom: BorderSide(color: const Color(primaryColor).withValues(alpha: 0.35), width: 2)),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              title,
+              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(blue2Color)),
+            ),
+          ),
+          AnimatedRotation(
+            turns: collapsed ? 0 : 0.5,
+            duration: const Duration(milliseconds: 250),
+            child: const Icon(Icons.keyboard_arrow_down_rounded, size: 20, color: Color(primaryColor)),
+          ),
+        ],
+      ),
+    ),
   );
 }

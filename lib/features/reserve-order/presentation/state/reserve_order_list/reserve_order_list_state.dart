@@ -29,6 +29,10 @@ class ReserveOrderListState extends Equatable {
   /// tidak fetch ulang selama cubit-nya (singleton, provider bersama) belum di-reset.
   final List<CaraBayarOption> caraBayarOptions;
 
+  /// Master "Area" (lokasi/wilayah) di halaman Edit Customer, dari `GET /api/reserve/area` — cache
+  /// sama seperti [caraBayarOptions] (lihat `ReserveOrderListCubit.ensureAreaOptions`).
+  final List<AreaOption> areaOptions;
+
   /// Diisi kalau daftar ini sedang disaring buat satu kontak (dibuka dari "Reserve Order" di Log
   /// Activity); null berarti daftar drawer, semua transaksi.
   final int? contactId;
@@ -49,6 +53,7 @@ class ReserveOrderListState extends Equatable {
     this.statusIds = const [],
     this.filters = const [],
     this.caraBayarOptions = const [],
+    this.areaOptions = const [],
     this.contactId,
     this.loadingMore = false,
     this.error,
@@ -64,6 +69,7 @@ class ReserveOrderListState extends Equatable {
     List<int>? statusIds,
     List<ReserveFilterOption>? filters,
     List<CaraBayarOption>? caraBayarOptions,
+    List<AreaOption>? areaOptions,
     bool? loadingMore,
     String? error,
     int? contactId,
@@ -78,6 +84,7 @@ class ReserveOrderListState extends Equatable {
       statusIds: statusIds ?? this.statusIds,
       filters: filters ?? this.filters,
       caraBayarOptions: caraBayarOptions ?? this.caraBayarOptions,
+      areaOptions: areaOptions ?? this.areaOptions,
       // Sengaja tidak `?? this.contactId` (sama seperti `error`): tiap pemanggil yang mau
       // mempertahankan scope kontaknya harus mengirim ulang `state.contactId` secara eksplisit,
       // supaya sesi baru (drawer vs. daftar per-kontak) tidak kebawa sisa scope kunjungan sebelumnya.
@@ -89,5 +96,5 @@ class ReserveOrderListState extends Equatable {
 
   @override
   List<Object?> get props =>
-      [status, items, page, hasMore, total, search, statusIds, filters, caraBayarOptions, contactId, loadingMore, error];
+      [status, items, page, hasMore, total, search, statusIds, filters, caraBayarOptions, areaOptions, contactId, loadingMore, error];
 }

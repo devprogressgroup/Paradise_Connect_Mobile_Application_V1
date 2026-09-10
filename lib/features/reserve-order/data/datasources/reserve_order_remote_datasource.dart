@@ -61,8 +61,14 @@ class CreateReserveParams {
 /// `ReserveOrderRemoteDataSourceImpl.submitDocPayment`.
 class DocPaymentParams {
   final int reserveOrderId;
-  final int statusReserveId;
-  final num ttsAmountRp;
+
+  /// Null kalau cuma nambah dokumen pendukung dari tab "Attachment" (bukan submit
+  /// pembayaran/transaksi baru) — sesuai instruksi eksplisit, field ini di-OMIT total dari request
+  /// (bukan dikirim `0`), lihat [ReserveOrderRemoteDataSourceImpl.submitDocPayment].
+  final int? statusReserveId;
+
+  /// Null dengan alasan yang sama seperti [statusReserveId].
+  final num? ttsAmountRp;
   final String? note;
   final List<Uint8List> ktpBytes;
   final List<String> ktpFileNames;
@@ -73,8 +79,8 @@ class DocPaymentParams {
 
   const DocPaymentParams({
     required this.reserveOrderId,
-    required this.statusReserveId,
-    required this.ttsAmountRp,
+    this.statusReserveId,
+    this.ttsAmountRp,
     this.note,
     this.ktpBytes = const [],
     this.ktpFileNames = const [],
@@ -157,6 +163,24 @@ abstract class ReserveOrderRemoteDataSource {
     required int reserveOrderId,
     required int reserveOrderTtsId,
   });
+
+  /// Update profil pembeli — `PATCH /api/reserve/{reserve_order_id}`. Body-nya field backend apa
+  /// adanya (`cust_name`, `spouse_income`, `mate_ktp_city`, dst — persis [ReserveCustomerDetail.raw]),
+  /// makanya cukup terima map mentah daripada bikin kelas Params baru berisi ~90 field. Dipanggil
+  /// dari `ReserveOrderEditCustomerPage`.
+  Future<void> updateReserveCustomer({required int reserveOrderId, required Map<String, dynamic> data});
+
+  /// Master "Area" (lokasi/wilayah) buat dropdown Area Code di halaman Edit Customer —
+  /// `GET /api/reserve/area`.
+  Future<List<AreaOption>> getAreaOptions();
+
+  /// Pesan tab "Notes" (gaya chat) — `GET /api/reserve/notes?reserve_order_id=…`.
+  Future<List<ReserveOrderActivityMessage>> getReserveNotes(int reserveOrderId);
+
+  /// Kirim pesan baru ke tab "Notes" — `POST /api/reserve/notes`. Dipanggil dari
+  /// `ReserveOrderDetailPage._sendNote`; setelah berhasil, tab dimuat ulang lewat [getReserveNotes]
+  /// supaya pesannya kembali dengan `sender_name`/waktu asli dari server.
+  Future<void> sendReserveNote({required int reserveOrderId, required String message});
 }
 
 class ReserveOrderRemoteDataSourceImpl implements ReserveOrderRemoteDataSource {
@@ -239,9 +263,9 @@ class ReserveOrderRemoteDataSourceImpl implements ReserveOrderRemoteDataSource {
         return (body['data'] as List).map((e) => CaraBayarOption.fromJson(Map<String, dynamic>.from(e as Map))).toList();
       }
 
-      throw Exception(body is Map ? (body['message'] ?? 'Failed to load payment method') : 'Failed to load payment method');
+      throw Exception(body is Map ? (body['message'] ?? 'Failed to load payment plan') : 'Failed to load payment plan');
     } on DioException catch (e) {
-      throw Exception(getErrorMessage(e, 'Failed to load payment method'));
+      throw Exception(getErrorMessage(e, 'Failed to load payment plan'));
     }
   }
 
@@ -292,8 +316,8 @@ class ReserveOrderRemoteDataSourceImpl implements ReserveOrderRemoteDataSource {
     try {
       final data = <String, dynamic>{
         'reserve_order_id': params.reserveOrderId,
-        'status_reserve_id': params.statusReserveId,
-        'tts_amount_rp': params.ttsAmountRp,
+        if (params.statusReserveId != null) 'status_reserve_id': params.statusReserveId,
+        if (params.ttsAmountRp != null) 'tts_amount_rp': params.ttsAmountRp,
         if (params.note != null && params.note!.isNotEmpty) 'note': params.note,
         // Key literal `ktp[]` (bukan `ktp`) — `FormData.fromMap` TIDAK menambahkan tanda kurung
         // otomatis buat list berisi `MultipartFile` (beda dari list Map/List biasa), jadi kalau
@@ -377,6 +401,72 @@ class ReserveOrderRemoteDataSourceImpl implements ReserveOrderRemoteDataSource {
       throw Exception(body is Map ? (body['message'] ?? 'Failed to load documents') : 'Failed to load documents');
     } on DioException catch (e) {
       throw Exception(getErrorMessage(e, 'Failed to load documents'));
+    }
+  }
+
+  @override
+  Future<void> updateReserveCustomer({required int reserveOrderId, required Map<String, dynamic> data}) async {
+    try {
+      final response = await dio.patch('/reserve/$reserveOrderId', data: data);
+      final body = response.data;
+
+      if (body is Map && body['status'] == true) return;
+      throw Exception(body is Map ? (body['message'] ?? 'Failed to update customer data') : 'Failed to update customer data');
+    } on DioException catch (e) {
+      throw Exception(getErrorMessage(e, 'Failed to update customer data'));
+    }
+  }
+
+  @override
+  Future<List<AreaOption>> getAreaOptions() async {
+    try {
+      final response = await dio.get('/reserve/area');
+      final body = response.data;
+
+      if (body is Map && body['status'] == true && body['data'] is Map) {
+        final data = Map<String, dynamic>.from(body['data'] as Map);
+        if (data['data'] is List) {
+          return (data['data'] as List).map((e) => AreaOption.fromJson(Map<String, dynamic>.from(e as Map))).toList();
+        }
+      }
+
+      throw Exception(body is Map ? (body['message'] ?? 'Failed to load area') : 'Failed to load area');
+    } on DioException catch (e) {
+      throw Exception(getErrorMessage(e, 'Failed to load area'));
+    }
+  }
+
+  @override
+  Future<List<ReserveOrderActivityMessage>> getReserveNotes(int reserveOrderId) async {
+    try {
+      final response = await dio.get('/reserve/notes', queryParameters: {'reserve_order_id': reserveOrderId});
+      final body = response.data;
+
+      if (body is Map && body['status'] == true && body['data'] is List) {
+        return (body['data'] as List)
+            .map((e) => ReserveOrderActivityMessage.fromJson(Map<String, dynamic>.from(e as Map)))
+            .toList();
+      }
+
+      throw Exception(body is Map ? (body['message'] ?? 'Failed to load notes') : 'Failed to load notes');
+    } on DioException catch (e) {
+      throw Exception(getErrorMessage(e, 'Failed to load notes'));
+    }
+  }
+
+  @override
+  Future<void> sendReserveNote({required int reserveOrderId, required String message}) async {
+    try {
+      final response = await dio.post('/reserve/notes', data: {
+        'reserve_order_id': reserveOrderId,
+        'message': message,
+      });
+      final body = response.data;
+
+      if (body is Map && body['status'] == true) return;
+      throw Exception(body is Map ? (body['message'] ?? 'Failed to send note') : 'Failed to send note');
+    } on DioException catch (e) {
+      throw Exception(getErrorMessage(e, 'Failed to send note'));
     }
   }
 }

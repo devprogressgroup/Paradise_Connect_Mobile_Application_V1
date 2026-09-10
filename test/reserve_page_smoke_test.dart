@@ -4,7 +4,7 @@
 // tiap step menahan langkah berikutnya, `POST /api/reserve` (baris customer) terkirim begitu lepas
 // dari step Dokumen, `POST /api/reserve-unit` (deal_id + customer_id) terkirim begitu lepas dari
 // step Select Unit, dokumen & rincian pembayarannya terkirim ke `POST /api/reserve/doc-payment` saat
-// submit di Review, dan hasilnya sampai ke kartu di halaman menu.
+// submit di Review.
 // Analyzer tidak bisa menangkap error layout, jadi ini satu-satunya pengaman otomatisnya.
 import 'dart:typed_data';
 
@@ -12,7 +12,6 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:go_router/go_router.dart';
 import 'package:intl/date_symbol_data_local.dart';
 // Dependency transitif dari file_picker — dipakai hanya untuk mixin mock platform interface.
 // ignore: depend_on_referenced_packages
@@ -25,7 +24,6 @@ import 'package:progress_group/features/reserve-order/data/models/ktp_ocr_model.
 import 'package:progress_group/features/reserve-order/data/models/reserve_order_model.dart';
 import 'package:progress_group/features/contact/data/models/unit/unit_hierarchy_model.dart';
 import 'package:progress_group/features/contact/domain/entities/contact/contact_entity.dart';
-import 'package:progress_group/features/reserve-order/presentation/pages/index.dart';
 import 'package:progress_group/features/reserve-order/presentation/pages/reserve.dart';
 import 'package:progress_group/features/reserve-order/presentation/state/ktp_ocr/ktp_ocr_cubit.dart';
 import 'package:progress_group/features/reserve-order/presentation/state/reserve_order_list/reserve_order_list_cubit.dart';
@@ -37,7 +35,7 @@ class _FakeKtpOcr implements KtpOcrRemoteDataSource {
       const KtpOcrModel(nama: 'SAKUM', nik: '3273051290000012');
 }
 
-/// "Transaction Type" (step Dokumen) & "Payment Method" (step Data Pembeli) di form Reserve dibaca
+/// "Transaction Type" (step Dokumen) & "Payment Plan" (step Data Pembeli) di form Reserve dibaca
 /// dari sini — `GET /api/reserve-filter` (sama dengan chip filter menu List) &
 /// `GET /api/reserve/cara-bayar`. `filterCalls`/`caraBayarCalls` dipakai membuktikan cubit-nya
 /// nge-cache, bukan fetch ulang tiap `ReservePage` dibuka.
@@ -127,6 +125,24 @@ class _FakeReserveOrders implements ReserveOrderRemoteDataSource {
     required int reserveOrderId,
     required int reserveOrderTtsId,
   }) async {
+    throw UnimplementedError('tidak dipakai di test flow Reserve');
+  }
+
+  @override
+  Future<void> updateReserveCustomer({required int reserveOrderId, required Map<String, dynamic> data}) async {
+    throw UnimplementedError('tidak dipakai di test flow Reserve');
+  }
+
+  @override
+  Future<List<AreaOption>> getAreaOptions() async => const [];
+
+  @override
+  Future<List<ReserveOrderActivityMessage>> getReserveNotes(int reserveOrderId) async {
+    throw UnimplementedError('tidak dipakai di test flow Reserve');
+  }
+
+  @override
+  Future<void> sendReserveNote({required int reserveOrderId, required String message}) async {
     throw UnimplementedError('tidak dipakai di test flow Reserve');
   }
 }
@@ -253,6 +269,20 @@ Future<void> _expectSnack(WidgetTester tester, String message) async {
 /// Cari `TextField` lewat hint-nya — lebih aman dari index kalau urutan field di step berubah.
 Finder _fieldWithHint(String hint) => find.byWidgetPredicate((w) => w is TextField && w.decoration?.hintText == hint);
 
+/// Buka `showDatePicker` lewat [trigger], pindah ke mode input (biar bisa diketik langsung tanpa
+/// navigasi kalender), isi [dateText] (format "mm/dd/yyyy", default locale en_US dari
+/// `DefaultMaterialLocalizations` karena app ini belum pasang `flutter_localizations`), lalu konfirmasi.
+Future<void> _pickDateViaInput(WidgetTester tester, Finder trigger, String dateText) async {
+  await tester.tap(trigger);
+  await tester.pumpAndSettle();
+  await tester.tap(find.byTooltip('Switch to input'));
+  await tester.pumpAndSettle();
+  await tester.enterText(find.byType(TextFormField), dateText);
+  await tester.pumpAndSettle();
+  await tester.tap(find.text('OK'));
+  await tester.pumpAndSettle();
+}
+
 /// Lampirkan file lewat sheet pilih sumber (jalur "Dokumen" → FilePicker palsu).
 Future<void> _attachVia(WidgetTester tester, Finder row) async {
   await tester.tap(row);
@@ -305,8 +335,9 @@ void main() {
     expect(find.text('0812-1111-2222'), findsOneWidget);
     expect(find.text('📷  Scan KTP'), findsOneWidget);
     expect(find.text('Full Name (as per KTP)'), findsOneWidget);
-    expect(find.text('Place, Date of Birth'), findsOneWidget);
-    expect(find.text('Payment Method'), findsOneWidget);
+    expect(find.text('Place of Birth'), findsOneWidget);
+    expect(find.text('Date of Birth'), findsOneWidget);
+    expect(find.text('Payment Plan'), findsOneWidget);
     expect(find.text('Sakum'), findsOneWidget); // prefill dari kontak
     expect(find.text('Continue to Documents'), findsOneWidget);
 
@@ -317,10 +348,13 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Kawin'), findsOneWidget);
 
-    // Picker "Payment Method" isinya dari `GET /api/reserve/cara-bayar` (bukan daftar hardcode
+    // Picker "Payment Plan" isinya dari `GET /api/reserve/cara-bayar` (bukan daftar hardcode
     // lama ['KPR', 'Cash', 'Cash Bertahap', 'Inhouse']) — yang tampil di sheet & di picker-nya
     // tetap `name`, id-nya (`cara_bayar_id`) cuma disimpan di balik layar.
-    await tester.tap(find.text('Select payment method'));
+    // Field "Date of Birth" yang baru menggeser field ini keluar viewport, jadi discroll dulu.
+    await tester.ensureVisible(find.text('Select payment plan'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Select payment plan'));
     await tester.pumpAndSettle();
     expect(find.text('Cash Bertahap 3X'), findsOneWidget);
     expect(find.text('Cash Bertahap 6X'), findsOneWidget);
@@ -462,53 +496,6 @@ void main() {
     expect(find.textContaining('koneksi terputus'), findsOneWidget);
   });
 
-  testWidgets('hasil submit sampai ke kartu Reserve di halaman menu', (tester) async {
-    tester.view.physicalSize = const Size(390 * 3, 844 * 3);
-    tester.view.devicePixelRatio = 3;
-    addTearDown(tester.view.reset);
-
-    final args = ContactDetailArgs(dataContact: _contact(), namePage: 'Reserve Order');
-    final router = GoRouter(
-      routes: [
-        GoRoute(
-          path: '/',
-          builder: (_, __) => ReserveOrderPage(args: args),
-          routes: [
-            GoRoute(
-              name: 'reserveOrderReserve',
-              path: 'reserve',
-              builder: (_, state) => ReservePage(args: state.extra as ContactDetailArgs),
-            ),
-          ],
-        ),
-      ],
-    );
-
-    await tester.pumpWidget(_wrap(MaterialApp.router(routerConfig: router)));
-    await tester.pumpAndSettle();
-
-    // Menu awal: belum ada rincian & centang.
-    expect(find.text('Reserve'), findsOneWidget);
-    expect(find.byIcon(Icons.check), findsNothing);
-    expect(find.byIcon(Icons.drive_file_rename_outline), findsNWidgets(3));
-
-    // Jalankan flow sampai sukses.
-    await tester.tap(find.text('Reserve'));
-    await tester.pumpAndSettle();
-    await _fillUntilUnitPicked(tester);
-    await tester.tap(find.text('Submit Reserve Order'));
-    await tester.pumpAndSettle();
-
-    // "View in Reserve Order" mengembalikan hasilnya ke halaman menu.
-    await tester.tap(find.text('View in Reserve Order'));
-    await tester.pumpAndSettle();
-
-    expect(find.text('Topup'), findsOneWidget);
-    expect(find.text('Blok E1 No. 19 Ecoscape PAR2'), findsOneWidget);
-    expect(find.text('Rp 2.000.000'), findsOneWidget);
-    expect(find.byIcon(Icons.check), findsOneWidget);
-  });
-
   testWidgets('unit tidak sellable pudar & tidak bisa dicentang; harga & badge status tampil', (tester) async {
     tester.view.physicalSize = const Size(390 * 3, 844 * 3);
     tester.view.devicePixelRatio = 3;
@@ -613,9 +600,10 @@ void main() {
     )));
     await tester.pumpAndSettle();
 
-    // Tempat/Tanggal Lahir diisi manual (tanpa scan KTP) — dites kalau parse balik dari teksnya
-    // ("Tempat, dd MMMM yyyy", sesuai hint field-nya) jalan buat `cust_birth_place`/`cust_birth_date`.
-    await tester.enterText(_fieldWithHint('Jakarta, 01 Januari 1990'), 'Jakarta, 09 Januari 1990');
+    // Tempat & Tanggal Lahir sekarang dua field terpisah — tempat diisi teks biasa, tanggal lewat
+    // date picker bawaan Flutter (mode input, supaya bisa diketik langsung tanpa navigasi kalender).
+    await tester.enterText(_fieldWithHint('Jakarta'), 'Jakarta');
+    await _pickDateViaInput(tester, find.text('Select date of birth'), '01/09/1990');
     await tester.enterText(_fieldWithHint('Self-employed'), 'Pedagang');
 
     await tester.tap(find.text('Select marital status'));
@@ -623,7 +611,9 @@ void main() {
     await tester.tap(find.text('Kawin').last);
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Select payment method'));
+    await tester.ensureVisible(find.text('Select payment plan'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Select payment plan'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('KPR').last);
     await tester.pumpAndSettle();

@@ -17,6 +17,7 @@ import 'package:plugin_platform_interface/plugin_platform_interface.dart';
 import 'package:progress_group/features/reserve-order/data/datasources/reserve_order_remote_datasource.dart';
 import 'package:progress_group/features/reserve-order/data/models/reserve_order_model.dart';
 import 'package:progress_group/features/reserve-order/presentation/pages/detail.dart';
+import 'package:progress_group/features/reserve-order/presentation/pages/edit_customer.dart';
 import 'package:progress_group/features/reserve-order/presentation/pages/list.dart';
 import 'package:progress_group/features/reserve-order/presentation/pages/revise.dart';
 import 'package:progress_group/features/reserve-order/presentation/pages/top_up.dart';
@@ -159,7 +160,7 @@ class _FakeReserveOrders implements ReserveOrderRemoteDataSource {
   @override
   Future<ReserveCustomerDetail> getReserveCustomer(int reserveOrderId) async {
     final row = rows.firstWhere((r) => r['reserve_order_id'] == reserveOrderId);
-    return ReserveCustomerDetail(custName: '${row['cust_name']}');
+    return ReserveCustomerDetail(raw: {'cust_name': '${row['cust_name']}'});
   }
 
   /// Diisi manual per test lewat key `(reserve_order_id, reserve_order_tts_id)` — default kosong.
@@ -171,6 +172,35 @@ class _FakeReserveOrders implements ReserveOrderRemoteDataSource {
     required int reserveOrderTtsId,
   }) async =>
       attachmentsByKey[(reserveOrderId, reserveOrderTtsId)] ?? const [];
+
+  final List<({int reserveOrderId, Map<String, dynamic> data})> updateCustomerCalls = [];
+  bool failUpdateCustomer = false;
+
+  @override
+  Future<void> updateReserveCustomer({required int reserveOrderId, required Map<String, dynamic> data}) async {
+    if (failUpdateCustomer) throw Exception('koneksi terputus');
+    updateCustomerCalls.add((reserveOrderId: reserveOrderId, data: data));
+  }
+
+  @override
+  Future<List<AreaOption>> getAreaOptions() async => const [];
+
+  /// Diisi manual per test lewat key `reserve_order_id` — default kosong (fallback ke catatan
+  /// lokal `reserve_note`, lihat `ReserveOrderDetailPage._loadNotes`).
+  Map<int, List<ReserveOrderActivityMessage>> notesByReserveOrderId = {};
+
+  @override
+  Future<List<ReserveOrderActivityMessage>> getReserveNotes(int reserveOrderId) async =>
+      notesByReserveOrderId[reserveOrderId] ?? const [];
+
+  final List<({int reserveOrderId, String message})> sentNotes = [];
+  bool failSendNote = false;
+
+  @override
+  Future<void> sendReserveNote({required int reserveOrderId, required String message}) async {
+    if (failSendNote) throw Exception('koneksi terputus');
+    sentNotes.add((reserveOrderId: reserveOrderId, message: message));
+  }
 }
 
 late _FakeReserveOrders source;
@@ -197,6 +227,14 @@ GoRouter _router() => GoRouter(
                   name: 'reserveOrderRevise',
                   path: 'revise',
                   builder: (_, state) => ReserveOrderRevisePage(order: state.extra as ReserveOrder),
+                ),
+                GoRoute(
+                  name: 'reserveOrderEditCustomer',
+                  path: 'edit-customer',
+                  builder: (_, state) => ReserveOrderEditCustomerPage(
+                    order: state.extra as ReserveOrder,
+                    highlightKey: state.uri.queryParameters['field'],
+                  ),
                 ),
               ],
             ),
@@ -418,16 +456,34 @@ void main() {
     await tester.tap(find.byType(BackButton));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Buyer Data'));
+    await tester.tap(find.text('Customer'));
     await tester.pumpAndSettle();
     expect(find.text('081234567890'), findsWidgets);
 
+    // Field di tab Customer selalu bisa ditekan buat masuk ke halaman Edit Customer, apapun status
+    // transaksinya — beda dari "Edit & Resubmit" yang cuma buka dokumen/nominal & cuma muncul saat
+    // transaksinya ditolak.
+    await tester.tap(find.ancestor(of: find.text('Andi Wijaya Aan').last, matching: find.byType(InkWell)).first);
+    await tester.pumpAndSettle();
+    expect(find.text('Edit Customer'), findsOneWidget);
+
+    await tester.enterText(find.byType(TextField).first, 'Andi Wijaya Aan Baru');
+    await tester.tap(find.text('Save Changes'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Edit Customer'), findsNothing);
+    expect(find.text('Andi Wijaya Aan Baru'), findsOneWidget);
+
     // Attachment butuh `reserve_order_tts_id` (dari `ReserveOrderListCubit.rememberTtsId`, diisi
-    // pas submit doc-payment di form Reserve) yang tidak diketahui di sini — jadi tampil pesan
-    // "belum bisa ditampilkan", bukan "belum ada dokumen". Catatan diisi dari `reserve_note`.
+    // pas submit doc-payment di form Reserve) yang tidak diketahui di sini — slot tetapnya (KTP/
+    // NPWP/Bukti Transfer) tetap tampil (tidak hilang), tapi statusnya "Status not available"
+    // karena datanya memang tidak bisa dicek, bukan "Not uploaded yet". Catatan diisi dari `reserve_note`.
     await tester.tap(find.text('Attachment'));
     await tester.pumpAndSettle();
-    expect(find.text('Documents for this transaction cannot be shown here yet.'), findsOneWidget);
+    expect(find.text('KTP'), findsOneWidget);
+    expect(find.text('NPWP'), findsOneWidget);
+    expect(find.text('Bukti Transfer'), findsOneWidget);
+    expect(find.text('Status not available'), findsNWidgets(3));
 
     await tester.tap(find.text('Notes'));
     await tester.pumpAndSettle();
@@ -461,6 +517,11 @@ void main() {
     await tester.tap(find.text('Attachment'));
     await tester.pumpAndSettle();
 
+    // KTP & NPWP tetap tampil sebagai slot kosong (bukan hilang) karena belum ada attachment yang
+    // cocok, sedangkan Bukti Transfer terisi datanya.
+    expect(find.text('KTP'), findsOneWidget);
+    expect(find.text('NPWP'), findsOneWidget);
+    expect(find.text('Not uploaded yet'), findsNWidgets(2));
     expect(find.text('Bukti Transfer'), findsOneWidget);
     expect(find.textContaining('Uploaded by iman'), findsOneWidget);
     expect(find.textContaining('09 Sep 2026'), findsOneWidget);

@@ -1,22 +1,21 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:progress_group/core/constants/colors.dart';
 import 'package:progress_group/core/services/analytics_service.dart';
+import 'package:progress_group/core/utils/helpers/error_message.dart';
 import 'package:progress_group/core/utils/widget/custom_button.dart';
 import 'package:progress_group/core/utils/widget/custom_file_picker.dart';
 import 'package:progress_group/core/utils/widget/custom_snackbar.dart';
 import 'package:progress_group/features/contact/data/arguments/contact_detail_args.dart';
+import 'package:progress_group/features/reserve-order/data/datasources/reserve_order_remote_datasource.dart';
 import 'package:progress_group/features/reserve-order/data/models/reserve_order_model.dart';
 import 'package:progress_group/features/contact/domain/entities/contact/contact_entity.dart';
 import 'package:progress_group/features/reserve-order/presentation/pages/widgets.dart';
 import 'package:progress_group/features/reserve-order/presentation/state/reserve_order_list/reserve_order_list_cubit.dart';
-
-/// Detail satu transaksi Reserve Order — Bagian 3 mockup, kolom "Detail — Perjalanan & Dokumen".
-///
-/// Empat tab: Perjalanan (timeline L1–L10), Data Pembeli, Attachment, dan Catatan. Transaksi yang
-/// ditolak kasir menampilkan banner merah + tombol "Edit & Resubmit" di atas tab.
 class ReserveOrderDetailPage extends StatefulWidget {
   final ReserveOrder order;
 
@@ -32,12 +31,19 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage> {
   _RoTab _tab = _RoTab.perjalanan;
   final noteTC = TextEditingController();
   bool _loadingBuyer = true;
+  List<CaraBayarOption> _caraBayarOptions = const [];
+  /// Judul section tab "Customer" yang lagi ditutup — kosong berarti semuanya kebuka (default).
+  final Set<String> _collapsedBuyerSections = {};
 
   List<ReserveOrderAttachment> _attachments = [];
   bool _loadingAttachments = false;
   // true kalau `reserve_order_tts_id`-nya tidak diketahui (lihat _loadAttachments) — beda dari
   // "sudah dicek ke server, memang belum ada dokumen" supaya pesannya tidak menyesatkan.
   bool _attachmentsUnavailable = false;
+  bool _uploadingExtraDoc = false;
+
+  bool _loadingNotes = false;
+  bool _sendingNote = false;
 
   ReserveOrder get order => widget.order;
 
@@ -47,12 +53,9 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage> {
     AnalyticsService.logScreenView('reserve_order_detail');
     _loadBuyerDetail();
     _loadAttachments();
+    _loadNotes();
   }
 
-  /// `GET /api/reserve` (list) cuma punya nama pembeli — No. KTP, alamat, status pernikahan, &
-  /// cara bayar baru datang dari `GET /api/reserve/customer` di sini. Gagal dimuat cuma dibiarkan:
-  /// tab tetap tampil field "-" bawaan `ReserveOrder.fromJson` (lihat komentarnya) daripada
-  /// memblokir seluruh halaman detail karena satu tab gagal.
   Future<void> _loadBuyerDetail() async {
     final reserveOrderId = int.tryParse(order.id);
     if (reserveOrderId == null) {
@@ -65,6 +68,7 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage> {
       final detail = await cubit.dataSource.getReserveCustomer(reserveOrderId);
       final caraBayarOptions = await cubit.ensureCaraBayarOptions();
       order.applyCustomerDetail(detail, caraBayarOptions);
+      _caraBayarOptions = caraBayarOptions;
     } catch (_) {
       // Diamkan — lihat catatan di atas.
     } finally {
@@ -72,13 +76,6 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage> {
     }
   }
 
-  /// Dokumen yang tersimpan lewat `POST /api/reserve/doc-payment` — `GET /api/reserve/attachment`
-  /// butuh `reserve_order_tts_id`, yang tidak ada di `GET /api/reserve` (list) sama sekali & satu
-  /// reserve order bisa punya lebih dari satu TTS. Cuma tersedia kalau reserve order ini baru saja
-  /// disubmit dokumennya di sesi app yang sama (lihat `ReserveOrderListCubit.rememberTtsId`,
-  /// dipanggil dari `reserve.dart` `_onSubmit`) — reserve order lama/dari sesi app lain tampil
-  /// "Belum bisa ditampilkan" sampai ada endpoint buat menelusuri riwayat TTS dari
-  /// `reserve_order_id` saja.
   Future<void> _loadAttachments() async {
     final reserveOrderId = int.tryParse(order.id);
     final cubit = context.read<ReserveOrderListCubit>();
@@ -100,6 +97,39 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage> {
       // Diamkan — tab tetap tampil "Belum ada dokumen." daripada memblokir halaman.
     } finally {
       if (mounted) setState(() => _loadingAttachments = false);
+    }
+  }
+
+  /// Tab "Notes" — `GET /api/reserve/notes?reserve_order_id=…`. Dipetakan ke [ReserveOrderNote]
+  /// (bukan disimpan sebagai list terpisah) supaya satu jalur dengan catatan lokal yang ditambah
+  /// `revise.dart`/`top_up.dart`/[_sendNote]. Kalau responsnya kosong, catatan lokal yang sudah ada
+  /// (mis. dari `reserve_note` di `GET /api/reserve`) DIBIARKAN, bukan ditimpa kosong — endpoint
+  /// ini baru dianggap sumber utama begitu benar-benar mengembalikan sesuatu.
+  Future<void> _loadNotes() async {
+    final reserveOrderId = int.tryParse(order.id);
+    if (reserveOrderId == null) return;
+
+    setState(() => _loadingNotes = true);
+    try {
+      final messages = await context.read<ReserveOrderListCubit>().dataSource.getReserveNotes(reserveOrderId);
+      if (!mounted) return;
+      if (messages.isNotEmpty) {
+        setState(() {
+          order.notes
+            ..clear()
+            ..addAll(messages.map((m) => ReserveOrderNote(
+                  author: m.senderName,
+                  role: m.senderRole ?? '-',
+                  roleKind: ReserveOrderNoteRole.user,
+                  time: m.createDatetime == null ? '' : DateFormat('dd MMM, HH:mm').format(m.createDatetime!),
+                  text: m.message,
+                )));
+        });
+      }
+    } catch (_) {
+      // Diamkan — tab tetap tampil catatan lokal (kalau ada) daripada memblokir halaman.
+    } finally {
+      if (mounted) setState(() => _loadingNotes = false);
     }
   }
 
@@ -243,8 +273,8 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage> {
 
   Widget _buildTabBar() {
     const labels = {
-      _RoTab.perjalanan: 'Journey',
-      _RoTab.pembeli: 'Buyer Data',
+      _RoTab.perjalanan: 'Timeline',
+      _RoTab.pembeli: 'Customer',
       _RoTab.attachment: 'Attachment',
       _RoTab.catatan: 'Notes',
     };
@@ -292,14 +322,14 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage> {
 
   Widget _buildTabContent() {
     return switch (_tab) {
-      _RoTab.perjalanan => _buildJourney(),
+      _RoTab.perjalanan => _buildTimeline(),
       _RoTab.pembeli => _buildBuyer(),
       _RoTab.attachment => _buildAttachment(),
       _RoTab.catatan => _buildNotes(),
     };
   }
 
-  Widget _buildJourney() {
+  Widget _buildTimeline() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -459,12 +489,13 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage> {
     );
   }
 
+  /// Tab "Customer" — field lengkap sesuai [reserveCustomerFieldSections] (bukan cuma 5 ringkas di
+  /// [ReserveOrder.buyer]), dikelompokkan per section sama seperti `ReserveOrderEditCustomerPage`.
+  /// Field biasa selalu ditampilkan walau datanya kosong ("-"); slot bernomor (Mobile Phone 1/2/3,
+  /// Email 1/2, dst — lihat [reserveCustomerFieldSections]) cuma ditampilkan satu baris tanpa
+  /// angka kalau cuma satu yang keisi, atau semua baris yang keisi (skip yang kosong) kalau lebih
+  /// dari satu — lihat [_buildSlotRows].
   Widget _buildBuyer() {
-    // Data pembeli hanya bisa diubah lewat "Edit & Resubmit", jadi tanda panah cuma muncul
-    // saat transaksinya memang ditolak — supaya tidak ada baris yang terlihat bisa ditekan padahal
-    // tidak ada tujuannya.
-    final editable = order.isRejected;
-
     if (_loadingBuyer) {
       return const Padding(
         padding: EdgeInsets.symmetric(vertical: 24),
@@ -472,17 +503,122 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage> {
       );
     }
 
+    final detail = order.customerDetail;
+    if (detail == null) {
+      return _buildEmpty('Buyer data has not been filled in yet.');
+    }
+
+    final slotKeys = {for (final group in reserveCustomerSlotGroups) ...group.keys};
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        for (final field in order.buyer) ...[
-          roFieldLabel(field.label),
+        for (final section in reserveCustomerFieldSections) ...[
+          roCollapsibleSectionHeader(
+            title: section.title,
+            collapsed: _collapsedBuyerSections.contains(section.title),
+            onTap: () => setState(() {
+              if (_collapsedBuyerSections.contains(section.title)) {
+                _collapsedBuyerSections.remove(section.title);
+              } else {
+                _collapsedBuyerSections.add(section.title);
+              }
+            }),
+          ),
+          if (!_collapsedBuyerSections.contains(section.title)) ...[
+            for (final field in section.fields)
+              if (!slotKeys.contains(field.key))
+                _buildFieldRow(field.label, _formatFieldValue(detail, field), field.key)
+              else if (_firstSlotKeyOf(field.key) case final group?)
+                ..._buildSlotRows(detail, group),
+            const SizedBox(height: 8),
+          ],
+        ],
+      ],
+    );
+  }
+
+  /// Null kalau [key] bukan slot pertama satu grup di [reserveCustomerSlotGroups] — dipakai
+  /// [_buildBuyer] biar tiap grup cuma dirender sekali, persis di posisi slot pertamanya.
+  ReserveCustomerSlotGroup? _firstSlotKeyOf(String key) {
+    for (final group in reserveCustomerSlotGroups) {
+      if (group.keys.first == key) return group;
+    }
+    return null;
+  }
+
+  List<Widget> _buildSlotRows(ReserveCustomerDetail detail, ReserveCustomerSlotGroup group) {
+    final filled = group.keys.where((key) => _rawText(detail, key) != null).toList();
+
+    if (filled.length <= 1) {
+      final key = filled.isEmpty ? group.keys.first : filled.first;
+      return [_buildFieldRow(group.baseLabel, _rawText(detail, key) ?? '-', key)];
+    }
+
+    return [
+      for (final key in filled)
+        _buildFieldRow(
+          _fieldLabelOf(key) ?? group.baseLabel,
+          _rawText(detail, key)!,
+          key,
+        ),
+    ];
+  }
+
+  String? _fieldLabelOf(String key) {
+    for (final section in reserveCustomerFieldSections) {
+      for (final field in section.fields) {
+        if (field.key == key) return field.label;
+      }
+    }
+    return null;
+  }
+
+  String? _rawText(ReserveCustomerDetail detail, String key) {
+    final text = detail.raw[key]?.toString().trim() ?? '';
+    return text.isEmpty ? null : text;
+  }
+
+  String _formatFieldValue(ReserveCustomerDetail detail, ReserveCustomerFieldSpec field) {
+    final raw = detail.raw[field.key];
+    switch (field.kind) {
+      case ReserveCustomerFieldKind.date:
+        final date = raw == null ? null : DateTime.tryParse('$raw');
+        return date == null ? '-' : DateFormat('dd MMMM yyyy', 'id_ID').format(date);
+      case ReserveCustomerFieldKind.genderBool:
+        if (raw is! bool) return '-';
+        return raw ? 'Male' : 'Female';
+      case ReserveCustomerFieldKind.yesNoBool:
+        if (raw is! bool) return '-';
+        return raw ? 'Yes' : 'No';
+      case ReserveCustomerFieldKind.area:
+        return raw == null ? '-' : '$raw';
+      case ReserveCustomerFieldKind.paymentPlan:
+        final id = raw is int ? raw : int.tryParse('$raw');
+        if (id == null) return '-';
+        for (final option in _caraBayarOptions) {
+          if (option.caraBayarId == id) return option.name;
+        }
+        return '-';
+      case ReserveCustomerFieldKind.maritalStatus:
+      case ReserveCustomerFieldKind.religion:
+      case ReserveCustomerFieldKind.text:
+        return _rawText(detail, field.key) ?? '-';
+    }
+  }
+
+  Widget _buildFieldRow(String label, String value, String highlightKey) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          roFieldLabel(label),
           InkWell(
-            onTap: editable ? _openRevise : null,
+            onTap: () => _openEditCustomer(highlightKey),
             borderRadius: BorderRadius.circular(12),
             child: Container(
               width: double.infinity,
-              margin: const EdgeInsets.only(bottom: 10),
               padding: const EdgeInsets.all(11),
               decoration: BoxDecoration(
                 border: Border.all(color: const Color(grey10Color), width: 1.5),
@@ -491,18 +627,26 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage> {
               child: Row(
                 children: [
                   Expanded(
-                    child: Text(field.value, style: const TextStyle(fontSize: 12.5, color: Color(blue2Color))),
+                    child: Text(value, style: const TextStyle(fontSize: 12.5, color: Color(blue2Color))),
                   ),
-                  if (editable) const Icon(Icons.chevron_right, size: 18, color: Color(grey4Color)),
+                  const Icon(Icons.chevron_right, size: 18, color: Color(grey4Color)),
                 ],
               ),
             ),
           ),
         ],
-        if (order.buyer.isEmpty) _buildEmpty('Buyer data has not been filled in yet.'),
-      ],
+      ),
     );
   }
+
+  // Slot tetap yang selalu tampil di tab Attachment terlepas dari ada/tidaknya datanya (biar
+  // sales tahu dokumen apa saja yang wajib ada) — dicocokkan ke `_attachments` lewat nama
+  // `attachment_type_name` dari server, mirip pencocokan `ReserveAttachmentCubit._findTypeId`.
+  static const _fixedDocTypes = [
+    (label: 'KTP', icon: Icons.badge_outlined, keywords: ['ktp']),
+    (label: 'NPWP', icon: Icons.description_outlined, keywords: ['npwp']),
+    (label: 'Bukti Transfer', icon: Icons.receipt_long_outlined, keywords: ['bukti transfer', 'bukti bayar']),
+  ];
 
   Widget _buildAttachment() {
     if (_loadingAttachments) {
@@ -512,22 +656,43 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage> {
       );
     }
 
+    // Status buat slot yang belum ketemu attachment-nya: dibedakan dari "memang belum upload"
+    // supaya tidak menyesatkan pas datanya sebenarnya tidak bisa dicek (lihat _attachmentsUnavailable).
+    final missingStatus = _attachmentsUnavailable ? 'Status not available' : 'Not uploaded yet';
+
+    final matched = <ReserveOrderAttachment>{};
+    final fixedTiles = <Widget>[];
+    for (final type in _fixedDocTypes) {
+      final found = _attachments
+          .where((a) => type.keywords.any((k) => a.attachmentTypeName.toLowerCase().contains(k)))
+          .toList();
+      if (found.isEmpty) {
+        fixedTiles.add(roDocTile(
+          ReserveOrderDoc(icon: type.icon, name: type.label, status: missingStatus, state: ReserveOrderDocState.awaitingUpload),
+        ));
+        continue;
+      }
+      matched.addAll(found);
+      for (final attachment in found) {
+        fixedTiles.add(roDocTile(_docFrom(attachment), onTap: () => _openAttachment(attachment)));
+      }
+    }
+
+    final extraAttachments = _attachments.where((a) => !matched.contains(a));
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        for (final attachment in _attachments)
+        ...fixedTiles,
+        for (final attachment in extraAttachments)
           roDocTile(_docFrom(attachment), onTap: () => _openAttachment(attachment)),
         for (final doc in order.docs) roDocTile(doc, onTap: () => _onDocTap(doc)),
-        if (_attachments.isEmpty && order.docs.isEmpty)
-          _buildEmpty(_attachmentsUnavailable ? 'Documents for this transaction cannot be shown here yet.' : 'No documents yet.'),
         const SizedBox(height: 4),
-        roGhostButton('+ Upload Dokumen Tambahan', _uploadExtraDoc),
+        roGhostButton(_uploadingExtraDoc ? 'Uploading…' : '+ Upload Additional Document', _uploadExtraDoc),
       ],
     );
   }
 
-  /// Bungkus [ReserveOrderAttachment] (dari server) jadi [ReserveOrderDoc] supaya bisa dirender
-  /// pakai `roDocTile` yang sudah ada — tidak menambah widget/model tile baru buat ini.
   ReserveOrderDoc _docFrom(ReserveOrderAttachment attachment) {
     final uploadedAt = attachment.createDatetime != null ? DateFormat('dd MMM yyyy', 'id_ID').format(attachment.createDatetime!) : null;
     final status = [
@@ -553,6 +718,12 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage> {
   }
 
   Widget _buildNotes() {
+    if (_loadingNotes && order.notes.isEmpty) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: 24),
+        child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
+      );
+    }
     if (order.notes.isEmpty) return _buildEmpty('No notes yet.');
 
     return Column(
@@ -561,7 +732,9 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage> {
     );
   }
 
-  Widget _buildNoteItem(ReserveOrderNote note) {
+  Widget _buildNoteItem(ReserveOrderNote note) => note.isMine ? _buildNoteRight(note) : _buildNoteLeft(note);
+
+  Widget _buildNoteLeft(ReserveOrderNote note) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Row(
@@ -569,43 +742,80 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage> {
         children: [
           roAvatar(note.initials, size: 26, color: note.avatarColor, textColor: const Color(whiteColor)),
           const SizedBox(width: 8),
-          Expanded(
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-              decoration: BoxDecoration(color: const Color(grey11Color), borderRadius: BorderRadius.circular(12)),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(
-                        child: Text.rich(
-                          TextSpan(
-                            text: note.author,
-                            style: const TextStyle(fontWeight: FontWeight.w700),
-                            children: [
-                              TextSpan(
-                                text: ' · ${note.role}',
-                                style: const TextStyle(fontWeight: FontWeight.w400, color: Color(grey4Color)),
-                              ),
-                            ],
-                          ),
-                          style: const TextStyle(fontSize: 10.5, color: Color(grey1Color)),
-                        ),
-                      ),
-                      const SizedBox(width: 6),
-                      Text(note.time, style: const TextStyle(fontSize: 9, color: Color(grey4Color))),
-                    ],
+          Flexible(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _noteHeader(note),
+                const SizedBox(height: 2),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: const Color(grey10Color).withValues(alpha: 0.5),
+                    borderRadius: BorderRadius.circular(12).copyWith(topLeft: Radius.zero),
                   ),
-                  const SizedBox(height: 2),
-                  Text(note.text, style: const TextStyle(fontSize: 11.5, height: 1.45, color: Color(roNoteTextColor))),
-                ],
-              ),
+                  child: Text(note.text, style: const TextStyle(fontSize: 11.5, height: 1.45, color: Color(roNoteTextColor))),
+                ),
+              ],
             ),
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildNoteRight(ReserveOrderNote note) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.end,
+        children: [
+          Flexible(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                _noteHeader(note),
+                const SizedBox(height: 2),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: const Color(primaryColor).withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(12).copyWith(topRight: Radius.zero),
+                  ),
+                  child: Text(note.text, style: const TextStyle(fontSize: 11.5, height: 1.45, color: Color(roNoteTextColor))),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _noteHeader(ReserveOrderNote note) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Flexible(
+          child: Text.rich(
+            TextSpan(
+              text: note.displayAuthor,
+              style: const TextStyle(fontWeight: FontWeight.w700),
+              children: [
+                TextSpan(
+                  text: ' · ${note.role}',
+                  style: const TextStyle(fontWeight: FontWeight.w400, color: Color(grey4Color)),
+                ),
+              ],
+            ),
+            style: const TextStyle(fontSize: 10.5, color: Color(grey1Color)),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+        const SizedBox(width: 6),
+        Text(note.time, style: const TextStyle(fontSize: 9, color: Color(grey4Color))),
+      ],
     );
   }
 
@@ -623,14 +833,20 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage> {
             Expanded(child: roInput(noteTC, hint: 'Write a note...')),
             const SizedBox(width: 8),
             InkWell(
-              onTap: _sendNote,
+              onTap: _sendingNote ? null : _sendNote,
               borderRadius: BorderRadius.circular(18),
               child: Container(
                 width: 36,
                 height: 36,
                 alignment: Alignment.center,
                 decoration: const BoxDecoration(color: Color(primaryColor), shape: BoxShape.circle),
-                child: const Icon(Icons.send_rounded, size: 16, color: Color(whiteColor)),
+                child: _sendingNote
+                    ? const SizedBox(
+                        width: 14,
+                        height: 14,
+                        child: CircularProgressIndicator(strokeWidth: 2, color: Color(whiteColor)),
+                      )
+                    : const Icon(Icons.send_rounded, size: 16, color: Color(whiteColor)),
               ),
             ),
           ],
@@ -684,6 +900,20 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage> {
     if (mounted) setState(() {});
   }
 
+  Future<void> _openEditCustomer([String? highlightKey]) async {
+    AnalyticsService.logEvent('reserve_order_detail_open_edit_customer');
+    final saved = await context.pushNamed(
+      'reserveOrderEditCustomer',
+      extra: order,
+      queryParameters: highlightKey == null ? const {} : {'field': highlightKey},
+    );
+    if (!mounted) return;
+    // Snackbar-nya ditampilkan di sini (bukan di `ReserveOrderEditCustomerPage` sebelum `pop()`)
+    // supaya sempat kelihatan — kalau ditampilkan sebelum pindah halaman, keburu ketutup transisi.
+    if (saved == true) showSnackbar(context, 'Customer data updated.');
+    setState(() {});
+  }
+
   void _onDocTap(ReserveOrderDoc doc) {
     if (doc.state == ReserveOrderDocState.rejected && order.isRejected) {
       _openRevise();
@@ -692,45 +922,92 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage> {
     showSnackbar(context, 'Document preview is available once the file is saved on the server.');
   }
 
-  Future<void> _uploadExtraDoc() async {
-    AnalyticsService.logEvent('reserve_order_detail_upload_doc');
-    final picked = await CustomFilePicker.show(context);
-    if (picked == null || !picked.hasData) return;
-    if (!mounted) return;
-
-    final bytes = picked.bytes?.lengthInBytes ?? 0;
-    final size = bytes >= 1024 * 1024 ? '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB' : '${(bytes / 1024).round()} KB';
-
-    setState(() {
-      order.docs.add(ReserveOrderDoc(
-        icon: picked.isPdf ? Icons.picture_as_pdf_outlined : Icons.image_outlined,
-        name: picked.name,
-        badge: '· Additional document',
-        status: 'Uploaded · $size',
-      ));
-    });
-    if (mounted) showSnackbar(context, 'Document added.');
+  /// Sudah ada attachment tersimpan buat tipe [label] (dicocokkan lewat [_fixedDocTypes], sama
+  /// seperti [_buildAttachment]) — NPWP cuma 1 file, jadi kalau sudah ada tidak ditawarkan lagi di
+  /// [_uploadExtraDoc].
+  bool _hasAttachmentOfType(String label) {
+    final type = _fixedDocTypes.firstWhere((t) => t.label == label);
+    return _attachments.any((a) => type.keywords.any((k) => a.attachmentTypeName.toLowerCase().contains(k)));
   }
 
-  void _sendNote() {
+  Future<String?> _pickDocType(List<String> options) {
+    final completer = Completer<String?>();
+    roShowOptionSheet(
+      context: context,
+      title: 'Document Type',
+      items: options,
+      selected: null,
+      onPicked: (v) => completer.complete(v),
+    );
+    return completer.future;
+  }
+
+  /// Kirim ulang lewat endpoint yang sama dengan submit awal (`POST /api/reserve/doc-payment`,
+  /// [ReserveOrderRemoteDataSource.submitDocPayment]) — tapi cuma nambah 1 file pendukung, bukan
+  /// transaksi pembayaran baru, jadi `status_reserve_id`/`tts_amount_rp` sengaja di-OMIT total dari
+  /// [DocPaymentParams] (bukan dikirim `0`) sesuai instruksi eksplisit.
+  Future<void> _uploadExtraDoc() async {
+    if (_uploadingExtraDoc) return;
+
+    final reserveOrderId = int.tryParse(order.id);
+    if (reserveOrderId == null) return;
+
+    AnalyticsService.logEvent('reserve_order_detail_upload_doc');
+    final options = ['KTP', if (!_hasAttachmentOfType('NPWP')) 'NPWP', 'Bukti Transfer'];
+    final docType = await _pickDocType(options);
+    if (docType == null || !mounted) return;
+
+    final picked = await CustomFilePicker.show(context);
+    if (picked == null || !picked.hasData || picked.bytes == null) return;
+    if (!mounted) return;
+
+    setState(() => _uploadingExtraDoc = true);
+    try {
+      final cubit = context.read<ReserveOrderListCubit>();
+      final reserveOrderTtsId = await cubit.dataSource.submitDocPayment(DocPaymentParams(
+        reserveOrderId: reserveOrderId,
+        ktpBytes: docType == 'KTP' ? [picked.bytes!] : const [],
+        ktpFileNames: docType == 'KTP' ? [picked.name] : const [],
+        npwpBytes: docType == 'NPWP' ? picked.bytes : null,
+        npwpFileName: docType == 'NPWP' ? picked.name : null,
+        buktiTransferBytes: docType == 'Bukti Transfer' ? [picked.bytes!] : const [],
+        buktiTransferFileNames: docType == 'Bukti Transfer' ? [picked.name] : const [],
+      ));
+      cubit.rememberTtsId(reserveOrderId, reserveOrderTtsId);
+      if (!mounted) return;
+      setState(() => _attachmentsUnavailable = false);
+      await _loadAttachments();
+      if (mounted) showSnackbar(context, 'Document uploaded.');
+    } catch (e) {
+      if (mounted) showSnackbar(context, cleanErrorMessage(e), isError: true);
+    } finally {
+      if (mounted) setState(() => _uploadingExtraDoc = false);
+    }
+  }
+
+  Future<void> _sendNote() async {
     final text = noteTC.text.trim();
     if (text.isEmpty) {
       showSnackbar(context, 'Note is still empty', isError: true);
       return;
     }
 
+    final reserveOrderId = int.tryParse(order.id);
+    if (reserveOrderId == null) return;
+
     AnalyticsService.logEvent('reserve_order_detail_add_note');
-    // List ini isinya transaksi milik sales yang login, jadi penulis catatannya ya sales yang
-    // tercatat di transaksi itu sendiri.
-    setState(() {
-      order.notes.add(ReserveOrderNote(
-        author: order.salesName,
-        role: 'Sales',
-        roleKind: ReserveOrderNoteRole.sales,
-        time: DateFormat('dd MMM, HH:mm').format(DateTime.now()),
-        text: text,
-      ));
+    setState(() => _sendingNote = true);
+    try {
+      final cubit = context.read<ReserveOrderListCubit>();
+      await cubit.dataSource.sendReserveNote(reserveOrderId: reserveOrderId, message: text);
       noteTC.clear();
-    });
+      // Muat ulang dari `GET /api/reserve/notes` (bukan tambah lokal) supaya pesannya kembali
+      // dengan `sender_name`/waktu asli dari server, bukan tebakan `author: 'me'`.
+      await _loadNotes();
+    } catch (e) {
+      if (mounted) showSnackbar(context, cleanErrorMessage(e), isError: true);
+    } finally {
+      if (mounted) setState(() => _sendingNote = false);
+    }
   }
 }

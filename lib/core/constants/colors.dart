@@ -112,3 +112,5 @@ const int roLightPurpleBgColor = 0xFFE9E7FE; // latar pucat: dokumen "issued" (S
 const int roNoteTextColor = 0xFF25262B;     // teks isi catatan di tab Catatan
 const int roSuccessBgColor = 0xFFE7F9EE;    // latar lingkaran ikon centang di layar sukses
 //dark
+
+

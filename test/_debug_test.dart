@@ -112,7 +112,7 @@ class _FakeReserveOrders implements ReserveOrderRemoteDataSource {
   @override
   Future<ReserveCustomerDetail> getReserveCustomer(int reserveOrderId) async {
     final row = rows.firstWhere((r) => r['reserve_order_id'] == reserveOrderId);
-    return ReserveCustomerDetail(custName: '${row['cust_name']}');
+    return ReserveCustomerDetail(raw: {'cust_name': '${row['cust_name']}'});
   }
 
   @override
@@ -121,6 +121,18 @@ class _FakeReserveOrders implements ReserveOrderRemoteDataSource {
     required int reserveOrderTtsId,
   }) async =>
       const [];
+
+  @override
+  Future<void> updateReserveCustomer({required int reserveOrderId, required Map<String, dynamic> data}) async {}
+
+  @override
+  Future<List<AreaOption>> getAreaOptions() async => const [];
+
+  @override
+  Future<List<ReserveOrderActivityMessage>> getReserveNotes(int reserveOrderId) async => const [];
+
+  @override
+  Future<void> sendReserveNote({required int reserveOrderId, required String message}) async {}
 }
 
 late _FakeReserveOrders source;

@@ -23,7 +23,7 @@ import 'package:progress_group/features/contact/presentation/pages/date-selectio
 import '../features/contact/presentation/pages/contact-page/index.dart';
 import '../features/reserve-order/data/models/reserve_order_model.dart';
 import '../features/reserve-order/presentation/pages/detail.dart';
-import '../features/reserve-order/presentation/pages/index.dart';
+import '../features/reserve-order/presentation/pages/edit_customer.dart';
 import '../features/reserve-order/presentation/pages/list.dart';
 import '../features/reserve-order/presentation/pages/reserve.dart';
 import '../features/reserve-order/presentation/pages/revise.dart';
@@ -331,24 +331,7 @@ class AppRouter {
                   return ContactAddPage(args: args);
                 },
               ),
-              GoRoute(
-                name: 'reserveOrder',
-                path: 'reserve-order',
-                builder: (context, state) {
-                  final args = state.extra as ContactDetailArgs;
-                  return ReserveOrderPage(args: args);
-                },
-                routes: [
-                  GoRoute(
-                    name: 'reserveOrderReserve',
-                    path: 'reserve',
-                    builder: (context, state) {
-                      final args = state.extra as ContactDetailArgs;
-                      return ReservePage(args: args);
-                    },
-                  ),
-                ],
-              ),
+              
               GoRoute(
                 name: 'attachmentWebView',
                 path: 'attachment-web-view',
@@ -384,6 +367,14 @@ class AppRouter {
             builder: (context, state) => ReserveOrderListPage(contactArgs: state.extra is ContactDetailArgs ? state.extra as ContactDetailArgs : null),
             routes: [
               GoRoute(
+                name: 'reserveOrderReserve',
+                path: 'reserve',
+                // Dibuka dari `ReserveOrderListPage._openCreateReserve()` (kontak yang belum pernah
+                // reserve, ditawari bikin baru langsung dari list) — `extra`-nya `ContactDetailArgs`.
+                redirect: (context, state) => state.extra is ContactDetailArgs ? null : '/reserve-order',
+                builder: (context, state) => ReservePage(args: state.extra as ContactDetailArgs),
+              ),
+              GoRoute(
                 name: 'reserveOrderDetail',
                 path: 'detail',
                 // `extra` hilang kalau URL-nya di-reload langsung (PWA), jadi dikembalikan ke list
@@ -402,6 +393,20 @@ class AppRouter {
                     path: 'revise',
                     redirect: (context, state) => state.extra is ReserveOrder ? null : '/reserve-order',
                     builder: (context, state) => ReserveOrderRevisePage(order: state.extra as ReserveOrder),
+                  ),
+                  GoRoute(
+                    name: 'reserveOrderEditCustomer',
+                    path: 'edit-customer',
+                    // `highlightKey`-nya lewat query param (`?field=…`), BUKAN `extra` — route ini
+                    // nested di bawah `reserveOrderDetail`, yang redirect-nya sendiri mengecek
+                    // `state.extra is ReserveOrder` (dievaluasi ulang buat SEMUA route nested pas
+                    // navigasi ke sini). Kalau `extra`-nya diubah jadi tipe lain (mis. record),
+                    // redirect punya parent ikut gagal & balik ke `/reserve-order`.
+                    redirect: (context, state) => state.extra is ReserveOrder ? null : '/reserve-order',
+                    builder: (context, state) => ReserveOrderEditCustomerPage(
+                      order: state.extra as ReserveOrder,
+                      highlightKey: state.uri.queryParameters['field'],
+                    ),
                   ),
                 ],
               ),

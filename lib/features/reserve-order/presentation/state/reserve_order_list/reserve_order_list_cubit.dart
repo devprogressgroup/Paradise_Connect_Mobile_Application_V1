@@ -15,11 +15,17 @@ class ReserveOrderListCubit extends Cubit<ReserveOrderListState> {
 
   /// Dipanggil sekali di awal halaman, sebelum [load] — cubit ini dipakai bersama drawer (semua
   /// transaksi) & daftar per-kontak (disaring [contactId]), jadi state-nya di-reset dulu supaya
-  /// sisa scope/pencarian dari kunjungan sebelumnya tidak kebawa ke sesi baru. [filters] &
-  /// [caraBayarOptions] sengaja dipertahankan dari state sebelumnya (lihat [ensureFilters] /
-  /// [ensureCaraBayarOptions]) — bukan bagian dari scope yang mesti direset per kunjungan.
+  /// sisa scope/pencarian dari kunjungan sebelumnya tidak kebawa ke sesi baru. [filters],
+  /// [caraBayarOptions] & [areaOptions] sengaja dipertahankan dari state sebelumnya (lihat
+  /// [ensureFilters] / [ensureCaraBayarOptions] / [ensureAreaOptions]) — bukan bagian dari scope
+  /// yang mesti direset per kunjungan.
   Future<void> loadFresh({int? contactId}) {
-    emit(ReserveOrderListState(contactId: contactId, filters: state.filters, caraBayarOptions: state.caraBayarOptions));
+    emit(ReserveOrderListState(
+      contactId: contactId,
+      filters: state.filters,
+      caraBayarOptions: state.caraBayarOptions,
+      areaOptions: state.areaOptions,
+    ));
     return Future.wait([_loadFilters(), load()]);
   }
 
@@ -60,6 +66,20 @@ class ReserveOrderListCubit extends Cubit<ReserveOrderListState> {
       }
     }
     return state.caraBayarOptions;
+  }
+
+  /// Master "Area" (lokasi/wilayah) di halaman Edit Customer (`GET /api/reserve/area`) — pola
+  /// cache-nya sama persis dengan [ensureCaraBayarOptions].
+  Future<List<AreaOption>> ensureAreaOptions() async {
+    if (state.areaOptions.isEmpty) {
+      try {
+        final options = await dataSource.getAreaOptions();
+        emit(state.copyWith(areaOptions: options));
+      } catch (_) {
+        // Diamkan — dropdown Area cukup menampilkan id mentah (lihat ReserveOrderEditCustomerPage).
+      }
+    }
+    return state.areaOptions;
   }
 
   /// Memuat halaman pertama. [search] & [statusIds] yang tidak diisi memakai nilai yang sedang

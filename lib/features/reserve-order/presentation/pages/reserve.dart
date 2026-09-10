@@ -62,7 +62,7 @@ class _ReservePageState extends State<ReservePage> {
 
   final namaTC = TextEditingController();
   final nikTC = TextEditingController();
-  final ttlTC = TextEditingController();
+  final tempatLahirTC = TextEditingController();
   final alamatTC = TextEditingController();
   final pekerjaanTC = TextEditingController();
   String? _statusPernikahan;
@@ -82,7 +82,6 @@ class _ReservePageState extends State<ReservePage> {
   KtpOcrModel? _ocr;
   PickedFileResult? _ktpFile;
 
-  String? _birthPlace;
   DateTime? _birthDate;
 
   late final List<_DocSlot> _identityDocs;
@@ -102,8 +101,6 @@ class _ReservePageState extends State<ReservePage> {
   Timer? _searchDebounce;
   final Map<String, SelectedUnit> _selectedUnits = {};
   final ScrollController _unitScroll = ScrollController();
-
-  static const List<String> _maritalItems = ['Belum Kawin', 'Kawin', 'Cerai Hidup', 'Cerai Mati'];
 
   // Fallback selagi/kalau `_loadCaraBayarOptions()` (`GET /api/reserve/cara-bayar`) belum kembali
   // atau gagal, supaya picker tetap bisa dipilih — id-nya (`_caraBayarId`) cuma null di kasus itu.
@@ -197,7 +194,7 @@ class _ReservePageState extends State<ReservePage> {
   void dispose() {
     namaTC.dispose();
     nikTC.dispose();
-    ttlTC.dispose();
+    tempatLahirTC.dispose();
     alamatTC.dispose();
     pekerjaanTC.dispose();
     nominalTC.dispose();
@@ -312,24 +309,11 @@ class _ReservePageState extends State<ReservePage> {
       if (r.nik != null) nikTC.text = r.nik!.replaceAll(RegExp(r'\D'), '');
       if (r.alamat != null) alamatTC.text = r.alamat!;
       if (r.pekerjaan != null) pekerjaanTC.text = r.pekerjaan!;
-
-      _birthPlace = r.tempatLahir ?? _birthPlace;
+      if (r.tempatLahir != null) tempatLahirTC.text = r.tempatLahir!;
       _birthDate = _parseOcrDate(r.tanggalLahir) ?? _birthDate;
-      final ttl = _formatBirth();
-      if (ttl != null) ttlTC.text = ttl;
 
-      _statusPernikahan = _matchOption(r.statusPerkawinan, _maritalItems) ?? _statusPernikahan;
+      _statusPernikahan = _matchOption(r.statusPerkawinan, roMaritalStatusItems) ?? _statusPernikahan;
     });
-  }
-
-  String? _formatBirth() {
-    final place = _birthPlace;
-    final date = _birthDate;
-    final parts = [
-      if (place != null && place.isNotEmpty) place,
-      if (date != null) DateFormat('dd MMMM yyyy', 'id_ID').format(date),
-    ];
-    return parts.isEmpty ? null : parts.join(', ');
   }
 
   DateTime? _parseOcrDate(String? value) {
@@ -586,18 +570,16 @@ class _ReservePageState extends State<ReservePage> {
   }
 
   /// Payload `POST /api/reserve`. Jenis kelamin & agama cuma terisi kalau ada hasil scan KTP
-  /// (belum ada input manual buat keduanya di form ini). Tempat/tanggal lahir diambil dari
-  /// [_birthPlace]/[_birthDate] (hasil OCR) — kalau usernya isi manual di field "Tempat, Tanggal
-  /// Lahir" tanpa scan, di-parse balik dari teksnya (format sesuai hint: "Tempat, dd MMMM yyyy").
+  /// (belum ada input manual buat keduanya di form ini).
   CreateReserveParams _buildCreateReserveParams(int contactId) {
-    final (birthPlace, birthDate) = _resolvedBirth();
+    final birthPlace = tempatLahirTC.text.trim();
 
     return CreateReserveParams(
       contactId: contactId,
       custName: namaTC.text.trim(),
       custKtp: nikTC.text.trim(),
-      custBirthPlace: birthPlace,
-      custBirthDate: birthDate,
+      custBirthPlace: birthPlace.isEmpty ? null : birthPlace,
+      custBirthDate: _birthDate,
       custGenderIsMale: switch (_ocr?.jenisKelamin) {
         'Laki-laki' => true,
         'Perempuan' => false,
@@ -610,28 +592,6 @@ class _ReservePageState extends State<ReservePage> {
       caraBayarId: _caraBayarId,
       custTelpMobile1: widget.args.dataContact?.primaryPhone,
     );
-  }
-
-  /// [_birthPlace]/[_birthDate] cuma keisi kalau dari hasil scan KTP ([_applyOcr]) — field
-  /// "Tempat, Tanggal Lahir" sendiri teks bebas, jadi kalau usernya ngetik manual (tanpa scan),
-  /// di-parse balik di sini dari `ttlTC.text` ("Tempat, dd MMMM yyyy", sesuai hint field-nya).
-  (String?, DateTime?) _resolvedBirth() {
-    if (_birthPlace != null || _birthDate != null) return (_birthPlace, _birthDate);
-
-    final text = ttlTC.text.trim();
-    if (text.isEmpty) return (null, null);
-
-    final idx = text.lastIndexOf(',');
-    if (idx == -1) return (text, null);
-
-    final place = text.substring(0, idx).trim();
-    DateTime? date;
-    try {
-      date = DateFormat('dd MMMM yyyy', 'id_ID').parseStrict(text.substring(idx + 1).trim());
-    } catch (_) {
-      date = null;
-    }
-    return (place.isEmpty ? null : place, date);
   }
 
   ReserveResult get _result => ReserveResult(
@@ -897,32 +857,37 @@ class _ReservePageState extends State<ReservePage> {
             keyboardType: TextInputType.number,
             inputFormatters: [FilteringTextInputFormatter.digitsOnly, LengthLimitingTextInputFormatter(16)],
           ),
-          _label("Place, Date of Birth"),
-          // Format hint sengaja dibiarkan format Indonesia (id_ID) — `_resolvedBirth()` mem-parse-balik
-          // teks ini dengan locale yang sama (nama bulan Indonesia), jadi contoh & parsing harus tetap
-          // sinkron; hasil scan KTP juga selalu bahasa Indonesia.
-          _input(ttlTC, hint: "Jakarta, 01 Januari 1990"),
+          _label("Place of Birth"),
+          _input(tempatLahirTC, hint: "Jakarta"),
+          _label("Date of Birth"),
+          roPickerRow(
+            value: _birthDate == null ? null : DateFormat('dd MMMM yyyy', 'id_ID').format(_birthDate!),
+            hint: "Select date of birth",
+            onTap: _pickBirthDate,
+          ),
           _label("Address (as per KTP)"),
           _input(alamatTC, hint: "e.g. Street Name No. 1…", maxLines: 2),
           _label("Marital Status"),
-          _pickerRow(
+          roPickerRow(
             value: _statusPernikahan,
             hint: "Select marital status",
-            onTap: () => _showOptionSheet(
+            onTap: () => roShowOptionSheet(
+              context: context,
               title: "Marital Status",
-              items: _maritalItems,
+              items: roMaritalStatusItems,
               selected: _statusPernikahan,
               onPicked: (v) => setState(() => _statusPernikahan = v),
             ),
           ),
           _label("Occupation"),
           _input(pekerjaanTC, hint: "Self-employed"),
-          _label("Payment Method"),
-          _pickerRow(
+          _label("Payment Plan"),
+          roPickerRow(
             value: _caraPembayaran,
-            hint: "Select payment method",
-            onTap: () => _showOptionSheet(
-              title: "Payment Method",
+            hint: "Select payment plan",
+            onTap: () => roShowOptionSheet(
+              context: context,
+              title: "Payment Plan",
               items: _paymentMethods,
               selected: _caraPembayaran,
               onPicked: (v) => setState(() {
@@ -1447,35 +1412,6 @@ class _ReservePageState extends State<ReservePage> {
     );
   }
 
-  Widget _pickerRow({required String? value, required String hint, required VoidCallback onTap}) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
-      child: Container(
-        width: double.infinity,
-        padding: EdgeInsets.all(11),
-        decoration: BoxDecoration(
-          border: Border.all(color: Color(grey10Color), width: 1.5),
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Row(
-          children: [
-            Expanded(
-              child: Text(
-                value ?? hint,
-                style: TextStyle(
-                  fontSize: 12.5,
-                  color: value == null ? Color(grey5Color) : Color(blue2Color),
-                ),
-              ),
-            ),
-            Icon(Icons.chevron_right, size: 18, color: Color(grey4Color)),
-          ],
-        ),
-      ),
-    );
-  }
-
   Widget _ghostButton(String text, VoidCallback onTap) {
     return InkWell(
       onTap: onTap,
@@ -1623,46 +1559,16 @@ class _ReservePageState extends State<ReservePage> {
     );
   }
 
-  void _showOptionSheet({
-    required String title,
-    required List<String> items,
-    required String? selected,
-    required ValueChanged<String> onPicked,
-  }) {
-    showCustomBottomSheet(
+  Future<void> _pickBirthDate() async {
+    final now = DateTime.now();
+    final picked = await showDatePicker(
       context: context,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: EdgeInsets.only(left: 4, bottom: 8),
-            child: Text(
-              title,
-              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Color(blue2Color)),
-            ),
-          ),
-          for (final item in items)
-            InkWell(
-              onTap: () {
-                Navigator.pop(context);
-                onPicked(item);
-              },
-              child: Padding(
-                padding: EdgeInsets.symmetric(vertical: 12, horizontal: 4),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Text(item, style: TextStyle(fontSize: 13, color: Color(blue2Color))),
-                    ),
-                    if (item == selected) Icon(Icons.check, size: 18, color: Color(primaryColor)),
-                  ],
-                ),
-              ),
-            ),
-          SizedBox(height: 8),
-        ],
-      ),
+      initialDate: _birthDate ?? DateTime(now.year - 17, now.month, now.day),
+      firstDate: DateTime(1900),
+      lastDate: now,
     );
+    if (picked == null) return;
+    setState(() => _birthDate = picked);
   }
 
   String _fileSize(PickedFileResult file) {

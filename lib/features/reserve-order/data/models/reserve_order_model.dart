@@ -71,6 +71,33 @@ class CaraBayarOption {
   }
 }
 
+/// Satu opsi "Area" (lokasi/wilayah) di dropdown Area Code halaman Edit Customer, dari
+/// `GET /api/reserve/area` (`data.data`, bukan `data` langsung — sama seperti struktur
+/// `GET /api/reserve`). [locationId] yang dikirim balik ke `PATCH /api/reserve/{id}`
+/// (`cust_area`/`current_area`/dst); [city]/[locationName] digabung jadi [label] buat picker.
+class AreaOption {
+  final int locationId;
+  final String city;
+  final String locationName;
+
+  const AreaOption({required this.locationId, required this.city, required this.locationName});
+
+  factory AreaOption.fromJson(Map<String, dynamic> json) {
+    return AreaOption(
+      locationId: _int(json['location_id']) ?? 0,
+      city: _text(json['city']) ?? '-',
+      locationName: _text(json['location_name']) ?? '-',
+    );
+  }
+
+  String get label => '$locationName — $city';
+}
+
+/// Opsi "Status Pernikahan" — dipakai form Reserve & halaman Edit Customer. Sengaja tetap Bahasa
+/// Indonesia: harus sama persis dengan nilai `status_perkawinan` hasil OCR KTP, dan dengan apa yang
+/// disimpan di backend (`cust_marital_status`).
+const List<String> roMaritalStatusItems = ['Belum Kawin', 'Kawin', 'Cerai Hidup', 'Cerai Mati'];
+
 enum ReserveOrderStepState { done, active, todo }
 
 /// Balon catatan yang menempel di salah satu tahap timeline.
@@ -169,9 +196,13 @@ class ReserveOrderDoc {
   }
 }
 
-enum ReserveOrderNoteRole { sales, kasir, salesAdmin, sistem }
+enum ReserveOrderNoteRole { sales, kasir, salesAdmin, sistem, user }
 
 class ReserveOrderNote {
+  /// `'me'` kalau dikirim lewat app ini sendiri (lihat [ReserveOrderDetailPage._sendNote] — belum
+  /// ada endpoint kirim pesan, jadi masih lokal), atau `sender_name` asli dari
+  /// `GET /api/reserve/notes` buat pesan orang lain. Dipakai langsung buat nentuin bubble kiri/kanan
+  /// ([isMine]) — bukan dibandingkan ke user yang sedang login.
   final String author;
 
   /// Jabatan yang tampil abu-abu di sebelah nama, mis. "Sales" / "otomatis".
@@ -188,14 +219,50 @@ class ReserveOrderNote {
     required this.text,
   });
 
+  bool get isMine => author == 'me';
+
+  /// Label yang ditampilkan di atas bubble — "Me" (bukan literal "me") kalau [isMine].
+  String get displayAuthor => isMine ? 'Me' : author;
+
   Color get avatarColor => switch (roleKind) {
         ReserveOrderNoteRole.sales => const Color(primaryColor),
         ReserveOrderNoteRole.kasir => const Color(purpleColor),
         ReserveOrderNoteRole.salesAdmin => const Color(infoColor),
         ReserveOrderNoteRole.sistem => const Color(grey4Color),
+        ReserveOrderNoteRole.user => const Color(infoColor),
       };
 
   String get initials => initialsOf(author);
+}
+
+/// Satu pesan dari `GET /api/reserve/notes?reserve_order_id=…` — tab "Notes" bergaya chat di
+/// halaman Detail. Dipetakan ke [ReserveOrderNote] (`ReserveOrderDetailPage._loadNotes`) supaya
+/// pipeline tampilan/tambah-catatan-lokal yang sudah ada (dipakai juga oleh `revise.dart`/
+/// `top_up.dart`) tetap satu jalur, bukan dua sumber data terpisah.
+class ReserveOrderActivityMessage {
+  final int id;
+  final String message;
+  final String senderName;
+  final String? senderRole;
+  final DateTime? createDatetime;
+
+  const ReserveOrderActivityMessage({
+    required this.id,
+    required this.message,
+    required this.senderName,
+    this.senderRole,
+    this.createDatetime,
+  });
+
+  factory ReserveOrderActivityMessage.fromJson(Map<String, dynamic> json) {
+    return ReserveOrderActivityMessage(
+      id: _int(json['reserve_order_activity_message_id']) ?? 0,
+      message: _text(json['message']) ?? '',
+      senderName: _text(json['sender_name']) ?? '-',
+      senderRole: _text(json['sender_role']),
+      createDatetime: _parseDate(json['create_datetime']),
+    );
+  }
 }
 
 /// Baris read-only di tab "Data Pembeli".
@@ -207,40 +274,189 @@ class ReserveOrderField {
 }
 
 /// Detail satu customer reserve, dari `GET /api/reserve/customer?reserve_order_id=…`. Melengkapi
-/// field yang tidak ada di `GET /api/reserve` (list) — No. KTP, alamat, status pernikahan, & cara
-/// bayar — dipakai [ReserveOrder.applyCustomerDetail] buat mengisi tab "Data Pembeli" begitu
-/// halaman detailnya dibuka.
+/// field yang tidak ada di `GET /api/reserve` (list) — dipakai [ReserveOrder.applyCustomerDetail]
+/// buat mengisi tab "Data Pembeli" begitu halaman detailnya dibuka, dan disimpan utuh di
+/// [ReserveOrder.customerDetail] buat halaman "Edit Customer" ([ReserveOrderEditCustomerPage]).
+///
+/// Field-nya sangat banyak (~90 — alamat KTP/domisili/surat-menyurat, kontak, data pekerjaan,
+/// pasangan, anak, penjamin, kontak sekunder & darurat, dst) dan sebagian besar cuma
+/// ditampilkan/diedit apa adanya tanpa logika lain di app ini, jadi disimpan sebagai [raw] (map
+/// mentah per key backend, mis. `cust_name`, `spouse_income`, `mate_ktp_city`) daripada dideklarasi
+/// satu-satu — bikin field bernama untuk semuanya cuma nambah boilerplate tanpa manfaat. Beberapa
+/// yang memang dipakai di luar halaman edit (tab ringkas, [ReserveOrder.applyCustomerDetail]) tetap
+/// punya getter pendek di bawah.
 class ReserveCustomerDetail {
-  final String custName;
-  final String? custKtp;
-  final String? custAddress1;
-  final String? custMaritalStatus;
+  final Map<String, dynamic> raw;
+
+  const ReserveCustomerDetail({this.raw = const {}});
+
+  String get custName => _text(raw['cust_name']) ?? '-';
+  String? get custKtp => _text(raw['cust_ktp']);
+  String? get custAddress1 => _text(raw['cust_address1']);
+  String? get custMaritalStatus => _text(raw['cust_marital_status']);
 
   /// Ada di objek `reserve_order`, bukan `customer` — cuma id, namanya dipetakan lewat master
   /// `GET /api/reserve/cara-bayar` (`ReserveOrderListCubit.ensureCaraBayarOptions`).
-  final int? caraBayarId;
-
-  const ReserveCustomerDetail({
-    required this.custName,
-    this.custKtp,
-    this.custAddress1,
-    this.custMaritalStatus,
-    this.caraBayarId,
-  });
+  int? get caraBayarId => _int(raw['cara_bayar_id']);
 
   factory ReserveCustomerDetail.fromJson(Map<String, dynamic> json) {
     final reserveOrder = json['reserve_order'] is Map ? Map<String, dynamic>.from(json['reserve_order'] as Map) : const {};
     final customer = json['customer'] is Map ? Map<String, dynamic>.from(json['customer'] as Map) : const {};
 
-    return ReserveCustomerDetail(
-      custName: _text(customer['cust_name']) ?? _text(reserveOrder['cust_name']) ?? '-',
-      custKtp: _text(customer['cust_ktp']),
-      custAddress1: _text(customer['cust_address1']),
-      custMaritalStatus: _text(customer['cust_marital_status']),
-      caraBayarId: _int(reserveOrder['cara_bayar_id']),
-    );
+    return ReserveCustomerDetail(raw: {
+      ...customer,
+      // `cust_name` & `cara_bayar_id` ada di objek `reserve_order`, bukan `customer` — dipakai
+      // sebagai fallback kalau belum keisi di sana (transaksi baru, belum lengkap datanya).
+      if (_text(customer['cust_name']) == null && reserveOrder['cust_name'] != null) 'cust_name': reserveOrder['cust_name'],
+      if (_int(customer['cara_bayar_id']) == null && reserveOrder['cara_bayar_id'] != null) 'cara_bayar_id': reserveOrder['cara_bayar_id'],
+    });
   }
 }
+
+/// Cara nilai satu [ReserveCustomerFieldSpec] mesti diformat/ditampilkan — dipakai tab "Customer"
+/// (read-only) di `ReserveOrderDetailPage`. `text` = tampilkan `raw[key]` apa adanya.
+enum ReserveCustomerFieldKind { text, date, genderBool, yesNoBool, area, maritalStatus, religion, paymentPlan }
+
+/// Satu field profil pembeli: key backend + label tampilan + cara formatnya. Dipakai bareng oleh
+/// `ReserveOrderEditCustomerPage` (bikin input-nya) & `ReserveOrderDetailPage` (tab "Customer",
+/// baca-saja) lewat [reserveCustomerFieldSections] supaya key/label/pengelompokan field profil
+/// pembeli cuma didefinisikan sekali. **Kalau nambah/hapus/pindah field di
+/// `ReserveOrderEditCustomerPage`, sinkronkan juga di sini** — halaman itu masih pakai widget
+/// input sendiri-sendiri (teks/date-picker/dsb) jadi belum benar-benar dibaca dari list ini.
+class ReserveCustomerFieldSpec {
+  final String key;
+  final String label;
+  final ReserveCustomerFieldKind kind;
+
+  const ReserveCustomerFieldSpec(this.key, this.label, {this.kind = ReserveCustomerFieldKind.text});
+}
+
+class ReserveCustomerFieldSection {
+  final String title;
+  final List<ReserveCustomerFieldSpec> fields;
+
+  const ReserveCustomerFieldSection(this.title, this.fields);
+}
+
+const List<ReserveCustomerFieldSection> reserveCustomerFieldSections = [
+  ReserveCustomerFieldSection('Buyer Data', [
+    ReserveCustomerFieldSpec('cust_name', 'Full Name (as per KTP)'),
+    ReserveCustomerFieldSpec('cust_ktp', 'KTP No.'),
+    ReserveCustomerFieldSpec('cust_npwp', 'NPWP No.'),
+    ReserveCustomerFieldSpec('cust_birth_place', 'Place of Birth'),
+    ReserveCustomerFieldSpec('cust_birth_date', 'Date of Birth', kind: ReserveCustomerFieldKind.date),
+    ReserveCustomerFieldSpec('cust_gender_is_male', 'Gender', kind: ReserveCustomerFieldKind.genderBool),
+    ReserveCustomerFieldSpec('cust_marital_status', 'Marital Status', kind: ReserveCustomerFieldKind.maritalStatus),
+    ReserveCustomerFieldSpec('work_category', 'Work Category'),
+    ReserveCustomerFieldSpec('cust_occupation', 'Occupation'),
+    ReserveCustomerFieldSpec('cara_bayar_id', 'Payment Plan', kind: ReserveCustomerFieldKind.paymentPlan),
+    ReserveCustomerFieldSpec('cust_religion', 'Religion', kind: ReserveCustomerFieldKind.religion),
+    ReserveCustomerFieldSpec('cust_education', 'Education'),
+    ReserveCustomerFieldSpec('cust_telp_home', 'Home Phone'),
+    ReserveCustomerFieldSpec('cust_telp_home2', 'Home Phone 2'),
+    ReserveCustomerFieldSpec('cust_telp_mobile1', 'Mobile Phone 1'),
+    ReserveCustomerFieldSpec('cust_telp_mobile2', 'Mobile Phone 2'),
+    ReserveCustomerFieldSpec('cust_telp_mobile3', 'Mobile Phone 3'),
+    ReserveCustomerFieldSpec('cust_email1', 'Email 1'),
+    ReserveCustomerFieldSpec('cust_email2', 'Email 2'),
+  ]),
+  ReserveCustomerFieldSection('Prospective Spouse', [
+    ReserveCustomerFieldSpec('spouse_name', 'Spouse Name'),
+    ReserveCustomerFieldSpec('spouse_birth_place', 'Spouse Place of Birth'),
+    ReserveCustomerFieldSpec('spouse_birth_date', 'Spouse Date of Birth', kind: ReserveCustomerFieldKind.date),
+    ReserveCustomerFieldSpec('spouse_email', 'Spouse Email'),
+    ReserveCustomerFieldSpec('spouse_telp_mobile', 'Spouse Mobile Phone'),
+  ]),
+  ReserveCustomerFieldSection('Children Data', [
+    ReserveCustomerFieldSpec('child1_name', 'Child 1 Name'),
+    ReserveCustomerFieldSpec('child2_name', 'Child 2 Name'),
+    ReserveCustomerFieldSpec('child3_name', 'Child 3 Name'),
+    ReserveCustomerFieldSpec('child4_name', 'Child 4 Name'),
+  ]),
+  ReserveCustomerFieldSection('Emergency Contact (Not Living Together)', [
+    ReserveCustomerFieldSpec('em_contact_name', 'Contact Name'),
+    ReserveCustomerFieldSpec('em_hubungan', 'Relationship'),
+    ReserveCustomerFieldSpec('em_hp1', 'Phone 1'),
+    ReserveCustomerFieldSpec('em_hp2', 'Phone 2'),
+  ]),
+  ReserveCustomerFieldSection('Buyer Address Data', [
+    ReserveCustomerFieldSpec('cust_address1', 'Address (as per KTP)'),
+    ReserveCustomerFieldSpec('cust_area', 'Area Code (as per KTP)', kind: ReserveCustomerFieldKind.area),
+    ReserveCustomerFieldSpec('nama_kota', 'City (as per KTP)'),
+    ReserveCustomerFieldSpec('postal_code', 'Postal Code (as per KTP)'),
+    ReserveCustomerFieldSpec('current_address_similar_ktp', 'Same as KTP Address?', kind: ReserveCustomerFieldKind.yesNoBool),
+    ReserveCustomerFieldSpec('current_address', 'Current Address'),
+    ReserveCustomerFieldSpec('current_area', 'Current Area Code', kind: ReserveCustomerFieldKind.area),
+    ReserveCustomerFieldSpec('current_city', 'Current City'),
+    ReserveCustomerFieldSpec('current_postal_code', 'Current Postal Code'),
+    ReserveCustomerFieldSpec('mailing_address', 'Mailing Address'),
+    ReserveCustomerFieldSpec('mailing_area', 'Mailing Area Code', kind: ReserveCustomerFieldKind.area),
+    ReserveCustomerFieldSpec('mailing_city', 'Mailing City'),
+    ReserveCustomerFieldSpec('mailing_postal_code', 'Mailing Postal Code'),
+  ]),
+  ReserveCustomerFieldSection('Prospective Spouse Address (Co-Buyer)', [
+    ReserveCustomerFieldSpec('mate_name', 'Name'),
+    ReserveCustomerFieldSpec('mate_telp_mobile', 'Mobile Phone'),
+    ReserveCustomerFieldSpec('mate_birth_place', 'Place of Birth'),
+    ReserveCustomerFieldSpec('mate_birth_date', 'Date of Birth', kind: ReserveCustomerFieldKind.date),
+    ReserveCustomerFieldSpec('mate_email', 'Email'),
+    ReserveCustomerFieldSpec('mate_ktp_address', 'KTP Address'),
+    ReserveCustomerFieldSpec('mate_ktp_area', 'KTP Area Code', kind: ReserveCustomerFieldKind.area),
+    ReserveCustomerFieldSpec('mate_ktp_city', 'KTP City'),
+    ReserveCustomerFieldSpec('mate_ktp_postal_code', 'KTP Postal Code'),
+    ReserveCustomerFieldSpec('mate_current_address', 'Current Address'),
+    ReserveCustomerFieldSpec('mate_current_area', 'Current Area Code', kind: ReserveCustomerFieldKind.area),
+    ReserveCustomerFieldSpec('mate_current_city', 'Current City'),
+    ReserveCustomerFieldSpec('mate_current_postal_code', 'Current Postal Code'),
+    ReserveCustomerFieldSpec('mate_mailing_address', 'Mailing Address'),
+    ReserveCustomerFieldSpec('mate_mailing_area', 'Mailing Area Code', kind: ReserveCustomerFieldKind.area),
+    ReserveCustomerFieldSpec('mate_mailing_city', 'Mailing City'),
+    ReserveCustomerFieldSpec('mate_mailing_postal_code', 'Mailing Postal Code'),
+  ]),
+  ReserveCustomerFieldSection('Buyer Work Data', [
+    ReserveCustomerFieldSpec('cust_company_name', 'Company Name'),
+    ReserveCustomerFieldSpec('cust_office_building', 'Office Building'),
+    ReserveCustomerFieldSpec('cust_work_address', 'Work Address'),
+    ReserveCustomerFieldSpec('work_area', 'Work Area Code', kind: ReserveCustomerFieldKind.area),
+    ReserveCustomerFieldSpec('cust_work_city', 'Work City'),
+    ReserveCustomerFieldSpec('cust_telp_work', 'Work Phone'),
+    ReserveCustomerFieldSpec('cust_telp_work2', 'Work Phone 2'),
+    ReserveCustomerFieldSpec('cust_work_fax', 'Work Fax'),
+    ReserveCustomerFieldSpec('cust_job_title', 'Job Title'),
+    ReserveCustomerFieldSpec('cust_income', 'Monthly Income'),
+  ]),
+  ReserveCustomerFieldSection('Prospective Spouse Work Data', [
+    ReserveCustomerFieldSpec('spouse_occupation', 'Occupation'),
+    ReserveCustomerFieldSpec('spouse_company_name', 'Company Name'),
+    ReserveCustomerFieldSpec('spouse_office_building', 'Office Building'),
+    ReserveCustomerFieldSpec('spouse_work_address', 'Work Address'),
+    ReserveCustomerFieldSpec('spouse_area', 'Work Area Code', kind: ReserveCustomerFieldKind.area),
+    ReserveCustomerFieldSpec('spouse_work_city', 'Work City'),
+    ReserveCustomerFieldSpec('spouse_telp_work', 'Work Phone'),
+    ReserveCustomerFieldSpec('spouse_work_fax', 'Work Fax'),
+    ReserveCustomerFieldSpec('spouse_job_title', 'Job Title'),
+    ReserveCustomerFieldSpec('spouse_income', 'Monthly Income'),
+  ]),
+];
+
+/// Satu grup slot bernomor (mis. "Mobile Phone 1/2/3") buat tab "Customer" (read-only) —
+/// [ReserveOrderDetailPage] cuma menampilkan satu baris berlabel [baseLabel] (tanpa angka) kalau
+/// cuma satu slot yang keisi datanya; kalau lebih dari satu, semua slot yang keisi ditampilkan
+/// pakai label aslinya dari [reserveCustomerFieldSections] (yang kosong dilewati).
+class ReserveCustomerSlotGroup {
+  final String baseLabel;
+  final List<String> keys;
+
+  const ReserveCustomerSlotGroup(this.baseLabel, this.keys);
+}
+
+const List<ReserveCustomerSlotGroup> reserveCustomerSlotGroups = [
+  ReserveCustomerSlotGroup('Home Phone', ['cust_telp_home', 'cust_telp_home2']),
+  ReserveCustomerSlotGroup('Mobile Phone', ['cust_telp_mobile1', 'cust_telp_mobile2', 'cust_telp_mobile3']),
+  ReserveCustomerSlotGroup('Email', ['cust_email1', 'cust_email2']),
+  ReserveCustomerSlotGroup('Phone', ['em_hp1', 'em_hp2']),
+  ReserveCustomerSlotGroup('Work Phone', ['cust_telp_work', 'cust_telp_work2']),
+];
 
 /// Satu dokumen dari `GET /api/reserve/attachment?reserve_order_id=…&reserve_order_tts_id=…` —
 /// file (KTP/NPWP/bukti transfer) yang tersimpan lewat `POST /api/reserve/doc-payment`. Baris ini
@@ -332,6 +548,13 @@ class ReserveOrder {
 
   final List<ReserveOrderStep> journey;
   final List<ReserveOrderField> buyer;
+
+  /// Profil pembeli lengkap (~90 field), diisi [applyCustomerDetail] begitu `GET
+  /// /api/reserve/customer` kembali. [buyer] di atas cuma ringkasan 5 field buat tab "Data
+  /// Pembeli" — ini dipakai halaman "Edit Customer" biar semua field bisa diedit, bukan cuma yang
+  /// ringkas. Sengaja tidak final: sama seperti [status]/[rejectReason], bisa berubah tanpa membuat
+  /// objek transaksi baru.
+  ReserveCustomerDetail? customerDetail;
 
   /// [docs] & [notes] sengaja disalin jadi list yang bisa ditambah: tab Attachment bisa menambah
   /// dokumen dan tab Catatan bisa menambah catatan tanpa membuat objek transaksi baru.
@@ -451,7 +674,7 @@ class ReserveOrder {
         const ReserveOrderField('KTP No.', '-'),
         const ReserveOrderField('Address (as per KTP)', '-'),
         const ReserveOrderField('Marital Status', '-'),
-        const ReserveOrderField('Payment Method', '-'),
+        const ReserveOrderField('Payment Plan', '-'),
       ],
       notes: [
         if (note != null)
@@ -471,6 +694,8 @@ class ReserveOrder {
   /// memetakan `cara_bayar_id` (angka) ke namanya; kalau id-nya tidak ketemu di master (atau memang
   /// null), barisnya tetap ditulis "-" sama seperti field yang belum diisi.
   void applyCustomerDetail(ReserveCustomerDetail detail, List<CaraBayarOption> caraBayarOptions) {
+    customerDetail = detail;
+
     String? caraBayarName;
     for (final option in caraBayarOptions) {
       if (option.caraBayarId == detail.caraBayarId) {
@@ -486,7 +711,7 @@ class ReserveOrder {
         ReserveOrderField('KTP No.', detail.custKtp ?? '-'),
         ReserveOrderField('Address (as per KTP)', detail.custAddress1 ?? '-'),
         ReserveOrderField('Marital Status', detail.custMaritalStatus ?? '-'),
-        ReserveOrderField('Payment Method', caraBayarName ?? '-'),
+        ReserveOrderField('Payment Plan', caraBayarName ?? '-'),
       ]);
   }
 
