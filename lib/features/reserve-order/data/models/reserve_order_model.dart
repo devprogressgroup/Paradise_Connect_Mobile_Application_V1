@@ -472,6 +472,11 @@ class ReserveOrderAttachment {
   final String? createUserName;
   final String? verificationStatus;
 
+  /// TTS yang menaungi dokumen ini — dipakai halaman Detail buat mengisi
+  /// `DocPaymentParams.reserveOrderTtsId` saat upload dokumen tambahan dari tab Attachment
+  /// (`ReserveOrderDetailPage._uploadExtraDoc`).
+  final int? reserveOrderTtsId;
+
   const ReserveOrderAttachment({
     required this.contactAttachmentId,
     required this.attachmentUrl,
@@ -480,6 +485,7 @@ class ReserveOrderAttachment {
     this.createDatetime,
     this.createUserName,
     this.verificationStatus,
+    this.reserveOrderTtsId,
   });
 
   factory ReserveOrderAttachment.fromJson(Map<String, dynamic> json) {
@@ -493,6 +499,7 @@ class ReserveOrderAttachment {
       createDatetime: DateTime.tryParse('${json['create_datetime']}'),
       createUserName: _text(json['create_user_name']),
       verificationStatus: _text(json['verification_status']),
+      reserveOrderTtsId: _int(json['reserve_order_tts_id']),
     );
   }
 }
@@ -532,6 +539,13 @@ class ReserveOrder {
 
   /// Id mentah dari server, disimpan untuk dipetakan ke master status & dipakai endpoint detail.
   final int? statusReserveId;
+
+  /// Masih menunggu approval sales admin/kasir (`approved_sa_id`/`approved_kasir_id` null) — dicek
+  /// terpisah dari [statusReserveId] karena "Processing" & "Reserve" itu tahap yang beda: id-nya
+  /// bisa saja sudah keisi duluan padahal approval-nya belum lengkap. Dipakai [badgeLabelFrom] /
+  /// [badgeColorFrom] supaya badge tidak salah menampilkan nama tahap dari master filter selagi
+  /// masih "Processing".
+  final bool isProcessing;
 
   /// Dipakai tautan "Profil & Riwayat Lengkap ›" untuk membuka halaman Contact Detail.
   final int? contactId;
@@ -576,6 +590,7 @@ class ReserveOrder {
     this.rejectReason,
     this.statusLabelOverride,
     this.statusReserveId,
+    this.isProcessing = false,
     this.contactId,
     this.dealId,
     required this.stageLabel,
@@ -591,9 +606,11 @@ class ReserveOrder {
 
   /// Memetakan satu baris `GET /api/reserve`.
   ///
-  /// Tahapnya diturunkan dari tanggal yang ada (`sp_date` -> `rb_date` -> `created_datetime`) plus
-  /// jejak penolakan kasir/sales admin. `status_reserve_id` ikut disimpan tapi belum dipakai untuk
-  /// menamai badge, karena master statusnya belum ada endpoint-nya.
+  /// Tahapnya diturunkan dari: penolakan kasir/sales admin -> belum di-approve
+  /// (`approved_sa_id`/`approved_kasir_id` masih "Processing" selama salah satunya null) -> tanggal
+  /// yang ada (`sp_date` -> `rb_date`). `status_reserve_id` disimpan buat mencocokkan nama badge ke
+  /// master `GET /api/reserve-filter` (lihat [badgeLabelFrom]) — [statusLabelOverride]/[status.label]
+  /// jadi fallback selama masternya belum dimuat atau id-nya tidak ketemu.
   factory ReserveOrder.fromJson(Map<String, dynamic> json) {
     final createdAt = _parseDate(json['created_datetime']);
     final rbDate = _parseDate(json['rb_date']);
@@ -603,11 +620,16 @@ class ReserveOrder {
     final rejectReason = _text(json['kasir_rejected_reason']) ?? _text(json['sa_rejected_reason']);
     final isRejected = rejectedAt != null || rejectReason != null;
 
+    // Masih "Processing" selama salah satu approval ini belum diisi (belum disetujui sales admin
+    // atau kasir) — dicek sebelum sp_date/rb_date karena keduanya baru terisi setelah disetujui.
+    final isProcessing = json['approved_sa_id'] == null || json['approved_kasir_id'] == null;
+
     final amount = _number(json['amount_rp']);
     final amountLabel = amount == null || amount <= 0 ? null : 'Rp ${NumberHelper.thousands(amount)}';
 
     final (status, label, statusText) = switch (true) {
       _ when isRejected => (ReserveOrderStatus.ditolak, 'Rejected', 'Rejected - Needs Revision'),
+      _ when isProcessing => (ReserveOrderStatus.diproses, 'Processing', 'Still Processing'),
       _ when spDate != null => (ReserveOrderStatus.sp, 'SP', 'SP Issued'),
       // `rb_date` tidak membedakan RBA & RBB, jadi badge-nya ditulis netral.
       _ when rbDate != null => (ReserveOrderStatus.rba, 'R/BR', 'Reserve Booking Active'),
@@ -636,6 +658,7 @@ class ReserveOrder {
       statusText: statusText,
       statusLabelOverride: label,
       statusReserveId: _int(json['status_reserve_id']),
+      isProcessing: isProcessing,
       contactId: _int(json['contact_id']),
       dealId: _int(json['deal_id']),
       rejectReason: isRejected ? (rejectReason ?? 'Rejected without a reason. Contact the cashier for details.') : null,
@@ -715,12 +738,81 @@ class ReserveOrder {
       ]);
   }
 
+  /// Mengganti isi [journey] dengan data ASLI dari `GET /api/reserve/timeline` — dipanggil dari
+  /// `ReserveOrderDetailPage._loadTimeline` begitu endpoint itu berhasil dimuat. Sebelum ini,
+  /// [journey] cuma turunan kasar dari tanggal-tanggal di `GET /api/reserve` (lihat [fromJson])
+  /// karena endpoint detailnya belum ada. `milestones` kosong DIABAIKAN (bukan dipakai buat
+  /// mengosongkan [journey] — banyak kode lain, mis. Top Up/Ajukan Ulang, andal [journey] selalu
+  /// punya isi) — cuma diambil 10 pertama (L1-L10) — entri ke-11 "Lost" belum ditampilkan sebagai
+  /// step (lihat catatan di [ReserveOrderTimelineMilestone]).
+  void applyTimeline(List<ReserveOrderTimelineMilestone> milestones) {
+    if (milestones.isEmpty) return;
+    final core = milestones.take(reserveStageLabels.length).toList();
+    // Tahap TERAKHIR yang beneran sudah terjadi (ada aktivitasnya) -> semua sebelum & termasuk itu
+    // jadi "done", satu setelahnya jadi "active" (berjalan), sisanya "todo". -1+1=0 kalau belum ada
+    // satu pun yang reached (L1 jadi active).
+    final reached = core.lastIndexWhere((m) => m.isReached) + 1;
+
+    journey
+      ..clear()
+      ..addAll([
+        for (var i = 0; i < core.length; i++)
+          ReserveOrderStep(
+            label: core[i].milestone,
+            sub: core[i].displaySub,
+            state: i < reached
+                ? ReserveOrderStepState.done
+                : (i == reached ? ReserveOrderStepState.active : ReserveOrderStepState.todo),
+            lockLabel: i >= reached ? _reserveLockLabels[i] : null,
+            isGoal: i == core.length - 1,
+            notes: [if (core[i].noteBubble != null) core[i].noteBubble!],
+          ),
+      ]);
+  }
+
   String get initials => initialsOf(customerName);
 
   bool get isRejected => rejectReason != null;
 
-  /// Teks badge di kartu list & kotak status detail.
+  /// Teks badge fallback, dipakai [badgeLabelFrom] selama master filter belum dimuat atau
+  /// [statusReserveId]-nya tidak ketemu di situ.
   String get badgeLabel => statusLabelOverride ?? status.label;
+
+  /// Nama badge — prioritas: ditolak ("Rejected") -> masih menunggu approval ("Processing", lihat
+  /// [isProcessing]) -> nama asli dari master `GET /api/reserve-filter` (dicocokkan lewat
+  /// [statusReserveId]). [isProcessing] SENGAJA dicek sebelum lookup ke master — "Reserve" &
+  /// "Processing" itu tahap yang beda; [statusReserveId] bisa saja sudah keisi padahal approval-nya
+  /// (`approved_sa_id`/`approved_kasir_id`) belum lengkap, jadi belum benar masuk tahap "Reserve".
+  /// Jatuh balik ke [badgeLabel] kalau [filters] kosong atau id-nya tidak ketemu.
+  String badgeLabelFrom(List<ReserveFilterOption> filters) {
+    if (isRejected) return 'Rejected';
+    if (isProcessing) return 'Processing';
+    for (final filter in filters) {
+      if (filter.statusReserveId == statusReserveId) return filter.name;
+    }
+    return badgeLabel;
+  }
+
+  /// Warna badge — ikut prioritas yang sama dengan [badgeLabelFrom]: ditolak/dibatalkan (nama
+  /// mengandung "Batal", tahap apa pun — Reserve Batal, SP Batal, dst) selalu merah; "Processing" &
+  /// "Reserve" sama-sama kuning (dua teks beda buat tahap yang mirip, lihat [isProcessing]); RBA &
+  /// RBB disamakan oranye (dicek lewat substring "rb"); AKAD hijau; Proses Bank biru muda; Waiting
+  /// List ungu. Kuning & oranye sengaja dari palet yang beda jauh (bukan sesama keluarga amber)
+  /// supaya tetap kebeda di badge kecil.
+  Color badgeColorFrom(List<ReserveFilterOption> filters) {
+    if (isRejected) return const Color(redColor);
+    if (isProcessing) return const Color(roStatusReserveColor);
+    final name = badgeLabelFrom(filters).toLowerCase();
+    return switch (true) {
+      _ when name.contains('batal') => const Color(redColor),
+      _ when name.contains('akad') => const Color(successColor),
+      _ when name.contains('bank') => const Color(infoColor),
+      _ when name.contains('waiting') => const Color(purpleColor),
+      _ when name.contains('sp') => const Color(spColor),
+      _ when name.contains('rb') => const Color(roStatusRbColor),
+      _ => const Color(roStatusReserveColor),
+    };
+  }
 
   /// Baris di bawah nama pembeli pada header detail: unit · lokasi · harga.
   String get detailUnitLine => [unitLabel, unitSub.replaceAll(' · ', ' '), if (priceLabel != null) priceLabel!].where((e) => e.isNotEmpty).join(' · ');
@@ -781,6 +873,82 @@ List<ReserveOrderStep> buildReserveJourney({
         notes: notes[i],
       ),
   ];
+}
+
+/// Satu milestone dari `GET /api/reserve/timeline?reserve_order_id=…&contact_id=…&deal_id=…` — data
+/// ASLI per tahap (bukan turunan tanggal seperti [buildReserveJourney]), dipakai
+/// [ReserveOrder.applyTimeline]. Tiap object di array `data.timeline` cuma punya SATU field
+/// tanggal, namanya beda-beda per tahap (`create_date`, `last_appt_date`, `last_visit_date`, dst) —
+/// makanya dicari dari key apa pun yang namanya mengandung "date", bukan didaftar satu-satu.
+///
+/// Entri ke-11 "Lost" (di luar L1-L10) SENGAJA belum dipetakan jadi step di [ReserveOrder.applyTimeline]
+/// — beda dari L1-L10 yang selalu berurutan, "Lost" bisa terjadi kapan saja & butuh keputusan
+/// desain sendiri (kartu terpisah vs menyisip di antara step), belum ada speknya.
+class ReserveOrderTimelineMilestone {
+  /// Nama tahap apa adanya dari API, mis. "L4 Reserve" — dipakai langsung sebagai label step,
+  /// bukan [reserveStageLabels] hardcode (supaya ejaan/istilahnya selalu sama dengan sumbernya).
+  final String milestone;
+  final DateTime? date;
+
+  /// Catatan aktivitas (`activity.notes`) — ada di semua tahap yang sudah py aktivitasnya.
+  final String? activityNote;
+
+  /// Catatan reserve order (`reserve_order.reserve_note`) — cuma ada di tahap yang membawa
+  /// snapshot `reserve_order` (L4 Reserve, L5 Reserve Booking, L6 SP di contoh respons).
+  final String? reserveNote;
+
+  /// Tahap ini beneran sudah terjadi — dari `activity`/`activity_id` terisi, BUKAN dari field
+  /// tanggal (`last_akad_date`/`last_lost_date` di contoh respons kadang keisi tanggal yang sama
+  /// walau tahapnya jelas belum tercapai — sepertinya tanggal "terakhir disentuh" umum, bukan
+  /// tanggal tahap itu beneran selesai, jadi tidak bisa dipercaya buat status "reached").
+  final bool isReached;
+
+  const ReserveOrderTimelineMilestone({
+    required this.milestone,
+    this.date,
+    this.activityNote,
+    this.reserveNote,
+    this.isReached = false,
+  });
+
+  factory ReserveOrderTimelineMilestone.fromJson(Map<String, dynamic> json) {
+    final activity = json['activity'] is Map ? Map<String, dynamic>.from(json['activity'] as Map) : null;
+    final reserveOrder = json['reserve_order'] is Map ? Map<String, dynamic>.from(json['reserve_order'] as Map) : null;
+
+    final fallbackDateKey = json.keys.firstWhere(
+      (k) => k != 'milestone' && k.toLowerCase().contains('date'),
+      orElse: () => '',
+    );
+
+    return ReserveOrderTimelineMilestone(
+      milestone: _text(json['milestone']) ?? '-',
+      date: _parseDate(activity?['activity_date']) ?? (fallbackDateKey.isEmpty ? null : _parseDate(json[fallbackDateKey])),
+      activityNote: _text(activity?['notes']),
+      reserveNote: _text(reserveOrder?['reserve_note']),
+      isReached: activity != null,
+    );
+  }
+
+  /// Baris sub di bawah label step — CUMA tanggal, tidak dicampur dengan [activityNote]/[reserveNote]
+  /// (lihat [noteBubble]) supaya catatannya tetap kelihatan sebagai box terpisah, bukan nyambung di
+  /// baris yang sama seperti tanggal.
+  String? get displaySub => date == null ? null : _longDate(date!);
+
+  /// Catatan aktivitas + reserve order (kalau ada) sebagai box terpisah di bawah tanggal — sesuai
+  /// mockup: "🗨 ..." dalam kotak sendiri, bukan digabung satu baris dengan tanggal. [activityNote]
+  /// & [reserveNote] digabung " · " kalau dua-duanya keisi, kalau cuma salah satu ya itu doang,
+  /// null kalau dua-duanya kosong (box-nya tidak usah dirender). `who` sengaja kosong — data
+  /// aslinya (`activity.created_by`) cuma id user, belum ada nama yang bisa dipercaya buat dipakai
+  /// sebagai atribusi.
+  ReserveOrderTimelineNote? get noteBubble {
+    final text = [activityNote, reserveNote].whereType<String>().join(' · ');
+    if (text.isEmpty) return null;
+    return ReserveOrderTimelineNote(
+      who: '',
+      text: text,
+      time: date == null ? '' : '(${_noteTime(date!)})',
+    );
+  }
 }
 
 DateTime? _parseDate(dynamic value) {

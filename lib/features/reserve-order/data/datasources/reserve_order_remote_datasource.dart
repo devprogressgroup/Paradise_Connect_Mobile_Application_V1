@@ -69,6 +69,13 @@ class DocPaymentParams {
 
   /// Null dengan alasan yang sama seperti [statusReserveId].
   final num? ttsAmountRp;
+
+  /// TTS yang sudah ada, diisi HANYA saat upload dokumen tambahan dari halaman Detail (tab
+  /// Attachment) — nilainya diambil dari `reserve_order_tts_id` di respons `GET
+  /// /api/reserve/attachment` (lihat `ReserveOrderAttachment.reserveOrderTtsId`). Null di alur
+  /// submit awal (`reserve.dart`) & Top Up (`top_up.dart`) karena keduanya bikin TTS baru — di-OMIT
+  /// total dari request kalau null, sama seperti [statusReserveId].
+  final int? reserveOrderTtsId;
   final String? note;
   final List<Uint8List> ktpBytes;
   final List<String> ktpFileNames;
@@ -81,6 +88,7 @@ class DocPaymentParams {
     required this.reserveOrderId,
     this.statusReserveId,
     this.ttsAmountRp,
+    this.reserveOrderTtsId,
     this.note,
     this.ktpBytes = const [],
     this.ktpFileNames = const [],
@@ -147,8 +155,8 @@ abstract class ReserveOrderRemoteDataSource {
 
   /// Kirim dokumen + rincian pembayaran ke reserve order yang barusan dibuat —
   /// `POST /api/reserve/doc-payment`. Wajib dipanggil setelah [createReserve]. Mengembalikan
-  /// `data.tts.reserve_order_tts_id` — dibutuhkan sebagai param [getReserveAttachments] kalau mau
-  /// menampilkan lagi dokumen yang baru dikirim ini.
+  /// `data.tts.reserve_order_tts_id` — dibutuhkan sebagai param [DocPaymentParams.reserveOrderTtsId]
+  /// kalau mau menambah dokumen ke TTS yang sama dari halaman Detail.
   Future<int> submitDocPayment(DocPaymentParams params);
 
   /// Detail customer satu reserve order — `GET /api/reserve/customer?reserve_order_id=…`. Dipanggil
@@ -156,13 +164,10 @@ abstract class ReserveOrderRemoteDataSource {
   /// cara bayar) yang tidak ada di response `GET /api/reserve` (list).
   Future<ReserveCustomerDetail> getReserveCustomer(int reserveOrderId);
 
-  /// Dokumen yang tersimpan lewat [submitDocPayment] untuk satu TTS —
-  /// `GET /api/reserve/attachment?reserve_order_id=…&reserve_order_tts_id=…`. Dipanggil dari tab
-  /// "Attachment" di halaman Detail.
-  Future<List<ReserveOrderAttachment>> getReserveAttachments({
-    required int reserveOrderId,
-    required int reserveOrderTtsId,
-  });
+  // Cuma `reserve_order_id` — TANPA `reserve_order_tts_id` (sempat dikirim, dihapus lagi: server
+  // menyaring hasilnya cuma untuk TTS itu, jadi dokumen dari TTS lain di reserve order yang sama
+  // hilang dari tab Attachment begitu ada TTS lebih baru).
+  Future<List<ReserveOrderAttachment>> getReserveAttachments({required int reserveOrderId});
 
   /// Update profil pembeli — `PATCH /api/reserve/{reserve_order_id}`. Body-nya field backend apa
   /// adanya (`cust_name`, `spouse_income`, `mate_ktp_city`, dst — persis [ReserveCustomerDetail.raw]),
@@ -177,10 +182,13 @@ abstract class ReserveOrderRemoteDataSource {
   /// Pesan tab "Notes" (gaya chat) — `GET /api/reserve/notes?reserve_order_id=…`.
   Future<List<ReserveOrderActivityMessage>> getReserveNotes(int reserveOrderId);
 
-  /// Kirim pesan baru ke tab "Notes" — `POST /api/reserve/notes`. Dipanggil dari
-  /// `ReserveOrderDetailPage._sendNote`; setelah berhasil, tab dimuat ulang lewat [getReserveNotes]
-  /// supaya pesannya kembali dengan `sender_name`/waktu asli dari server.
   Future<void> sendReserveNote({required int reserveOrderId, required String message});
+
+  Future<List<ReserveOrderTimelineMilestone>> getReserveTimeline({
+    required int reserveOrderId,
+    required int contactId,
+    required int dealId,
+  });
 }
 
 class ReserveOrderRemoteDataSourceImpl implements ReserveOrderRemoteDataSource {
@@ -200,13 +208,10 @@ class ReserveOrderRemoteDataSourceImpl implements ReserveOrderRemoteDataSource {
     try {
       final response = await dio.get('/reserve', queryParameters: {
         if (search != null && search.isNotEmpty) 'search': search,
-        // Server menerima daftar id dipisah koma: `status_reserve_id=1,2`.
         if (statusReserveIds.isNotEmpty) 'status_reserve_id': statusReserveIds.join(','),
         'sort': sort,
         'page': page,
         'per_page': perPage,
-        // Diisi saat daftar dibuka dari "Reserve Order" milik satu kontak (Log Activity), supaya
-        // hanya transaksi kontak itu yang kembali.
         if (contactId != null) 'contact_id': contactId,
       });
 
@@ -220,8 +225,6 @@ class ReserveOrderRemoteDataSourceImpl implements ReserveOrderRemoteDataSource {
         return ReserveOrdersPage(
           items: items,
           page: data['current_page'] is int ? data['current_page'] as int : page,
-          // `next_page_url` null artinya sudah halaman terakhir — dipakai daripada menghitung
-          // sendiri dari total/per_page supaya tetap benar kalau server mengubah paginasinya.
           hasMore: data['next_page_url'] != null,
           total: data['total'] is int ? data['total'] as int : items.length,
         );
@@ -242,7 +245,6 @@ class ReserveOrderRemoteDataSourceImpl implements ReserveOrderRemoteDataSource {
       if (body is Map && body['status'] == true && body['data'] is List) {
         return (body['data'] as List)
             .map((e) => ReserveFilterOption.fromJson(Map<String, dynamic>.from(e as Map)))
-            // `is_active` 0 berarti status itu tidak dipakai lagi — tidak usah muncul jadi chip.
             .where((f) => f.isActive)
             .toList();
       }
@@ -306,8 +308,6 @@ class ReserveOrderRemoteDataSourceImpl implements ReserveOrderRemoteDataSource {
     }
   }
 
-  // `filename` cukup buat Dio nebak `contentType`-nya sendiri (lewat ekstensinya) — lihat
-  // `MultipartFile.fromBytes`.
   MultipartFile _multipart(Uint8List bytes, String? fileName) =>
       MultipartFile.fromBytes(bytes, filename: fileName ?? 'file');
 
@@ -318,23 +318,14 @@ class ReserveOrderRemoteDataSourceImpl implements ReserveOrderRemoteDataSource {
         'reserve_order_id': params.reserveOrderId,
         if (params.statusReserveId != null) 'status_reserve_id': params.statusReserveId,
         if (params.ttsAmountRp != null) 'tts_amount_rp': params.ttsAmountRp,
+        if (params.reserveOrderTtsId != null) 'reserve_order_tts_id': params.reserveOrderTtsId,
         if (params.note != null && params.note!.isNotEmpty) 'note': params.note,
-        // Key literal `ktp[]` (bukan `ktp`) — `FormData.fromMap` TIDAK menambahkan tanda kurung
-        // otomatis buat list berisi `MultipartFile` (beda dari list Map/List biasa), jadi kalau
-        // key-nya cuma `ktp` yang terkirim adalah beberapa field literal bernama `ktp` (tanpa
-        // kurung) yang oleh Laravel tidak dianggap array — persis bunyi error "ktp field must be
-        // an array" yang pernah muncul. Harus disamakan persis dengan koleksi Postman.
         if (params.ktpBytes.isNotEmpty)
           'ktp[]': [
             for (var i = 0; i < params.ktpBytes.length; i++)
               _multipart(params.ktpBytes[i], i < params.ktpFileNames.length ? params.ktpFileNames[i] : null),
           ],
         if (params.npwpBytes != null) 'npwp': _multipart(params.npwpBytes!, params.npwpFileName),
-        // `bukti_transfer` boleh >1 file (beda dari contoh Postman awal yang cuma 1) — TAPI
-        // key-nya tetap literal tanpa kurung, tidak seperti `ktp[]`. Mekanismenya sama: Dio
-        // mengirim beberapa part dengan nama field yang PERSIS sama untuk tiap elemen List, jadi
-        // menaruh key tanpa kurung di sini otomatis menghasilkan beberapa `bukti_transfer` (bukan
-        // `bukti_transfer[]`) — bukan bug, ini yang diminta.
         if (params.buktiTransferBytes.isNotEmpty)
           'bukti_transfer': [
             for (var i = 0; i < params.buktiTransferBytes.length; i++)
@@ -381,14 +372,10 @@ class ReserveOrderRemoteDataSourceImpl implements ReserveOrderRemoteDataSource {
   }
 
   @override
-  Future<List<ReserveOrderAttachment>> getReserveAttachments({
-    required int reserveOrderId,
-    required int reserveOrderTtsId,
-  }) async {
+  Future<List<ReserveOrderAttachment>> getReserveAttachments({required int reserveOrderId}) async {
     try {
       final response = await dio.get('/reserve/attachment', queryParameters: {
         'reserve_order_id': reserveOrderId,
-        'reserve_order_tts_id': reserveOrderTtsId,
       });
       final body = response.data;
 
@@ -467,6 +454,35 @@ class ReserveOrderRemoteDataSourceImpl implements ReserveOrderRemoteDataSource {
       throw Exception(body is Map ? (body['message'] ?? 'Failed to send note') : 'Failed to send note');
     } on DioException catch (e) {
       throw Exception(getErrorMessage(e, 'Failed to send note'));
+    }
+  }
+
+  @override
+  Future<List<ReserveOrderTimelineMilestone>> getReserveTimeline({
+    required int reserveOrderId,
+    required int contactId,
+    required int dealId,
+  }) async {
+    try {
+      final response = await dio.get('/reserve/timeline', queryParameters: {
+        'reserve_order_id': reserveOrderId,
+        'contact_id': contactId,
+        'deal_id': dealId,
+      });
+      final body = response.data;
+
+      if (body is Map && body['status'] == true && body['data'] is Map) {
+        final data = Map<String, dynamic>.from(body['data'] as Map);
+        if (data['timeline'] is List) {
+          return (data['timeline'] as List)
+              .map((e) => ReserveOrderTimelineMilestone.fromJson(Map<String, dynamic>.from(e as Map)))
+              .toList();
+        }
+      }
+
+      throw Exception(body is Map ? (body['message'] ?? 'Failed to load timeline') : 'Failed to load timeline');
+    } on DioException catch (e) {
+      throw Exception(getErrorMessage(e, 'Failed to load timeline'));
     }
   }
 }

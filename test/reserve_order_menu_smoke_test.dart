@@ -62,6 +62,11 @@ Map<String, dynamic> _row({
   String? rejectReason,
   String? note,
   int statusReserveId = 2,
+  // Null (default) = belum di-approve sales admin/kasir -> `ReserveOrder.isProcessing` true, badge
+  // tetap "Processing" walau `statusReserveId` sudah keisi. Baris yang mau merepresentasikan tahap
+  // SETELAH Processing (SP/RB/dst) harus mengisi keduanya, sama seperti data asli.
+  int? approvedSaId,
+  int? approvedKasirId,
 }) {
   return {
     'reserve_order_id': id,
@@ -84,6 +89,8 @@ Map<String, dynamic> _row({
     'contact_id': 112192,
     'deal_id': 112664,
     'status_reserve_id': statusReserveId,
+    'approved_sa_id': approvedSaId,
+    'approved_kasir_id': approvedKasirId,
   };
 }
 
@@ -163,15 +170,14 @@ class _FakeReserveOrders implements ReserveOrderRemoteDataSource {
     return ReserveCustomerDetail(raw: {'cust_name': '${row['cust_name']}'});
   }
 
-  /// Diisi manual per test lewat key `(reserve_order_id, reserve_order_tts_id)` — default kosong.
-  Map<(int, int), List<ReserveOrderAttachment>> attachmentsByKey = {};
+  /// Diisi manual per test lewat key `reserve_order_id` — default kosong. Bukan lagi
+  /// `(reserve_order_id, reserve_order_tts_id)`: endpoint aslinya cuma butuh `reserve_order_id`,
+  /// lintas semua TTS reserve order itu (lihat catatan di
+  /// `ReserveOrderRemoteDataSource.getReserveAttachments`).
+  Map<int, List<ReserveOrderAttachment>> attachmentsByKey = {};
 
   @override
-  Future<List<ReserveOrderAttachment>> getReserveAttachments({
-    required int reserveOrderId,
-    required int reserveOrderTtsId,
-  }) async =>
-      attachmentsByKey[(reserveOrderId, reserveOrderTtsId)] ?? const [];
+  Future<List<ReserveOrderAttachment>> getReserveAttachments({required int reserveOrderId}) async =>attachmentsByKey[reserveOrderId] ?? const [];
 
   final List<({int reserveOrderId, Map<String, dynamic> data})> updateCustomerCalls = [];
   bool failUpdateCustomer = false;
@@ -201,6 +207,18 @@ class _FakeReserveOrders implements ReserveOrderRemoteDataSource {
     if (failSendNote) throw Exception('koneksi terputus');
     sentNotes.add((reserveOrderId: reserveOrderId, message: message));
   }
+
+  /// Diisi manual per test lewat key `reserve_order_id` — default kosong (tab Timeline tetap
+  /// tampil turunan tanggal lama, lihat `ReserveOrder.applyTimeline`/`_loadTimeline`).
+  Map<int, List<ReserveOrderTimelineMilestone>> timelineByReserveOrderId = {};
+
+  @override
+  Future<List<ReserveOrderTimelineMilestone>> getReserveTimeline({
+    required int reserveOrderId,
+    required int contactId,
+    required int dealId,
+  }) async =>
+      timelineByReserveOrderId[reserveOrderId] ?? const [];
 }
 
 late _FakeReserveOrders source;
@@ -264,20 +282,18 @@ GoRouter _router() => GoRouter(
 
 /// [width] dilebarkan dari lebar HP normal (390) buat test yang perlu semua chip filter tampil
 /// sekaligus tanpa gulir horizontal — drag scroll di widget test rapuh untuk baris chip pendek.
-/// [cubit] opsional — dipakai test yang perlu memanggil `rememberTtsId()` SEBELUM widget-nya
-/// dibangun (tab Attachment); kalau tidak diisi, cubit baru dibuat seperti biasa.
-Future<ReserveOrderListCubit> _pumpMenu(WidgetTester tester, {double width = 390, ReserveOrderListCubit? cubit}) async {
+Future<ReserveOrderListCubit> _pumpMenu(WidgetTester tester, {double width = 390}) async {
   tester.view.physicalSize = Size(width * 3, 844 * 3);
   tester.view.devicePixelRatio = 3;
   addTearDown(tester.view.reset);
 
-  final resolvedCubit = cubit ?? ReserveOrderListCubit(source);
+  final cubit = ReserveOrderListCubit(source);
   await tester.pumpWidget(BlocProvider.value(
-    value: resolvedCubit,
+    value: cubit,
     child: MaterialApp.router(routerConfig: _router()),
   ));
   await tester.pumpAndSettle();
-  return resolvedCubit;
+  return cubit;
 }
 
 /// Periksa pesan validasi, lalu habiskan SnackBar-nya supaya pesan berikutnya tidak terantre.
@@ -339,7 +355,19 @@ void main() {
     FilePicker.platform = _FakeFilePicker();
     source = _FakeReserveOrders([
       _row(id: 3, name: 'Andi Wijaya Aan', projectName: 'Paradise Serpong City 2', amount: 80000, note: 'test reserve_note', statusReserveId: 2),
-      _row(id: 5, name: 'Budi Santoso', projectName: 'PAR2', blokNo: 'Blok BC6 No. 17', amount: 780000000, spDate: '2026-09-02T03:00:00.000000Z', statusReserveId: 6),
+      _row(
+        id: 5,
+        name: 'Budi Santoso',
+        projectName: 'PAR2',
+        blokNo: 'Blok BC6 No. 17',
+        amount: 780000000,
+        spDate: '2026-09-02T03:00:00.000000Z',
+        statusReserveId: 6,
+        // Sudah lewat tahap Processing (SP sudah terbit) — beda dari Andi yang approval-nya
+        // sengaja dibiarkan null.
+        approvedSaId: 21,
+        approvedKasirId: 34,
+      ),
       _row(
         id: 8,
         name: 'Reyhan Pradipta',
@@ -474,16 +502,16 @@ void main() {
     expect(find.text('Edit Customer'), findsNothing);
     expect(find.text('Andi Wijaya Aan Baru'), findsOneWidget);
 
-    // Attachment butuh `reserve_order_tts_id` (dari `ReserveOrderListCubit.rememberTtsId`, diisi
-    // pas submit doc-payment di form Reserve) yang tidak diketahui di sini — slot tetapnya (KTP/
-    // NPWP/Bukti Transfer) tetap tampil (tidak hilang), tapi statusnya "Status not available"
-    // karena datanya memang tidak bisa dicek, bukan "Not uploaded yet". Catatan diisi dari `reserve_note`.
+    // Attachment sekarang cukup lewat `reserve_order_id` (tidak perlu tahu `reserve_order_tts_id`
+    // lagi — lihat catatan di `ReserveOrderRemoteDataSource.getReserveAttachments`), jadi slot
+    // tetapnya (KTP/NPWP/Bukti Transfer) tampil "Not uploaded yet" karena memang belum ada
+    // attachment yang dikembalikan buat reserve order ini. Catatan diisi dari `reserve_note`.
     await tester.tap(find.text('Attachment'));
     await tester.pumpAndSettle();
     expect(find.text('KTP'), findsOneWidget);
     expect(find.text('NPWP'), findsOneWidget);
     expect(find.text('Bukti Transfer'), findsOneWidget);
-    expect(find.text('Status not available'), findsNWidgets(3));
+    expect(find.text('Not uploaded yet'), findsNWidgets(3));
 
     await tester.tap(find.text('Notes'));
     await tester.pumpAndSettle();
@@ -495,12 +523,8 @@ void main() {
     expect(find.text('Sudah saya follow up ke customer'), findsOneWidget);
   });
 
-  testWidgets('tab Attachment menampilkan dokumen kalau reserve_order_tts_id sudah diketahui, & bisa dibuka', (tester) async {
-    // `rememberTtsId` mensimulasikan reserve order yang doc-payment-nya baru saja disubmit lewat
-    // form Reserve di sesi app yang sama (lihat reserve.dart `_onSubmit`) — beda dari test
-    // "detail merender..." yang membuka reserve order TANPA tts id yang diketahui.
-    final cubit = ReserveOrderListCubit(source)..rememberTtsId(5, 42);
-    source.attachmentsByKey[(5, 42)] = [
+  testWidgets('tab Attachment menampilkan dokumen dari GET /api/reserve/attachment, & bisa dibuka', (tester) async {
+    source.attachmentsByKey[5] = [
       ReserveOrderAttachment(
         contactAttachmentId: 316,
         attachmentUrl: 'https://drive.google.com/file/d/14nOjb__5bibGU9ts6bk8M0UoDQtp60fV/view?usp=drivesdk',
@@ -511,7 +535,7 @@ void main() {
       ),
     ];
 
-    await _pumpMenu(tester, cubit: cubit);
+    await _pumpMenu(tester);
     await _openDetail(tester, 'Budi Santoso');
 
     await tester.tap(find.text('Attachment'));

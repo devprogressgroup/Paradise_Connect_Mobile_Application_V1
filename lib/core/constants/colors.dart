@@ -111,6 +111,11 @@ const int roRejectTextColor = 0xFF7A1F1F;   // teks alasan penolakan di banner
 const int roLightPurpleBgColor = 0xFFE9E7FE; // latar pucat: dokumen "issued" (SP dari Sales Admin)
 const int roNoteTextColor = 0xFF25262B;     // teks isi catatan di tab Catatan
 const int roSuccessBgColor = 0xFFE7F9EE;    // latar lingkaran ikon centang di layar sukses
+// Badge status reserve order (ReserveOrder.badgeColorFrom) — kuning & oranye sengaja dari palet
+// yang beda jauh (bukan sesama keluarga amber seperti warningColor/rbaColor) supaya kelihatan beda
+// di badge kecil.
+const int roStatusReserveColor = 0xFFEAB308; // kuning — status "Reserve" & "Processing"
+const int roStatusRbColor = 0xFFF97316;      // oranye — status "RB" (RBA/RBB disamakan)
 //dark
 
 

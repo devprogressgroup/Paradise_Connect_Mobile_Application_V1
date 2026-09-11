@@ -235,6 +235,10 @@ class _ReserveOrderListPageState extends State<ReserveOrderListPage> {
       onRefresh: () => context.read<ReserveOrderListCubit>().refresh(),
       child: ListView.builder(
         controller: _scroll,
+        // Tanpa ini, list yang isinya cuma 1-2 kartu (muat semua di layar tanpa perlu scroll)
+        // bikin gesture tarik-refresh tidak kedeteksi — ListView baru scrollable kalau kontennya
+        // meluber, defaultnya bukan `AlwaysScrollableScrollPhysics`.
+        physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
         // Infinite scroll tetap mengambil halaman berikutnya dari data mentah (`state.items`),
         // supaya kategori yang sedang difilter bisa kebagian baris baru begitu dimuat.
@@ -248,41 +252,58 @@ class _ReserveOrderListPageState extends State<ReserveOrderListPage> {
               ),
             );
           }
-          return _buildCard(items[index]);
+          return _buildCard(items[index], state.filters);
         },
       ),
     );
   }
 
+  // Dibungkus RefreshIndicator + scrollable juga (bukan cuma `_buildList`) supaya state kosong
+  // ("belum ada transaksi" / hasil filter kosong) & error tetap bisa ditarik-refresh, bukan cuma
+  // andalkan tombol "Retry". `LayoutBuilder` + `ConstrainedBox(minHeight: ...)` dipakai supaya
+  // pesannya tetap di tengah layar walau kontennya pendek (`Center` biasa tidak scrollable).
   Widget _buildMessage(String message, {String? action, VoidCallback? onAction}) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              message,
-              textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 12, color: Color(grey4Color)),
-            ),
-            if (action != null) ...[
-              const SizedBox(height: 10),
-              InkWell(
-                onTap: onAction,
-                child: Text(
-                  action,
-                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(primaryColor)),
+    return RefreshIndicator(
+      onRefresh: () => context.read<ReserveOrderListCubit>().refresh(),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          return SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            child: ConstrainedBox(
+              constraints: BoxConstraints(minHeight: constraints.maxHeight),
+              child: Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        message,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(fontSize: 12, color: Color(grey4Color)),
+                      ),
+                      if (action != null) ...[
+                        const SizedBox(height: 10),
+                        InkWell(
+                          onTap: onAction,
+                          child: Text(
+                            action,
+                            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(primaryColor)),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
                 ),
               ),
-            ],
-          ],
-        ),
+            ),
+          );
+        },
       ),
     );
   }
 
-  Widget _buildCard(ReserveOrder order) {
+  Widget _buildCard(ReserveOrder order, List<ReserveFilterOption> filters) {
     return InkWell(
       onTap: () => _openDetail(order),
       borderRadius: BorderRadius.circular(12),
@@ -310,7 +331,7 @@ class _ReserveOrderListPageState extends State<ReserveOrderListPage> {
                   ),
                 ),
                 const SizedBox(width: 8),
-                roStatusBadge(order.badgeLabel, order.status.color),
+                roStatusBadge(order.badgeLabelFrom(filters), order.badgeColorFrom(filters)),
               ],
             ),
             const SizedBox(height: 8),

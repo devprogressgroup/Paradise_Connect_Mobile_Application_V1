@@ -116,11 +116,7 @@ class _FakeReserveOrders implements ReserveOrderRemoteDataSource {
   }
 
   @override
-  Future<List<ReserveOrderAttachment>> getReserveAttachments({
-    required int reserveOrderId,
-    required int reserveOrderTtsId,
-  }) async =>
-      const [];
+  Future<List<ReserveOrderAttachment>> getReserveAttachments({required int reserveOrderId}) async => const [];
 
   @override
   Future<void> updateReserveCustomer({required int reserveOrderId, required Map<String, dynamic> data}) async {}
@@ -133,6 +129,14 @@ class _FakeReserveOrders implements ReserveOrderRemoteDataSource {
 
   @override
   Future<void> sendReserveNote({required int reserveOrderId, required String message}) async {}
+
+  @override
+  Future<List<ReserveOrderTimelineMilestone>> getReserveTimeline({
+    required int reserveOrderId,
+    required int contactId,
+    required int dealId,
+  }) async =>
+      const [];
 }
 
 late _FakeReserveOrders source;

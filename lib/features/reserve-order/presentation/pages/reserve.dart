@@ -528,8 +528,7 @@ class _ReservePageState extends State<ReservePage> {
     }
 
     AnalyticsService.logEvent('reserve_order_submit');
-    final cubit = context.read<ReserveOrderListCubit>();
-    final dataSource = cubit.dataSource;
+    final dataSource = context.read<ReserveOrderListCubit>().dataSource;
 
     setState(() => _submittingDocPayment = true);
 
@@ -539,7 +538,7 @@ class _ReservePageState extends State<ReservePage> {
     final catatan = catatanTC.text.trim();
 
     try {
-      final reserveOrderTtsId = await dataSource.submitDocPayment(DocPaymentParams(
+      await dataSource.submitDocPayment(DocPaymentParams(
         reserveOrderId: reserveOrderId,
         statusReserveId: statusReserveId,
         ttsAmountRp: _nominal ?? 0,
@@ -551,10 +550,6 @@ class _ReservePageState extends State<ReservePage> {
         buktiTransferBytes: [for (final proof in buktiTransferProofs) proof.bytes!],
         buktiTransferFileNames: [for (final proof in buktiTransferProofs) proof.name],
       ));
-      // Disimpan supaya tab "Attachment" di halaman Detail bisa memanggil `GET
-      // /api/reserve/attachment` — endpoint itu butuh `reserve_order_tts_id`, yang tidak ada di
-      // `GET /api/reserve` (list) sama sekali. Lihat `ReserveOrderListCubit.rememberTtsId`.
-      cubit.rememberTtsId(reserveOrderId, reserveOrderTtsId);
     } catch (e) {
       if (!mounted) return;
       setState(() => _submittingDocPayment = false);

@@ -1,14 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:progress_group/core/constants/colors.dart';
 import 'package:progress_group/core/services/analytics_service.dart';
+import 'package:progress_group/core/utils/helpers/error_message.dart';
 import 'package:progress_group/core/utils/helpers/number_helper.dart';
 import 'package:progress_group/core/utils/widget/custom_file_picker.dart';
 import 'package:progress_group/core/utils/widget/custom_snackbar.dart';
 import 'package:progress_group/core/utils/widget/thousands_input_formatter.dart';
+import 'package:progress_group/features/reserve-order/data/datasources/reserve_order_remote_datasource.dart';
 import 'package:progress_group/features/reserve-order/data/models/reserve_order_model.dart';
 import 'package:progress_group/features/reserve-order/presentation/pages/widgets.dart';
+import 'package:progress_group/features/reserve-order/presentation/state/reserve_order_list/reserve_order_list_cubit.dart';
 
 /// Top Up Pembayaran — Bagian 3 mockup, kolom "Top Up Pembayaran" & "Top Up Diajukan".
 ///
@@ -240,13 +244,35 @@ class _ReserveOrderTopUpPageState extends State<ReserveOrderTopUpPage> {
       showSnackbar(context, 'Top up amount is required', isError: true);
       return;
     }
+    final reserveOrderId = int.tryParse(order.id);
+    if (reserveOrderId == null) {
+      showSnackbar(context, 'Reserve order not recognized, please start over', isError: true);
+      return;
+    }
 
     AnalyticsService.logEvent('reserve_order_top_up_submit');
     setState(() => _submitting = true);
 
-    // Berdiri di tempat panggilan `POST /api/reserve/top-up` nanti; sekarang perubahannya cuma
-    // ditulis ke objek transaksi di memori.
-    await Future.delayed(const Duration(milliseconds: 400));
+    final proof = _proof!;
+    final catatan = catatanTC.text.trim();
+
+    try {
+      // Beda dari `_uploadExtraDoc` (tab Attachment di halaman Detail): Top Up bikin TTS BARU
+      // (sama seperti submit awal di reserve.dart), bukan menambah dokumen ke TTS yang sudah ada —
+      // jadi `reserveOrderTtsId` SENGAJA tidak dikirim, sesuai instruksi eksplisit.
+      await context.read<ReserveOrderListCubit>().dataSource.submitDocPayment(DocPaymentParams(
+            reserveOrderId: reserveOrderId,
+            ttsAmountRp: nominal,
+            note: catatan.isEmpty ? null : catatan,
+            buktiTransferBytes: [proof.bytes!],
+            buktiTransferFileNames: [proof.name],
+          ));
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _submitting = false);
+      showSnackbar(context, cleanErrorMessage(e), isError: true);
+      return;
+    }
     if (!mounted) return;
 
     _applyTopUp(nominal);

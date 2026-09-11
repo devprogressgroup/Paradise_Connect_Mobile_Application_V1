@@ -148,18 +148,4 @@ class ReserveOrderListCubit extends Cubit<ReserveOrderListState> {
   }
 
   Future<void> refresh() => load();
-
-  /// Cache di memori: `reserve_order_id` -> `reserve_order_tts_id` yang baru dibuat lewat
-  /// `submitDocPayment()` di form Reserve (`reserve.dart` `_onSubmit`). Dipakai tab "Attachment" di
-  /// halaman Detail (`GET /api/reserve/attachment` butuh keduanya) — `GET /api/reserve` (list) tidak
-  /// membawa `reserve_order_tts_id` sama sekali, dan satu reserve order bisa punya banyak TTS. Cuma
-  /// menutupi reserve order yang dokumennya dikirim lewat app ini di sesi yang sama; hilang saat app
-  /// di-restart karena belum ada endpoint buat menelusuri riwayat TTS dari `reserve_order_id` saja.
-  final Map<int, int> _ttsIdByReserveOrderId = {};
-
-  void rememberTtsId(int reserveOrderId, int reserveOrderTtsId) {
-    _ttsIdByReserveOrderId[reserveOrderId] = reserveOrderTtsId;
-  }
-
-  int? ttsIdFor(int reserveOrderId) => _ttsIdByReserveOrderId[reserveOrderId];
 }

@@ -121,10 +121,7 @@ class _FakeReserveOrders implements ReserveOrderRemoteDataSource {
   }
 
   @override
-  Future<List<ReserveOrderAttachment>> getReserveAttachments({
-    required int reserveOrderId,
-    required int reserveOrderTtsId,
-  }) async {
+  Future<List<ReserveOrderAttachment>> getReserveAttachments({required int reserveOrderId}) async {
     throw UnimplementedError('tidak dipakai di test flow Reserve');
   }
 
@@ -143,6 +140,15 @@ class _FakeReserveOrders implements ReserveOrderRemoteDataSource {
 
   @override
   Future<void> sendReserveNote({required int reserveOrderId, required String message}) async {
+    throw UnimplementedError('tidak dipakai di test flow Reserve');
+  }
+
+  @override
+  Future<List<ReserveOrderTimelineMilestone>> getReserveTimeline({
+    required int reserveOrderId,
+    required int contactId,
+    required int dealId,
+  }) async {
     throw UnimplementedError('tidak dipakai di test flow Reserve');
   }
 }

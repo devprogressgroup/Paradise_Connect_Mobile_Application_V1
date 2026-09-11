@@ -32,13 +32,12 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage> {
   final noteTC = TextEditingController();
   bool _loadingBuyer = true;
   List<CaraBayarOption> _caraBayarOptions = const [];
-  /// Judul section tab "Customer" yang lagi ditutup — kosong berarti semuanya kebuka (default).
   final Set<String> _collapsedBuyerSections = {};
 
   List<ReserveOrderAttachment> _attachments = [];
   bool _loadingAttachments = false;
-  // true kalau `reserve_order_tts_id`-nya tidak diketahui (lihat _loadAttachments) — beda dari
-  // "sudah dicek ke server, memang belum ada dokumen" supaya pesannya tidak menyesatkan.
+  // true kalau `order.id` gagal di-parse jadi int — praktis tidak pernah kejadian (selalu angka
+  // dari `reserve_order_id`), tapi tetap dijaga daripada nge-throw diam-diam.
   bool _attachmentsUnavailable = false;
   bool _uploadingExtraDoc = false;
 
@@ -54,6 +53,25 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage> {
     _loadBuyerDetail();
     _loadAttachments();
     _loadNotes();
+    _loadTimeline();
+  }
+
+  Future<void> _loadTimeline() async {
+    final reserveOrderId = int.tryParse(order.id);
+    final contactId = order.contactId;
+    final dealId = order.dealId;
+    if (reserveOrderId == null || contactId == null || dealId == null) return;
+
+    try {
+      final milestones = await context.read<ReserveOrderListCubit>().dataSource.getReserveTimeline(
+            reserveOrderId: reserveOrderId,
+            contactId: contactId,
+            dealId: dealId,
+          );
+      if (!mounted || milestones.isEmpty) return;
+      setState(() => order.applyTimeline(milestones));
+    } catch (_) {
+    }
   }
 
   Future<void> _loadBuyerDetail() async {
@@ -70,7 +88,6 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage> {
       order.applyCustomerDetail(detail, caraBayarOptions);
       _caraBayarOptions = caraBayarOptions;
     } catch (_) {
-      // Diamkan — lihat catatan di atas.
     } finally {
       if (mounted) setState(() => _loadingBuyer = false);
     }
@@ -78,33 +95,26 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage> {
 
   Future<void> _loadAttachments() async {
     final reserveOrderId = int.tryParse(order.id);
-    final cubit = context.read<ReserveOrderListCubit>();
-    final reserveOrderTtsId = reserveOrderId == null ? null : cubit.ttsIdFor(reserveOrderId);
-
-    if (reserveOrderId == null || reserveOrderTtsId == null) {
+    if (reserveOrderId == null) {
       setState(() => _attachmentsUnavailable = true);
       return;
     }
 
     setState(() => _loadingAttachments = true);
     try {
-      final attachments = await cubit.dataSource.getReserveAttachments(
-        reserveOrderId: reserveOrderId,
-        reserveOrderTtsId: reserveOrderTtsId,
-      );
+      // Cuma `reserve_order_id` — TANPA `reserve_order_tts_id`, supaya dokumen dari SEMUA TTS
+      // reserve order ini ikut tampil, bukan cuma TTS yang paling baru diketahui (lihat catatan di
+      // `ReserveOrderRemoteDataSource.getReserveAttachments`).
+      final attachments = await context.read<ReserveOrderListCubit>().dataSource.getReserveAttachments(
+            reserveOrderId: reserveOrderId,
+          );
       if (mounted) setState(() => _attachments = attachments);
     } catch (_) {
-      // Diamkan — tab tetap tampil "Belum ada dokumen." daripada memblokir halaman.
     } finally {
       if (mounted) setState(() => _loadingAttachments = false);
     }
   }
 
-  /// Tab "Notes" — `GET /api/reserve/notes?reserve_order_id=…`. Dipetakan ke [ReserveOrderNote]
-  /// (bukan disimpan sebagai list terpisah) supaya satu jalur dengan catatan lokal yang ditambah
-  /// `revise.dart`/`top_up.dart`/[_sendNote]. Kalau responsnya kosong, catatan lokal yang sudah ada
-  /// (mis. dari `reserve_note` di `GET /api/reserve`) DIBIARKAN, bukan ditimpa kosong — endpoint
-  /// ini baru dianggap sumber utama begitu benar-benar mengembalikan sesuatu.
   Future<void> _loadNotes() async {
     final reserveOrderId = int.tryParse(order.id);
     if (reserveOrderId == null) return;
@@ -127,7 +137,6 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage> {
         });
       }
     } catch (_) {
-      // Diamkan — tab tetap tampil catatan lokal (kalau ada) daripada memblokir halaman.
     } finally {
       if (mounted) setState(() => _loadingNotes = false);
     }
@@ -137,6 +146,16 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage> {
   void dispose() {
     noteTC.dispose();
     super.dispose();
+  }
+
+  Future<void> _onRefresh() {
+    AnalyticsService.logEvent('reserve_order_detail_refresh');
+    return switch (_tab) {
+      _RoTab.perjalanan => _loadTimeline(),
+      _RoTab.pembeli => _loadBuyerDetail(),
+      _RoTab.attachment => _loadAttachments(),
+      _RoTab.catatan => _loadNotes(),
+    };
   }
 
   @override
@@ -156,24 +175,28 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage> {
               },
             ),
             Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(14, 12, 14, 20),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildHeader(),
-                    _buildQuickContact(),
-                    if (order.statusText != null) _buildStatusBox(),
-                    if (order.isRejected) ...[
-                      const SizedBox(height: 10),
-                      roRejectBanner(order.rejectReason!),
-                      customButton(_openRevise, 'Edit & Resubmit'),
+              child: RefreshIndicator(
+                onRefresh: _onRefresh,
+                child: SingleChildScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  padding: const EdgeInsets.fromLTRB(14, 12, 14, 20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildHeader(),
+                      _buildQuickContact(),
+                      if (order.statusText != null) _buildStatusBox(),
+                      if (order.isRejected) ...[
+                        const SizedBox(height: 10),
+                        roRejectBanner(order.rejectReason!),
+                        customButton(_openRevise, 'Edit & Resubmit'),
+                      ],
+                      const SizedBox(height: 12),
+                      _buildTabBar(),
+                      const SizedBox(height: 12),
+                      _buildTabContent(),
                     ],
-                    const SizedBox(height: 12),
-                    _buildTabBar(),
-                    const SizedBox(height: 12),
-                    _buildTabContent(),
-                  ],
+                  ),
                 ),
               ),
             ),
@@ -453,7 +476,6 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage> {
 
   Widget _buildTimelineNote(ReserveOrderTimelineNote note) {
     return Container(
-      width: double.infinity,
       margin: const EdgeInsets.only(top: 5),
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
       decoration: BoxDecoration(color: const Color(grey11Color), borderRadius: BorderRadius.circular(8)),
@@ -489,14 +511,8 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage> {
     );
   }
 
-  /// Tab "Customer" — field lengkap sesuai [reserveCustomerFieldSections] (bukan cuma 5 ringkas di
-  /// [ReserveOrder.buyer]), dikelompokkan per section sama seperti `ReserveOrderEditCustomerPage`.
-  /// Field biasa selalu ditampilkan walau datanya kosong ("-"); slot bernomor (Mobile Phone 1/2/3,
-  /// Email 1/2, dst — lihat [reserveCustomerFieldSections]) cuma ditampilkan satu baris tanpa
-  /// angka kalau cuma satu yang keisi, atau semua baris yang keisi (skip yang kosong) kalau lebih
-  /// dari satu — lihat [_buildSlotRows].
   Widget _buildBuyer() {
-    if (_loadingBuyer) {
+    if (_loadingBuyer && order.customerDetail == null) {
       return const Padding(
         padding: EdgeInsets.symmetric(vertical: 24),
         child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
@@ -538,8 +554,6 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage> {
     );
   }
 
-  /// Null kalau [key] bukan slot pertama satu grup di [reserveCustomerSlotGroups] — dipakai
-  /// [_buildBuyer] biar tiap grup cuma dirender sekali, persis di posisi slot pertamanya.
   ReserveCustomerSlotGroup? _firstSlotKeyOf(String key) {
     for (final group in reserveCustomerSlotGroups) {
       if (group.keys.first == key) return group;
@@ -639,9 +653,6 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage> {
     );
   }
 
-  // Slot tetap yang selalu tampil di tab Attachment terlepas dari ada/tidaknya datanya (biar
-  // sales tahu dokumen apa saja yang wajib ada) — dicocokkan ke `_attachments` lewat nama
-  // `attachment_type_name` dari server, mirip pencocokan `ReserveAttachmentCubit._findTypeId`.
   static const _fixedDocTypes = [
     (label: 'KTP', icon: Icons.badge_outlined, keywords: ['ktp']),
     (label: 'NPWP', icon: Icons.description_outlined, keywords: ['npwp']),
@@ -649,15 +660,13 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage> {
   ];
 
   Widget _buildAttachment() {
-    if (_loadingAttachments) {
+    if (_loadingAttachments && _attachments.isEmpty) {
       return const Padding(
         padding: EdgeInsets.symmetric(vertical: 24),
         child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
       );
     }
 
-    // Status buat slot yang belum ketemu attachment-nya: dibedakan dari "memang belum upload"
-    // supaya tidak menyesatkan pas datanya sebenarnya tidak bisa dicek (lihat _attachmentsUnavailable).
     final missingStatus = _attachmentsUnavailable ? 'Status not available' : 'Not uploaded yet';
 
     final matched = <ReserveOrderAttachment>{};
@@ -873,8 +882,6 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage> {
       return;
     }
 
-    // ContactDetailPage memuat ulang detail & aktivitasnya dari server berbekal contactId; field
-    // lain diisi seadanya supaya header-nya tidak kosong selagi data lengkapnya dimuat.
     context.pushNamed(
       'detailContact',
       extra: ContactDetailArgs(
@@ -908,8 +915,6 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage> {
       queryParameters: highlightKey == null ? const {} : {'field': highlightKey},
     );
     if (!mounted) return;
-    // Snackbar-nya ditampilkan di sini (bukan di `ReserveOrderEditCustomerPage` sebelum `pop()`)
-    // supaya sempat kelihatan — kalau ditampilkan sebelum pindah halaman, keburu ketutup transisi.
     if (saved == true) showSnackbar(context, 'Customer data updated.');
     setState(() {});
   }
@@ -922,12 +927,14 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage> {
     showSnackbar(context, 'Document preview is available once the file is saved on the server.');
   }
 
-  /// Sudah ada attachment tersimpan buat tipe [label] (dicocokkan lewat [_fixedDocTypes], sama
-  /// seperti [_buildAttachment]) — NPWP cuma 1 file, jadi kalau sudah ada tidak ditawarkan lagi di
-  /// [_uploadExtraDoc].
   bool _hasAttachmentOfType(String label) {
     final type = _fixedDocTypes.firstWhere((t) => t.label == label);
     return _attachments.any((a) => type.keywords.any((k) => a.attachmentTypeName.toLowerCase().contains(k)));
+  }
+
+  int? get _latestAttachmentTtsId {
+    final ids = _attachments.map((a) => a.reserveOrderTtsId).whereType<int>();
+    return ids.isEmpty ? null : ids.reduce((a, b) => a > b ? a : b);
   }
 
   Future<String?> _pickDocType(List<String> options) {
@@ -942,10 +949,6 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage> {
     return completer.future;
   }
 
-  /// Kirim ulang lewat endpoint yang sama dengan submit awal (`POST /api/reserve/doc-payment`,
-  /// [ReserveOrderRemoteDataSource.submitDocPayment]) — tapi cuma nambah 1 file pendukung, bukan
-  /// transaksi pembayaran baru, jadi `status_reserve_id`/`tts_amount_rp` sengaja di-OMIT total dari
-  /// [DocPaymentParams] (bukan dikirim `0`) sesuai instruksi eksplisit.
   Future<void> _uploadExtraDoc() async {
     if (_uploadingExtraDoc) return;
 
@@ -963,17 +966,16 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage> {
 
     setState(() => _uploadingExtraDoc = true);
     try {
-      final cubit = context.read<ReserveOrderListCubit>();
-      final reserveOrderTtsId = await cubit.dataSource.submitDocPayment(DocPaymentParams(
-        reserveOrderId: reserveOrderId,
-        ktpBytes: docType == 'KTP' ? [picked.bytes!] : const [],
-        ktpFileNames: docType == 'KTP' ? [picked.name] : const [],
-        npwpBytes: docType == 'NPWP' ? picked.bytes : null,
-        npwpFileName: docType == 'NPWP' ? picked.name : null,
-        buktiTransferBytes: docType == 'Bukti Transfer' ? [picked.bytes!] : const [],
-        buktiTransferFileNames: docType == 'Bukti Transfer' ? [picked.name] : const [],
-      ));
-      cubit.rememberTtsId(reserveOrderId, reserveOrderTtsId);
+      await context.read<ReserveOrderListCubit>().dataSource.submitDocPayment(DocPaymentParams(
+            reserveOrderId: reserveOrderId,
+            reserveOrderTtsId: _latestAttachmentTtsId,
+            ktpBytes: docType == 'KTP' ? [picked.bytes!] : const [],
+            ktpFileNames: docType == 'KTP' ? [picked.name] : const [],
+            npwpBytes: docType == 'NPWP' ? picked.bytes : null,
+            npwpFileName: docType == 'NPWP' ? picked.name : null,
+            buktiTransferBytes: docType == 'Bukti Transfer' ? [picked.bytes!] : const [],
+            buktiTransferFileNames: docType == 'Bukti Transfer' ? [picked.name] : const [],
+          ));
       if (!mounted) return;
       setState(() => _attachmentsUnavailable = false);
       await _loadAttachments();
@@ -1001,8 +1003,6 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage> {
       final cubit = context.read<ReserveOrderListCubit>();
       await cubit.dataSource.sendReserveNote(reserveOrderId: reserveOrderId, message: text);
       noteTC.clear();
-      // Muat ulang dari `GET /api/reserve/notes` (bukan tambah lokal) supaya pesannya kembali
-      // dengan `sender_name`/waktu asli dari server, bukan tebakan `author: 'me'`.
       await _loadNotes();
     } catch (e) {
       if (mounted) showSnackbar(context, cleanErrorMessage(e), isError: true);
