@@ -470,7 +470,13 @@ class ReserveOrderAttachment {
   final String attachmentNote;
   final DateTime? createDatetime;
   final String? createUserName;
+
+  /// Null/`"pending"` = belum diperiksa, `"approved"` = disetujui, `"rejected"` = ditolak — dipakai
+  /// [ReserveOrderDetailPage._stateFor] buat menentukan warna & badge di tab Attachment.
   final String? verificationStatus;
+  final String? verificationNote;
+  final String? verifiedByName;
+  final DateTime? verifiedAt;
 
   /// TTS yang menaungi dokumen ini — dipakai halaman Detail buat mengisi
   /// `DocPaymentParams.reserveOrderTtsId` saat upload dokumen tambahan dari tab Attachment
@@ -485,6 +491,9 @@ class ReserveOrderAttachment {
     this.createDatetime,
     this.createUserName,
     this.verificationStatus,
+    this.verificationNote,
+    this.verifiedByName,
+    this.verifiedAt,
     this.reserveOrderTtsId,
   });
 
@@ -499,6 +508,9 @@ class ReserveOrderAttachment {
       createDatetime: DateTime.tryParse('${json['create_datetime']}'),
       createUserName: _text(json['create_user_name']),
       verificationStatus: _text(json['verification_status']),
+      verificationNote: _text(json['verification_note']),
+      verifiedByName: _text(json['verified_by_name']),
+      verifiedAt: _parseDate(json['verified_at']),
       reserveOrderTtsId: _int(json['reserve_order_tts_id']),
     );
   }
@@ -748,10 +760,13 @@ class ReserveOrder {
   void applyTimeline(List<ReserveOrderTimelineMilestone> milestones) {
     if (milestones.isEmpty) return;
     final core = milestones.take(reserveStageLabels.length).toList();
-    // Tahap TERAKHIR yang beneran sudah terjadi (ada aktivitasnya) -> semua sebelum & termasuk itu
-    // jadi "done", satu setelahnya jadi "active" (berjalan), sisanya "todo". -1+1=0 kalau belum ada
-    // satu pun yang reached (L1 jadi active).
-    final reached = core.lastIndexWhere((m) => m.isReached) + 1;
+    // Titiknya BERHENTI di tahap terakhir yang punya tanggal (bukan lompat ke tahap setelahnya) —
+    // semua sebelumnya jadi "done", tahap itu sendiri jadi "active", sisanya "todo". Kalau tengahnya
+    // ada yang kosong (mis. Appt belum dicatat) tapi tahap SETELAHNYA sudah keisi (mis. Visit),
+    // yang kosong itu ikut ke-"loncatin" jadi "done" juga — bukan tetap tampil todo/aktif duluan.
+    // -1 (belum ada satu pun yang reached) dianggap 0 supaya L1 jadi active secara default.
+    final lastReachedIndex = core.lastIndexWhere((m) => m.isReached);
+    final reached = lastReachedIndex < 0 ? 0 : lastReachedIndex;
 
     journey
       ..clear()
@@ -897,10 +912,10 @@ class ReserveOrderTimelineMilestone {
   /// snapshot `reserve_order` (L4 Reserve, L5 Reserve Booking, L6 SP di contoh respons).
   final String? reserveNote;
 
-  /// Tahap ini beneran sudah terjadi — dari `activity`/`activity_id` terisi, BUKAN dari field
-  /// tanggal (`last_akad_date`/`last_lost_date` di contoh respons kadang keisi tanggal yang sama
-  /// walau tahapnya jelas belum tercapai — sepertinya tanggal "terakhir disentuh" umum, bukan
-  /// tanggal tahap itu beneran selesai, jadi tidak bisa dipercaya buat status "reached").
+  /// Tahap ini beneran sudah terjadi — dari [date] terisi (baik dari `activity.activity_date`
+  /// maupun field tanggal fallback-nya sendiri, mis. `last_visit_date`). Beberapa tahap di tengah
+  /// bisa saja kosong (mis. Appt belum dicatat) sementara tahap SETELAHNYA sudah keisi (mis.
+  /// Visit) — itu tetap dianggap "reached" (lompat), lihat [ReserveOrder.applyTimeline].
   final bool isReached;
 
   const ReserveOrderTimelineMilestone({
@@ -919,13 +934,14 @@ class ReserveOrderTimelineMilestone {
       (k) => k != 'milestone' && k.toLowerCase().contains('date'),
       orElse: () => '',
     );
+    final date = _parseDate(activity?['activity_date']) ?? (fallbackDateKey.isEmpty ? null : _parseDate(json[fallbackDateKey]));
 
     return ReserveOrderTimelineMilestone(
       milestone: _text(json['milestone']) ?? '-',
-      date: _parseDate(activity?['activity_date']) ?? (fallbackDateKey.isEmpty ? null : _parseDate(json[fallbackDateKey])),
+      date: date,
       activityNote: _text(activity?['notes']),
       reserveNote: _text(reserveOrder?['reserve_note']),
-      isReached: activity != null,
+      isReached: date != null,
     );
   }
 

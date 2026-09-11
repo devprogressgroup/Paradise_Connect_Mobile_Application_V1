@@ -523,7 +523,7 @@ void main() {
     expect(find.text('Sudah saya follow up ke customer'), findsOneWidget);
   });
 
-  testWidgets('tab Attachment menampilkan dokumen dari GET /api/reserve/attachment, & bisa dibuka', (tester) async {
+  testWidgets('tab Attachment menampilkan status verifikasi & sheet detail sebelum buka dokumen', (tester) async {
     source.attachmentsByKey[5] = [
       ReserveOrderAttachment(
         contactAttachmentId: 316,
@@ -532,6 +532,10 @@ void main() {
         attachmentNote: 'Reserve Order #5 · TTS #42',
         createDatetime: DateTime(2026, 9, 9),
         createUserName: 'iman',
+        verificationStatus: 'approved',
+        verificationNote: 'coba approve bukti tf',
+        verifiedByName: 'iman',
+        verifiedAt: DateTime(2026, 9, 11, 8, 7),
       ),
     ];
 
@@ -542,16 +546,23 @@ void main() {
     await tester.pumpAndSettle();
 
     // KTP & NPWP tetap tampil sebagai slot kosong (bukan hilang) karena belum ada attachment yang
-    // cocok, sedangkan Bukti Transfer terisi datanya.
+    // cocok, sedangkan Bukti Transfer terisi datanya dengan status "Approved" (dari verification_status).
     expect(find.text('KTP'), findsOneWidget);
     expect(find.text('NPWP'), findsOneWidget);
     expect(find.text('Not uploaded yet'), findsNWidgets(2));
     expect(find.text('Bukti Transfer'), findsOneWidget);
-    expect(find.textContaining('Uploaded by iman'), findsOneWidget);
+    expect(find.textContaining('Approved'), findsOneWidget);
     expect(find.textContaining('09 Sep 2026'), findsOneWidget);
 
-    // Tap kartunya membuka preview lewat route `attachmentWebView`, bawa `attachment_url`-nya.
+    // Tap kartunya buka sheet ringkasan (status + catatan verifikator) dulu — bukan langsung file.
     await tester.tap(find.text('Bukti Transfer'));
+    await tester.pumpAndSettle();
+    expect(find.text('coba approve bukti tf'), findsOneWidget);
+    expect(find.text('View Document'), findsOneWidget);
+
+    // Baru dari tombol "View Document" pindah ke preview lewat route `attachmentWebView`, bawa
+    // `attachment_url`-nya.
+    await tester.tap(find.text('View Document'));
     await tester.pumpAndSettle();
     expect(find.text('Preview Attachment'), findsOneWidget);
     expect(find.textContaining('drive.google.com'), findsOneWidget);

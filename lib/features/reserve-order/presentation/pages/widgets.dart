@@ -278,8 +278,12 @@ Widget roDocTile(ReserveOrderDoc doc, {VoidCallback? onTap}) {
               ],
             ),
           ),
-          if (doc.state == ReserveOrderDocState.uploaded)
-            const Icon(Icons.check, size: 16, color: Color(successColor)),
+          switch (doc.state) {
+            ReserveOrderDocState.uploaded => const Icon(Icons.check, size: 16, color: Color(successColor)),
+            ReserveOrderDocState.pending => const Icon(Icons.schedule, size: 16, color: Color(warningColor)),
+            ReserveOrderDocState.rejected => const Icon(Icons.close, size: 16, color: Color(redColor)),
+            ReserveOrderDocState.awaitingUpload || ReserveOrderDocState.issued => const SizedBox.shrink(),
+          },
         ],
       ),
     ),

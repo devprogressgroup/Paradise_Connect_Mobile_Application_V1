@@ -8,6 +8,7 @@ import 'package:progress_group/core/constants/colors.dart';
 import 'package:progress_group/core/services/analytics_service.dart';
 import 'package:progress_group/core/utils/helpers/error_message.dart';
 import 'package:progress_group/core/utils/widget/custom_button.dart';
+import 'package:progress_group/core/utils/widget/custom_buttomsheet.dart';
 import 'package:progress_group/core/utils/widget/custom_file_picker.dart';
 import 'package:progress_group/core/utils/widget/custom_snackbar.dart';
 import 'package:progress_group/features/contact/data/arguments/contact_detail_args.dart';
@@ -702,27 +703,128 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage> {
     );
   }
 
+  /// null/`"pending"` -> `pending` (kuning, "Pending Verification"); `"approved"` -> `uploaded`
+  /// (centang hijau, sama seperti tampilan dokumen biasa); `"rejected"` -> `rejected` (merah).
+  ReserveOrderDocState _stateFor(String? verificationStatus) => switch (verificationStatus?.toLowerCase()) {
+        'approved' => ReserveOrderDocState.uploaded,
+        'rejected' => ReserveOrderDocState.rejected,
+        _ => ReserveOrderDocState.pending,
+      };
+
+  String _statusLabelFor(ReserveOrderDocState state) => switch (state) {
+        ReserveOrderDocState.uploaded => 'Approved',
+        ReserveOrderDocState.rejected => 'Rejected',
+        _ => 'Pending Verification',
+      };
+
   ReserveOrderDoc _docFrom(ReserveOrderAttachment attachment) {
+    final state = _stateFor(attachment.verificationStatus);
     final uploadedAt = attachment.createDatetime != null ? DateFormat('dd MMM yyyy', 'id_ID').format(attachment.createDatetime!) : null;
     final status = [
-      if (attachment.createUserName != null) 'Uploaded by ${attachment.createUserName}',
+      _statusLabelFor(state),
+      if (attachment.createUserName != null) 'by ${attachment.createUserName}',
       if (uploadedAt != null) uploadedAt,
     ].join(' · ');
 
     return ReserveOrderDoc(
       icon: Icons.insert_drive_file_outlined,
       name: attachment.attachmentTypeName,
-      status: status.isEmpty ? 'Saved on server' : status,
-      state: ReserveOrderDocState.uploaded,
+      status: status,
+      state: state,
     );
   }
 
+  /// Tap dokumen di tab Attachment — bukan langsung buka file, tapi tampil sheet ringkasan
+  /// (status verifikasi + catatan verifikator kalau ada) dulu, baru dari situ ada tombol buat
+  /// benar-benar buka filenya lewat [_openAttachmentUrl].
   void _openAttachment(ReserveOrderAttachment attachment) {
+    AnalyticsService.logEvent('reserve_order_detail_open_attachment');
+    showCustomBottomSheet(context: context, child: _buildAttachmentSheet(attachment));
+  }
+
+  Widget _buildAttachmentSheet(ReserveOrderAttachment attachment) {
+    final state = _stateFor(attachment.verificationStatus);
+    final statusColor = switch (state) {
+      ReserveOrderDocState.uploaded => const Color(successColor),
+      ReserveOrderDocState.rejected => const Color(redColor),
+      _ => const Color(warningColor),
+    };
+    // Format sama dengan yang dipakai di tile (`_docFrom`) buat tanggal upload, dan format
+    // "dd MMM, HH:mm" yang sudah jadi standar buat timestamp catatan di halaman ini (lihat
+    // `_loadNotes`/`ReserveOrderTimelineNote.time`).
+    final uploadedAt = attachment.createDatetime != null ? DateFormat('dd MMM yyyy', 'id_ID').format(attachment.createDatetime!) : null;
+    final verifiedAt = attachment.verifiedAt != null ? DateFormat('dd MMM, HH:mm').format(attachment.verifiedAt!) : null;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: Text(
+                attachment.attachmentTypeName,
+                style: const TextStyle(fontSize: 14.5, fontWeight: FontWeight.w700, color: Color(blue2Color)),
+              ),
+            ),
+            const SizedBox(width: 8),
+            roStatusBadge(_statusLabelFor(state), statusColor),
+          ],
+        ),
+        if (attachment.createUserName != null || uploadedAt != null) ...[
+          const SizedBox(height: 4),
+          Text(
+            [
+              if (attachment.createUserName != null) 'Uploaded by ${attachment.createUserName}',
+              if (uploadedAt != null) uploadedAt,
+            ].join(' · '),
+            style: const TextStyle(fontSize: 11, color: Color(grey4Color)),
+          ),
+        ],
+        if (attachment.verificationNote != null) ...[
+          const SizedBox(height: 12),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(color: const Color(grey11Color), borderRadius: BorderRadius.circular(10)),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Verifier note',
+                  style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w700, color: Color(grey1Color)),
+                ),
+                const SizedBox(height: 3),
+                Text(attachment.verificationNote!, style: const TextStyle(fontSize: 12, color: Color(roNoteTextColor))),
+                if (attachment.verifiedByName != null || verifiedAt != null) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    [
+                      if (attachment.verifiedByName != null) 'by ${attachment.verifiedByName}',
+                      if (verifiedAt != null) verifiedAt,
+                    ].join(' · '),
+                    style: const TextStyle(fontSize: 10, color: Color(grey4Color)),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+        const SizedBox(height: 16),
+        roPrimaryButton('View Document', () {
+          Navigator.pop(context);
+          _openAttachmentUrl(attachment);
+        }),
+      ],
+    );
+  }
+
+  void _openAttachmentUrl(ReserveOrderAttachment attachment) {
     if (attachment.attachmentUrl.isEmpty) {
       showSnackbar(context, 'Document link not available');
       return;
     }
-    AnalyticsService.logEvent('reserve_order_detail_open_attachment');
     context.pushNamed('attachmentWebView', extra: attachment.attachmentUrl);
   }
 
