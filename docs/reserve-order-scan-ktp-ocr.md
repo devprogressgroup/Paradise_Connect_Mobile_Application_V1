@@ -1,4 +1,4 @@
-# Reserve Order — Flow Sales (Data Pembeli → Dokumen → Unit → Review → Sukses)
+# Reserve Order — Flow Sales (Data Pembeli → Unit → Dokumen → Review → Sukses)
 
 Sumber desain: [reserve-order-sales-final_12.html](reserve-order-sales-final_12.html) **Bagian 2 —
 Proses Reserve/Booking Reserve** (file mockup ada di root repo). Dokumen ini mencatat implementasi
@@ -13,20 +13,20 @@ sekarang):
 
 1. **1/4 Pembeli** — tombol **Scan KTP** (OCR mengisi field di bawahnya otomatis), lalu Nama
    Lengkap, No. KTP, "Tempat, Tanggal Lahir", Alamat sesuai KTP, Status Pernikahan (sheet
-   pilihan), Pekerjaan, Cara Pembayaran (sheet pilihan). Tombol **Lanjut ke Dokumen**.
-2. **2/4 Dokumen** — bagian *Dokumen Identitas* (KTP wajib, NPWP opsional) dan *Bukti Bayar*
+   pilihan), Pekerjaan, Cara Pembayaran (sheet pilihan). Tombol **Lanjut ke Pilih Unit**.
+2. **2/4 Unit** — daftar kavling dengan kotak pencarian "Cari blok / no. unit…", checkbox
+   **multi-pilih**, dan badge status. Footer menampilkan "N unit dipilih" + **Lanjut ke Dokumen**.
+3. **3/4 Dokumen** — bagian *Dokumen Identitas* (KTP wajib, NPWP opsional) dan *Bukti Bayar*
    (bisa lebih dari satu lewat **+ Tambah Bukti Bayar Lain**), lalu **Jenis Transaksi**
    (chip: Reserve / Booking Reserve (langsung)), **Nominal Pembayaran**, dan **Catatan**.
-   Tombol **Lanjut ke Pilih Unit**.
-3. **3/4 Unit** — daftar kavling dengan kotak pencarian "Cari blok / no. unit…", checkbox
-   **multi-pilih**, dan badge status. Footer menampilkan "N unit dipilih" + **Lanjut ke Review**.
-4. **4/4 Review** — ringkasan (Kontak, Data Pembeli, Dokumen, Jenis Transaksi, Nominal & Catatan)
-   + kartu per unit terpilih. Tombol **Submit Reserve Order**.
+   Tombol **Lanjut ke Tinjau**.
+4. **4/4 Review** — ringkasan (Customer, Dokumen, Jenis Transaksi, Nominal & Catatan) + kartu per
+   unit terpilih. Tombol **Submit Reserve Order**.
 5. **Sukses** — ikon centang, "Reserve Order Berhasil Diajukan", kartu unit + badge **Diproses**,
    tombol **Lihat di Reserve Order** dan **Kembali ke Kontak**.
 
-Judul app bar mengikuti mockup: step 1-2 "Reserve Order — <nama kontak>" + nomor HP di bawahnya,
-step 3 "Pilih Unit", step 4 "Review Reserve Order". Tombol back (header maupun tombol back sistem)
+Judul app bar mengikuti mockup: step 1 & 3 "Reserve Order — <nama kontak>" + nomor HP di bawahnya,
+step 2 "Pilih Unit", step 4 "Review Reserve Order". Tombol back (header maupun tombol back sistem)
 mundur **satu** step; di layar sukses tidak ada jalan mundur.
 
 ## Validasi tiap step
@@ -34,8 +34,8 @@ mundur **satu** step; di layar sukses tidak ada jalan mundur.
 | Step | Syarat lanjut |
 |---|---|
 | Pembeli | Nama lengkap terisi; No. KTP tepat 16 digit |
-| Dokumen | Lampiran KTP ada; minimal 1 bukti bayar; nominal > 0 |
 | Unit | Minimal 1 unit dipilih |
+| Dokumen | Lampiran KTP ada; minimal 1 bukti bayar; nominal > 0 |
 | Review | — (langsung submit) |
 
 NPWP & catatan opsional. Semua pesan gagal keluar sebagai snackbar, tidak memindahkan step.
@@ -62,67 +62,95 @@ Perlakuan hasilnya:
   hubung ("BELUM KAWIN" → "Belum Kawin").
 - Field hasil OCR yang **tidak** ada di form ini (agama, jenis kelamin, kecamatan, kabupaten)
   ikut dibawa keluar flow lewat `ReserveResult.ktpOcr` supaya tidak hilang.
-- Foto KTP-nya sekaligus dipakai sebagai lampiran dokumen KTP di step 2 — tidak perlu unggah dua
+- Foto KTP-nya sekaligus dipakai sebagai lampiran dokumen KTP di step 3 — tidak perlu unggah dua
   kali.
 
-## Daftar unit (step 3) — `GET /api/reserve/unit-status`
+## Daftar unit (step 2) — dua sumber terpisah
 
-Daftar kavling di step ini adalah unit (satu baris per **deal**) milik kontak yang sedang dibuatkan
-Reserve Order-nya — dicari & dipaginasi di server: `GET /api/reserve/unit-status?contact_id=&search=
-&sort=created_desc&page=&per_page=`. Sebelumnya step ini sempat memakai snapshot lokal
-(`ContactEntity.units`, ikut terbawa sekali saat contact detail dibuka) sebelum endpoint ini ada.
+Awalnya step ini fetch `GET /api/reserve/product-select?contact_id=…`, di-parsing seolah
+dikelompokkan per proyek (`data.data[].products[]`, meniru bentuk `GET /property/units/hierarchy`).
+**Itu salah** — response asli endpoint ini (dikonfirmasi langsung dari API) berbentuk flat:
 
-Sisi Flutter:
+```json
+{"status": true, "data": {"contact_id": 112885, "units": [ {"deal_id": 113789, "cluster_id": 255,
+"cluster_name": "Cluster EcoArdence", "product_id": 51, "product_name": "…", "property_id": null,
+"property_name": null, "is_tipe_hoek": false, "is_waiting_list": 1, "deal_value": 0, … } ], … }}
+```
 
-- `SelectedUnit.fromUnitStatusJson()` —
-  [unit_hierarchy_model.dart](lib/features/contact/data/models/unit/unit_hierarchy_model.dart) —
-  mapping field respons (`deal_id`, `cluster_id`/`product_id`/`property_id` yang bisa null
-  sekaligus untuk deal yang belum ditentukan kavlingnya, `is_waiting_list`/`is_tipe_hoek` bool-atau-1,
-  `status_name`, `deal_value`, `is_property_sellable`).
-- [reserve_unit_remote_datasource.dart](lib/features/reserve-order/data/datasources/reserve_unit_remote_datasource.dart)
-  + [reserve_unit_cubit.dart](lib/features/reserve-order/presentation/state/reserve_unit/reserve_unit_cubit.dart)
-  — **retarget** dari cubit yang sebelumnya dibuat buat endpoint lain
-  (`GET /api/property/units/hierarchy?flat=1`, item-nya `UnitOption`) tapi ternyata tidak pernah
-  dipakai halaman manapun (dead code, hanya ke-wire di provider `main.dart`). Karena sudah tidak ada
-  konsumen lain, cubit ini langsung disesuaikan ke endpoint contact-scoped di atas alih-alih bikin
-  cubit baru terpisah — item-nya sekarang `SelectedUnit` langsung (bukan `UnitOption`), jadi
-  `_contactUnitRow`/`_unitRowTitle`/`_unitRowSubtitle` di `reserve.dart` tidak perlu layer mapping
-  tambahan. `UnitOption`/`UnitOptionsPage` (`unit_option_model.dart`) dihapus karena jadi tidak
-  terpakai sama sekali.
-  - Pencarian di-debounce 300ms (`_onSearchChanged` di `reserve.dart`, Timer yang sama dipakai
-    sebelumnya) lalu panggil `ReserveUnitCubit.setSearch()`.
-  - Load-more dipicu scroll mendekati bawah (`_onUnitScroll`, threshold 240px — pola sama persis
-    dengan `list.dart` punya `ReserveOrderListCubit`). Bentuk paginasinya paginator Laravel standar
-    (sama seperti `GET /api/reserve`, **bukan** `units`/`page`/`has_more` custom seperti endpoint
-    hierarchy unit yang lama) — array unit-nya ada di `data.data` (bukan `data.units`!), dan
-    `hasMore`/`page` dibaca dari `data.next_page_url`/`data.current_page`.
-  - **Cubit ini singleton** (satu instance dibagi lintas halaman lewat provider `main.dart`, sama
-    seperti `ReserveOrderListCubit`) — begitu Reserve Order dibuka untuk `contact_id` yang **beda**
-    dari sesi sebelumnya, `ReserveUnitCubit.load()` me-reset total state-nya (bukan `copyWith`)
-    supaya unit kontak lama tidak nyangkut kelihatan sebentar di kontak baru.
-- [main.dart:437](lib/main.dart#L437) + [main.dart:540](lib/main.dart#L540) — datasource & provider
-  (tidak berubah tempatnya, cuma target endpoint & item-nya yang beda sekarang).
-- **`key` pembeda unit** (`SelectedUnit.key`, dipakai `_selectedUnits` Map) sekarang mengutamakan
-  `deal_id` kalau ada (`'deal:$dealId'`) — satu kontak bisa punya lebih dari satu deal yang
-  cluster/product/property-nya sama-sama null (belum ditentukan kavlingnya), yang tanpa `dealId`
-  bakal tabrakan jadi satu key yang sama. Sumber `SelectedUnit` lain (`fromContactJson`, unit
-  picker contact-add) tidak punya `dealId` — key-nya tetap seperti sebelumnya, tidak ada perubahan
-  perilaku di situ.
-- Unit yang **tidak sellable** (`is_property_sellable: false` — mis. sudah SP/akad di kontak lain)
-  tetap tampil tapi pudar (`Opacity` 0.5 pada seluruh baris) dan tidak bisa dicentang (`onTap: null`
-  saat tidak sellable).
-- Badge status (mis. "Available"/"Hold"/"Reserve") pakai
-  [UnitStatusBadge](lib/core/utils/widget/unit_status_badge.dart) yang sudah ada — warna latar per
-  nama status sudah ditentukan di widget itu sendiri (sama seperti dipakai
-  `site-plan/unit-detail`), jadi tidak ada mapping warna baru yang dibuat di sini. Yang ditambahkan
-  cuma `textColor` gelap khusus untuk "Available" (#00FF0C) dan "Reserve" (#EAFF00) — dua warna
-  latar paling terang yang bikin teks putih default nyaris tak terbaca (`_statusBadgeTextColor` di
-  `reserve.dart`); status lain tetap teks putih.
-- **Harga sekarang tampil** (`deal_value`, field `dealValue` di `SelectedUnit`) di baris kedua kartu
-  unit, mis. "PAR2 · Ecoscape · Rp 450.000.000" — beda dari sebelumnya (lihat versi lama dokumen ini
-  di git history: harga sempat tidak bisa ditampilkan karena tidak ada di database inventory
-  `m_property_lot`/`m_sellable_unit`; endpoint `unit-status` yang deal-scoped ini rupanya sudah
-  membawa nominalnya sendiri lewat `deal_value`).
+Datasource-nya mencari `data.data[]` (key yang salah) sehingga `groups` selalu kosong — inilah
+sebab step "Pilih Unit" tampil **"Tidak ada unit tersedia untuk kontak ini"** walau kontaknya
+sebenarnya sudah punya beberapa deal. Selain key-nya salah, setiap baris `data.units[]` ternyata
+SELALU punya `deal_id` — artinya endpoint ini cuma daftar **deal yang sudah ada** buat kontak
+tersebut (dibuat dari CRM/pipeline lain), BUKAN katalog produk yang bisa dipilih baru.
+
+Untuk bisa memilih unit yang **belum pernah** jadi deal, dipakai endpoint terpisah,
+`GET /api/reserve/unit-all` (dua bentuk panggilan tergantung param, sama polanya dengan
+`GET /property/units/hierarchy` di fitur contact):
+
+- `?contact_id=…&search=…` → katalog cluster > produk (`data.data[]`, tanpa properti/kavling).
+- `?product_id=…&township_id=…&company_id=…&contact_id=…` (dipanggil pas satu produk di-expand)
+  → daftar kavling produk itu (`data.lots[]`, asumsi sama seperti field `UnitLot` yang sudah ada —
+  belum ada contoh response asli buat panggilan ini, jadi kalau ternyata field-nya beda, kegagalan
+  tampil sebagai baris "Gagal memuat kavling · Coba lagi" inline di bawah produknya (lihat
+  `_unitProductTile` di [reserve.dart](lib/features/reserve-order/presentation/pages/reserve.dart)),
+  bukan salah diam-diam.
+
+Sisi Flutter — [reserve_unit_remote_datasource.dart](lib/features/reserve-order/data/datasources/reserve_unit_remote_datasource.dart)
+sekarang punya 3 method:
+
+- `getUnitTree({contactId, search})` — `GET /reserve/unit-all?contact_id=…` → `List<UnitCluster>`
+  (model yang sama dipakai `UnitPickerScreen` di fitur contact,
+  [unit_hierarchy_model.dart](lib/features/contact/data/models/unit/unit_hierarchy_model.dart)).
+- `getUnitLots({productId, townshipId, companyId, contactId})` — `GET /reserve/unit-all?product_id=…`
+  → `List<UnitLot>`.
+- `getSelectedUnits({contactId})` — `GET /reserve/product-select?contact_id=…`, parsing **diperbaiki**
+  jadi `data.units[]` (bukan `data.data[].products[]`) → `List<SelectedUnit>`, lewat
+  `SelectedUnit.fromProductSelectJson()` yang field mapping-nya juga dibetulkan sesuai response asli
+  (`cluster_id`/`cluster_name`, `property_id`, `is_tipe_hoek`, `deal_value` — bukan
+  `project_id`/`project_name`/`display_name`/`status_property_name`/`is_property_sellable`/
+  `is_selected` seperti asumsi lama, yang semuanya tidak ada di response sungguhan).
+
+`SelectedUnit.spec` & `SelectedUnit.isSelected` dihapus dari model — dua-duanya tidak pernah terisi
+oleh sumber manapun lagi sesudah perbaikan ini (dead field).
+
+### `ReserveUnitCubit`/`ReserveUnitState` — tree + daftar existing terpisah
+
+Ditulis ulang total mengikuti pola `UnitPickerCubit`/`UnitPickerState` (fitur contact):
+`clusters`/`expandedClusters`/`expandedProducts`/`lotsByProduct`/`loadingProductIds` buat katalog
+(fetch bertahap: tree dulu, lots per produk pas di-expand), ditambah `existingUnits` (dari
+`getSelectedUnits`, di-fetch sekali bareng tree, TERPISAH — gagalnya `existingUnits`
+(`existingUnitsError`) tidak menyembunyikan katalog yang sudah berhasil dimuat). Tidak ada
+paginasi/`loadMore` lagi (`unit-all` & `product-select` sama-sama mengembalikan semuanya sekaligus,
+bukan Laravel paginator) — `_unitScroll`/`_onUnitScroll` di `reserve.dart` dihapus.
+
+### Tampilan step 2 — [reserve.dart](lib/features/reserve-order/presentation/pages/reserve.dart)
+
+Dua seksi dalam satu `ListView`, sama seperti desain [UnitPickerScreen](lib/features/contact/presentation/pages/unit-picker/index.dart):
+
+1. **"Unit yang Sudah Dipilih Sebelumnya"** — daftar `state.existingUnits` apa adanya (pakai
+   `_contactUnitRow` yang sudah ada, tanpa perubahan tampilan), auto-tercentang begitu dimuat
+   (`_autoSelectAlreadyChosenUnits`, dipanggil dari `listener` `BlocConsumer`). **Semua** baris di
+   sini otomatis dianggap terpilih (selalu punya `deal_id`) — beda dari desain lama yang menyaring
+   pakai field `is_selected` yang ternyata tidak pernah ada di response.
+   - `_autoSelectedUnitKeys` (`Set<String>` isinya `SelectedUnit.key`, key-nya `'deal:$dealId'`
+     buat baris ini) tetap dipakai supaya uncheck manual user tidak balik tercentang tiap ada
+     `setState` lain — pola sama seperti sebelumnya, cuma sumbernya sekarang `state.existingUnits`.
+   - Kalau `existingUnitsError` terisi, ditampilkan sekali lewat `showSnackbar` (`_existingUnitsErrorShown`
+     mencegah snackbar berulang tiap rebuild).
+2. **"Tambah Unit Baru"** — tree Cluster > Produk dari `state.clusters`, expand produk menampilkan
+   dua baris statis "Belum menentukan kavling"/"Waiting list" (sama seperti `UnitPickerScreen`) lalu
+   daftar kavling asli (`state.lotsByProduct`, fetch on-demand pas expand). Ketiganya dirender lewat
+   `_contactUnitRow` yang SAMA dengan seksi pertama (satu widget generik buat semua bentuk
+   `SelectedUnit`), jadi visualnya (checkbox, badge Hoek, dst.) konsisten otomatis.
+
+**Keterbatasan yang disengaja, ditunda:** unit yang dipilih dari seksi "Tambah Unit Baru" belum
+punya `deal_id` (belum pernah jadi deal), sementara `POST /api/reserve-unit` ([`_onSubmit` di
+reserve.dart](lib/features/reserve-order/presentation/pages/reserve.dart)) cuma bisa
+`{deal_id, customer_id}` — jadi unit BARU yang dicentang di sini **masih ikut dihitung** di "N unit
+dipilih" tapi **belum benar-benar tersimpan ke server** (loop di `_onSubmit` tetap skip unit tanpa
+`deal_id`). Ini disengaja atas arahan: fitur pilih-unit-baru menunggu perubahan endpoint
+`reserve-unit` (atau endpoint baru) yang bisa menerima `product_id`/`property_id`/`is_waiting_list`
+tanpa `deal_id` — bukan sesuatu yang bisa ditebak dari sisi Flutter.
 
 ## Nominal pembayaran
 
@@ -135,20 +163,20 @@ kursor melompat, sementara field ini praktis selalu diisi dari belakang.
 Nominal ini juga yang menjawab pertanyaan sebelumnya soal angka di kartu menu: sumbernya step
 **Dokumen & Bukti Bayar**, bukan input di step Unit atau harga unit.
 
-## Baris customer dibuat lewat `POST /api/reserve` (begitu lepas dari step Dokumen)
+## Baris customer dibuat lewat `POST /api/reserve` (begitu lepas dari step Pembeli)
 
-Begitu tombol **Lanjut ke Pilih Unit** (step Dokumen) ditekan dan lolos validasi, langkah
+Begitu tombol **Lanjut ke Pilih Unit** (step Pembeli) ditekan dan lolos validasi, langkah
 berikutnya bikin baris `m_customer_reserve` lewat `POST /api/reserve` — **bukan** menunggu sampai
 Submit di Review lagi. Alasannya: step Pilih Unit butuh `customer_id` buat menautkan unit yang
 dipilih lewat `POST /api/reserve-unit` (section di bawah), jadi baris customer-nya harus sudah ada
-sebelum step itu dibuka. Gagal di sini menahan user di step Dokumen dengan pesan errornya, dan
+sebelum step itu dibuka. Gagal di sini menahan user di step Pembeli dengan pesan errornya, dan
 tidak lanjut ke Pilih Unit.
 
 `createReserve()` mengembalikan `CreateReserveResult` (`reserveOrderId` + `customerId`, dari
 `data.reserve_order.reserve_order_id`/`customer_id`) — disimpan sebagai `_reserveOrderId`/
 `_customerId` di [reserve.dart](lib/features/reserve-order/presentation/pages/reserve.dart),
 dipakai lagi oleh `_onNextUnit` (`saveReserveUnit`) dan `_onSubmit` (`submitDocPayment`). Kalau
-user mundur dari Unit ke Dokumen lalu maju lagi, `_onNextDokumen` **tidak** bikin baris baru lagi
+user mundur dari Unit ke Pembeli lalu maju lagi, `_onNextPembeli` **tidak** bikin baris baru lagi
 selama `_reserveOrderId`/`_customerId` sudah ada — cukup lanjut ke Unit dengan id yang sama.
 
 Payload-nya (`CreateReserveParams.toJson()` —
@@ -162,7 +190,7 @@ Payload-nya (`CreateReserveParams.toJson()` —
 | `cust_birth_place` / `cust_birth_date` | "Tempat, Tanggal Lahir" — lihat catatan parsing di bawah |
 | `cust_gender_is_male` | `KtpOcrModel.jenisKelamin` hasil scan ("Laki-laki"/"Perempuan" → bool). **Belum ada input manual** — null kalau belum pernah scan KTP |
 | `cust_marital_status` | Status Pernikahan, di-`toUpperCase()` (mis. "Kawin" → "KAWIN") |
-| `cust_religion` | `KtpOcrModel.agama` hasil scan. **Belum ada input manual**, sama seperti jenis kelamin |
+| `cust_religion` | Agama — dropdown `roReligionItems` ([reserve_order_model.dart:103](lib/features/reserve-order/data/models/reserve_order_model.dart#L103)), auto-terisi dari `KtpOcrModel.agama` hasil scan kalau cocok salah satu opsi, tapi bisa diganti manual di [reserve.dart](lib/features/reserve-order/presentation/pages/reserve.dart) |
 | `cust_occupation` | Pekerjaan |
 | `cust_address1` | Alamat sesuai KTP |
 | `cara_bayar_id` | Cara Pembayaran — **id-nya** yang dikirim (dari `GET /api/reserve/cara-bayar`), bukan nama; lihat "Cara Pembayaran" di bawah |
@@ -182,16 +210,16 @@ terkirim kalau ada koma).
 
 ## Unit ditautkan ke customer lewat `POST /api/reserve-unit` (begitu lepas dari step Pilih Unit)
 
-Begitu tombol **Lanjut ke Review** (step Unit) ditekan dan minimal 1 unit terpilih, tiap unit yang
+Begitu tombol **Lanjut ke Dokumen** (step Unit) ditekan dan minimal 1 unit terpilih, tiap unit yang
 dicentang ditautkan ke customer yang barusan dibuat (section di atas) lewat `POST
 /api/reserve-unit` — satu request per unit, payload `{ "deal_id": …, "customer_id": … }`.
-`deal_id`-nya dari `SelectedUnit.dealId` (field ini yang membedakan satu baris deal di
-`GET /api/reserve/unit-status`, lihat "Daftar unit (step 3)" di atas); unit yang tidak punya
-`dealId` (mis. kalau suatu saat `SelectedUnit` dibuat dari sumber lain) dilewati begitu saja — tidak
-ada deal yang bisa ditautkan.
+`deal_id`-nya dari `SelectedUnit.dealId` (lihat "Daftar unit (step 2)" di atas — dari
+`GET /api/reserve/product-select`, banyak produk katalog yang `dealId`-nya null karena belum pernah
+dipilih buat kontak ini); unit yang tidak punya `dealId` dilewati begitu saja — tidak ada deal yang
+bisa ditautkan.
 
 Gagal di sini menahan user di step Unit dengan pesan errornya (baris customer-nya **tetap**
-tersimpan — cuma penautan unitnya yang perlu dicoba ulang), dan tidak lanjut ke Review.
+tersimpan — cuma penautan unitnya yang perlu dicoba ulang), dan tidak lanjut ke Dokumen.
 
 Kode: `saveReserveUnit()` — [reserve_order_remote_datasource.dart](lib/features/reserve-order/data/datasources/reserve_order_remote_datasource.dart).
 [reserve.dart](lib/features/reserve-order/presentation/pages/reserve.dart) `_onNextUnit()` yang
@@ -203,7 +231,7 @@ usah dilanjutkan.
 `POST /api/reserve/doc-payment` — endpoint khusus reserve order (bukan attachment kontak lagi) yang
 menyimpan KTP/NPWP/bukti transfer **dan** rincian pembayaran (jenis transaksi, nominal, catatan)
 sebagai baris `t_reserve_order_tts` milik order itu, pakai `reserve_order_id` dari `createReserve()`
-(section di atas — sudah didapat lebih awal, begitu lepas dari step Dokumen).
+(section di atas — sudah didapat lebih awal, begitu lepas dari step Pembeli).
 
 **Kapan:** sekali di akhir, waktu tombol **Submit Reserve Order** ditekan — bukan saat file dipilih.
 Selama 3 step pertama berkasnya ditahan di memori halaman, jadi kalau flow-nya ditinggal di tengah
@@ -258,8 +286,8 @@ proses separuh jalan):
 
 | Step | Tombol saat loading |
 |---|---|
-| Dokumen → Unit | "Membuat reserve order..." (`_creatingReserve`) |
-| Unit → Review | "Menyimpan unit..." (`_savingUnit`) |
+| Pembeli → Unit | "Membuat reserve order..." (`_creatingReserve`) |
+| Unit → Dokumen | "Menyimpan unit..." (`_savingUnit`) |
 | Review → Sukses | "Mengunggah dokumen..." (`_submittingDocPayment`, tanpa progress N/M — cuma 1 request `doc-payment`) |
 
 ## Kembali ke halaman menu
@@ -297,14 +325,15 @@ Kartu di halaman menu: [reserve-order/index.dart](lib/features/reserve-order/pre
 4. Flow penuh dari halaman menu → submit → **Lihat di Reserve Order**, memastikan kartu menu dapat
    unit + "Rp 2.000.000" + centang.
 5. "Jenis Transaksi" render dari `_FakeReserveOrders.getReserveFilters()` (bukan daftar hardcode),
-   dan `ReservePage` yang dibuka dua kali dengan `ReserveOrderListCubit` yang sama cuma memanggil
-   `getReserveFilters()` sekali (`filterCalls == 1`) — buktiin cache-nya kepakai. Dibuka "dua kali"
-   di test-nya sengaja pump `SizedBox.shrink()` dulu sebelum `MaterialApp` yang baru, supaya
-   elemen `ReservePage` sebelumnya benar-benar di-dispose (tree berbentuk sama + tanpa key cuma
-   di-rebuild oleh `pumpWidget`, bukan mount ulang — kalau tidak dipaksa lepas, `_step` dkk kebawa
-   dari sesi sebelumnya).
+   dipanggil dengan `excludeBatal: true` (`lastFilterExcludeBatal == true`), dan `ReservePage` yang
+   dibuka dua kali dengan `ReserveOrderListCubit` yang sama cuma memanggil `getReserveFilters()`
+   sekali (`filterCalls == 1`) — buktiin cache-nya kepakai. Dibuka "dua kali" di test-nya sengaja
+   pump `SizedBox.shrink()` dulu sebelum `MaterialApp` yang baru, supaya elemen `ReservePage`
+   sebelumnya benar-benar di-dispose (tree berbentuk sama + tanpa key cuma di-rebuild oleh
+   `pumpWidget`, bukan mount ulang — kalau tidak dipaksa lepas, `_step` dkk kebawa dari sesi
+   sebelumnya).
 6. `POST /api/reserve` (`_FakeReserveOrders.createReserve()`) terkirim begitu lepas dari step
-   Dokumen (**bukan** menunggu Submit di Review) — Tempat/Tanggal Lahir diisi manual ("Jakarta, 09
+   Pembeli (**bukan** menunggu Submit di Review) — Tempat/Tanggal Lahir diisi manual ("Jakarta, 09
    Januari 1990", tanpa scan KTP) buat membuktikan parsing-balik `_resolvedBirth()` jalan, lalu tiap
    field payloadnya dicek satu-satu (`contact_id`, `cust_name`, `cust_ktp`,
    `cust_birth_place`/`cust_birth_date`, `cust_marital_status` yang di-uppercase, `cust_occupation`,
@@ -315,17 +344,18 @@ Kartu di halaman menu: [reserve-order/index.dart](lib/features/reserve-order/pre
    dipilih + `customer_id` dari `createReserve()`. Terakhir, Submit di Review cuma menambah
    `docPaymentCalls` (bukan `createCalls` — tidak dipanggil ulang), pakai `reserve_order_id` yang
    sama dari `createReserve()` tadi.
-7. `POST /api/reserve` yang gagal (`failCreate = true`) menahan user di step **Dokumen** (tidak
+7. `POST /api/reserve` yang gagal (`failCreate = true`) menahan user di step **Pembeli** (tidak
    lanjut ke Pilih Unit) dengan pesan errornya; `saveReserveUnit`/`doc-payment` **tidak** ikut
    dipanggil.
 8. `POST /api/reserve-unit` yang gagal (`failSaveUnit = true`) menahan user di step **Unit** (tidak
-   lanjut ke Review) dengan pesan errornya — baris customer-nya (`createCalls`) tetap sudah dibuat
+   lanjut ke Dokumen) dengan pesan errornya — baris customer-nya (`createCalls`) tetap sudah dibuat
    sebelumnya, cuma penautan unitnya yang gagal; `doc-payment` **tidak** ikut dipanggil.
-9. Unit yang `is_property_sellable: false` tetap tampil (pudar) tapi tidak bertambah ke "N unit
-   dipilih" saat ditap, sementara unit sellable di sebelahnya tetap bisa; harga (`deal_value`) dan
-   badge status (`status_name`, mis. "Available"/"Reserve") ikut tampil di kartunya.
+9. Unit yang `is_property_sellable: false` tetap tampil pudar (`Opacity` 0.5) tapi **tetap**
+   bertambah ke "N unit dipilih" saat ditap, sama seperti unit sellable di sebelahnya; harga
+   (`deal_value`) dan badge status (`status_name`, mis. "Available"/"Reserve") ikut tampil di
+   kartunya.
 
-Daftar unit di step 3 dimuat dari `_FakeReserveUnits` (`ReserveUnitRemoteDataSource` palsu,
+Daftar unit di step 2 dimuat dari `_FakeReserveUnits` (`ReserveUnitRemoteDataSource` palsu,
 menyediakan `SelectedUnit` langsung — meniru `GET /api/reserve/unit-status`), bukan lagi dari
 `ContactEntity.units` lokal. Filter pencarian di fake ini meniru cara filter lama (client-side)
 persis supaya test pencarian yang sudah ada ("Pencarian menyaring daftar" di test #1) tetap berlaku
@@ -342,25 +372,35 @@ Jalankan: `flutter test`. Menu Reserve Order (Bagian 3) punya test terpisah, lih
 2. **Isi pilihan masih hardcode** — Status Pernikahan. Di DB kolomnya string bebas (tidak ada
    tabel master), jadi kalau mau dibakukan perlu keputusan bisnis. Istilahnya memakai versi KTP
    ("Kawin", bukan "Menikah" seperti di mockup) supaya hasil OCR bisa dicocokkan otomatis.
-   - **Jenis Transaksi** sudah tidak hardcode lagi — pakai master status reserve yang sama dengan
-     chip filter di menu List (`GET /api/reserve-filter`), lewat
-     `ReserveOrderListCubit.ensureFilters()` (di-cache di cubit, lihat
+   - **Jenis Transaksi** sudah tidak hardcode lagi — pakai master status reserve
+     `GET /api/reserve-filter?exclude_batal=1` (**beda** dari chip filter di menu List yang minta
+     semua status termasuk "Batal", lihat
      [reserve-order-menu-list.md](docs/reserve-order-menu-list.md) bagian "Chip filter tersambung
-     ke `GET /api/reserve-filter`") — [reserve.dart](lib/features/reserve-order/presentation/pages/reserve.dart)
-     `_loadTransactionTypes()`. Fallback `['Reserve', 'Booking Reserve (langsung)']` dipakai kalau
-     fetch-nya gagal/kosong, supaya form tetap bisa disubmit.
-   - **Cara Pembayaran** juga sudah tidak hardcode — `GET /api/reserve/cara-bayar`
-     (`{cara_bayar_id, name}`), lewat `ReserveOrderListCubit.ensureCaraBayarOptions()` (cache
-     terpisah dari `filters`, pola sama persis). `name` yang tampil di picker/sheet-nya
-     (`_caraPembayaran`), tapi yang **dikirim ke `POST /api/reserve`** adalah `cara_bayar_id`
-     (`_caraBayarId`, dicari lewat `_caraBayarIdOf(name)` di
-     [reserve.dart](lib/features/reserve-order/presentation/pages/reserve.dart) — lihat "Baris
-     customer dibuat lewat `POST /api/reserve`" di atas). Fallback
-     `['KPR', 'Cash', 'Cash Bertahap', 'Inhouse']` (tanpa id, jadi `cara_bayar_id` tidak terkirim)
-     dipakai kalau fetch-nya gagal/kosong.
+     ke `GET /api/reserve-filter`") — status "Batal" sengaja tidak ditawarkan sebagai jenis
+     transaksi buat reserve order baru. Lewat `ReserveOrderListCubit.ensureTransactionTypeFilters()`
+     (cache terpisah dari `ensureFilters()`, `ReserveOrderListState.transactionTypeFilters`) —
+     [reserve.dart](lib/features/reserve-order/presentation/pages/reserve.dart)
+     `_loadTransactionTypes()`. TIDAK ada fallback lokal — kalau fetch-nya gagal/kosong, chip-nya
+     diganti pesan error asli dari API (`ReserveOrderListState.transactionTypeFiltersError`) plus
+     tombol "Coba lagi" yang manggil `_loadTransactionTypes()` ulang (lihat [reserve.dart:1006-1024](lib/features/reserve-order/presentation/pages/reserve.dart#L1006-L1024)).
+   - **Cara Pembayaran** (field "Tujuan Pembayaran" di form) juga sudah tidak hardcode —
+     `GET /api/reserve/cara-bayar` (`{cara_bayar_id, name}`), lewat
+     `ReserveOrderListCubit.ensureCaraBayarOptions()` (cache terpisah dari `filters`, pola sama
+     persis). `name` yang tampil di picker/sheet-nya (`_caraPembayaran`), tapi yang **dikirim ke
+     `POST /api/reserve`** adalah `cara_bayar_id` (`_caraBayarId`, dicari lewat
+     `_caraBayarIdOf(name)` di [reserve.dart](lib/features/reserve-order/presentation/pages/reserve.dart)
+     — lihat "Baris customer dibuat lewat `POST /api/reserve`" di atas). Sama seperti Jenis
+     Transaksi, TIDAK ada fallback lokal — gagal/kosong tampil sebagai pesan error API +
+     tombol "Coba lagi" (`ReserveOrderListState.caraBayarOptionsError`).
 3. **Bagian 3 sudah dikerjakan** di menu drawer terpisah — lihat
    [reserve-order-menu-list.md](docs/reserve-order-menu-list.md). Halaman menu per-kontak
    (`/contact/reserve-order`) tetap versi kartu Reserve/Topup/RB yang lama.
 4. **Camera di PWA desktop** — `ImagePicker` dengan `ImageSource.camera` di browser desktop
    membuka dialog file, bukan kamera; di browser HP baru membuka kamera. Perilaku `image_picker`
    di web, sama seperti fitur lain di app ini.
+5. **Produk katalog tanpa `deal_id` belum benar-benar bisa direserve** — sejak step Unit pindah ke
+   `GET /api/reserve/product-select` (lihat "Daftar unit (step 2)" di atas), produk yang dicentang
+   tapi belum py deal existing tetap lolos jadi "N unit dipilih" & lanjut ke step berikutnya, tapi
+   `saveReserveUnit()` melewatinya diam-diam saat submit karena belum ada endpoint buat bikin deal
+   baru dari produk katalog. Perlu diputuskan: endpoint baru buat "pilih produk jadi deal", atau
+   validasi yang menahan user kalau unit yang dicentang tidak py deal.

@@ -104,9 +104,35 @@ Widget roSectionLabel(String text) {
   );
 }
 
+/// Chip pilihan kecil (mis. preset nominal) — gaya sama persis dengan `_chip` privat di
+/// reserve.dart, ditaruh di sini biar bisa dipakai bareng halaman lain (`top_up.dart`).
+Widget roChip(String text, bool selected, VoidCallback onTap) {
+  return InkWell(
+    onTap: onTap,
+    borderRadius: BorderRadius.circular(20),
+    child: Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: selected ? const Color(primaryColor) : const Color(whiteColor),
+        border: Border.all(color: selected ? const Color(primaryColor) : const Color(grey7Color)),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Text(
+        text,
+        style: TextStyle(
+          fontSize: 10.5,
+          fontWeight: FontWeight.w700,
+          color: selected ? const Color(whiteColor) : const Color(grey1Color),
+        ),
+      ),
+    ),
+  );
+}
+
 Widget roInput(
   TextEditingController controller, {
   String? hint,
+  String? prefixText,
   TextInputType? keyboardType,
   List<TextInputFormatter>? inputFormatters,
   int maxLines = 1,
@@ -131,6 +157,8 @@ Widget roInput(
       fillColor: const Color(grey11Color),
       hintText: hint,
       hintStyle: const TextStyle(fontSize: 12.5, color: Color(grey5Color)),
+      prefixText: prefixText,
+      prefixStyle: const TextStyle(fontSize: 12.5, color: Color(blue2Color)),
       contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
       border: border,
       enabledBorder: border,
@@ -201,30 +229,7 @@ Widget roGhostButton(String text, VoidCallback onTap) {
   );
 }
 
-Widget roChip(String text, bool selected, VoidCallback onTap) {
-  return InkWell(
-    onTap: onTap,
-    borderRadius: BorderRadius.circular(20),
-    child: Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      decoration: BoxDecoration(
-        color: Color(selected ? primaryColor : whiteColor),
-        border: Border.all(color: Color(selected ? primaryColor : grey7Color)),
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Text(
-        text,
-        style: TextStyle(
-          fontSize: 10.5,
-          fontWeight: FontWeight.w700,
-          color: Color(selected ? whiteColor : grey1Color),
-        ),
-      ),
-    ),
-  );
-}
-
-Widget roDocTile(ReserveOrderDoc doc, {VoidCallback? onTap}) {
+Widget roDocTile(ReserveOrderDoc doc, {VoidCallback? onTap, VoidCallback? onRemove}) {
   final (Color border, Color iconBg, Color iconColor, Color statusColor) = switch (doc.state) {
     ReserveOrderDocState.awaitingUpload => (const Color(grey10Color), roIconBg, const Color(primaryColor), const Color(primaryColor)),
     ReserveOrderDocState.uploaded => (const Color(grey10Color), roIconBg, const Color(primaryColor), const Color(grey4Color)),
@@ -284,6 +289,14 @@ Widget roDocTile(ReserveOrderDoc doc, {VoidCallback? onTap}) {
             ReserveOrderDocState.rejected => const Icon(Icons.close, size: 16, color: Color(redColor)),
             ReserveOrderDocState.awaitingUpload || ReserveOrderDocState.issued => const SizedBox.shrink(),
           },
+          if (onRemove != null)
+            InkWell(
+              onTap: onRemove,
+              child: const Padding(
+                padding: EdgeInsets.only(left: 6),
+                child: Icon(Icons.close, size: 15, color: Color(grey5Color)),
+              ),
+            ),
         ],
       ),
     ),
@@ -308,7 +321,7 @@ Widget roRejectBanner(String reason) {
             const Icon(Icons.close_rounded, size: 15, color: Color(redColor)),
             const SizedBox(width: 4),
             const Text(
-              'Rejected — Needs Revision',
+              'Ditolak — Perlu Revisi',
               style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(redColor)),
             ),
           ],
@@ -406,58 +419,33 @@ void roShowOptionSheet({
             style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Color(blue2Color)),
           ),
         ),
-        for (final item in items)
-          InkWell(
-            onTap: () {
-              Navigator.pop(context);
-              onPicked(item);
-            },
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Text(item, style: const TextStyle(fontSize: 13, color: Color(blue2Color))),
-                  ),
-                  if (item == selected) const Icon(Icons.check, size: 18, color: Color(primaryColor)),
-                ],
+        if (items.isEmpty)
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
+            child: Text("Tidak ada pilihan tersedia", style: TextStyle(fontSize: 13, color: Color(grey5Color))),
+          )
+        else
+          for (final item in items)
+            InkWell(
+              onTap: () {
+                Navigator.pop(context);
+                onPicked(item);
+              },
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(item, style: const TextStyle(fontSize: 13, color: Color(blue2Color))),
+                    ),
+                    if (item == selected) const Icon(Icons.check, size: 18, color: Color(primaryColor)),
+                  ],
+                ),
               ),
             ),
-          ),
         const SizedBox(height: 8),
       ],
     ),
   );
 }
 
-/// Header section yang bisa expand/collapse (garis bawah + panah yang berputar 180° saat kebuka)
-/// — dipakai `ReserveOrderEditCustomerPage` & tab "Customer" di `ReserveOrderDetailPage` supaya
-/// gaya & interaksinya konsisten di kedua halaman.
-Widget roCollapsibleSectionHeader({required String title, required bool collapsed, required VoidCallback onTap}) {
-  return InkWell(
-    onTap: onTap,
-    child: Container(
-      width: double.infinity,
-      margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.only(bottom: 8),
-      decoration: BoxDecoration(
-        border: Border(bottom: BorderSide(color: const Color(primaryColor).withValues(alpha: 0.35), width: 2)),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Text(
-              title,
-              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(blue2Color)),
-            ),
-          ),
-          AnimatedRotation(
-            turns: collapsed ? 0 : 0.5,
-            duration: const Duration(milliseconds: 250),
-            child: const Icon(Icons.keyboard_arrow_down_rounded, size: 20, color: Color(primaryColor)),
-          ),
-        ],
-      ),
-    ),
-  );
-}

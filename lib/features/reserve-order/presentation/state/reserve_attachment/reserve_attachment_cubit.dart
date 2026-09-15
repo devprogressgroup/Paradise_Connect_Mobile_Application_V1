@@ -67,7 +67,7 @@ class ReserveAttachmentCubit extends Cubit<ReserveAttachmentState> {
       if (typeId == null) {
         emit(state.copyWith(
           status: ReserveAttachmentStatus.error,
-          error: 'Attachment type for ${group.label} is not in the master data. Please add it in the CRM first.',
+          error: 'Jenis attachment untuk ${group.label} belum ada di master data. Silakan tambahkan dulu di CRM.',
         ));
         return false;
       }
@@ -85,7 +85,7 @@ class ReserveAttachmentCubit extends Cubit<ReserveAttachmentState> {
       if (failure != null) {
         emit(state.copyWith(
           status: ReserveAttachmentStatus.error,
-          error: 'Failed to upload ${group.label}: ${cleanErrorMessage(failure)}',
+          error: 'Gagal mengunggah ${group.label}: ${cleanErrorMessage(failure)}',
         ));
         return false;
       }
@@ -107,7 +107,7 @@ class ReserveAttachmentCubit extends Cubit<ReserveAttachmentState> {
       (error) {
         emit(state.copyWith(
           status: ReserveAttachmentStatus.error,
-          error: 'Failed to load attachment type: ${cleanErrorMessage(error)}',
+          error: 'Gagal memuat jenis attachment: ${cleanErrorMessage(error)}',
         ));
         return null;
       },

@@ -80,7 +80,7 @@ class _ReserveOrderRevisePageState extends State<ReserveOrderRevisePage> {
           child: Column(
             children: [
               roAppBar(
-                title: 'Fix Reserve Order',
+                title: 'Perbaiki Transaction',
                 subtitle: order.customerName,
                 onBack: () => context.pop(),
               ),
@@ -91,13 +91,13 @@ class _ReserveOrderRevisePageState extends State<ReserveOrderRevisePage> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       if (order.rejectReason != null) roRejectBanner(order.rejectReason!),
-                      roSectionLabel('Identity Documents'),
+                      roSectionLabel('Dokumen Identitas'),
                       for (final index in _docIndexes(payment: false)) roDocTile(_docAt(index), onTap: () => _pickReplacement(index)),
                       const SizedBox(height: 6),
-                      roSectionLabel('Payment Proof'),
+                      roSectionLabel('Bukti Pembayaran'),
                       for (final index in _docIndexes(payment: true)) roDocTile(_docAt(index), onTap: () => _pickReplacement(index)),
                       const SizedBox(height: 4),
-                      roFieldLabel('Payment Amount'),
+                      roFieldLabel('Nominal Pembayaran'),
                       roInput(
                         nominalTC,
                         hint: 'Rp 0',
@@ -110,22 +110,22 @@ class _ReserveOrderRevisePageState extends State<ReserveOrderRevisePage> {
                         Padding(
                           padding: const EdgeInsets.only(top: 4),
                           child: Text(
-                            'Short by Rp ${NumberHelper.thousands(_shortfall!)} from the unit price (${order.priceLabel})',
+                            'Kurang Rp ${NumberHelper.thousands(_shortfall!)} dari harga unit (${order.priceLabel})',
                             style: const TextStyle(fontSize: 10, color: Color(redColor)),
                           ),
                         ),
                       const SizedBox(height: 12),
-                      roFieldLabel('Notes'),
+                      roFieldLabel('Catatan'),
                       roInput(
                         catatanTC,
-                        hint: 'E.g.: customer will transfer the shortfall next week',
+                        hint: 'mis.: customer akan transfer kekurangannya minggu depan',
                         maxLines: 2,
                       ),
                     ],
                   ),
                 ),
               ),
-              roFooter([roPrimaryButton('Resubmit', _onSubmit, loading: _submitting)]),
+              roFooter([roPrimaryButton('Ajukan Ulang', _onSubmit, loading: _submitting)]),
             ],
           ),
         ),
@@ -149,13 +149,13 @@ class _ReserveOrderRevisePageState extends State<ReserveOrderRevisePage> {
     if (replacement != null) {
       return doc.copyWith(
         name: replacement.name,
-        badge: '· Replacement',
-        status: 'Uploaded · ${_fileSize(replacement)}',
+        badge: '· Pengganti',
+        status: 'Terunggah · ${_fileSize(replacement)}',
         state: ReserveOrderDocState.uploaded,
       );
     }
     if (doc.state == ReserveOrderDocState.rejected) {
-      return doc.copyWith(status: 'Tap to re-upload');
+      return doc.copyWith(status: 'Ketuk untuk unggah ulang');
     }
     return doc;
   }
@@ -172,12 +172,12 @@ class _ReserveOrderRevisePageState extends State<ReserveOrderRevisePage> {
   Future<void> _onSubmit() async {
     final pendingRejected = _docIndexes(payment: true).where((i) => order.docs[i].state == ReserveOrderDocState.rejected && !_replacements.containsKey(i));
     if (pendingRejected.isNotEmpty) {
-      showSnackbar(context, 'Rejected documents must be re-uploaded', isError: true);
+      showSnackbar(context, 'Dokumen yang ditolak wajib diunggah ulang', isError: true);
       return;
     }
     final nominal = _nominal;
     if (nominal == null || nominal <= 0) {
-      showSnackbar(context, 'Payment amount is required', isError: true);
+      showSnackbar(context, 'Nominal pembayaran wajib diisi', isError: true);
       return;
     }
 
@@ -192,7 +192,7 @@ class _ReserveOrderRevisePageState extends State<ReserveOrderRevisePage> {
     _applyRevision(nominal);
     setState(() => _submitting = false);
 
-    showSnackbar(context, 'Reserve Order resubmitted, awaiting cashier verification.');
+    showSnackbar(context, 'Transaction berhasil diajukan ulang, menunggu verifikasi kasir.');
     context.pop();
   }
 
@@ -207,34 +207,34 @@ class _ReserveOrderRevisePageState extends State<ReserveOrderRevisePage> {
     _replacements.forEach((index, file) {
       order.docs[index] = order.docs[index].copyWith(
         name: file.name,
-        badge: '· Resubmitted',
-        status: 'Uploaded · ${_fileSize(file)}',
+        badge: '· Diajukan Ulang',
+        status: 'Terunggah · ${_fileSize(file)}',
         state: ReserveOrderDocState.pending,
       );
     });
 
     order.status = ReserveOrderStatus.diproses;
-    order.statusText = 'Still Processing';
+    order.statusText = 'Masih Diproses';
     order.rejectReason = null;
 
     final activeStep = order.journey.firstWhere(
       (step) => step.state == ReserveOrderStepState.active,
       orElse: () => order.journey.last,
     );
-    activeStep.sub = 'Resubmitted ${DateFormat('dd MMM yyyy').format(now)} · Rp ${NumberHelper.thousands(nominal)} — under verification';
+    activeStep.sub = 'Diajukan ulang ${DateFormat('dd MMM yyyy').format(now)} · Rp ${NumberHelper.thousands(nominal)} — sedang diverifikasi';
     activeStep.subIsError = false;
     activeStep.notes.add(ReserveOrderTimelineNote(
-      who: 'System ·',
-      text: 'Reserve Order resubmitted with an amount of Rp ${NumberHelper.thousands(nominal)}$quoted',
+      who: 'Sistem ·',
+      text: 'Transaction diajukan ulang dengan nominal Rp ${NumberHelper.thousands(nominal)}$quoted',
       time: '($stamp)',
     ));
 
     order.notes.add(ReserveOrderNote(
-      author: 'System',
-      role: 'automated',
+      author: 'Sistem',
+      role: 'otomatis',
       roleKind: ReserveOrderNoteRole.sistem,
       time: stamp,
-      text: 'Reserve Order resubmitted with an amount of Rp ${NumberHelper.thousands(nominal)}$quoted.',
+      text: 'Transaction diajukan ulang dengan nominal Rp ${NumberHelper.thousands(nominal)}$quoted.',
     ));
   }
 

@@ -32,6 +32,9 @@ import 'package:progress_group/features/inbox/domain/entities/inbox_contact_enti
 import 'package:progress_group/features/inbox/presentation/state/inbox/inbox_block.dart';
 import 'package:progress_group/features/inbox/presentation/state/inbox/inbox_event.dart';
 import 'package:progress_group/features/inbox/presentation/state/inbox/inbox_statte.dart';
+import 'package:progress_group/features/reserve-order/presentation/pages/reserve.dart';
+import 'package:progress_group/features/reserve-order/presentation/state/reserve_order_list/reserve_order_list_cubit.dart';
+import 'package:progress_group/core/utils/widget/custom_snackbar.dart';
 
 import 'package:url_launcher/url_launcher.dart';
 import 'package:progress_group/core/utils/helpers/permissions_helper.dart';
@@ -146,11 +149,57 @@ class _ContactDetailPageState extends State<ContactDetailPage>with TickerProvide
     searchTC.clear();
   }
 
+  /// Dari "Transaction" di Log Activity — cek dulu apakah kontak ini sudah pernah reserve
+  /// (`GET /api/reserve?contact_id=…`, `total`). Kosong → langsung form create (`reserveOrderReserve`,
+  /// sama seperti sebelumnya); sudah ada → tampilkan daftar transaksinya dulu (`reserveOrderList`,
+  /// yang sudah py empty-state + tombol buat baru sendiri, tapi di sini datanya tidak kosong).
+  /// Selagi cek ini jalan, ditampilkan loading lingkaran polos — bukan shimmer list — karena belum
+  /// tahu mau ke layar yang mana.
   Future<void> _navigateToReserveOrder(ContactDetailArgs args) async {
-    // Dulu ke `reserveOrder` (menu Reserve/Topup/RB per-kontak); sekarang dialihkan ke
-    // `reserveOrderList` (daftar transaksi menu drawer) yang disaring `contact_id` supaya cuma
-    // menampilkan transaksi kontak ini — lihat ReserveOrderListPage.contactArgs.
-    await context.pushNamed('reserveOrderList', extra: args.copyWith(initialTab: currentTab));
+    final contactId = args.dataContact?.contactId;
+    var hasExisting = false;
+
+    if (contactId != null) {
+      showDialog<void>(
+        context: context,
+        barrierDismissible: false,
+        barrierColor: Colors.black26,
+        builder: (_) => const Center(child: CircularProgressIndicator()),
+      );
+      try {
+        final page = await context.read<ReserveOrderListCubit>().dataSource.getReserveOrders(
+              contactId: contactId,
+              page: 1,
+              perPage: 1,
+            );
+        hasExisting = page.total > 0;
+      } catch (_) {
+        // Gagal cek riwayat transaksi — tetap lanjut ke form create (perilaku lama) ketimbang
+        // memblokir sales bikin reserve baru gara-gara satu panggilan cek ini gagal.
+        if (mounted) showSnackbar(context, 'Gagal memeriksa riwayat transaksi, langsung ke form baru', isError: true);
+      } finally {
+        if (mounted) Navigator.of(context, rootNavigator: true).pop();
+      }
+    }
+    if (!mounted) return;
+
+    if (hasExisting) {
+      await context.pushNamed('reserveOrderList', extra: args.copyWith(initialTab: currentTab, namePage: 'Reserve Order'));
+      if (!mounted) return;
+      await _getActivity();
+      await _getContactDetail();
+      return;
+    }
+
+    final result = await context.pushNamed(
+      'reserveOrderReserve',
+      extra: args.copyWith(initialTab: currentTab, namePage: 'Reserve'),
+    );
+    if (!mounted) return;
+    if (result is ReserveResult) {
+      await _getActivity();
+      await _getContactDetail();
+    }
   }
 
   void _init() async {
@@ -583,12 +632,12 @@ class _ContactDetailPageState extends State<ContactDetailPage>with TickerProvide
           ContactOptionsSheet.buildIconLink(
             context,
             '',
-            "Reserve Order",
+            "Transaction",
             () {
               _navigateToReserveOrder(
                 ContactDetailArgs(
                   dataContact: context.read<ContactBloc>().state.contactDetail ?? widget.args.dataContact,
-                  namePage: "Reserve Order",
+                  namePage: "Transaction",
                 ),
               );
             },

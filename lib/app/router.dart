@@ -300,6 +300,14 @@ class AppRouter {
             },
             routes: [
               GoRoute(
+                name: 'reserveOrderPickContact',
+                path: 'pick-contact',
+                // Halaman Contacts yang sama, cuma tap kartu langsung `context.pop(contact)` alih-alih
+                // buka detail — dibuka dari FAB `ReserveOrderListPage` saat `contactArgs` null (daftar
+                // semua transaksi dari drawer, belum ada kontak yang diketahui). Lihat `ContactPage.pickMode`.
+                builder: (context, state) => const ContactPage(pickMode: true),
+              ),
+              GoRoute(
                 name: 'detailContact',
                 path: 'detail-contact',
                 builder: (context, state) {

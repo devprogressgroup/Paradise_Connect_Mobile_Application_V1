@@ -4,17 +4,34 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import 'package:progress_group/core/constants/assets.dart';
 import 'package:progress_group/core/constants/colors.dart';
 import 'package:progress_group/core/services/analytics_service.dart';
 import 'package:progress_group/core/utils/helpers/error_message.dart';
+import 'package:progress_group/core/utils/helpers/permissions_helper.dart';
+import 'package:progress_group/core/utils/widget/custom_bg_icon.dart';
 import 'package:progress_group/core/utils/widget/custom_button.dart';
-import 'package:progress_group/core/utils/widget/custom_buttomsheet.dart';
+import 'package:progress_group/core/utils/widget/custom_dropdown_group.dart';
 import 'package:progress_group/core/utils/widget/custom_file_picker.dart';
+import 'package:progress_group/core/utils/widget/custom_search_field.dart';
 import 'package:progress_group/core/utils/widget/custom_snackbar.dart';
+import 'package:progress_group/core/utils/widget/drive_image/drive_image.dart';
+import 'package:progress_group/core/utils/widget/error_dialog.dart';
+import 'package:progress_group/core/utils/widget/shimmer_loading.dart';
 import 'package:progress_group/features/contact/data/arguments/contact_detail_args.dart';
-import 'package:progress_group/features/reserve-order/data/datasources/reserve_order_remote_datasource.dart';
-import 'package:progress_group/features/reserve-order/data/models/reserve_order_model.dart';
+import 'package:progress_group/features/contact/domain/entities/attachment/attachment_entity.dart';
+import 'package:progress_group/features/contact/domain/entities/attachment/attachment_type.dart';
+import 'package:progress_group/features/contact/domain/entities/attachment/upload_attachment_params.dart';
 import 'package:progress_group/features/contact/domain/entities/contact/contact_entity.dart';
+import 'package:progress_group/features/contact/presentation/state/attachment/attachment_cubit.dart';
+import 'package:progress_group/features/contact/presentation/state/attachment/attachment_state.dart';
+import 'package:progress_group/features/contact/presentation/state/attachment/upload_attachment_bloc.dart';
+import 'package:progress_group/features/contact/presentation/state/attachment/upload_attachment_event.dart';
+import 'package:progress_group/features/contact/presentation/state/attachment/upload_attachment_state.dart';
+import 'package:progress_group/features/contact/presentation/state/attachment_type/attachment_type_bloc.dart';
+import 'package:progress_group/features/contact/presentation/state/attachment_type/attachment_type_event.dart';
+import 'package:progress_group/features/contact/presentation/state/attachment_type/attachment_type_state.dart';
+import 'package:progress_group/features/reserve-order/data/models/reserve_order_model.dart';
 import 'package:progress_group/features/reserve-order/presentation/pages/widgets.dart';
 import 'package:progress_group/features/reserve-order/presentation/state/reserve_order_list/reserve_order_list_cubit.dart';
 class ReserveOrderDetailPage extends StatefulWidget {
@@ -33,14 +50,11 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage> {
   final noteTC = TextEditingController();
   bool _loadingBuyer = true;
   List<CaraBayarOption> _caraBayarOptions = const [];
-  final Set<String> _collapsedBuyerSections = {};
 
-  List<ReserveOrderAttachment> _attachments = [];
-  bool _loadingAttachments = false;
-  // true kalau `order.id` gagal di-parse jadi int — praktis tidak pernah kejadian (selalu angka
-  // dari `reserve_order_id`), tapi tetap dijaga daripada nge-throw diam-diam.
-  bool _attachmentsUnavailable = false;
-  bool _uploadingExtraDoc = false;
+  final _attachSearchTC = TextEditingController();
+  final _attachSearchFN = FocusNode();
+  bool _uploadingAttachment = false;
+  late AttachmentCubit _attachmentCubit;
 
   bool _loadingNotes = false;
   bool _sendingNote = false;
@@ -51,6 +65,8 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage> {
   void initState() {
     super.initState();
     AnalyticsService.logScreenView('reserve_order_detail');
+    _attachmentCubit = context.read<AttachmentCubit>();
+    context.read<AttachmentTypeBloc>().add(FetchAttachmentTypesEvent());
     _loadBuyerDetail();
     _loadAttachments();
     _loadNotes();
@@ -94,26 +110,13 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage> {
     }
   }
 
+  /// Sama seperti tab Attachment di Contact Detail: dokumen diambil lewat
+  /// `GET /contacts/{contactId}/attachments?deal_id=` ([AttachmentCubit]), disaring ke deal
+  /// transaksi ini — bukan lagi `GET /reserve/attachment`.
   Future<void> _loadAttachments() async {
-    final reserveOrderId = int.tryParse(order.id);
-    if (reserveOrderId == null) {
-      setState(() => _attachmentsUnavailable = true);
-      return;
-    }
-
-    setState(() => _loadingAttachments = true);
-    try {
-      // Cuma `reserve_order_id` — TANPA `reserve_order_tts_id`, supaya dokumen dari SEMUA TTS
-      // reserve order ini ikut tampil, bukan cuma TTS yang paling baru diketahui (lihat catatan di
-      // `ReserveOrderRemoteDataSource.getReserveAttachments`).
-      final attachments = await context.read<ReserveOrderListCubit>().dataSource.getReserveAttachments(
-            reserveOrderId: reserveOrderId,
-          );
-      if (mounted) setState(() => _attachments = attachments);
-    } catch (_) {
-    } finally {
-      if (mounted) setState(() => _loadingAttachments = false);
-    }
+    final contactId = order.contactId;
+    if (contactId == null) return;
+    await _attachmentCubit.fetch(contactId, order.dealId);
   }
 
   Future<void> _loadNotes() async {
@@ -146,6 +149,9 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage> {
   @override
   void dispose() {
     noteTC.dispose();
+    _attachSearchTC.dispose();
+    _attachSearchFN.dispose();
+    _attachmentCubit.reset();
     super.dispose();
   }
 
@@ -168,7 +174,7 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage> {
         child: Column(
           children: [
             roAppBar(
-              title: 'Reserve Order',
+              title: 'Transaction',
               subtitle: order.unitLabel,
               onBack: () {
                 AnalyticsService.logEvent('reserve_order_detail_back');
@@ -180,20 +186,28 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage> {
                 onRefresh: _onRefresh,
                 child: SingleChildScrollView(
                   physics: const AlwaysScrollableScrollPhysics(),
-                  padding: const EdgeInsets.fromLTRB(14, 12, 14, 20),
+                  padding: const EdgeInsets.only(top: 12, bottom: 20),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _buildHeader(),
-                      _buildQuickContact(),
-                      if (order.statusText != null) _buildStatusBox(),
-                      if (order.isRejected) ...[
-                        const SizedBox(height: 10),
-                        roRejectBanner(order.rejectReason!),
-                        customButton(_openRevise, 'Edit & Resubmit'),
-                      ],
-                      const SizedBox(height: 12),
-                      _buildTabBar(),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 14),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _buildHeader(),
+                            _buildQuickContact(),
+                            if (order.statusText != null) _buildStatusBox(),
+                            if (order.isRejected) ...[
+                              const SizedBox(height: 10),
+                              roRejectBanner(order.rejectReason!),
+                              customButton(_openRevise, 'Edit & Ajukan Ulang'),
+                            ],
+                            const SizedBox(height: 12),
+                            _buildTabBar(),
+                          ],
+                        ),
+                      ),
                       const SizedBox(height: 12),
                       _buildTabContent(),
                     ],
@@ -248,7 +262,7 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage> {
           InkWell(
             onTap: _openFullProfile,
             child: const Text(
-              'Full Profile & History ›',
+              'Profil & Riwayat Lengkap ›',
               style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(primaryColor)),
             ),
           ),
@@ -300,7 +314,7 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage> {
       _RoTab.perjalanan: 'Timeline',
       _RoTab.pembeli: 'Customer',
       _RoTab.attachment: 'Attachment',
-      _RoTab.catatan: 'Notes',
+      _RoTab.catatan: 'Messages',
     };
 
     return Container(
@@ -344,14 +358,19 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage> {
     );
   }
 
+  /// Tab lain tetap kepadding 14 seperti sebelumnya — Padding-nya dipindah ke sini (bukan lagi dari
+  /// `SingleChildScrollView` pembungkus di [build]) supaya tab Customer bisa dikecualikan, dibuat
+  /// edge-to-edge (section abu-abu & field underline-nya nempel ke tepi layar, ala Contact).
   Widget _buildTabContent() {
     return switch (_tab) {
-      _RoTab.perjalanan => _buildTimeline(),
+      _RoTab.perjalanan => _tabPad(_buildTimeline()),
       _RoTab.pembeli => _buildBuyer(),
-      _RoTab.attachment => _buildAttachment(),
-      _RoTab.catatan => _buildNotes(),
+      _RoTab.attachment => _tabPad(_buildAttachment()),
+      _RoTab.catatan => _tabPad(_buildNotes()),
     };
   }
+
+  Widget _tabPad(Widget child) => Padding(padding: const EdgeInsets.symmetric(horizontal: 14), child: child);
 
   Widget _buildTimeline() {
     return Column(
@@ -360,7 +379,7 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage> {
         for (var i = 0; i < order.journey.length; i++) _buildStep(order.journey[i], isLast: i == order.journey.length - 1),
         if (order.canTopUp) ...[
           const SizedBox(height: 12),
-          roGhostButton('+ Top Up Payment', _openTopUp),
+          roGhostButton('+ Top Up Pembayaran', _openTopUp),
         ],
       ],
     );
@@ -467,7 +486,7 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage> {
           Icon(Icons.flag_rounded, size: 9, color: Color(whiteColor)),
           SizedBox(width: 3),
           Text(
-            'Final Goal',
+            'Tujuan Akhir',
             style: TextStyle(fontSize: 9, fontWeight: FontWeight.w700, color: Color(whiteColor)),
           ),
         ],
@@ -522,7 +541,7 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage> {
 
     final detail = order.customerDetail;
     if (detail == null) {
-      return _buildEmpty('Buyer data has not been filled in yet.');
+      return _buildEmpty('Data pembeli belum diisi.');
     }
 
     final slotKeys = {for (final group in reserveCustomerSlotGroups) ...group.keys};
@@ -530,27 +549,19 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        for (final section in reserveCustomerFieldSections) ...[
-          roCollapsibleSectionHeader(
-            title: section.title,
-            collapsed: _collapsedBuyerSections.contains(section.title),
-            onTap: () => setState(() {
-              if (_collapsedBuyerSections.contains(section.title)) {
-                _collapsedBuyerSections.remove(section.title);
-              } else {
-                _collapsedBuyerSections.add(section.title);
-              }
-            }),
+        for (final section in reserveCustomerFieldSections)
+          CustomDropdownGroupContact(
+            hint: section.title,
+            child: Column(
+              children: [
+                for (final field in section.fields)
+                  if (!slotKeys.contains(field.key))
+                    _buildFieldRow(field.label, _formatFieldValue(detail, field), field.key)
+                  else if (_firstSlotKeyOf(field.key) case final group?)
+                    ..._buildSlotRows(detail, group),
+              ],
+            ),
           ),
-          if (!_collapsedBuyerSections.contains(section.title)) ...[
-            for (final field in section.fields)
-              if (!slotKeys.contains(field.key))
-                _buildFieldRow(field.label, _formatFieldValue(detail, field), field.key)
-              else if (_firstSlotKeyOf(field.key) case final group?)
-                ..._buildSlotRows(detail, group),
-            const SizedBox(height: 8),
-          ],
-        ],
       ],
     );
   }
@@ -602,10 +613,10 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage> {
         return date == null ? '-' : DateFormat('dd MMMM yyyy', 'id_ID').format(date);
       case ReserveCustomerFieldKind.genderBool:
         if (raw is! bool) return '-';
-        return raw ? 'Male' : 'Female';
+        return raw ? 'Laki-laki' : 'Perempuan';
       case ReserveCustomerFieldKind.yesNoBool:
         if (raw is! bool) return '-';
-        return raw ? 'Yes' : 'No';
+        return raw ? 'Ya' : 'Tidak';
       case ReserveCustomerFieldKind.area:
         return raw == null ? '-' : '$raw';
       case ReserveCustomerFieldKind.paymentPlan:
@@ -622,210 +633,331 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage> {
     }
   }
 
+  /// Baris baca-saja ala "Edit Contact" (gaya sama dengan field underline di
+  /// `ReserveOrderEditCustomerPage`) — label kecil di atas, nilai di bawah, tanpa kotak/border
+  /// bundar. Tetap tappable ke [_openEditCustomer] supaya field-nya ter-highlight begitu sampai
+  /// di halaman Edit.
   Widget _buildFieldRow(String label, String value, String highlightKey) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          roFieldLabel(label),
-          InkWell(
-            onTap: () => _openEditCustomer(highlightKey),
-            borderRadius: BorderRadius.circular(12),
-            child: Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(11),
-              decoration: BoxDecoration(
-                border: Border.all(color: const Color(grey10Color), width: 1.5),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Row(
+    return InkWell(
+      onTap: () => _openEditCustomer(highlightKey),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+        constraints: const BoxConstraints(minHeight: 50),
+        decoration: const BoxDecoration(
+          color: Color(whiteColor),
+          border: Border(bottom: BorderSide(color: Color(grey9Color))),
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  Expanded(
-                    child: Text(value, style: const TextStyle(fontSize: 12.5, color: Color(blue2Color))),
-                  ),
-                  const Icon(Icons.chevron_right, size: 18, color: Color(grey4Color)),
+                  Text(label, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: Color(grey2Color))),
+                  Text(value, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(blackColor))),
                 ],
               ),
             ),
+            const Icon(Icons.chevron_right, size: 18, color: Color(grey4Color)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Sama seperti tab Attachment di Contact Detail: list bebas (bukan slot tetap KTP/NPWP/Bukti
+  /// Transfer) dari [AttachmentCubit], dengan kartu "Add New File" di atasnya. `order.docs` tetap
+  /// dirender di bawahnya — itu dokumen ephemeral lokal dari alur Top Up/Revise (lihat
+  /// `ReserveOrderTopUpPage`/`ReserveOrderRevisePage`), bukan bagian dari perubahan ini.
+  Widget _buildAttachment() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        customSearchField(
+          controller: _attachSearchTC,
+          focusNode: _attachSearchFN,
+          hintText: 'Cari dokumen...',
+          onChanged: (_) => setState(() {}),
+        ),
+        const SizedBox(height: 9),
+        if (PermissionsHelper.canUploadAttachment) _buildAddNewFileCard(),
+        BlocListener<UploadAttachmentBloc, UploadAttachmentState>(
+          listenWhen: (prev, curr) => curr is UploadAttachmentSuccess || curr is UploadAttachmentError,
+          listener: (context, state) {
+            setState(() => _uploadingAttachment = false);
+            if (state is UploadAttachmentSuccess) {
+              showSnackbar(context, 'Dokumen berhasil disimpan.');
+              _loadAttachments();
+            } else if (state is UploadAttachmentError) {
+              showSnackbar(context, state.message, isError: true);
+            }
+          },
+          child: BlocConsumer<AttachmentCubit, AttachmentState>(
+            listenWhen: (prev, curr) => curr is AttachmentError && prev is! AttachmentError,
+            listener: (context, state) {
+              if (state is AttachmentError) showErrorDialog(context, state.message);
+            },
+            builder: (context, state) {
+              if (state is AttachmentLoaded) {
+                final list = _filteredAttachments(state.data);
+                if (list.isEmpty) return _buildEmpty('Belum ada dokumen.');
+                return Column(children: [for (final item in list) _buildAttachmentTile(item)]);
+              }
+              if (state is AttachmentError) return _buildEmpty('Gagal memuat dokumen.');
+              return buildAttachmentShimmer();
+            },
+          ),
+        ),
+        for (final doc in order.docs) roDocTile(doc, onTap: () => _onDocTap(doc)),
+      ],
+    );
+  }
+
+  List<ContactAttachment> _filteredAttachments(List<ContactAttachment> data) {
+    final query = _attachSearchTC.text.trim().toLowerCase();
+    if (query.isEmpty) return data;
+    return data
+        .where((a) => a.attachmentTypeName.toLowerCase().contains(query) || a.attachmentNote.toLowerCase().contains(query))
+        .toList();
+  }
+
+  Widget _buildAddNewFileCard() {
+    final enabled = !_uploadingAttachment;
+    return InkWell(
+      borderRadius: BorderRadius.circular(16),
+      onTap: enabled ? () => _openAttachmentSheet() : null,
+      child: Container(
+        width: double.infinity,
+        margin: const EdgeInsets.only(bottom: 9),
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: const Color(whiteColor),
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [BoxShadow(color: const Color(blackColor).withValues(alpha: 0.08), blurRadius: 12)],
+        ),
+        child: Row(
+          children: [
+            BgIcon(asset: icUpload, color: enabled ? const Color(primaryColor) : const Color(greyShade500)),
+            const SizedBox(width: 10),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  _uploadingAttachment ? 'Mengunggah…' : 'Tambah Dokumen',
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: enabled ? const Color(primaryColor) : const Color(greyShade500)),
+                ),
+                Text('unggah dokumen baru', style: TextStyle(fontSize: 12, color: enabled ? const Color(grey5Color) : const Color(greyShade500))),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAttachmentTile(ContactAttachment item) {
+    final uploadedAt = DateFormat('dd MMM yyyy, HH:mm', 'id_ID').format(item.createDatetime);
+
+    return GestureDetector(
+      onTap: () => _openAttachmentUrl(item.attachmentUrl),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 10),
+        decoration: BoxDecoration(
+          color: const Color(whiteColor),
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [BoxShadow(color: const Color(blackColor).withValues(alpha: 0.08), blurRadius: 12)],
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(color: const Color(greyShade300), borderRadius: BorderRadius.circular(12)),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: DriveImage(
+                  url: item.attachmentUrl,
+                  width: 58,
+                  height: 44,
+                  fit: BoxFit.cover,
+                  onTap: () => _openAttachmentUrl(item.attachmentUrl),
+                  errorWidget: Container(
+                    width: 58,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      color: const Color(whiteColor),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: const Color(primaryColor)),
+                    ),
+                    child: const Icon(Icons.picture_as_pdf, color: Color(primaryColor)),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    item.attachmentTypeName,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
+                  ),
+                  Text(uploadedAt, style: const TextStyle(fontSize: 10, color: Color(grey4Color))),
+                  if (item.attachmentNote.isNotEmpty)
+                    Text(
+                      item.attachmentNote,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontSize: 10, color: Color(grey4Color)),
+                    ),
+                ],
+              ),
+            ),
+            if (PermissionsHelper.canEditAttachmentItem || PermissionsHelper.canDeleteAttachmentItem)
+              PopupMenuButton<String>(
+                icon: Container(
+                  height: 44,
+                  width: 44,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(color: const Color(grey11Color), borderRadius: BorderRadius.circular(14)),
+                  child: const Icon(Icons.more_vert),
+                ),
+                onSelected: (value) {
+                  if (value == 'edit') {
+                    _openAttachmentSheet(editing: item);
+                  } else if (value == 'delete') {
+                    _confirmDeleteAttachment(item);
+                  }
+                },
+                itemBuilder: (context) => [
+                  if (PermissionsHelper.canEditAttachmentItem)
+                    const PopupMenuItem(
+                      value: 'edit',
+                      child: Row(children: [Icon(Icons.edit, size: 18), SizedBox(width: 8), Text('Edit')]),
+                    ),
+                  if (PermissionsHelper.canDeleteAttachmentItem)
+                    const PopupMenuItem(
+                      value: 'delete',
+                      child: Row(children: [Icon(Icons.delete, size: 18, color: Color(redAccentColor)), SizedBox(width: 8), Text('Hapus')]),
+                    ),
+                ],
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _confirmDeleteAttachment(ContactAttachment item) {
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Hapus Dokumen'),
+        content: const Text('Yakin ingin menghapus dokumen ini?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Batal')),
+          TextButton(
+            onPressed: () {
+              AnalyticsService.logEvent('reserve_order_detail_delete_attachment_confirm');
+              Navigator.pop(context);
+              final contactId = order.contactId;
+              if (contactId == null) return;
+              _attachmentCubit.delete(contactId: contactId, attachmentId: item.contactAttachmentId, dealId: order.dealId);
+            },
+            child: const Text('Hapus', style: TextStyle(color: Color(redAccentColor))),
           ),
         ],
       ),
     );
   }
 
-  static const _fixedDocTypes = [
-    (label: 'KTP', icon: Icons.badge_outlined, keywords: ['ktp']),
-    (label: 'NPWP', icon: Icons.description_outlined, keywords: ['npwp']),
-    (label: 'Bukti Transfer', icon: Icons.receipt_long_outlined, keywords: ['bukti transfer', 'bukti bayar']),
-  ];
+  /// Pilih tipe dokumen dari `GET /contacts/attachment-types` — sumber yang sama dengan dropdown
+  /// tipe di form "Add New File" Contact Detail.
+  Future<AttachmentType?> _pickAttachmentType({String? currentName}) async {
+    final bloc = context.read<AttachmentTypeBloc>();
+    var state = bloc.state;
+    if (state is! AttachmentTypeLoaded) {
+      bloc.add(FetchAttachmentTypesEvent());
+      state = await bloc.stream.firstWhere((s) => s is AttachmentTypeLoaded || s is AttachmentTypeError);
+    }
+    if (!mounted) return null;
 
-  Widget _buildAttachment() {
-    if (_loadingAttachments && _attachments.isEmpty) {
-      return const Padding(
-        padding: EdgeInsets.symmetric(vertical: 24),
-        child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
-      );
+    if (state is AttachmentTypeError) {
+      showSnackbar(context, state.message, isError: true);
+      return null;
     }
 
-    final missingStatus = _attachmentsUnavailable ? 'Status not available' : 'Not uploaded yet';
-
-    final matched = <ReserveOrderAttachment>{};
-    final fixedTiles = <Widget>[];
-    for (final type in _fixedDocTypes) {
-      final found = _attachments
-          .where((a) => type.keywords.any((k) => a.attachmentTypeName.toLowerCase().contains(k)))
-          .toList();
-      if (found.isEmpty) {
-        fixedTiles.add(roDocTile(
-          ReserveOrderDoc(icon: type.icon, name: type.label, status: missingStatus, state: ReserveOrderDocState.awaitingUpload),
-        ));
-        continue;
-      }
-      matched.addAll(found);
-      for (final attachment in found) {
-        fixedTiles.add(roDocTile(_docFrom(attachment), onTap: () => _openAttachment(attachment)));
-      }
+    final types = (state as AttachmentTypeLoaded).data;
+    if (types.isEmpty) {
+      showSnackbar(context, 'Tipe dokumen belum tersedia', isError: true);
+      return null;
     }
 
-    final extraAttachments = _attachments.where((a) => !matched.contains(a));
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        ...fixedTiles,
-        for (final attachment in extraAttachments)
-          roDocTile(_docFrom(attachment), onTap: () => _openAttachment(attachment)),
-        for (final doc in order.docs) roDocTile(doc, onTap: () => _onDocTap(doc)),
-        const SizedBox(height: 4),
-        roGhostButton(_uploadingExtraDoc ? 'Uploading…' : '+ Upload Additional Document', _uploadExtraDoc),
-      ],
+    final completer = Completer<String?>();
+    roShowOptionSheet(
+      context: context,
+      title: 'Jenis Dokumen',
+      items: types.map((t) => t.name).toList(),
+      selected: currentName,
+      onPicked: (v) => completer.complete(v),
     );
+    final picked = await completer.future;
+    if (picked == null) return null;
+    return types.firstWhere((t) => t.name == picked);
   }
 
-  /// null/`"pending"` -> `pending` (kuning, "Pending Verification"); `"approved"` -> `uploaded`
-  /// (centang hijau, sama seperti tampilan dokumen biasa); `"rejected"` -> `rejected` (merah).
-  ReserveOrderDocState _stateFor(String? verificationStatus) => switch (verificationStatus?.toLowerCase()) {
-        'approved' => ReserveOrderDocState.uploaded,
-        'rejected' => ReserveOrderDocState.rejected,
-        _ => ReserveOrderDocState.pending,
-      };
+  /// Upload/edit dokumen — sama seperti "Add New File" di Contact Detail: pilih tipe lalu file,
+  /// lalu kirim lewat [UploadAttachmentBloc] (`POST`/`PATCH /contacts/{id}/attachments`) dengan
+  /// `dealId` transaksi ini supaya dokumennya tertaut ke deal yang benar.
+  Future<void> _openAttachmentSheet({ContactAttachment? editing}) async {
+    if (_uploadingAttachment) return;
 
-  String _statusLabelFor(ReserveOrderDocState state) => switch (state) {
-        ReserveOrderDocState.uploaded => 'Approved',
-        ReserveOrderDocState.rejected => 'Rejected',
-        _ => 'Pending Verification',
-      };
-
-  ReserveOrderDoc _docFrom(ReserveOrderAttachment attachment) {
-    final state = _stateFor(attachment.verificationStatus);
-    final uploadedAt = attachment.createDatetime != null ? DateFormat('dd MMM yyyy', 'id_ID').format(attachment.createDatetime!) : null;
-    final status = [
-      _statusLabelFor(state),
-      if (attachment.createUserName != null) 'by ${attachment.createUserName}',
-      if (uploadedAt != null) uploadedAt,
-    ].join(' · ');
-
-    return ReserveOrderDoc(
-      icon: Icons.insert_drive_file_outlined,
-      name: attachment.attachmentTypeName,
-      status: status,
-      state: state,
-    );
-  }
-
-  /// Tap dokumen di tab Attachment — bukan langsung buka file, tapi tampil sheet ringkasan
-  /// (status verifikasi + catatan verifikator kalau ada) dulu, baru dari situ ada tombol buat
-  /// benar-benar buka filenya lewat [_openAttachmentUrl].
-  void _openAttachment(ReserveOrderAttachment attachment) {
-    AnalyticsService.logEvent('reserve_order_detail_open_attachment');
-    showCustomBottomSheet(context: context, child: _buildAttachmentSheet(attachment));
-  }
-
-  Widget _buildAttachmentSheet(ReserveOrderAttachment attachment) {
-    final state = _stateFor(attachment.verificationStatus);
-    final statusColor = switch (state) {
-      ReserveOrderDocState.uploaded => const Color(successColor),
-      ReserveOrderDocState.rejected => const Color(redColor),
-      _ => const Color(warningColor),
-    };
-    // Format sama dengan yang dipakai di tile (`_docFrom`) buat tanggal upload, dan format
-    // "dd MMM, HH:mm" yang sudah jadi standar buat timestamp catatan di halaman ini (lihat
-    // `_loadNotes`/`ReserveOrderTimelineNote.time`).
-    final uploadedAt = attachment.createDatetime != null ? DateFormat('dd MMM yyyy', 'id_ID').format(attachment.createDatetime!) : null;
-    final verifiedAt = attachment.verifiedAt != null ? DateFormat('dd MMM, HH:mm').format(attachment.verifiedAt!) : null;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              child: Text(
-                attachment.attachmentTypeName,
-                style: const TextStyle(fontSize: 14.5, fontWeight: FontWeight.w700, color: Color(blue2Color)),
-              ),
-            ),
-            const SizedBox(width: 8),
-            roStatusBadge(_statusLabelFor(state), statusColor),
-          ],
-        ),
-        if (attachment.createUserName != null || uploadedAt != null) ...[
-          const SizedBox(height: 4),
-          Text(
-            [
-              if (attachment.createUserName != null) 'Uploaded by ${attachment.createUserName}',
-              if (uploadedAt != null) uploadedAt,
-            ].join(' · '),
-            style: const TextStyle(fontSize: 11, color: Color(grey4Color)),
-          ),
-        ],
-        if (attachment.verificationNote != null) ...[
-          const SizedBox(height: 12),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(color: const Color(grey11Color), borderRadius: BorderRadius.circular(10)),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Verifier note',
-                  style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w700, color: Color(grey1Color)),
-                ),
-                const SizedBox(height: 3),
-                Text(attachment.verificationNote!, style: const TextStyle(fontSize: 12, color: Color(roNoteTextColor))),
-                if (attachment.verifiedByName != null || verifiedAt != null) ...[
-                  const SizedBox(height: 4),
-                  Text(
-                    [
-                      if (attachment.verifiedByName != null) 'by ${attachment.verifiedByName}',
-                      if (verifiedAt != null) verifiedAt,
-                    ].join(' · '),
-                    style: const TextStyle(fontSize: 10, color: Color(grey4Color)),
-                  ),
-                ],
-              ],
-            ),
-          ),
-        ],
-        const SizedBox(height: 16),
-        roPrimaryButton('View Document', () {
-          Navigator.pop(context);
-          _openAttachmentUrl(attachment);
-        }),
-      ],
-    );
-  }
-
-  void _openAttachmentUrl(ReserveOrderAttachment attachment) {
-    if (attachment.attachmentUrl.isEmpty) {
-      showSnackbar(context, 'Document link not available');
+    final contactId = order.contactId;
+    if (contactId == null) {
+      showSnackbar(context, 'Transaksi ini belum tertaut ke kontak mana pun', isError: true);
       return;
     }
-    context.pushNamed('attachmentWebView', extra: attachment.attachmentUrl);
+
+    AnalyticsService.logEvent('reserve_order_detail_upload_attachment');
+    final type = await _pickAttachmentType(currentName: editing?.attachmentTypeName);
+    if (type == null || !mounted) return;
+
+    final picked = await CustomFilePicker.show(context);
+    if (picked == null || !picked.hasData || picked.bytes == null || !mounted) return;
+
+    setState(() => _uploadingAttachment = true);
+    // Edit ([ContactRepositoryImpl.updateAttachment]) cuma baca `fileBytes`/`fileName` tunggal —
+    // `filesBytesList` diam-diam diabaikan di jalur PATCH, jadi wajib dibedakan dari create.
+    final params = editing == null
+        ? UploadAttachmentParams(
+            contactId: contactId,
+            dealId: order.dealId,
+            attachmentTypeId: type.id,
+            filesBytesList: [picked.bytes!],
+            fileNames: [picked.name],
+          )
+        : UploadAttachmentParams(
+            contactId: contactId,
+            dealId: order.dealId,
+            attachmentTypeId: type.id,
+            fileBytes: picked.bytes,
+            fileName: picked.name,
+          );
+    context.read<UploadAttachmentBloc>().add(SubmitAttachmentEvent(params: params, attachmentId: editing?.contactAttachmentId));
+  }
+
+  void _openAttachmentUrl(String url) {
+    if (url.isEmpty) {
+      showSnackbar(context, 'Tautan dokumen tidak tersedia');
+      return;
+    }
+    context.pushNamed('attachmentWebView', extra: url);
   }
 
   Widget _buildNotes() {
@@ -835,7 +967,7 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage> {
         child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
       );
     }
-    if (order.notes.isEmpty) return _buildEmpty('No notes yet.');
+    if (order.notes.isEmpty) return _buildEmpty('Belum ada pesan.');
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -941,7 +1073,7 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage> {
         top: false,
         child: Row(
           children: [
-            Expanded(child: roInput(noteTC, hint: 'Write a note...')),
+            Expanded(child: roInput(noteTC, hint: 'Tulis pesan...')),
             const SizedBox(width: 8),
             InkWell(
               onTap: _sendingNote ? null : _sendNote,
@@ -980,7 +1112,7 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage> {
 
     final contactId = order.contactId;
     if (contactId == null) {
-      showSnackbar(context, 'This transaction is not linked to any contact yet', isError: true);
+      showSnackbar(context, 'Transaksi ini belum tertaut ke kontak mana pun', isError: true);
       return;
     }
 
@@ -1017,7 +1149,7 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage> {
       queryParameters: highlightKey == null ? const {} : {'field': highlightKey},
     );
     if (!mounted) return;
-    if (saved == true) showSnackbar(context, 'Customer data updated.');
+    if (saved == true) showSnackbar(context, 'Data pembeli berhasil diperbarui.');
     setState(() {});
   }
 
@@ -1026,73 +1158,13 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage> {
       _openRevise();
       return;
     }
-    showSnackbar(context, 'Document preview is available once the file is saved on the server.');
-  }
-
-  bool _hasAttachmentOfType(String label) {
-    final type = _fixedDocTypes.firstWhere((t) => t.label == label);
-    return _attachments.any((a) => type.keywords.any((k) => a.attachmentTypeName.toLowerCase().contains(k)));
-  }
-
-  int? get _latestAttachmentTtsId {
-    final ids = _attachments.map((a) => a.reserveOrderTtsId).whereType<int>();
-    return ids.isEmpty ? null : ids.reduce((a, b) => a > b ? a : b);
-  }
-
-  Future<String?> _pickDocType(List<String> options) {
-    final completer = Completer<String?>();
-    roShowOptionSheet(
-      context: context,
-      title: 'Document Type',
-      items: options,
-      selected: null,
-      onPicked: (v) => completer.complete(v),
-    );
-    return completer.future;
-  }
-
-  Future<void> _uploadExtraDoc() async {
-    if (_uploadingExtraDoc) return;
-
-    final reserveOrderId = int.tryParse(order.id);
-    if (reserveOrderId == null) return;
-
-    AnalyticsService.logEvent('reserve_order_detail_upload_doc');
-    final options = ['KTP', if (!_hasAttachmentOfType('NPWP')) 'NPWP', 'Bukti Transfer'];
-    final docType = await _pickDocType(options);
-    if (docType == null || !mounted) return;
-
-    final picked = await CustomFilePicker.show(context);
-    if (picked == null || !picked.hasData || picked.bytes == null) return;
-    if (!mounted) return;
-
-    setState(() => _uploadingExtraDoc = true);
-    try {
-      await context.read<ReserveOrderListCubit>().dataSource.submitDocPayment(DocPaymentParams(
-            reserveOrderId: reserveOrderId,
-            reserveOrderTtsId: _latestAttachmentTtsId,
-            ktpBytes: docType == 'KTP' ? [picked.bytes!] : const [],
-            ktpFileNames: docType == 'KTP' ? [picked.name] : const [],
-            npwpBytes: docType == 'NPWP' ? picked.bytes : null,
-            npwpFileName: docType == 'NPWP' ? picked.name : null,
-            buktiTransferBytes: docType == 'Bukti Transfer' ? [picked.bytes!] : const [],
-            buktiTransferFileNames: docType == 'Bukti Transfer' ? [picked.name] : const [],
-          ));
-      if (!mounted) return;
-      setState(() => _attachmentsUnavailable = false);
-      await _loadAttachments();
-      if (mounted) showSnackbar(context, 'Document uploaded.');
-    } catch (e) {
-      if (mounted) showSnackbar(context, cleanErrorMessage(e), isError: true);
-    } finally {
-      if (mounted) setState(() => _uploadingExtraDoc = false);
-    }
+    showSnackbar(context, 'Pratinjau dokumen tersedia setelah file tersimpan di server.');
   }
 
   Future<void> _sendNote() async {
     final text = noteTC.text.trim();
     if (text.isEmpty) {
-      showSnackbar(context, 'Note is still empty', isError: true);
+      showSnackbar(context, 'Pesan masih kosong', isError: true);
       return;
     }
 

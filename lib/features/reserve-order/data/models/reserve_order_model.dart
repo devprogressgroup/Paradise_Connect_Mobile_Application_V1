@@ -14,12 +14,12 @@ enum ReserveOrderStatus { diproses, ditolak, rba, rbb, sp, prosesBank, akad }
 
 extension ReserveOrderStatusX on ReserveOrderStatus {
   String get label => switch (this) {
-        ReserveOrderStatus.diproses => 'Processing',
-        ReserveOrderStatus.ditolak => 'Rejected',
+        ReserveOrderStatus.diproses => 'Diproses',
+        ReserveOrderStatus.ditolak => 'Ditolak',
         ReserveOrderStatus.rba => 'RBA',
         ReserveOrderStatus.rbb => 'RBB',
         ReserveOrderStatus.sp => 'SP',
-        ReserveOrderStatus.prosesBank => 'Bank Process',
+        ReserveOrderStatus.prosesBank => 'Proses Bank',
         ReserveOrderStatus.akad => 'AKAD ✓',
       };
 
@@ -97,6 +97,12 @@ class AreaOption {
 /// Indonesia: harus sama persis dengan nilai `status_perkawinan` hasil OCR KTP, dan dengan apa yang
 /// disimpan di backend (`cust_marital_status`).
 const List<String> roMaritalStatusItems = ['Belum Kawin', 'Kawin', 'Cerai Hidup', 'Cerai Mati'];
+
+/// Opsi "Kategori Pekerjaan" — dipakai form Reserve & halaman Edit Customer (`work_category`).
+const List<String> roWorkCategoryItems = ['Pegawai', 'Profesional', 'Wiraswasta'];
+
+/// Opsi "Agama" — dipakai form Reserve & halaman Edit Customer (`cust_religion`).
+const List<String> roReligionItems = ['ISLAM', 'KRISTEN', 'KATOLIK', 'HINDU', 'BUDDHA', 'KONGHUCU'];
 
 enum ReserveOrderStepState { done, active, todo }
 
@@ -339,103 +345,103 @@ class ReserveCustomerFieldSection {
 }
 
 const List<ReserveCustomerFieldSection> reserveCustomerFieldSections = [
-  ReserveCustomerFieldSection('Buyer Data', [
-    ReserveCustomerFieldSpec('cust_name', 'Full Name (as per KTP)'),
-    ReserveCustomerFieldSpec('cust_ktp', 'KTP No.'),
-    ReserveCustomerFieldSpec('cust_npwp', 'NPWP No.'),
-    ReserveCustomerFieldSpec('cust_birth_place', 'Place of Birth'),
-    ReserveCustomerFieldSpec('cust_birth_date', 'Date of Birth', kind: ReserveCustomerFieldKind.date),
-    ReserveCustomerFieldSpec('cust_gender_is_male', 'Gender', kind: ReserveCustomerFieldKind.genderBool),
-    ReserveCustomerFieldSpec('cust_marital_status', 'Marital Status', kind: ReserveCustomerFieldKind.maritalStatus),
-    ReserveCustomerFieldSpec('work_category', 'Work Category'),
-    ReserveCustomerFieldSpec('cust_occupation', 'Occupation'),
-    ReserveCustomerFieldSpec('cara_bayar_id', 'Payment Plan', kind: ReserveCustomerFieldKind.paymentPlan),
-    ReserveCustomerFieldSpec('cust_religion', 'Religion', kind: ReserveCustomerFieldKind.religion),
-    ReserveCustomerFieldSpec('cust_education', 'Education'),
-    ReserveCustomerFieldSpec('cust_telp_home', 'Home Phone'),
-    ReserveCustomerFieldSpec('cust_telp_home2', 'Home Phone 2'),
-    ReserveCustomerFieldSpec('cust_telp_mobile1', 'Mobile Phone 1'),
-    ReserveCustomerFieldSpec('cust_telp_mobile2', 'Mobile Phone 2'),
-    ReserveCustomerFieldSpec('cust_telp_mobile3', 'Mobile Phone 3'),
+  ReserveCustomerFieldSection('Data Pembeli', [
+    ReserveCustomerFieldSpec('cust_name', 'Nama Lengkap (sesuai KTP)'),
+    ReserveCustomerFieldSpec('cust_ktp', 'No. KTP'),
+    ReserveCustomerFieldSpec('cust_npwp', 'No. NPWP'),
+    ReserveCustomerFieldSpec('cust_birth_place', 'Tempat Lahir'),
+    ReserveCustomerFieldSpec('cust_birth_date', 'Tanggal Lahir', kind: ReserveCustomerFieldKind.date),
+    ReserveCustomerFieldSpec('cust_gender_is_male', 'Jenis Kelamin', kind: ReserveCustomerFieldKind.genderBool),
+    ReserveCustomerFieldSpec('cust_marital_status', 'Status Pernikahan', kind: ReserveCustomerFieldKind.maritalStatus),
+    ReserveCustomerFieldSpec('work_category', 'Kategori Pekerjaan'),
+    ReserveCustomerFieldSpec('cust_occupation', 'Pekerjaan'),
+    ReserveCustomerFieldSpec('cara_bayar_id', 'Cara Pembayaran', kind: ReserveCustomerFieldKind.paymentPlan),
+    ReserveCustomerFieldSpec('cust_religion', 'Agama', kind: ReserveCustomerFieldKind.religion),
+    ReserveCustomerFieldSpec('cust_education', 'Pendidikan'),
+    ReserveCustomerFieldSpec('cust_telp_home', 'Telepon Rumah'),
+    ReserveCustomerFieldSpec('cust_telp_home2', 'Telepon Rumah 2'),
+    ReserveCustomerFieldSpec('cust_telp_mobile1', 'No. HP 1'),
+    ReserveCustomerFieldSpec('cust_telp_mobile2', 'No. HP 2'),
+    ReserveCustomerFieldSpec('cust_telp_mobile3', 'No. HP 3'),
     ReserveCustomerFieldSpec('cust_email1', 'Email 1'),
     ReserveCustomerFieldSpec('cust_email2', 'Email 2'),
   ]),
-  ReserveCustomerFieldSection('Prospective Spouse', [
-    ReserveCustomerFieldSpec('spouse_name', 'Spouse Name'),
-    ReserveCustomerFieldSpec('spouse_birth_place', 'Spouse Place of Birth'),
-    ReserveCustomerFieldSpec('spouse_birth_date', 'Spouse Date of Birth', kind: ReserveCustomerFieldKind.date),
-    ReserveCustomerFieldSpec('spouse_email', 'Spouse Email'),
-    ReserveCustomerFieldSpec('spouse_telp_mobile', 'Spouse Mobile Phone'),
+  ReserveCustomerFieldSection('Calon Pasangan', [
+    ReserveCustomerFieldSpec('spouse_name', 'Nama Pasangan'),
+    ReserveCustomerFieldSpec('spouse_birth_place', 'Tempat Lahir Pasangan'),
+    ReserveCustomerFieldSpec('spouse_birth_date', 'Tanggal Lahir Pasangan', kind: ReserveCustomerFieldKind.date),
+    ReserveCustomerFieldSpec('spouse_email', 'Email Pasangan'),
+    ReserveCustomerFieldSpec('spouse_telp_mobile', 'No. HP Pasangan'),
   ]),
-  ReserveCustomerFieldSection('Children Data', [
-    ReserveCustomerFieldSpec('child1_name', 'Child 1 Name'),
-    ReserveCustomerFieldSpec('child2_name', 'Child 2 Name'),
-    ReserveCustomerFieldSpec('child3_name', 'Child 3 Name'),
-    ReserveCustomerFieldSpec('child4_name', 'Child 4 Name'),
+  ReserveCustomerFieldSection('Data Anak', [
+    ReserveCustomerFieldSpec('child1_name', 'Nama Anak 1'),
+    ReserveCustomerFieldSpec('child2_name', 'Nama Anak 2'),
+    ReserveCustomerFieldSpec('child3_name', 'Nama Anak 3'),
+    ReserveCustomerFieldSpec('child4_name', 'Nama Anak 4'),
   ]),
-  ReserveCustomerFieldSection('Emergency Contact (Not Living Together)', [
-    ReserveCustomerFieldSpec('em_contact_name', 'Contact Name'),
-    ReserveCustomerFieldSpec('em_hubungan', 'Relationship'),
-    ReserveCustomerFieldSpec('em_hp1', 'Phone 1'),
-    ReserveCustomerFieldSpec('em_hp2', 'Phone 2'),
+  ReserveCustomerFieldSection('Kontak Darurat (Tidak Tinggal Bersama)', [
+    ReserveCustomerFieldSpec('em_contact_name', 'Nama Kontak'),
+    ReserveCustomerFieldSpec('em_hubungan', 'Hubungan'),
+    ReserveCustomerFieldSpec('em_hp1', 'Telepon 1'),
+    ReserveCustomerFieldSpec('em_hp2', 'Telepon 2'),
   ]),
-  ReserveCustomerFieldSection('Buyer Address Data', [
-    ReserveCustomerFieldSpec('cust_address1', 'Address (as per KTP)'),
-    ReserveCustomerFieldSpec('cust_area', 'Area Code (as per KTP)', kind: ReserveCustomerFieldKind.area),
-    ReserveCustomerFieldSpec('nama_kota', 'City (as per KTP)'),
-    ReserveCustomerFieldSpec('postal_code', 'Postal Code (as per KTP)'),
-    ReserveCustomerFieldSpec('current_address_similar_ktp', 'Same as KTP Address?', kind: ReserveCustomerFieldKind.yesNoBool),
-    ReserveCustomerFieldSpec('current_address', 'Current Address'),
-    ReserveCustomerFieldSpec('current_area', 'Current Area Code', kind: ReserveCustomerFieldKind.area),
-    ReserveCustomerFieldSpec('current_city', 'Current City'),
-    ReserveCustomerFieldSpec('current_postal_code', 'Current Postal Code'),
-    ReserveCustomerFieldSpec('mailing_address', 'Mailing Address'),
-    ReserveCustomerFieldSpec('mailing_area', 'Mailing Area Code', kind: ReserveCustomerFieldKind.area),
-    ReserveCustomerFieldSpec('mailing_city', 'Mailing City'),
-    ReserveCustomerFieldSpec('mailing_postal_code', 'Mailing Postal Code'),
+  ReserveCustomerFieldSection('Data Alamat Pembeli', [
+    ReserveCustomerFieldSpec('cust_address1', 'Alamat (sesuai KTP)'),
+    ReserveCustomerFieldSpec('cust_area', 'Kode Area (sesuai KTP)', kind: ReserveCustomerFieldKind.area),
+    ReserveCustomerFieldSpec('nama_kota', 'Kota (sesuai KTP)'),
+    ReserveCustomerFieldSpec('postal_code', 'Kode Pos (sesuai KTP)'),
+    ReserveCustomerFieldSpec('current_address_similar_ktp', 'Sama dengan Alamat KTP?', kind: ReserveCustomerFieldKind.yesNoBool),
+    ReserveCustomerFieldSpec('current_address', 'Alamat Saat Ini'),
+    ReserveCustomerFieldSpec('current_area', 'Kode Area Saat Ini', kind: ReserveCustomerFieldKind.area),
+    ReserveCustomerFieldSpec('current_city', 'Kota Saat Ini'),
+    ReserveCustomerFieldSpec('current_postal_code', 'Kode Pos Saat Ini'),
+    ReserveCustomerFieldSpec('mailing_address', 'Alamat Surat-Menyurat'),
+    ReserveCustomerFieldSpec('mailing_area', 'Kode Area Surat-Menyurat', kind: ReserveCustomerFieldKind.area),
+    ReserveCustomerFieldSpec('mailing_city', 'Kota Surat-Menyurat'),
+    ReserveCustomerFieldSpec('mailing_postal_code', 'Kode Pos Surat-Menyurat'),
   ]),
-  ReserveCustomerFieldSection('Prospective Spouse Address (Co-Buyer)', [
-    ReserveCustomerFieldSpec('mate_name', 'Name'),
-    ReserveCustomerFieldSpec('mate_telp_mobile', 'Mobile Phone'),
-    ReserveCustomerFieldSpec('mate_birth_place', 'Place of Birth'),
-    ReserveCustomerFieldSpec('mate_birth_date', 'Date of Birth', kind: ReserveCustomerFieldKind.date),
+  ReserveCustomerFieldSection('Alamat Calon Pasangan (Pembeli Bersama)', [
+    ReserveCustomerFieldSpec('mate_name', 'Nama'),
+    ReserveCustomerFieldSpec('mate_telp_mobile', 'No. HP'),
+    ReserveCustomerFieldSpec('mate_birth_place', 'Tempat Lahir'),
+    ReserveCustomerFieldSpec('mate_birth_date', 'Tanggal Lahir', kind: ReserveCustomerFieldKind.date),
     ReserveCustomerFieldSpec('mate_email', 'Email'),
-    ReserveCustomerFieldSpec('mate_ktp_address', 'KTP Address'),
-    ReserveCustomerFieldSpec('mate_ktp_area', 'KTP Area Code', kind: ReserveCustomerFieldKind.area),
-    ReserveCustomerFieldSpec('mate_ktp_city', 'KTP City'),
-    ReserveCustomerFieldSpec('mate_ktp_postal_code', 'KTP Postal Code'),
-    ReserveCustomerFieldSpec('mate_current_address', 'Current Address'),
-    ReserveCustomerFieldSpec('mate_current_area', 'Current Area Code', kind: ReserveCustomerFieldKind.area),
-    ReserveCustomerFieldSpec('mate_current_city', 'Current City'),
-    ReserveCustomerFieldSpec('mate_current_postal_code', 'Current Postal Code'),
-    ReserveCustomerFieldSpec('mate_mailing_address', 'Mailing Address'),
-    ReserveCustomerFieldSpec('mate_mailing_area', 'Mailing Area Code', kind: ReserveCustomerFieldKind.area),
-    ReserveCustomerFieldSpec('mate_mailing_city', 'Mailing City'),
-    ReserveCustomerFieldSpec('mate_mailing_postal_code', 'Mailing Postal Code'),
+    ReserveCustomerFieldSpec('mate_ktp_address', 'Alamat KTP'),
+    ReserveCustomerFieldSpec('mate_ktp_area', 'Kode Area KTP', kind: ReserveCustomerFieldKind.area),
+    ReserveCustomerFieldSpec('mate_ktp_city', 'Kota KTP'),
+    ReserveCustomerFieldSpec('mate_ktp_postal_code', 'Kode Pos KTP'),
+    ReserveCustomerFieldSpec('mate_current_address', 'Alamat Saat Ini'),
+    ReserveCustomerFieldSpec('mate_current_area', 'Kode Area Saat Ini', kind: ReserveCustomerFieldKind.area),
+    ReserveCustomerFieldSpec('mate_current_city', 'Kota Saat Ini'),
+    ReserveCustomerFieldSpec('mate_current_postal_code', 'Kode Pos Saat Ini'),
+    ReserveCustomerFieldSpec('mate_mailing_address', 'Alamat Surat-Menyurat'),
+    ReserveCustomerFieldSpec('mate_mailing_area', 'Kode Area Surat-Menyurat', kind: ReserveCustomerFieldKind.area),
+    ReserveCustomerFieldSpec('mate_mailing_city', 'Kota Surat-Menyurat'),
+    ReserveCustomerFieldSpec('mate_mailing_postal_code', 'Kode Pos Surat-Menyurat'),
   ]),
-  ReserveCustomerFieldSection('Buyer Work Data', [
-    ReserveCustomerFieldSpec('cust_company_name', 'Company Name'),
-    ReserveCustomerFieldSpec('cust_office_building', 'Office Building'),
-    ReserveCustomerFieldSpec('cust_work_address', 'Work Address'),
-    ReserveCustomerFieldSpec('work_area', 'Work Area Code', kind: ReserveCustomerFieldKind.area),
-    ReserveCustomerFieldSpec('cust_work_city', 'Work City'),
-    ReserveCustomerFieldSpec('cust_telp_work', 'Work Phone'),
-    ReserveCustomerFieldSpec('cust_telp_work2', 'Work Phone 2'),
-    ReserveCustomerFieldSpec('cust_work_fax', 'Work Fax'),
-    ReserveCustomerFieldSpec('cust_job_title', 'Job Title'),
-    ReserveCustomerFieldSpec('cust_income', 'Monthly Income'),
+  ReserveCustomerFieldSection('Data Pekerjaan Pembeli', [
+    ReserveCustomerFieldSpec('cust_company_name', 'Nama Perusahaan'),
+    ReserveCustomerFieldSpec('cust_office_building', 'Gedung Kantor'),
+    ReserveCustomerFieldSpec('cust_work_address', 'Alamat Kantor'),
+    ReserveCustomerFieldSpec('work_area', 'Kode Area Kantor', kind: ReserveCustomerFieldKind.area),
+    ReserveCustomerFieldSpec('cust_work_city', 'Kota Kantor'),
+    ReserveCustomerFieldSpec('cust_telp_work', 'Telepon Kantor'),
+    ReserveCustomerFieldSpec('cust_telp_work2', 'Telepon Kantor 2'),
+    ReserveCustomerFieldSpec('cust_work_fax', 'Fax Kantor'),
+    ReserveCustomerFieldSpec('cust_job_title', 'Jabatan'),
+    ReserveCustomerFieldSpec('cust_income', 'Penghasilan Bulanan'),
   ]),
-  ReserveCustomerFieldSection('Prospective Spouse Work Data', [
-    ReserveCustomerFieldSpec('spouse_occupation', 'Occupation'),
-    ReserveCustomerFieldSpec('spouse_company_name', 'Company Name'),
-    ReserveCustomerFieldSpec('spouse_office_building', 'Office Building'),
-    ReserveCustomerFieldSpec('spouse_work_address', 'Work Address'),
-    ReserveCustomerFieldSpec('spouse_area', 'Work Area Code', kind: ReserveCustomerFieldKind.area),
-    ReserveCustomerFieldSpec('spouse_work_city', 'Work City'),
-    ReserveCustomerFieldSpec('spouse_telp_work', 'Work Phone'),
-    ReserveCustomerFieldSpec('spouse_work_fax', 'Work Fax'),
-    ReserveCustomerFieldSpec('spouse_job_title', 'Job Title'),
-    ReserveCustomerFieldSpec('spouse_income', 'Monthly Income'),
+  ReserveCustomerFieldSection('Data Pekerjaan Calon Pasangan', [
+    ReserveCustomerFieldSpec('spouse_occupation', 'Pekerjaan'),
+    ReserveCustomerFieldSpec('spouse_company_name', 'Nama Perusahaan'),
+    ReserveCustomerFieldSpec('spouse_office_building', 'Gedung Kantor'),
+    ReserveCustomerFieldSpec('spouse_work_address', 'Alamat Kantor'),
+    ReserveCustomerFieldSpec('spouse_area', 'Kode Area Kantor', kind: ReserveCustomerFieldKind.area),
+    ReserveCustomerFieldSpec('spouse_work_city', 'Kota Kantor'),
+    ReserveCustomerFieldSpec('spouse_telp_work', 'Telepon Kantor'),
+    ReserveCustomerFieldSpec('spouse_work_fax', 'Fax Kantor'),
+    ReserveCustomerFieldSpec('spouse_job_title', 'Jabatan'),
+    ReserveCustomerFieldSpec('spouse_income', 'Penghasilan Bulanan'),
   ]),
 ];
 
@@ -451,11 +457,11 @@ class ReserveCustomerSlotGroup {
 }
 
 const List<ReserveCustomerSlotGroup> reserveCustomerSlotGroups = [
-  ReserveCustomerSlotGroup('Home Phone', ['cust_telp_home', 'cust_telp_home2']),
-  ReserveCustomerSlotGroup('Mobile Phone', ['cust_telp_mobile1', 'cust_telp_mobile2', 'cust_telp_mobile3']),
+  ReserveCustomerSlotGroup('Telepon Rumah', ['cust_telp_home', 'cust_telp_home2']),
+  ReserveCustomerSlotGroup('No. HP', ['cust_telp_mobile1', 'cust_telp_mobile2', 'cust_telp_mobile3']),
   ReserveCustomerSlotGroup('Email', ['cust_email1', 'cust_email2']),
-  ReserveCustomerSlotGroup('Phone', ['em_hp1', 'em_hp2']),
-  ReserveCustomerSlotGroup('Work Phone', ['cust_telp_work', 'cust_telp_work2']),
+  ReserveCustomerSlotGroup('Telepon', ['em_hp1', 'em_hp2']),
+  ReserveCustomerSlotGroup('Telepon Kantor', ['cust_telp_work', 'cust_telp_work2']),
 ];
 
 /// Satu dokumen dari `GET /api/reserve/attachment?reserve_order_id=…&reserve_order_tts_id=…` —
@@ -503,7 +509,7 @@ class ReserveOrderAttachment {
       // `attachment_url` biasanya sama dengan `attachment_path` (link Google Drive) — dijaga kalau
       // salah satu tidak diisi.
       attachmentUrl: _text(json['attachment_url']) ?? _text(json['attachment_path']) ?? '',
-      attachmentTypeName: _text(json['attachment_type_name']) ?? 'Document',
+      attachmentTypeName: _text(json['attachment_type_name']) ?? 'Dokumen',
       attachmentNote: _text(json['attachment_note']) ?? '',
       createDatetime: DateTime.tryParse('${json['create_datetime']}'),
       createUserName: _text(json['create_user_name']),
@@ -640,12 +646,12 @@ class ReserveOrder {
     final amountLabel = amount == null || amount <= 0 ? null : 'Rp ${NumberHelper.thousands(amount)}';
 
     final (status, label, statusText) = switch (true) {
-      _ when isRejected => (ReserveOrderStatus.ditolak, 'Rejected', 'Rejected - Needs Revision'),
-      _ when isProcessing => (ReserveOrderStatus.diproses, 'Processing', 'Still Processing'),
-      _ when spDate != null => (ReserveOrderStatus.sp, 'SP', 'SP Issued'),
+      _ when isRejected => (ReserveOrderStatus.ditolak, 'Ditolak', 'Ditolak - Perlu Revisi'),
+      _ when isProcessing => (ReserveOrderStatus.diproses, 'Diproses', 'Masih Diproses'),
+      _ when spDate != null => (ReserveOrderStatus.sp, 'SP', 'SP Diterbitkan'),
       // `rb_date` tidak membedakan RBA & RBB, jadi badge-nya ditulis netral.
-      _ when rbDate != null => (ReserveOrderStatus.rba, 'R/BR', 'Reserve Booking Active'),
-      _ => (ReserveOrderStatus.diproses, 'Processing', 'Still Processing'),
+      _ when rbDate != null => (ReserveOrderStatus.rba, 'R/BR', 'Reserve Booking Aktif'),
+      _ => (ReserveOrderStatus.diproses, 'Diproses', 'Masih Diproses'),
     };
 
     final customerName = _text(json['cust_name']) ?? _text(json['contact_name']) ?? '-';
@@ -657,7 +663,7 @@ class ReserveOrder {
       id: '${json['reserve_order_id'] ?? ''}',
       customerName: customerName,
       phone: phone,
-      unitLabel: _text(json['property_name']) ?? _text(json['deal_blok_no']) ?? 'Unit not yet determined',
+      unitLabel: _text(json['property_name']) ?? _text(json['deal_blok_no']) ?? 'Unit belum ditentukan',
       unitSub: _text(json['deal_project_name']) ?? '',
       salesName: salesName,
       amountShort: amount == null || amount <= 0 ? null : _compactRupiah(amount),
@@ -673,7 +679,7 @@ class ReserveOrder {
       isProcessing: isProcessing,
       contactId: _int(json['contact_id']),
       dealId: _int(json['deal_id']),
-      rejectReason: isRejected ? (rejectReason ?? 'Rejected without a reason. Contact the cashier for details.') : null,
+      rejectReason: isRejected ? (rejectReason ?? 'Ditolak tanpa alasan. Hubungi kasir untuk detail lebih lanjut.') : null,
       stageLabel: label,
       paidSoFar: amount ?? 0,
       // Top up cuma masuk akal selagi transaksinya masih di tahap reserve / reserve booking.
@@ -682,9 +688,9 @@ class ReserveOrder {
         reached: spDate != null ? 5 : (rbDate != null ? 4 : 3),
         subs: {
           3: [
-            if (createdAt != null) 'Submitted ${_longDate(createdAt)}',
+            if (createdAt != null) 'Diajukan ${_longDate(createdAt)}',
             if (amountLabel != null) amountLabel,
-            if (isRejected) 'Rejected, Needs Revision' else 'under verification',
+            if (isRejected) 'Ditolak, Perlu Revisi' else 'sedang diverifikasi',
           ].join(' · '),
           if (rbDate != null) 4: _longDate(rbDate),
           if (spDate != null) 5: _longDate(spDate),
@@ -694,7 +700,7 @@ class ReserveOrder {
           if (isRejected && rejectReason != null)
             3: [
               ReserveOrderTimelineNote(
-                who: 'Cashier —',
+                who: 'Kasir —',
                 text: rejectReason,
                 time: rejectedAt == null ? '' : '(${_noteTime(rejectedAt)})',
               ),
@@ -705,11 +711,11 @@ class ReserveOrder {
       // status pernikahan, & cara pembayaran belum dikirim `/api/reserve`, jadi ditulis "-" dulu
       // (bukan disembunyikan) supaya layoutnya konsisten dengan mockup.
       buyer: [
-        ReserveOrderField('Full Name (as per KTP)', customerName),
-        const ReserveOrderField('KTP No.', '-'),
-        const ReserveOrderField('Address (as per KTP)', '-'),
-        const ReserveOrderField('Marital Status', '-'),
-        const ReserveOrderField('Payment Plan', '-'),
+        ReserveOrderField('Nama Lengkap (sesuai KTP)', customerName),
+        const ReserveOrderField('No. KTP', '-'),
+        const ReserveOrderField('Alamat (sesuai KTP)', '-'),
+        const ReserveOrderField('Status Pernikahan', '-'),
+        const ReserveOrderField('Cara Pembayaran', '-'),
       ],
       notes: [
         if (note != null)
@@ -742,11 +748,11 @@ class ReserveOrder {
     buyer
       ..clear()
       ..addAll([
-        ReserveOrderField('Full Name (as per KTP)', detail.custName),
-        ReserveOrderField('KTP No.', detail.custKtp ?? '-'),
-        ReserveOrderField('Address (as per KTP)', detail.custAddress1 ?? '-'),
-        ReserveOrderField('Marital Status', detail.custMaritalStatus ?? '-'),
-        ReserveOrderField('Payment Plan', caraBayarName ?? '-'),
+        ReserveOrderField('Nama Lengkap (sesuai KTP)', detail.custName),
+        ReserveOrderField('No. KTP', detail.custKtp ?? '-'),
+        ReserveOrderField('Alamat (sesuai KTP)', detail.custAddress1 ?? '-'),
+        ReserveOrderField('Status Pernikahan', detail.custMaritalStatus ?? '-'),
+        ReserveOrderField('Cara Pembayaran', caraBayarName ?? '-'),
       ]);
   }
 
@@ -800,8 +806,8 @@ class ReserveOrder {
   /// (`approved_sa_id`/`approved_kasir_id`) belum lengkap, jadi belum benar masuk tahap "Reserve".
   /// Jatuh balik ke [badgeLabel] kalau [filters] kosong atau id-nya tidak ketemu.
   String badgeLabelFrom(List<ReserveFilterOption> filters) {
-    if (isRejected) return 'Rejected';
-    if (isProcessing) return 'Processing';
+    if (isRejected) return 'Ditolak';
+    if (isProcessing) return 'Diproses';
     for (final filter in filters) {
       if (filter.statusReserveId == statusReserveId) return filter.name;
     }
@@ -845,12 +851,12 @@ String initialsOf(String name) {
 const List<String> reserveStageLabels = [
   'L1 Leads',
   'L2 APPT',
-  'L3 Visitor',
+  'L3 Pengunjung',
   'L4 Reserve',
   'L5 Reserve Booking (R/BR)',
   'L6 SP',
-  'L7 Collect Data',
-  'L8 Bank Process',
+  'L7 Kumpulkan Data',
+  'L8 Proses Bank',
   'L9 SPK',
   'L10 AKAD',
 ];
@@ -858,11 +864,11 @@ const List<String> reserveStageLabels = [
 /// Tahap yang tidak bisa digerakkan sales sendiri. L5/L6 menunggu verifikasi kasir & sales admin,
 /// L7-L9 murni progress dari tim lain.
 const Map<int, String> _reserveLockLabels = {
-  4: 'Still Processing',
-  5: 'Still Processing',
-  6: 'Progress Only',
-  7: 'Progress Only',
-  8: 'Progress Only',
+  4: 'Masih Diproses',
+  5: 'Masih Diproses',
+  6: 'Progress saja',
+  7: 'Progress saja',
+  8: 'Progress saja',
 };
 
 /// Menyusun 10 tahap sekaligus: apa pun di bawah [reached] dianggap selesai, [reached] jadi tahap

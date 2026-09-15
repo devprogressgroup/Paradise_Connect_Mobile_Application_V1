@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 import 'package:progress_group/core/constants/colors.dart';
 import 'package:progress_group/core/services/analytics_service.dart';
 import 'package:progress_group/core/utils/helpers/error_message.dart';
+import 'package:progress_group/core/utils/widget/custom_dropdown_group.dart';
 import 'package:progress_group/core/utils/widget/custom_snackbar.dart';
 import 'package:progress_group/features/reserve-order/data/models/reserve_order_model.dart';
 import 'package:progress_group/features/reserve-order/presentation/pages/widgets.dart';
@@ -33,9 +34,6 @@ class _Field {
 
   const _Field(this.key, this.label, {this.hint, this.keyboardType, this.maxLines = 1});
 }
-
-const _religionItems = ['ISLAM', 'KRISTEN', 'KATOLIK', 'HINDU', 'BUDDHA', 'KONGHUCU'];
-const _workCategoryItems = ['Pegawai', 'Profesional', 'Wiraswasta'];
 
 class _ReserveOrderEditCustomerPageState extends State<ReserveOrderEditCustomerPage> {
   late ReserveCustomerDetail _detail;
@@ -74,11 +72,6 @@ class _ReserveOrderEditCustomerPageState extends State<ReserveOrderEditCustomerP
     'work_area',
     'spouse_area',
   ];
-
-
-
-  final Set<String> _collapsedSections = {};
-
 
 
 
@@ -126,7 +119,14 @@ class _ReserveOrderEditCustomerPageState extends State<ReserveOrderEditCustomerP
       if (!mounted) return;
       setState(() => _ready = true);
       if (_highlightedKey != null) {
-        WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToHighlight());
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          _scrollToHighlight();
+          // Sama seperti `ContactFormPage`: highlight-nya sementara, hilang sendiri — bukan
+          // ditunggu sampai user menyentuh layar.
+          Future.delayed(const Duration(seconds: 3), () {
+            if (mounted) setState(() => _highlightedKey = null);
+          });
+        });
       }
     });
   }
@@ -152,27 +152,30 @@ class _ReserveOrderEditCustomerPageState extends State<ReserveOrderEditCustomerP
 
 
 
-  Widget _withHighlight(String key, Widget child) {
-    if (key != widget.highlightKey) return child;
-
-    final highlighted = _highlightedKey == key;
-    return KeyedSubtree(
-      key: _keyFor(key),
-      child: Listener(
-        onPointerDown: (_) {
-          if (_highlightedKey == key) setState(() => _highlightedKey = null);
-        },
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 300),
-          padding: EdgeInsets.all(highlighted ? 6 : 0),
-          decoration: BoxDecoration(
-            color: highlighted ? const Color(primaryColor).withValues(alpha: 0.08) : null,
-            border: highlighted ? Border.all(color: const Color(primaryColor), width: 1.5) : null,
-            borderRadius: BorderRadius.circular(14),
+  /// Bingkai field underline bersama, dipakai semua builder field — highlight-nya (dari
+  /// [_highlightedKey], dipicu tautan "field" dari tab Customer di halaman Detail) menyatu ke
+  /// border-bawah + tint field itu sendiri, gaya sama seperti `ContactFormPage._buildField`,
+  /// bukan kotak terpisah yang membungkus field.
+  Widget _fieldFrame(
+    String key,
+    bool highlighted,
+    Widget child, {
+    EdgeInsetsGeometry padding = const EdgeInsets.symmetric(vertical: 5, horizontal: 16),
+  }) {
+    return Container(
+      key: key == widget.highlightKey ? _keyFor(key) : null,
+      padding: padding,
+      constraints: const BoxConstraints(minHeight: 50),
+      decoration: BoxDecoration(
+        color: highlighted ? const Color(primaryColor).withValues(alpha: 0.06) : const Color(whiteColor),
+        border: Border(
+          bottom: BorderSide(
+            width: highlighted ? 2 : 1,
+            color: highlighted ? const Color(primaryColor) : const Color(grey9Color),
           ),
-          child: child,
         ),
       ),
+      child: child,
     );
   }
 
@@ -246,63 +249,58 @@ class _ReserveOrderEditCustomerPageState extends State<ReserveOrderEditCustomerP
           bottom: false,
           child: Column(
             children: [
-              roAppBar(title: 'Edit Customer', subtitle: order.customerName, onBack: () => context.pop()),
+              _buildHeader(),
               Expanded(
                 child: !_ready
                     ? const Center(child: CircularProgressIndicator(strokeWidth: 2))
                     : SingleChildScrollView(
                   keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-                  padding: const EdgeInsets.all(14),
+                  padding: const EdgeInsets.only(bottom: 20),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _section('Buyer Data', [
-                        _textField(const _Field('cust_name', 'Full Name (as per KTP)', hint: 'Name as per KTP')),
+                      _section('Data Pembeli', [
+                        _textField(const _Field('cust_name', 'Nama Lengkap (sesuai KTP)', hint: 'Nama sesuai KTP')),
                         _textField(const _Field(
                           'cust_ktp',
-                          'KTP No.',
-                          hint: '16-digit NIK',
+                          'No. KTP',
+                          hint: 'NIK 16 digit',
                           keyboardType: TextInputType.number,
                         )),
-                        _textField(const _Field('cust_npwp', 'NPWP No.', hint: '00.000.000.0-000.000')),
-                        _textField(const _Field('cust_birth_place', 'Place of Birth', hint: 'Jakarta')),
-                        _dateField('cust_birth_date', 'Date of Birth', _birthDate, (v) => setState(() => _birthDate = v)),
+                        _textField(const _Field('cust_npwp', 'No. NPWP', hint: '00.000.000.0-000.000')),
+                        _textField(const _Field('cust_birth_place', 'Tempat Lahir', hint: 'Jakarta')),
+                        _dateField('cust_birth_date', 'Tanggal Lahir', _birthDate, (v) => setState(() => _birthDate = v)),
                         _yesNoField(
                           'cust_gender_is_male',
-                          'Gender',
+                          'Jenis Kelamin',
                           _genderIsMale,
-                          'Male',
-                          'Female',
+                          'Laki-laki',
+                          'Perempuan',
                           (v) => setState(() => _genderIsMale = v),
                         ),
                         _optionField(
                           key: 'cust_marital_status',
-                          label: 'Marital Status',
+                          label: 'Status Pernikahan',
                           value: _maritalStatus,
-                          hint: 'Select marital status',
-                          sheetTitle: 'Marital Status',
+                          sheetTitle: 'Status Pernikahan',
                           items: roMaritalStatusItems,
                           onPicked: (v) => setState(() => _maritalStatus = v),
                         ),
                         _optionField(
                           key: 'work_category',
-                          label: 'Work Category',
+                          label: 'Kategori Pekerjaan',
                           value: _workCategory,
-                          hint: 'Select work category',
-                          sheetTitle: 'Work Category',
-                          items: _workCategoryItems,
+                          sheetTitle: 'Kategori Pekerjaan',
+                          items: roWorkCategoryItems,
                           onPicked: (v) => setState(() => _workCategory = v),
                         ),
-                        _textField(const _Field('cust_occupation', 'Occupation', hint: 'Self-employed')),
+                        _textField(const _Field('cust_occupation', 'Pekerjaan', hint: 'Wiraswasta')),
                         _optionField(
                           key: 'cara_bayar_id',
-                          label: 'Payment Plan',
+                          label: 'Tujuan Pembayaran',
                           value: _caraBayarName,
-                          hint: 'Select payment plan',
-                          sheetTitle: 'Payment Plan',
-                          items: _caraBayarOptions.isEmpty
-                              ? const ['KPR', 'Cash', 'Cash Bertahap', 'Inhouse']
-                              : _caraBayarOptions.map((e) => e.name).toList(),
+                          sheetTitle: 'Tujuan Pembayaran',
+                          items: _caraBayarOptions.map((e) => e.name).toList(),
                           onPicked: (v) => setState(() {
                             for (final option in _caraBayarOptions) {
                               if (option.name == v) _caraBayarSelectedId = option.caraBayarId;
@@ -311,111 +309,109 @@ class _ReserveOrderEditCustomerPageState extends State<ReserveOrderEditCustomerP
                         ),
                         _optionField(
                           key: 'cust_religion',
-                          label: 'Religion',
+                          label: 'Agama',
                           value: _religion,
-                          hint: 'Select religion',
-                          sheetTitle: 'Religion',
-                          items: _religionItems,
+                          sheetTitle: 'Agama',
+                          items: roReligionItems,
                           onPicked: (v) => setState(() => _religion = v),
                         ),
-                        _textField(const _Field('cust_education', 'Education', hint: 'S1')),
-                        _textField(const _Field('cust_telp_home', 'Home Phone', keyboardType: TextInputType.phone)),
-                        _textField(const _Field('cust_telp_home2', 'Home Phone 2', keyboardType: TextInputType.phone)),
-                        _textField(const _Field('cust_telp_mobile1', 'Mobile Phone 1', keyboardType: TextInputType.phone)),
-                        _textField(const _Field('cust_telp_mobile2', 'Mobile Phone 2', keyboardType: TextInputType.phone)),
-                        _textField(const _Field('cust_telp_mobile3', 'Mobile Phone 3', keyboardType: TextInputType.phone)),
+                        _textField(const _Field('cust_education', 'Pendidikan', hint: 'S1')),
+                        _textField(const _Field('cust_telp_home', 'Telepon Rumah', keyboardType: TextInputType.phone)),
+                        _textField(const _Field('cust_telp_home2', 'Telepon Rumah 2', keyboardType: TextInputType.phone)),
+                        _textField(const _Field('cust_telp_mobile1', 'No. HP 1', keyboardType: TextInputType.phone)),
+                        _textField(const _Field('cust_telp_mobile2', 'No. HP 2', keyboardType: TextInputType.phone)),
+                        _textField(const _Field('cust_telp_mobile3', 'No. HP 3', keyboardType: TextInputType.phone)),
                         _textField(const _Field('cust_email1', 'Email 1', keyboardType: TextInputType.emailAddress)),
                         _textField(const _Field('cust_email2', 'Email 2', keyboardType: TextInputType.emailAddress)),
                       ]),
-                      _section('Prospective Spouse', [
-                        _textField(const _Field('spouse_name', 'Spouse Name')),
-                        _textField(const _Field('spouse_birth_place', 'Spouse Place of Birth')),
-                        _dateField('spouse_birth_date', 'Spouse Date of Birth', _spouseBirthDate, (v) => setState(() => _spouseBirthDate = v)),
-                        _textField(const _Field('spouse_email', 'Spouse Email', keyboardType: TextInputType.emailAddress)),
-                        _textField(const _Field('spouse_telp_mobile', 'Spouse Mobile Phone', keyboardType: TextInputType.phone)),
+                      _section('Calon Pasangan', [
+                        _textField(const _Field('spouse_name', 'Nama Pasangan')),
+                        _textField(const _Field('spouse_birth_place', 'Tempat Lahir Pasangan')),
+                        _dateField('spouse_birth_date', 'Tanggal Lahir Pasangan', _spouseBirthDate, (v) => setState(() => _spouseBirthDate = v)),
+                        _textField(const _Field('spouse_email', 'Email Pasangan', keyboardType: TextInputType.emailAddress)),
+                        _textField(const _Field('spouse_telp_mobile', 'No. HP Pasangan', keyboardType: TextInputType.phone)),
                       ]),
-                      _section('Children Data', [
-                        _textField(const _Field('child1_name', 'Child 1 Name')),
-                        _textField(const _Field('child2_name', 'Child 2 Name')),
-                        _textField(const _Field('child3_name', 'Child 3 Name')),
-                        _textField(const _Field('child4_name', 'Child 4 Name')),
+                      _section('Data Anak', [
+                        _textField(const _Field('child1_name', 'Nama Anak 1')),
+                        _textField(const _Field('child2_name', 'Nama Anak 2')),
+                        _textField(const _Field('child3_name', 'Nama Anak 3')),
+                        _textField(const _Field('child4_name', 'Nama Anak 4')),
                       ]),
-                      _section('Emergency Contact (Not Living Together)', [
-                        _textField(const _Field('em_contact_name', 'Contact Name')),
-                        _textField(const _Field('em_hubungan', 'Relationship')),
-                        _textField(const _Field('em_hp1', 'Phone 1', keyboardType: TextInputType.phone)),
-                        _textField(const _Field('em_hp2', 'Phone 2', keyboardType: TextInputType.phone)),
+                      _section('Kontak Darurat (Tidak Tinggal Bersama)', [
+                        _textField(const _Field('em_contact_name', 'Nama Kontak')),
+                        _textField(const _Field('em_hubungan', 'Hubungan')),
+                        _textField(const _Field('em_hp1', 'Telepon 1', keyboardType: TextInputType.phone)),
+                        _textField(const _Field('em_hp2', 'Telepon 2', keyboardType: TextInputType.phone)),
                       ]),
-                      _section('Buyer Address Data', [
-                        _textField(const _Field('cust_address1', 'Address (as per KTP)', hint: 'e.g. Street Name No. 1…', maxLines: 2)),
-                        _areaField('Area Code (as per KTP)', 'cust_area'),
-                        _textField(const _Field('nama_kota', 'City (as per KTP)')),
-                        _textField(const _Field('postal_code', 'Postal Code (as per KTP)', keyboardType: TextInputType.number)),
+                      _section('Data Alamat Pembeli', [
+                        _textField(const _Field('cust_address1', 'Alamat (sesuai KTP)', hint: 'mis. Nama Jalan No. 1…', maxLines: 2)),
+                        _areaField('Kode Area (sesuai KTP)', 'cust_area'),
+                        _textField(const _Field('nama_kota', 'Kota (sesuai KTP)')),
+                        _textField(const _Field('postal_code', 'Kode Pos (sesuai KTP)', keyboardType: TextInputType.number)),
                         _yesNoField(
                           'current_address_similar_ktp',
-                          'Same as KTP Address?',
+                          'Sama dengan Alamat KTP?',
                           _currentAddressSimilarKtp,
-                          'Yes',
-                          'No',
+                          'Ya',
+                          'Tidak',
                           (v) => setState(() => _currentAddressSimilarKtp = v),
                         ),
-                        _textField(const _Field('current_address', 'Current Address', maxLines: 2)),
-                        _areaField('Current Area Code', 'current_area'),
-                        _textField(const _Field('current_city', 'Current City')),
-                        _textField(const _Field('current_postal_code', 'Current Postal Code', keyboardType: TextInputType.number)),
-                        _textField(const _Field('mailing_address', 'Mailing Address', maxLines: 2)),
-                        _areaField('Mailing Area Code', 'mailing_area'),
-                        _textField(const _Field('mailing_city', 'Mailing City')),
-                        _textField(const _Field('mailing_postal_code', 'Mailing Postal Code', keyboardType: TextInputType.number)),
+                        _textField(const _Field('current_address', 'Alamat Saat Ini', maxLines: 2)),
+                        _areaField('Kode Area Saat Ini', 'current_area'),
+                        _textField(const _Field('current_city', 'Kota Saat Ini')),
+                        _textField(const _Field('current_postal_code', 'Kode Pos Saat Ini', keyboardType: TextInputType.number)),
+                        _textField(const _Field('mailing_address', 'Alamat Surat-Menyurat', maxLines: 2)),
+                        _areaField('Kode Area Surat-Menyurat', 'mailing_area'),
+                        _textField(const _Field('mailing_city', 'Kota Surat-Menyurat')),
+                        _textField(const _Field('mailing_postal_code', 'Kode Pos Surat-Menyurat', keyboardType: TextInputType.number)),
                       ]),
-                      _section('Prospective Spouse Address (Co-Buyer)', [
-                        _textField(const _Field('mate_name', 'Name')),
-                        _textField(const _Field('mate_telp_mobile', 'Mobile Phone', keyboardType: TextInputType.phone)),
-                        _textField(const _Field('mate_birth_place', 'Place of Birth')),
-                        _dateField('mate_birth_date', 'Date of Birth', _mateBirthDate, (v) => setState(() => _mateBirthDate = v)),
+                      _section('Alamat Calon Pasangan (Pembeli Bersama)', [
+                        _textField(const _Field('mate_name', 'Nama')),
+                        _textField(const _Field('mate_telp_mobile', 'No. HP', keyboardType: TextInputType.phone)),
+                        _textField(const _Field('mate_birth_place', 'Tempat Lahir')),
+                        _dateField('mate_birth_date', 'Tanggal Lahir', _mateBirthDate, (v) => setState(() => _mateBirthDate = v)),
                         _textField(const _Field('mate_email', 'Email', keyboardType: TextInputType.emailAddress)),
-                        _textField(const _Field('mate_ktp_address', 'KTP Address', maxLines: 2)),
-                        _areaField('KTP Area Code', 'mate_ktp_area'),
-                        _textField(const _Field('mate_ktp_city', 'KTP City')),
-                        _textField(const _Field('mate_ktp_postal_code', 'KTP Postal Code', keyboardType: TextInputType.number)),
-                        _textField(const _Field('mate_current_address', 'Current Address', maxLines: 2)),
-                        _areaField('Current Area Code', 'mate_current_area'),
-                        _textField(const _Field('mate_current_city', 'Current City')),
-                        _textField(const _Field('mate_current_postal_code', 'Current Postal Code', keyboardType: TextInputType.number)),
-                        _textField(const _Field('mate_mailing_address', 'Mailing Address', maxLines: 2)),
-                        _areaField('Mailing Area Code', 'mate_mailing_area'),
-                        _textField(const _Field('mate_mailing_city', 'Mailing City')),
-                        _textField(const _Field('mate_mailing_postal_code', 'Mailing Postal Code', keyboardType: TextInputType.number)),
+                        _textField(const _Field('mate_ktp_address', 'Alamat KTP', maxLines: 2)),
+                        _areaField('Kode Area KTP', 'mate_ktp_area'),
+                        _textField(const _Field('mate_ktp_city', 'Kota KTP')),
+                        _textField(const _Field('mate_ktp_postal_code', 'Kode Pos KTP', keyboardType: TextInputType.number)),
+                        _textField(const _Field('mate_current_address', 'Alamat Saat Ini', maxLines: 2)),
+                        _areaField('Kode Area Saat Ini', 'mate_current_area'),
+                        _textField(const _Field('mate_current_city', 'Kota Saat Ini')),
+                        _textField(const _Field('mate_current_postal_code', 'Kode Pos Saat Ini', keyboardType: TextInputType.number)),
+                        _textField(const _Field('mate_mailing_address', 'Alamat Surat-Menyurat', maxLines: 2)),
+                        _areaField('Kode Area Surat-Menyurat', 'mate_mailing_area'),
+                        _textField(const _Field('mate_mailing_city', 'Kota Surat-Menyurat')),
+                        _textField(const _Field('mate_mailing_postal_code', 'Kode Pos Surat-Menyurat', keyboardType: TextInputType.number)),
                       ]),
-                      _section('Buyer Work Data', [
-                        _textField(const _Field('cust_company_name', 'Company Name')),
-                        _textField(const _Field('cust_office_building', 'Office Building')),
-                        _textField(const _Field('cust_work_address', 'Work Address', maxLines: 2)),
-                        _areaField('Work Area Code', 'work_area'),
-                        _textField(const _Field('cust_work_city', 'Work City')),
-                        _textField(const _Field('cust_telp_work', 'Work Phone', keyboardType: TextInputType.phone)),
-                        _textField(const _Field('cust_telp_work2', 'Work Phone 2', keyboardType: TextInputType.phone)),
-                        _textField(const _Field('cust_work_fax', 'Work Fax', keyboardType: TextInputType.phone)),
-                        _textField(const _Field('cust_job_title', 'Job Title')),
-                        _textField(const _Field('cust_income', 'Monthly Income', hint: 'Rp 0', keyboardType: TextInputType.number)),
+                      _section('Data Pekerjaan Pembeli', [
+                        _textField(const _Field('cust_company_name', 'Nama Perusahaan')),
+                        _textField(const _Field('cust_office_building', 'Gedung Kantor')),
+                        _textField(const _Field('cust_work_address', 'Alamat Kantor', maxLines: 2)),
+                        _areaField('Kode Area Kantor', 'work_area'),
+                        _textField(const _Field('cust_work_city', 'Kota Kantor')),
+                        _textField(const _Field('cust_telp_work', 'Telepon Kantor', keyboardType: TextInputType.phone)),
+                        _textField(const _Field('cust_telp_work2', 'Telepon Kantor 2', keyboardType: TextInputType.phone)),
+                        _textField(const _Field('cust_work_fax', 'Fax Kantor', keyboardType: TextInputType.phone)),
+                        _textField(const _Field('cust_job_title', 'Jabatan')),
+                        _textField(const _Field('cust_income', 'Penghasilan Bulanan', hint: 'Rp 0', keyboardType: TextInputType.number)),
                       ]),
-                      _section('Prospective Spouse Work Data', [
-                        _textField(const _Field('spouse_occupation', 'Occupation')),
-                        _textField(const _Field('spouse_company_name', 'Company Name')),
-                        _textField(const _Field('spouse_office_building', 'Office Building')),
-                        _textField(const _Field('spouse_work_address', 'Work Address', maxLines: 2)),
-                        _areaField('Work Area Code', 'spouse_area'),
-                        _textField(const _Field('spouse_work_city', 'Work City')),
-                        _textField(const _Field('spouse_telp_work', 'Work Phone', keyboardType: TextInputType.phone)),
-                        _textField(const _Field('spouse_work_fax', 'Work Fax', keyboardType: TextInputType.phone)),
-                        _textField(const _Field('spouse_job_title', 'Job Title')),
-                        _textField(const _Field('spouse_income', 'Monthly Income', hint: 'Rp 0', keyboardType: TextInputType.number)),
+                      _section('Data Pekerjaan Calon Pasangan', [
+                        _textField(const _Field('spouse_occupation', 'Pekerjaan')),
+                        _textField(const _Field('spouse_company_name', 'Nama Perusahaan')),
+                        _textField(const _Field('spouse_office_building', 'Gedung Kantor')),
+                        _textField(const _Field('spouse_work_address', 'Alamat Kantor', maxLines: 2)),
+                        _areaField('Kode Area Kantor', 'spouse_area'),
+                        _textField(const _Field('spouse_work_city', 'Kota Kantor')),
+                        _textField(const _Field('spouse_telp_work', 'Telepon Kantor', keyboardType: TextInputType.phone)),
+                        _textField(const _Field('spouse_work_fax', 'Fax Kantor', keyboardType: TextInputType.phone)),
+                        _textField(const _Field('spouse_job_title', 'Jabatan')),
+                        _textField(const _Field('spouse_income', 'Penghasilan Bulanan', hint: 'Rp 0', keyboardType: TextInputType.number)),
                       ]),
                     ],
                   ),
                 ),
               ),
-              roFooter([roPrimaryButton('Save Changes', _onSubmit, loading: _submitting)]),
             ],
           ),
         ),
@@ -423,103 +419,119 @@ class _ReserveOrderEditCustomerPageState extends State<ReserveOrderEditCustomerP
     );
   }
 
-  Widget _section(String title, List<Widget> children) {
-    final collapsed = _collapsedSections.contains(title);
-
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 18),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+  /// Header ala "Edit Contact" (`ContactFormPage._headerContact`) — bar putih polos, tombol
+  /// kembali kiri, tombol "Simpan" inline kanan (bukan bar aksi terpisah di bawah).
+  Widget _buildHeader() {
+    return Container(
+      height: 64,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      color: const Color(whiteColor),
+      child: Row(
         children: [
-          roCollapsibleSectionHeader(
-            title: title,
-            collapsed: collapsed,
-            onTap: () => setState(() {
-              if (collapsed) {
-                _collapsedSections.remove(title);
-              } else {
-                _collapsedSections.add(title);
-              }
-            }),
+          GestureDetector(
+            onTap: () => context.pop(),
+            child: const Icon(Icons.arrow_back, color: Color(primaryColor), size: 27),
           ),
-          if (!collapsed) ...children,
+          const SizedBox(width: 10),
+          const Expanded(
+            child: Text(
+              'Edit Data Pembeli',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
+            ),
+          ),
+          const SizedBox(width: 10),
+          GestureDetector(
+            onTap: _submitting ? null : _onSubmit,
+            child: Container(
+              height: 36,
+              width: 100,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(borderRadius: BorderRadius.circular(14), color: const Color(blue3Color)),
+              child: _submitting
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2, color: Color(whiteColor)),
+                    )
+                  : const Text('Simpan', style: TextStyle(color: Color(whiteColor), fontWeight: FontWeight.w700)),
+            ),
+          ),
         ],
       ),
     );
   }
 
+  /// Section ala "Edit Contact" (`CustomDropdownGroupContact`, dipakai langsung — widget bersama,
+  /// bukan diduplikasi) — bar abu-abu polos dengan judul + chevron, tanpa kartu/rounded box.
+  Widget _section(String title, List<Widget> children) {
+    return CustomDropdownGroupContact(hint: title, child: Column(children: children));
+  }
+
+  /// Field teks underline + label mengambang, gaya `ContactFormPage._buildField` — border cuma di
+  /// bawah, label jadi hint saat kosong lalu mengambang ke atas begitu diisi/difokus.
   Widget _textField(_Field f) {
-    return _withHighlight(
+    final highlighted = _highlightedKey == f.key;
+    final labelColor = highlighted ? const Color(primaryColor) : const Color(grey2Color);
+    return _fieldFrame(
       f.key,
-      Padding(
-        padding: const EdgeInsets.only(bottom: 12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            roFieldLabel(f.label),
-            roInput(
-              _c(f.key),
-              hint: f.hint,
-              keyboardType: f.keyboardType,
-              inputFormatters: f.key == 'cust_ktp'
-                  ? [FilteringTextInputFormatter.digitsOnly, LengthLimitingTextInputFormatter(16)]
-                  : null,
-              maxLines: f.maxLines,
-            ),
-          ],
+      highlighted,
+      TextField(
+        controller: _c(f.key),
+        keyboardType: f.keyboardType,
+        inputFormatters: f.key == 'cust_ktp'
+            ? [FilteringTextInputFormatter.digitsOnly, LengthLimitingTextInputFormatter(16)]
+            : null,
+        minLines: f.maxLines > 1 ? f.maxLines : null,
+        maxLines: null,
+        style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: highlighted ? const Color(primaryColor) : const Color(blackColor)),
+        decoration: InputDecoration(
+          isDense: true,
+          label: Text(f.label, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: labelColor)),
+          floatingLabelStyle: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: labelColor),
+          hintText: f.hint,
+          hintStyle: const TextStyle(fontSize: 12, color: Color(grey5Color)),
+          border: InputBorder.none,
+          enabledBorder: InputBorder.none,
+          focusedBorder: InputBorder.none,
+          contentPadding: EdgeInsets.zero,
         ),
       ),
     );
   }
 
   Widget _yesNoField(String key, String label, bool? value, String yesLabel, String noLabel, ValueChanged<bool> onChanged) {
-    return _withHighlight(
-      key,
-      Padding(
-        padding: const EdgeInsets.only(bottom: 12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            roFieldLabel(label),
-            Row(
-              children: [
-                roChip(yesLabel, value == true, () => onChanged(true)),
-                const SizedBox(width: 8),
-                roChip(noLabel, value == false, () => onChanged(false)),
-              ],
-            ),
-          ],
-        ),
+    final current = value == null ? null : (value ? yesLabel : noLabel);
+    return _buildPickerField(
+      fieldKey: key,
+      label: label,
+      value: current,
+      onTap: () => roShowOptionSheet(
+        context: context,
+        title: label,
+        items: [yesLabel, noLabel],
+        selected: current,
+        onPicked: (v) => onChanged(v == yesLabel),
       ),
     );
   }
 
   Widget _dateField(String key, String label, DateTime? value, ValueChanged<DateTime> onChanged) {
-    return _withHighlight(
-      key,
-      Padding(
-        padding: const EdgeInsets.only(bottom: 12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            roFieldLabel(label),
-            roPickerRow(
-              value: value == null ? null : DateFormat('dd MMMM yyyy', 'id_ID').format(value),
-              hint: 'Select date',
-              onTap: () async {
-                final now = DateTime.now();
-                final picked = await showDatePicker(
-                  context: context,
-                  initialDate: value ?? DateTime(now.year - 30, now.month, now.day),
-                  firstDate: DateTime(1900),
-                  lastDate: now,
-                );
-                if (picked != null) onChanged(picked);
-              },
-            ),
-          ],
-        ),
-      ),
+    return _buildPickerField(
+      fieldKey: key,
+      label: label,
+      value: value == null ? null : DateFormat('dd MMMM yyyy', 'id_ID').format(value),
+      onTap: () async {
+        final now = DateTime.now();
+        final picked = await showDatePicker(
+          context: context,
+          initialDate: value ?? DateTime(now.year - 30, now.month, now.day),
+          firstDate: DateTime(1900),
+          lastDate: now,
+        );
+        if (picked != null) onChanged(picked);
+      },
     );
   }
 
@@ -527,37 +539,58 @@ class _ReserveOrderEditCustomerPageState extends State<ReserveOrderEditCustomerP
     required String key,
     required String label,
     required String? value,
-    required String hint,
     required String sheetTitle,
     required List<String> items,
     required ValueChanged<String> onPicked,
   }) {
-    return _withHighlight(
-      key,
-      Padding(
-        padding: const EdgeInsets.only(bottom: 12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            roFieldLabel(label),
-            roPickerRow(
-              value: value,
-              hint: hint,
-              onTap: () => roShowOptionSheet(
-                context: context,
-                title: sheetTitle,
-                items: items,
-                selected: value,
-                onPicked: onPicked,
-              ),
-            ),
-          ],
-        ),
+    return _buildPickerField(
+      fieldKey: key,
+      label: label,
+      value: value,
+      onTap: () => roShowOptionSheet(
+        context: context,
+        title: sheetTitle,
+        items: items,
+        selected: value,
+        onPicked: onPicked,
       ),
     );
   }
 
-
+  /// Field "pilihan" underline (tanggal/opsi/ya-tidak) — gaya `ContactFormPage._buildFieldDown`:
+  /// label kecil di atas nilai kalau sudah terisi, atau label besar sebagai placeholder kalau
+  /// masih kosong, + panah dropdown di kanan. Tetap buka bottom sheet ([roShowOptionSheet]) atau
+  /// date picker saat ditekan — cuma tampilannya yang disamakan, bukan alur navigasinya.
+  Widget _buildPickerField({required String fieldKey, required String label, required String? value, required VoidCallback onTap}) {
+    final highlighted = _highlightedKey == fieldKey;
+    final labelColor = highlighted ? const Color(primaryColor) : const Color(grey2Color);
+    final isEmpty = value == null || value.isEmpty;
+    return _fieldFrame(
+      fieldKey,
+      highlighted,
+      InkWell(
+        onTap: onTap,
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (!isEmpty) Text(label, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: labelColor)),
+                  isEmpty
+                      ? Text(label, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: labelColor))
+                      : Text(value, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: highlighted ? const Color(primaryColor) : const Color(blackColor))),
+                ],
+              ),
+            ),
+            const Icon(Icons.arrow_drop_down, size: 28, color: Color(grey4Color)),
+          ],
+        ),
+      ),
+      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+    );
+  }
 
 
 
@@ -567,7 +600,6 @@ class _ReserveOrderEditCustomerPageState extends State<ReserveOrderEditCustomerP
       key: key,
       label: label,
       value: _areaLabelFor(key),
-      hint: 'Select area',
       sheetTitle: label,
       items: _areaOptions.map((e) => e.label).toList(),
       onPicked: (v) => setState(() {
@@ -659,13 +691,13 @@ class _ReserveOrderEditCustomerPageState extends State<ReserveOrderEditCustomerP
 
   Future<void> _onSubmit() async {
     if (_c('cust_name').text.trim().isEmpty) {
-      showSnackbar(context, 'Full name is required', isError: true);
+      showSnackbar(context, 'Nama lengkap wajib diisi', isError: true);
       return;
     }
 
     final reserveOrderId = int.tryParse(order.id);
     if (reserveOrderId == null) {
-      showSnackbar(context, 'Failed to update customer data', isError: true);
+      showSnackbar(context, 'Gagal memperbarui data pembeli', isError: true);
       return;
     }
 

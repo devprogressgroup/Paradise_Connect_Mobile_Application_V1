@@ -5,11 +5,22 @@ import 'package:intl/intl.dart';
 import 'package:progress_group/core/utils/helpers/error_message.dart';
 import 'package:progress_group/features/reserve-order/data/models/reserve_order_model.dart';
 
-/// Payload `POST /api/reserve` — bikin baris `m_customer_reserve` baru. Field selain
-/// [contactId]/[custName] opsional karena sebagian belum ada input UI-nya sendiri (mis. jenis
-/// kelamin/agama cuma terisi kalau dari hasil scan KTP).
+/// Payload gabungan `POST /api/reserve` (multipart) — bikin baris `m_customer_reserve`, tautkan
+/// SATU unit (`dealId`) yang dipilih, DAN kirim dokumen (KTP/NPWP/bukti transfer) + rincian
+/// pembayaran sekaligus dalam satu request. Menggantikan alur lama 3 request berurutan
+/// (`createReserve` JSON → `saveReserveUnit` per unit → `submitDocPayment` multipart terpisah) —
+/// sesuai instruksi eksplisit: cuma boleh 1 unit terpilih di step "Pilih Unit" (lihat
+/// `ReservePage._onNextUnit`), jadi tidak perlu lagi endpoint terpisah buat "tautkan banyak unit".
+/// `ktp[]` & `bukti_transfer[]` DUA-DUANYA pakai kurung array — beda dari [DocPaymentParams]
+/// (`submitDocPayment`) yang `bukti_transfer`-nya sengaja TANPA kurung.
 class CreateReserveParams {
   final int contactId;
+
+  /// Null kalau unit yang dipilih belum py deal existing (dipilih baru dari katalog `unit-all`,
+  /// belum pernah jadi deal) — field `deal_id` di-OMIT total dari request kalau null, bukan
+  /// dikirim `0`/kosong, sesuai instruksi eksplisit.
+  final int? dealId;
+  final int companyId;
   final String custName;
   final String? custKtp;
   final String? custBirthPlace;
@@ -17,13 +28,25 @@ class CreateReserveParams {
   final bool? custGenderIsMale;
   final String? custMaritalStatus;
   final String? custReligion;
+  final String? workCategory;
   final String? custOccupation;
   final String? custAddress1;
   final int? caraBayarId;
   final String? custTelpMobile1;
+  final int statusReserveId;
+  final num amountRp;
+  final String? reserveNote;
+  final List<Uint8List> ktpBytes;
+  final List<String> ktpFileNames;
+  final Uint8List? npwpBytes;
+  final String? npwpFileName;
+  final List<Uint8List> buktiTransferBytes;
+  final List<String> buktiTransferFileNames;
 
   const CreateReserveParams({
     required this.contactId,
+    this.dealId,
+    required this.companyId,
     required this.custName,
     this.custKtp,
     this.custBirthPlace,
@@ -31,26 +54,21 @@ class CreateReserveParams {
     this.custGenderIsMale,
     this.custMaritalStatus,
     this.custReligion,
+    this.workCategory,
     this.custOccupation,
     this.custAddress1,
     this.caraBayarId,
     this.custTelpMobile1,
+    required this.statusReserveId,
+    required this.amountRp,
+    this.reserveNote,
+    this.ktpBytes = const [],
+    this.ktpFileNames = const [],
+    this.npwpBytes,
+    this.npwpFileName,
+    this.buktiTransferBytes = const [],
+    this.buktiTransferFileNames = const [],
   });
-
-  Map<String, dynamic> toJson() => {
-        'contact_id': contactId,
-        'cust_name': custName,
-        if (custKtp != null && custKtp!.isNotEmpty) 'cust_ktp': custKtp,
-        if (custBirthPlace != null && custBirthPlace!.isNotEmpty) 'cust_birth_place': custBirthPlace,
-        if (custBirthDate != null) 'cust_birth_date': DateFormat('yyyy-MM-dd').format(custBirthDate!),
-        if (custGenderIsMale != null) 'cust_gender_is_male': custGenderIsMale,
-        if (custMaritalStatus != null && custMaritalStatus!.isNotEmpty) 'cust_marital_status': custMaritalStatus,
-        if (custReligion != null && custReligion!.isNotEmpty) 'cust_religion': custReligion,
-        if (custOccupation != null && custOccupation!.isNotEmpty) 'cust_occupation': custOccupation,
-        if (custAddress1 != null && custAddress1!.isNotEmpty) 'cust_address1': custAddress1,
-        if (caraBayarId != null) 'cara_bayar_id': caraBayarId,
-        if (custTelpMobile1 != null && custTelpMobile1!.isNotEmpty) 'cust_telp_mobile1': custTelpMobile1,
-      };
 }
 
 /// Payload `POST /api/reserve/doc-payment` — kirim dokumen (KTP/NPWP/bukti transfer) + rincian
@@ -99,9 +117,9 @@ class DocPaymentParams {
   });
 }
 
-/// Hasil `POST /api/reserve` — `reserveOrderId` dibutuhkan [DocPaymentParams.reserveOrderId]
-/// (lewat [ReserveOrderRemoteDataSource.submitDocPayment]), `customerId` dibutuhkan
-/// [ReserveOrderRemoteDataSource.saveReserveUnit] buat menautkan unit yang dipilih ke customer ini.
+/// Hasil `POST /api/reserve` — `reserveOrderId`/`customerId` dari `data.reserve_order`. Sudah
+/// tidak dipakai lagi buat memicu request susulan (dulu `saveReserveUnit`/`submitDocPayment`
+/// terpisah) sejak [CreateReserveParams] mencakup semuanya dalam satu request.
 class CreateReserveResult {
   final int reserveOrderId;
   final int customerId;
@@ -136,28 +154,39 @@ abstract class ReserveOrderRemoteDataSource {
     int? contactId,
   });
 
-  /// Master status reserve buat chip filter di atas list — `GET /api/reserve-filter`.
-  Future<List<ReserveFilterOption>> getReserveFilters();
+  /// Master status reserve buat chip filter di atas list — `GET /api/reserve-filter`. [excludeBatal]
+  /// mengirim `exclude_batal=1` — dipakai "Jenis Transaksi" di form Reserve supaya status "Batal"
+  /// tidak muncul sebagai pilihan jenis transaksi baru; chip filter List tetap minta semua status
+  /// apa adanya (`excludeBatal: false`).
+  Future<List<ReserveFilterOption>> getReserveFilters({bool excludeBatal = false});
 
   /// Master "Cara Pembayaran" di form Reserve — `GET /api/reserve/cara-bayar`.
   Future<List<CaraBayarOption>> getCaraBayarOptions();
 
-  /// Bikin baris `m_customer_reserve` baru — `POST /api/reserve`. Dipanggil begitu lepas dari step
-  /// Dokumen form Reserve (sebelum step Pilih Unit), supaya `customer_id`-nya sudah ada waktu
-  /// [saveReserveUnit] dipanggil. Mengembalikan `reserve_order_id` (dipakai
-  /// [DocPaymentParams.reserveOrderId] lewat [submitDocPayment]) & `customer_id` dari
-  /// `data.reserve_order`.
+  /// Bikin baris `m_customer_reserve`, tautkan SATU unit (`dealId`), DAN kirim dokumen + rincian
+  /// pembayaran — semuanya dalam SATU request multipart `POST /api/reserve`. Step
+  /// Pembeli/Unit/Dokumen form Reserve semuanya cuma validasi lokal; ini baru dipanggil pas submit
+  /// di step Review (lihat `ReservePage._onSubmit`). Mengembalikan `reserve_order_id`/`customer_id`
+  /// dari `data.reserve_order`.
   Future<CreateReserveResult> createReserve(CreateReserveParams params);
-
-  /// Menautkan satu unit (deal) ke customer yang baru dibuat [createReserve] — `POST
-  /// /api/reserve-unit`. Dipanggil sekali per unit begitu lepas dari step Pilih Unit form Reserve.
-  Future<void> saveReserveUnit({required int dealId, required int customerId});
 
   /// Kirim dokumen + rincian pembayaran ke reserve order yang barusan dibuat —
   /// `POST /api/reserve/doc-payment`. Wajib dipanggil setelah [createReserve]. Mengembalikan
   /// `data.tts.reserve_order_tts_id` — dibutuhkan sebagai param [DocPaymentParams.reserveOrderTtsId]
   /// kalau mau menambah dokumen ke TTS yang sama dari halaman Detail.
   Future<int> submitDocPayment(DocPaymentParams params);
+
+  /// Ajukan Top Up pembayaran — `POST /api/reserve/top-up`. Endpoint TERPISAH dari
+  /// [submitDocPayment] (beda payload & tujuan): cuma 4 field (`reserve_order_id`, `amount_rp`,
+  /// `reserve_note`, `bukti_transfer[]` — boleh lebih dari 1 file, kurungnya sama seperti
+  /// [CreateReserveParams]), dipakai khusus `ReserveOrderTopUpPage`.
+  Future<void> topUp({
+    required int reserveOrderId,
+    required num amountRp,
+    String? note,
+    required List<Uint8List> buktiTransferBytes,
+    required List<String> buktiTransferFileNames,
+  });
 
   /// Detail customer satu reserve order — `GET /api/reserve/customer?reserve_order_id=…`. Dipanggil
   /// dari halaman Detail buat melengkapi tab "Data Pembeli" (No. KTP, alamat, status pernikahan,
@@ -230,16 +259,18 @@ class ReserveOrderRemoteDataSourceImpl implements ReserveOrderRemoteDataSource {
         );
       }
 
-      throw Exception(body is Map ? (body['message'] ?? 'Failed to load reserve order') : 'Failed to load reserve order');
+      throw Exception(body is Map ? (body['message'] ?? 'Gagal memuat reserve order') : 'Gagal memuat reserve order');
     } on DioException catch (e) {
-      throw Exception(getErrorMessage(e, 'Failed to load reserve order'));
+      throw Exception(getErrorMessage(e, 'Gagal memuat reserve order'));
     }
   }
 
   @override
-  Future<List<ReserveFilterOption>> getReserveFilters() async {
+  Future<List<ReserveFilterOption>> getReserveFilters({bool excludeBatal = false}) async {
     try {
-      final response = await dio.get('/reserve-filter');
+      final response = await dio.get('/reserve-filter', queryParameters: {
+        if (excludeBatal) 'exclude_batal': 1,
+      });
       final body = response.data;
 
       if (body is Map && body['status'] == true && body['data'] is List) {
@@ -249,9 +280,9 @@ class ReserveOrderRemoteDataSourceImpl implements ReserveOrderRemoteDataSource {
             .toList();
       }
 
-      throw Exception(body is Map ? (body['message'] ?? 'Failed to load reserve order filter') : 'Failed to load reserve order filter');
+      throw Exception(body is Map ? (body['message'] ?? 'Gagal memuat filter reserve order') : 'Gagal memuat filter reserve order');
     } on DioException catch (e) {
-      throw Exception(getErrorMessage(e, 'Failed to load reserve order filter'));
+      throw Exception(getErrorMessage(e, 'Gagal memuat filter reserve order'));
     }
   }
 
@@ -265,21 +296,56 @@ class ReserveOrderRemoteDataSourceImpl implements ReserveOrderRemoteDataSource {
         return (body['data'] as List).map((e) => CaraBayarOption.fromJson(Map<String, dynamic>.from(e as Map))).toList();
       }
 
-      throw Exception(body is Map ? (body['message'] ?? 'Failed to load payment plan') : 'Failed to load payment plan');
+      throw Exception(body is Map ? (body['message'] ?? 'Gagal memuat cara pembayaran') : 'Gagal memuat cara pembayaran');
     } on DioException catch (e) {
-      throw Exception(getErrorMessage(e, 'Failed to load payment plan'));
+      throw Exception(getErrorMessage(e, 'Gagal memuat cara pembayaran'));
     }
   }
 
   @override
-  Future<CreateReserveResult> createReserve(CreateReserveParams params) async {
+  Future<CreateReserveResult> createReserve(CreateReserveParams p) async {
     try {
-      final response = await dio.post('/reserve', data: params.toJson());
+      final data = <String, dynamic>{
+        'contact_id': p.contactId,
+        if (p.dealId != null) 'deal_id': p.dealId,
+        'company_id': p.companyId,
+        'cust_name': p.custName,
+        if (p.custKtp != null && p.custKtp!.isNotEmpty) 'cust_ktp': p.custKtp,
+        if (p.custBirthPlace != null && p.custBirthPlace!.isNotEmpty) 'cust_birth_place': p.custBirthPlace,
+        if (p.custBirthDate != null) 'cust_birth_date': DateFormat('yyyy-MM-dd').format(p.custBirthDate!),
+        if (p.custGenderIsMale != null) 'cust_gender_is_male': p.custGenderIsMale,
+        if (p.custMaritalStatus != null && p.custMaritalStatus!.isNotEmpty) 'cust_marital_status': p.custMaritalStatus,
+        if (p.custReligion != null && p.custReligion!.isNotEmpty) 'cust_religion': p.custReligion,
+        if (p.workCategory != null && p.workCategory!.isNotEmpty) 'work_category': p.workCategory,
+        if (p.custOccupation != null && p.custOccupation!.isNotEmpty) 'cust_occupation': p.custOccupation,
+        if (p.custAddress1 != null && p.custAddress1!.isNotEmpty) 'cust_address1': p.custAddress1,
+        if (p.caraBayarId != null) 'cara_bayar_id': p.caraBayarId,
+        if (p.custTelpMobile1 != null && p.custTelpMobile1!.isNotEmpty) 'cust_telp_mobile1': p.custTelpMobile1,
+        'status_reserve_id': p.statusReserveId,
+        'amount_rp': p.amountRp,
+        if (p.reserveNote != null && p.reserveNote!.isNotEmpty) 'reserve_note': p.reserveNote,
+        if (p.ktpBytes.isNotEmpty)
+          'ktp[]': [
+            for (var i = 0; i < p.ktpBytes.length; i++)
+              _multipart(p.ktpBytes[i], i < p.ktpFileNames.length ? p.ktpFileNames[i] : null),
+          ],
+        if (p.npwpBytes != null) 'npwp': _multipart(p.npwpBytes!, p.npwpFileName),
+        if (p.buktiTransferBytes.isNotEmpty)
+          'bukti_transfer[]': [
+            for (var i = 0; i < p.buktiTransferBytes.length; i++)
+              _multipart(
+                p.buktiTransferBytes[i],
+                i < p.buktiTransferFileNames.length ? p.buktiTransferFileNames[i] : null,
+              ),
+          ],
+      };
+
+      final response = await dio.post('/reserve', data: FormData.fromMap(data));
       final body = response.data;
 
       if (body is Map && body['status'] == true) {
-        final data = body['data'];
-        final reserveOrder = data is Map ? data['reserve_order'] : null;
+        final resData = body['data'];
+        final reserveOrder = resData is Map ? resData['reserve_order'] : null;
         final rawReserveOrderId = reserveOrder is Map ? reserveOrder['reserve_order_id'] : null;
         final rawCustomerId = reserveOrder is Map ? reserveOrder['customer_id'] : null;
         final reserveOrderId = rawReserveOrderId is int ? rawReserveOrderId : int.tryParse('$rawReserveOrderId');
@@ -287,24 +353,11 @@ class ReserveOrderRemoteDataSourceImpl implements ReserveOrderRemoteDataSource {
         if (reserveOrderId != null && customerId != null) {
           return CreateReserveResult(reserveOrderId: reserveOrderId, customerId: customerId);
         }
-        throw Exception('reserve_order_id/customer_id not found in response');
+        throw Exception('reserve_order_id/customer_id tidak ditemukan di response');
       }
-      throw Exception(body is Map ? (body['message'] ?? 'Failed to create reserve order') : 'Failed to create reserve order');
+      throw Exception(body is Map ? (body['message'] ?? 'Gagal membuat reserve order') : 'Gagal membuat reserve order');
     } on DioException catch (e) {
-      throw Exception(getErrorMessage(e, 'Failed to create reserve order'));
-    }
-  }
-
-  @override
-  Future<void> saveReserveUnit({required int dealId, required int customerId}) async {
-    try {
-      final response = await dio.post('/reserve-unit', data: {'deal_id': dealId, 'customer_id': customerId});
-      final body = response.data;
-
-      if (body is Map && body['status'] == true) return;
-      throw Exception(body is Map ? (body['message'] ?? 'Failed to save unit') : 'Failed to save unit');
-    } on DioException catch (e) {
-      throw Exception(getErrorMessage(e, 'Failed to save unit'));
+      throw Exception(getErrorMessage(e, 'Gagal membuat reserve order'));
     }
   }
 
@@ -345,13 +398,43 @@ class ReserveOrderRemoteDataSourceImpl implements ReserveOrderRemoteDataSource {
         final id = tts is Map ? tts['reserve_order_tts_id'] : null;
         final reserveOrderTtsId = id is int ? id : int.tryParse('$id');
         if (reserveOrderTtsId != null) return reserveOrderTtsId;
-        throw Exception('reserve_order_tts_id not found in response');
+        throw Exception('reserve_order_tts_id tidak ditemukan di response');
       }
       throw Exception(
-        body is Map ? (body['message'] ?? 'Failed to save documents & payment') : 'Failed to save documents & payment',
+        body is Map ? (body['message'] ?? 'Gagal menyimpan dokumen & pembayaran') : 'Gagal menyimpan dokumen & pembayaran',
       );
     } on DioException catch (e) {
-      throw Exception(getErrorMessage(e, 'Failed to save documents & payment'));
+      throw Exception(getErrorMessage(e, 'Gagal menyimpan dokumen & pembayaran'));
+    }
+  }
+
+  @override
+  Future<void> topUp({
+    required int reserveOrderId,
+    required num amountRp,
+    String? note,
+    required List<Uint8List> buktiTransferBytes,
+    required List<String> buktiTransferFileNames,
+  }) async {
+    try {
+      final data = <String, dynamic>{
+        'reserve_order_id': reserveOrderId,
+        'amount_rp': amountRp,
+        if (note != null && note.isNotEmpty) 'reserve_note': note,
+        if (buktiTransferBytes.isNotEmpty)
+          'bukti_transfer[]': [
+            for (var i = 0; i < buktiTransferBytes.length; i++)
+              _multipart(buktiTransferBytes[i], i < buktiTransferFileNames.length ? buktiTransferFileNames[i] : null),
+          ],
+      };
+
+      final response = await dio.post('/reserve/top-up', data: FormData.fromMap(data));
+      final body = response.data;
+
+      if (body is Map && body['status'] == true) return;
+      throw Exception(body is Map ? (body['message'] ?? 'Gagal mengajukan top up') : 'Gagal mengajukan top up');
+    } on DioException catch (e) {
+      throw Exception(getErrorMessage(e, 'Gagal mengajukan top up'));
     }
   }
 
@@ -365,9 +448,9 @@ class ReserveOrderRemoteDataSourceImpl implements ReserveOrderRemoteDataSource {
         return ReserveCustomerDetail.fromJson(Map<String, dynamic>.from(body['data'] as Map));
       }
 
-      throw Exception(body is Map ? (body['message'] ?? 'Failed to load buyer data') : 'Failed to load buyer data');
+      throw Exception(body is Map ? (body['message'] ?? 'Gagal memuat data pembeli') : 'Gagal memuat data pembeli');
     } on DioException catch (e) {
-      throw Exception(getErrorMessage(e, 'Failed to load buyer data'));
+      throw Exception(getErrorMessage(e, 'Gagal memuat data pembeli'));
     }
   }
 
@@ -385,9 +468,9 @@ class ReserveOrderRemoteDataSourceImpl implements ReserveOrderRemoteDataSource {
             .toList();
       }
 
-      throw Exception(body is Map ? (body['message'] ?? 'Failed to load documents') : 'Failed to load documents');
+      throw Exception(body is Map ? (body['message'] ?? 'Gagal memuat dokumen') : 'Gagal memuat dokumen');
     } on DioException catch (e) {
-      throw Exception(getErrorMessage(e, 'Failed to load documents'));
+      throw Exception(getErrorMessage(e, 'Gagal memuat dokumen'));
     }
   }
 
@@ -398,9 +481,9 @@ class ReserveOrderRemoteDataSourceImpl implements ReserveOrderRemoteDataSource {
       final body = response.data;
 
       if (body is Map && body['status'] == true) return;
-      throw Exception(body is Map ? (body['message'] ?? 'Failed to update customer data') : 'Failed to update customer data');
+      throw Exception(body is Map ? (body['message'] ?? 'Gagal memperbarui data pembeli') : 'Gagal memperbarui data pembeli');
     } on DioException catch (e) {
-      throw Exception(getErrorMessage(e, 'Failed to update customer data'));
+      throw Exception(getErrorMessage(e, 'Gagal memperbarui data pembeli'));
     }
   }
 
@@ -417,9 +500,9 @@ class ReserveOrderRemoteDataSourceImpl implements ReserveOrderRemoteDataSource {
         }
       }
 
-      throw Exception(body is Map ? (body['message'] ?? 'Failed to load area') : 'Failed to load area');
+      throw Exception(body is Map ? (body['message'] ?? 'Gagal memuat area') : 'Gagal memuat area');
     } on DioException catch (e) {
-      throw Exception(getErrorMessage(e, 'Failed to load area'));
+      throw Exception(getErrorMessage(e, 'Gagal memuat area'));
     }
   }
 
@@ -435,9 +518,9 @@ class ReserveOrderRemoteDataSourceImpl implements ReserveOrderRemoteDataSource {
             .toList();
       }
 
-      throw Exception(body is Map ? (body['message'] ?? 'Failed to load notes') : 'Failed to load notes');
+      throw Exception(body is Map ? (body['message'] ?? 'Gagal memuat pesan') : 'Gagal memuat pesan');
     } on DioException catch (e) {
-      throw Exception(getErrorMessage(e, 'Failed to load notes'));
+      throw Exception(getErrorMessage(e, 'Gagal memuat pesan'));
     }
   }
 
@@ -451,9 +534,9 @@ class ReserveOrderRemoteDataSourceImpl implements ReserveOrderRemoteDataSource {
       final body = response.data;
 
       if (body is Map && body['status'] == true) return;
-      throw Exception(body is Map ? (body['message'] ?? 'Failed to send note') : 'Failed to send note');
+      throw Exception(body is Map ? (body['message'] ?? 'Gagal mengirim pesan') : 'Gagal mengirim pesan');
     } on DioException catch (e) {
-      throw Exception(getErrorMessage(e, 'Failed to send note'));
+      throw Exception(getErrorMessage(e, 'Gagal mengirim pesan'));
     }
   }
 
@@ -480,9 +563,9 @@ class ReserveOrderRemoteDataSourceImpl implements ReserveOrderRemoteDataSource {
         }
       }
 
-      throw Exception(body is Map ? (body['message'] ?? 'Failed to load timeline') : 'Failed to load timeline');
+      throw Exception(body is Map ? (body['message'] ?? 'Gagal memuat timeline') : 'Gagal memuat timeline');
     } on DioException catch (e) {
-      throw Exception(getErrorMessage(e, 'Failed to load timeline'));
+      throw Exception(getErrorMessage(e, 'Gagal memuat timeline'));
     }
   }
 }

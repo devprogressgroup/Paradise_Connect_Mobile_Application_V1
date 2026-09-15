@@ -5,11 +5,16 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:progress_group/core/constants/colors.dart';
 import 'package:progress_group/core/services/analytics_service.dart';
+import 'package:progress_group/core/utils/helpers/number_helper.dart';
+import 'package:progress_group/core/utils/widget/custom_filter_button.dart';
 import 'package:progress_group/core/utils/widget/custom_search_field.dart';
 import 'package:progress_group/core/utils/widget/shimmer_loading.dart';
 import 'package:progress_group/features/contact/data/arguments/contact_detail_args.dart';
+import 'package:progress_group/features/contact/domain/entities/contact/contact_entity.dart';
 import 'package:progress_group/features/reserve-order/data/models/reserve_order_model.dart';
+import 'package:progress_group/features/reserve-order/presentation/pages/filter_sheet.dart';
 import 'package:progress_group/features/reserve-order/presentation/pages/reserve.dart';
+import 'package:progress_group/features/reserve-order/presentation/pages/sort_sheet.dart';
 import 'package:progress_group/features/reserve-order/presentation/pages/widgets.dart';
 import 'package:progress_group/features/reserve-order/presentation/state/reserve_order_list/reserve_order_list_cubit.dart';
 import 'package:progress_group/features/reserve-order/presentation/state/reserve_order_list/reserve_order_list_state.dart';
@@ -87,9 +92,30 @@ class _ReserveOrderListPageState extends State<ReserveOrderListPage> {
     if (args == null) return;
 
     AnalyticsService.logEvent('reserve_order_list_create');
+    await _createReserveFor(args);
+  }
+
+  Future<void> _createReserveFor(ContactDetailArgs args) async {
     final result = await context.pushNamed('reserveOrderReserve', extra: args.copyWith(namePage: 'Reserve'));
     if (!mounted) return;
     if (result is ReserveResult) context.read<ReserveOrderListCubit>().refresh();
+  }
+
+  /// FAB "+". Kontak sudah diketahui (list per-kontak, dibuka dari Log Activity) langsung ke form
+  /// create; dari daftar semua transaksi (drawer, [contactArgs] null) minta pilih kontak dulu lewat
+  /// `reserveOrderPickContact` — lihat [ReservePickContactPage].
+  Future<void> _onFabCreate() async {
+    final existing = widget.contactArgs;
+    if (existing != null) {
+      AnalyticsService.logEvent('reserve_order_list_fab_create');
+      await _createReserveFor(existing);
+      return;
+    }
+
+    AnalyticsService.logEvent('reserve_order_list_fab_pick_contact');
+    final contact = await context.pushNamed('reserveOrderPickContact');
+    if (contact is! ContactEntity || !mounted) return;
+    await _createReserveFor(ContactDetailArgs(dataContact: contact));
   }
 
   @override
@@ -108,16 +134,25 @@ class _ReserveOrderListPageState extends State<ReserveOrderListPage> {
                   child: customSearchField(
                     controller: searchTC,
                     focusNode: searchFN,
-                    hintText: 'Search name / unit...',
+                    hintText: 'Cari nama / unit...',
                     onChanged: _onSearchChanged,
                   ),
                 ),
                 _buildFilters(state),
-                const SizedBox(height: 10),
+                _buildTotal(state),
                 Expanded(child: _buildBody(state)),
               ],
             );
           },
+        ),
+      ),
+      floatingActionButton: Padding(
+        padding: const EdgeInsets.only(bottom: 10),
+        child: FloatingActionButton(
+          onPressed: _onFabCreate,
+          backgroundColor: const Color(primaryColor),
+          shape: const CircleBorder(),
+          child: const Icon(Icons.add, color: Color(whiteColor)),
         ),
       ),
     );
@@ -135,15 +170,15 @@ class _ReserveOrderListPageState extends State<ReserveOrderListPage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
-            'Reserve Order',
+            'Transaction',
             style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(blue2Color)),
           ),
           const SizedBox(height: 2),
           Text(
             // Angkanya dari `total` response, bukan dari jumlah baris yang sudah dimuat.
             state.status == ReserveOrderListStatus.loaded
-                ? '${state.total} transaction${state.total == 1 ? '' : 's'}'
-                : 'Loading transactions...',
+                ? '${state.total} transaksi'
+                : 'Memuat transaksi...',
             style: const TextStyle(fontSize: 11, color: Color(grey4Color)),
           ),
         ],
@@ -151,42 +186,97 @@ class _ReserveOrderListPageState extends State<ReserveOrderListPage> {
     );
   }
 
-  /// Baris chip status dari `GET /api/reserve-filter` (master status reserve), plus "Semua" —
-  /// pseudo-chip di app buat reset filter. Filternya jalan di server lewat `status_reserve_id`,
-  /// bukan disaring di app lagi.
+  /// Baris tombol "Urutkan" + "Filter" — dua tombol & sheet terpisah (bukan digabung satu sheet),
+  /// gaya & susunannya disamakan dengan Contacts: "Dibuat: Terbaru" lalu "Filter", masing-masing
+  /// `CustomFilterButton` sendiri yang buka bottom sheet sendiri. Gantikan baris chip horizontal
+  /// lama. Tombol "Urutkan" selalu tampil (opsinya statis), tombol "Filter" cuma tampil kalau
+  /// master status (`GET /api/reserve-filter`) sudah termuat.
   Widget _buildFilters(ReserveOrderListState state) {
-    if (state.filters.isEmpty) return const SizedBox.shrink();
-
-    return SizedBox(
-      height: 32,
-      child: ListView.separated(
-        key: const ValueKey('reserve_order_filter_list'),
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 16),
-        itemCount: state.filters.length + 1,
-        separatorBuilder: (_, __) => const SizedBox(width: 8),
-        itemBuilder: (context, index) {
-          if (index == 0) {
-            return KeyedSubtree(
-              key: const ValueKey('reserve_order_filter_semua'),
-              child: roChip('All', state.statusIds.isEmpty, () => _onFilterTap(const [])),
-            );
-          }
-
-          final filter = state.filters[index - 1];
-          // Key pakai id, bukan nama — nama status bisa sama persis dengan teks badge di kartu.
-          return KeyedSubtree(
-            key: ValueKey('reserve_order_filter_${filter.statusReserveId}'),
-            child: roChip(filter.name, state.statusIds.contains(filter.statusReserveId), () => _onFilterTap([filter.statusReserveId])),
-          );
-        },
+        child: Row(
+          children: [
+            _buildSortButton(state),
+            if (state.filters.isNotEmpty) ...[
+              const SizedBox(width: 8),
+              _buildFilterButton(state),
+            ],
+          ],
+        ),
       ),
     );
+  }
+
+  Widget _buildSortButton(ReserveOrderListState state) {
+    final isActive = state.sort != reserveOrderDefaultSort;
+    return CustomFilterButton(
+      key: const ValueKey('reserve_order_sort_button'),
+      label: 'Urutkan: ${reserveOrderSortLabel(state.sort)}',
+      isSelected: isActive,
+      onTap: () => _openSortSheet(state),
+      onClear: isActive ? () => _onSortChange(reserveOrderDefaultSort) : null,
+    );
+  }
+
+  Widget _buildFilterButton(ReserveOrderListState state) {
+    final selectedId = state.statusIds.isEmpty ? null : state.statusIds.first;
+    ReserveFilterOption? selected;
+    if (selectedId != null) {
+      for (final filter in state.filters) {
+        if (filter.statusReserveId == selectedId) {
+          selected = filter;
+          break;
+        }
+      }
+    }
+
+    return CustomFilterButton(
+      key: const ValueKey('reserve_order_filter_button'),
+      label: selected?.name ?? 'Filter',
+      isSelected: state.statusIds.isNotEmpty,
+      onTap: () => _openFilterSheet(state),
+      onClear: state.statusIds.isNotEmpty ? () => _onFilterTap(const []) : null,
+    );
+  }
+
+  /// "Total: N transaksi" di bawah tombol filter, disamakan posisi & gayanya dengan Contacts
+  /// ("Total: N contacts"). Angkanya dari `total` response, bukan jumlah baris yang sudah dimuat.
+  Widget _buildTotal(ReserveOrderListState state) {
+    if (state.status != ReserveOrderListStatus.loaded) return const SizedBox.shrink();
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+      child: Align(
+        alignment: Alignment.centerLeft,
+        child: Text(
+          'Total: ${NumberHelper.thousands(state.total)} transaksi',
+          style: const TextStyle(fontSize: 13, color: Color(grey5Color), fontWeight: FontWeight.w500),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _openFilterSheet(ReserveOrderListState state) async {
+    final result = await showReserveOrderFilterSheet(context, filters: state.filters, initialStatusIds: state.statusIds);
+    if (result != null) _onFilterTap(result);
   }
 
   void _onFilterTap(List<int> statusIds) {
     AnalyticsService.logEvent('reserve_order_list_filter');
     context.read<ReserveOrderListCubit>().load(statusIds: statusIds);
+  }
+
+  Future<void> _openSortSheet(ReserveOrderListState state) async {
+    final result = await showReserveOrderSortSheet(context, currentSort: state.sort);
+    if (result != null) _onSortChange(result);
+  }
+
+  void _onSortChange(String sort) {
+    AnalyticsService.logEvent('reserve_order_list_sort');
+    context.read<ReserveOrderListCubit>().load(sort: sort);
   }
 
   Widget _buildBody(ReserveOrderListState state) {
@@ -196,8 +286,8 @@ class _ReserveOrderListPageState extends State<ReserveOrderListPage> {
           child: buildContactListShimmer(),
         ),
       ReserveOrderListStatus.error => _buildMessage(
-          state.error ?? 'Failed to load reserve order',
-          action: 'Retry',
+          state.error ?? 'Gagal memuat reserve order',
+          action: 'Coba Lagi',
           onAction: () => context.read<ReserveOrderListCubit>().refresh(),
         ),
       ReserveOrderListStatus.loaded => _buildLoaded(state),
@@ -211,8 +301,8 @@ class _ReserveOrderListPageState extends State<ReserveOrderListPage> {
     // kosong. Bukan saat pencarian/filter aktif, supaya tidak salah tempat.
     if (widget.contactArgs != null && state.search.isEmpty && state.statusIds.isEmpty) {
       return _buildMessage(
-        'This contact has no reserve order transactions yet.',
-        action: '+ Create New Reserve',
+        'Kontak ini belum punya transaksi reserve order.',
+        action: '+ Buat Reserve Baru',
         onAction: _openCreateReserve,
       );
     }
@@ -221,11 +311,11 @@ class _ReserveOrderListPageState extends State<ReserveOrderListPage> {
     if (state.statusIds.isNotEmpty) {
       // Nama status dari chip yang aktif — beda dari pesan pencarian supaya jelas ini soal filter.
       final names = state.filters.where((f) => state.statusIds.contains(f.statusReserveId)).map((f) => f.name).join(', ');
-      message = 'No transactions for filter "$names".';
+      message = 'Tidak ada transaksi untuk filter "$names".';
     } else if (state.search.isNotEmpty) {
-      message = 'No transactions matching "${state.search}".';
+      message = 'Tidak ada transaksi yang cocok dengan "${state.search}".';
     } else {
-      message = 'No reserve order transactions yet.';
+      message = 'Belum ada transaksi reserve order.';
     }
     return _buildMessage(message);
   }

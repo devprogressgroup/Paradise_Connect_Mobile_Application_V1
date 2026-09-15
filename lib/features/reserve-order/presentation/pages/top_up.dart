@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
@@ -9,7 +10,6 @@ import 'package:progress_group/core/utils/helpers/number_helper.dart';
 import 'package:progress_group/core/utils/widget/custom_file_picker.dart';
 import 'package:progress_group/core/utils/widget/custom_snackbar.dart';
 import 'package:progress_group/core/utils/widget/thousands_input_formatter.dart';
-import 'package:progress_group/features/reserve-order/data/datasources/reserve_order_remote_datasource.dart';
 import 'package:progress_group/features/reserve-order/data/models/reserve_order_model.dart';
 import 'package:progress_group/features/reserve-order/presentation/pages/widgets.dart';
 import 'package:progress_group/features/reserve-order/presentation/state/reserve_order_list/reserve_order_list_cubit.dart';
@@ -32,7 +32,7 @@ class _ReserveOrderTopUpPageState extends State<ReserveOrderTopUpPage> {
   final nominalTC = TextEditingController();
   final catatanTC = TextEditingController();
 
-  PickedFileResult? _proof;
+  final List<PickedFileResult> _proofs = [];
   bool _submitting = false;
   bool _submitted = false;
   num _submittedAmount = 0;
@@ -60,6 +60,29 @@ class _ReserveOrderTopUpPageState extends State<ReserveOrderTopUpPage> {
     return num.tryParse(digits);
   }
 
+  // Sama seperti "Nominal Pembayaran" di step Dokumen form Reserve (reserve.dart) — preset Rp 2jt
+  // s.d. Rp 25jt, scroll horizontal.
+  static final List<int> _nominalPresets = [for (var jt = 2; jt <= 25; jt++) jt * 1000000];
+
+  Widget _nominalPresetRow() {
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: [
+          for (final amount in _nominalPresets)
+            Padding(
+              padding: const EdgeInsets.only(right: 6),
+              child: roChip(
+                'Rp ${amount ~/ 1000000}jt',
+                _nominal == amount,
+                () => setState(() => nominalTC.text = NumberHelper.thousands(amount)),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return PopScope(
@@ -72,15 +95,15 @@ class _ReserveOrderTopUpPageState extends State<ReserveOrderTopUpPage> {
             children: [
               if (!_submitted)
                 roAppBar(
-                  title: 'Top Up Payment',
+                  title: 'Top Up Pembayaran',
                   subtitle: '${order.unitLabel} · ${order.customerName}',
                   onBack: () => context.pop(),
                 ),
               Expanded(child: _submitted ? _buildSukses() : _buildForm()),
               roFooter([
                 _submitted
-                    ? roPrimaryButton('Back to Reserve Order', () => context.pop())
-                    : roPrimaryButton('Submit Top Up', _onSubmit, loading: _submitting),
+                    ? roPrimaryButton('Kembali ke Transaction', () => context.pop())
+                    : roPrimaryButton('Ajukan Top Up', _onSubmit, loading: _submitting),
               ]),
             ],
           ),
@@ -103,57 +126,61 @@ class _ReserveOrderTopUpPageState extends State<ReserveOrderTopUpPage> {
             ),
             child: Column(
               children: [
-                roSummaryLine('Current Status', order.stageLabel),
-                roSummaryLine('Total Paid So Far', 'Rp ${NumberHelper.thousands(order.paidSoFar)}'),
-                roSummaryLine('Transaction Type', _transactionType, isLast: true),
+                roSummaryLine('Status Saat Ini', order.stageLabel),
+                roSummaryLine('Total Dibayar Sejauh Ini', 'Rp ${NumberHelper.thousands(order.paidSoFar)}'),
+                roSummaryLine('Jenis Transaksi', _transactionType, isLast: true),
               ],
             ),
           ),
           const SizedBox(height: 12),
-          roFieldLabel('Top Up Transfer Proof'),
-          roDocTile(_proofDoc, onTap: _submitting ? null : _pickProof),
+          roFieldLabel('Bukti Transfer Top Up'),
+          if (_proofs.isEmpty)
+            roDocTile(
+              const ReserveOrderDoc(
+                icon: Icons.receipt_long_outlined,
+                name: 'Unggah bukti transfer baru',
+                badge: '· Wajib',
+                status: 'Ketuk untuk mengunggah',
+                state: ReserveOrderDocState.awaitingUpload,
+                isPaymentProof: true,
+              ),
+              onTap: _submitting ? null : _pickProof,
+            )
+          else
+            for (var i = 0; i < _proofs.length; i++)
+              roDocTile(
+                ReserveOrderDoc(
+                  icon: _proofs[i].isPdf ? Icons.picture_as_pdf_outlined : Icons.receipt_long_outlined,
+                  name: _proofs[i].name,
+                  badge: i == 0 ? '· Wajib' : null,
+                  status: 'Terunggah · ${_fileSize(_proofs[i])}',
+                  isPaymentProof: true,
+                ),
+                onTap: _submitting ? null : _pickProof,
+                onRemove: _submitting ? null : () => setState(() => _proofs.removeAt(i)),
+              ),
+          roGhostButton('+ Tambah Bukti Transfer Lain', _pickProof),
           const SizedBox(height: 6),
-          roFieldLabel('Top Up Amount'),
+          roFieldLabel('Nominal Top Up'),
           roInput(
             nominalTC,
-            hint: 'Rp 0',
+            hint: '0',
+            prefixText: 'Rp ',
             keyboardType: TextInputType.number,
-            inputFormatters: const [ThousandsInputFormatter()],
+            inputFormatters: [FilteringTextInputFormatter.digitsOnly, const ThousandsInputFormatter()],
             onChanged: (_) => setState(() {}),
           ),
+          const SizedBox(height: 8),
+          _nominalPresetRow(),
           const SizedBox(height: 12),
-          roFieldLabel('Notes'),
+          roFieldLabel('Catatan'),
           roInput(
             catatanTC,
-            hint: 'E.g.: customer commits to an additional down payment, will proceed to Booking Reserve',
+            hint: 'mis.: customer berkomitmen tambah DP, akan lanjut ke Booking Reserve',
             maxLines: 3,
           ),
         ],
       ),
-    );
-  }
-
-  /// Slot bukti transfer: sebelum ada file dia jadi tombol upload, sesudahnya menampilkan nama &
-  /// ukuran file yang dipilih.
-  ReserveOrderDoc get _proofDoc {
-    final proof = _proof;
-    if (proof == null) {
-      return const ReserveOrderDoc(
-        icon: Icons.receipt_long_outlined,
-        name: 'Upload new transfer proof',
-        badge: '· Required',
-        status: 'Tap to upload',
-        state: ReserveOrderDocState.awaitingUpload,
-        isPaymentProof: true,
-      );
-    }
-
-    return ReserveOrderDoc(
-      icon: proof.isPdf ? Icons.picture_as_pdf_outlined : Icons.receipt_long_outlined,
-      name: proof.name,
-      badge: '· Required',
-      status: 'Uploaded · ${_fileSize(proof)}',
-      isPaymentProof: true,
     );
   }
 
@@ -171,13 +198,13 @@ class _ReserveOrderTopUpPageState extends State<ReserveOrderTopUpPage> {
           ),
           const SizedBox(height: 16),
           const Text(
-            'Top Up Successfully Submitted',
+            'Top Up Berhasil Diajukan',
             textAlign: TextAlign.center,
             style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Color(blue2Color)),
           ),
           const SizedBox(height: 6),
           Text(
-            '$_transactionType of Rp ${NumberHelper.thousands(_submittedAmount)} for ${order.unitLabel} is being verified.',
+            '$_transactionType sebesar Rp ${NumberHelper.thousands(_submittedAmount)} untuk ${order.unitLabel} sedang diverifikasi.',
             textAlign: TextAlign.center,
             style: const TextStyle(fontSize: 12, height: 1.6, color: Color(grey4Color)),
           ),
@@ -197,7 +224,7 @@ class _ReserveOrderTopUpPageState extends State<ReserveOrderTopUpPage> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       const Text(
-                        'Total after top up',
+                        'Total setelah top up',
                         style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(blue2Color)),
                       ),
                       Text(
@@ -214,7 +241,7 @@ class _ReserveOrderTopUpPageState extends State<ReserveOrderTopUpPage> {
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: const Text(
-                    'Pending',
+                    'Menunggu',
                     style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w700, color: Color(whiteColor)),
                   ),
                 ),
@@ -231,42 +258,39 @@ class _ReserveOrderTopUpPageState extends State<ReserveOrderTopUpPage> {
     final picked = await CustomFilePicker.show(context);
     if (picked == null || !picked.hasData) return;
     if (!mounted) return;
-    setState(() => _proof = picked);
+    setState(() => _proofs.add(picked));
   }
 
   Future<void> _onSubmit() async {
-    if (_proof == null) {
-      showSnackbar(context, 'Top up transfer proof is required', isError: true);
+    if (_proofs.isEmpty) {
+      showSnackbar(context, 'Bukti transfer top up wajib diunggah', isError: true);
       return;
     }
     final nominal = _nominal;
     if (nominal == null || nominal <= 0) {
-      showSnackbar(context, 'Top up amount is required', isError: true);
+      showSnackbar(context, 'Nominal top up wajib diisi', isError: true);
       return;
     }
     final reserveOrderId = int.tryParse(order.id);
     if (reserveOrderId == null) {
-      showSnackbar(context, 'Reserve order not recognized, please start over', isError: true);
+      showSnackbar(context, 'Reserve order tidak dikenali, silakan mulai dari awal', isError: true);
       return;
     }
 
     AnalyticsService.logEvent('reserve_order_top_up_submit');
     setState(() => _submitting = true);
 
-    final proof = _proof!;
+    final proofs = _proofs.where((f) => f.bytes != null).toList();
     final catatan = catatanTC.text.trim();
 
     try {
-      // Beda dari `_uploadExtraDoc` (tab Attachment di halaman Detail): Top Up bikin TTS BARU
-      // (sama seperti submit awal di reserve.dart), bukan menambah dokumen ke TTS yang sudah ada —
-      // jadi `reserveOrderTtsId` SENGAJA tidak dikirim, sesuai instruksi eksplisit.
-      await context.read<ReserveOrderListCubit>().dataSource.submitDocPayment(DocPaymentParams(
+      await context.read<ReserveOrderListCubit>().dataSource.topUp(
             reserveOrderId: reserveOrderId,
-            ttsAmountRp: nominal,
+            amountRp: nominal,
             note: catatan.isEmpty ? null : catatan,
-            buktiTransferBytes: [proof.bytes!],
-            buktiTransferFileNames: [proof.name],
-          ));
+            buktiTransferBytes: [for (final proof in proofs) proof.bytes!],
+            buktiTransferFileNames: [for (final proof in proofs) proof.name],
+          );
     } catch (e) {
       if (!mounted) return;
       setState(() => _submitting = false);
@@ -293,9 +317,9 @@ class _ReserveOrderTopUpPageState extends State<ReserveOrderTopUpPage> {
 
     order.docs.add(ReserveOrderDoc(
       icon: Icons.credit_card,
-      name: 'Top Up Proof',
+      name: 'Bukti Top Up',
       badge: '· $amount',
-      status: 'Awaiting verification',
+      status: 'Menunggu verifikasi',
       state: ReserveOrderDocState.pending,
       isPaymentProof: true,
     ));
@@ -305,17 +329,17 @@ class _ReserveOrderTopUpPageState extends State<ReserveOrderTopUpPage> {
       orElse: () => order.journey.last,
     );
     activeStep.notes.add(ReserveOrderTimelineNote(
-      who: 'System ·',
-      text: '$_transactionType $amount submitted$quoted',
+      who: 'Sistem ·',
+      text: '$_transactionType $amount diajukan$quoted',
       time: '($now)',
     ));
 
     order.notes.add(ReserveOrderNote(
-      author: 'System',
-      role: 'automated',
+      author: 'Sistem',
+      role: 'otomatis',
       roleKind: ReserveOrderNoteRole.sistem,
       time: now,
-      text: '$_transactionType $amount submitted$quoted.',
+      text: '$_transactionType $amount diajukan$quoted.',
     ));
   }
 

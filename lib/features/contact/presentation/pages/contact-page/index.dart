@@ -47,6 +47,11 @@ import '../../widgets/contact_filter_sheet.dart';
 import '../../../data/models/dropdown/contact_filter_result.dart';
 
 class ContactPage extends StatefulWidget {
+  /// Dipakai FAB "+" di menu Transaction (`ReserveOrderListPage`, lihat `reserveOrderPickContact`
+  /// di `router.dart`) saat belum ada kontak yang diketahui — halaman Contacts yang sama persis
+  /// (search, sort, filter, badge) tapi tap kartu langsung `context.pop(contact)` ketimbang buka
+  /// detail, dan FAB "add contact" disembunyikan supaya alur pilihnya tetap fokus.
+  final bool pickMode;
   final List<int>? initialStatusIds;
   final List<int>? initialSalesChannelIds;
   final String? initialStartDate;
@@ -63,6 +68,7 @@ class ContactPage extends StatefulWidget {
   final String? initialLostEndDate;
   const ContactPage({
     super.key,
+    this.pickMode = false,
     this.initialStatusIds,
     this.initialSalesChannelIds,
     this.initialStartDate,
@@ -351,7 +357,7 @@ class _ContactPageState extends State<ContactPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            customHeader(context, 'Contacts'),
+            customHeader(context, widget.pickMode ? 'Pilih Kontak' : 'Contacts', isBack: widget.pickMode, colorBack: Color(primaryColor)),
             SizedBox(height: 16),
             Expanded(
               child: Padding(
@@ -459,6 +465,7 @@ class _ContactPageState extends State<ContactPage> {
                                             child: _buildListContacts(
                                               context,
                                               contact,
+                                              pickMode: widget.pickMode,
                                             ),
                                           );
                                         },
@@ -479,7 +486,7 @@ class _ContactPageState extends State<ContactPage> {
           ],
         ),
       ),
-      floatingActionButton: PermissionsHelper.canCreateContact
+      floatingActionButton: (!widget.pickMode && PermissionsHelper.canCreateContact)
           ? Padding(
               padding: const EdgeInsets.only(bottom: 10),
               child: FloatingActionButton(
@@ -1592,9 +1599,14 @@ Widget _buildSortFilter(BuildContext context) {
   );
 }
 
-Widget _buildListContacts(BuildContext context, ContactEntity contact) {
+Widget _buildListContacts(BuildContext context, ContactEntity contact, {bool pickMode = false}) {
   return GestureDetector(
     onTap: () {
+      if (pickMode) {
+        AnalyticsService.logEvent('reserve_order_pick_contact_select');
+        context.pop(contact);
+        return;
+      }
       AnalyticsService.logEvent('contact_list_open_contact_detail');
       context.pushNamed(
         'detailContact',
