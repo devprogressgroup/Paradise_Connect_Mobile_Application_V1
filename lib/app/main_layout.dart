@@ -453,8 +453,7 @@ class _MainLayoutState extends State<MainLayout> {
                 _buildDrawerItem(context, icSidebarDashboard, 'Dashboard', path: '/', index: 0),
                 if (PermissionsHelper.canAccessContacts)
                   _buildDrawerItem(context, icSidebarContacts, 'Contacts', path: '/contact', index: 1),
-                if (PermissionsHelper.canAccessContacts)
-                  _buildDrawerItem(context, '', 'Transaction', path: '/reserve-order', index: 10, iconData: Icons.local_offer_rounded),
+               
                 if (PermissionsHelper.canAccessInbox)
                   _buildDrawerItem(context, icSidebarInbox, 'Inbox', path: '/inbox', index: 2),
                 if (PermissionsHelper.canAccessSitePlan)
@@ -463,6 +462,8 @@ class _MainLayoutState extends State<MainLayout> {
                   _buildDrawerItem(context, icSidebarSalesKit, 'Sales Kit', path: '/sales-kit', index: 5),
                 if (PermissionsHelper.canAccessSiapHuni)
                   _buildDrawerItem(context, '', 'Siap Huni', path: '/siap-huni', index: 9, iconData: Icons.home_rounded),
+                if (PermissionsHelper.canAccessContacts)
+                _buildDrawerItem(context, '', 'Transaction', path: '/reserve-order', index: 10, iconData: Icons.local_offer_rounded),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   child: Divider(),

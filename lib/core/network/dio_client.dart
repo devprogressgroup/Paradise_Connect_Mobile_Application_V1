@@ -1,4 +1,5 @@
 ﻿import 'dart:convert';
+import 'dart:developer' as developer;
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -103,16 +104,6 @@ class DioClient {
           }
           final skipEncryption = options.extra['skipEncryption'] == true;
           if (!isFileDownload && !skipEncryption) {
-            if (kDebugMode) {
-              final rawData = options.data;
-              if (rawData is FormData) {
-
-
-
-              } else if (rawData != null) {
-
-              }
-            }
             dynamic body;
             if (options.data is FormData) {
               final fd = options.data as FormData;
@@ -153,6 +144,12 @@ class DioClient {
               'body': body,
               'ts': AppTime.nowUtcInstant().millisecondsSinceEpoch,
             };
+            if (kDebugMode) {
+              developer.log(
+                '${options.method} ${options.path}: ${jsonEncode(_sanitizeBodyForLog(body))}',
+                name: 'REQ BODY',
+              );
+            }
             options.extra['originalMethod'] = payload['method'];
             options.extra['originalPath'] = payload['path'];
             options.method = 'POST';
@@ -306,6 +303,26 @@ class DioClient {
     
     
     
+  }
+
+  static dynamic _sanitizeBodyForLog(dynamic value) {
+    if (value is Map) {
+      if (value['__file'] == true) {
+        final data = value['data'];
+        final approxBytes = data is String ? (data.length * 3 / 4).round() : null;
+        return {
+          '__file': true,
+          'filename': value['filename'],
+          'contentType': value['contentType'],
+          if (approxBytes != null) 'size': '~$approxBytes bytes',
+        };
+      }
+      return value.map((k, v) => MapEntry(k, _sanitizeBodyForLog(v)));
+    }
+    if (value is List) {
+      return value.map(_sanitizeBodyForLog).toList();
+    }
+    return value;
   }
 
   Dio get dio => _dio;

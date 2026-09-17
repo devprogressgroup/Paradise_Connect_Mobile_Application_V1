@@ -60,7 +60,7 @@ Perlakuan hasilnya:
   submit ke `POST /api/reserve` nanti.
 - Status pernikahan dicocokkan ke daftar pilihan tanpa memedulikan huruf besar/kecil & tanda
   hubung ("BELUM KAWIN" → "Belum Kawin").
-- Field hasil OCR yang **tidak** ada di form ini (agama, jenis kelamin, kecamatan, kabupaten)
+- Field hasil OCR yang **tidak** ada di form ini (kecamatan, kabupaten)
   ikut dibawa keluar flow lewat `ReserveResult.ktpOcr` supaya tidak hilang.
 - Foto KTP-nya sekaligus dipakai sebagai lampiran dokumen KTP di step 3 — tidak perlu unggah dua
   kali.
@@ -112,6 +112,18 @@ sekarang punya 3 method:
 
 `SelectedUnit.spec` & `SelectedUnit.isSelected` dihapus dari model — dua-duanya tidak pernah terisi
 oleh sumber manapun lagi sesudah perbaikan ini (dead field).
+
+**`township_name`/status kavling buat unit "sudah ada":** response `product-select` (dikonfirmasi
+dari contoh response asli) sama sekali tidak mengirim nama township maupun status kavling — cuma id
+(`township_id`) dan `status_prospect_id` (status PIPELINE deal, beda konsep dari status ketersediaan
+kavling di `UnitLot.statusName`). `ReservePage._enrichExistingUnit`
+([reserve.dart](lib/features/reserve-order/presentation/pages/reserve.dart)) melengkapinya belakangan
+dengan mencocokkan manual: nama township dari cluster yang `clusterId`-nya sama di katalog tree
+(`state.clusters`, sudah dimuat bareng), status kavling dari lot yang `propertyId`-nya sama di
+`state.lotsByProduct` (baru terisi setelah produknya di-expand lewat `expandProductFor` — dipanggil
+otomatis oleh `_autoSelectAlreadyChosenUnits` begitu unit "sudah ada" ke-auto-select). Karena lots-nya
+dimuat async, `_autoSelectAlreadyChosenUnits` dipanggil ulang tiap `ReserveUnitState` berubah dan
+me-refresh entri yang statusnya baru kepenuhan — bukan cuma sekali di awal.
 
 ### `ReserveUnitCubit`/`ReserveUnitState` — tree + daftar existing terpisah
 
@@ -188,7 +200,7 @@ Payload-nya (`CreateReserveParams.toJson()` —
 | `cust_name` | Nama Lengkap |
 | `cust_ktp` | No. KTP |
 | `cust_birth_place` / `cust_birth_date` | "Tempat, Tanggal Lahir" — lihat catatan parsing di bawah |
-| `cust_gender_is_male` | `KtpOcrModel.jenisKelamin` hasil scan ("Laki-laki"/"Perempuan" → bool). **Belum ada input manual** — null kalau belum pernah scan KTP |
+| `cust_gender_is_male` | Jenis Kelamin — dropdown `roGenderItems` ([reserve_order_model.dart:99](lib/features/reserve-order/data/models/reserve_order_model.dart#L99)) ("Laki-laki"/"Perempuan" → bool → dikirim sebagai `1`/`0`, `FormData` tidak bisa bawa literal bool), auto-terisi dari `KtpOcrModel.jenisKelamin` hasil scan tapi bisa diganti manual; null kalau belum pernah scan KTP maupun dipilih manual |
 | `cust_marital_status` | Status Pernikahan, di-`toUpperCase()` (mis. "Kawin" → "KAWIN") |
 | `cust_religion` | Agama — dropdown `roReligionItems` ([reserve_order_model.dart:103](lib/features/reserve-order/data/models/reserve_order_model.dart#L103)), auto-terisi dari `KtpOcrModel.agama` hasil scan kalau cocok salah satu opsi, tapi bisa diganti manual di [reserve.dart](lib/features/reserve-order/presentation/pages/reserve.dart) |
 | `cust_occupation` | Pekerjaan |
@@ -383,7 +395,7 @@ Jalankan: `flutter test`. Menu Reserve Order (Bagian 3) punya test terpisah, lih
      `_loadTransactionTypes()`. TIDAK ada fallback lokal — kalau fetch-nya gagal/kosong, chip-nya
      diganti pesan error asli dari API (`ReserveOrderListState.transactionTypeFiltersError`) plus
      tombol "Coba lagi" yang manggil `_loadTransactionTypes()` ulang (lihat [reserve.dart:1006-1024](lib/features/reserve-order/presentation/pages/reserve.dart#L1006-L1024)).
-   - **Cara Pembayaran** (field "Tujuan Pembayaran" di form) juga sudah tidak hardcode —
+   - **Cara Pembayaran** (field "Cara Pembarayan" di form) juga sudah tidak hardcode —
      `GET /api/reserve/cara-bayar` (`{cara_bayar_id, name}`), lewat
      `ReserveOrderListCubit.ensureCaraBayarOptions()` (cache terpisah dari `filters`, pola sama
      persis). `name` yang tampil di picker/sheet-nya (`_caraPembayaran`), tapi yang **dikirim ke

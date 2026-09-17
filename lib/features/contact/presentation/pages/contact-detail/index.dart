@@ -32,7 +32,7 @@ import 'package:progress_group/features/inbox/domain/entities/inbox_contact_enti
 import 'package:progress_group/features/inbox/presentation/state/inbox/inbox_block.dart';
 import 'package:progress_group/features/inbox/presentation/state/inbox/inbox_event.dart';
 import 'package:progress_group/features/inbox/presentation/state/inbox/inbox_statte.dart';
-import 'package:progress_group/features/reserve-order/presentation/pages/reserve.dart';
+import 'package:progress_group/features/reserve-order/presentation/pages/create/index.dart';
 import 'package:progress_group/features/reserve-order/presentation/state/reserve_order_list/reserve_order_list_cubit.dart';
 import 'package:progress_group/core/utils/widget/custom_snackbar.dart';
 

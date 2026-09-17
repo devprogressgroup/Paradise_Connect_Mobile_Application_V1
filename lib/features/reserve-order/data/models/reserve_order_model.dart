@@ -93,6 +93,9 @@ class AreaOption {
   String get label => '$locationName — $city';
 }
 
+/// Opsi "Jenis Kelamin" — dipakai form Reserve & halaman Edit Customer (`cust_gender_is_male`).
+const List<String> roGenderItems = ['Laki-laki', 'Perempuan'];
+
 /// Opsi "Status Pernikahan" — dipakai form Reserve & halaman Edit Customer. Sengaja tetap Bahasa
 /// Indonesia: harus sama persis dengan nilai `status_perkawinan` hasil OCR KTP, dan dengan apa yang
 /// disimpan di backend (`cust_marital_status`).

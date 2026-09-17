@@ -66,8 +66,9 @@ class _ReservePageState extends State<ReservePage> {
   final alamatTC = TextEditingController();
   final noHpTC = TextEditingController();
   final pekerjaanTC = TextEditingController();
+  final pasanganTC = TextEditingController();
+  String? _jenisKelamin;
   String? _statusPernikahan;
-  String? _agama;
   String? _kategoriPekerjaan;
   String? _caraPembayaran;
   int? _caraBayarId;
@@ -152,12 +153,8 @@ class _ReservePageState extends State<ReservePage> {
     return null;
   }
 
-  // Dipanggil dari `initState` (lihat komentar di [_ReservePageState]) — waktu itu `_buildUnit()`
-  // belum ke-mount sama sekali (masih di step Pembeli), jadi `BlocConsumer.listener` di situ TIDAK
-  // akan kebagian transisi loading->loaded ini kalau fetch-nya keburu selesai duluan sebelum user
-  // sampai step Unit (listener flutter_bloc cuma nangkep transisi SESUDAH widget-nya subscribe,
-  // bukan state yang sudah jadi final duluan). Makanya auto-centang-nya dipicu langsung di sini
-  // juga begitu `load()` selesai, tidak cuma mengandalkan listener itu.
+
+
   void _loadUnits() {
     final contactId = widget.args.dataContact?.contactId;
     if (contactId == null) return;
@@ -175,6 +172,7 @@ class _ReservePageState extends State<ReservePage> {
     alamatTC.dispose();
     noHpTC.dispose();
     pekerjaanTC.dispose();
+    pasanganTC.dispose();
     nominalTC.dispose();
     catatanTC.dispose();
     searchTC.dispose();
@@ -286,8 +284,8 @@ class _ReservePageState extends State<ReservePage> {
       if (r.tempatLahir != null) tempatLahirTC.text = r.tempatLahir!;
       _birthDate = _parseOcrDate(r.tanggalLahir) ?? _birthDate;
 
+      _jenisKelamin = _matchOption(r.jenisKelamin, roGenderItems) ?? _jenisKelamin;
       _statusPernikahan = _matchOption(r.statusPerkawinan, roMaritalStatusItems) ?? _statusPernikahan;
-      _agama = _matchOption(r.agama, roReligionItems) ?? _agama;
     });
   }
 
@@ -320,6 +318,42 @@ class _ReservePageState extends State<ReservePage> {
     }
     if (nikTC.text.trim().length != 16) {
       showSnackbar(context, 'No. KTP harus 16 digit', isError: true);
+      return;
+    }
+    if (tempatLahirTC.text.trim().isEmpty) {
+      showSnackbar(context, 'Tempat lahir wajib diisi', isError: true);
+      return;
+    }
+    if (_birthDate == null) {
+      showSnackbar(context, 'Tanggal lahir wajib dipilih', isError: true);
+      return;
+    }
+    if (_jenisKelamin == null) {
+      showSnackbar(context, 'Jenis kelamin wajib dipilih', isError: true);
+      return;
+    }
+    if (alamatTC.text.trim().isEmpty) {
+      showSnackbar(context, 'Alamat wajib diisi', isError: true);
+      return;
+    }
+    if (noHpTC.text.trim().isEmpty) {
+      showSnackbar(context, 'No. HP wajib diisi', isError: true);
+      return;
+    }
+    if (_statusPernikahan == null) {
+      showSnackbar(context, 'Status pernikahan wajib dipilih', isError: true);
+      return;
+    }
+    if (_kategoriPekerjaan == null) {
+      showSnackbar(context, 'Kategori pekerjaan wajib dipilih', isError: true);
+      return;
+    }
+    if (pekerjaanTC.text.trim().isEmpty) {
+      showSnackbar(context, 'Pekerjaan wajib diisi', isError: true);
+      return;
+    }
+    if (_caraPembayaran == null) {
+      showSnackbar(context, 'Tujuan pembayaran wajib dipilih', isError: true);
       return;
     }
 
@@ -384,10 +418,6 @@ class _ReservePageState extends State<ReservePage> {
     });
   }
 
-  /// Cocok/tidaknya [a] dan [b] posisinya di tree (cluster/produk/kavling/waiting-list) — dipakai
-  /// buat mencocokkan unit yang sudah ada (`SelectedUnit.key` berbasis `deal:$dealId`) dengan baris
-  /// katalog di tree (`key` berbasis `clusterId|productId|propertyId|waiting`), karena dua skema key
-  /// itu beda walau menunjuk unit fisik yang sama.
   bool _samePosition(SelectedUnit a, SelectedUnit b) =>
       a.clusterId == b.clusterId &&
       a.productId == b.productId &&
@@ -403,9 +433,6 @@ class _ReservePageState extends State<ReservePage> {
         _selectedUnits.remove(unit.key);
         return;
       }
-      // Baris ini kelihatan tercentang karena cocok posisinya sama salah satu unit yang sudah ADA
-      // (key deal-based) — tap-nya berarti mau di-uncheck, jadi hapus entri ASLINYA, bukan nambah
-      // entri baru dengan key katalog (yang bakal bikin dua entri buat unit fisik yang sama).
       final existingKeys =
           _selectedUnits.entries.where((e) => _samePosition(e.value, unit)).map((e) => e.key).toList();
       if (existingKeys.isNotEmpty) {
@@ -422,9 +449,6 @@ class _ReservePageState extends State<ReservePage> {
     setState(() => _selectedUnits.remove(key));
   }
 
-  // Cuma boleh 1 unit terpilih — `POST /api/reserve` yang baru cuma nerima satu `deal_id` sekaligus
-  // (bukan lagi array unit lewat `POST /api/reserve-unit` terpisah per unit), lihat
-  // `_buildCreateReserveParams`.
   void _onNextUnit() {
     if (_selectedUnits.isEmpty) {
       showSnackbar(context, 'Pilih 1 unit', isError: true);
@@ -440,10 +464,6 @@ class _ReservePageState extends State<ReservePage> {
   }
 
 
-  /// Satu request multipart `POST /api/reserve` — bikin customer, tautkan SATU unit (`deal_id`),
-  /// dan kirim dokumen + rincian pembayaran sekaligus. Menggantikan alur lama 3 request berurutan
-  /// (`createReserve` → `saveReserveUnit` per unit → `submitDocPayment`) — sesuai instruksi
-  /// eksplisit, karena step "Pilih Unit" sekarang cuma boleh 1 unit terpilih (lihat `_onNextUnit`).
   Future<void> _onSubmit() async {
     if (_submitting) return;
 
@@ -471,7 +491,15 @@ class _ReservePageState extends State<ReservePage> {
 
     try {
       await dataSource.createReserve(
-        _buildCreateReserveParams(contactId: contactId, dealId: unit.dealId, companyId: unit.companyId, statusReserveId: statusReserveId),
+        _buildCreateReserveParams(
+          contactId: contactId,
+          dealId: unit.dealId,
+          companyId: unit.companyId,
+          productId: unit.productId,
+          townshipId: unit.townshipId,
+          clusterId: unit.clusterId,
+          statusReserveId: statusReserveId,
+        ),
       );
     } catch (e) {
       if (!mounted) return;
@@ -491,6 +519,9 @@ class _ReservePageState extends State<ReservePage> {
     required int contactId,
     required int? dealId,
     required int companyId,
+    required int? productId,
+    required int townshipId,
+    required int clusterId,
     required int statusReserveId,
   }) {
     final birthPlace = tempatLahirTC.text.trim();
@@ -503,17 +534,20 @@ class _ReservePageState extends State<ReservePage> {
       contactId: contactId,
       dealId: dealId,
       companyId: companyId,
+      productId: productId,
+      townshipId: townshipId,
+      clusterId: clusterId,
       custName: namaTC.text.trim(),
       custKtp: nikTC.text.trim(),
       custBirthPlace: birthPlace.isEmpty ? null : birthPlace,
       custBirthDate: _birthDate,
-      custGenderIsMale: switch (_ocr?.jenisKelamin) {
+      custGenderIsMale: switch (_jenisKelamin) {
         'Laki-laki' => true,
         'Perempuan' => false,
         _ => null,
       },
       custMaritalStatus: _statusPernikahan?.toUpperCase(),
-      custReligion: _agama,
+      custSpouseName: pasanganTC.text.trim(),
       workCategory: _kategoriPekerjaan,
       custOccupation: pekerjaanTC.text.trim(),
       custAddress1: alamatTC.text.trim(),
@@ -779,44 +813,44 @@ class _ReservePageState extends State<ReservePage> {
             style: TextStyle(fontSize: 10, color: Color(grey4Color)),
           ),
           SizedBox(height: 12),
-          _label("Nama Lengkap (sesuai KTP)"),
+          _label("Nama Lengkap (sesuai KTP)", required: true),
           _input(namaTC, hint: "Nama sesuai KTP"),
-          _label("No. KTP"),
+          _label("No. KTP", required: true),
           _input(
             nikTC,
             hint: "NIK 16 digit",
             keyboardType: TextInputType.number,
             inputFormatters: [FilteringTextInputFormatter.digitsOnly, LengthLimitingTextInputFormatter(16)],
           ),
-          _label("Tempat Lahir"),
-          _input(tempatLahirTC, hint: "Pilih Tempat Lahir"),
-          _label("Tanggal Lahir"),
+          _label("Tempat Lahir", required: true),
+          _input(tempatLahirTC, hint: "Masukan Tempat Lahir"),
+          _label("Tanggal Lahir", required: true),
           roPickerRow(
             value: _birthDate == null ? null : DateFormat('dd MMMM yyyy', 'id_ID').format(_birthDate!),
             hint: "Pilih tanggal lahir",
             onTap: _pickBirthDate,
           ),
-          _label("Agama"),
+          _label("Jenis Kelamin", required: true),
           roPickerRow(
-            value: _agama,
-            hint: "Pilih agama",
+            value: _jenisKelamin,
+            hint: "Pilih jenis kelamin",
             onTap: () => roShowOptionSheet(
               context: context,
-              title: "Agama",
-              items: roReligionItems,
-              selected: _agama,
-              onPicked: (v) => setState(() => _agama = v),
+              title: "Jenis Kelamin",
+              items: roGenderItems,
+              selected: _jenisKelamin,
+              onPicked: (v) => setState(() => _jenisKelamin = v),
             ),
           ),
-          _label("Alamat (sesuai KTP)"),
-          _input(alamatTC, hint: "mis. Nama Jalan No. 1…", maxLines: 2),
-          _label("No. HP"),
+          _label("Alamat (sesuai KTP)", required: true),
+          _input(alamatTC, hint: "mis. Nama Jalan No. 1…", maxLines: 2, height: 60),
+          _label("No. HP", required: true),
           _input(
             noHpTC,
             hint: "08xxxxxxxxxx",
             keyboardType: TextInputType.phone,
           ),
-          _label("Status Pernikahan"),
+          _label("Status Pernikahan", required: true),
           roPickerRow(
             value: _statusPernikahan,
             hint: "Pilih status pernikahan",
@@ -828,7 +862,9 @@ class _ReservePageState extends State<ReservePage> {
               onPicked: (v) => setState(() => _statusPernikahan = v),
             ),
           ),
-          _label("Kategori Pekerjaan"),
+          _label("Nama Pasangan"),
+          _input(pasanganTC, hint: "Nama pasangan"),
+          _label("Kategori Pekerjaan", required: true),
           roPickerRow(
             value: _kategoriPekerjaan,
             hint: "Pilih kategori pekerjaan",
@@ -840,15 +876,15 @@ class _ReservePageState extends State<ReservePage> {
               onPicked: (v) => setState(() => _kategoriPekerjaan = v),
             ),
           ),
-          _label("Pekerjaan"),
+          _label("Pekerjaan", required: true),
           _input(pekerjaanTC, hint: "Pekerjaan"),
-          _label("Tujuan Pembayaran"),
+          _label("Cara Pembarayan", required: true),
           roPickerRow(
             value: _caraPembayaran,
-            hint: "Pilih Tujuan Pembayaran",
+            hint: "Pilih Cara Pembarayan",
             onTap: () => roShowOptionSheet(
               context: context,
-              title: "Tujuan Pembayaran",
+              title: "Cara Pembarayan",
               items: _caraBayarOptions.map((o) => o.name).toList(),
               selected: _caraPembayaran,
               onPicked: (v) => setState(() {
@@ -954,25 +990,29 @@ class _ReservePageState extends State<ReservePage> {
   }
 
 
-  /// Semua baris dari `GET /api/reserve/product-select` ([ReserveUnitState.existingUnits]) memang
-  /// deal yang sudah ada buat kontak ini — beda dari katalog [ReserveUnitState.clusters] yang cuma
-  /// pilihan yang BISA dipilih. Jadi begitu dimuat, semuanya langsung dicentang otomatis.
   void _autoSelectAlreadyChosenUnits(ReserveUnitState state) {
     if (state.status != ReserveUnitStatus.loaded) return;
     var touched = false;
     for (final unit in state.existingUnits) {
-      if (_autoSelectedUnitKeys.contains(unit.key)) continue;
-      touched = true;
-      _autoSelectedUnitKeys.add(unit.key);
-      _selectedUnits.putIfAbsent(unit.key, () => unit);
-      // Expand cluster/produknya di tree katalog juga (kalau ketemu) — biar baris yang cocok
-      // langsung kelihatan tercentang begitu step-nya dibuka, sama seperti Unit Picker di contact.
-      if (unit.productId != null) {
-        context.read<ReserveUnitCubit>().expandProductFor(
-              clusterId: unit.clusterId,
-              companyId: unit.companyId,
-              productId: unit.productId!,
-            );
+      final enriched = _enrichExistingUnit(unit, state);
+      if (!_autoSelectedUnitKeys.contains(unit.key)) {
+        _autoSelectedUnitKeys.add(unit.key);
+        _selectedUnits.putIfAbsent(unit.key, () => enriched);
+        touched = true;
+        if (unit.productId != null) {
+          context.read<ReserveUnitCubit>().expandProductFor(
+                clusterId: unit.clusterId,
+                companyId: unit.companyId,
+                productId: unit.productId!,
+              );
+        }
+        continue;
+      }
+      final current = _selectedUnits[unit.key];
+      if (current != null &&
+          (current.townshipName != enriched.townshipName || current.statusName != enriched.statusName)) {
+        _selectedUnits[unit.key] = enriched;
+        touched = true;
       }
     }
     if (touched) setState(() {});
@@ -981,6 +1021,32 @@ class _ReservePageState extends State<ReservePage> {
       _existingUnitsErrorShown = true;
       showSnackbar(context, state.existingUnitsError!, isError: true);
     }
+  }
+
+  SelectedUnit _enrichExistingUnit(SelectedUnit unit, ReserveUnitState state) {
+    String? townshipName = unit.townshipName;
+    for (final cluster in state.clusters) {
+      if (cluster.projectId == unit.clusterId) {
+        townshipName = cluster.townshipName;
+        break;
+      }
+    }
+
+    String? statusName = unit.statusName;
+    if (unit.propertyId != null) {
+      final lots = state.lotsByProduct['${unit.companyId}|${unit.productId}'];
+      if (lots != null) {
+        for (final lot in lots) {
+          if (lot.propertyId == unit.propertyId) {
+            statusName = lot.statusName;
+            break;
+          }
+        }
+      }
+    }
+
+    if (townshipName == unit.townshipName && statusName == unit.statusName) return unit;
+    return unit.copyWith(townshipName: townshipName, statusName: statusName);
   }
 
   Widget _buildUnit() {
@@ -1011,18 +1077,10 @@ class _ReservePageState extends State<ReservePage> {
                 if (_selectedUnits.isNotEmpty)
                   Padding(
                     padding: EdgeInsets.only(bottom: 10),
-                    child: Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        for (final entry in _selectedUnits.entries)
-                          InputChip(
-                            label: Text(entry.value.label, style: TextStyle(fontSize: 11.5, color: Color(blue2Color))),
-                            backgroundColor: Color(grey11Color),
-                            onDeleted: () => _removeSelectedUnit(entry.key),
-                            deleteIcon: Icon(Icons.close, size: 14, color: Color(blue2Color)),
-                            materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                          ),
+                        for (final entry in _selectedUnits.entries) _selectedUnitSummary(entry.key, entry.value),
                       ],
                     ),
                   ),
@@ -1061,11 +1119,6 @@ class _ReservePageState extends State<ReservePage> {
     );
   }
 
-  /// Cluster yang lagi expanded (biasanya karena auto-centang unit yang sudah ada, lihat
-  /// `_autoSelectAlreadyChosenUnits`) ditaruh paling atas, supaya langsung kelihatan tanpa perlu
-  /// scroll cari-cari — urutan relatif di dalam masing-masing grup (expanded/collapsed) dijaga tetap
-  /// sama seperti urutan asli dari `state.clusters` (partition manual, bukan `List.sort` yang tidak
-  /// dijamin stabil).
   List<UnitCluster> _clustersExpandedFirst(ReserveUnitState state) {
     final expanded = <UnitCluster>[];
     final collapsed = <UnitCluster>[];
@@ -1075,9 +1128,6 @@ class _ReservePageState extends State<ReservePage> {
     return [...expanded, ...collapsed];
   }
 
-  /// Badge kecil "N dipilih" di header cluster/produk — supaya kelihatan cluster/produk mana yang
-  /// sudah punya unit terpilih (mis. dari unit yang sudah ada, auto-tercentang) TANPA perlu
-  /// expand dulu.
   Widget? _selectedCountBadge(int count) {
     if (count == 0) return null;
     return Container(
@@ -1169,6 +1219,7 @@ class _ReservePageState extends State<ReservePage> {
             children: [
               _contactUnitRow(SelectedUnit(
                 townshipId: townshipId,
+                townshipName: cluster.townshipName,
                 companyId: product.companyId,
                 clusterId: cluster.projectId,
                 clusterName: cluster.projectName,
@@ -1177,6 +1228,7 @@ class _ReservePageState extends State<ReservePage> {
               )),
               _contactUnitRow(SelectedUnit(
                 townshipId: townshipId,
+                townshipName: cluster.townshipName,
                 companyId: product.companyId,
                 clusterId: cluster.projectId,
                 clusterName: cluster.projectName,
@@ -1211,6 +1263,7 @@ class _ReservePageState extends State<ReservePage> {
                 for (final lot in lots)
                   _contactUnitRow(SelectedUnit(
                     townshipId: townshipId,
+                    townshipName: cluster.townshipName,
                     companyId: product.companyId,
                     clusterId: cluster.projectId,
                     clusterName: cluster.projectName,
@@ -1232,7 +1285,7 @@ class _ReservePageState extends State<ReservePage> {
       return unit.propertyName!.trim();
     }
 
-    return unit.isWaitingList ? 'Daftar Tunggu' : 'Kavling belum ditentukan';
+    return unit.isWaitingList ? 'Waiting List' : 'Belum Ditentukan Kavling';
   }
 
   String _unitRowSubtitle(SelectedUnit unit) {
@@ -1260,12 +1313,49 @@ class _ReservePageState extends State<ReservePage> {
     );
   }
 
+  Widget _selectedUnitSummary(String key, SelectedUnit unit) {
+    final townshipName = (unit.townshipName ?? '').trim();
+    final statusName = (unit.statusName ?? '').trim();
+
+    return Container(
+      margin: EdgeInsets.only(bottom: 8),
+      padding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(color: Color(grey11Color), borderRadius: BorderRadius.circular(10)),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (townshipName.isNotEmpty) ...[
+            Text(townshipName, style: TextStyle(fontSize: 10, color: Color(grey4Color))),
+            SizedBox(height: 2),
+          ],
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  unit.label,
+                  style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w600, color: Color(blue2Color)),
+                ),
+              ),
+              if (statusName.isNotEmpty) ...[
+                SizedBox(width: 8),
+                UnitStatusBadge(label: statusName, textColor: _statusBadgeTextColor(statusName)),
+              ],
+              SizedBox(width: 8),
+              InkWell(
+                onTap: () => _removeSelectedUnit(key),
+                child: Icon(Icons.close, size: 16, color: Color(blue2Color)),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _contactUnitRow(SelectedUnit unit) {
     final selected = _isUnitPicked(unit);
     final sellable = unit.isPropertySellable;
-    // Status "HOLD" (dari `status_name` — lihat `UnitLot.statusName`) beneran DISABLE, beda dari
-    // `isPropertySellable` di atas yang cuma dipudarkan tapi tetap bisa dicentang (sales yang
-    // memutuskan). Kavling HOLD memang tidak boleh dipilih sama sekali, sesuai instruksi eksplisit.
     final isHold = (unit.statusName ?? '').toUpperCase().contains('HOLD');
     final title = _unitRowTitle(unit);
     final subtitle = _unitRowSubtitle(unit);
@@ -1334,7 +1424,6 @@ class _ReservePageState extends State<ReservePage> {
 
 
   Widget _buildReview() {
-    final contact = widget.args.dataContact;
     final nominal = _nominal;
     final catatan = catatanTC.text.trim();
     final proofCount = _paymentProofs.length;
@@ -1353,7 +1442,7 @@ class _ReservePageState extends State<ReservePage> {
             ),
             child: Column(
               children: [
-                _reviewLine("Customer", contact?.fullName ?? namaTC.text.trim()),
+                _reviewLine("Customer", namaTC.text.trim()),
                 _reviewLine(
                   "Dokumen",
                   "KTP ✓ · Bukti Pembayaran ✓ ${proofCount > 1 ? '($proofCount)' : ''}".trim(),
@@ -1527,12 +1616,18 @@ class _ReservePageState extends State<ReservePage> {
   }
 
 
-  Widget _label(String text) {
+  Widget _label(String text, {bool required = false}) {
     return Padding(
       padding: EdgeInsets.only(top: 10, bottom: 5),
-      child: Text(
-        text,
-        style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(grey1Color)),
+      child: Row(
+        children: [
+          Text(
+            text,
+            style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(grey1Color)),
+          ),
+          if (required)
+            Text(' *', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(redColor))),
+        ],
       ),
     );
   }
@@ -1546,6 +1641,7 @@ class _ReservePageState extends State<ReservePage> {
 
   Widget _input(
     TextEditingController controller, {
+    double height = 40, // Default 40 jika tidak dimasukkan
     String? hint,
     String? prefixText,
     IconData? prefixIcon,
@@ -1554,35 +1650,38 @@ class _ReservePageState extends State<ReservePage> {
     int maxLines = 1,
     ValueChanged<String>? onChanged,
   }) {
-    return TextField(
-      controller: controller,
-      keyboardType: keyboardType,
-      inputFormatters: inputFormatters,
-      maxLines: maxLines,
-      onChanged: onChanged,
-      style: TextStyle(fontSize: 12.5, color: Color(blue2Color)),
-      decoration: InputDecoration(
-        isDense: true,
-        filled: true,
-        fillColor: Color(grey11Color),
-        hintText: hint,
-        hintStyle: TextStyle(fontSize: 12.5, color: Color(grey5Color)),
-        prefixText: prefixText,
-        prefixStyle: TextStyle(fontSize: 12.5, color: Color(blue2Color)),
-        prefixIcon: prefixIcon == null ? null : Icon(prefixIcon, size: 16, color: Color(grey5Color)),
-        prefixIconConstraints: BoxConstraints(minWidth: 34, minHeight: 20),
-        contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 9),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(9),
-          borderSide: BorderSide(color: Color(grey7Color)),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(9),
-          borderSide: BorderSide(color: Color(grey7Color)),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(9),
-          borderSide: BorderSide(color: Color(primaryColor)),
+    return Container(
+      height: height,
+      child: TextField(
+        controller: controller,
+        keyboardType: keyboardType,
+        inputFormatters: inputFormatters,
+        maxLines: maxLines,
+        onChanged: onChanged,
+        style: TextStyle(fontSize: 12.5, color: Color(blue2Color)),
+        decoration: InputDecoration(
+          isDense: true,
+          filled: true,
+          fillColor: Color(grey11Color),
+          hintText: hint,
+          hintStyle: TextStyle(fontSize: 12.5, color: Color(grey5Color)),
+          prefixText: prefixText,
+          prefixStyle: TextStyle(fontSize: 12.5, color: Color(blue2Color)),
+          prefixIcon: prefixIcon == null ? null : Icon(prefixIcon, size: 16, color: Color(grey5Color)),
+          prefixIconConstraints: BoxConstraints(minWidth: 34, minHeight: 20),
+          contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(9),
+            borderSide: BorderSide(color: Color(grey7Color)),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(9),
+            borderSide: BorderSide(color: Color(grey7Color)),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(9),
+            borderSide: BorderSide(color: Color(primaryColor)),
+          ),
         ),
       ),
     );

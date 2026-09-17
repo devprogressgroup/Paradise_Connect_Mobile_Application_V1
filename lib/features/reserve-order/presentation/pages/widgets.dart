@@ -371,29 +371,36 @@ Widget roFooter(List<Widget> children) {
 /// Baris tappable buat field pilihan (Marital Status, Payment Plan, dll) — dipasangkan dengan
 /// [roShowOptionSheet]. Dipakai bareng oleh form Reserve & halaman Edit Customer.
 Widget roPickerRow({required String? value, required String hint, required VoidCallback onTap}) {
-  return InkWell(
-    onTap: onTap,
-    borderRadius: BorderRadius.circular(12),
-    child: Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(11),
-      decoration: BoxDecoration(
-        border: Border.all(color: const Color(grey10Color), width: 1.5),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Text(
-              value ?? hint,
-              style: TextStyle(
-                fontSize: 12.5,
-                color: value == null ? const Color(grey5Color) : const Color(blue2Color),
+  return Container(
+    height: 40,
+    child: InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          color: const Color(grey11Color),
+          border: Border.all(color: const Color(grey10Color), width: 1.5),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(
+                value ?? hint,
+                style: TextStyle(
+                  fontSize: 12.5,
+                  color: value == null ? const Color(grey5Color) : const Color(blue2Color),
+                ),
               ),
             ),
-          ),
-          const Icon(Icons.arrow_drop_down, size: 22, color: Color(grey4Color)),
-        ],
+            Container(
+              height: 20,
+              alignment: Alignment.topCenter,
+              child: const Icon(Icons.arrow_drop_down, size: 22, color: Color(grey4Color))),
+          ],
+        ),
       ),
     ),
   );

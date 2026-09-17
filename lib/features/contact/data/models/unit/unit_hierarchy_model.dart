@@ -113,6 +113,12 @@ class UnitLot {
 
 class SelectedUnit {
   final int townshipId;
+
+  /// Dari `UnitCluster.townshipName` (katalog `unit-all`). [fromProductSelectJson] (`GET
+  /// /api/reserve/product-select`) TIDAK mengirim field ini sama sekali (dikonfirmasi dari response
+  /// asli) — buat unit "sudah ada" itu, `ReservePage._enrichExistingUnit` yang mengisinya belakangan
+  /// dengan mencocokkan `clusterId` ke katalog tree (`state.clusters`) yang sudah dimuat bareng.
+  final String? townshipName;
   final int companyId;
   final int clusterId;
   final String clusterName;
@@ -125,6 +131,7 @@ class SelectedUnit {
 
   const SelectedUnit({
     required this.townshipId,
+    this.townshipName,
     this.companyId = 0,
     required this.clusterId,
     required this.clusterName,
@@ -152,8 +159,12 @@ class SelectedUnit {
   final int? dealId;
 
   /// Nama status yang ditampilkan sebagai badge di step "Pilih Unit" lewat `UnitStatusBadge`. Dari
-  /// [fromProductSelectJson] ini diisi `status_property_name` (bukan `status_name`) sesuai
-  /// permintaan produk. Null buat sumber lain.
+  /// `UnitLot.statusName` (katalog `unit-all?product_id=…`). [fromProductSelectJson] tidak
+  /// mengirim status kavling sama sekali (cuma `status_prospect_id`, status PIPELINE deal, beda
+  /// konsep dari status ketersediaan kavling) — buat unit "sudah ada" yang py `propertyId`,
+  /// `ReservePage._enrichExistingUnit` mengisinya belakangan dengan mencocokkan `propertyId` ke
+  /// `state.lotsByProduct` (baru terisi kalau produknya sudah pernah di-expand/lots-nya sudah
+  /// dimuat). Null buat sumber lain ([fromContactJson], unit picker contact-add).
   final String? statusName;
 
   /// Nominal deal — dipakai sebagai harga di baris kedua kartu step "Pilih Unit". Null/0 tidak
@@ -170,6 +181,7 @@ class SelectedUnit {
 
   factory SelectedUnit.fromContactJson(Map<String, dynamic> j) => SelectedUnit(
         townshipId: j['township_id'] ?? 0,
+        townshipName: j['township_name']?.toString(),
         companyId: j['company_id'] ?? 0,
         clusterId: j['cluster_id'] ?? 0,
         clusterName: (j['cluster_name'] ?? '').toString(),
@@ -205,6 +217,28 @@ class SelectedUnit {
         dealValue: j['deal_value'],
       );
 
+
+  /// Cuma buat mengisi [townshipName]/[statusName] belakangan (lihat catatan di kedua field itu) —
+  /// bukan copyWith umum, sengaja cuma dua field ini yang butuh di-backfill setelah konstruksi.
+  SelectedUnit copyWith({String? townshipName, String? statusName}) => SelectedUnit(
+        townshipId: townshipId,
+        townshipName: townshipName ?? this.townshipName,
+        companyId: companyId,
+        clusterId: clusterId,
+        clusterName: clusterName,
+        productId: productId,
+        productName: productName,
+        propertyId: propertyId,
+        propertyName: propertyName,
+        isWaitingList: isWaitingList,
+        isTipeHoek: isTipeHoek,
+        statusProspectId: statusProspectId,
+        lostDate: lostDate,
+        dealId: dealId,
+        statusName: statusName ?? this.statusName,
+        dealValue: dealValue,
+        isPropertySellable: isPropertySellable,
+      );
 
   bool get isLost => lostDate != null && lostDate!.isNotEmpty;
 

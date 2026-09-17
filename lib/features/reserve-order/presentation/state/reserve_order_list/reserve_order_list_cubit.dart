@@ -4,8 +4,6 @@ import 'package:progress_group/features/reserve-order/data/datasources/reserve_o
 import 'package:progress_group/features/reserve-order/data/models/reserve_order_model.dart';
 import 'reserve_order_list_state.dart';
 
-/// Daftar transaksi untuk menu "Reserve Order" di drawer (`GET /api/reserve`). Pola sama seperti
-/// `ReserveUnitCubit`: datasource langsung, tanpa layer usecase/repository.
 class ReserveOrderListCubit extends Cubit<ReserveOrderListState> {
   final ReserveOrderRemoteDataSource dataSource;
 
@@ -13,12 +11,6 @@ class ReserveOrderListCubit extends Cubit<ReserveOrderListState> {
 
   ReserveOrderListCubit(this.dataSource) : super(const ReserveOrderListState());
 
-  /// Dipanggil sekali di awal halaman, sebelum [load] — cubit ini dipakai bersama drawer (semua
-  /// transaksi) & daftar per-kontak (disaring [contactId]), jadi state-nya di-reset dulu supaya
-  /// sisa scope/pencarian dari kunjungan sebelumnya tidak kebawa ke sesi baru. [filters],
-  /// [caraBayarOptions] & [areaOptions] sengaja dipertahankan dari state sebelumnya (lihat
-  /// [ensureFilters] / [ensureCaraBayarOptions] / [ensureAreaOptions]) — bukan bagian dari scope
-  /// yang mesti direset per kunjungan.
   Future<void> loadFresh({int? contactId}) {
     emit(ReserveOrderListState(
       contactId: contactId,
@@ -29,12 +21,6 @@ class ReserveOrderListCubit extends Cubit<ReserveOrderListState> {
     return Future.wait([_loadFilters(), load()]);
   }
 
-  /// Master status reserve (`GET /api/reserve-filter`, semua status) buat chip filter di atas list.
-  /// "Jenis Transaksi" di form Reserve pakai query berbeda (`exclude_batal=1`) lewat
-  /// [ensureTransactionTypeFilters] & cache terpisah — TIDAK numpang di sini. Sengaja di-cache di
-  /// [ReserveOrderListState.filters]: begitu sekali berhasil dimuat, endpoint ini tidak dipanggil
-  /// ulang lagi selama cubit-nya belum di-reset (app restart); [ensureFilters] jadi tempat yang aman
-  /// dipanggil berkali-kali dari halaman manapun.
   Future<void> _loadFilters() async {
     if (state.filters.isNotEmpty) return;
     try {
@@ -46,18 +32,11 @@ class ReserveOrderListCubit extends Cubit<ReserveOrderListState> {
     }
   }
 
-  /// Dipakai dari luar halaman List (chip filter atas list) tanpa ikut me-reset seluruh state list
-  /// seperti [loadFresh] — cuma mastikan [ReserveOrderListState.filters] terisi (dari cache kalau
-  /// sudah ada, atau fetch sekali kalau belum), lalu kembalikan.
   Future<List<ReserveFilterOption>> ensureFilters() async {
     await _loadFilters();
     return state.filters;
   }
 
-  /// Master "Jenis Transaksi" di form Reserve — `GET /api/reserve-filter?exclude_batal=1`. Cache
-  /// TERPISAH dari [ensureFilters] (lihat [ReserveOrderListState.transactionTypeFilters]): query-nya
-  /// beda, jadi tidak bisa numpang cache [_loadFilters]. Pola cache-nya sama — sekali berhasil
-  /// dimuat, tidak fetch ulang lagi selama cubit-nya belum di-reset.
   Future<List<ReserveFilterOption>> ensureTransactionTypeFilters() async {
     if (state.transactionTypeFilters.isEmpty) {
       try {
@@ -73,9 +52,6 @@ class ReserveOrderListCubit extends Cubit<ReserveOrderListState> {
     return state.transactionTypeFilters;
   }
 
-  /// Master "Cara Pembayaran" di form Reserve (`GET /api/reserve/cara-bayar`) — pola cache-nya
-  /// sama persis dengan [ensureFilters]: dipanggil dari `ReservePage`, tapi cukup sekali fetch
-  /// per sesi app selama berhasil.
   Future<List<CaraBayarOption>> ensureCaraBayarOptions() async {
     if (state.caraBayarOptions.isEmpty) {
       try {
@@ -83,15 +59,13 @@ class ReserveOrderListCubit extends Cubit<ReserveOrderListState> {
         emit(state.copyWith(caraBayarOptions: options, caraBayarOptionsError: null));
       } catch (e) {
         // Sama seperti [ensureTransactionTypeFilters] — pesan API-nya ditumpangkan di state,
-        // bukan ditelan diam-diam, biar field "Tujuan Pembayaran" bisa kasih tombol "Coba lagi".
+        // bukan ditelan diam-diam, biar field "Cara Pembarayan" bisa kasih tombol "Coba lagi".
         emit(state.copyWith(caraBayarOptionsError: cleanErrorMessage(e)));
       }
     }
     return state.caraBayarOptions;
   }
 
-  /// Master "Area" (lokasi/wilayah) di halaman Edit Customer (`GET /api/reserve/area`) — pola
-  /// cache-nya sama persis dengan [ensureCaraBayarOptions].
   Future<List<AreaOption>> ensureAreaOptions() async {
     if (state.areaOptions.isEmpty) {
       try {
@@ -104,9 +78,6 @@ class ReserveOrderListCubit extends Cubit<ReserveOrderListState> {
     return state.areaOptions;
   }
 
-  /// Memuat halaman pertama. [search], [statusIds] & [sort] yang tidak diisi memakai nilai yang
-  /// sedang aktif, jadi ganti satu filter tidak menghapus yang lain. [contactId] selalu ikut scope
-  /// yang sedang aktif di state (diisi lewat [loadFresh]).
   Future<void> load({String? search, List<int>? statusIds, String? sort}) async {
     final keyword = search ?? state.search;
     final ids = statusIds ?? state.statusIds;

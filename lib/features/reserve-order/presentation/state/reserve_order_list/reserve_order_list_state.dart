@@ -6,59 +6,20 @@ enum ReserveOrderListStatus { initial, loading, loaded, error }
 class ReserveOrderListState extends Equatable {
   final ReserveOrderListStatus status;
   final List<ReserveOrder> items;
-
-  /// Halaman terakhir yang berhasil dimuat.
   final int page;
   final bool hasMore;
-
-  /// Total baris se-query dari server — dipakai untuk teks "N transaksi" di judul list.
   final int total;
 
   final String search;
-
-  /// `status_reserve_id` yang sedang aktif — dikirim ke server sebagai filter.
   final List<int> statusIds;
-
-  /// `sort` yang sedang aktif — salah satu dari `created_asc`, `created_desc`, `name_asc`,
-  /// `name_desc`, `amount_desc`, `amount_asc`. Dikirim apa adanya ke `GET /api/reserve`.
   final String sort;
-
-  /// Chip filter dari `GET /api/reserve-filter` (master status reserve). Kosong selagi masih
-  /// dimuat atau kalau gagal — chip-nya cuma tidak tampil, tidak memblokir daftar transaksinya.
   final List<ReserveFilterOption> filters;
-
-  /// Master "Jenis Transaksi" di form Reserve — `GET /api/reserve-filter?exclude_batal=1`. Cache
-  /// TERPISAH dari [filters] (bukan dipakai ulang) karena query-nya beda: chip filter List butuh
-  /// semua status termasuk "Batal", sedang "Jenis Transaksi" tidak boleh menawarkan status "Batal"
-  /// sebagai jenis transaksi baru. Lihat `ReserveOrderListCubit.ensureTransactionTypeFilters`.
   final List<ReserveFilterOption> transactionTypeFilters;
-
-  /// Pesan error dari percobaan terakhir [ensureTransactionTypeFilters] (`cleanErrorMessage`) —
-  /// null kalau belum pernah dicoba atau percobaan terakhir berhasil. Dibaca `ReservePage` buat
-  /// menampilkan pesan asli dari API (bukan fallback lokal) begitu chip "Jenis Transaksi" gagal
-  /// dimuat, lengkap dengan tombol "Coba lagi" yang memanggil ulang method yang sama.
   final String? transactionTypeFiltersError;
-
-  /// Master "Cara Pembayaran" di form Reserve, dari `GET /api/reserve/cara-bayar`. Ditumpangkan di
-  /// state cubit ini juga (bukan cubit sendiri) supaya cache-nya (lihat
-  /// `ReserveOrderListCubit.ensureCaraBayarOptions`) kepakai bareng [filters] — sekali dimuat,
-  /// tidak fetch ulang selama cubit-nya (singleton, provider bersama) belum di-reset.
   final List<CaraBayarOption> caraBayarOptions;
-
-  /// Sama seperti [transactionTypeFiltersError] tapi buat [ensureCaraBayarOptions] — dibaca
-  /// `ReservePage`/`ReserveOrderEditCustomerPage` buat pesan error field "Tujuan Pembayaran".
   final String? caraBayarOptionsError;
-
-  /// Master "Area" (lokasi/wilayah) di halaman Edit Customer, dari `GET /api/reserve/area` — cache
-  /// sama seperti [caraBayarOptions] (lihat `ReserveOrderListCubit.ensureAreaOptions`).
   final List<AreaOption> areaOptions;
-
-  /// Diisi kalau daftar ini sedang disaring buat satu kontak (dibuka dari "Reserve Order" di Log
-  /// Activity); null berarti daftar drawer, semua transaksi.
   final int? contactId;
-
-  /// Load halaman berikutnya, dibedakan dari [status] supaya daftar yang sudah tampil tidak
-  /// diganti shimmer saat scroll.
   final bool loadingMore;
 
   final String? error;

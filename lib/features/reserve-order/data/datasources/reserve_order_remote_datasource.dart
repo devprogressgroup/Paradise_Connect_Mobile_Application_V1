@@ -5,29 +5,28 @@ import 'package:intl/intl.dart';
 import 'package:progress_group/core/utils/helpers/error_message.dart';
 import 'package:progress_group/features/reserve-order/data/models/reserve_order_model.dart';
 
-/// Payload gabungan `POST /api/reserve` (multipart) — bikin baris `m_customer_reserve`, tautkan
-/// SATU unit (`dealId`) yang dipilih, DAN kirim dokumen (KTP/NPWP/bukti transfer) + rincian
-/// pembayaran sekaligus dalam satu request. Menggantikan alur lama 3 request berurutan
-/// (`createReserve` JSON → `saveReserveUnit` per unit → `submitDocPayment` multipart terpisah) —
-/// sesuai instruksi eksplisit: cuma boleh 1 unit terpilih di step "Pilih Unit" (lihat
-/// `ReservePage._onNextUnit`), jadi tidak perlu lagi endpoint terpisah buat "tautkan banyak unit".
-/// `ktp[]` & `bukti_transfer[]` DUA-DUANYA pakai kurung array — beda dari [DocPaymentParams]
-/// (`submitDocPayment`) yang `bukti_transfer`-nya sengaja TANPA kurung.
 class CreateReserveParams {
   final int contactId;
 
-  /// Null kalau unit yang dipilih belum py deal existing (dipilih baru dari katalog `unit-all`,
-  /// belum pernah jadi deal) — field `deal_id` di-OMIT total dari request kalau null, bukan
-  /// dikirim `0`/kosong, sesuai instruksi eksplisit.
+
+
+
   final int? dealId;
   final int companyId;
+
+
+
+
+  final int? productId;
+  final int townshipId;
+  final int clusterId;
   final String custName;
   final String? custKtp;
   final String? custBirthPlace;
   final DateTime? custBirthDate;
   final bool? custGenderIsMale;
   final String? custMaritalStatus;
-  final String? custReligion;
+  final String? custSpouseName;
   final String? workCategory;
   final String? custOccupation;
   final String? custAddress1;
@@ -47,13 +46,16 @@ class CreateReserveParams {
     required this.contactId,
     this.dealId,
     required this.companyId,
+    this.productId,
+    required this.townshipId,
+    required this.clusterId,
     required this.custName,
     this.custKtp,
     this.custBirthPlace,
     this.custBirthDate,
     this.custGenderIsMale,
     this.custMaritalStatus,
-    this.custReligion,
+    this.custSpouseName,
     this.workCategory,
     this.custOccupation,
     this.custAddress1,
@@ -71,28 +73,22 @@ class CreateReserveParams {
   });
 }
 
-/// Payload `POST /api/reserve/doc-payment` — kirim dokumen (KTP/NPWP/bukti transfer) + rincian
-/// pembayaran untuk reserve order yang sudah dibuat lewat [CreateReserveParams]. `ktp` & `bukti_transfer`
-/// boleh lebih dari 1 file; `npwp` cuma 1. Nama field `ktp[]` dikirim dengan kurung (array), tapi
-/// `bukti_transfer` TETAP tanpa kurung walau isinya array juga — sesuai instruksi eksplisit,
-/// beda dari `ktp[]`. Lihat catatan gotcha `FormData`+kurung array file di
-/// `ReserveOrderRemoteDataSourceImpl.submitDocPayment`.
 class DocPaymentParams {
   final int reserveOrderId;
 
-  /// Null kalau cuma nambah dokumen pendukung dari tab "Attachment" (bukan submit
-  /// pembayaran/transaksi baru) — sesuai instruksi eksplisit, field ini di-OMIT total dari request
-  /// (bukan dikirim `0`), lihat [ReserveOrderRemoteDataSourceImpl.submitDocPayment].
+
+
+
   final int? statusReserveId;
 
-  /// Null dengan alasan yang sama seperti [statusReserveId].
+
   final num? ttsAmountRp;
 
-  /// TTS yang sudah ada, diisi HANYA saat upload dokumen tambahan dari halaman Detail (tab
-  /// Attachment) — nilainya diambil dari `reserve_order_tts_id` di respons `GET
-  /// /api/reserve/attachment` (lihat `ReserveOrderAttachment.reserveOrderTtsId`). Null di alur
-  /// submit awal (`reserve.dart`) & Top Up (`top_up.dart`) karena keduanya bikin TTS baru — di-OMIT
-  /// total dari request kalau null, sama seperti [statusReserveId].
+
+
+
+
+
   final int? reserveOrderTtsId;
   final String? note;
   final List<Uint8List> ktpBytes;
@@ -117,9 +113,6 @@ class DocPaymentParams {
   });
 }
 
-/// Hasil `POST /api/reserve` — `reserveOrderId`/`customerId` dari `data.reserve_order`. Sudah
-/// tidak dipakai lagi buat memicu request susulan (dulu `saveReserveUnit`/`submitDocPayment`
-/// terpisah) sejak [CreateReserveParams] mencakup semuanya dalam satu request.
 class CreateReserveResult {
   final int reserveOrderId;
   final int customerId;
@@ -127,13 +120,12 @@ class CreateReserveResult {
   const CreateReserveResult({required this.reserveOrderId, required this.customerId});
 }
 
-/// Satu halaman hasil `GET /api/reserve`.
 class ReserveOrdersPage {
   final List<ReserveOrder> items;
   final int page;
   final bool hasMore;
 
-  /// Total baris se-query, dipakai untuk teks "N transaksi" di judul list.
+
   final int total;
 
   const ReserveOrdersPage({
@@ -154,32 +146,32 @@ abstract class ReserveOrderRemoteDataSource {
     int? contactId,
   });
 
-  /// Master status reserve buat chip filter di atas list — `GET /api/reserve-filter`. [excludeBatal]
-  /// mengirim `exclude_batal=1` — dipakai "Jenis Transaksi" di form Reserve supaya status "Batal"
-  /// tidak muncul sebagai pilihan jenis transaksi baru; chip filter List tetap minta semua status
-  /// apa adanya (`excludeBatal: false`).
+
+
+
+
   Future<List<ReserveFilterOption>> getReserveFilters({bool excludeBatal = false});
 
-  /// Master "Cara Pembayaran" di form Reserve — `GET /api/reserve/cara-bayar`.
+
   Future<List<CaraBayarOption>> getCaraBayarOptions();
 
-  /// Bikin baris `m_customer_reserve`, tautkan SATU unit (`dealId`), DAN kirim dokumen + rincian
-  /// pembayaran — semuanya dalam SATU request multipart `POST /api/reserve`. Step
-  /// Pembeli/Unit/Dokumen form Reserve semuanya cuma validasi lokal; ini baru dipanggil pas submit
-  /// di step Review (lihat `ReservePage._onSubmit`). Mengembalikan `reserve_order_id`/`customer_id`
-  /// dari `data.reserve_order`.
+
+
+
+
+
   Future<CreateReserveResult> createReserve(CreateReserveParams params);
 
-  /// Kirim dokumen + rincian pembayaran ke reserve order yang barusan dibuat —
-  /// `POST /api/reserve/doc-payment`. Wajib dipanggil setelah [createReserve]. Mengembalikan
-  /// `data.tts.reserve_order_tts_id` — dibutuhkan sebagai param [DocPaymentParams.reserveOrderTtsId]
-  /// kalau mau menambah dokumen ke TTS yang sama dari halaman Detail.
+
+
+
+
   Future<int> submitDocPayment(DocPaymentParams params);
 
-  /// Ajukan Top Up pembayaran — `POST /api/reserve/top-up`. Endpoint TERPISAH dari
-  /// [submitDocPayment] (beda payload & tujuan): cuma 4 field (`reserve_order_id`, `amount_rp`,
-  /// `reserve_note`, `bukti_transfer[]` — boleh lebih dari 1 file, kurungnya sama seperti
-  /// [CreateReserveParams]), dipakai khusus `ReserveOrderTopUpPage`.
+
+
+
+
   Future<void> topUp({
     required int reserveOrderId,
     required num amountRp,
@@ -188,27 +180,24 @@ abstract class ReserveOrderRemoteDataSource {
     required List<String> buktiTransferFileNames,
   });
 
-  /// Detail customer satu reserve order — `GET /api/reserve/customer?reserve_order_id=…`. Dipanggil
-  /// dari halaman Detail buat melengkapi tab "Data Pembeli" (No. KTP, alamat, status pernikahan,
-  /// cara bayar) yang tidak ada di response `GET /api/reserve` (list).
+
+
+
   Future<ReserveCustomerDetail> getReserveCustomer(int reserveOrderId);
 
-  // Cuma `reserve_order_id` — TANPA `reserve_order_tts_id` (sempat dikirim, dihapus lagi: server
-  // menyaring hasilnya cuma untuk TTS itu, jadi dokumen dari TTS lain di reserve order yang sama
-  // hilang dari tab Attachment begitu ada TTS lebih baru).
   Future<List<ReserveOrderAttachment>> getReserveAttachments({required int reserveOrderId});
 
-  /// Update profil pembeli — `PATCH /api/reserve/{reserve_order_id}`. Body-nya field backend apa
-  /// adanya (`cust_name`, `spouse_income`, `mate_ktp_city`, dst — persis [ReserveCustomerDetail.raw]),
-  /// makanya cukup terima map mentah daripada bikin kelas Params baru berisi ~90 field. Dipanggil
-  /// dari `ReserveOrderEditCustomerPage`.
+
+
+
+
   Future<void> updateReserveCustomer({required int reserveOrderId, required Map<String, dynamic> data});
 
-  /// Master "Area" (lokasi/wilayah) buat dropdown Area Code di halaman Edit Customer —
-  /// `GET /api/reserve/area`.
+
+
   Future<List<AreaOption>> getAreaOptions();
 
-  /// Pesan tab "Notes" (gaya chat) — `GET /api/reserve/notes?reserve_order_id=…`.
+
   Future<List<ReserveOrderActivityMessage>> getReserveNotes(int reserveOrderId);
 
   Future<void> sendReserveNote({required int reserveOrderId, required String message});
@@ -309,13 +298,16 @@ class ReserveOrderRemoteDataSourceImpl implements ReserveOrderRemoteDataSource {
         'contact_id': p.contactId,
         if (p.dealId != null) 'deal_id': p.dealId,
         'company_id': p.companyId,
+        if (p.productId != null) 'product_id': p.productId,
+        'township_id': p.townshipId,
+        'cluster_id': p.clusterId,
         'cust_name': p.custName,
         if (p.custKtp != null && p.custKtp!.isNotEmpty) 'cust_ktp': p.custKtp,
         if (p.custBirthPlace != null && p.custBirthPlace!.isNotEmpty) 'cust_birth_place': p.custBirthPlace,
         if (p.custBirthDate != null) 'cust_birth_date': DateFormat('yyyy-MM-dd').format(p.custBirthDate!),
-        if (p.custGenderIsMale != null) 'cust_gender_is_male': p.custGenderIsMale,
+        if (p.custGenderIsMale != null) 'cust_gender_is_male': p.custGenderIsMale! ? 1 : 0,
         if (p.custMaritalStatus != null && p.custMaritalStatus!.isNotEmpty) 'cust_marital_status': p.custMaritalStatus,
-        if (p.custReligion != null && p.custReligion!.isNotEmpty) 'cust_religion': p.custReligion,
+        if (p.custSpouseName != null && p.custSpouseName!.isNotEmpty) 'spouse_name': p.custSpouseName,
         if (p.workCategory != null && p.workCategory!.isNotEmpty) 'work_category': p.workCategory,
         if (p.custOccupation != null && p.custOccupation!.isNotEmpty) 'cust_occupation': p.custOccupation,
         if (p.custAddress1 != null && p.custAddress1!.isNotEmpty) 'cust_address1': p.custAddress1,

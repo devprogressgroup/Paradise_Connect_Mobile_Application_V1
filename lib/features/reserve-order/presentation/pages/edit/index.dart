@@ -210,6 +210,8 @@ class _ReserveOrderEditCustomerPageState extends State<ReserveOrderEditCustomerP
 
 
 
+
+
   String? get _caraBayarName {
     final id = _caraBayarSelectedId;
     if (id == null) return null;
@@ -297,9 +299,9 @@ class _ReserveOrderEditCustomerPageState extends State<ReserveOrderEditCustomerP
                         _textField(const _Field('cust_occupation', 'Pekerjaan', hint: 'Wiraswasta')),
                         _optionField(
                           key: 'cara_bayar_id',
-                          label: 'Tujuan Pembayaran',
+                          label: 'Cara Pembarayan',
                           value: _caraBayarName,
-                          sheetTitle: 'Tujuan Pembayaran',
+                          sheetTitle: 'Cara Pembarayan',
                           items: _caraBayarOptions.map((e) => e.name).toList(),
                           onPicked: (v) => setState(() {
                             for (final option in _caraBayarOptions) {
