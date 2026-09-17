@@ -344,6 +344,10 @@ class _ReservePageState extends State<ReservePage> {
       showSnackbar(context, 'Status pernikahan wajib dipilih', isError: true);
       return;
     }
+    if (_statusPernikahan == 'Kawin' && pasanganTC.text.trim().isEmpty) {
+      showSnackbar(context, 'Nama pasangan wajib diisi', isError: true);
+      return;
+    }
     if (_kategoriPekerjaan == null) {
       showSnackbar(context, 'Kategori pekerjaan wajib dipilih', isError: true);
       return;
@@ -797,103 +801,209 @@ class _ReservePageState extends State<ReservePage> {
   Widget _buildPembeli() {
     return SingleChildScrollView(
       keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-      padding: EdgeInsets.all(14),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _ghostButton(
-            _ktpFile == null ? "📷  Pindai KTP" : "📷  Pindai KTP Lagi",
-            _showScanSourceSheet,
-          ),
-          SizedBox(height: 6),
-          Text(
-            _ktpFile == null
-                ? "Otomatis mengisi kolom di bawah"
-                : "Foto KTP terlampir (${_fileSize(_ktpFile!)}) — juga dipakai di step Dokumen",
-            style: TextStyle(fontSize: 10, color: Color(grey4Color)),
+          Padding(
+            padding: EdgeInsets.fromLTRB(14, 14, 14, 0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _ghostButton(
+                  _ktpFile == null ? "📷  Pindai KTP" : "📷  Pindai KTP Lagi",
+                  _showScanSourceSheet,
+                ),
+                SizedBox(height: 6),
+                Text(
+                  _ktpFile == null
+                      ? "Otomatis mengisi kolom di bawah"
+                      : "Foto KTP terlampir (${_fileSize(_ktpFile!)}) — juga dipakai di step Dokumen",
+                  style: TextStyle(fontSize: 10, color: Color(grey4Color)),
+                ),
+              ],
+            ),
           ),
           SizedBox(height: 12),
-          _label("Nama Lengkap (sesuai KTP)", required: true),
-          _input(namaTC, hint: "Nama sesuai KTP"),
-          _label("No. KTP", required: true),
-          _input(
-            nikTC,
-            hint: "NIK 16 digit",
-            keyboardType: TextInputType.number,
-            inputFormatters: [FilteringTextInputFormatter.digitsOnly, LengthLimitingTextInputFormatter(16)],
+          Column(
+            children: [
+              _pembeliField(namaTC, "Nama Lengkap (sesuai KTP)", hint: "Nama sesuai KTP", required: true),
+              _pembeliField(
+                nikTC,
+                "No. KTP",
+                hint: "NIK 16 digit",
+                keyboardType: TextInputType.number,
+                inputFormatters: [FilteringTextInputFormatter.digitsOnly, LengthLimitingTextInputFormatter(16)],
+                required: true,
+              ),
+              _pembeliField(tempatLahirTC, "Tempat Lahir", hint: "Masukan Tempat Lahir", required: true),
+              _pembeliFieldDown(
+                label: "Tanggal Lahir",
+                value: _birthDate == null ? null : DateFormat('dd MMMM yyyy', 'id_ID').format(_birthDate!),
+                required: true,
+                onTap: _pickBirthDate,
+              ),
+              _pembeliFieldDown(
+                label: "Jenis Kelamin",
+                value: _jenisKelamin,
+                required: true,
+                onTap: () => roShowOptionSheet(
+                  context: context,
+                  title: "Jenis Kelamin",
+                  items: roGenderItems,
+                  selected: _jenisKelamin,
+                  onPicked: (v) => setState(() => _jenisKelamin = v),
+                ),
+              ),
+              _pembeliField(alamatTC, "Alamat (sesuai KTP)", hint: "mis. Nama Jalan No. 1…", maxLines: 2, required: true),
+              _pembeliField(noHpTC, "No. HP", hint: "08xxxxxxxxxx", keyboardType: TextInputType.phone, required: true),
+              _pembeliFieldDown(
+                label: "Status Pernikahan",
+                value: _statusPernikahan,
+                required: true,
+                onTap: () => roShowOptionSheet(
+                  context: context,
+                  title: "Status Pernikahan",
+                  items: roMaritalStatusItems,
+                  selected: _statusPernikahan,
+                  onPicked: (v) => setState(() => _statusPernikahan = v),
+                ),
+              ),
+              if (_statusPernikahan == 'Kawin')
+                _pembeliField(pasanganTC, "Nama Pasangan", hint: "Nama pasangan", required: true),
+              _pembeliFieldDown(
+                label: "Kategori Pekerjaan",
+                value: _kategoriPekerjaan,
+                required: true,
+                onTap: () => roShowOptionSheet(
+                  context: context,
+                  title: "Kategori Pekerjaan",
+                  items: roWorkCategoryItems,
+                  selected: _kategoriPekerjaan,
+                  onPicked: (v) => setState(() => _kategoriPekerjaan = v),
+                ),
+              ),
+              _pembeliField(pekerjaanTC, "Pekerjaan", hint: "Pekerjaan", required: true),
+              _pembeliFieldDown(
+                label: "Cara Pembarayan",
+                value: _caraPembayaran,
+                required: true,
+                onTap: () => roShowOptionSheet(
+                  context: context,
+                  title: "Cara Pembarayan",
+                  items: _caraBayarOptions.map((o) => o.name).toList(),
+                  selected: _caraPembayaran,
+                  onPicked: (v) => setState(() {
+                    _caraPembayaran = v;
+                    _caraBayarId = _caraBayarIdOf(v);
+                  }),
+                ),
+              ),
+            ],
           ),
-          _label("Tempat Lahir", required: true),
-          _input(tempatLahirTC, hint: "Masukan Tempat Lahir"),
-          _label("Tanggal Lahir", required: true),
-          roPickerRow(
-            value: _birthDate == null ? null : DateFormat('dd MMMM yyyy', 'id_ID').format(_birthDate!),
-            hint: "Pilih tanggal lahir",
-            onTap: _pickBirthDate,
-          ),
-          _label("Jenis Kelamin", required: true),
-          roPickerRow(
-            value: _jenisKelamin,
-            hint: "Pilih jenis kelamin",
-            onTap: () => roShowOptionSheet(
-              context: context,
-              title: "Jenis Kelamin",
-              items: roGenderItems,
-              selected: _jenisKelamin,
-              onPicked: (v) => setState(() => _jenisKelamin = v),
-            ),
-          ),
-          _label("Alamat (sesuai KTP)", required: true),
-          _input(alamatTC, hint: "mis. Nama Jalan No. 1…", maxLines: 2, height: 60),
-          _label("No. HP", required: true),
-          _input(
-            noHpTC,
-            hint: "08xxxxxxxxxx",
-            keyboardType: TextInputType.phone,
-          ),
-          _label("Status Pernikahan", required: true),
-          roPickerRow(
-            value: _statusPernikahan,
-            hint: "Pilih status pernikahan",
-            onTap: () => roShowOptionSheet(
-              context: context,
-              title: "Status Pernikahan",
-              items: roMaritalStatusItems,
-              selected: _statusPernikahan,
-              onPicked: (v) => setState(() => _statusPernikahan = v),
-            ),
-          ),
-          _label("Nama Pasangan"),
-          _input(pasanganTC, hint: "Nama pasangan"),
-          _label("Kategori Pekerjaan", required: true),
-          roPickerRow(
-            value: _kategoriPekerjaan,
-            hint: "Pilih kategori pekerjaan",
-            onTap: () => roShowOptionSheet(
-              context: context,
-              title: "Kategori Pekerjaan",
-              items: roWorkCategoryItems,
-              selected: _kategoriPekerjaan,
-              onPicked: (v) => setState(() => _kategoriPekerjaan = v),
-            ),
-          ),
-          _label("Pekerjaan", required: true),
-          _input(pekerjaanTC, hint: "Pekerjaan"),
-          _label("Cara Pembarayan", required: true),
-          roPickerRow(
-            value: _caraPembayaran,
-            hint: "Pilih Cara Pembarayan",
-            onTap: () => roShowOptionSheet(
-              context: context,
-              title: "Cara Pembarayan",
-              items: _caraBayarOptions.map((o) => o.name).toList(),
-              selected: _caraPembayaran,
-              onPicked: (v) => setState(() {
-                _caraPembayaran = v;
-                _caraBayarId = _caraBayarIdOf(v);
-              }),
-            ),
-          ),
+          SizedBox(height: 14),
         ],
+      ),
+    );
+  }
+
+  /// Bingkai underline bersama buat field step Pembeli — gaya sama dengan
+  /// `ContactFormPage._buildField`/`_buildFieldDown`, cuma tanpa state highlight/isError
+  /// karena step ini masih validasi lewat snackbar di `_onNextPembeli`.
+  Widget _pembeliFieldFrame(Widget child, {EdgeInsetsGeometry padding = const EdgeInsets.symmetric(vertical: 5, horizontal: 16)}) {
+    return Container(
+      padding: padding,
+      constraints: BoxConstraints(minHeight: 50),
+      decoration: BoxDecoration(
+        color: Color(whiteColor),
+        border: Border(bottom: BorderSide(color: Color(grey9Color))),
+      ),
+      child: child,
+    );
+  }
+
+  Widget _pembeliField(
+    TextEditingController controller,
+    String label, {
+    String? hint,
+    TextInputType? keyboardType,
+    List<TextInputFormatter>? inputFormatters,
+    int maxLines = 1,
+    bool required = false,
+  }) {
+    return _pembeliFieldFrame(
+      TextField(
+        controller: controller,
+        keyboardType: keyboardType,
+        inputFormatters: inputFormatters,
+        minLines: maxLines > 1 ? maxLines : null,
+        maxLines: null,
+        style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(blackColor)),
+        decoration: InputDecoration(
+          isDense: true,
+          label: RichText(
+            text: TextSpan(
+              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(grey2Color)),
+              children: [
+                TextSpan(text: label),
+                if (required) TextSpan(text: ' *', style: TextStyle(color: Color(redColor))),
+              ],
+            ),
+          ),
+          hintText: hint,
+          hintStyle: TextStyle(fontSize: 12, color: Color(grey5Color)),
+          border: InputBorder.none,
+          enabledBorder: InputBorder.none,
+          focusedBorder: InputBorder.none,
+          contentPadding: EdgeInsets.zero,
+        ),
+      ),
+    );
+  }
+
+  Widget _pembeliFieldDown({
+    required String label,
+    required String? value,
+    bool required = false,
+    required VoidCallback onTap,
+  }) {
+    final isEmpty = value == null || value.isEmpty;
+    return _pembeliFieldFrame(
+      InkWell(
+        onTap: onTap,
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (!isEmpty)
+                    RichText(
+                      text: TextSpan(
+                        style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: Color(grey2Color)),
+                        children: [
+                          TextSpan(text: label),
+                          if (required) TextSpan(text: ' *', style: TextStyle(color: Color(redColor))),
+                        ],
+                      ),
+                    ),
+                  isEmpty
+                      ? RichText(
+                          text: TextSpan(
+                            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(grey2Color)),
+                            children: [
+                              TextSpan(text: label),
+                              if (required) TextSpan(text: ' *', style: TextStyle(color: Color(redColor))),
+                            ],
+                          ),
+                        )
+                      : Text(value, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(blackColor))),
+                ],
+              ),
+            ),
+            Icon(Icons.arrow_drop_down, size: 28, color: Color(grey4Color)),
+          ],
+        ),
       ),
     );
   }
@@ -937,20 +1047,6 @@ class _ReservePageState extends State<ReservePage> {
                 onRemove: () => setState(() => _paymentProofs.removeAt(i)),
               ),
           _ghostButton("+ Tambah Bukti Pembayaran Lain", _addPaymentProof),
-          SizedBox(height: 12),
-          _label("Jenis Transaksi"),
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              children: [
-                for (final type in _transactionTypes)
-                  Padding(
-                    padding: EdgeInsets.only(right: 6),
-                    child: _chip(type, _jenisTransaksi == type, () => setState(() => _jenisTransaksi = type)),
-                  ),
-              ],
-            ),
-          ),
           _label("Nominal Pembayaran"),
           _input(
             nominalTC,
@@ -968,26 +1064,28 @@ class _ReservePageState extends State<ReservePage> {
     );
   }
 
-  static final List<int> _nominalPresets = [for (var jt = 2; jt <= 25; jt++) jt * 1000000];
+static final List<int> _nominalPresets = [2, 3, 5, 10, 15, 20, 25, 50]
+    .map((jt) => jt * 1000000)
+    .toList();
 
-  Widget _nominalPresetRow() {
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: Row(
-        children: [
-          for (final amount in _nominalPresets)
-            Padding(
-              padding: EdgeInsets.only(right: 6),
-              child: _chip(
-                'Rp ${amount ~/ 1000000}jt',
-                _nominal == amount,
-                () => setState(() => nominalTC.text = NumberHelper.thousands(amount)),
-              ),
+Widget _nominalPresetRow() {
+  return SingleChildScrollView(
+    scrollDirection: Axis.horizontal,
+    child: Row(
+      children: [
+        for (final amount in _nominalPresets)
+          Padding(
+            padding: const EdgeInsets.only(right: 6),
+            child: _chip(
+              'Rp ${amount ~/ 1000000}jt',
+              _nominal == amount,
+              () => setState(() => nominalTC.text = NumberHelper.thousands(amount)),
             ),
-        ],
-      ),
-    );
-  }
+          ),
+      ],
+    ),
+  );
+}
 
 
   void _autoSelectAlreadyChosenUnits(ReserveUnitState state) {
@@ -1063,6 +1161,7 @@ class _ReservePageState extends State<ReservePage> {
               onChanged: _onSearchChanged,
             ),
           ),
+          // PropertyListWidget(),
           Expanded(child: _buildUnitList(state)),
           Container(
             width: double.infinity,
@@ -1074,20 +1173,20 @@ class _ReservePageState extends State<ReservePage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                if (_selectedUnits.isNotEmpty)
-                  Padding(
-                    padding: EdgeInsets.only(bottom: 10),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        for (final entry in _selectedUnits.entries) _selectedUnitSummary(entry.key, entry.value),
-                      ],
-                    ),
-                  ),
-                Text(
-                  "${_selectedUnits.length} unit dipilih",
-                  style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w700, color: Color(blue2Color)),
-                ),
+                // if (_selectedUnits.isNotEmpty)
+                //   Padding(
+                //     padding: EdgeInsets.only(bottom: 10),
+                //     child: Column(
+                //       crossAxisAlignment: CrossAxisAlignment.start,
+                //       children: [
+                //         for (final entry in _selectedUnits.entries) _selectedUnitSummary(entry.key, entry.value),
+                //       ],
+                //     ),
+                //   ),
+                // Text(
+                //   "${_selectedUnits.length} unit dipilih",
+                //   style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w700, color: Color(blue2Color)),
+                // ),
                 SizedBox(height: 8),
                 customButton(_onNextUnit, "Lanjut ke Dokumen"),
               ],
@@ -1652,6 +1751,7 @@ class _ReservePageState extends State<ReservePage> {
   }) {
     return Container(
       height: height,
+      decoration: BoxDecoration(border: Border(bottom: BorderSide(color: const Color(grey7Color)))),
       child: TextField(
         controller: controller,
         keyboardType: keyboardType,
@@ -1662,7 +1762,7 @@ class _ReservePageState extends State<ReservePage> {
         decoration: InputDecoration(
           isDense: true,
           filled: true,
-          fillColor: Color(grey11Color),
+          fillColor: Colors.transparent,
           hintText: hint,
           hintStyle: TextStyle(fontSize: 12.5, color: Color(grey5Color)),
           prefixText: prefixText,
@@ -1670,18 +1770,11 @@ class _ReservePageState extends State<ReservePage> {
           prefixIcon: prefixIcon == null ? null : Icon(prefixIcon, size: 16, color: Color(grey5Color)),
           prefixIconConstraints: BoxConstraints(minWidth: 34, minHeight: 20),
           contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(9),
-            borderSide: BorderSide(color: Color(grey7Color)),
-          ),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(9),
-            borderSide: BorderSide(color: Color(grey7Color)),
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(9),
-            borderSide: BorderSide(color: Color(primaryColor)),
-          ),
+          border:InputBorder.none,
+          focusedBorder: InputBorder.none,
+          enabledBorder: InputBorder.none,
+          errorBorder: InputBorder.none,
+          focusedErrorBorder: InputBorder.none,
         ),
       ),
     );
@@ -1864,4 +1957,237 @@ class _DocSlot {
     required this.icon,
     this.required = false,
   });
+}
+
+
+class PropertyListWidget extends StatefulWidget {
+  const PropertyListWidget({Key? key}) : super(key: key);
+
+  @override
+  State<PropertyListWidget> createState() => _PropertyListWidgetState();
+}
+
+class _PropertyListWidgetState extends State<PropertyListWidget> {
+  int selectedIndex = 2;
+
+  final List<Map<String, String>> items = [
+    {'code': 'Belum Ditentukan Kavling', 'desc': 'Arbor 66/75 ex Valora • Cluster Balmoral', 'loc': 'Paradise Serpong city', 'status': ''},
+    {'code': 'Waiting List', 'desc': 'Arbor 55/60 ex Valora • Cluster Balmoral', 'loc': 'Paradise Serpong city', 'status': ''},
+    {'code': 'J20-61', 'desc': 'Grandis 84/90 • Cluster Balmoral', 'loc': 'Paradise Serpong city', 'status': 'Sellable'},
+    {'code': 'J20-62', 'desc': 'Canopy 36/72 • Cluster Everton', 'loc': 'Paradise Serpong city', 'status': 'Sales Hold'},
+  ];
+
+  // --- POP-UP DIALOG UNTUK SALES HOLD ---
+  void _showSalesHoldDialog(BuildContext context, String code) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+          ),
+          title: Row(
+            children: const [
+              Icon(Icons.info_outline_rounded, color: Colors.orange, size: 24),
+              SizedBox(width: 8),
+              Text(
+                'Unit Di-Hold',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              ),
+            ],
+          ),
+          content: Text(
+            'Unit $code sedang dalam status Sales Hold. Silakan hubungi Sales Admin untuk membuka unit ini.',
+            style: const TextStyle(fontSize: 13, height: 1.4),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text(
+                'Mengerti',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 15.0),
+      child: ListView.separated(
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        itemCount: items.length,
+        separatorBuilder: (context, index) => const SizedBox(height: 12),
+        itemBuilder: (context, index) {
+          final item = items[index];
+          final String status = item['status']!;
+          final bool isSelected = selectedIndex == index;
+          final bool isDisabled = status == 'Sales Hold';
+
+          // --- LOGIKA PEWARNAAN BADGE ---
+          Color bgColor;
+          Color borderColor;
+          Color textColor;
+
+          if (status == 'Sellable') {
+            bgColor = Colors.green.shade50;
+            borderColor = Colors.green.shade200;
+            textColor = Colors.green.shade700;
+          } else if (status == '') {
+            bgColor = Colors.transparent;
+            borderColor = Colors.transparent;
+            textColor = Colors.transparent;
+          } else {
+            bgColor = Colors.red.shade50;
+            borderColor = Colors.red.shade200;
+            textColor = Colors.red.shade700;
+          }
+
+          return InkWell(
+            // Jalankan Pop-up jika isDisabled, jika tidak ubah pilihan
+            onTap: () {
+              if (isDisabled) {
+                _showSalesHoldDialog(context, item['code']!);
+              } else {
+                setState(() {
+                  selectedIndex = index;
+                });
+              }
+            },
+            borderRadius: BorderRadius.circular(10),
+            child: Opacity(
+              opacity: isDisabled ? 0.6 : 1.0,
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                decoration: BoxDecoration(
+                  color: isDisabled
+                      ? Colors.grey.shade100
+                      : (isSelected
+                          ? const Color(primaryColor).withOpacity(0.08)
+                          : const Color(whiteColor)),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(
+                    color: isDisabled
+                        ? Colors.grey.shade300
+                        : (isSelected
+                            ? const Color(primaryColor)
+                            : const Color(primaryColor).withOpacity(0.5)),
+                    width: isSelected && !isDisabled ? 2.0 : 1.0,
+                  ),
+                  boxShadow: isDisabled
+                      ? []
+                      : [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.03),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                ),
+                child: Row(
+                  children: [
+                    // Checkbox / Indikator
+                    Container(
+                      height: 20,
+                      width: 20,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(3),
+                        border: Border.all(
+                          color: isDisabled
+                              ? Colors.grey.shade400
+                              : (isSelected
+                                  ? const Color(primaryColor)
+                                  : const Color(blackColor)),
+                          width: 1.5,
+                        ),
+                        color: isSelected && !isDisabled
+                            ? const Color(primaryColor)
+                            : (isDisabled ? Colors.grey.shade200 : const Color(whiteColor)),
+                      ),
+                      child: isSelected && !isDisabled
+                          ? const Icon(
+                              Icons.check,
+                              size: 14,
+                              color: Colors.white,
+                            )
+                          : null,
+                    ),
+                    const SizedBox(width: 12),
+
+                    // Detail Teks
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            item['code']!,
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                              color: isDisabled
+                                  ? Colors.grey.shade600
+                                  : (isSelected
+                                      ? const Color(primaryColor)
+                                      : const Color(blue2Color)),
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            item['desc']!,
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w400,
+                              color: isDisabled ? Colors.grey.shade500 : const Color(blue2Color),
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          Text(
+                            item['loc']!,
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w400,
+                              color: isDisabled ? Colors.grey.shade400 : Colors.grey,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+
+                    // Badge Status
+                    if (status.isNotEmpty)
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: bgColor,
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(color: borderColor),
+                        ),
+                        child: Text(
+                          status,
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w700,
+                            color: textColor,
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
 }

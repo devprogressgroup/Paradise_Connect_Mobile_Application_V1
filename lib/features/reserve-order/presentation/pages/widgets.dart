@@ -380,9 +380,8 @@ Widget roPickerRow({required String? value, required String hint, required VoidC
         width: double.infinity,
         padding: const EdgeInsets.all(10),
         decoration: BoxDecoration(
-          color: const Color(grey11Color),
-          border: Border.all(color: const Color(grey10Color), width: 1.5),
-          borderRadius: BorderRadius.circular(12),
+         
+          border: Border(bottom: BorderSide(color: const Color(grey7Color))),
         ),
         child: Row(
           children: [
