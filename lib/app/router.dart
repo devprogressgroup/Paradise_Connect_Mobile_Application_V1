@@ -39,6 +39,7 @@ import '../features/splash/presentation/pages/index.dart';
 import '../features/permission-gate/presentation/pages/index.dart';
 import '../features/siap-huni/presentation/pages/index.dart';
 import '../features/contact/presentation/pages/pipeline/index.dart';
+import '../features/reserve-order/presentation/pages/reserve-list/index.dart';
 import 'main_layout.dart';
 import '../core/services/analytics_service.dart';
 import '../core/utils/helpers/permissions_helper.dart';
@@ -458,6 +459,11 @@ class AppRouter {
             redirect: (context, state) =>
                 PermissionsHelper.canAccessSiapHuni ? null : '/',
             builder: (context, state) => const SiapHuniPage(),
+          ),
+          GoRoute(
+            path: '/reserve-order',
+            name: 'reserve_order',
+            builder: (context, state) => const ReserveOrderListPage(),
           ),
           GoRoute(
             path: '/pipeline',

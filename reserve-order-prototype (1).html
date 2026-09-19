@@ -1,0 +1,1599 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Reserve Order — Prototype Interaktif</title>
+<style>
+:root{
+  --primary:#2196F3; --secondary:#3F51B5; --bg:#F4F9FD; --grey1:#615E83; --grey4:#8D94A0;
+  --grey5:#91929E; --grey7:#D8DDE6; --grey10:#E6EDF5; --grey11:#F3F8FC; --white:#FFFFFF;
+  --success:#22C55E; --warning:#F59E0B; --info:#06B6D4; --red:#F65160; --purple:#6D5DD3;
+  --available:#00FF0C; --reserveClr:#EAFF00; --rbb:#FEB900; --rba:#FE9500; --sp:#1800FE;
+}
+*{box-sizing:border-box;}
+body{margin:0; padding:28px 16px 60px; background:var(--bg); font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif; color:#25262B;}
+.page-wrap{max-width:900px; margin:0 auto;}
+h1{font-size:19px; margin:0 0 6px;}
+.hint{font-size:12px; color:var(--grey1); max-width:640px; line-height:1.6; margin:0 0 20px;}
+.layout{display:flex; gap:24px; flex-wrap:wrap; align-items:flex-start;}
+.phone{width:346px; height:700px; background:var(--white); border-radius:30px; box-shadow:0 10px 30px rgba(30,50,90,.18), 0 0 0 9px #1c1c1e; overflow:hidden; display:flex; flex-direction:column; position:relative; flex-shrink:0;}
+.statusbar{height:22px; background:var(--white); display:flex; align-items:center; justify-content:space-between; padding:0 18px; font-size:10px; font-weight:600; color:#111; flex-shrink:0;}
+#screens{flex:1; display:flex; flex-direction:column; min-height:0; position:relative;}
+.scr{display:none; flex-direction:column; height:100%; min-height:0;}
+.scr.on{display:flex;}
+.appbar{padding:10px 14px 12px; display:flex; align-items:center; gap:10px; background:var(--white); border-bottom:1px solid var(--grey10); flex-shrink:0;}
+.appbar .back{font-size:19px; color:var(--grey1); cursor:pointer; user-select:none;}
+.appbar .title{font-size:14.5px; font-weight:700;}
+.appbar .sub{font-size:10.5px; color:var(--grey4); margin-top:1px;}
+.scroll{flex:1; overflow-y:auto; padding:14px; font-size:12.5px; min-height:0;}
+.scroll::-webkit-scrollbar{width:0;}
+.card{background:var(--white); border:1px solid var(--grey10); border-radius:14px; padding:12px 13px; margin-bottom:10px; box-shadow:0 1px 3px rgba(20,40,80,.04);}
+.badge{display:inline-flex; align-items:center; gap:5px; padding:5px 12px; border-radius:20px; font-size:10.5px; font-weight:700; color:#fff; flex-shrink:0;}
+.field-label{font-size:11px; color:var(--grey1); font-weight:600; margin:10px 0 5px;}
+.field-label:first-child{margin-top:0;}
+.input, select.input, textarea.input{width:100%; border:1px solid var(--grey7); border-radius:9px; padding:9px 10px; font-size:12.5px; background:var(--grey11); color:#25262B; font-family:inherit;}
+.btn{display:block; width:100%; text-align:center; padding:12px; border-radius:11px; font-size:13px; font-weight:700; border:none; cursor:pointer; font-family:inherit;}
+.btn-primary{background:var(--primary); color:#fff;}
+.btn-primary:disabled{opacity:.5; cursor:not-allowed;}
+.btn-ghost{background:transparent; border:1.5px dashed var(--primary); color:var(--primary);}
+.btn-secondary{background:transparent; border:1.5px solid var(--grey7); color:var(--grey1);}
+.footer-cta{padding:12px 14px 16px; background:var(--white); border-top:1px solid var(--grey10); display:flex; flex-direction:column; gap:8px; flex-shrink:0;}
+.doc-row{display:flex; align-items:center; gap:10px; padding:10px; border:1px solid var(--grey10); border-radius:12px; margin-bottom:8px; cursor:pointer;}
+.doc-icon{width:34px; height:34px; border-radius:9px; background:#E6F1FB; display:flex; align-items:center; justify-content:center; font-size:16px; flex-shrink:0;}
+.doc-name{font-size:12px; font-weight:700;}
+.doc-sub{font-size:9.5px; color:var(--grey4); font-weight:400;}
+.doc-status{font-size:10px; color:var(--grey4);}
+.check-ok{margin-left:auto; color:var(--success); font-size:16px; flex-shrink:0;}
+.notice{border-radius:11px; padding:9px 11px; font-size:11px; line-height:1.5; margin-bottom:10px;}
+.notice-info{background:#E7F6FE; color:#065C7C;}
+.notice-warn{background:#FFF6E5; color:#854F0B;}
+.unit-row{display:flex; align-items:center; gap:10px; padding:11px; border:1.5px solid var(--grey10); border-radius:12px; margin-bottom:8px; cursor:pointer;}
+.unit-row.sel{border-color:var(--primary); background:#E8F2FE;}
+.unit-row.disabled{opacity:.45; cursor:not-allowed;}
+.chk{width:19px; height:19px; border-radius:6px; border:1.5px solid var(--grey7); background:#fff; flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:12px; color:#fff; font-weight:700;}
+.unit-row.sel .chk{background:var(--primary); border-color:var(--primary);}
+.unit-name{font-size:12.5px; font-weight:700;}
+.unit-sub{font-size:10px; color:var(--grey4);}
+.sticky-count{position:sticky; bottom:0; background:var(--white); border-top:1px solid var(--grey10); padding:10px 14px; margin:0 -14px -14px;}
+.review-line{display:flex; justify-content:space-between; padding:6px 0; font-size:12px; border-bottom:1px dashed var(--grey10);}
+.review-line:last-child{border-bottom:none;}
+.review-unit-card{border:1px solid var(--grey10); border-radius:12px; padding:10px; margin-bottom:8px;}
+.review-unit-card .rname{font-weight:700; font-size:12.5px;}
+.review-unit-card .rprice{font-size:11px; color:var(--grey4);}
+.success-wrap{display:flex; flex-direction:column; align-items:center; text-align:center; padding:36px 20px 10px;}
+.success-icon{width:64px; height:64px; border-radius:50%; background:#E7F9EE; color:var(--success); font-size:32px; display:flex; align-items:center; justify-content:center; margin-bottom:16px;}
+.success-wrap h2{font-size:15px; margin:0 0 6px;}
+.success-wrap p{font-size:12px; color:var(--grey4); margin:0; line-height:1.6;}
+.mini-ro-card{width:100%; text-align:left; border:1px solid var(--grey10); border-radius:12px; padding:10px 12px; margin-top:16px; display:flex; justify-content:space-between; align-items:center;}
+.mini-ro-card .u{font-size:12px; font-weight:700;}
+.mini-ro-card .s{font-size:9.5px; color:var(--grey4);}
+.ministep{display:flex; align-items:center; gap:6px; padding:10px 14px 4px; background:var(--white); flex-shrink:0;}
+.ministep .msitem{flex:1; height:4px; border-radius:3px; background:var(--grey10);}
+.ministep .msitem.done{background:var(--success);}
+.ministep .msitem.active{background:var(--primary);}
+.msrow{display:flex; justify-content:space-between; padding:0 14px 8px; font-size:9.5px; color:var(--grey4); flex-shrink:0;}
+.msrow b{color:var(--primary);}
+.tabbar-row{display:flex; border-bottom:1px solid var(--grey10); background:var(--white); flex-shrink:0;}
+.tabbar-item{flex:1; text-align:center; padding:11px 0; font-size:12px; font-weight:600; color:var(--grey4); cursor:pointer;}
+.tabbar-item.on{color:var(--primary); border-bottom:2px solid var(--primary);}
+.fchips{display:flex; gap:6px; overflow-x:auto; padding-bottom:2px; margin-bottom:10px;}
+.fchip{flex-shrink:0; font-size:10.5px; font-weight:700; padding:6px 12px; border-radius:20px; border:1px solid var(--grey7); background:#fff; color:var(--grey1); cursor:pointer; white-space:nowrap;}
+.fchip.on{background:var(--primary); border-color:var(--primary); color:#fff;}
+.rocard{padding:12px; border-radius:12px; box-shadow:0 1px 8px rgba(20,40,80,.12); background:#fff; margin-bottom:10px; cursor:pointer;}
+.rocard .rname{font-weight:700; font-size:13px;}
+.rocard .runitrow{display:flex; align-items:flex-start; gap:6px; margin-top:6px; font-size:11.5px; color:var(--grey1);}
+.rocard .runitrow .rsub{font-size:10px; color:var(--grey4); display:block;}
+.rocard .rmeta{display:flex; gap:10px; flex-wrap:wrap; margin-top:6px; font-size:10.5px; color:var(--grey1);}
+.rocard .rmeta span{display:inline-flex; align-items:center; gap:3px;}
+.jr-head{display:flex; gap:10px; align-items:center; margin-bottom:4px;}
+.jr-avatar{width:40px; height:40px; border-radius:50%; background:#E6F1FB; color:#0C447C; font-size:14px; font-weight:700; display:flex; align-items:center; justify-content:center; flex-shrink:0;}
+.jr-name{font-size:14px; font-weight:700;}
+.jr-unit{font-size:11px; color:var(--grey4);}
+.gate-mini{display:flex; gap:6px; margin:10px 0 4px;}
+.gate-mini .gp{flex:1; border:1px solid var(--grey10); border-radius:9px; padding:6px 8px; font-size:9.5px; text-align:center;}
+.gate-mini .gp b{display:block; font-size:10.5px; margin-top:1px;}
+.timeline{position:relative; padding-left:26px;}
+.tstep{position:relative; padding-bottom:16px;}
+.tstep:last-child{padding-bottom:0;}
+.tstep::before{content:""; position:absolute; left:-20px; top:2px; width:14px; height:14px; border-radius:50%; background:var(--grey10); border:2px solid var(--grey7);}
+.tstep::after{content:""; position:absolute; left:-14px; top:16px; width:2px; height:calc(100% - 2px); background:var(--grey10);}
+.tstep:last-child::after{display:none;}
+.tstep.done::before{background:var(--success); border-color:var(--success);}
+.tstep.done::after{background:var(--success);}
+.tstep.active::before{background:var(--primary); border-color:var(--primary); width:18px; height:18px; left:-22px; top:0;}
+.tstep.readonly::before{background:var(--grey7); border-color:var(--grey7);}
+.tstep .tlbl{font-size:12px; font-weight:700;}
+.tstep.active .tlbl{color:var(--primary);}
+.tstep.todo .tlbl{color:var(--grey4); font-weight:600;}
+.tstep .tsub{font-size:10px; color:var(--grey4); margin-top:1px;}
+.lock-chip{display:inline-flex; align-items:center; gap:3px; font-size:8.5px; font-weight:700; color:#854F0B; background:#FFF6E5; padding:2px 7px; border-radius:8px; margin-top:3px;}
+.goal-chip{display:inline-flex; align-items:center; gap:3px; font-size:9px; font-weight:700; color:#fff; background:var(--sp); padding:2px 8px; border-radius:8px; margin-top:3px;}
+.tnote{margin-top:5px; padding:6px 8px; background:var(--grey11); border-radius:8px; font-size:10.5px; color:var(--grey1); line-height:1.45;}
+.tnote .tn-who{font-weight:700;}
+.quick-contact{display:flex; align-items:center; gap:8px; margin:9px 0 2px; font-size:11px; color:var(--grey1);}
+.icon-btn-row{display:flex; gap:8px; margin:8px 0 4px; justify-content:center;}
+.icon-btn{width:38px; height:38px; border-radius:12px; background:var(--grey11); display:flex; align-items:center; justify-content:center; font-size:16px; cursor:pointer;}
+.tabbar-pill{display:flex; background:var(--grey11); border-radius:20px; padding:4px; gap:2px;}
+.tabbar-pill-item{flex:1; text-align:center; padding:9px 4px; border-radius:16px; font-size:12px; font-weight:600; color:var(--grey1); cursor:pointer;}
+.tabbar-pill-item.on{background:var(--primary); color:#fff; font-weight:700;}
+.reject-banner{background:#FDECEC; border:1px solid #F6B8B8; border-radius:12px; padding:10px 12px; margin:10px 0;}
+.reject-banner .rb-title{font-size:12px; font-weight:700; color:var(--red); display:flex; align-items:center; gap:6px;}
+.reject-banner .rb-reason{font-size:11px; color:#7A1F1F; margin-top:4px; line-height:1.5;}
+.ro-tabpane{display:none; padding-top:10px;}
+.ro-tabpane.on{display:block;}
+.note-item{display:flex; gap:8px; margin-bottom:12px;}
+.note-avatar{width:26px; height:26px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:10px; font-weight:700; color:#fff; flex-shrink:0;}
+.note-avatar.sales{background:var(--primary);}
+.note-avatar.kasir{background:var(--purple);}
+.note-avatar.sa{background:var(--info);}
+.note-body{flex:1; background:var(--grey11); border-radius:12px; padding:8px 10px;}
+.note-head{display:flex; justify-content:space-between; align-items:baseline; font-size:10.5px; font-weight:700; color:var(--grey1); margin-bottom:2px; gap:6px;}
+.note-head .role-tag{font-weight:400; color:var(--grey4);}
+.note-time{font-size:9px; color:var(--grey4); font-weight:400; white-space:nowrap;}
+.note-text{font-size:11.5px; color:#25262B; line-height:1.45;}
+.note-input-row{display:flex; gap:8px; align-items:center; margin-top:4px; position:sticky; bottom:0; background:var(--white); padding-top:8px;}
+.note-input-row input{flex:1;}
+.note-send{width:36px; height:36px; border-radius:50%; background:var(--primary); color:#fff; border:none; font-size:15px; flex-shrink:0; cursor:pointer;}
+.upload-box{border:1.5px dashed var(--grey7); border-radius:12px; padding:14px 10px; text-align:center; margin-bottom:8px; color:var(--grey4); font-size:11px; cursor:pointer;}
+.upload-box.done{border-style:solid; border-color:var(--success); color:var(--success); background:#F1FBF4;}
+.upload-box .ic{font-size:20px; display:block; margin-bottom:4px;}
+.upload-box .lbl{font-weight:700; color:var(--grey1); font-size:11.5px;}
+.amt-grid{display:flex; gap:7px; margin-bottom:10px; overflow-x:auto; padding-bottom:2px;}
+.amt-grid::-webkit-scrollbar{height:0;}
+.amt-chip{flex-shrink:0; text-align:center; font-size:11px; font-weight:700; padding:9px 16px; border-radius:9px; border:1.5px solid var(--grey7); color:var(--grey1); background:#fff; cursor:pointer; white-space:nowrap;}
+.amt-chip.on{border-color:var(--primary); background:#E8F2FE; color:var(--primary);}
+.paytoggle{display:flex; gap:8px; margin-bottom:10px;}
+.paytoggle .pt{flex:1; text-align:center; padding:10px 4px; border-radius:11px; border:1.5px solid var(--grey7); font-size:12px; font-weight:700; color:var(--grey1); cursor:pointer;}
+.paytoggle .pt.on{border-color:var(--primary); background:#E8F2FE; color:var(--primary);}
+.unit-subtabs{display:flex; gap:6px; margin-bottom:10px;}
+.unit-subtabs .ut{flex:1; text-align:center; padding:8px 4px; border-radius:9px; font-size:11px; font-weight:700; background:var(--grey11); color:var(--grey1); cursor:pointer;}
+.unit-subtabs .ut.on{background:var(--primary); color:#fff;}
+.select-row{display:flex; align-items:center; justify-content:space-between; border:1px solid var(--grey7); border-radius:10px; padding:10px 12px; margin-bottom:10px; font-size:12px; color:var(--grey1);}
+.filter-row{display:flex; gap:8px; margin-bottom:10px;}
+.filter-pill{display:flex; align-items:center; gap:6px; border:1px solid var(--grey7); border-radius:20px; padding:8px 13px; font-size:11.5px; font-weight:700; color:var(--grey1); background:#fff; cursor:pointer;}
+.filter-pill.grow{flex:1;}
+.filter-section-card{background:#fff; border:1px solid var(--grey10); border-radius:14px; overflow:hidden; margin-bottom:12px;}
+.filter-section-title{font-size:10.5px; font-weight:700; color:var(--grey4); text-transform:uppercase; letter-spacing:.03em; padding:11px 12px 7px; display:flex; align-items:center; gap:6px;}
+.filter-item-row{display:flex; align-items:center; gap:10px; padding:11px 12px; border-top:1px solid var(--grey10); cursor:pointer;}
+.filter-item-row.active{background:var(--grey11);}
+.filter-item-row .fi-ic{width:28px; height:28px; border-radius:50%; background:#E8F2FE; display:flex; align-items:center; justify-content:center; font-size:12px; flex-shrink:0;}
+.filter-item-row .fi-label{flex:1; font-size:13px; font-weight:700; color:#25262B;}
+.filter-item-row .fi-chev{color:var(--grey4); font-size:11px;}
+.checklist-toolbar{display:flex; justify-content:space-between; align-items:center; font-size:11px; color:var(--grey4); margin-bottom:6px;}
+.checklist-toolbar .cnt{font-weight:700; color:#25262B;}
+.checklist-toolbar .act{color:var(--primary); font-weight:700; cursor:pointer;}
+.checklist-row{display:flex; align-items:center; gap:10px; padding:10px 4px; border-bottom:1px solid var(--grey10); font-size:13px; color:#25262B; cursor:pointer;}
+.checklist-row .cb{width:19px; height:19px; border:1.5px solid var(--grey7); border-radius:5px; flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:11px; color:#fff; background:#fff;}
+.checklist-row.sel .cb{background:var(--primary); border-color:var(--primary);}
+.contact-row{display:flex; align-items:center; gap:10px; padding:10px 4px; border-bottom:1px solid var(--grey10); cursor:pointer;}
+.contact-badge{font-size:9px; font-weight:700; padding:2px 8px; border-radius:8px; background:#E8F2FE; color:var(--primary);}
+.contact-badge.alt{background:var(--grey11); color:var(--grey1);}
+.sort-item{display:flex; align-items:center; justify-content:space-between; padding:12px 4px; font-size:13px; color:#25262B; border-bottom:1px solid var(--grey10); cursor:pointer;}
+.sort-item.on{color:var(--primary); font-weight:700;}
+.sort-check{width:20px; height:20px; border-radius:50%; background:var(--primary); color:#fff; display:flex; align-items:center; justify-content:center; font-size:11px;}
+.req-doc-row{display:flex; align-items:flex-start; gap:8px; padding:8px 0; border-bottom:1px dashed var(--grey10); font-size:11px; color:var(--grey1); line-height:1.5;}
+.cat-tag{display:inline-block; font-size:9px; font-weight:700; padding:2px 8px; border-radius:8px; background:#E8F2FE; color:var(--primary); margin-bottom:8px;}
+.tx-block{border:1px solid var(--grey10); border-radius:12px; padding:10px; margin-bottom:10px; position:relative;}
+.tx-block .tx-title{font-size:10.5px; font-weight:700; color:var(--grey4); text-transform:uppercase; letter-spacing:.03em; margin-bottom:8px;}
+.tx-block .tx-remove{position:absolute; right:10px; top:10px; font-size:10px; color:var(--red); font-weight:700; cursor:pointer;}
+.f-item{padding:11px 0; border-bottom:1px solid var(--grey10);}
+.f-item:last-child{border-bottom:none;}
+.f-item .f-top{display:flex; justify-content:space-between; align-items:center;}
+.f-item .f-label{font-size:11.5px; font-weight:700; color:var(--grey1);}
+.f-item .f-label .req{color:var(--red); margin-left:2px;}
+.f-item .f-input{border:none; outline:none; width:100%; font-size:13px; color:#25262B; padding:5px 0 0; background:transparent; display:block; font-family:inherit;}
+.f-item select.f-input{-webkit-appearance:none; appearance:none;}
+.acc-wrap{margin:-14px -14px 0; background:var(--white);}
+.acc-head{background:#EEF0F8; padding:13px 14px; font-size:13.5px; font-weight:700; color:#25262B; display:flex; justify-content:space-between; align-items:center; cursor:pointer; border-bottom:1px solid var(--grey10);}
+.acc-head .chev{color:var(--grey1); font-size:11px; transition:transform .15s;}
+.acc-head.closed .chev{transform:rotate(-90deg);}
+.acc-body{display:block;}
+.acc-body.closed{display:none;}
+.dp-row{padding:10px 14px; border-bottom:1px solid var(--grey10); display:flex; justify-content:space-between; align-items:flex-start; cursor:pointer;}
+.dp-row:last-child{border-bottom:none;}
+.dp-row .dp-label{font-size:10.5px; color:var(--grey4); margin-bottom:3px;}
+.dp-row .dp-val{font-size:13px; font-weight:700; color:#25262B;}
+.dp-row .dp-chev{color:var(--grey4); font-size:13px; margin-top:2px; flex-shrink:0;}
+.dp-val-input{border:none; outline:none; background:transparent; font-size:13px; font-weight:700; color:#25262B; width:100%; font-family:inherit; padding:0; margin-top:3px; display:block; -webkit-appearance:none; appearance:none;}
+.cluster-head{display:flex; align-items:center; gap:6px; font-size:12.5px; font-weight:700; color:#25262B; padding:9px 2px;}
+.tipe-head{display:flex; align-items:center; gap:6px; font-size:12px; font-weight:700; color:#25262B; padding:9px 10px; margin-bottom:2px; background:var(--grey11); border-radius:9px;}
+.tipe-head .tipe-sub{font-size:9.5px; color:var(--grey4); font-weight:400;}
+.kavling-row{display:flex; align-items:center; gap:10px; padding:9px 10px 9px 22px; font-size:12.5px; color:#25262B; cursor:pointer; border-radius:9px;}
+.kavling-row.sel{background:#E8F2FE;}
+.kavling-row.sel .chk{background:var(--primary); border-color:var(--primary);}
+.kavling-row.disabled{opacity:.45; cursor:not-allowed;}
+.kavling-row.special i{font-style:italic; color:var(--grey4); font-weight:600;}
+.kavling-row.special.waiting i{color:var(--warning);}
+.unit-pay-card{border:1.5px solid var(--grey10); border-radius:14px; padding:12px; margin-bottom:12px; background:#FBFCFF;}
+.unit-pay-card .upc-head{display:flex; justify-content:space-between; align-items:baseline; margin-bottom:10px;}
+.unit-pay-card .upc-name{font-size:13px; font-weight:700;}
+.unit-pay-card .upc-price{font-size:10.5px; color:var(--grey4);}
+.unit-pay-card .upc-loc{font-size:10px; color:var(--grey4); margin-bottom:10px; padding-bottom:10px; border-bottom:1px dashed var(--grey10);}
+.grp-tag{display:inline-flex; align-items:center; gap:4px; font-size:9px; font-weight:700; color:var(--secondary); background:#EDEBFC; padding:2px 8px; border-radius:8px; margin-left:6px;}
+.legend-box{background:#fff; border:1px solid var(--grey10); border-radius:12px; padding:14px; font-size:11.5px; color:var(--grey1); line-height:1.7; max-width:340px;}
+.legend-box b{color:#25262B;}
+.reset-btn{font-size:11px; color:var(--primary); font-weight:700; cursor:pointer; background:none; border:1px solid var(--primary); border-radius:8px; padding:6px 12px; margin-top:12px;}
+.fab{position:sticky; float:right; bottom:16px; margin-right:-2px; width:52px; height:52px; border-radius:50%; background:var(--primary); color:#fff; display:flex; align-items:center; justify-content:center; font-size:24px; box-shadow:0 4px 12px rgba(33,150,243,.4); cursor:pointer; z-index:5;}
+</style>
+</head>
+<body>
+<div class="page-wrap">
+  <h1>Reserve Order — Prototype Interaktif</h1>
+  <p class="hint">Ini prototype fungsional (klik-through) dari desain sebelumnya — bisa isi form, pilih unit, upload dokumen (simulasi), submit, lihat di List &amp; Detail, top up, dan edit customer. Semua data tersimpan sementara di memori browser (refresh halaman = reset ke kondisi awal).</p>
+  <div class="layout">
+    <div class="phone">
+      <div class="statusbar"><span>9:41</span><span>●●●</span></div>
+      <div id="screens">
+
+        <!-- START: simulasi Contact Detail (titik masuk existing) -->
+        <section class="scr on" id="scr-start">
+          <div class="appbar"><span class="back" style="visibility:hidden;">‹</span>
+            <div class="jr-avatar" style="width:34px;height:34px;font-size:12px;">LF</div>
+            <div><div class="title">Luthfi Fajri</div><div class="sub">0812-xxxx-xxxx · Visitor</div></div>
+          </div>
+          <div class="tabbar-row">
+            <div class="tabbar-item on">Activity</div>
+            <div class="tabbar-item">About</div>
+            <div class="tabbar-item">Attachment</div>
+          </div>
+          <div class="scroll" style="position:relative;">
+            <div style="font-size:11px;font-weight:700;margin-bottom:8px;">02 Sep 2026</div>
+            <div class="card"><div style="border-left:4px solid var(--purple);padding-left:10px;"><b style="font-size:12px;">PAR2</b><div style="font-size:10px;color:var(--grey4);">14:20</div><div style="font-size:11px;margin-top:2px;">Status changed to L3 - Visitor</div></div></div>
+            <div class="card"><div style="border-left:4px solid var(--purple);padding-left:10px;"><b style="font-size:12px;">Call</b><div style="font-size:10px;color:var(--grey4);">10:05</div><div style="font-size:11px;margin-top:2px;">Follow up jadwal survei lokasi</div></div></div>
+            <div style="font-size:11px;font-weight:700;margin:14px 0 8px;">28 Aug 2026</div>
+            <div class="card"><div style="border-left:4px solid var(--purple);padding-left:10px;"><b style="font-size:12px;">Visit</b><div style="font-size:10px;color:var(--grey4);">11:00</div><div style="font-size:11px;margin-top:2px;">Kunjungan pertama ke site PAR2</div></div></div>
+            <div class="fab" onclick="nav('bottom-sheet')">+</div>
+          </div>
+          <div style="padding:8px 14px 12px;border-top:1px solid var(--grey10);text-align:center;">
+            <a href="#" onclick="openList();return false;" style="font-size:10.5px;color:var(--grey4);">↳ (pintasan testing) buka Menu Reserve Order</a>
+          </div>
+        </section>
+
+        <!-- BOTTOM SHEET "+" dari Contact Detail (titik masuk existing) -->
+        <section class="scr" id="scr-bottom-sheet">
+          <div style="flex:1; background:rgba(20,30,50,.35); display:flex; align-items:flex-end;">
+            <div style="width:100%; background:var(--white); border-radius:20px 20px 0 0; box-shadow:0 -6px 20px rgba(20,40,80,.12); padding:14px 6px 16px;">
+              <div style="text-align:center; font-size:15px; font-weight:700; margin-bottom:6px;">Log Activity</div>
+              <div class="sort-item" style="border-bottom:none;padding:11px 18px;" onclick="back()">📞 Phone</div>
+              <div class="sort-item" style="border-bottom:none;padding:11px 18px;" onclick="back()">🟢 WhatsApp</div>
+              <div class="sort-item" style="border-bottom:none;padding:11px 18px;" onclick="back()">⏰ Reminder</div>
+              <div class="sort-item" style="border-bottom:none;padding:11px 18px;" onclick="back()">📍 Visit</div>
+              <div class="sort-item" style="border-bottom:none;padding:11px 18px;" onclick="back()">🔄 Update Status Prospect</div>
+              <div class="sort-item" style="border-bottom:none;padding:11px 18px;color:var(--primary);font-weight:700;" onclick="startReserve()">🏷️ Proses Reserve/Booking Reserve <span class="badge" style="background:var(--primary);font-size:8px;margin-left:6px;">BARU</span></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- STEP 1: CUSTOMER -->
+        <section class="scr" id="scr-customer">
+          <div class="appbar"><span class="back" onclick="back()">‹</span><div><div class="title">Reserve Order — Customer Baru</div><div class="sub">Data Customer</div></div></div>
+          <div class="ministep"><div class="msitem active"></div><div class="msitem"></div><div class="msitem"></div><div class="msitem"></div></div>
+          <div class="msrow"><span><b>1</b>/4 Customer</span><span>Unit</span><span>Dokumen</span><span>Review</span></div>
+          <div class="scroll">
+            <button class="btn btn-ghost" style="margin-bottom:10px;" onclick="scanKtp()">📷 Scan KTP</button>
+            <div style="font-size:10px;color:var(--grey4);margin-bottom:2px;">Otomatis isi field di bawah</div>
+
+            <div class="f-item"><div class="f-top"><span class="f-label">Nama Lengkap (sesuai KTP)<span class="req">*</span></span></div><input class="f-input" id="c-nama"></div>
+            <div class="f-item"><div class="f-top"><span class="f-label">No. KTP<span class="req">*</span></span></div><input class="f-input" id="c-ktp" placeholder="16 digit NIK"></div>
+            <div class="f-item"><div class="f-top"><span class="f-label">Tempat Lahir<span class="req">*</span></span></div><input class="f-input" id="c-tempatlahir"></div>
+            <div class="f-item"><div class="f-top"><span class="f-label">Tanggal Lahir<span class="req">*</span></span></div><input class="f-input" id="c-tgllahir" type="date"></div>
+            <div class="f-item"><div class="f-top"><span class="f-label">Jenis Kelamin<span class="req">*</span></span></div>
+              <select class="f-input" id="c-gender"><option>Laki-laki</option><option>Perempuan</option></select>
+            </div>
+            <div class="f-item"><div class="f-top"><span class="f-label">Alamat (sesuai KTP)<span class="req">*</span></span></div><input class="f-input" id="c-alamat" placeholder="Jl. Contoh No. 1…"></div>
+            <div class="f-item"><div class="f-top"><span class="f-label">No. HP<span class="req">*</span></span></div><input class="f-input" id="c-hp"></div>
+            <div class="f-item"><div class="f-top"><span class="f-label">Status Pernikahan<span class="req">*</span></span></div>
+              <select class="f-input" id="c-status" onchange="toggleSpouse()"><option>Menikah</option><option>Belum Menikah</option><option>Cerai</option></select>
+            </div>
+
+            <div id="c-spouse-wrap" class="f-item">
+              <div class="f-top"><span class="f-label">Nama Pasangan<span class="req">*</span></span></div><input class="f-input" id="c-pasangan" placeholder="Nama pasangan…">
+            </div>
+
+            <div class="f-item"><div class="f-top"><span class="f-label">Kategori Pekerjaan<span class="req">*</span></span></div>
+              <select class="f-input" id="c-kategori"><option>Wiraswasta</option><option>Pegawai</option><option>Profesional</option></select>
+            </div>
+            <div class="f-item"><div class="f-top"><span class="f-label">Pekerjaan</span></div><input class="f-input" id="c-pekerjaan" placeholder="Mis: Pemilik toko bangunan"></div>
+            <div class="f-item"><div class="f-top"><span class="f-label">Cara Pembayaran<span class="req">*</span></span></div>
+              <select class="f-input" id="c-bayar" onchange="toggleBayarOther('c')"><option>KPR</option><option>Cash Keras</option><option>Cash Bertahap</option><option>Lainnya</option></select>
+              <input class="f-input" id="c-bayar-other" placeholder="Tulis cara pembayaran…" style="display:none;margin-top:8px;border-bottom:1px solid var(--grey10);padding-bottom:6px;">
+            </div>
+            <div class="f-item"><div class="f-top"><span class="f-label" style="color:var(--grey4);">Sales Channel</span></div><div class="f-val" style="color:var(--grey4);" id="c-saleschannel">Referral</div></div>
+            <div class="f-item"><div class="f-top"><span class="f-label" style="color:var(--grey4);">Sales Channel Detail</span></div><div class="f-val" style="color:var(--grey4);" id="c-saleschanneldetail">Referral Karyawan</div></div>
+          </div>
+          <div class="footer-cta"><button class="btn btn-primary" onclick="submitCustomer()">Lanjut ke Pilih Unit</button></div>
+        </section>
+
+        <!-- STEP 2: UNIT -->
+        <section class="scr" id="scr-unit">
+          <div class="appbar"><span class="back" onclick="back()">‹</span><div><div class="title">Pilih Unit</div><div class="sub" id="unit-sub-name"></div></div></div>
+          <div class="ministep"><div class="msitem done"></div><div class="msitem active"></div><div class="msitem"></div><div class="msitem"></div></div>
+          <div class="msrow"><span>Customer</span><span><b>2</b>/4 Unit</span><span>Dokumen</span><span>Review</span></div>
+          <div class="scroll">
+            <div id="unit-project-wrap">
+              <div class="field-label" style="margin-top:0;">Pilih Project</div>
+              <select class="input" id="unit-project-select" onchange="onProjectChange()" style="margin-bottom:10px;">
+                <option>Paradise Serpong City</option>
+                <option selected>Paradise Serpong City 2</option>
+                <option>Paradise Resort City</option>
+              </select>
+            </div>
+
+            <div class="unit-subtabs">
+              <div class="ut on" id="ut-contact" onclick="switchUnitTab('contact')">Unit dari Contact</div>
+              <div class="ut" id="ut-other" onclick="switchUnitTab('other')">Pilih Unit Lain</div>
+            </div>
+
+            <div id="unit-panel-contact">
+              <div id="unit-list-contact"></div>
+            </div>
+
+            <div id="unit-panel-other" style="display:none;">
+              <input class="input" id="kavling-search" placeholder="🔍 Cari cluster, tipe, atau kavling…" style="margin-bottom:10px;" oninput="renderOtherUnits()">
+              <div id="unit-list-other"></div>
+            </div>
+          </div>
+          <div class="sticky-count">
+            <div style="font-size:11.5px;font-weight:700;margin-bottom:8px;" id="unit-count-text">Belum ada unit dipilih</div>
+            <button class="btn btn-primary" onclick="submitUnit()">Lanjut ke Dokumen</button>
+          </div>
+        </section>
+
+        <!-- STEP 3: DOKUMEN -->
+        <section class="scr" id="scr-dokumen">
+          <div class="appbar"><span class="back" onclick="back()">‹</span><div><div class="title">Reserve Order</div><div class="sub" id="dok-sub-name"></div></div></div>
+          <div class="ministep"><div class="msitem done"></div><div class="msitem done"></div><div class="msitem active"></div><div class="msitem"></div></div>
+          <div class="msrow"><span>Customer</span><span>Unit</span><span><b>3</b>/4 Dokumen</span><span>Review</span></div>
+          <div class="scroll">
+            <div style="font-size:11px;color:var(--grey4);margin-bottom:8px;">Dokumen Identitas Customer</div>
+            <div class="doc-row" id="doc-ktp" onclick="toggleDoc('ktp')"><div class="doc-icon">🪪</div><div><div class="doc-name">KTP Pemohon <span class="doc-sub">· Wajib</span></div><div class="doc-status" id="doc-ktp-status">Ketuk untuk upload</div></div><span class="check-ok" id="doc-ktp-check" style="display:none;">✓</span></div>
+            <div class="doc-row" id="doc-npwp" onclick="toggleDoc('npwp')"><div class="doc-icon">📄</div><div><div class="doc-name">NPWP <span class="doc-sub">· Opsional</span></div><div class="doc-status" id="doc-npwp-status" style="color:var(--primary);">Ketuk untuk upload</div></div><span class="check-ok" id="doc-npwp-check" style="display:none;">✓</span></div>
+
+            <div style="font-size:11px;color:var(--grey4);margin:14px 0 8px;">Pembayaran per Unit</div>
+            <div id="dok-unit-payments"></div>
+
+            <div class="field-label">Catatan</div>
+            <textarea class="input" id="dok-catatan" rows="2" style="resize:vertical;" placeholder="Mis: customer transfer DP awal, dokumen menyusul"></textarea>
+          </div>
+          <div class="footer-cta"><button class="btn btn-primary" onclick="submitDokumen()">Lanjut ke Review</button></div>
+        </section>
+
+        <!-- STEP 4: REVIEW -->
+        <section class="scr" id="scr-review">
+          <div class="appbar"><span class="back" onclick="back()">‹</span><div><div class="title">Review Reserve Order</div></div></div>
+          <div class="ministep"><div class="msitem done"></div><div class="msitem done"></div><div class="msitem done"></div><div class="msitem active"></div></div>
+          <div class="msrow"><span>Customer</span><span>Unit</span><span>Dokumen</span><span><b>4</b>/4 Review</span></div>
+          <div class="scroll" id="review-body"></div>
+          <div class="footer-cta"><button class="btn btn-primary" onclick="submitReserveOrder()">Submit Reserve Order</button></div>
+        </section>
+
+        <!-- SUCCESS -->
+        <section class="scr" id="scr-success">
+          <div class="scroll" style="padding:0;">
+            <div class="success-wrap">
+              <div class="success-icon">✓</div>
+              <h2>Reserve Order Berhasil Diajukan</h2>
+              <p id="success-text"></p>
+              <div id="success-cards" style="width:100%;"></div>
+            </div>
+          </div>
+          <div class="footer-cta">
+            <button class="btn btn-primary" onclick="openList()">Lihat di Reserve Order</button>
+            <button class="btn btn-secondary" onclick="startReserve()">Buat Reserve Order Baru</button>
+          </div>
+        </section>
+
+        <!-- LIST -->
+        <section class="scr" id="scr-list">
+          <div class="appbar"><div><div class="title">Reserve Order</div><div class="sub" id="list-count">0 transaksi aktif</div></div></div>
+          <div class="scroll" style="position:relative;">
+            <input class="input" id="list-search" placeholder="🔍 Cari nama / unit…" style="margin-bottom:10px;" oninput="renderList()">
+            <div class="filter-row">
+              <div class="filter-pill grow" onclick="nav('sort-sheet')">⇅ <span id="sort-pill-label">Dibuat: Terbaru</span> <span style="color:var(--grey4);">⌄</span></div>
+              <div class="filter-pill" onclick="nav('filter')">☰ Filter</div>
+            </div>
+            <div id="ro-list"></div>
+            <div class="fab" onclick="openPickContact()">+</div>
+          </div>
+        </section>
+
+        <!-- PICK CONTACT -->
+        <section class="scr" id="scr-pick-contact">
+          <div class="appbar"><span class="back" onclick="back()">‹</span><div><div class="title">Buat Reserve Order</div><div class="sub">Pilih Contact</div></div></div>
+          <div class="scroll" style="position:relative;">
+            <input class="input" id="contact-search" placeholder="🔍 Cari nama / no. HP contact…" style="margin-bottom:10px;" oninput="renderContactPicker()">
+            <div class="filter-row">
+              <div class="filter-pill">⇅ Dibuat: Terbaru <span class="car">⌄</span></div>
+              <div class="filter-pill">☰ Filter <span class="car">⌄</span></div>
+            </div>
+            <div style="font-size:10.5px;color:var(--grey4);margin-bottom:10px;" id="contact-total-count"></div>
+            <div id="contact-picker-list"></div>
+            <div class="fab" onclick="startReserve()">+</div>
+          </div>
+        </section>
+
+        <!-- SORT SHEET -->
+        <section class="scr" id="scr-sort-sheet">
+          <div class="appbar"><span class="back" onclick="back()">‹</span><div><div class="title">Urutkan</div></div></div>
+          <div class="scroll">
+            <div class="sort-item" data-v="created-desc" onclick="setSort('created-desc')"><span>Dibuat: Terbaru</span><span class="sort-check-wrap"></span></div>
+            <div class="sort-item" data-v="created-asc" onclick="setSort('created-asc')"><span>Dibuat: Terlama</span><span class="sort-check-wrap"></span></div>
+            <div class="sort-item" data-v="name-az" onclick="setSort('name-az')"><span>Nama: A-Z</span><span class="sort-check-wrap"></span></div>
+            <div class="sort-item" data-v="name-za" onclick="setSort('name-za')"><span>Nama: Z-A</span><span class="sort-check-wrap"></span></div>
+          </div>
+        </section>
+
+        <!-- FILTER -->
+        <section class="scr" id="scr-filter">
+          <div class="appbar"><span class="back" onclick="back()">‹</span><div style="flex:1;text-align:center;"><div class="title">Filter</div></div><span style="font-size:11px;color:var(--primary);cursor:pointer;" onclick="resetFilter()">↻ Reset</span></div>
+          <div class="scroll">
+            <div class="filter-section-card">
+              <div class="filter-section-title">🏷️ RESERVE ORDER</div>
+              <div class="filter-item-row" onclick="openStatusFilter()"><span class="fi-ic">🚩</span><span class="fi-label">Status Reserve</span><span class="fi-chev" id="status-filter-badge">⌄</span></div>
+            </div>
+            <div class="filter-section-card">
+              <div class="filter-section-title">📇 DATA KONTAK</div>
+              <div class="filter-item-row"><span class="fi-ic">🧩</span><span class="fi-label">Sales Channel</span><span class="fi-chev">⌄</span></div>
+              <div class="filter-item-row"><span class="fi-ic">🔺</span><span class="fi-label">Sales Channel Detail</span><span class="fi-chev">⌄</span></div>
+              <div class="filter-item-row"><span class="fi-ic">🏢</span><span class="fi-label">Project</span><span class="fi-chev">⌄</span></div>
+            </div>
+            <div class="filter-section-card">
+              <div class="filter-section-title">👥 SALES</div>
+              <div class="filter-item-row"><span class="fi-ic">👤</span><span class="fi-label">Owner</span><span class="fi-chev">⌄</span></div>
+              <div class="filter-item-row"><span class="fi-ic">💼</span><span class="fi-label">Sales Executive</span><span class="fi-chev">⌄</span></div>
+              <div class="filter-item-row"><span class="fi-ic">👥</span><span class="fi-label">Sales Supervisor</span><span class="fi-chev">⌄</span></div>
+            </div>
+          </div>
+          <div class="footer-cta"><button class="btn btn-primary" onclick="applyFilter()">Terapkan Filter</button></div>
+        </section>
+
+        <!-- STATUS RESERVE CHECKLIST -->
+        <section class="scr" id="scr-status-filter">
+          <div class="appbar"><span class="back" onclick="back()">‹</span><div><div class="title">Filter</div></div></div>
+          <div class="scroll">
+            <div class="filter-section-title" style="margin:0 0 8px;">🏷️ RESERVE ORDER</div>
+            <div class="filter-item-row active" style="border-radius:12px;border:1px solid var(--grey10);"><span class="fi-ic">🚩</span><span class="fi-label">Status Reserve</span><span class="fi-chev" style="transform:rotate(180deg);">⌃</span></div>
+            <input class="input" id="status-filter-search" placeholder="🔍 Cari status reserve…" style="margin:10px 0;" oninput="renderStatusChecklist()">
+            <div class="checklist-toolbar">
+              <span class="cnt" id="status-filter-count">0 dari 8 dipilih</span>
+              <span><span class="act" onclick="selectAllStatus()">Pilih Semua</span> · <span class="act" style="color:var(--red);" onclick="clearAllStatus()">Hapus</span></span>
+            </div>
+            <div id="status-checklist"></div>
+          </div>
+          <div class="footer-cta"><button class="btn btn-primary" onclick="back()">Terapkan</button></div>
+        </section>
+
+        <!-- DETAIL -->
+        <section class="scr" id="scr-detail">
+          <div class="appbar"><span class="back" onclick="back()">‹</span><div><div class="title">Reserve Order</div><div class="sub" id="detail-sub"></div></div></div>
+          <div class="scroll" style="padding-top:0;">
+            <div style="padding:14px 14px 0;">
+              <div class="jr-head">
+                <div class="jr-avatar" id="detail-avatar"></div>
+                <div><div class="jr-name" id="detail-name"></div><div class="jr-unit" id="detail-unit"></div></div>
+              </div>
+              <div class="quick-contact"><span>📞 <span id="detail-phone"></span></span></div>
+              <div class="icon-btn-row">
+                <div class="icon-btn call" onclick="alert('Menelepon '+document.getElementById('detail-phone').textContent+'…')">📞</div>
+                <div class="icon-btn wa" onclick="alert('Membuka WhatsApp ke '+document.getElementById('detail-phone').textContent+'…')">💬</div>
+                <div class="icon-btn menu" onclick="openRoMenu()">⋮</div>
+              </div>
+              <div id="detail-reject-banner"></div>
+            </div>
+
+            <div class="tabbar-row" style="margin-top:8px;">
+              <div class="tabbar-item on" onclick="detailTab('timeline', this)">Timeline</div>
+              <div class="tabbar-item" onclick="detailTab('customer', this)">Customer</div>
+              <div class="tabbar-item" onclick="detailTab('attach', this)">Attachment</div>
+              <div class="tabbar-item" onclick="detailTab('notes', this)">Messages</div>
+            </div>
+
+            <div class="ro-tabpane on" id="detail-timeline" style="padding:14px;"></div>
+            <div class="ro-tabpane" id="detail-customer"></div>
+            <div class="ro-tabpane" id="detail-attach" style="padding:14px;"></div>
+            <div class="ro-tabpane" id="detail-notes" style="padding:14px;"></div>
+          </div>
+          <div class="footer-cta" id="detail-footer" style="display:none;"><div id="detail-resubmit-btn"></div></div>
+        </section>
+
+        <!-- RESERVE ORDER MENU BOTTOM SHEET -->
+        <section class="scr" id="scr-ro-menu">
+          <div style="flex:1; background:rgba(20,30,50,.35); display:flex; align-items:flex-end;" onclick="if(event.target===this) back();">
+            <div style="width:100%; background:var(--white); border-radius:20px 20px 0 0; box-shadow:0 -6px 20px rgba(20,40,80,.12); padding:14px 6px 16px;">
+              <div style="text-align:center; font-size:15px; font-weight:700; margin-bottom:6px;" id="ro-menu-title">Reserve Order</div>
+              <div class="sort-item" style="border-bottom:none;padding:11px 18px;" onclick="editReserveOrder()">✎ Edit Reserve Order</div>
+              <div class="sort-item" style="border-bottom:none;padding:11px 18px;color:var(--red);" onclick="deleteReserveOrder()">🗑️ Delete Reserve Order</div>
+              <div class="sort-item" style="border-bottom:none;padding:11px 18px;" onclick="shareReserveOrder()">🔗 Share Reserve Order</div>
+            </div>
+          </div>
+        </section>
+
+        <!-- EDIT CUSTOMER -->
+        <section class="scr" id="scr-edit-customer">
+          <div class="appbar"><span class="back" onclick="back()">‹</span><div><div class="title">Edit Customer</div><div class="sub" id="ec-sub-name"></div></div></div>
+          <div class="scroll">
+            <div id="ec-reject-banner"></div>
+            <div class="acc-wrap">
+              <div class="acc-head" onclick="accToggle(this)">Data Customer <span class="chev">▾</span></div>
+              <div class="acc-body">
+                <div class="dp-row"><div class="dp-main"><div class="dp-label">Nama Lengkap (sesuai KTP) <span class="req">*</span></div><input class="dp-val-input" id="ec-nama"></div><span class="dp-chev">›</span></div>
+                <div class="dp-row"><div class="dp-main"><div class="dp-label">No. KTP <span class="req">*</span></div><input class="dp-val-input" id="ec-ktp"></div><span class="dp-chev">›</span></div>
+                <div class="dp-row"><div class="dp-main"><div class="dp-label">No. NPWP</div><input class="dp-val-input" id="ec-npwp"></div><span class="dp-chev">›</span></div>
+                <div class="dp-row"><div class="dp-main"><div class="dp-label">Tempat Lahir <span class="req">*</span></div><input class="dp-val-input" id="ec-tempatlahir"></div><span class="dp-chev">›</span></div>
+                <div class="dp-row"><div class="dp-main"><div class="dp-label">Tanggal Lahir <span class="req">*</span></div><input class="dp-val-input" id="ec-tgllahir"></div><span class="dp-chev">›</span></div>
+                <div class="dp-row"><div class="dp-main"><div class="dp-label">Jenis Kelamin <span class="req">*</span></div>
+                  <select class="dp-val-input" id="ec-gender"><option>Laki-laki</option><option>Perempuan</option></select>
+                </div><span class="dp-chev">›</span></div>
+                <div class="dp-row"><div class="dp-main"><div class="dp-label">No. HP <span class="req">*</span></div><input class="dp-val-input" id="ec-hp"></div><span class="dp-chev">›</span></div>
+                <div class="dp-row"><div class="dp-main"><div class="dp-label">Status Pernikahan <span class="req">*</span></div>
+                  <select class="dp-val-input" id="ec-status"><option>Menikah</option><option>Belum Menikah</option><option>Cerai</option></select>
+                </div><span class="dp-chev">›</span></div>
+                <div class="dp-row"><div class="dp-main"><div class="dp-label">Kategori Pekerjaan <span class="req">*</span></div>
+                  <select class="dp-val-input" id="ec-kategori"><option>Wiraswasta</option><option>Pegawai</option><option>Profesional</option></select>
+                </div><span class="dp-chev">›</span></div>
+                <div class="dp-row"><div class="dp-main"><div class="dp-label">Pekerjaan</div><input class="dp-val-input" id="ec-pekerjaan"></div><span class="dp-chev">›</span></div>
+                <div class="dp-row"><div class="dp-main"><div class="dp-label">Cara Pembayaran <span class="req">*</span></div>
+                  <select class="dp-val-input" id="ec-bayar" onchange="toggleBayarOther('ec')"><option>KPR</option><option>Cash Keras</option><option>Cash Bertahap</option><option>Lainnya</option></select>
+                  <input class="dp-val-input" id="ec-bayar-other" placeholder="Tulis cara pembayaran…" style="display:none;margin-top:6px;">
+                </div><span class="dp-chev">›</span></div>
+              </div>
+
+              <div class="acc-head" onclick="accToggle(this)">Calon Pasangan <span class="chev">▾</span></div>
+              <div id="ec-pasangan-wrap" class="acc-body">
+                <div class="dp-row"><div class="dp-main"><div class="dp-label">Nama Pasangan <span class="req">*</span></div><input class="dp-val-input" id="ec-pasangan"></div><span class="dp-chev">›</span></div>
+                <div class="dp-row"><div class="dp-main"><div class="dp-label">Tempat Lahir Pasangan</div><input class="dp-val-input" id="ec-pasangan-tempatlahir"></div><span class="dp-chev">›</span></div>
+                <div class="dp-row"><div class="dp-main"><div class="dp-label">Tanggal Lahir Pasangan</div><input class="dp-val-input" id="ec-pasangan-tgllahir"></div><span class="dp-chev">›</span></div>
+                <div class="dp-row"><div class="dp-main"><div class="dp-label">Email Pasangan</div><input class="dp-val-input" id="ec-pasangan-email"></div><span class="dp-chev">›</span></div>
+                <div class="dp-row"><div class="dp-main"><div class="dp-label">No. HP Pasangan</div><input class="dp-val-input" id="ec-pasangan-hp"></div><span class="dp-chev">›</span></div>
+              </div>
+
+              <div class="acc-head closed" onclick="accToggle(this)">Data Anak <span class="chev">▾</span></div>
+              <div class="acc-body closed">
+                <div class="dp-row"><div class="dp-main"><div class="dp-label">Nama Anak 1</div><input class="dp-val-input" id="ec-anak1"></div><span class="dp-chev">›</span></div>
+                <div class="dp-row"><div class="dp-main"><div class="dp-label">Nama Anak 2</div><input class="dp-val-input" id="ec-anak2"></div><span class="dp-chev">›</span></div>
+              </div>
+
+              <div class="acc-head closed" onclick="accToggle(this)">Kontak Darurat (Tidak Tinggal Bersama) <span class="chev">▾</span></div>
+              <div class="acc-body closed">
+                <div class="dp-row"><div class="dp-main"><div class="dp-label">Nama Kontak</div><input class="dp-val-input" id="ec-kontak-nama"></div><span class="dp-chev">›</span></div>
+                <div class="dp-row"><div class="dp-main"><div class="dp-label">Hubungan</div><input class="dp-val-input" id="ec-kontak-hubungan"></div><span class="dp-chev">›</span></div>
+                <div class="dp-row"><div class="dp-main"><div class="dp-label">Telepon</div><input class="dp-val-input" id="ec-kontak-telp"></div><span class="dp-chev">›</span></div>
+              </div>
+
+              <div class="acc-head closed" onclick="accToggle(this)">Data Alamat Customer <span class="chev">▾</span></div>
+              <div class="acc-body closed">
+                <div class="dp-row"><div class="dp-main"><div class="dp-label">Alamat (sesuai KTP) <span class="req">*</span></div><input class="dp-val-input" id="ec-alamat"></div><span class="dp-chev">›</span></div>
+                <div class="dp-row"><div class="dp-main"><div class="dp-label">Kode Area (sesuai KTP)</div><input class="dp-val-input" id="ec-kodearea"></div><span class="dp-chev">›</span></div>
+                <div class="dp-row"><div class="dp-main"><div class="dp-label">Kota (sesuai KTP)</div><input class="dp-val-input" id="ec-kota"></div><span class="dp-chev">›</span></div>
+                <div class="dp-row"><div class="dp-main"><div class="dp-label">Kode Pos (sesuai KTP)</div><input class="dp-val-input" id="ec-kodepos"></div><span class="dp-chev">›</span></div>
+              </div>
+            </div>
+          </div>
+          <div class="footer-cta"><button class="btn btn-primary" id="ec-save-btn" onclick="saveEditCustomer()">Simpan Perubahan</button></div>
+        </section>
+
+        <!-- PAYMENT (TOPUP / RESUBMIT) -->
+        <section class="scr" id="scr-pay">
+          <div class="appbar"><span class="back" onclick="back()">‹</span><div><div class="title" id="pay-title">Top Up Pembayaran</div><div class="sub" id="pay-sub"></div></div></div>
+          <div class="scroll">
+            <div id="pay-reject-banner"></div>
+            <div class="card" id="pay-status-card"></div>
+            <div id="pay-tx-blocks"></div>
+            <button class="btn btn-ghost" style="margin-bottom:10px;" onclick="addTxBlock()">+ Bayar Lagi</button>
+            <div class="field-label" style="margin-top:0;">Catatan</div>
+            <textarea class="input" id="pay-catatan" rows="2" style="resize:vertical;" placeholder="Catatan tambahan…"></textarea>
+          </div>
+          <div class="footer-cta"><button class="btn btn-primary" id="pay-submit-btn" onclick="submitPayment()"></button></div>
+        </section>
+
+        <!-- PAYMENT SUCCESS -->
+        <section class="scr" id="scr-pay-success">
+          <div class="scroll" style="padding:0;">
+            <div class="success-wrap">
+              <div class="success-icon">✓</div>
+              <h2 id="pay-success-title"></h2>
+              <p id="pay-success-text"></p>
+              <div class="mini-ro-card"><div><div class="u">Total setelah transaksi</div><div class="s" id="pay-success-total"></div></div><span class="badge" style="background:var(--warning);">Menunggu</span></div>
+            </div>
+          </div>
+          <div class="footer-cta"><button class="btn btn-primary" onclick="backToDetailAfterPay()">Kembali ke Detail</button></div>
+        </section>
+
+      </div>
+    </div>
+
+    <div class="legend-box">
+      <b>Cara pakai prototype ini:</b><br>
+      1. Tekan "Proses Reserve/Booking Reserve" untuk memulai flow Create Customer → Unit → Dokumen → Review → Submit.<br>
+      2. Setelah submit, order baru langsung muncul di paling atas List Reserve Order.<br>
+      3. Buka salah satu kartu untuk lihat Detail: tab Timeline, Customer (accordion, bisa diketuk untuk Edit Customer), Attachment (checklist dokumen sesuai kategori pekerjaan), dan Messages.<br>
+      4. Tombol "+ Top Up Pembayaran" di tab Timeline mendukung 2 transaksi sekaligus (cash &amp; transfer).<br>
+      5. Kartu <b>Reyhan Pradipta</b> (status Ditolak) contoh alur "Edit &amp; Ajukan Ulang" dengan multi-transaksi juga.<br>
+      6. Di step Pilih Unit, coba pilih <b>2 unit sekaligus</b> untuk 1 customer — di step Dokumen, KTP/NPWP cukup 1x upload, tapi tiap unit punya kartu pembayarannya sendiri-sendiri (nominal &amp; cara bayar bisa beda). Order yang dihasilkan akan ditandai 🔗 di List.<br><br>
+      Data hanya tersimpan di memori tab ini — refresh browser akan mengembalikan ke kondisi awal.
+      <br><button class="reset-btn" onclick="location.reload()">↻ Reset Prototype</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ===================== DATA ===================== */
+var AMOUNTS = [2000000,3000000,5000000,10000000,15000000,20000000,25000000,50000000];
+function fmtAmt(v){ return (v/1000000).toString().replace('.', ',') + 'jt'; }
+function rupiah(n){ n = Math.round(n||0); return 'Rp ' + n.toLocaleString('id-ID'); }
+function parseRupiah(str){ var d = (str||'').replace(/[^0-9]/g,''); return d ? parseInt(d,10) : 0; }
+
+var CONTACT_UNITS = {
+  'Paradise Serpong City': [],
+  'Paradise Serpong City 2': [
+    {id:'ct1', name:'Blok E1 No. 19', sub:'PAR2 · Ecoscape', price:450000000, status:'available'},
+    {id:'ct2', name:'Blok E1 No. 21', sub:'PAR2 · Ecoscape', price:450000000, status:'available'},
+    {id:'ct3', name:'Blok E1 No. 20', sub:'PAR2 · Ecoscape', price:465000000, status:'reserve'}
+  ],
+  'Paradise Resort City': []
+};
+var PROJECT_UNITS = {
+  'Paradise Serpong City': [
+    { cluster:'Rosewood', tipe:'Rosewood - Tipe 45', tipeSub:'LB 90m²', kavlings:[
+      {id:'special-psc-belum', special:'belum', label:'Belum menentukan kavling'},
+      {id:'special-psc-waiting', special:'waiting', label:'Waiting list'},
+      {id:'psc1', name:'A2-08', price:520000000, status:'available'},
+      {id:'psc2', name:'A2-09', price:525000000, status:'available'}
+    ]}
+  ],
+  'Paradise Serpong City 2': [
+    { cluster:'Arwood', tipe:'Arwood - Tipe 60', tipeSub:'LB 120m²', kavlings:[
+      {id:'special-psc2-belum', special:'belum', label:'Belum menentukan kavling'},
+      {id:'special-psc2-waiting', special:'waiting', label:'Waiting list'},
+      {id:'psc2a', name:'F3-05', price:610000000, status:'available'},
+      {id:'psc2b', name:'F3-06', price:615000000, status:'available'},
+      {id:'psc2c', name:'F3-07', price:615000000, status:'reserve'}
+    ]}
+  ],
+  'Paradise Resort City': [
+    { cluster:'THE BAY', tipe:'THE BAY - BAHAMAS', tipeSub:'LB 150m²', kavlings:[
+      {id:'special-prc1-belum', special:'belum', label:'Belum menentukan kavling'},
+      {id:'special-prc1-waiting', special:'waiting', label:'Waiting list'},
+      {id:'prc-c519', name:'C5-19', price:730000000, status:'available'},
+      {id:'prc-c520', name:'C5-20', price:730000000, status:'available'},
+      {id:'prc-c521', name:'C5-21', price:735000000, status:'reserve'}
+    ]},
+    { cluster:'THE BAY', tipe:'THE BAY - MALIBU', tipeSub:'LB 180m²', kavlings:[
+      {id:'special-prc2-belum', special:'belum', label:'Belum menentukan kavling'},
+      {id:'special-prc2-waiting', special:'waiting', label:'Waiting list'},
+      {id:'prc-c602', name:'C6-02', price:855000000, status:'available'}
+    ]}
+  ]
+};
+function unitPriceLabel(u){ return u.special ? '' : rupiah(u.price); }
+var PAYMENT_TYPES = ['Reserve','Top up Reserve','RB','Top up RB','SP','Top up SP'];
+
+var DOC_REQ = {
+  'Pegawai': ['Formulir Aplikasi','KTP Pemohon & Pasangan','Surat Nikah/Cerai','Kartu Keluarga','Rekening Koran 3 Bulan Terakhir','NPWP Pribadi','Slip Gaji / Surat Keterangan Penghasilan & Jabatan'],
+  'Profesional': ['Formulir Aplikasi','KTP Pemohon & Pasangan','Surat Nikah/Cerai','Kartu Keluarga','Rekening Koran 3 Bulan Terakhir','NPWP Pribadi','Ijin Praktek Profesi'],
+  'Wiraswasta': ['Formulir Aplikasi','KTP Pemohon & Pasangan','Surat Nikah/Cerai','Kartu Keluarga','Rekening Koran 3 Bulan Terakhir','NPWP Pribadi','Neraca Laba Rugi / Info Keuangan Terakhir','Akte Pendirian Perusahaan & Ijin Usaha']
+};
+var DOC_ICON = {'Formulir Aplikasi':'📝','KTP Pemohon & Pasangan':'🪪','Surat Nikah/Cerai':'💍','Kartu Keluarga':'👨‍👩‍👧','Rekening Koran 3 Bulan Terakhir':'🏦','NPWP Pribadi':'📄','Slip Gaji / Surat Keterangan Penghasilan & Jabatan':'💰','Ijin Praktek Profesi':'⚕️','Neraca Laba Rugi / Info Keuangan Terakhir':'📊','Akte Pendirian Perusahaan & Ijin Usaha':'🏢'};
+
+var seq = 100;
+function uid(p){ seq++; return p+seq; }
+
+var STAGE_LABELS = ['L1 Leads','L2 APPT','L3 Visitor','L4 Reserve','L5 Reserve Booking (R/BR)','L6 SP','L7 Collect Data','L8 Proses Bank','L9 SPK','L10 AKAD/PPJB'];
+var LOCK_LABELS = {5:'Masih Diproses',6:'Masih Diproses',7:'Progress saja',8:'Progress saja',9:'Progress saja'};
+function buildLockedTail(afterIndex){
+  var html = '';
+  for(var i=afterIndex+1;i<=10;i++){
+    if(i===10){
+      html += '<div class="tstep todo"><div class="tlbl">L10 AKAD/PPJB</div></div>';
+    } else {
+      html += '<div class="tstep todo readonly"><div class="tlbl">'+STAGE_LABELS[i-1]+'</div></div>';
+    }
+  }
+  return html;
+}
+
+/* Pre-seeded orders (mimic the static mockup) */
+var orders = [
+  {
+    id:'ro-luthfi', name:'Luthfi Fajri', phone:'0812-xxxx-xxxx', avatar:'LF',
+    unitName:'Blok E1 No. 19', unitSub:'PAR2 · Ecoscape', price:450000000,
+    status:'Diproses', statusColor:'var(--warning)', createdAt: Date.now()-1000*60*60*24*2,
+    reserveLabel:'Reserve: 05 Sep', totalPaid:2000000, lastPaymentAmount:3000000,
+    customerData:{nama:'Luthfi Fajri', ktp:'3201xxxxxxxxxxxx', npwp:'-', tempatLahir:'Jakarta', tglLahir:'01 Januari 1990', gender:'Laki-laki', hp:'0812-xxxx-xxxx', status:'Menikah', pasangan:'Ayu Lestari', kategori:'Wiraswasta', pekerjaan:'Pemilik toko bangunan', bayar:'KPR', alamat:'Jl. Merdeka No. 12, Bekasi', salesChannel:'Referral', salesChannelDetail:'Referral Karyawan'},
+    docsUploaded:{'Formulir Aplikasi':true,'KTP Pemohon & Pasangan':true,'Surat Nikah/Cerai':true,'Kartu Keluarga':false,'Rekening Koran 3 Bulan Terakhir':false,'NPWP Pribadi':false,'Neraca Laba Rugi / Info Keuangan Terakhir':false,'Akte Pendirian Perusahaan & Ijin Usaha':false},
+    notes:[{who:'Dian A.',role:'Sales',time:'05 Sep, 09:12',text:'Customer minta konfirmasi cicilan bisa mulai bulan depan, sudah saya sampaikan ke Kasir ya.',cls:'sales'},{who:'Rina',role:'Kasir',time:'05 Sep, 10:40',text:'Noted, TTS akan saya buat setelah bukti transfer diverifikasi.',cls:'kasir'}],
+    timelineHtml:'<div class="tstep done"><div class="tlbl">L1 Leads</div><div class="tsub">18 Jul 2026</div></div>'+
+      '<div class="tstep done"><div class="tlbl">L2 APPT</div><div class="tsub">20 Jul 2026</div></div>'+
+      '<div class="tstep done"><div class="tlbl">L3 Visitor</div><div class="tsub">28 Jul 2026</div></div>'+
+      '<div class="tstep active"><div class="tlbl">L4 Reserve</div><div class="tsub">Diajukan 05 Sep 2026 · Rp 2.000.000 — sedang diverifikasi</div>'+
+        '<div class="tnote">🗨 <span class="tn-who">Sistem ·</span> Top Up Booking Reserve Rp 3.000.000 diajukan <span class="tn-time">(05 Sep, 11:30)</span></div></div>'+
+      buildLockedTail(4),
+    canTopup:true, rejected:false
+  },
+  {
+    id:'ro-salsa', name:'Salsabila Octariani', phone:'0813-xxxx-xxxx', avatar:'SO',
+    unitName:'Blok BC7 No. 28', unitSub:'PAR2 · Arwood', price:610000000,
+    status:'RBA', statusColor:'var(--rba)', createdAt: Date.now()-1000*60*60*24*5,
+    reserveLabel:'R/BR: 28 Aug', totalPaid:20000000, lastPaymentAmount:20000000,
+    customerData:{nama:'Salsabila Octariani', kategori:'Pegawai', bayar:'KPR', status:'Belum Menikah', salesChannel:'Digital Marketing', salesChannelDetail:'Instagram Ads'},
+    docsUploaded:{}, notes:[],
+    timelineHtml:'<div class="tstep done"><div class="tlbl">L1 Leads</div><div class="tsub">10 Jul 2026</div></div>'+
+      '<div class="tstep done"><div class="tlbl">L2 APPT</div><div class="tsub">14 Jul 2026</div></div>'+
+      '<div class="tstep done"><div class="tlbl">L3 Visitor</div><div class="tsub">18 Jul 2026</div></div>'+
+      '<div class="tstep done"><div class="tlbl">L4 Reserve</div><div class="tsub">20 Jul 2026 · Rp 20.000.000</div></div>'+
+      '<div class="tstep active"><div class="tlbl">L5 Reserve Booking (R/BR)</div><div class="tsub">Diajukan 28 Aug 2026 — sedang diverifikasi</div></div>'+
+      buildLockedTail(5),
+    canTopup:true, rejected:false
+  },
+  {
+    id:'ro-remira', name:'Remira Danisk', phone:'0857-xxxx-xxxx', avatar:'RD',
+    unitName:'Blok BC6 No. 17', unitSub:'PAR2 · Delano', price:780000000,
+    status:'SP', statusColor:'var(--sp)', createdAt: Date.now()-1000*60*60*24*10,
+    reserveLabel:'SP: 02 Sep', totalPaid:35000000, lastPaymentAmount:35000000,
+    customerData:{nama:'Remira Danisk', kategori:'Profesional', bayar:'KPR', status:'Menikah', pasangan:'-', salesChannel:'Walk In', salesChannelDetail:'Kantor Pemasaran'},
+    docsUploaded:{}, notes:[],
+    timelineHtml:'<div class="tstep done"><div class="tlbl">L1 Leads</div><div class="tsub">05 Jul 2026</div></div>'+
+      '<div class="tstep done"><div class="tlbl">L2 APPT</div><div class="tsub">09 Jul 2026</div></div>'+
+      '<div class="tstep done"><div class="tlbl">L3 Visitor</div><div class="tsub">12 Jul 2026</div></div>'+
+      '<div class="tstep done"><div class="tlbl">L4 Reserve</div><div class="tsub">15 Jul 2026 · Rp 35.000.000</div></div>'+
+      '<div class="tstep done"><div class="tlbl">L5 Reserve Booking (R/BR)</div><div class="tsub">20 Aug 2026</div></div>'+
+      '<div class="tstep active"><div class="tlbl">L6 SP</div><div class="tsub">Diajukan 02 Sep 2026 — sedang diverifikasi</div></div>'+
+      buildLockedTail(6),
+    canTopup:true, rejected:false
+  },
+  {
+    id:'ro-marcell', name:'Marcell Yudhistira', phone:'0857-xxxx-xxxx', avatar:'MY',
+    unitName:'OT Non-Office', unitSub:'Bumi Sadayana BSD', price:0,
+    status:'Proses Bank', statusColor:'var(--info)', createdAt: Date.now()-1000*60*60*24*20,
+    reserveLabel:'SP: 22 Aug', totalPaid:25000000, lastPaymentAmount:20000000,
+    customerData:{nama:'Marcell Yudhistira', kategori:'Pegawai', bayar:'KPR', status:'Belum Menikah', salesChannel:'Referral', salesChannelDetail:'Referral Customer Lama'},
+    docsUploaded:{'Formulir Aplikasi':true,'KTP Pemohon & Pasangan':true,'Surat Nikah/Cerai':false,'Kartu Keluarga':false,'Rekening Koran 3 Bulan Terakhir':false,'NPWP Pribadi':false,'Slip Gaji / Surat Keterangan Penghasilan & Jabatan':true},
+    notes:[{who:'Putri',role:'Sales Admin',time:'22 Aug, 13:05',text:'SP sudah terbit, unit sudah dikunci sistem bank untuk proses KPR.',cls:'sa'},{who:'Dian A.',role:'Sales',time:'27 Aug, 08:50',text:'Customer sudah upload Slip Gaji tambahan yang diminta bank, mohon dicek.',cls:'sales'}],
+    timelineHtml:'<div class="tstep done"><div class="tlbl">L1 Leads</div><div class="tsub">02 Jul 2026</div></div>'+
+      '<div class="tstep done"><div class="tlbl">L2 APPT</div><div class="tsub">06 Jul 2026</div></div>'+
+      '<div class="tstep done"><div class="tlbl">L3 Visitor</div><div class="tsub">10 Jul 2026</div></div>'+
+      '<div class="tstep done"><div class="tlbl">L4 Reserve</div><div class="tsub">15 Jul 2026 · Rp 5.000.000</div></div>'+
+      '<div class="tstep done"><div class="tlbl">L5 Reserve Booking (R/BR)</div><div class="tsub">02 Aug 2026 · Top Up Rp 20.000.000</div></div>'+
+      '<div class="tstep done"><div class="tlbl">L6 SP</div><div class="tsub">22 Aug 2026</div></div>'+
+      '<div class="tstep done readonly"><div class="tlbl">L7 Collect Data</div><div class="tsub">Selesai · 27 Aug 2026</div></div>'+
+      '<div class="tstep active readonly"><div class="tlbl">L8 Proses Bank</div><div class="tsub">Sedang di bank — estimasi 2 minggu</div>'+
+        '<div class="tnote">🗨 <span class="tn-who">Dian A. · Sales —</span> Slip Gaji tambahan sudah diupload, mohon dicek <span class="tn-time">(27 Aug, 08:50)</span></div></div>'+
+      buildLockedTail(8),
+    canTopup:false, rejected:false
+  },
+  {
+    id:'ro-ikram', name:'Ikram Wiksa', phone:'0812-xxxx-xxxx', avatar:'IW',
+    unitName:'Blok BC6 No. 12', unitSub:'PAR2 · Delano', price:0,
+    status:'Akad/PPJB ✓', statusColor:'var(--success)', createdAt: Date.now()-1000*60*60*24*40,
+    reserveLabel:'Akad/PPJB: 12 Aug', totalPaid:0, lastPaymentAmount:15000000,
+    customerData:{nama:'Ikram Wiksa', kategori:'Wiraswasta', bayar:'KPR', status:'Menikah', pasangan:'-', salesChannel:'Digital Marketing', salesChannelDetail:'Facebook Ads'},
+    docsUploaded:{}, notes:[],
+    timelineHtml:'<div class="tstep done"><div class="tlbl">L1 Leads</div><div class="tsub">20 Jun 2026</div></div>'+
+      '<div class="tstep done"><div class="tlbl">L2 APPT</div><div class="tsub">24 Jun 2026</div></div>'+
+      '<div class="tstep done"><div class="tlbl">L3 Visitor</div><div class="tsub">28 Jun 2026</div></div>'+
+      '<div class="tstep done"><div class="tlbl">L4 Reserve</div><div class="tsub">05 Jul 2026 · Rp 15.000.000</div></div>'+
+      '<div class="tstep done"><div class="tlbl">L5 Reserve Booking (R/BR)</div><div class="tsub">15 Jul 2026</div></div>'+
+      '<div class="tstep done"><div class="tlbl">L6 SP</div><div class="tsub">25 Jul 2026</div></div>'+
+      '<div class="tstep done readonly"><div class="tlbl">L7 Collect Data</div><div class="tsub">Selesai · 01 Aug 2026</div></div>'+
+      '<div class="tstep done readonly"><div class="tlbl">L8 Proses Bank</div><div class="tsub">Selesai · 05 Aug 2026</div></div>'+
+      '<div class="tstep done readonly"><div class="tlbl">L9 SPK</div><div class="tsub">Selesai · 08 Aug 2026</div></div>'+
+      '<div class="tstep done"><div class="tlbl">L10 AKAD/PPJB</div><div class="tsub">12 Aug 2026 · Akad Selesai ✓</div></div>',
+    canTopup:false, rejected:false
+  },
+  {
+    id:'ro-reyhan', name:'Reyhan Pradipta', phone:'0813-xxxx-xxxx', avatar:'RP',
+    unitName:'Blok E1 No. 22', unitSub:'PAR2 Ecoscape', price:450000000,
+    status:'Ditolak', statusColor:'var(--red)', createdAt: Date.now()-1000*60*60*24*1,
+    reserveLabel:'Diajukan 05 Sep', totalPaid:400000000, lastPaymentAmount:400000000,
+    customerData:{nama:'Reyhan Pradipta', kategori:'Profesional', bayar:'Cash Bertahap', status:'Belum Menikah', salesChannel:'Walk In', salesChannelDetail:'Kantor Pemasaran'},
+    docsUploaded:{'KTP Pemohon & Pasangan':true}, notes:[{who:'Rina',role:'Kasir',time:'05 Sep, 15:22',text:'Tolong konfirmasi ke customer, nominal transfernya kurang Rp 50jt dari harga unit.',cls:'kasir'}],
+    timelineHtml:'<div class="tstep done"><div class="tlbl">L1 Leads</div><div class="tsub">20 Aug 2026</div></div>'+
+      '<div class="tstep done"><div class="tlbl">L2 APPT</div><div class="tsub">23 Aug 2026</div></div>'+
+      '<div class="tstep done"><div class="tlbl">L3 Visitor</div><div class="tsub">28 Aug 2026</div></div>'+
+      '<div class="tstep active"><div class="tlbl">L4 Reserve</div><div class="tsub" style="color:var(--red);">Diajukan 05 Sep 2026 — Ditolak, Perlu Revisi</div></div>'+
+      buildLockedTail(4),
+    canTopup:false, rejected:true, rejectStage:'L4 Reserve', rejectFixType:'payment',
+    rejectReason:'Nominal bukti transfer (Rp 400jt) tidak sesuai harga unit (Rp 450jt). Konfirmasi ke customer & upload ulang bukti bayar yang benar.'
+  },
+  {
+    id:'ro-farah', name:'Farah Amelia', phone:'0815-xxxx-xxxx', avatar:'FA',
+    unitName:'Blok D2 No. 09', unitSub:'PAR2 · Delano', price:520000000,
+    status:'Ditolak', statusColor:'var(--red)', createdAt: Date.now()-1000*60*60*24*3,
+    reserveLabel:'SP: 10 Sep', totalPaid:20000000, lastPaymentAmount:20000000,
+    customerData:{nama:'Farah Amelia', ktp:'3271xxxxxxxxxxxx', kategori:'Pegawai', bayar:'KPR', status:'Menikah', pasangan:'Bagas Wirawan', salesChannel:'Referral', salesChannelDetail:'Referral Karyawan'},
+    docsUploaded:{'Formulir Aplikasi':true,'KTP Pemohon & Pasangan':true}, notes:[{who:'Putri',role:'Sales Admin',time:'10 Sep, 09:40',text:'Nama pasangan di form SP beda dengan KTP (ada typo). Tolong perbaiki dulu data customer sebelum SP diterbitkan ulang.',cls:'sa'}],
+    timelineHtml:'<div class="tstep done"><div class="tlbl">L1 Leads</div><div class="tsub">20 Jul 2026</div></div>'+
+      '<div class="tstep done"><div class="tlbl">L2 APPT</div><div class="tsub">24 Jul 2026</div></div>'+
+      '<div class="tstep done"><div class="tlbl">L3 Visitor</div><div class="tsub">28 Jul 2026</div></div>'+
+      '<div class="tstep done"><div class="tlbl">L4 Reserve</div><div class="tsub">28 Aug 2026</div></div>'+
+      '<div class="tstep done"><div class="tlbl">L5 Reserve Booking (R/BR)</div><div class="tsub">02 Sep 2026</div></div>'+
+      '<div class="tstep active"><div class="tlbl">L6 SP</div><div class="tsub" style="color:var(--red);">Diajukan 10 Sep 2026 — Ditolak, Perlu Revisi</div></div>'+
+      buildLockedTail(6),
+    canTopup:false, rejected:true, rejectStage:'L6 SP', rejectFixType:'customer_data',
+    rejectReason:'Nama pasangan pada draft Surat Pesanan (SP) tidak sesuai dengan KTP pasangan. Perbaiki dulu Data Customer, SP akan diterbitkan ulang otomatis.'
+  }
+];
+
+/* ===================== NAV ===================== */
+var histStack = [];
+var current = 'start';
+function nav(id){ histStack.push(current); current = id; showScreen(id); }
+function back(){ if(histStack.length){ current = histStack.pop(); showScreen(current); } }
+function showScreen(id){
+  document.querySelectorAll('.scr').forEach(function(s){ s.classList.remove('on'); });
+  document.getElementById('scr-'+id).classList.add('on');
+}
+
+/* ===================== FORM STATE ===================== */
+var form = {};
+function resetForm(){
+  form = { customer:{}, unitTab:'contact', selectedUnits:[], dokumen:{ktp:false, npwp:false, catatan:'', perUnit:[]} };
+}
+
+var CONTACTS = [
+  {id:'k1', nama:'Luthfi Fajri', hp:'0812-xxxx-xxxx', status:'Visitor', owner:'Dian A.', stageCode:'03', projectCode:'PAR2'},
+  {id:'k2', nama:'Andi Nugraha', hp:'0857-xxxx-xxxx', status:'Appt', owner:'Dian A.', stageCode:'02', projectCode:'PAR2'},
+  {id:'k3', nama:'Siti Wulandari', hp:'0813-xxxx-xxxx', status:'Visitor', owner:'Dian A.', stageCode:'03', projectCode:'PAR2'}
+];
+function openPickContact(){ nav('pick-contact'); renderContactPicker(); }
+function renderContactPicker(){
+  var term = (document.getElementById('contact-search').value||'').toLowerCase();
+  var list = CONTACTS.filter(function(c){ return !term || c.nama.toLowerCase().indexOf(term)>-1 || c.hp.indexOf(term)>-1; });
+  var html = '';
+  list.forEach(function(c){
+    var initials = c.nama.split(' ').map(function(w){return w[0];}).slice(0,2).join('').toUpperCase();
+    html += '<div class="contact-row" onclick="'+("pickContact('"+c.id+"')")+'">'+
+      '<div class="jr-avatar" style="width:36px;height:36px;font-size:12px;">'+initials+'</div>'+
+      '<div style="flex:1;"><div class="unit-name">'+c.nama+'</div><div class="unit-sub">'+c.hp+'</div><div class="unit-sub" style="color:var(--grey5);">'+c.owner+'</div></div>'+
+      '<div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;"><span class="contact-badge">'+c.stageCode+'</span><span class="contact-badge alt">'+c.projectCode+'</span></div>'+
+      '<span style="color:var(--grey4);margin-left:8px;">›</span>'+
+    '</div>';
+  });
+  if(!list.length){ html = '<div class="notice notice-info">Contact tidak ditemukan.</div>'; }
+  document.getElementById('contact-total-count').textContent = 'Total: '+list.length+' contacts';
+  document.getElementById('contact-picker-list').innerHTML = html;
+}
+function pickContact(id){
+  var c = CONTACTS.filter(function(x){ return x.id===id; })[0];
+  startReserve(c);
+}
+
+function startReserve(contact){
+  resetForm();
+  document.getElementById('c-nama').value = contact ? contact.nama : 'Luthfi Fajri';
+  document.getElementById('c-ktp').value='';
+  document.getElementById('c-tempatlahir').value='';
+  document.getElementById('c-tgllahir').value='';
+  document.getElementById('c-alamat').value='';
+  document.getElementById('c-hp').value = contact ? contact.hp : '0812-xxxx-xxxx';
+  document.getElementById('c-status').value='Menikah';
+  document.getElementById('c-pasangan').value='';
+  document.getElementById('c-kategori').value='Wiraswasta';
+  document.getElementById('c-pekerjaan').value='';
+  document.getElementById('c-bayar').value='KPR';
+  document.getElementById('c-bayar-other').value='';
+  document.getElementById('c-bayar-other').style.display='none';
+  toggleSpouse();
+  nav('customer');
+}
+function openList(){ nav('list'); renderList(); }
+
+function scanKtp(){
+  document.getElementById('c-nama').value = 'Luthfi Fajri';
+  document.getElementById('c-ktp').value = '3201050101900002';
+  document.getElementById('c-tempatlahir').value = 'Jakarta';
+  document.getElementById('c-tgllahir').value = '1990-01-01';
+  document.getElementById('c-alamat').value = 'Jl. Contoh No. 1, Jakarta';
+}
+function toggleSpouse(){
+  document.getElementById('c-spouse-wrap').style.display = document.getElementById('c-status').value==='Menikah' ? 'block':'none';
+}
+function toggleBayarOther(prefix){
+  var sel = document.getElementById(prefix+'-bayar').value;
+  document.getElementById(prefix+'-bayar-other').style.display = sel==='Lainnya' ? 'block' : 'none';
+}
+function getBayarValue(prefix){
+  var sel = document.getElementById(prefix+'-bayar').value;
+  return sel==='Lainnya' ? (document.getElementById(prefix+'-bayar-other').value || 'Lainnya') : sel;
+}
+
+function submitCustomer(){
+  var nama = document.getElementById('c-nama').value.trim();
+  var ktp = document.getElementById('c-ktp').value.trim();
+  var hp = document.getElementById('c-hp').value.trim();
+  if(!nama || !ktp || !hp){ alert('Nama, No. KTP, dan No. HP wajib diisi.'); return; }
+  form.customer = {
+    nama:nama, ktp:ktp, tempatLahir:document.getElementById('c-tempatlahir').value,
+    tglLahir:document.getElementById('c-tgllahir').value, gender:document.getElementById('c-gender').value,
+    alamat:document.getElementById('c-alamat').value, hp:hp, status:document.getElementById('c-status').value,
+    pasangan:document.getElementById('c-pasangan').value, kategori:document.getElementById('c-kategori').value,
+    pekerjaan:document.getElementById('c-pekerjaan').value, bayar:getBayarValue('c'),
+    salesChannel:document.getElementById('c-saleschannel').textContent,
+    salesChannelDetail:document.getElementById('c-saleschanneldetail').textContent
+  };
+  document.getElementById('unit-sub-name').textContent = nama;
+  renderContactUnits(); renderOtherUnits();
+  nav('unit');
+}
+
+/* ===================== UNIT STEP ===================== */
+function switchUnitTab(t){
+  form.unitTab = t;
+  document.getElementById('ut-contact').classList.toggle('on', t==='contact');
+  document.getElementById('ut-other').classList.toggle('on', t==='other');
+  document.getElementById('unit-panel-contact').style.display = t==='contact' ? 'block':'none';
+  document.getElementById('unit-panel-other').style.display = t==='other' ? 'block':'none';
+}
+function onProjectChange(){
+  renderContactUnits();
+  renderOtherUnits();
+}
+function renderContactUnits(){
+  var proj = document.getElementById('unit-project-select').value;
+  var list = CONTACT_UNITS[proj] || [];
+  var html = '';
+  list.forEach(function(u){
+    var sel = form.selectedUnits.some(function(s){ return s.id===u.id; });
+    var disabled = u.status==='reserve';
+    html += '<div class="unit-row '+(sel?'sel':'')+' '+(disabled?'disabled':'')+'" onclick="'+(disabled?"alert('Unit ini belum tersedia. Silakan hubungi admin untuk membuka unit ini.')":("toggleUnit('"+u.id+"','contact')"))+'">'+
+      '<div class="chk">'+(sel?'✓':'')+'</div>'+
+      '<div style="flex:1;"><div class="unit-name">'+u.name+'</div><div class="unit-sub">'+u.sub+'</div></div>'+
+      '<span class="badge" style="background:'+(disabled?'var(--reserveClr);color:#5c5400':'var(--available);color:#1a3d00')+';">'+(disabled?'Not Available':'Available')+'</span>'+
+    '</div>';
+  });
+  if(!list.length){ html = '<div class="notice notice-info">Belum ada unit dari Contact untuk project ini. Coba tab "Pilih Unit Lain".</div>'; }
+  document.getElementById('unit-list-contact').innerHTML = html;
+}
+function renderOtherUnits(){
+  var proj = document.getElementById('unit-project-select').value;
+  var groups = PROJECT_UNITS[proj] || [];
+  var term = (document.getElementById('kavling-search') ? document.getElementById('kavling-search').value : '').toLowerCase();
+  var html = '';
+  var lastCluster = null;
+  groups.forEach(function(g){
+    var matchGroup = !term || g.cluster.toLowerCase().indexOf(term)>-1 || g.tipe.toLowerCase().indexOf(term)>-1;
+    var kavlings = g.kavlings.filter(function(k){
+      if(matchGroup) return true;
+      return !k.special && k.name.toLowerCase().indexOf(term)>-1;
+    });
+    if(!kavlings.length) return;
+    if(g.cluster !== lastCluster){
+      html += '<div class="cluster-head">▾ '+g.cluster+'</div>';
+      lastCluster = g.cluster;
+    }
+    html += '<div class="tipe-head">▾ '+g.tipe+' <span class="tipe-sub">'+g.tipeSub+'</span></div>';
+    kavlings.forEach(function(k){
+      var sel = form.selectedUnits.some(function(s){ return s.id===k.id; });
+      if(k.special){
+        html += '<div class="kavling-row special '+(k.special==='waiting'?'waiting':'')+' '+(sel?'sel':'')+'" onclick="'+("toggleUnit('"+k.id+"','other')")+'">'+
+          '<div class="chk">'+(sel?'✓':'')+'</div><div style="flex:1;"><i>'+k.label+'</i></div></div>';
+      } else {
+        var disabled = k.status==='reserve';
+        html += '<div class="kavling-row '+(sel?'sel':'')+' '+(disabled?'disabled':'')+'" onclick="'+(disabled?"alert('Kavling ini belum tersedia. Silakan hubungi admin untuk membuka unit ini.')":("toggleUnit('"+k.id+"','other')"))+'">'+
+          '<div class="chk">'+(sel?'✓':'')+'</div>'+
+          '<div style="flex:1;">'+k.name+'</div>'+
+          (disabled?'<span class="badge" style="background:var(--reserveClr);color:#5c5400;font-size:9px;">Not Available</span>':'')+
+        '</div>';
+      }
+    });
+  });
+  if(!html){ html = '<div class="notice notice-info">Tidak ada cluster/tipe/kavling yang cocok.</div>'; }
+  document.getElementById('unit-list-other').innerHTML = html;
+}
+function findUnitById(id, tab){
+  var proj = document.getElementById('unit-project-select').value;
+  if(tab==='contact'){
+    var found = (CONTACT_UNITS[proj] || []).filter(function(x){ return x.id===id; })[0];
+    return found ? { id:found.id, name:found.name, sub:found.sub, price:found.price, project:proj } : null;
+  }
+  var groups = PROJECT_UNITS[proj] || [];
+  var result = null;
+  groups.some(function(g){
+    var k = g.kavlings.filter(function(x){ return x.id===id; })[0];
+    if(!k) return false;
+    result = k.special
+      ? { id:k.id, name:k.label, sub:g.tipe+' · '+g.tipeSub, price:0, special:k.special, project:proj, cluster:g.cluster }
+      : { id:k.id, name:k.name, sub:g.tipe+' · '+g.tipeSub, price:k.price, project:proj, cluster:g.cluster };
+    return true;
+  });
+  return result;
+}
+function unitContextLabel(pu){
+  var parts = [pu.project];
+  if(pu.cluster) parts.push(pu.cluster);
+  if(pu.sub) parts.push(pu.sub);
+  return parts.filter(Boolean).join(' · ');
+}
+function toggleUnit(id, tab){
+  var idx = form.selectedUnits.findIndex(function(s){ return s.id===id; });
+  if(idx>-1){
+    form.selectedUnits.splice(idx,1);
+  } else {
+    var u = findUnitById(id, tab);
+    if(!u) return;
+    form.selectedUnits.push(u);
+  }
+  updateUnitCountText();
+  renderContactUnits(); renderOtherUnits();
+}
+function updateUnitCountText(){
+  var n = form.selectedUnits.length;
+  var text = n===0 ? 'Belum ada unit dipilih' : n+' unit dipilih: '+form.selectedUnits.map(function(u){return u.name;}).join(', ');
+  document.getElementById('unit-count-text').textContent = text;
+}
+function submitUnit(){
+  if(!form.selectedUnits.length){ alert('Pilih minimal 1 unit / kavling terlebih dahulu.'); return; }
+  document.getElementById('dok-sub-name').textContent = form.customer.nama + ' · ' + form.selectedUnits.length + ' unit';
+  // keep existing tx data for units still selected; add defaults for newly-selected units
+  var existing = {};
+  (form.dokumen.perUnit||[]).forEach(function(pu){ existing[pu.unitId] = pu; });
+  form.dokumen.perUnit = form.selectedUnits.map(function(u){
+    return existing[u.id] || { unitId:u.id, name:u.name, sub:u.sub, price:u.price, special:u.special, project:u.project, cluster:u.cluster, jenis:'Reserve', tx:[{mode:'transfer', amount:3000000, uploaded:false}] };
+  });
+  renderDokUnitPayments();
+  nav('dokumen');
+}
+
+/* ===================== DOKUMEN STEP (per-unit payments) ===================== */
+function toggleDoc(key){
+  form.dokumen[key] = !form.dokumen[key];
+  var st = form.dokumen[key];
+  document.getElementById('doc-'+key+'-check').style.display = st ? 'inline' : 'none';
+  document.getElementById('doc-'+key+'-status').textContent = st ? 'Terupload · '+(80+Math.floor(Math.random()*200))+' KB' : 'Ketuk untuk upload';
+  document.getElementById('doc-'+key+'-status').style.color = st ? 'var(--grey4)' : 'var(--primary)';
+}
+function renderDokUnitPayments(){
+  var html = '';
+  form.dokumen.perUnit.forEach(function(pu, ui){
+    var total = pu.tx.reduce(function(s,b){ return s+b.amount; },0);
+    html += '<div class="unit-pay-card">'+
+      '<div class="upc-head"><span class="upc-name">🏠 '+pu.name+'</span><span class="upc-price">'+unitPriceLabel(pu)+'</span></div>'+
+      '<div class="upc-loc">📍 '+unitContextLabel(pu)+'</div>'+
+      '<div class="field-label" style="margin-top:0;">Jenis Pembayaran</div>'+
+      '<div class="amt-grid">'+ PAYMENT_TYPES.map(function(pt){ return '<div class="amt-chip '+(pu.jenis===pt?'on':'')+'" onclick="'+("setPuJenis("+ui+",'"+pt+"')")+'">'+pt+'</div>'; }).join('') +'</div>';
+    pu.tx.forEach(function(b, ti){
+      html += '<div class="tx-block" style="margin-bottom:8px;">'+
+        (pu.tx.length>1 ? '<div class="tx-remove" onclick="'+("removeUnitTx("+ui+","+ti+")")+'">✕ Hapus</div>' : '')+
+        '<div class="tx-title">Metode Pembayaran '+(ti+1)+'</div>'+
+        '<div class="paytoggle">'+
+          '<div class="pt '+(b.mode==='cash'?'on':'')+'" onclick="'+("setUnitTxMode("+ui+","+ti+",'cash')")+'">💵 Tunai</div>'+
+          '<div class="pt '+(b.mode==='transfer'?'on':'')+'" onclick="'+("setUnitTxMode("+ui+","+ti+",'transfer')")+'">🏦 Non Tunai</div>'+
+        '</div>'+
+        (b.mode==='transfer' ? '<div class="doc-row" onclick="'+("toggleUnitTxUpload("+ui+","+ti+")")+'"><div class="doc-icon">🧾</div><div><div class="doc-name">Bukti Non Tunai <span class="doc-sub">· Wajib</span></div><div class="doc-status" style="'+(b.uploaded?'':'color:var(--primary);')+'">'+(b.uploaded?'Terupload':'Ketuk untuk upload')+'</div></div>'+(b.uploaded?'<span class="check-ok">✓</span>':'')+'</div>' : '')+
+        '<div class="field-label" style="margin-top:0;">Nominal</div>'+
+        '<div class="amt-grid">'+ AMOUNTS.map(function(a){ return '<div class="amt-chip '+(b.amount===a?'on':'')+'" onclick="'+("setUnitTxAmount("+ui+","+ti+","+a+")")+'">'+fmtAmt(a)+'</div>'; }).join('') +'</div>'+
+        '<input class="input" value="'+rupiah(b.amount)+'" oninput="setUnitTxManual('+ui+','+ti+',this.value)">'+
+      '</div>';
+    });
+    html += '<div style="font-size:11.5px;font-weight:700;margin-bottom:8px;">Total Pembayaran Unit Ini: <span style="color:var(--success);">'+rupiah(total)+'</span></div>'+
+    '<button class="btn btn-ghost" style="margin-bottom:0;" onclick="'+("addUnitTx("+ui+")")+'">+ Bayar Lagi untuk Unit Ini</button>'+
+    '</div>';
+  });
+  document.getElementById('dok-unit-payments').innerHTML = html;
+}
+function setPuJenis(ui,v){ form.dokumen.perUnit[ui].jenis = v; renderDokUnitPayments(); }
+function setUnitTxMode(ui,ti,mode){ form.dokumen.perUnit[ui].tx[ti].mode = mode; renderDokUnitPayments(); }
+function toggleUnitTxUpload(ui,ti){ form.dokumen.perUnit[ui].tx[ti].uploaded = !form.dokumen.perUnit[ui].tx[ti].uploaded; renderDokUnitPayments(); }
+function setUnitTxAmount(ui,ti,v){ form.dokumen.perUnit[ui].tx[ti].amount = v; renderDokUnitPayments(); }
+function setUnitTxManual(ui,ti,v){ form.dokumen.perUnit[ui].tx[ti].amount = parseRupiah(v); }
+function addUnitTx(ui){ form.dokumen.perUnit[ui].tx.push({mode:'cash', amount:2000000, uploaded:false}); renderDokUnitPayments(); }
+function removeUnitTx(ui,ti){ form.dokumen.perUnit[ui].tx.splice(ti,1); renderDokUnitPayments(); }
+function submitDokumen(){
+  if(!form.dokumen.ktp){ alert('KTP Pemohon wajib diupload (cukup 1x untuk semua unit).'); return; }
+  var missingUnit = null;
+  form.dokumen.perUnit.some(function(pu){
+    var bad = pu.tx.some(function(b){ return b.mode==='transfer' && !b.uploaded; });
+    if(bad){ missingUnit = pu.name; return true; }
+    return false;
+  });
+  if(missingUnit){ alert('Bukti Transfer untuk unit "'+missingUnit+'" wajib diupload.'); return; }
+  form.dokumen.catatan = document.getElementById('dok-catatan').value;
+  renderReview();
+  nav('review');
+}
+
+/* ===================== REVIEW & SUBMIT ===================== */
+function unitTxSummary(pu){
+  var total = pu.tx.reduce(function(s,b){ return s+b.amount; },0);
+  var modes = pu.tx.map(function(b){ return b.mode==='cash'?'Tunai':'Non Tunai'; });
+  var uniqueModes = modes.filter(function(v,i){ return modes.indexOf(v)===i; });
+  var label = uniqueModes.join(' + ') + (pu.tx.length>1 ? ' ('+pu.tx.length+' metode)' : '');
+  return { total:total, label:label, jenisLabel: pu.jenis || 'Reserve' };
+}
+function renderReview(){
+  var c = form.customer, d = form.dokumen;
+  var hasTransfer = d.perUnit.some(function(pu){ return pu.tx.some(function(b){ return b.mode==='transfer'; }); });
+  var grandTotal = d.perUnit.reduce(function(s,pu){ return s+unitTxSummary(pu).total; },0);
+  var html = '<div class="card">'+
+    '<div class="review-line"><span>Nama Customer</span><b>'+c.nama+'</b></div>'+
+    '<div class="review-line"><span>Sales Channel</span><b>'+(c.salesChannel||'-')+'</b></div>'+
+    '<div class="review-line"><span>Sales Channel Detail</span><b>'+(c.salesChannelDetail||'-')+'</b></div>'+
+    '<div class="review-line"><span>Dokumen Identitas</span><b style="color:var(--success);">KTP ✓'+(hasTransfer?' · Bukti Bayar ✓':'')+' <span style="color:var(--grey4);font-weight:400;">(1x, semua unit)</span></b></div>'+
+    '<div class="review-line"><span>Jumlah Unit</span><b>'+d.perUnit.length+' unit</b></div>'+
+    '<div class="review-line"><span>Total Semua Unit</span><b style="color:var(--success);">'+rupiah(grandTotal)+' ✓</b></div>'+
+  '</div>';
+  d.perUnit.forEach(function(pu){
+    var s = unitTxSummary(pu);
+    html += '<div class="review-unit-card">'+
+      '<div class="rname">🏠 '+pu.name+'</div>'+
+      '<div class="rprice">'+(unitPriceLabel(pu) ? unitPriceLabel(pu)+' · ' : '')+unitContextLabel(pu)+'</div>'+
+      '<div class="review-line" style="margin-top:6px;"><span>Cara Bayar</span><b>'+s.label+'</b></div>'+
+      '<div class="review-line"><span>Jenis Pembayaran</span><b>'+s.jenisLabel+'</b></div>'+
+      '<div class="review-line"><span>Nominal Dibayar</span><b style="color:var(--success);">'+rupiah(s.total)+'</b></div>'+
+    '</div>';
+  });
+  document.getElementById('review-body').innerHTML = html;
+}
+function submitReserveOrder(){
+  var c = form.customer, d = form.dokumen;
+  var initials = c.nama.split(' ').map(function(w){return w[0];}).slice(0,2).join('').toUpperCase();
+  var docsUploaded = {};
+  (DOC_REQ[c.kategori]||[]).forEach(function(dn){ docsUploaded[dn] = (dn==='KTP Pemohon & Pasangan'); });
+  var customerData = {nama:c.nama, ktp:c.ktp, npwp:'-', tempatLahir:c.tempatLahir, tglLahir:c.tglLahir, gender:c.gender, hp:c.hp, status:c.status, pasangan:c.pasangan, kategori:c.kategori, pekerjaan:c.pekerjaan, bayar:c.bayar, alamat:c.alamat, salesChannel:c.salesChannel, salesChannelDetail:c.salesChannelDetail};
+  var groupId = d.perUnit.length>1 ? uid('grp-') : null;
+  var createdOrders = [];
+  d.perUnit.forEach(function(pu){
+    var s = unitTxSummary(pu);
+    var order = {
+      id: uid('ro-'), name:c.nama, phone:c.hp, avatar:initials,
+      unitName:pu.name, unitSub:unitContextLabel(pu), price:pu.price,
+      status:'Diproses', statusColor:'var(--warning)', createdAt: Date.now(),
+      reserveLabel:'Reserve: hari ini', totalPaid:s.total, lastPaymentAmount:s.total, groupId:groupId, groupSize:d.perUnit.length,
+      customerData: customerData,
+      docsUploaded: JSON.parse(JSON.stringify(docsUploaded)),
+      notes:[{who:'Sistem', role:'otomatis', time:'baru saja', text:'Reserve Order diajukan oleh Sales — menunggu verifikasi Kasir.'+(groupId?' (Bagian dari pengajuan '+d.perUnit.length+' unit sekaligus untuk customer ini.)':''), cls:'sales'}],
+      timelineHtml:'<div class="tstep done"><div class="tlbl">L1 Leads</div><div class="tsub">Riwayat sebelum Reserve</div></div>'+
+        '<div class="tstep done"><div class="tlbl">L2 APPT</div><div class="tsub">Riwayat sebelum Reserve</div></div>'+
+        '<div class="tstep done"><div class="tlbl">L3 Visitor</div><div class="tsub">Riwayat sebelum Reserve</div></div>'+
+        '<div class="tstep active"><div class="tlbl">L4 Reserve</div><div class="tsub">Diajukan hari ini · '+rupiah(s.total)+' ('+s.label+') — sedang diverifikasi</div></div>'+
+        buildLockedTail(4),
+      canTopup:true, rejected:false
+    };
+    orders.unshift(order);
+    createdOrders.push(order);
+  });
+  document.getElementById('success-text').textContent = (createdOrders.length>1
+    ? createdOrders.length+' Reserve Order ('+createdOrders.map(function(o){return o.unitName;}).join(', ')+') a.n. '+c.nama+' sedang diproses. Dokumen identitas cukup diupload sekali untuk semuanya.'
+    : createdOrders[0].unitName + ' a.n. ' + createdOrders[0].name + ' sedang diproses.');
+  var cardsHtml = '';
+  createdOrders.forEach(function(o){
+    cardsHtml += '<div class="mini-ro-card"><div><div class="u">'+o.unitName+'</div><div class="s">'+o.name+'</div></div><span class="badge" style="background:'+o.statusColor+';">'+o.status+'</span></div>';
+  });
+  document.getElementById('success-cards').innerHTML = cardsHtml;
+  window._lastOrderId = createdOrders[0].id;
+  histStack=['start']; current='success'; showScreen('success');
+}
+
+/* ===================== LIST ===================== */
+var sortMode = 'created-desc';
+var STATUS_OPTIONS = ['Reserve','RBA','RBB','SP','Proses Bank','SPK','Akad/PPJB ✓','Ditolak'];
+var STATUS_OPTION_MAP = {'Reserve':'Diproses','RBA':'RBA','RBB':'RBB','SP':'SP','Proses Bank':'Proses Bank','SPK':'SPK','Akad/PPJB ✓':'Akad/PPJB ✓','Ditolak':'Ditolak'};
+var filterStatus = [];
+function openStatusFilter(){ nav('status-filter'); renderStatusChecklist(); }
+function renderStatusChecklist(){
+  var term = (document.getElementById('status-filter-search').value||'').toLowerCase();
+  var opts = STATUS_OPTIONS.filter(function(s){ return !term || s.toLowerCase().indexOf(term)>-1; });
+  var html = '';
+  opts.forEach(function(s){
+    var sel = filterStatus.indexOf(s)>-1;
+    html += '<div class="checklist-row '+(sel?'sel':'')+'" onclick="'+("toggleStatusOpt('"+s+"')")+'"><div class="cb">'+(sel?'✓':'')+'</div><span>'+s+'</span></div>';
+  });
+  document.getElementById('status-checklist').innerHTML = html;
+  updateStatusFilterCount();
+}
+function toggleStatusOpt(s){
+  var idx = filterStatus.indexOf(s);
+  if(idx>-1){ filterStatus.splice(idx,1); } else { filterStatus.push(s); }
+  renderStatusChecklist();
+}
+function selectAllStatus(){ filterStatus = STATUS_OPTIONS.slice(); renderStatusChecklist(); }
+function clearAllStatus(){ filterStatus = []; renderStatusChecklist(); }
+function updateStatusFilterCount(){
+  document.getElementById('status-filter-count').textContent = filterStatus.length+' dari '+STATUS_OPTIONS.length+' dipilih';
+  var badge = document.getElementById('status-filter-badge');
+  if(badge){ badge.textContent = filterStatus.length ? filterStatus.length+' dipilih' : '⌄'; badge.style.color = filterStatus.length ? 'var(--primary)' : 'var(--grey4)'; badge.style.fontWeight = filterStatus.length ? '700' : '400'; }
+}
+function applyFilter(){ renderList(); back(); }
+function resetFilter(){ filterStatus = []; updateStatusFilterCount(); renderList(); }
+function setSort(v){
+  sortMode = v;
+  document.getElementById('sort-pill-label').textContent = ({'created-desc':'Dibuat: Terbaru','created-asc':'Dibuat: Terlama','name-az':'Nama: A-Z','name-za':'Nama: Z-A'})[v];
+  renderList();
+  back();
+}
+
+function renderList(){
+  document.querySelectorAll('#scr-sort-sheet .sort-item').forEach(function(el){
+    var on = el.getAttribute('data-v')===sortMode;
+    el.classList.toggle('on', on);
+    el.querySelector('.sort-check-wrap').innerHTML = on ? '<span class="sort-check">✓</span>' : '';
+  });
+
+  var term = (document.getElementById('list-search').value||'').toLowerCase();
+  var list = orders.filter(function(o){
+    var matchTerm = !term || o.name.toLowerCase().indexOf(term)>-1 || o.unitName.toLowerCase().indexOf(term)>-1;
+    var matchStatus = !filterStatus.length || filterStatus.some(function(fs){ return STATUS_OPTION_MAP[fs]===o.status; });
+    return matchTerm && matchStatus;
+  });
+  list.sort(function(a,b){
+    if(sortMode==='created-desc') return b.createdAt-a.createdAt;
+    if(sortMode==='created-asc') return a.createdAt-b.createdAt;
+    if(sortMode==='name-az') return a.name.localeCompare(b.name);
+    if(sortMode==='name-za') return b.name.localeCompare(a.name);
+  });
+  document.getElementById('list-count').textContent = orders.length + ' transaksi aktif';
+  var html = '';
+  list.forEach(function(o){
+    var kategori = (o.customerData && o.customerData.kategori) || '-';
+    html += '<div class="rocard" onclick="'+("openDetail('"+o.id+"')")+'">'+
+      '<div style="display:flex;justify-content:space-between;"><span class="rname">'+o.name+(o.groupId?'<span class="grp-tag">🔗 '+o.groupSize+' unit</span>':'')+'</span><span class="badge" style="background:'+o.statusColor+';">'+o.status+'</span></div>'+
+      '<div class="runitrow">🏠 <span>'+o.unitName+' <span class="rsub">'+o.unitSub+'</span></span></div>'+
+      '<div class="rmeta"><span>👤 Dian A.</span>'+(o.lastPaymentAmount?'<span>💰 '+rupiah(o.lastPaymentAmount)+'</span>':'')+'<span>💼 '+kategori+'</span><span>📅 '+o.reserveLabel+'</span></div>'+
+    '</div>';
+  });
+  if(!list.length){ html = '<div class="notice notice-info">Tidak ada Reserve Order yang cocok dengan pencarian/filter.</div>'; }
+  document.getElementById('ro-list').innerHTML = html;
+}
+
+/* ===================== DETAIL ===================== */
+var currentOrderId = null;
+function findOrder(id){ return orders.filter(function(o){ return o.id===id; })[0]; }
+function openRoMenu(){
+  var o = findOrder(currentOrderId);
+  document.getElementById('ro-menu-title').textContent = o.unitName + ' · ' + o.name;
+  nav('ro-menu');
+}
+function editReserveOrder(){
+  back();
+  alert('Fitur edit unit/dokumen Reserve Order — segera hadir. Untuk sekarang, data customer bisa diedit lewat tab Customer.');
+}
+function deleteReserveOrder(){
+  var o = findOrder(currentOrderId);
+  if(!confirm('Hapus Reserve Order '+o.unitName+' a.n. '+o.name+'? Tindakan ini tidak bisa dibatalkan.')) return;
+  var idx = orders.findIndex(function(x){ return x.id===o.id; });
+  if(idx>-1) orders.splice(idx,1);
+  histStack = ['start'];
+  current = 'list';
+  renderList();
+  showScreen('list');
+}
+function shareReserveOrder(){
+  back();
+  alert('Link Reserve Order disalin ke clipboard (simulasi).');
+}
+function openDetail(id){
+  currentOrderId = id;
+  var o = findOrder(id);
+  document.getElementById('detail-sub').textContent = o.unitName;
+  document.getElementById('detail-avatar').textContent = o.avatar;
+  document.getElementById('detail-name').textContent = o.name;
+  document.getElementById('detail-unit').textContent = o.unitName + ' · ' + o.unitSub + (o.price ? ' · '+rupiah(o.price) : '');
+  document.getElementById('detail-phone').textContent = o.phone;
+
+  var rejectHtml = '';
+  var resubmitHtml = '';
+  if(o.rejected){
+    rejectHtml = '<div class="reject-banner"><div class="rb-title">✗ Ditolak di '+(o.rejectStage||'tahap ini')+' — Perlu Revisi</div><div class="rb-reason">'+o.rejectReason+'</div></div>';
+    if(o.rejectFixType==='customer_data'){
+      resubmitHtml = '<button class="btn btn-primary" onclick="openEditCustomer(\''+o.id+'\')">✎ Perbaiki Data Customer</button>';
+    } else {
+      resubmitHtml = '<button class="btn btn-primary" onclick="openPayment(\'resubmit\')">Edit &amp; Ajukan Ulang</button>';
+    }
+  }
+  document.getElementById('detail-reject-banner').innerHTML = rejectHtml;
+  document.getElementById('detail-resubmit-btn').innerHTML = resubmitHtml;
+  document.getElementById('detail-footer').style.display = o.rejected ? 'block' : 'none';
+
+  document.querySelectorAll('#scr-detail .tabbar-item').forEach(function(el,i){ el.classList.toggle('on', i===0); });
+  document.querySelectorAll('#scr-detail .ro-tabpane').forEach(function(el,i){ el.classList.toggle('on', i===0); });
+
+  renderDetailTimeline(o);
+  renderDetailCustomer(o);
+  renderDetailAttach(o);
+  renderDetailNotes(o);
+
+  nav('detail');
+}
+function detailTab(pane, el){
+  document.querySelectorAll('#scr-detail .tabbar-item').forEach(function(t){ t.classList.remove('on'); });
+  el.classList.add('on');
+  document.querySelectorAll('#scr-detail .ro-tabpane').forEach(function(p){ p.classList.remove('on'); });
+  document.getElementById('detail-'+pane).classList.add('on');
+}
+function renderDetailTimeline(o){
+  var extra = o.canTopup ? '<button class="btn btn-ghost" style="margin-top:12px;" onclick="openPayment(\'topup\')">+ Top Up Pembayaran</button>' : '';
+  document.getElementById('detail-timeline').innerHTML = '<div class="timeline">'+o.timelineHtml+'</div>'+extra;
+}
+function renderDetailCustomer(o){
+  var c = o.customerData || {};
+  function row(label, val, field){
+    return '<div class="dp-row" onclick="'+("editFromDetail('"+field+"')")+'"><div class="dp-main"><div class="dp-label">'+label+'</div><div class="dp-val">'+(val||'-')+'</div></div><span class="dp-chev">›</span></div>';
+  }
+  var html = '<div class="acc-wrap">'+
+    '<div class="acc-head" onclick="accToggle(this)">Data Customer <span class="chev">▾</span></div>'+
+    '<div class="acc-body">'+
+      row('Nama Lengkap (sesuai KTP)', c.nama, 'nama')+
+      row('No. KTP', c.ktp, 'ktp')+
+      row('No. NPWP', c.npwp, 'npwp')+
+      row('Tempat Lahir', c.tempatLahir, 'tempatLahir')+
+      row('Tanggal Lahir', c.tglLahir, 'tglLahir')+
+      row('Jenis Kelamin', c.gender, 'gender')+
+      row('No. HP', c.hp, 'hp')+
+      row('Status Pernikahan', c.status, 'status')+
+      row('Kategori Pekerjaan', c.kategori, 'kategori')+
+      row('Pekerjaan', c.pekerjaan, 'pekerjaan')+
+      row('Cara Pembayaran', c.bayar, 'bayar')+
+      row('Sales Channel', c.salesChannel, 'salesChannel')+
+      row('Sales Channel Detail', c.salesChannelDetail, 'salesChannelDetail')+
+    '</div>'+
+    '<div class="acc-head" onclick="accToggle(this)">Calon Pasangan <span class="chev">▾</span></div>'+
+    '<div class="acc-body">'+
+      row('Nama Pasangan', c.pasangan, 'pasangan')+
+      row('Tempat Lahir Pasangan', c.pasanganTempatLahir, 'pasanganTempatLahir')+
+      row('Tanggal Lahir Pasangan', c.pasanganTglLahir, 'pasanganTglLahir')+
+      row('Email Pasangan', c.pasanganEmail, 'pasanganEmail')+
+      row('No. HP Pasangan', c.pasanganHp, 'pasanganHp')+
+    '</div>'+
+    '<div class="acc-head closed" onclick="accToggle(this)">Data Anak <span class="chev">▾</span></div>'+
+    '<div class="acc-body closed">'+
+      row('Nama Anak 1', c.anak1, 'anak1')+
+      row('Nama Anak 2', c.anak2, 'anak2')+
+    '</div>'+
+    '<div class="acc-head closed" onclick="accToggle(this)">Kontak Darurat (Tidak Tinggal Bersama) <span class="chev">▾</span></div>'+
+    '<div class="acc-body closed">'+
+      row('Nama Kontak', c.kontakNama, 'kontakNama')+
+      row('Hubungan', c.kontakHubungan, 'kontakHubungan')+
+      row('Telepon', c.kontakTelp, 'kontakTelp')+
+    '</div>'+
+    '<div class="acc-head closed" onclick="accToggle(this)">Data Alamat Customer <span class="chev">▾</span></div>'+
+    '<div class="acc-body closed">'+
+      row('Alamat (sesuai KTP)', c.alamat, 'alamat')+
+      row('Kode Area (sesuai KTP)', c.kodeArea, 'kodeArea')+
+      row('Kota (sesuai KTP)', c.kota, 'kota')+
+      row('Kode Pos (sesuai KTP)', c.kodePos, 'kodePos')+
+    '</div>'+
+  '</div>';
+  document.getElementById('detail-customer').innerHTML = html;
+}
+function accToggle(el){
+  el.classList.toggle('closed');
+  el.nextElementSibling.classList.toggle('closed');
+}
+function editFromDetail(){ openEditCustomer(currentOrderId); }
+
+function renderDetailAttach(o){
+  var cat = (o.customerData && o.customerData.kategori) || 'Wiraswasta';
+  var reqs = DOC_REQ[cat] || DOC_REQ['Wiraswasta'];
+  var html = '<div class="cat-tag">'+cat+'</div>';
+  reqs.forEach(function(name){
+    var uploaded = o.docsUploaded && o.docsUploaded[name];
+    if(uploaded){
+      html += '<div class="doc-row"><div class="doc-icon">'+(DOC_ICON[name]||'📄')+'</div><div><div class="doc-name">'+name+' <span class="doc-sub">· Wajib</span></div><div class="doc-status">Terupload</div></div><span class="check-ok">✓</span></div>';
+    } else {
+      html += '<div class="upload-box" onclick="'+("toggleAttach('"+name+"')")+'"><span class="ic">'+(DOC_ICON[name]||'📄')+'</span><span class="lbl">'+name+'</span><br>Ketuk untuk upload</div>';
+    }
+  });
+  document.getElementById('detail-attach').innerHTML = html;
+}
+function toggleAttach(name){
+  var o = findOrder(currentOrderId);
+  if(!o.docsUploaded) o.docsUploaded = {};
+  o.docsUploaded[name] = true;
+  renderDetailAttach(o);
+}
+function renderDetailNotes(o){
+  var html = '';
+  (o.notes||[]).forEach(function(n){
+    html += '<div class="note-item"><div class="note-avatar '+n.cls+'">'+n.who.slice(0,2).toUpperCase()+'</div><div class="note-body"><div class="note-head"><span>'+n.who+' <span class="role-tag">· '+n.role+'</span></span><span class="note-time">'+n.time+'</span></div><div class="note-text">'+n.text+'</div></div></div>';
+  });
+  html += '<div class="note-input-row"><input class="input" id="note-input-'+o.id+'" placeholder="Tulis catatan…"><button class="note-send" onclick="'+("sendNote('"+o.id+"')")+'">➤</button></div>';
+  document.getElementById('detail-notes').innerHTML = html;
+}
+function sendNote(id){
+  var o = findOrder(id);
+  var input = document.getElementById('note-input-'+id);
+  var text = input.value.trim();
+  if(!text) return;
+  o.notes.push({who:'Anda', role:'Sales', time:'baru saja', text:text, cls:'sales'});
+  renderDetailNotes(o);
+}
+
+/* ===================== EDIT CUSTOMER ===================== */
+function setBayarValue(prefix, value){
+  var sel = document.getElementById(prefix+'-bayar');
+  var stdOptions = ['KPR','Cash Keras','Cash Bertahap'];
+  if(stdOptions.indexOf(value)>-1){
+    sel.value = value;
+  } else {
+    sel.value = 'Lainnya';
+    document.getElementById(prefix+'-bayar-other').value = value||'';
+  }
+  toggleBayarOther(prefix);
+}
+function openEditCustomer(id){
+  currentOrderId = id;
+  var o = findOrder(id);
+  var c = o.customerData || {};
+  document.getElementById('ec-sub-name').textContent = o.name;
+  document.getElementById('ec-nama').value = c.nama||'';
+  document.getElementById('ec-ktp').value = c.ktp||'';
+  document.getElementById('ec-npwp').value = (c.npwp && c.npwp!=='-') ? c.npwp : '';
+  document.getElementById('ec-tempatlahir').value = c.tempatLahir||'';
+  document.getElementById('ec-tgllahir').value = c.tglLahir||'';
+  document.getElementById('ec-gender').value = c.gender||'Laki-laki';
+  document.getElementById('ec-hp').value = c.hp||'';
+  document.getElementById('ec-alamat').value = c.alamat||'';
+  document.getElementById('ec-kodearea').value = c.kodeArea||'';
+  document.getElementById('ec-kota').value = c.kota||'';
+  document.getElementById('ec-kodepos').value = c.kodePos||'';
+  document.getElementById('ec-status').value = c.status||'Menikah';
+  document.getElementById('ec-pasangan').value = c.pasangan||'';
+  document.getElementById('ec-pasangan-tempatlahir').value = c.pasanganTempatLahir||'';
+  document.getElementById('ec-pasangan-tgllahir').value = c.pasanganTglLahir||'';
+  document.getElementById('ec-pasangan-email').value = c.pasanganEmail||'';
+  document.getElementById('ec-pasangan-hp').value = c.pasanganHp||'';
+  document.getElementById('ec-anak1').value = c.anak1||'';
+  document.getElementById('ec-anak2').value = c.anak2||'';
+  document.getElementById('ec-kontak-nama').value = c.kontakNama||'';
+  document.getElementById('ec-kontak-hubungan').value = c.kontakHubungan||'';
+  document.getElementById('ec-kontak-telp').value = c.kontakTelp||'';
+  document.getElementById('ec-kategori').value = c.kategori||'Wiraswasta';
+  document.getElementById('ec-pekerjaan').value = c.pekerjaan||'';
+  setBayarValue('ec', c.bayar||'KPR');
+  var isRejectFix = o.rejected && o.rejectFixType==='customer_data';
+  document.getElementById('ec-reject-banner').innerHTML = isRejectFix
+    ? '<div class="reject-banner"><div class="rb-title">✗ Ditolak di '+(o.rejectStage||'tahap ini')+'</div><div class="rb-reason">'+o.rejectReason+'</div></div>'
+    : '';
+  document.getElementById('ec-save-btn').textContent = isRejectFix ? 'Simpan & Ajukan Ulang' : 'Simpan Perubahan';
+  nav('edit-customer');
+}
+function saveEditCustomer(){
+  var o = findOrder(currentOrderId);
+  o.customerData.nama = document.getElementById('ec-nama').value;
+  o.name = o.customerData.nama;
+  o.customerData.ktp = document.getElementById('ec-ktp').value;
+  o.customerData.npwp = document.getElementById('ec-npwp').value || '-';
+  o.customerData.tempatLahir = document.getElementById('ec-tempatlahir').value;
+  o.customerData.tglLahir = document.getElementById('ec-tgllahir').value;
+  o.customerData.gender = document.getElementById('ec-gender').value;
+  o.customerData.hp = document.getElementById('ec-hp').value;
+  o.phone = o.customerData.hp;
+  o.customerData.alamat = document.getElementById('ec-alamat').value;
+  o.customerData.kodeArea = document.getElementById('ec-kodearea').value;
+  o.customerData.kota = document.getElementById('ec-kota').value;
+  o.customerData.kodePos = document.getElementById('ec-kodepos').value;
+  o.customerData.status = document.getElementById('ec-status').value;
+  o.customerData.pasangan = document.getElementById('ec-pasangan').value;
+  o.customerData.pasanganTempatLahir = document.getElementById('ec-pasangan-tempatlahir').value;
+  o.customerData.pasanganTglLahir = document.getElementById('ec-pasangan-tgllahir').value;
+  o.customerData.pasanganEmail = document.getElementById('ec-pasangan-email').value;
+  o.customerData.pasanganHp = document.getElementById('ec-pasangan-hp').value;
+  o.customerData.anak1 = document.getElementById('ec-anak1').value;
+  o.customerData.anak2 = document.getElementById('ec-anak2').value;
+  o.customerData.kontakNama = document.getElementById('ec-kontak-nama').value;
+  o.customerData.kontakHubungan = document.getElementById('ec-kontak-hubungan').value;
+  o.customerData.kontakTelp = document.getElementById('ec-kontak-telp').value;
+  o.customerData.kategori = document.getElementById('ec-kategori').value;
+  o.customerData.pekerjaan = document.getElementById('ec-pekerjaan').value;
+  o.customerData.bayar = getBayarValue('ec');
+  var wasRejectFix = o.rejected && o.rejectFixType==='customer_data';
+  if(wasRejectFix){
+    o.rejected = false;
+    o.status = 'Diproses';
+    o.statusColor = 'var(--warning)';
+    o.timelineHtml += '<div class="tnote">🗨 <span class="tn-who">Sistem ·</span> Data customer diperbaiki oleh Sales, '+(o.rejectStage||'tahap ini')+' diajukan ulang untuk verifikasi.</div>';
+    o.notes.push({who:'Anda', role:'Sales', time:'baru saja', text:'Data customer sudah saya perbaiki, mohon dicek ulang untuk '+(o.rejectStage||'tahap ini')+'.', cls:'sales'});
+  }
+  renderDetailCustomer(o);
+  document.getElementById('detail-name').textContent = o.name;
+  back();
+  if(current==='detail'){
+    var rejectHtml = '', resubmitHtml = '';
+    if(o.rejected){
+      rejectHtml = '<div class="reject-banner"><div class="rb-title">✗ Ditolak di '+(o.rejectStage||'tahap ini')+' — Perlu Revisi</div><div class="rb-reason">'+o.rejectReason+'</div></div>';
+      resubmitHtml = o.rejectFixType==='customer_data'
+        ? '<button class="btn btn-primary" onclick="openEditCustomer(\''+o.id+'\')">✎ Perbaiki Data Customer</button>'
+        : '<button class="btn btn-primary" onclick="openPayment(\'resubmit\')">Edit &amp; Ajukan Ulang</button>';
+    }
+    document.getElementById('detail-reject-banner').innerHTML = rejectHtml;
+    document.getElementById('detail-resubmit-btn').innerHTML = resubmitHtml;
+    document.getElementById('detail-footer').style.display = o.rejected ? 'block' : 'none';
+    renderDetailTimeline(o);
+    renderDetailNotes(o);
+  }
+}
+
+/* ===================== PAYMENT (TOPUP / RESUBMIT) ===================== */
+var payMode = 'topup';
+var payJenis = 'Reserve';
+var txBlocks = [];
+function defaultJenisForOrder(o, mode){
+  if(mode==='resubmit'){
+    if(o.rejectStage==='L6 SP') return 'SP';
+    if(o.rejectStage==='L5 Reserve Booking (R/BR)') return 'RB';
+    return 'Reserve';
+  }
+  if(o.status==='SP') return 'Top up SP';
+  if(o.status==='RBA' || o.status==='RBB') return 'Top up RB';
+  return 'Top up Reserve';
+}
+function setPayJenis(v){ payJenis = v; renderTxBlocks(); }
+function openPayment(mode){
+  payMode = mode;
+  var o = findOrder(currentOrderId);
+  document.getElementById('pay-title').textContent = mode==='topup' ? 'Top Up Pembayaran' : 'Perbaiki Reserve Order';
+  document.getElementById('pay-sub').textContent = o.unitName + ' · ' + o.name;
+  document.getElementById('pay-reject-banner').innerHTML = mode==='resubmit'
+    ? '<div class="reject-banner"><div class="rb-title">✗ Ditolak — Perlu Revisi</div><div class="rb-reason">'+o.rejectReason+'</div></div>'
+    : '';
+  document.getElementById('pay-status-card').innerHTML =
+    '<div class="review-line"><span>Status saat ini</span><b>'+o.status+'</b></div>'+
+    '<div class="review-line"><span>Total dibayar sejauh ini</span><b>'+rupiah(o.totalPaid)+'</b></div>';
+  payJenis = defaultJenisForOrder(o, mode);
+  txBlocks = mode==='resubmit'
+    ? [{mode:'transfer', amount:o.price?o.price-o.totalPaid:50000000, uploaded:false}]
+    : [{mode:'transfer', amount:3000000, uploaded:false}];
+  document.getElementById('pay-catatan').value = '';
+  document.getElementById('pay-submit-btn').textContent = mode==='topup' ? 'Ajukan Top Up' : 'Submit Ulang';
+  renderTxBlocks();
+  nav('pay');
+}
+function renderTxBlocks(){
+  var html = '<div class="field-label" style="margin-top:0;">Jenis Pembayaran</div>'+
+    '<div class="amt-grid">'+ PAYMENT_TYPES.map(function(pt){ return '<div class="amt-chip '+(payJenis===pt?'on':'')+'" onclick="'+("setPayJenis('"+pt+"')")+'">'+pt+'</div>'; }).join('') +'</div>';
+  txBlocks.forEach(function(b, i){
+    html += '<div class="tx-block">'+
+      (txBlocks.length>1 ? '<div class="tx-remove" onclick="removeTxBlock('+i+')">✕ Hapus</div>' : '')+
+      '<div class="tx-title">Metode Pembayaran '+(i+1)+'</div>'+
+      '<div class="paytoggle">'+
+        '<div class="pt '+(b.mode==='cash'?'on':'')+'" onclick="'+("setTxMode("+i+",'cash')")+'">💵 Tunai</div>'+
+        '<div class="pt '+(b.mode==='transfer'?'on':'')+'" onclick="'+("setTxMode("+i+",'transfer')")+'">🏦 Non Tunai</div>'+
+      '</div>'+
+      (b.mode==='transfer' ? '<div class="doc-row" onclick="toggleTxUpload('+i+')"><div class="doc-icon">🧾</div><div><div class="doc-name">Bukti Non Tunai <span class="doc-sub">· Wajib</span></div><div class="doc-status" style="'+(b.uploaded?'':'color:var(--primary);')+'">'+(b.uploaded?'Terupload':'Ketuk untuk upload')+'</div></div>'+(b.uploaded?'<span class="check-ok">✓</span>':'')+'</div>' : '')+
+      '<div class="field-label" style="margin-top:0;">Nominal</div>'+
+      '<div class="amt-grid">'+ AMOUNTS.map(function(a){ return '<div class="amt-chip '+(b.amount===a?'on':'')+'" onclick="setTxAmount('+i+','+a+')">'+fmtAmt(a)+'</div>'; }).join('') +'</div>'+
+      '<input class="input" value="'+rupiah(b.amount)+'" oninput="setTxManual('+i+',this.value)">'+
+    '</div>';
+  });
+  document.getElementById('pay-tx-blocks').innerHTML = html;
+  var total = txBlocks.reduce(function(s,b){ return s+b.amount; },0);
+  document.getElementById('pay-submit-btn').textContent = (payMode==='topup' ? 'Ajukan Top Up' : 'Submit Ulang') + ' (Rp ' + total.toLocaleString('id-ID') + ')';
+}
+function addTxBlock(){ txBlocks.push({mode:'cash', amount:2000000, uploaded:false}); renderTxBlocks(); }
+function setTxMode(i,mode){ txBlocks[i].mode = mode; renderTxBlocks(); }
+function toggleTxUpload(i){ txBlocks[i].uploaded = !txBlocks[i].uploaded; renderTxBlocks(); }
+function setTxAmount(i,v){ txBlocks[i].amount = v; renderTxBlocks(); }
+function setTxManual(i,v){ txBlocks[i].amount = parseRupiah(v); }
+function removeTxBlock(i){ txBlocks.splice(i,1); renderTxBlocks(); }
+
+function submitPayment(){
+  var o = findOrder(currentOrderId);
+  var invalid = txBlocks.some(function(b){ return b.mode==='transfer' && !b.uploaded; });
+  if(invalid){ alert('Setiap transaksi Transfer wajib upload bukti transfer.'); return; }
+  var total = txBlocks.reduce(function(s,b){ return s+b.amount; },0);
+  o.totalPaid += total;
+  o.lastPaymentAmount = total;
+  if(payMode==='resubmit'){
+    o.rejected = false; o.status = 'Diproses'; o.statusColor = 'var(--warning)';
+    o.timelineHtml += '<div class="tstep active"><div class="tlbl">L4 Reserve (Revisi)</div><div class="tsub">Diajukan ulang · '+rupiah(total)+' — sedang diverifikasi</div></div>';
+  } else {
+    o.timelineHtml += '<div class="tnote">🗨 <span class="tn-who">Sistem ·</span> '+payJenis+' '+rupiah(total)+' diajukan</div>';
+  }
+  document.getElementById('pay-success-title').textContent = payMode==='topup' ? 'Top Up Berhasil Diajukan' : 'Reserve Order Berhasil Diajukan Ulang';
+  document.getElementById('pay-success-text').textContent = payJenis+' — '+txBlocks.length+' metode pembayaran ('+txBlocks.map(function(b){return (b.mode==='cash'?'Tunai':'Non Tunai')+' '+rupiah(b.amount);}).join(' + ')+') untuk '+o.unitName+' sedang diverifikasi.';
+  document.getElementById('pay-success-total').textContent = rupiah(o.totalPaid);
+  nav('pay-success');
+}
+function backToDetailAfterPay(){
+  var o = findOrder(currentOrderId);
+  histStack = ['start','list'];
+  current = 'detail';
+  openDetail(o.id);
+}
+
+/* init */
+resetForm();
+</script>
+</body>
+</html>

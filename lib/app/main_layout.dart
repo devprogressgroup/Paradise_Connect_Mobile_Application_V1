@@ -72,6 +72,7 @@ class _MainLayoutState extends State<MainLayout> {
     '/sales-kit': 'main_layout_drawer_nav_sales_kit',
     '/siap-huni': 'main_layout_drawer_nav_siap_huni',
     '/attandance': 'main_layout_drawer_nav_attendance',
+    '/reserve-order': 'main_layout_drawer_nav_reserve_order',
     '/landing-page': 'main_layout_drawer_nav_info',
   };
 
@@ -190,6 +191,7 @@ class _MainLayoutState extends State<MainLayout> {
     if (location.startsWith('/attandance')) return 6;
     if (location.startsWith('/profile')) return 7;
     if (location.startsWith('/landing-page')) return 8;
+    if (location.startsWith('/reserve-order')) return 10;
     return -1;
   }
   
@@ -465,6 +467,7 @@ class _MainLayoutState extends State<MainLayout> {
                 ),
                 if (PermissionsHelper.canAccessAttendance)
                   _buildDrawerItem(context, icNavAttendance, 'Attendance', path: '/attandance', index: 6),
+                _buildDrawerItem(context, '', 'Reserve Order', path: '/reserve-order', index: 10, iconData: Icons.receipt_long_outlined),
                 const Spacer(),
 
                 const Spacer(),

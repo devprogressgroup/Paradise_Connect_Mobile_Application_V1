@@ -95,4 +95,22 @@ const int rbbColor = 0xFFFEB900;         // #FEB900
 const int rbaColor = 0xFFFE9500;         // #fe9500
 const int spColor = 0xFF1800FE;          // #1800FE
 const int defaultColor = 0xFFFFFFFF;     // #FFFFFF
+
+// reserve order — nama & sebagian nilai disamakan dengan `colors.dart` di branch `reserve-order`
+// (`roIconBgColor`, `roSelectedBgColor`, `roAvatarTextColor`, `roLightRedBgColor`,
+// `roRejectBorderColor`, `roRejectTextColor`, `roSuccessBgColor` — nilainya sama persis), sisanya
+// ditambah di sini karena belum ada di branch itu (dipakai wizard Create & badge Available/Not
+// Available yang belum ada padanannya di sana).
+const int roIconBgColor = 0xFFE6F1FB;        // latar ikon dokumen, avatar inisial
+const int roAvatarTextColor = 0xFF0C447C;    // teks inisial avatar customer
+const int roSelectedBgColor = 0xFFE8F2FE;    // latar chip/baris/kartu yang sedang dipilih
+const int roCardBgColor = 0xFFFBFCFF;        // latar kartu pembayaran per unit (Create, Top Up)
+const int roLightRedBgColor = 0xFFFDECEC;    // latar banner "Ditolak"
+const int roRejectBorderColor = 0xFFF6B8B8;  // border banner "Ditolak"
+const int roRejectTextColor = 0xFF7A1F1F;    // teks alasan penolakan
+const int roSuccessBgColor = 0xFFE7F9EE;     // latar lingkaran ikon centang di layar sukses
+const int roNoticeInfoBgColor = 0xFFE7F6FE;  // latar notice info (mis. "pilih project dulu")
+const int roNoticeInfoTextColor = 0xFF065C7C; // teks notice info
+const int roAvailableTextColor = 0xFF1A3D00;   // teks badge "Available"
+const int roUnavailableTextColor = 0xFF5C5400; // teks badge "Not Available"
 //dark
