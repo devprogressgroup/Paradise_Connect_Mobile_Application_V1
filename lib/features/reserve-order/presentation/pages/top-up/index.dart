@@ -18,7 +18,9 @@ class _PaymentBlock {
   final TextEditingController amountController;
 
   _PaymentBlock({this.mode = _PayMode.transfer, this.amount = 2000000})
-      : amountController = TextEditingController(text: NumberHelper.thousands(amount));
+    : amountController = TextEditingController(
+        text: NumberHelper.thousands(amount),
+      );
 
   void dispose() => amountController.dispose();
 }
@@ -53,8 +55,24 @@ class TopupReserveOrderPage extends StatefulWidget {
 }
 
 class _TopupReserveOrderPageState extends State<TopupReserveOrderPage> {
-  static const _paymentTypes = ['Reserve', 'Top up Reserve', 'RB', 'Top up RB', 'SP', 'Top up SP'];
-  static const _quickAmounts = [2000000, 3000000, 5000000, 10000000, 15000000, 20000000, 25000000, 50000000];
+  static const _paymentTypes = [
+    'Reserve',
+    'Top up Reserve',
+    'RB',
+    'Top up RB',
+    'SP',
+    'Top up SP',
+  ];
+  static const _quickAmounts = [
+    2000000,
+    3000000,
+    5000000,
+    10000000,
+    15000000,
+    20000000,
+    25000000,
+    50000000,
+  ];
 
   final _catatanController = TextEditingController();
   late String _jenisPembayaran;
@@ -70,7 +88,14 @@ class _TopupReserveOrderPageState extends State<TopupReserveOrderPage> {
   void initState() {
     super.initState();
     _jenisPembayaran = widget.isResubmit ? 'Reserve' : 'Top up Reserve';
-    _blocks = [_PaymentBlock(mode: _PayMode.transfer, amount: widget.isResubmit ? (widget.suggestedAmount ?? 50000000) : 3000000)];
+    _blocks = [
+      _PaymentBlock(
+        mode: _PayMode.transfer,
+        amount: widget.isResubmit
+            ? (widget.suggestedAmount ?? 50000000)
+            : 3000000,
+      ),
+    ];
   }
 
   @override
@@ -98,7 +123,10 @@ class _TopupReserveOrderPageState extends State<TopupReserveOrderPage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     if (widget.isResubmit) ...[
-                      RejectBanner(title: 'Ditolak — Perlu Revisi', reason: widget.rejectReason ?? ''),
+                      RejectBanner(
+                        title: 'Ditolak — Perlu Revisi',
+                        reason: widget.rejectReason ?? '',
+                      ),
                       const SizedBox(height: 12),
                     ],
                     _buildStatusCard(),
@@ -141,37 +169,88 @@ class _TopupReserveOrderPageState extends State<TopupReserveOrderPage> {
                     Container(
                       width: 64,
                       height: 64,
-                      decoration: const BoxDecoration(color: Color(roSuccessBgColor), shape: BoxShape.circle),
-                      child: const Icon(Icons.check, color: Color(successColor), size: 32),
+                      decoration: const BoxDecoration(
+                        color: Color(roSuccessBgColor),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.check,
+                        color: Color(successColor),
+                        size: 32,
+                      ),
                     ),
                     const SizedBox(height: 16),
                     Text(
-                      widget.isResubmit ? 'Reserve Order Berhasil Diajukan Ulang' : 'Top Up Berhasil Diajukan',
+                      widget.isResubmit
+                          ? 'Reserve Order Berhasil Diajukan Ulang'
+                          : 'Top Up Berhasil Diajukan',
                       textAlign: TextAlign.center,
-                      style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+                      style: const TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
                     const SizedBox(height: 6),
-                    Text(_successText, textAlign: TextAlign.center, style: const TextStyle(fontSize: 12, color: Color(grey4Color), height: 1.5)),
+                    Text(
+                      _successText,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: Color(grey4Color),
+                        height: 1.5,
+                      ),
+                    ),
                     const SizedBox(height: 16),
                     Container(
                       width: double.infinity,
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                      decoration: BoxDecoration(borderRadius: BorderRadius.circular(12), border: Border.all(color: const Color(grey10Color))),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 10,
+                      ),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: const Color(grey10Color)),
+                      ),
                       child: Row(
                         children: [
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                const Text('Total setelah transaksi', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
-                                Text('Rp ${NumberHelper.thousands(_totalAfterSubmit)}', style: const TextStyle(fontSize: 9.5, color: Color(grey4Color))),
+                                const Text(
+                                  'Total setelah transaksi',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                                Text(
+                                  'Rp ${NumberHelper.thousands(_totalAfterSubmit)}',
+                                  style: const TextStyle(
+                                    fontSize: 9.5,
+                                    color: Color(grey4Color),
+                                  ),
+                                ),
                               ],
                             ),
                           ),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                            decoration: BoxDecoration(color: const Color(warningColor), borderRadius: BorderRadius.circular(20)),
-                            child: const Text('Menunggu', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: Color(whiteColor))),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: const Color(warningColor),
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: const Text(
+                              'Menunggu',
+                              style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w700,
+                                color: Color(whiteColor),
+                              ),
+                            ),
                           ),
                         ],
                       ),
@@ -181,10 +260,16 @@ class _TopupReserveOrderPageState extends State<TopupReserveOrderPage> {
               ),
             ),
             Container(
-              decoration: const BoxDecoration(color: Color(whiteColor), border: Border(top: BorderSide(color: Color(grey10Color)))),
+              decoration: const BoxDecoration(
+                color: Color(whiteColor),
+                border: Border(top: BorderSide(color: Color(grey10Color))),
+              ),
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
-                child: customButton(() => Navigator.of(context).maybePop(true), 'Kembali ke Detail'),
+                child: customButton(
+                  () => Navigator.of(context).maybePop(true),
+                  'Kembali ke Detail',
+                ),
               ),
             ),
           ],
@@ -217,15 +302,24 @@ class _TopupReserveOrderPageState extends State<TopupReserveOrderPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  widget.isResubmit ? 'Perbaiki Reserve Order' : 'Top Up Pembayaran',
-                  style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Color(blue2Color)),
+                  widget.isResubmit
+                      ? 'Perbaiki Reserve Order'
+                      : 'Top Up Pembayaran',
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.bold,
+                    color: Color(blue2Color),
+                  ),
                 ),
                 const SizedBox(height: 2),
                 Text(
                   '${widget.unitName} · ${widget.customerName}',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(fontSize: 11, color: Color(grey4Color)),
+                  style: const TextStyle(
+                    fontSize: 11,
+                    color: Color(grey4Color),
+                  ),
                 ),
               ],
             ),
@@ -243,14 +337,25 @@ class _TopupReserveOrderPageState extends State<TopupReserveOrderPage> {
         color: const Color(whiteColor),
         borderRadius: BorderRadius.circular(14),
         boxShadow: [
-          BoxShadow(color: const Color(blackColor).withValues(alpha: 0.05), blurRadius: 8, offset: const Offset(0, 2)),
+          BoxShadow(
+            color: const Color(blackColor).withValues(alpha: 0.05),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
         ],
       ),
       child: Column(
         children: [
-          _statusLine('Status saat ini', widget.currentStatus, valueColor: widget.statusColor),
+          _statusLine(
+            'Status saat ini',
+            widget.currentStatus,
+            valueColor: widget.statusColor,
+          ),
           const SizedBox(height: 8),
-          _statusLine('Total dibayar sejauh ini', 'Rp ${NumberHelper.thousands(widget.totalPaidSoFar)}'),
+          _statusLine(
+            'Total dibayar sejauh ini',
+            'Rp ${NumberHelper.thousands(widget.totalPaidSoFar)}',
+          ),
         ],
       ),
     );
@@ -260,17 +365,31 @@ class _TopupReserveOrderPageState extends State<TopupReserveOrderPage> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(label, style: const TextStyle(fontSize: 12, color: Color(grey1Color))),
+        Text(
+          label,
+          style: const TextStyle(fontSize: 12, color: Color(grey1Color)),
+        ),
         Text(
           value,
-          style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: valueColor ?? const Color(blue2Color)),
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w700,
+            color: valueColor ?? const Color(blue2Color),
+          ),
         ),
       ],
     );
   }
 
   Widget _buildFieldLabel(String text) {
-    return Text(text, style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w700, color: Color(grey1Color)));
+    return Text(
+      text,
+      style: const TextStyle(
+        fontSize: 11.5,
+        fontWeight: FontWeight.w700,
+        color: Color(grey1Color),
+      ),
+    );
   }
 
   Widget _buildJenisChips() {
@@ -292,7 +411,11 @@ class _TopupReserveOrderPageState extends State<TopupReserveOrderPage> {
     );
   }
 
-  Widget _selectablePill({required String label, required bool selected, required VoidCallback onTap}) {
+  Widget _selectablePill({
+    required String label,
+    required bool selected,
+    required VoidCallback onTap,
+  }) {
     return InkWell(
       borderRadius: BorderRadius.circular(9),
       onTap: onTap,
@@ -300,16 +423,25 @@ class _TopupReserveOrderPageState extends State<TopupReserveOrderPage> {
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
         alignment: Alignment.center,
         decoration: BoxDecoration(
-          color: selected ? const Color(roSelectedBgColor) : const Color(whiteColor),
+          color: selected
+              ? const Color(roSelectedBgColor)
+              : const Color(whiteColor),
           borderRadius: BorderRadius.circular(9),
-          border: Border.all(color: selected ? const Color(primaryColor) : const Color(grey7Color), width: 1.4),
+          border: Border.all(
+            color: selected
+                ? const Color(primaryColor)
+                : const Color(grey7Color),
+            width: 1.4,
+          ),
         ),
         child: Text(
           label,
           style: TextStyle(
             fontSize: 11,
             fontWeight: FontWeight.w700,
-            color: selected ? const Color(primaryColor) : const Color(grey1Color),
+            color: selected
+                ? const Color(primaryColor)
+                : const Color(grey1Color),
           ),
         ),
       ),
@@ -334,7 +466,12 @@ class _TopupReserveOrderPageState extends State<TopupReserveOrderPage> {
             children: [
               Text(
                 'Metode Pembayaran ${index + 1}',
-                style: const TextStyle(fontSize: 10.5, fontWeight: FontWeight.w700, color: Color(grey4Color), letterSpacing: 0.3),
+                style: const TextStyle(
+                  fontSize: 10.5,
+                  fontWeight: FontWeight.w700,
+                  color: Color(grey4Color),
+                  letterSpacing: 0.3,
+                ),
               ),
               if (_blocks.length > 1)
                 InkWell(
@@ -344,7 +481,11 @@ class _TopupReserveOrderPageState extends State<TopupReserveOrderPage> {
                   }),
                   child: const Text(
                     '✕ Hapus',
-                    style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w700, color: Color(redColor)),
+                    style: TextStyle(
+                      fontSize: 10.5,
+                      fontWeight: FontWeight.w700,
+                      color: Color(redColor),
+                    ),
                   ),
                 ),
             ],
@@ -391,8 +532,12 @@ class _TopupReserveOrderPageState extends State<TopupReserveOrderPage> {
                   selected: block.amount == amount,
                   onTap: () => setState(() {
                     block.amount = amount;
-                    block.amountController.text = NumberHelper.thousands(amount);
-                    block.amountController.selection = TextSelection.collapsed(offset: block.amountController.text.length);
+                    block.amountController.text = NumberHelper.thousands(
+                      amount,
+                    );
+                    block.amountController.selection = TextSelection.collapsed(
+                      offset: block.amountController.text.length,
+                    );
                   }),
                 );
               },
@@ -405,18 +550,40 @@ class _TopupReserveOrderPageState extends State<TopupReserveOrderPage> {
             inputFormatters: [_ThousandsInputFormatter()],
             onChanged: (value) {
               final digits = value.replaceAll(RegExp(r'[^0-9]'), '');
-              setState(() => block.amount = digits.isEmpty ? 0 : int.parse(digits));
+              setState(
+                () => block.amount = digits.isEmpty ? 0 : int.parse(digits),
+              );
             },
-            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(blue2Color)),
+            style: const TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: Color(blue2Color),
+            ),
             decoration: InputDecoration(
               prefixText: 'Rp ',
-              prefixStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(blue2Color)),
+              prefixStyle: const TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: Color(blue2Color),
+              ),
               filled: true,
               fillColor: const Color(grey11Color),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(grey7Color))),
-              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(grey7Color))),
-              focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(primaryColor))),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 14,
+                vertical: 12,
+              ),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+                borderSide: const BorderSide(color: Color(grey7Color)),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+                borderSide: const BorderSide(color: Color(grey7Color)),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+                borderSide: const BorderSide(color: Color(primaryColor)),
+              ),
             ),
           ),
         ],
@@ -424,16 +591,28 @@ class _TopupReserveOrderPageState extends State<TopupReserveOrderPage> {
     );
   }
 
-  Widget _payToggleButton({required String icon, required String label, required bool selected, required VoidCallback onTap}) {
+  Widget _payToggleButton({
+    required String icon,
+    required String label,
+    required bool selected,
+    required VoidCallback onTap,
+  }) {
     return InkWell(
       borderRadius: BorderRadius.circular(11),
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 11),
         decoration: BoxDecoration(
-          color: selected ? const Color(roSelectedBgColor) : const Color(whiteColor),
+          color: selected
+              ? const Color(roSelectedBgColor)
+              : const Color(whiteColor),
           borderRadius: BorderRadius.circular(11),
-          border: Border.all(color: selected ? const Color(primaryColor) : const Color(grey7Color), width: 1.4),
+          border: Border.all(
+            color: selected
+                ? const Color(primaryColor)
+                : const Color(grey7Color),
+            width: 1.4,
+          ),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -442,7 +621,13 @@ class _TopupReserveOrderPageState extends State<TopupReserveOrderPage> {
             const SizedBox(width: 6),
             Text(
               label,
-              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: selected ? const Color(primaryColor) : const Color(grey1Color)),
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+                color: selected
+                    ? const Color(primaryColor)
+                    : const Color(grey1Color),
+              ),
             ),
           ],
         ),
@@ -464,7 +649,11 @@ class _TopupReserveOrderPageState extends State<TopupReserveOrderPage> {
         decoration: BoxDecoration(
           color: const Color(whiteColor),
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: uploaded ? const Color(successColor) : const Color(grey10Color)),
+          border: Border.all(
+            color: uploaded
+                ? const Color(successColor)
+                : const Color(grey10Color),
+          ),
         ),
         child: Row(
           children: [
@@ -472,7 +661,10 @@ class _TopupReserveOrderPageState extends State<TopupReserveOrderPage> {
               width: 36,
               height: 36,
               alignment: Alignment.center,
-              decoration: BoxDecoration(color: const Color(roIconBgColor), borderRadius: BorderRadius.circular(10)),
+              decoration: BoxDecoration(
+                color: const Color(roIconBgColor),
+                borderRadius: BorderRadius.circular(10),
+              ),
               child: const Text('🧾', style: TextStyle(fontSize: 16)),
             ),
             const SizedBox(width: 10),
@@ -483,8 +675,21 @@ class _TopupReserveOrderPageState extends State<TopupReserveOrderPage> {
                   RichText(
                     text: const TextSpan(
                       children: [
-                        TextSpan(text: 'Bukti Non Tunai ', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(blue2Color))),
-                        TextSpan(text: '· Wajib', style: TextStyle(fontSize: 10, color: Color(grey4Color))),
+                        TextSpan(
+                          text: 'Bukti Non Tunai ',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            color: Color(blue2Color),
+                          ),
+                        ),
+                        TextSpan(
+                          text: '· Wajib',
+                          style: TextStyle(
+                            fontSize: 10,
+                            color: Color(grey4Color),
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -493,12 +698,22 @@ class _TopupReserveOrderPageState extends State<TopupReserveOrderPage> {
                     uploaded ? block.proof!.name : 'Ketuk untuk upload',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: TextStyle(fontSize: 10.5, color: uploaded ? const Color(grey4Color) : const Color(primaryColor)),
+                    style: TextStyle(
+                      fontSize: 10.5,
+                      color: uploaded
+                          ? const Color(grey4Color)
+                          : const Color(primaryColor),
+                    ),
                   ),
                 ],
               ),
             ),
-            if (uploaded) const Icon(Icons.check_circle, size: 18, color: Color(successColor)),
+            if (uploaded)
+              const Icon(
+                Icons.check_circle,
+                size: 18,
+                color: Color(successColor),
+              ),
           ],
         ),
       ),
@@ -508,14 +723,26 @@ class _TopupReserveOrderPageState extends State<TopupReserveOrderPage> {
   Widget _buildAddMoreButton() {
     return InkWell(
       borderRadius: BorderRadius.circular(11),
-      onTap: () => setState(() => _blocks.add(_PaymentBlock(mode: _PayMode.cash, amount: 2000000))),
+      onTap: () => setState(
+        () => _blocks.add(_PaymentBlock(mode: _PayMode.cash, amount: 2000000)),
+      ),
       child: CustomPaint(
-        painter: _DashedBorderPainter(color: const Color(primaryColor), radius: 11),
+        painter: _DashedBorderPainter(
+          color: const Color(primaryColor),
+          radius: 11,
+        ),
         child: Container(
           width: double.infinity,
           padding: const EdgeInsets.symmetric(vertical: 12),
           alignment: Alignment.center,
-          child: const Text('+ Bayar Lagi', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(primaryColor))),
+          child: const Text(
+            '+ Bayar Lagi',
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
+              color: Color(primaryColor),
+            ),
+          ),
         ),
       ),
     );
@@ -532,9 +759,18 @@ class _TopupReserveOrderPageState extends State<TopupReserveOrderPage> {
         filled: true,
         fillColor: const Color(whiteColor),
         contentPadding: const EdgeInsets.all(12),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(grey7Color))),
-        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(grey7Color))),
-        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(primaryColor))),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: Color(grey7Color)),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: Color(grey7Color)),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: Color(primaryColor)),
+        ),
       ),
     );
   }
@@ -558,14 +794,22 @@ class _TopupReserveOrderPageState extends State<TopupReserveOrderPage> {
   String _fmtAmt(int value) {
     final jt = value / 1000000;
     final isWhole = jt == jt.roundToDouble();
-    final label = isWhole ? jt.toInt().toString() : jt.toStringAsFixed(1).replaceAll('.', ',');
+    final label = isWhole
+        ? jt.toInt().toString()
+        : jt.toStringAsFixed(1).replaceAll('.', ',');
     return '${label}jt';
   }
 
   Future<void> _submit() async {
-    final missingProof = _blocks.any((b) => b.mode == _PayMode.transfer && b.proof == null);
+    final missingProof = _blocks.any(
+      (b) => b.mode == _PayMode.transfer && b.proof == null,
+    );
     if (missingProof) {
-      showSnackbar(context, 'Setiap transaksi Non Tunai wajib upload bukti pembayaran.', isError: true);
+      showSnackbar(
+        context,
+        'Setiap transaksi Non Tunai wajib upload bukti pembayaran.',
+        isError: true,
+      );
       return;
     }
     if (_total <= 0) {
@@ -575,11 +819,17 @@ class _TopupReserveOrderPageState extends State<TopupReserveOrderPage> {
     setState(() => _isSubmitting = true);
     await Future.delayed(const Duration(milliseconds: 800));
     if (!mounted) return;
-    final methodsLabel = _blocks.map((b) => '${b.mode == _PayMode.cash ? 'Tunai' : 'Non Tunai'} Rp ${NumberHelper.thousands(b.amount)}').join(' + ');
+    final methodsLabel = _blocks
+        .map(
+          (b) =>
+              '${b.mode == _PayMode.cash ? 'Tunai' : 'Non Tunai'} Rp ${NumberHelper.thousands(b.amount)}',
+        )
+        .join(' + ');
     setState(() {
       _isSubmitting = false;
       _totalAfterSubmit = widget.totalPaidSoFar + _total;
-      _successText = '$_jenisPembayaran — ${_blocks.length} metode pembayaran ($methodsLabel) untuk ${widget.unitName} sedang diverifikasi.';
+      _successText =
+          '$_jenisPembayaran — ${_blocks.length} metode pembayaran ($methodsLabel) untuk ${widget.unitName} sedang diverifikasi.';
       _showSuccess = true;
     });
   }
@@ -587,11 +837,17 @@ class _TopupReserveOrderPageState extends State<TopupReserveOrderPage> {
 
 class _ThousandsInputFormatter extends TextInputFormatter {
   @override
-  TextEditingValue formatEditUpdate(TextEditingValue oldValue, TextEditingValue newValue) {
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
     final digits = newValue.text.replaceAll(RegExp(r'[^0-9]'), '');
     if (digits.isEmpty) return const TextEditingValue(text: '');
     final formatted = NumberHelper.thousands(int.parse(digits));
-    return TextEditingValue(text: formatted, selection: TextSelection.collapsed(offset: formatted.length));
+    return TextEditingValue(
+      text: formatted,
+      selection: TextSelection.collapsed(offset: formatted.length),
+    );
   }
 }
 
@@ -607,12 +863,23 @@ class _DashedBorderPainter extends CustomPainter {
       ..color = color
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1.4;
-    final rrect = RRect.fromRectAndRadius(Offset.zero & size, Radius.circular(radius));
-    final path = _dashPath(Path()..addRRect(rrect), dashLength: 5, gapLength: 4);
+    final rrect = RRect.fromRectAndRadius(
+      Offset.zero & size,
+      Radius.circular(radius),
+    );
+    final path = _dashPath(
+      Path()..addRRect(rrect),
+      dashLength: 5,
+      gapLength: 4,
+    );
     canvas.drawPath(path, paint);
   }
 
-  Path _dashPath(Path source, {required double dashLength, required double gapLength}) {
+  Path _dashPath(
+    Path source, {
+    required double dashLength,
+    required double gapLength,
+  }) {
     final dashed = Path();
     for (final metric in source.computeMetrics()) {
       var distance = 0.0;
@@ -620,7 +887,13 @@ class _DashedBorderPainter extends CustomPainter {
       while (distance < metric.length) {
         final length = draw ? dashLength : gapLength;
         if (draw) {
-          dashed.addPath(metric.extractPath(distance, math.min(distance + length, metric.length)), Offset.zero);
+          dashed.addPath(
+            metric.extractPath(
+              distance,
+              math.min(distance + length, metric.length),
+            ),
+            Offset.zero,
+          );
         }
         distance += length;
         draw = !draw;
@@ -630,5 +903,6 @@ class _DashedBorderPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant _DashedBorderPainter oldDelegate) => oldDelegate.color != color || oldDelegate.radius != radius;
+  bool shouldRepaint(covariant _DashedBorderPainter oldDelegate) =>
+      oldDelegate.color != color || oldDelegate.radius != radius;
 }

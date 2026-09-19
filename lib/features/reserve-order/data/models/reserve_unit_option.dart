@@ -1,4 +1,10 @@
 /// Unit/kavling yang bisa dipilih di step "Pilih Unit" pada wizard Create Reserve Order.
+///
+/// `id` cuma dipakai buat identitas UI (checklist terpilih/tidak) — untuk submit ke
+/// `POST /reserve-order/create`, pakai field id ASLI di bawah (`propertyId`/`productId`/dst),
+/// yang diisi dari `SelectUnitEntity` (tab "Unit dari Contact") atau `UnitCluster`/`UnitProduct`/
+/// `UnitLot` (tab "Pilih Unit Lain") — lihat `_toReserveUnitOption`/`_otherProductTiles` di
+/// `create/index.dart`.
 class ReserveUnitOption {
   final String id;
   final String name;
@@ -7,6 +13,14 @@ class ReserveUnitOption {
   final bool available;
   final bool special;
 
+  final int? dealId;
+  final int? townshipId;
+  final int? companyId;
+  final int? clusterId;
+  final int? productId;
+  final int? propertyId;
+  final bool isWaitingList;
+
   const ReserveUnitOption({
     required this.id,
     required this.name,
@@ -14,6 +28,13 @@ class ReserveUnitOption {
     this.price,
     this.available = true,
     this.special = false,
+    this.dealId,
+    this.townshipId,
+    this.companyId,
+    this.clusterId,
+    this.productId,
+    this.propertyId,
+    this.isWaitingList = false,
   });
 
   ReserveUnitOption copyWith({String? context}) => ReserveUnitOption(
@@ -23,6 +44,13 @@ class ReserveUnitOption {
         price: price,
         available: available,
         special: special,
+        dealId: dealId,
+        townshipId: townshipId,
+        companyId: companyId,
+        clusterId: clusterId,
+        productId: productId,
+        propertyId: propertyId,
+        isWaitingList: isWaitingList,
       );
 }
 

@@ -18,13 +18,19 @@ class EditCustomerReserveOrderPage extends StatefulWidget {
   final ReserveOrderCustomerData customer;
   final String? highlightKey;
 
-  const EditCustomerReserveOrderPage({super.key, required this.customer, this.highlightKey});
+  const EditCustomerReserveOrderPage({
+    super.key,
+    required this.customer,
+    this.highlightKey,
+  });
 
   @override
-  State<EditCustomerReserveOrderPage> createState() => _EditCustomerReserveOrderPageState();
+  State<EditCustomerReserveOrderPage> createState() =>
+      _EditCustomerReserveOrderPageState();
 }
 
-class _EditCustomerReserveOrderPageState extends State<EditCustomerReserveOrderPage> {
+class _EditCustomerReserveOrderPageState
+    extends State<EditCustomerReserveOrderPage> {
   late Map<String, dynamic> _values;
   final Map<String, TextEditingController> _tc = {};
   final Map<String, GlobalKey> _fieldKeys = {};
@@ -57,15 +63,26 @@ class _EditCustomerReserveOrderPageState extends State<EditCustomerReserveOrderP
     super.dispose();
   }
 
-  GlobalKey _keyFor(String key) => _fieldKeys.putIfAbsent(key, () => GlobalKey());
+  GlobalKey _keyFor(String key) =>
+      _fieldKeys.putIfAbsent(key, () => GlobalKey());
 
   void _scrollToHighlight() {
-    final targetContext = _highlightedKey == null ? null : _fieldKeys[_highlightedKey]?.currentContext;
+    final targetContext = _highlightedKey == null
+        ? null
+        : _fieldKeys[_highlightedKey]?.currentContext;
     if (targetContext == null) return;
-    Scrollable.ensureVisible(targetContext, duration: const Duration(milliseconds: 400), curve: Curves.easeInOut, alignment: 0.2);
+    Scrollable.ensureVisible(
+      targetContext,
+      duration: const Duration(milliseconds: 400),
+      curve: Curves.easeInOut,
+      alignment: 0.2,
+    );
   }
 
-  TextEditingController _c(String key) => _tc.putIfAbsent(key, () => TextEditingController(text: _values[key]?.toString() ?? ''));
+  TextEditingController _c(String key) => _tc.putIfAbsent(
+    key,
+    () => TextEditingController(text: _values[key]?.toString() ?? ''),
+  );
 
   DateTime? _dateValue(String key) {
     final value = _values[key];
@@ -78,7 +95,10 @@ class _EditCustomerReserveOrderPageState extends State<EditCustomerReserveOrderP
   Widget _fieldFrame(
     String key,
     Widget child, {
-    EdgeInsetsGeometry padding = const EdgeInsets.symmetric(vertical: 5, horizontal: 16),
+    EdgeInsetsGeometry padding = const EdgeInsets.symmetric(
+      vertical: 5,
+      horizontal: 16,
+    ),
   }) {
     final highlighted = key == _highlightedKey;
     return Container(
@@ -86,9 +106,16 @@ class _EditCustomerReserveOrderPageState extends State<EditCustomerReserveOrderP
       padding: padding,
       constraints: const BoxConstraints(minHeight: 50),
       decoration: BoxDecoration(
-        color: highlighted ? const Color(primaryColor).withValues(alpha: 0.06) : const Color(whiteColor),
+        color: highlighted
+            ? const Color(primaryColor).withValues(alpha: 0.06)
+            : const Color(whiteColor),
         border: Border(
-          bottom: BorderSide(width: highlighted ? 2 : 1, color: highlighted ? const Color(primaryColor) : const Color(grey9Color)),
+          bottom: BorderSide(
+            width: highlighted ? 2 : 1,
+            color: highlighted
+                ? const Color(primaryColor)
+                : const Color(grey9Color),
+          ),
         ),
       ),
       child: child,
@@ -108,7 +135,8 @@ class _EditCustomerReserveOrderPageState extends State<EditCustomerReserveOrderP
               _buildHeader(),
               Expanded(
                 child: SingleChildScrollView(
-                  keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+                  keyboardDismissBehavior:
+                      ScrollViewKeyboardDismissBehavior.onDrag,
                   padding: const EdgeInsets.only(bottom: 20),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -116,7 +144,12 @@ class _EditCustomerReserveOrderPageState extends State<EditCustomerReserveOrderP
                       for (final section in reserveCustomerFieldSections)
                         CustomDropdownGroupContact(
                           hint: section.title,
-                          child: Column(children: [for (final field in section.fields) _buildField(field)]),
+                          child: Column(
+                            children: [
+                              for (final field in section.fields)
+                                _buildField(field),
+                            ],
+                          ),
                         ),
                     ],
                   ),
@@ -140,7 +173,11 @@ class _EditCustomerReserveOrderPageState extends State<EditCustomerReserveOrderP
         children: [
           GestureDetector(
             onTap: () => Navigator.of(context).maybePop(),
-            child: const Icon(Icons.arrow_back, color: Color(primaryColor), size: 27),
+            child: const Icon(
+              Icons.arrow_back,
+              color: Color(primaryColor),
+              size: 27,
+            ),
           ),
           const SizedBox(width: 10),
           const Expanded(
@@ -158,14 +195,26 @@ class _EditCustomerReserveOrderPageState extends State<EditCustomerReserveOrderP
               height: 36,
               width: 100,
               alignment: Alignment.center,
-              decoration: BoxDecoration(borderRadius: BorderRadius.circular(14), color: const Color(blue3Color)),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(14),
+                color: const Color(blue3Color),
+              ),
               child: _submitting
                   ? const SizedBox(
                       width: 18,
                       height: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2, color: Color(whiteColor)),
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Color(whiteColor),
+                      ),
                     )
-                  : const Text('Save', style: TextStyle(color: Color(whiteColor), fontWeight: FontWeight.w700)),
+                  : const Text(
+                      'Save',
+                      style: TextStyle(
+                        color: Color(whiteColor),
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
             ),
           ),
         ],
@@ -186,20 +235,44 @@ class _EditCustomerReserveOrderPageState extends State<EditCustomerReserveOrderP
   /// bawah, label jadi hint saat kosong lalu mengambang ke atas begitu diisi/difokus.
   Widget _textField(ReserveCustomerFieldSpec f) {
     final highlighted = f.key == _highlightedKey;
-    final labelColor = highlighted ? const Color(primaryColor) : const Color(grey2Color);
+    final labelColor = highlighted
+        ? const Color(primaryColor)
+        : const Color(grey2Color);
     return _fieldFrame(
       f.key,
       TextField(
         controller: _c(f.key),
         keyboardType: f.keyboardType,
-        inputFormatters: f.key == 'cust_ktp' ? [FilteringTextInputFormatter.digitsOnly, LengthLimitingTextInputFormatter(16)] : null,
+        inputFormatters: f.key == 'cust_ktp'
+            ? [
+                FilteringTextInputFormatter.digitsOnly,
+                LengthLimitingTextInputFormatter(16),
+              ]
+            : null,
         minLines: f.maxLines > 1 ? f.maxLines : null,
         maxLines: null,
-        style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: highlighted ? const Color(primaryColor) : const Color(blackColor)),
+        style: TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.w700,
+          color: highlighted
+              ? const Color(primaryColor)
+              : const Color(blackColor),
+        ),
         decoration: InputDecoration(
           isDense: true,
-          label: Text(f.label, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: labelColor)),
-          floatingLabelStyle: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: labelColor),
+          label: Text(
+            f.label,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              color: labelColor,
+            ),
+          ),
+          floatingLabelStyle: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w700,
+            color: labelColor,
+          ),
           hintText: f.hint,
           hintStyle: const TextStyle(fontSize: 12, color: Color(grey5Color)),
           border: InputBorder.none,
@@ -212,7 +285,11 @@ class _EditCustomerReserveOrderPageState extends State<EditCustomerReserveOrderP
   }
 
   Widget _boolField(ReserveCustomerFieldSpec f) {
-    final current = switch (_values[f.key]) { true => f.trueLabel, false => f.falseLabel, _ => null };
+    final current = switch (_values[f.key]) {
+      true => f.trueLabel,
+      false => f.falseLabel,
+      _ => null,
+    };
     return _buildPickerField(
       fieldKey: f.key,
       label: f.label,
@@ -231,7 +308,9 @@ class _EditCustomerReserveOrderPageState extends State<EditCustomerReserveOrderP
     return _buildPickerField(
       fieldKey: f.key,
       label: f.label,
-      value: value == null ? null : DateFormat('dd MMMM yyyy', 'id_ID').format(value),
+      value: value == null
+          ? null
+          : DateFormat('dd MMMM yyyy', 'id_ID').format(value),
       onTap: () async {
         final now = DateTime.now();
         final picked = await showDatePicker(
@@ -240,7 +319,10 @@ class _EditCustomerReserveOrderPageState extends State<EditCustomerReserveOrderP
           firstDate: DateTime(1900),
           lastDate: now,
         );
-        if (picked != null) setState(() => _values[f.key] = picked.toIso8601String().split('T').first);
+        if (picked != null)
+          setState(
+            () => _values[f.key] = picked.toIso8601String().split('T').first,
+          );
       },
     );
   }
@@ -263,9 +345,16 @@ class _EditCustomerReserveOrderPageState extends State<EditCustomerReserveOrderP
   /// Field "pilihan" underline (tanggal/opsi/ya-tidak) — gaya `ContactFormPage._buildFieldDown`:
   /// label kecil di atas nilai kalau sudah terisi, atau label besar sebagai placeholder kalau
   /// masih kosong, + panah dropdown di kanan.
-  Widget _buildPickerField({required String fieldKey, required String label, required String? value, required VoidCallback onTap}) {
+  Widget _buildPickerField({
+    required String fieldKey,
+    required String label,
+    required String? value,
+    required VoidCallback onTap,
+  }) {
     final highlighted = fieldKey == _highlightedKey;
-    final labelColor = highlighted ? const Color(primaryColor) : const Color(grey2Color);
+    final labelColor = highlighted
+        ? const Color(primaryColor)
+        : const Color(grey2Color);
     final isEmpty = value == null || value.isEmpty;
     return _fieldFrame(
       fieldKey,
@@ -278,14 +367,42 @@ class _EditCustomerReserveOrderPageState extends State<EditCustomerReserveOrderP
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  if (!isEmpty) Text(label, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: labelColor)),
+                  if (!isEmpty)
+                    Text(
+                      label,
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w700,
+                        color: labelColor,
+                      ),
+                    ),
                   isEmpty
-                      ? Text(label, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: labelColor))
-                      : Text(value, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: highlighted ? const Color(primaryColor) : const Color(blackColor))),
+                      ? Text(
+                          label,
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            color: labelColor,
+                          ),
+                        )
+                      : Text(
+                          value,
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            color: highlighted
+                                ? const Color(primaryColor)
+                                : const Color(blackColor),
+                          ),
+                        ),
                 ],
               ),
             ),
-            const Icon(Icons.arrow_drop_down, size: 28, color: Color(grey4Color)),
+            const Icon(
+              Icons.arrow_drop_down,
+              size: 28,
+              color: Color(grey4Color),
+            ),
           ],
         ),
       ),
@@ -307,12 +424,22 @@ class _EditCustomerReserveOrderPageState extends State<EditCustomerReserveOrderP
         children: [
           Padding(
             padding: const EdgeInsets.only(left: 4, bottom: 8),
-            child: Text(title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Color(blackColor))),
+            child: Text(
+              title,
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
+                color: Color(blackColor),
+              ),
+            ),
           ),
           if (items.isEmpty)
             const Padding(
               padding: EdgeInsets.symmetric(vertical: 12, horizontal: 4),
-              child: Text('Tidak ada pilihan tersedia', style: TextStyle(fontSize: 13, color: Color(grey5Color))),
+              child: Text(
+                'Tidak ada pilihan tersedia',
+                style: TextStyle(fontSize: 13, color: Color(grey5Color)),
+              ),
             )
           else
             for (final item in items)
@@ -322,11 +449,27 @@ class _EditCustomerReserveOrderPageState extends State<EditCustomerReserveOrderP
                   onPicked(item);
                 },
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 12,
+                    horizontal: 4,
+                  ),
                   child: Row(
                     children: [
-                      Expanded(child: Text(item, style: const TextStyle(fontSize: 13, color: Color(blackColor)))),
-                      if (item == selected) const Icon(Icons.check, size: 18, color: Color(primaryColor)),
+                      Expanded(
+                        child: Text(
+                          item,
+                          style: const TextStyle(
+                            fontSize: 13,
+                            color: Color(blackColor),
+                          ),
+                        ),
+                      ),
+                      if (item == selected)
+                        const Icon(
+                          Icons.check,
+                          size: 18,
+                          color: Color(primaryColor),
+                        ),
                     ],
                   ),
                 ),
@@ -339,7 +482,9 @@ class _EditCustomerReserveOrderPageState extends State<EditCustomerReserveOrderP
 
   Future<void> _onSubmit() async {
     if (_c('cust_name').text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Nama lengkap wajib diisi')));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Nama lengkap wajib diisi')));
       return;
     }
 
@@ -358,7 +503,9 @@ class _EditCustomerReserveOrderPageState extends State<EditCustomerReserveOrderP
       for (final f in section.fields) {
         if (f.kind != ReserveCustomerFieldKind.text) continue;
         final text = _c(f.key).text.trim();
-        raw[f.key] = text.isEmpty ? null : (f.numeric ? num.tryParse(text) : text);
+        raw[f.key] = text.isEmpty
+            ? null
+            : (f.numeric ? num.tryParse(text) : text);
       }
     }
     return raw;

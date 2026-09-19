@@ -32,7 +32,13 @@ class ReserveOrderTimelineStep {
   final ReserveOrderStepStatus status;
   final List<ReserveOrderTimelineNote> notes;
 
-  const ReserveOrderTimelineStep({required this.label, this.sub, this.subColor, required this.status, this.notes = const []});
+  const ReserveOrderTimelineStep({
+    required this.label,
+    this.sub,
+    this.subColor,
+    required this.status,
+    this.notes = const [],
+  });
 }
 
 class ReserveOrderChatMessage {
@@ -42,7 +48,13 @@ class ReserveOrderChatMessage {
   final String text;
   final Color color;
 
-  ReserveOrderChatMessage({required this.who, required this.role, required this.time, required this.text, required this.color});
+  ReserveOrderChatMessage({
+    required this.who,
+    required this.role,
+    required this.time,
+    required this.text,
+    required this.color,
+  });
 }
 
 /// Satu Reserve Order lengkap dengan detail — dipakai `ReserveOrderDetailPage`.

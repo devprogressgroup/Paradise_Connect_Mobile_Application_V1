@@ -3,8 +3,6 @@ import 'package:progress_group/core/constants/colors.dart';
 import 'package:progress_group/core/utils/widget/custom_bg_icon.dart';
 import 'package:progress_group/features/contact/domain/entities/contact/contact_entity.dart';
 
-
-
 class ContactOptionsSheet extends StatelessWidget {
   final ContactEntity contact;
   final int initialTab;
@@ -22,21 +20,19 @@ class ContactOptionsSheet extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
-        children: [
-          
-        ],
+        children: [],
       ),
     );
   }
 
   static Widget buildIconLink(
     BuildContext context,
-    String asset,
+    String? asset,
     String label,
     VoidCallback onTap, {
     Color? color,
+    IconData fallbackIcon = Icons.more_vert,
   }) {
-
     return InkWell(
       onTap: () {
         Navigator.pop(context);
@@ -46,7 +42,12 @@ class ContactOptionsSheet extends StatelessWidget {
         padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
         child: Row(
           children: [
-            BgIcon(asset: asset, onTap: null, color: color),
+            BgIcon(
+              asset: asset,
+              onTap: null,
+              color: color,
+              fallbackIcon: fallbackIcon,
+            ),
             const SizedBox(width: 10),
             Text(
               label,

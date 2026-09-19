@@ -20,8 +20,8 @@ import 'package:progress_group/features/reserve-order/presentation/state/reserve
 import 'package:progress_group/features/reserve-order/presentation/state/reserve_status/reserve_status_event.dart';
 import 'package:progress_group/features/reserve-order/presentation/state/reserve_status/reserve_status_state.dart';
 
-import '../create/index.dart';
 import '../detail/index.dart';
+import '../select-contact/index.dart';
 
 /// Menu "Reserve Order" — halaman list transaksi.
 ///
@@ -107,15 +107,16 @@ class _ReserveOrderListPageState extends State<ReserveOrderListPage> {
     final statusNames = _statusIds.isEmpty
         ? const <String>{}
         : context
-            .read<ReserveStatusBloc>()
-            .state
-            .statuses
-            .where((e) => _statusIds.contains(e.statusReserveId))
-            .map((e) => e.displayName)
-            .toSet();
+              .read<ReserveStatusBloc>()
+              .state
+              .statuses
+              .where((e) => _statusIds.contains(e.statusReserveId))
+              .map((e) => e.displayName)
+              .toSet();
 
     final list = _items.where((o) {
-      final matchTerm = term.isEmpty ||
+      final matchTerm =
+          term.isEmpty ||
           o.customerName.toLowerCase().contains(term) ||
           o.unitName.toLowerCase().contains(term);
       final matchStatus = statusNames.isEmpty || statusNames.contains(o.status);
@@ -170,7 +171,9 @@ class _ReserveOrderListPageState extends State<ReserveOrderListPage> {
           onPressed: () {
             AnalyticsService.logEvent('reserve_order_list_fab_create');
             Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => const CreateReserveOrderPage()),
+              MaterialPageRoute(
+                builder: (_) => const SelectContactForReserveOrderPage(),
+              ),
             );
           },
           backgroundColor: const Color(primaryColor),
@@ -194,7 +197,11 @@ class _ReserveOrderListPageState extends State<ReserveOrderListPage> {
         children: [
           const Text(
             'Reserve Order',
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(blue2Color)),
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: Color(blue2Color),
+            ),
           ),
           const SizedBox(height: 2),
           Text(
@@ -221,7 +228,9 @@ class _ReserveOrderListPageState extends State<ReserveOrderListPage> {
               label: sortLabel,
               isSelected: _sort != _defaultSort,
               onTap: _openSortSheet,
-              onClear: _sort != _defaultSort ? () => setState(() => _sort = _defaultSort) : null,
+              onClear: _sort != _defaultSort
+                  ? () => setState(() => _sort = _defaultSort)
+                  : null,
             ),
             const SizedBox(width: 8),
             Stack(
@@ -239,7 +248,11 @@ class _ReserveOrderListPageState extends State<ReserveOrderListPage> {
                     top: 0,
                     bottom: 0,
                     child: Center(
-                      child: SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2)),
+                      child: SizedBox(
+                        width: 14,
+                        height: 14,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
                     ),
                   ),
                 if (filterCount > 0)
@@ -248,12 +261,22 @@ class _ReserveOrderListPageState extends State<ReserveOrderListPage> {
                     right: 4,
                     child: Container(
                       padding: const EdgeInsets.all(3),
-                      constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
-                      decoration: const BoxDecoration(color: Color(redColor), shape: BoxShape.circle),
+                      constraints: const BoxConstraints(
+                        minWidth: 16,
+                        minHeight: 16,
+                      ),
+                      decoration: const BoxDecoration(
+                        color: Color(redColor),
+                        shape: BoxShape.circle,
+                      ),
                       child: Text(
                         '$filterCount',
                         textAlign: TextAlign.center,
-                        style: const TextStyle(color: Color(whiteColor), fontSize: 9, fontWeight: FontWeight.bold),
+                        style: const TextStyle(
+                          color: Color(whiteColor),
+                          fontSize: 9,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
                   ),
@@ -295,9 +318,15 @@ class _ReserveOrderListPageState extends State<ReserveOrderListPage> {
     }
   }
 
-  Future<T> _waitUntilReady<T>(Stream<T> stream, bool Function(T) isReady, T current) {
+  Future<T> _waitUntilReady<T>(
+    Stream<T> stream,
+    bool Function(T) isReady,
+    T current,
+  ) {
     if (isReady(current)) return Future.value(current);
-    return stream.firstWhere(isReady).timeout(const Duration(seconds: 6), onTimeout: () => current);
+    return stream
+        .firstWhere(isReady)
+        .timeout(const Duration(seconds: 6), onTimeout: () => current);
   }
 
   Future<void> _openFilterSheet() async {
@@ -309,12 +338,16 @@ class _ReserveOrderListPageState extends State<ReserveOrderListPage> {
     await Future.wait([
       _waitUntilReady<ReserveStatusState>(
         statusBloc.stream,
-        (s) => s.status != ReserveStatusEnum.initial && s.status != ReserveStatusEnum.loading,
+        (s) =>
+            s.status != ReserveStatusEnum.initial &&
+            s.status != ReserveStatusEnum.loading,
         statusBloc.state,
       ),
       _waitUntilReady<InfoSourceState>(
         sourceBloc.stream,
-        (s) => s.status != InfoSourceStatus.initial && s.status != InfoSourceStatus.loading,
+        (s) =>
+            s.status != InfoSourceStatus.initial &&
+            s.status != InfoSourceStatus.loading,
         sourceBloc.state,
       ),
     ]);
@@ -326,8 +359,13 @@ class _ReserveOrderListPageState extends State<ReserveOrderListPage> {
 
     final statusItems = statusState.status == ReserveStatusEnum.loaded
         ? statusState.statuses
-            .map((e) => OwnerDropdownItem(id: e.statusReserveId, name: e.displayName))
-            .toList()
+              .map(
+                (e) => OwnerDropdownItem(
+                  id: e.statusReserveId,
+                  name: e.displayName,
+                ),
+              )
+              .toList()
         : <OwnerDropdownItem>[];
     final channelItems = (sourceState.sourcesMap[1] ?? const <InfoSource>[])
         .map((e) => OwnerDropdownItem(id: e.id, name: e.name))
@@ -358,12 +396,42 @@ class _ReserveOrderListPageState extends State<ReserveOrderListPage> {
         section: 'Data Reserve',
         fetchPage: hierarchyService.channelDetail,
       ),
-      PaginatedCheckGroup(key: 'owner', label: 'Owner', section: 'Sales', fetchPage: hierarchyService.owners),
-      PaginatedCheckGroup(key: 'executive', label: 'Sales Executive', section: 'Sales', fetchPage: hierarchyService.executives),
-      PaginatedCheckGroup(key: 'supervisor', label: 'Sales Supervisor', section: 'Sales', fetchPage: hierarchyService.supervisors),
-      PaginatedCheckGroup(key: 'manager', label: 'Sales Manager', section: 'Sales', fetchPage: hierarchyService.managers),
-      PaginatedCheckGroup(key: 'gm', label: 'General Manager', section: 'Sales', fetchPage: hierarchyService.generalManagers),
-      PaginatedCheckGroup(key: 'team', label: 'Sales Team', section: 'Sales', fetchPage: hierarchyService.teams),
+      PaginatedCheckGroup(
+        key: 'owner',
+        label: 'Owner',
+        section: 'Sales',
+        fetchPage: hierarchyService.owners,
+      ),
+      PaginatedCheckGroup(
+        key: 'executive',
+        label: 'Sales Executive',
+        section: 'Sales',
+        fetchPage: hierarchyService.executives,
+      ),
+      PaginatedCheckGroup(
+        key: 'supervisor',
+        label: 'Sales Supervisor',
+        section: 'Sales',
+        fetchPage: hierarchyService.supervisors,
+      ),
+      PaginatedCheckGroup(
+        key: 'manager',
+        label: 'Sales Manager',
+        section: 'Sales',
+        fetchPage: hierarchyService.managers,
+      ),
+      PaginatedCheckGroup(
+        key: 'gm',
+        label: 'General Manager',
+        section: 'Sales',
+        fetchPage: hierarchyService.generalManagers,
+      ),
+      PaginatedCheckGroup(
+        key: 'team',
+        label: 'Sales Team',
+        section: 'Sales',
+        fetchPage: hierarchyService.teams,
+      ),
     ];
 
     final initialChecks = <String, Set<int>>{
@@ -438,7 +506,11 @@ class _ReserveOrderListPageState extends State<ReserveOrderListPage> {
       onTap: () {
         AnalyticsService.logEvent('reserve_order_list_open_detail');
         Navigator.of(context).push(
-          MaterialPageRoute(builder: (_) => ReserveOrderDetailPage(initiallyRejected: order.status == 'Ditolak')),
+          MaterialPageRoute(
+            builder: (_) => ReserveOrderDetailPage(
+              initiallyRejected: order.status == 'Ditolak',
+            ),
+          ),
         );
       },
       child: Container(
@@ -448,7 +520,11 @@ class _ReserveOrderListPageState extends State<ReserveOrderListPage> {
           color: const Color(whiteColor),
           borderRadius: BorderRadius.circular(14),
           boxShadow: [
-            BoxShadow(color: const Color(blackColor).withValues(alpha: 0.06), blurRadius: 8, offset: const Offset(0, 2)),
+            BoxShadow(
+              color: const Color(blackColor).withValues(alpha: 0.06),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
           ],
         ),
         child: Column(
@@ -462,7 +538,11 @@ class _ReserveOrderListPageState extends State<ReserveOrderListPage> {
                     order.customerName,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(blue2Color)),
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: Color(blue2Color),
+                    ),
                   ),
                 ),
                 const SizedBox(width: 8),
@@ -479,11 +559,19 @@ class _ReserveOrderListPageState extends State<ReserveOrderListPage> {
                   child: Text.rich(
                     TextSpan(
                       text: order.unitName,
-                      style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w600, color: Color(blue2Color)),
+                      style: const TextStyle(
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.w600,
+                        color: Color(blue2Color),
+                      ),
                       children: [
                         TextSpan(
                           text: '\n${order.unitSub}',
-                          style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w400, color: Color(grey4Color)),
+                          style: const TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w400,
+                            color: Color(grey4Color),
+                          ),
                         ),
                       ],
                     ),
@@ -511,10 +599,17 @@ class _ReserveOrderListPageState extends State<ReserveOrderListPage> {
   Widget _statusBadge(String label, Color color) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-      decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(20)),
+      decoration: BoxDecoration(
+        color: color,
+        borderRadius: BorderRadius.circular(20),
+      ),
       child: Text(
         label,
-        style: const TextStyle(color: Color(whiteColor), fontSize: 10.5, fontWeight: FontWeight.bold),
+        style: const TextStyle(
+          color: Color(whiteColor),
+          fontSize: 10.5,
+          fontWeight: FontWeight.bold,
+        ),
       ),
     );
   }
@@ -525,7 +620,10 @@ class _ReserveOrderListPageState extends State<ReserveOrderListPage> {
       children: [
         Text(emoji, style: const TextStyle(fontSize: 10.5)),
         const SizedBox(width: 4),
-        Text(text, style: const TextStyle(fontSize: 10.5, color: Color(grey4Color))),
+        Text(
+          text,
+          style: const TextStyle(fontSize: 10.5, color: Color(grey4Color)),
+        ),
       ],
     );
   }

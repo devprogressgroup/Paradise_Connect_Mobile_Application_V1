@@ -1,4 +1,3 @@
-﻿
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'dart:ui' show PlatformDispatcher;
@@ -85,8 +84,18 @@ import 'package:progress_group/features/contact/domain/usecases/sales_hierarchy/
 import 'package:progress_group/features/contact/domain/usecases/lost_reason/get_lost_reason.dart';
 import 'package:progress_group/features/reserve-order/data/datasources/reserve_order_remote_datasource.dart';
 import 'package:progress_group/features/reserve-order/domain/repositories/reserve_order_repository_impl.dart';
+import 'package:progress_group/features/reserve-order/domain/usecases/create_reserve_order_usecase.dart';
+import 'package:progress_group/features/reserve-order/domain/usecases/get_cara_bayar_usecase.dart';
+import 'package:progress_group/features/reserve-order/domain/usecases/get_payment_types_usecase.dart';
 import 'package:progress_group/features/reserve-order/domain/usecases/get_reserve_statuses_usecase.dart';
+import 'package:progress_group/features/reserve-order/domain/usecases/get_select_unit_usecase.dart';
+import 'package:progress_group/features/reserve-order/domain/usecases/get_work_category_usecase.dart';
+import 'package:progress_group/features/reserve-order/presentation/state/cara_bayar/cara_bayar_bloc.dart';
+import 'package:progress_group/features/reserve-order/presentation/state/create_reserve_order/create_reserve_order_cubit.dart';
+import 'package:progress_group/features/reserve-order/presentation/state/payment_type/payment_type_bloc.dart';
 import 'package:progress_group/features/reserve-order/presentation/state/reserve_status/reserve_status_bloc.dart';
+import 'package:progress_group/features/reserve-order/presentation/state/select_unit/select_unit_bloc.dart';
+import 'package:progress_group/features/reserve-order/presentation/state/work_category/work_category_bloc.dart';
 import 'package:progress_group/features/contact/presentation/state/attachment/attachment_cubit.dart';
 import 'package:progress_group/features/contact/presentation/state/info_source/info_source_bloc.dart';
 import 'package:progress_group/features/contact/presentation/state/sales_hierarchy/sales_hierarchy_service.dart';
@@ -179,9 +188,7 @@ import 'features/landing-page/domain/usecases/get_landing_page_url_usecase.dart'
 import 'features/landing-page/presentation/state/landing_page_cubit.dart';
 
 @pragma('vm:entry-point')
-Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-  
-}
+Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {}
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -226,7 +233,6 @@ void main() async {
   AnalyticsService.loadFromPrefs(prefs);
   ImpersonationManager.bind(prefs);
 
-
   try {
     final localDs = AuthLocalDataSourceImpl(prefs);
     final dio = DioClient(localDs).dio;
@@ -243,16 +249,17 @@ void main() async {
       onTimeout: () => <Map<String, dynamic>>[],
     );
     if (settings.isNotEmpty) ApiConstants.applySettings(settings);
-    await analyticsFuture.timeout(
-      const Duration(seconds: 8),
-      onTimeout: () {},
-    );
+    await analyticsFuture.timeout(const Duration(seconds: 8), onTimeout: () {});
   } catch (_) {}
 
   try {
-    await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
     if (!kIsWeb) {
-      FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+      FirebaseMessaging.onBackgroundMessage(
+        _firebaseMessagingBackgroundHandler,
+      );
     }
     // Timeout jaga-jaga: init ini jalan sebelum runApp(), jadi kalau ada panggilan di
     // dalamnya yang menggantung (mis. permission/service-worker API browser yang tidak
@@ -335,14 +342,15 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     }
   }
 
-  
   void _refreshAccessSilently() {
-    if (!AppRouter.authNotifier.value) return; 
+    if (!AppRouter.authNotifier.value) return;
     final ctx = AppRouter.rootNavigatorKey.currentContext;
     if (ctx == null) return;
     try {
       ctx.read<AuthBloc>().add(FetchPermissionsEvent(silent: true));
-      ctx.read<ProfileBloc>().add(GetProfileEvent(forceRefresh: true, silent: true));
+      ctx.read<ProfileBloc>().add(
+        GetProfileEvent(forceRefresh: true, silent: true),
+      );
     } catch (_) {}
   }
 
@@ -351,8 +359,6 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
       final result = await VersionCheckService.check();
       if (!mounted || !result.requiresUpdate) return;
       if (kIsWeb) {
-        
-        
         forcePwaUpdate();
         return;
       }
@@ -371,18 +377,16 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   void _resetApp() {
     DioClient.resetSession();
     setState(() {
-      
       AppRouter.authNotifier.value = false;
-      
+
       AppRouter.init();
-      
+
       _blocKey = UniqueKey();
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    
     final localDataSource = AuthLocalDataSourceImpl(widget.prefs);
     final dioClient = DioClient(localDataSource);
     final settingsDs = SettingsRemoteDataSource(dioClient.dio);
@@ -407,104 +411,102 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     final impersonateUseCase = ImpersonateUseCase(repository);
     final stopImpersonationUseCase = StopImpersonationUseCase(repository);
 
-    
     final inboxRemoteDataSource = InboxContactRemoteDataSourceImpl(dioClient.dio);
+  
     final inboxRepository = InboxContactRepositoryImpl(inboxRemoteDataSource);
     final getInboxContactsUsecase = GetInboxContactsUsecase(inboxRepository);
-    final getWhatsappDevicesUsecase = GetWhatsappDevicesUsecase(inboxRepository);
+    final getWhatsappDevicesUsecase = GetWhatsappDevicesUsecase(inboxRepository,);
     final getQrSessionUsecase = GetQrSessionUsecase(inboxRepository);
     final requestPairCodeUsecase = RequestPairCodeUsecase(inboxRepository);
     final messageRemoteDataSource = MessageRemoteDataSourceImpl(dioClient.dio);
     final messageRepository = MessageRepositoryImpl(messageRemoteDataSource);
     final getMessagesUseCase = GetMessagesUseCase(messageRepository);
 
-    
     final reportRemoteDataSource = ReportRemoteDataSourceImpl(dioClient.dio);
     final reportRepository = ReportRepositoryImpl(reportRemoteDataSource);
     final getVolumeReportUseCase = GetVolumeReportUseCase(reportRepository);
-    final getProspectStatusSummaryUseCase = GetProspectStatusSummaryUseCase(reportRepository);
-    final getSalesChannelsSummaryUseCase = GetSalesChannelsSummaryUseCase(reportRepository);
+    final getProspectStatusSummaryUseCase = GetProspectStatusSummaryUseCase(reportRepository,);
+    final getSalesChannelsSummaryUseCase = GetSalesChannelsSummaryUseCase(reportRepository,);
 
-    
     final contactRemoteDataSource = ContactRemoteDataSourceImpl(dioClient.dio);
     final contactRepository = ContactRepositoryImpl(contactRemoteDataSource);
-    
-    final pipelineRemoteDataSource = PipelineRemoteDataSourceImpl(dioClient.dio);
-    final globalNotificationRemoteDataSource = GlobalNotificationRemoteDataSourceImpl(dioClient.dio);
+
+    final pipelineRemoteDataSource = PipelineRemoteDataSourceImpl(dioClient.dio,);
+    final globalNotificationRemoteDataSource =GlobalNotificationRemoteDataSourceImpl(dioClient.dio);
     final getContactsUseCase = GetContactsUseCase(contactRepository);
     final getContactDetailUseCase = GetContactDetailUseCase(contactRepository);
-    final getAllContactsForDuplicateCheckUseCase = GetAllContactsForDuplicateCheckUseCase(contactRepository);
-    final checkDuplicateContactUseCase = CheckDuplicateContactUseCase(contactRepository);
-    final getProspectStatusesUseCase = GetProspectStatusesUseCase(contactRepository);
-    final getContactFormProspectStatusesUseCase = GetContactFormProspectStatusesUseCase(contactRepository);
+    final getAllContactsForDuplicateCheckUseCase =GetAllContactsForDuplicateCheckUseCase(contactRepository);
+    final checkDuplicateContactUseCase = CheckDuplicateContactUseCase(contactRepository,);
+    final getProspectStatusesUseCase = GetProspectStatusesUseCase(contactRepository,);
+    final getContactFormProspectStatusesUseCase =GetContactFormProspectStatusesUseCase(contactRepository);
     final getActivitiesUseCase = GetActivitiesUseCase(contactRepository);
     final createActivityUseCase = CreateActivityUseCase(contactRepository);
     final postStatusFollowUseCase = PostStatusFollowUseCase(contactRepository);
     final createContactUseCase = CreateContactUseCase(contactRepository);
     final updateContactUseCase = UpdateContactUseCase(contactRepository);
     final deleteContactUseCase = DeleteContactUseCase(contactRepository);
-    final getContactPropertiesUseCase = GetContactPropertiesUseCase(contactRepository);
-    final getAttachmentTypesUseCase = GetAttachmentTypesUseCase(contactRepository);
+    final getContactPropertiesUseCase = GetContactPropertiesUseCase(contactRepository,);
+    final getAttachmentTypesUseCase = GetAttachmentTypesUseCase(contactRepository,);
     final uploadAttachmentUseCase = UploadAttachmentUseCase(contactRepository);
     final getAttachmentsUseCase = GetAttachments(contactRepository);
     final deleteAttachmentUseCase = DeleteAttachmentUseCase(contactRepository);
     final updateAttachmentUseCase = UpdateAttachmentUseCase(contactRepository);
-    final createActivityVisitUseCase = CreateActivityVisitUseCase(contactRepository);
-    final getActivityProspectStatusUseCase = GetActivityProspectStatusUseCase(contactRepository);
-    final getWhatsappActivityUseCase =  GetWhatsappUnreadSummaryUseCase(contactRepository);
+    final createActivityVisitUseCase = CreateActivityVisitUseCase(contactRepository,);
+    final getActivityProspectStatusUseCase = GetActivityProspectStatusUseCase(contactRepository,);
+    final getWhatsappActivityUseCase = GetWhatsappUnreadSummaryUseCase(contactRepository,);
     final getInfoSourcesUseCase = GetInfoSourcesUseCase(contactRepository);
-    final getSalesChannelDetailsUseCase = GetSalesChannelDetailsUseCase(contactRepository);
+    final getSalesChannelDetailsUseCase = GetSalesChannelDetailsUseCase(contactRepository,);
     final getSalesOwnersUseCase = GetSalesOwnersUseCase(contactRepository);
-    final getSalesExecutivesUseCase = GetSalesExecutivesUseCase(contactRepository);
-    final getSalesSupervisorsUseCase = GetSalesSupervisorsUseCase(contactRepository);
+    final getSalesExecutivesUseCase = GetSalesExecutivesUseCase(contactRepository,);
+    final getSalesSupervisorsUseCase = GetSalesSupervisorsUseCase(contactRepository,);
     final getSalesManagersUseCase = GetSalesManagersUseCase(contactRepository);
-    final getSalesGeneralManagersUseCase = GetSalesGeneralManagersUseCase(contactRepository);
-    final getSalesTeamsPaginatedUseCase = GetSalesTeamsPaginatedUseCase(contactRepository);
+    final getSalesGeneralManagersUseCase = GetSalesGeneralManagersUseCase(contactRepository,);
+    final getSalesTeamsPaginatedUseCase = GetSalesTeamsPaginatedUseCase(contactRepository,);
     final getLostReasonsUseCase = GetLostReasonsUseCase(contactRepository);
     final getProductTypesUseCase = GetProductTypesUseCase(contactRepository);
     final getPropertyUnitsUseCase = GetPropertyUnitsUseCase(contactRepository);
-    final getPropertyCommercialUnitsUseCase = GetPropertyCommercialUnitsUseCase(contactRepository);
+    final getPropertyCommercialUnitsUseCase = GetPropertyCommercialUnitsUseCase(contactRepository,);
     final getUnitHierarchyUseCase = GetUnitHierarchyUseCase(contactRepository);
     final getUnitLotsUseCase = GetUnitLotsUseCase(contactRepository);
 
+    final reserveOrderRemoteDataSource = ReserveOrderRemoteDataSourceImpl(dioClient.dio,);
+    final reserveOrderRepository = ReserveOrderRepositoryImpl(reserveOrderRemoteDataSource,);
+    final getReserveStatusesUseCase = GetReserveStatusesUseCase(reserveOrderRepository,);
+    final getCaraBayarUseCase = GetCaraBayarUseCase(reserveOrderRepository);
+    final getWorkCategoryUseCase = GetWorkCategoryUseCase(reserveOrderRepository,);
+    final getSelectUnitUseCase = GetSelectUnitUseCase(reserveOrderRepository);
+    final getPaymentTypesUseCase = GetPaymentTypesUseCase(reserveOrderRepository,);
+    final createReserveOrderUseCase = CreateReserveOrderUseCase(reserveOrderRepository);
 
-    final reserveOrderRemoteDataSource = ReserveOrderRemoteDataSourceImpl(dioClient.dio);
-    final reserveOrderRepository = ReserveOrderRepositoryImpl(reserveOrderRemoteDataSource);
-    final getReserveStatusesUseCase = GetReserveStatusesUseCase(reserveOrderRepository);
+    final siteplanRemoteDataSource = SiteplanRemoteDataSourceImpl(dioClient.dio,);
+    final siteplanRepository = SitePlanRepositoryImpl(siteplanRemoteDataSource,localDataSource,);
 
-
-    final siteplanRemoteDataSource = SiteplanRemoteDataSourceImpl(dioClient.dio);
-    final siteplanRepository = SitePlanRepositoryImpl(siteplanRemoteDataSource, localDataSource);
-
-    
     final landingPageRemoteDataSource = LandingPageRemoteDataSourceImpl();
-    final landingPageRepository = LandingPageRepositoryImpl(landingPageRemoteDataSource);
-    final getLandingPageUrlUseCase = GetLandingPageUrlUseCase(landingPageRepository);
+    final landingPageRepository = LandingPageRepositoryImpl(landingPageRemoteDataSource,);
+    final getLandingPageUrlUseCase = GetLandingPageUrlUseCase(landingPageRepository,);
 
-    
-    final salesKitRemoteDataSource = SalesKitRemoteDataSourceImpl(dioClient.dio);
+    final salesKitRemoteDataSource = SalesKitRemoteDataSourceImpl(dioClient.dio,);
     final salesKitRepository = SalesKitRepositoryImpl(salesKitRemoteDataSource);
     final getTownshipsUseCase = GetTownshipsUseCase(salesKitRepository);
-    final getTownshipsSalesKitUseCase = GetTownshipsSalesKitUseCase(salesKitRepository);
+    final getTownshipsSalesKitUseCase = GetTownshipsSalesKitUseCase(salesKitRepository,);
     final getClustersUseCase = GetClustersUseCase(salesKitRepository);
     final getCommercialsUseCase = GetCommercialsUseCase(salesKitRepository);
     final getClusterMediaUseCase = GetClusterMediaUseCase(salesKitRepository);
     final shareCaptionUseCase = ShareCaptionUseCase(salesKitRepository);
 
-    
-    final attendanceRemoteDataSource = AttendanceRemoteDataSourceImpl(dioClient.dio);
-    final attendanceRepository = AttendanceRepositoryImpl(attendanceRemoteDataSource);
+    final attendanceRemoteDataSource = AttendanceRemoteDataSourceImpl(dioClient.dio,);
+    final attendanceRepository = AttendanceRepositoryImpl(attendanceRemoteDataSource,);
     final getAttendanceUseCase = GetAttendanceUseCase(attendanceRepository);
-    final getTodayAttendanceUseCase = GetTodayAttendanceUseCase(attendanceRepository);
+    final getTodayAttendanceUseCase = GetTodayAttendanceUseCase(attendanceRepository,);
     final getLocationsUseCase = GetLocationsUseCase(attendanceRepository);
-    final getOfficeLocationsUseCase = GetOfficeLocationsUseCase(attendanceRepository);
-    final getAllOfficeLocationsUseCase = GetAllOfficeLocationsUseCase(attendanceRepository);
-    final submitAttendanceUseCase = SubmitAttendanceUseCase(attendanceRepository);
-    final submitAttendanceActivityUseCase = SubmitAttendanceActivityUseCase(attendanceRepository);
-    final getAttendanceActivityUseCase = GetAttendanceActivityUseCase(attendanceRepository);
+    final getOfficeLocationsUseCase = GetOfficeLocationsUseCase(attendanceRepository,);
+    final getAllOfficeLocationsUseCase = GetAllOfficeLocationsUseCase(attendanceRepository,);
+    final submitAttendanceUseCase = SubmitAttendanceUseCase(attendanceRepository,);
+    final submitAttendanceActivityUseCase = SubmitAttendanceActivityUseCase(attendanceRepository,);
+    final getAttendanceActivityUseCase = GetAttendanceActivityUseCase(attendanceRepository,);
     final validasiCheckInUseCase = ValidasiCheckInUseCase(attendanceRepository);
-    final getAttendanceApprovalTodayUseCase = GetAttendanceApprovalTodayUseCase(attendanceRepository);
-    final postAttendanceApprovalUseCase = PostAttendanceApprovalUseCase(attendanceRepository);
+    final getAttendanceApprovalTodayUseCase = GetAttendanceApprovalTodayUseCase(attendanceRepository,);
+    final postAttendanceApprovalUseCase = PostAttendanceApprovalUseCase(attendanceRepository,);
 
     return MaterialApp.router(
       debugShowCheckedModeBanner: false,
@@ -516,122 +518,334 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
         final mq = MediaQuery.of(context);
         return MediaQuery(
           data: mq.copyWith(
-            textScaler: mq.textScaler.clamp(minScaleFactor: 0.85, maxScaleFactor: 1.15),
-          ),
-          child: MultiBlocProvider(
-          key: _blocKey,
-          providers: [
-            BlocProvider(create: (_) => AuthBloc(loginUseCase: loginUseCase, forgotPasswordUseCase: forgotPasswordUseCase, getRememberMeUseCase: getRememberMeUseCase, clearRememberMeUseCase: clearRememberMeUseCase, getBiometricEnabledUseCase: getBiometricEnabledUseCase, saveBiometricEnabledUseCase: saveBiometricEnabledUseCase, saveCredentialsUseCase: saveCredentialsUseCase, updateProfileUseCase: updateProfileUseCase, resetPasswordUsecase: resetPasswordUsecase, logoutUseCase: logoutUseCase, getPermissionsUseCase: getPermissionsUseCase, getImpersonatableUsersUseCase: getImpersonatableUsersUseCase, impersonateUseCase: impersonateUseCase, stopImpersonationUseCase: stopImpersonationUseCase)),
-            BlocProvider(create: (_) => InboxContactBloc(getInboxContactsUsecase)),
-            BlocProvider(create: (_) => WhatsappDeviceBloc(getWhatsappDevicesUsecase)),
-            BlocProvider(create: (_) => WhatsappQrBloc(getQrSessionUsecase, requestPairCodeUsecase)),
-            BlocProvider(create: (_) => ProfileBloc(getProfileUseCase: getProfileUseCase)),
-            BlocProvider(create: (_) => MessageBloc(getMessagesUseCase)),
-            BlocProvider(create: (_) => ReportBloc(getVolumeReportUseCase)),
-            BlocProvider(create: (_) => ProspectStatusSummaryBloc(getProspectStatusSummaryUseCase: getProspectStatusSummaryUseCase)),
-            BlocProvider(create: (_) => SalesChannelSummaryBloc(getSalesChannelsSummaryUseCase: getSalesChannelsSummaryUseCase)),
-            BlocProvider(create: (_) => ContactBloc(getContactsUseCase: getContactsUseCase, createContactUseCase: createContactUseCase, updateContactUseCase: updateContactUseCase, deleteContactUseCase: deleteContactUseCase, getContactDetailUseCase: getContactDetailUseCase, getAllContactsForDuplicateCheckUseCase: getAllContactsForDuplicateCheckUseCase, checkDuplicateContactUseCase: checkDuplicateContactUseCase)),
-            BlocProvider(create: (_) => ProspectStatusBloc(getProspectStatusesUseCase: getProspectStatusesUseCase)),
-            BlocProvider(create: (_) => ContactFormProspectStatusBloc(getContactFormProspectStatusesUseCase: getContactFormProspectStatusesUseCase)),
-            BlocProvider(create: (_) => ContactPropertiesBloc(getContactPropertiesUseCase: getContactPropertiesUseCase)),
-            BlocProvider(create: (_) => PipelineCubit(pipelineRemoteDataSource)),
-            BlocProvider(create: (_) => ActivityBloc(getActivitiesUseCase: getActivitiesUseCase, createActivityUseCase: createActivityUseCase, postStatusFollowUseCase: postStatusFollowUseCase)),
-            BlocProvider(create: (_) => NotifActivityBloc(getActivitiesUseCase: getActivitiesUseCase, createActivityUseCase: createActivityUseCase, postStatusFollowUseCase: postStatusFollowUseCase)),
-            BlocProvider(create: (_) => ContactDetailActivityBloc(getActivitiesUseCase: getActivitiesUseCase, createActivityUseCase: createActivityUseCase, postStatusFollowUseCase: postStatusFollowUseCase)),
-            BlocProvider(create: (_) => ActivityVisitBloc(createActivityVisitUseCase)),
-            BlocProvider(create: (_) => AttachmentTypeBloc(getAttachmentTypesUseCase)),
-            BlocProvider(create: (_) => UploadAttachmentBloc(uploadAttachmentUseCase, updateAttachmentUseCase)),
-            BlocProvider(create: (_) => AttachmentCubit(getAttachmentsUseCase, deleteAttachmentUseCase)),
-            BlocProvider(create: (_) => ActivityProspectStatusBloc(getActivityProspectStatusUseCase)),
-            BlocProvider(create: (_) => AttendanceBloc(getAttendanceUseCase: getAttendanceUseCase, getTodayAttendanceUseCase: getTodayAttendanceUseCase, getLocationsUseCase: getLocationsUseCase, getOfficeLocationsUseCase: getOfficeLocationsUseCase, submitAttendanceUseCase: submitAttendanceUseCase, submitAttendanceActivityUseCase: submitAttendanceActivityUseCase)),
-            BlocProvider(create: (_) => PameranLocationCubit(getLocationsUseCase)),
-            BlocProvider(create: (_) => OfficeLocationCubit(getOfficeLocationsUseCase)),
-            BlocProvider(create: (_) => AllOfficeLocationCubit(getAllOfficeLocationsUseCase)),
-            BlocProvider(create: (_) => AttendanceActivityBloc(getAttendanceActivityUseCase: getAttendanceActivityUseCase, validasiCheckInUseCase: validasiCheckInUseCase)),
-            BlocProvider(create: (_) => AttendanceApprovalCubit(getAttendanceApprovalTodayUseCase, postAttendanceApprovalUseCase)),
-            BlocProvider(create: (_) => AttendanceExcelCubit(attendanceRepository)),
-            BlocProvider(create: (_) => ReceivedNotifCubit()),
-            BlocProvider(create: (_) => GlobalNotificationCubit(globalNotificationRemoteDataSource)),
-            BlocProvider(create: (_) => WhatsappActivityBloc(getWhatsappActivityUseCase)),
-            BlocProvider(create: (_) => InfoSourceBloc(getInfoSourcesUseCase: getInfoSourcesUseCase)),
-            BlocProvider(create: (_) => ReserveStatusBloc(getReserveStatusesUseCase: getReserveStatusesUseCase)),
-            BlocProvider(create: (_) => SalesHierarchyService(
-              getSalesOwnersUseCase: getSalesOwnersUseCase,
-              getSalesExecutivesUseCase: getSalesExecutivesUseCase,
-              getSalesSupervisorsUseCase: getSalesSupervisorsUseCase,
-              getSalesManagersUseCase: getSalesManagersUseCase,
-              getSalesGeneralManagersUseCase: getSalesGeneralManagersUseCase,
-              getSalesTeamsPaginatedUseCase: getSalesTeamsPaginatedUseCase,
-              getSalesChannelDetailsUseCase: getSalesChannelDetailsUseCase,
-            )),
-            BlocProvider(create: (_) => LostReasonBloc(getLostReasonsUseCase: getLostReasonsUseCase)),
-            BlocProvider(create: (_) => ProductTypeBloc(getProductTypesUseCase: getProductTypesUseCase)..add(const FetchProductTypesEvent())),
-            BlocProvider(create: (_) => PropertyUnitCubit(getPropertyUnitsUseCase, getPropertyCommercialUnitsUseCase)),
-            BlocProvider(create: (_) => UnitPickerCubit(getUnitHierarchyUseCase, getUnitLotsUseCase)),
-            BlocProvider(create: (_) => PameranAktifCubit(contactRepository)),
-            BlocProvider(create: (_) => LandingPageCubit(getLandingPageUrlUseCase)..fetchUrl()),
-            BlocProvider(create: (_) => SiteplanBloc(siteplanRepository)..add(LoadSiteplanEvent())),
-            BlocProvider(create: (_) => TownshipBloc(getTownshipsUseCase)..add(GetTownshipsEvent())),
-            BlocProvider(create: (_) => SalesKitTownshipBloc(getTownshipsSalesKitUseCase)..add(GetSalesKitTownshipsEvent())),
-            BlocProvider(create: (_) => SalesKitDetailBloc(getClustersUseCase: getClustersUseCase, getCommercialsUseCase: getCommercialsUseCase)),
-            BlocProvider(create: (_) => ClusterMediaOverviewBloc(getClusterMediaUseCase, shareCaptionUseCase)),
-            BlocProvider(create: (_) => ClusterMediaListBloc(getClusterMediaUseCase, shareCaptionUseCase)),
-          ],
-          child: MultiBlocListener(
-            listeners: [
-              BlocListener<AuthBloc, AuthState>(
-                listener: (context, state) {
-                  if (state is LoginSuccess) {
-                    context.read<ProfileBloc>().add(GetProfileEvent());
-                    context.read<AuthBloc>().add(FetchPermissionsEvent());
-                    AppRouter.authNotifier.value = true;
-                    
-                    PushNotificationService.setDio(dioClient.dio);
-                    PushNotificationService.sendTokenAfterLogin();
-                    PushNotificationService.checkAndShowUpdateBanner();
-                    AnalyticsService.logLogin();
-                  } else if (state is AuthLoggedOut) {
-                    AnalyticsService.clearUser();
-                    _resetApp();
-                  } else if (state is ImpersonationStarted || state is ImpersonationStopped) {
-                    AppRouter.router.go('/splash');
-                  }
-                },
-              ),
-              
-              BlocListener<ProfileBloc, ProfileState>(
-                listener: (context, state) {
-                  if (state is ProfileLoaded) {
-                    AnalyticsService.setUserProperties(
-                      userId: state.profile.userId.toString(),
-                      role: state.profile.userRoleName,
-                    );
-                    settingsDs.getSettings().then((s) {
-                      if (s.isNotEmpty) ApiConstants.applySettings(s);
-                      _checkVersion();
-                    });
-                  }
-                },
-              ),
-            ],
-            child: Stack(
-              children: [
-                child!,
-                if (_updateResult != null)
-                  
-                   UpdateScreen(
-                    downloadUrl: _updateResult!.downloadUrl,
-                    currentVersion: _updateResult!.currentVersion,
-                    latestVersion: _updateResult!.latestVersion,
-                  ),
-              ],
+            textScaler: mq.textScaler.clamp(
+              minScaleFactor: 0.85,
+              maxScaleFactor: 1.15,
             ),
           ),
+          child: MultiBlocProvider(
+            key: _blocKey,
+            providers: [
+              BlocProvider(
+                create: (_) => AuthBloc(
+                  loginUseCase: loginUseCase,
+                  forgotPasswordUseCase: forgotPasswordUseCase,
+                  getRememberMeUseCase: getRememberMeUseCase,
+                  clearRememberMeUseCase: clearRememberMeUseCase,
+                  getBiometricEnabledUseCase: getBiometricEnabledUseCase,
+                  saveBiometricEnabledUseCase: saveBiometricEnabledUseCase,
+                  saveCredentialsUseCase: saveCredentialsUseCase,
+                  updateProfileUseCase: updateProfileUseCase,
+                  resetPasswordUsecase: resetPasswordUsecase,
+                  logoutUseCase: logoutUseCase,
+                  getPermissionsUseCase: getPermissionsUseCase,
+                  getImpersonatableUsersUseCase: getImpersonatableUsersUseCase,
+                  impersonateUseCase: impersonateUseCase,
+                  stopImpersonationUseCase: stopImpersonationUseCase,
+                ),
+              ),
+              BlocProvider(
+                create: (_) => InboxContactBloc(getInboxContactsUsecase),
+              ),
+              BlocProvider(
+                create: (_) => WhatsappDeviceBloc(getWhatsappDevicesUsecase),
+              ),
+              BlocProvider(
+                create: (_) =>
+                    WhatsappQrBloc(getQrSessionUsecase, requestPairCodeUsecase),
+              ),
+              BlocProvider(
+                create: (_) =>
+                    ProfileBloc(getProfileUseCase: getProfileUseCase),
+              ),
+              BlocProvider(create: (_) => MessageBloc(getMessagesUseCase)),
+              BlocProvider(create: (_) => ReportBloc(getVolumeReportUseCase)),
+              BlocProvider(
+                create: (_) => ProspectStatusSummaryBloc(
+                  getProspectStatusSummaryUseCase:
+                      getProspectStatusSummaryUseCase,
+                ),
+              ),
+              BlocProvider(
+                create: (_) => SalesChannelSummaryBloc(
+                  getSalesChannelsSummaryUseCase:
+                      getSalesChannelsSummaryUseCase,
+                ),
+              ),
+              BlocProvider(
+                create: (_) => ContactBloc(
+                  getContactsUseCase: getContactsUseCase,
+                  createContactUseCase: createContactUseCase,
+                  updateContactUseCase: updateContactUseCase,
+                  deleteContactUseCase: deleteContactUseCase,
+                  getContactDetailUseCase: getContactDetailUseCase,
+                  getAllContactsForDuplicateCheckUseCase:
+                      getAllContactsForDuplicateCheckUseCase,
+                  checkDuplicateContactUseCase: checkDuplicateContactUseCase,
+                ),
+              ),
+              BlocProvider(
+                create: (_) => ProspectStatusBloc(
+                  getProspectStatusesUseCase: getProspectStatusesUseCase,
+                ),
+              ),
+              BlocProvider(
+                create: (_) => ContactFormProspectStatusBloc(
+                  getContactFormProspectStatusesUseCase:
+                      getContactFormProspectStatusesUseCase,
+                ),
+              ),
+              BlocProvider(
+                create: (_) => ContactPropertiesBloc(
+                  getContactPropertiesUseCase: getContactPropertiesUseCase,
+                ),
+              ),
+              BlocProvider(
+                create: (_) => PipelineCubit(pipelineRemoteDataSource),
+              ),
+              BlocProvider(
+                create: (_) => ActivityBloc(
+                  getActivitiesUseCase: getActivitiesUseCase,
+                  createActivityUseCase: createActivityUseCase,
+                  postStatusFollowUseCase: postStatusFollowUseCase,
+                ),
+              ),
+              BlocProvider(
+                create: (_) => NotifActivityBloc(
+                  getActivitiesUseCase: getActivitiesUseCase,
+                  createActivityUseCase: createActivityUseCase,
+                  postStatusFollowUseCase: postStatusFollowUseCase,
+                ),
+              ),
+              BlocProvider(
+                create: (_) => ContactDetailActivityBloc(
+                  getActivitiesUseCase: getActivitiesUseCase,
+                  createActivityUseCase: createActivityUseCase,
+                  postStatusFollowUseCase: postStatusFollowUseCase,
+                ),
+              ),
+              BlocProvider(
+                create: (_) => ActivityVisitBloc(createActivityVisitUseCase),
+              ),
+              BlocProvider(
+                create: (_) => AttachmentTypeBloc(getAttachmentTypesUseCase),
+              ),
+              BlocProvider(
+                create: (_) => UploadAttachmentBloc(
+                  uploadAttachmentUseCase,
+                  updateAttachmentUseCase,
+                ),
+              ),
+              BlocProvider(
+                create: (_) => AttachmentCubit(
+                  getAttachmentsUseCase,
+                  deleteAttachmentUseCase,
+                ),
+              ),
+              BlocProvider(
+                create: (_) => ActivityProspectStatusBloc(
+                  getActivityProspectStatusUseCase,
+                ),
+              ),
+              BlocProvider(
+                create: (_) => AttendanceBloc(
+                  getAttendanceUseCase: getAttendanceUseCase,
+                  getTodayAttendanceUseCase: getTodayAttendanceUseCase,
+                  getLocationsUseCase: getLocationsUseCase,
+                  getOfficeLocationsUseCase: getOfficeLocationsUseCase,
+                  submitAttendanceUseCase: submitAttendanceUseCase,
+                  submitAttendanceActivityUseCase:submitAttendanceActivityUseCase,
+                ),
+              ),
+              BlocProvider(
+                create: (_) => PameranLocationCubit(getLocationsUseCase),
+              ),
+              BlocProvider(
+                create: (_) => OfficeLocationCubit(getOfficeLocationsUseCase),
+              ),
+              BlocProvider(
+                create: (_) =>
+                    AllOfficeLocationCubit(getAllOfficeLocationsUseCase),
+              ),
+              BlocProvider(
+                create: (_) => AttendanceActivityBloc(
+                  getAttendanceActivityUseCase: getAttendanceActivityUseCase,
+                  validasiCheckInUseCase: validasiCheckInUseCase,
+                ),
+              ),
+              BlocProvider(
+                create: (_) => AttendanceApprovalCubit(
+                  getAttendanceApprovalTodayUseCase,
+                  postAttendanceApprovalUseCase,
+                ),
+              ),
+              BlocProvider(
+                create: (_) => AttendanceExcelCubit(attendanceRepository),
+              ),
+              BlocProvider(create: (_) => ReceivedNotifCubit()),
+              BlocProvider(
+                create: (_) =>
+                    GlobalNotificationCubit(globalNotificationRemoteDataSource),
+              ),
+              BlocProvider(
+                create: (_) => WhatsappActivityBloc(getWhatsappActivityUseCase),
+              ),
+              BlocProvider(
+                create: (_) => InfoSourceBloc(
+                  getInfoSourcesUseCase: getInfoSourcesUseCase,
+                ),
+              ),
+              BlocProvider(
+                create: (_) => ReserveStatusBloc(
+                  getReserveStatusesUseCase: getReserveStatusesUseCase,
+                ),
+              ),
+              BlocProvider(
+                create: (_) =>
+                    CaraBayarBloc(getCaraBayarUseCase: getCaraBayarUseCase),
+              ),
+              BlocProvider(
+                create: (_) => WorkCategoryBloc(
+                  getWorkCategoryUseCase: getWorkCategoryUseCase,
+                ),
+              ),
+              BlocProvider(
+                create: (_) =>
+                    SelectUnitBloc(getSelectUnitUseCase: getSelectUnitUseCase),
+              ),
+              BlocProvider(
+                create: (_) => PaymentTypeBloc(
+                  getPaymentTypesUseCase: getPaymentTypesUseCase,
+                ),
+              ),
+              BlocProvider(
+                create: (_) =>
+                    CreateReserveOrderCubit(createReserveOrderUseCase),
+              ),
+              BlocProvider(
+                create: (_) => SalesHierarchyService(
+                  getSalesOwnersUseCase: getSalesOwnersUseCase,
+                  getSalesExecutivesUseCase: getSalesExecutivesUseCase,
+                  getSalesSupervisorsUseCase: getSalesSupervisorsUseCase,
+                  getSalesManagersUseCase: getSalesManagersUseCase,
+                  getSalesGeneralManagersUseCase:
+                      getSalesGeneralManagersUseCase,
+                  getSalesTeamsPaginatedUseCase: getSalesTeamsPaginatedUseCase,
+                  getSalesChannelDetailsUseCase: getSalesChannelDetailsUseCase,
+                ),
+              ),
+              BlocProvider(
+                create: (_) => LostReasonBloc(
+                  getLostReasonsUseCase: getLostReasonsUseCase,
+                ),
+              ),
+              BlocProvider(
+                create: (_) => ProductTypeBloc(
+                  getProductTypesUseCase: getProductTypesUseCase,
+                )..add(const FetchProductTypesEvent()),
+              ),
+              BlocProvider(
+                create: (_) => PropertyUnitCubit(
+                  getPropertyUnitsUseCase,
+                  getPropertyCommercialUnitsUseCase,
+                ),
+              ),
+              BlocProvider(
+                create: (_) => UnitPickerCubit(
+                  getUnitHierarchyUseCase,
+                  getUnitLotsUseCase,
+                ),
+              ),
+              BlocProvider(create: (_) => PameranAktifCubit(contactRepository)),
+              BlocProvider(
+                create: (_) =>
+                    LandingPageCubit(getLandingPageUrlUseCase)..fetchUrl(),
+              ),
+              BlocProvider(
+                create: (_) =>
+                    SiteplanBloc(siteplanRepository)..add(LoadSiteplanEvent()),
+              ),
+              BlocProvider(
+                create: (_) =>
+                    TownshipBloc(getTownshipsUseCase)..add(GetTownshipsEvent()),
+              ),
+              BlocProvider(
+                create: (_) =>
+                    SalesKitTownshipBloc(getTownshipsSalesKitUseCase)
+                      ..add(GetSalesKitTownshipsEvent()),
+              ),
+              BlocProvider(
+                create: (_) => SalesKitDetailBloc(
+                  getClustersUseCase: getClustersUseCase,
+                  getCommercialsUseCase: getCommercialsUseCase,
+                ),
+              ),
+              BlocProvider(
+                create: (_) => ClusterMediaOverviewBloc(
+                  getClusterMediaUseCase,
+                  shareCaptionUseCase,
+                ),
+              ),
+              BlocProvider(
+                create: (_) => ClusterMediaListBloc(
+                  getClusterMediaUseCase,
+                  shareCaptionUseCase,
+                ),
+              ),
+            ],
+            child: MultiBlocListener(
+              listeners: [
+                BlocListener<AuthBloc, AuthState>(
+                  listener: (context, state) {
+                    if (state is LoginSuccess) {
+                      context.read<ProfileBloc>().add(GetProfileEvent());
+                      context.read<AuthBloc>().add(FetchPermissionsEvent());
+                      AppRouter.authNotifier.value = true;
+
+                      PushNotificationService.setDio(dioClient.dio);
+                      PushNotificationService.sendTokenAfterLogin();
+                      PushNotificationService.checkAndShowUpdateBanner();
+                      AnalyticsService.logLogin();
+                    } else if (state is AuthLoggedOut) {
+                      AnalyticsService.clearUser();
+                      _resetApp();
+                    } else if (state is ImpersonationStarted ||
+                        state is ImpersonationStopped) {
+                      AppRouter.router.go('/splash');
+                    }
+                  },
+                ),
+
+                BlocListener<ProfileBloc, ProfileState>(
+                  listener: (context, state) {
+                    if (state is ProfileLoaded) {
+                      AnalyticsService.setUserProperties(
+                        userId: state.profile.userId.toString(),
+                        role: state.profile.userRoleName,
+                      );
+                      settingsDs.getSettings().then((s) {
+                        if (s.isNotEmpty) ApiConstants.applySettings(s);
+                        _checkVersion();
+                      });
+                    }
+                  },
+                ),
+              ],
+              child: Stack(
+                children: [
+                  child!,
+                  if (_updateResult != null)
+                    UpdateScreen(
+                      downloadUrl: _updateResult!.downloadUrl,
+                      currentVersion: _updateResult!.currentVersion,
+                      latestVersion: _updateResult!.latestVersion,
+                    ),
+                ],
+              ),
+            ),
           ),
         );
       },
     );
   }
 }
-
-

@@ -27,15 +27,13 @@ class ApiConstants {
       baseUrl: 'https://api.connect.paradise.id/api',
       storageUrl: 'https://api.connect.paradise.id/storage',
       serverUrl: 'https://api.connect.paradise.id',
-    
     ),
-
 
     AppEnvironment.development: _EnvConfig(
       label: 'Development IP',
-      baseUrl: 'http://172.20.10.13:1100/api',
-      storageUrl: 'http://172.20.10.13:1100/storage',
-      serverUrl: 'http://172.20.10.13:1100',
+      baseUrl: 'http://172.20.10.3:1100/api',
+      storageUrl: 'http://172.20.10.3:1100/storage',
+      serverUrl: 'http://172.20.10.3:1100',
     ),
 
     // AppEnvironment.development2: _EnvConfig(
@@ -44,28 +42,24 @@ class ApiConstants {
     //   storageUrl: 'http://172.20.10.2:8000/storage',
     //   serverUrl: 'http://172.20.10.2:8000',
     // ),
-
-
     AppEnvironment.developmnetDomain: _EnvConfig(
       label: 'Development',
       baseUrl: 'https://apidevconnect.paradise.id/api',
       storageUrl: 'https://apidevconnect.paradise.id/storage',
       serverUrl: 'https://apidevconnect.paradise.id',
     ),
-
   };
 
-
-
-
-
-
   static AppEnvironment _currentEnv = AppEnvironment.production;
-  static final ValueNotifier<AppEnvironment> envNotifier = ValueNotifier(AppEnvironment.production);
+  static final ValueNotifier<AppEnvironment> envNotifier = ValueNotifier(
+    AppEnvironment.production,
+  );
 
   static AppEnvironment get currentEnv => _currentEnv;
-  static String get envLabel => (_configs[_currentEnv] ?? _configs[AppEnvironment.production]!).label;
-  static String labelFor(AppEnvironment env) => (_configs[env] ?? _configs[AppEnvironment.production]!).label;
+  static String get envLabel =>
+      (_configs[_currentEnv] ?? _configs[AppEnvironment.production]!).label;
+  static String labelFor(AppEnvironment env) =>
+      (_configs[env] ?? _configs[AppEnvironment.production]!).label;
   static Set<AppEnvironment> get availableEnvironments => _configs.keys.toSet();
   static String baseUrlFor(AppEnvironment env) => _configs[env]?.baseUrl ?? '';
 
@@ -83,7 +77,9 @@ class ApiConstants {
       'productionDomain' => AppEnvironment.developmnetDomain,
       _ => AppEnvironment.production,
     };
-    _currentEnv = _configs.containsKey(parsed) ? parsed : AppEnvironment.production;
+    _currentEnv = _configs.containsKey(parsed)
+        ? parsed
+        : AppEnvironment.production;
     envNotifier.value = _currentEnv;
   }
 
@@ -101,13 +97,13 @@ class ApiConstants {
     envNotifier.value = env;
   }
 
-  static _EnvConfig get _config => _configs[_currentEnv] ?? _configs[AppEnvironment.production]!;
+  static _EnvConfig get _config =>
+      _configs[_currentEnv] ?? _configs[AppEnvironment.production]!;
 
   static String get baseUrl => _config.baseUrl;
   static String get storageUrl => _config.storageUrl;
   static String get serverUrl => _config.serverUrl;
   static const String analyticsEventsEndpoint = '/analytics-events';
-
 
   static String _waServerUrl = '';
   static String _salesbookWebhookUrl = '';
@@ -135,12 +131,17 @@ class ApiConstants {
   static String get appDownloadUrl => _appDownloadUrl;
   static String get saleskitUrl => _saleskitUrl;
   static String get loginHelpMessage => _loginHelpMessage;
-  static String get prospectStatusDefaultRangePreset => _prospectStatusDefaultRangePreset;
-  static String get prospectStatusApptRangePreset => _prospectStatusApptRangePreset;
-  static String get prospectStatusVisitRangePreset => _prospectStatusVisitRangePreset;
-  static String get prospectStatusReserveRangePreset => _prospectStatusReserveRangePreset;
+  static String get prospectStatusDefaultRangePreset =>
+      _prospectStatusDefaultRangePreset;
+  static String get prospectStatusApptRangePreset =>
+      _prospectStatusApptRangePreset;
+  static String get prospectStatusVisitRangePreset =>
+      _prospectStatusVisitRangePreset;
+  static String get prospectStatusReserveRangePreset =>
+      _prospectStatusReserveRangePreset;
   static String get prospectStatusSpRangePreset => _prospectStatusSpRangePreset;
-  static String get prospectStatusLostRangePreset => _prospectStatusLostRangePreset;
+  static String get prospectStatusLostRangePreset =>
+      _prospectStatusLostRangePreset;
 
   static void applySettings(List<Map<String, dynamic>> settings) {
     for (final s in settings) {
@@ -183,13 +184,14 @@ class ApiConstants {
     settingsVersion.value++;
   }
 
-  static String townshipImageUrl(String slug, String fileName) => '$_saleskitUrl/bin/db/images/township/$slug/$fileName';
+  static String townshipImageUrl(String slug, String fileName) =>
+      '$_saleskitUrl/bin/db/images/township/$slug/$fileName';
 
-  static String clusterImageUrl(String townshipSlug, String fileName) => '$_saleskitUrl/bin/db/images/cluster/$townshipSlug/$fileName';
+  static String clusterImageUrl(String townshipSlug, String fileName) =>
+      '$_saleskitUrl/bin/db/images/cluster/$townshipSlug/$fileName';
 
-  static String commercialImageUrl(String filePath) => filePath.startsWith('bin/db/') ? '$_saleskitUrl/$filePath' : '$_saleskitUrl/bin/db/images/commercial/$filePath';
-
+  static String commercialImageUrl(String filePath) =>
+      filePath.startsWith('bin/db/')
+      ? '$_saleskitUrl/$filePath'
+      : '$_saleskitUrl/bin/db/images/commercial/$filePath';
 }
-
-
-

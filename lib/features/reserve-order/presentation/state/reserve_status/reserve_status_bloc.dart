@@ -6,7 +6,8 @@ import 'reserve_status_state.dart';
 class ReserveStatusBloc extends Bloc<ReserveStatusEvent, ReserveStatusState> {
   final GetReserveStatusesUseCase getReserveStatusesUseCase;
 
-  ReserveStatusBloc({required this.getReserveStatusesUseCase}) : super(const ReserveStatusState()) {
+  ReserveStatusBloc({required this.getReserveStatusesUseCase})
+    : super(const ReserveStatusState()) {
     on<FetchReserveStatusesEvent>(_onFetch);
   }
 
@@ -19,8 +20,12 @@ class ReserveStatusBloc extends Bloc<ReserveStatusEvent, ReserveStatusState> {
     final result = await getReserveStatusesUseCase();
 
     result.fold(
-      (failure) => emit(state.copyWith(status: ReserveStatusEnum.error, errorMessage: failure)),
-      (data) => emit(state.copyWith(status: ReserveStatusEnum.loaded, statuses: data)),
+      (failure) => emit(
+        state.copyWith(status: ReserveStatusEnum.error, errorMessage: failure),
+      ),
+      (data) => emit(
+        state.copyWith(status: ReserveStatusEnum.loaded, statuses: data),
+      ),
     );
   }
 }
