@@ -9,8 +9,6 @@ import '../models/reserve_unit_option.dart';
 class ReserveUnitDummyDataSource {
   const ReserveUnitDummyDataSource();
 
-  List<String> getProjects() => const ['Paradise Serpong City', 'Paradise Serpong City 2', 'Paradise Resort City'];
-
   /// Unit yang sudah "dikenal" lewat riwayat Contact customer — ditampilkan di tab "Unit dari
   /// Contact".
   List<ReserveUnitOption> getContactUnits(String project) => _contactUnitsByProject[project] ?? const [];

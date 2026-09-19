@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 import 'package:progress_group/core/constants/colors.dart';
 import 'package:progress_group/core/utils/helpers/number_helper.dart';
@@ -8,6 +9,10 @@ import 'package:progress_group/core/utils/widget/custom_buttomsheet.dart';
 import 'package:progress_group/core/utils/widget/custom_file_picker.dart';
 import 'package:progress_group/features/reserve-order/data/datasources/reserve_unit_dummy_datasource.dart';
 import 'package:progress_group/features/reserve-order/data/models/reserve_unit_option.dart';
+import 'package:progress_group/features/saleskit/domain/entities/township_entity.dart';
+import 'package:progress_group/features/saleskit/presentation/state/township/township_bloc.dart';
+import 'package:progress_group/features/saleskit/presentation/state/township/township_event.dart';
+import 'package:progress_group/features/saleskit/presentation/state/township/township_state.dart';
 
 class CreateReserveOrderPage extends StatefulWidget {
   final String? contactName;
@@ -861,25 +866,39 @@ InputBorder _fieldBorder(bool isError, {bool focused = false}) => UnderlineInput
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   _fieldLabel('Pilih Project', required: true),
-                  DropdownButtonFormField<String>(
-                    key: ValueKey('project-$_resetKey'),
-                    initialValue: _selectedProject,
-                    isExpanded: true,
-                    hint: const Text('Pilih project', style: TextStyle(fontSize: 13)),
-                    items: _unitDataSource.getProjects().map((p) => DropdownMenuItem(value: p, child: Text(p, style: const TextStyle(fontSize: 13)))).toList(),
-                    onChanged: (v) => setState(() {
-                      _selectedProject = v;
-                      _selectedUnits = [];
-                    }),
-                    decoration: InputDecoration(
-                      isDense: true,
-                      filled: true,
-                      fillColor: Color(grey11Color),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
-                      border: _fieldBorder(false),
-                      enabledBorder: _fieldBorder(_showUnitValidation && project == null),
-                      focusedBorder: _fieldBorder(false, focused: true),
-                    ),
+                  BlocBuilder<TownshipBloc, TownshipState>(
+                    builder: (context, state) {
+                      final townships = state is TownshipLoaded ? state.townships : const <TownshipEntity>[];
+                      final isLoading = state is TownshipLoading;
+                      return DropdownButtonFormField<String>(
+                        key: ValueKey('project-$_resetKey'),
+                        initialValue: _selectedProject,
+                        isExpanded: true,
+                        hint: Text(isLoading ? 'Memuat project…' : 'Pilih project', style: const TextStyle(fontSize: 13)),
+                        items: townships.map((t) => DropdownMenuItem(value: t.name, child: Text(t.name, style: const TextStyle(fontSize: 13)))).toList(),
+                        onTap: () {
+                          if (state is! TownshipLoaded) {
+                            context.read<TownshipBloc>().add(GetTownshipsEvent());
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Memuat data project...')),
+                            );
+                          }
+                        },
+                        onChanged: (v) => setState(() {
+                          _selectedProject = v;
+                          _selectedUnits = [];
+                        }),
+                        decoration: InputDecoration(
+                          isDense: true,
+                          filled: true,
+                          fillColor: Color(grey11Color),
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
+                          border: _fieldBorder(false),
+                          enabledBorder: _fieldBorder(_showUnitValidation && project == null),
+                          focusedBorder: _fieldBorder(false, focused: true),
+                        ),
+                      );
+                    },
                   ),
                   _errorText(_showUnitValidation && project == null),
                   const SizedBox(height: 14),

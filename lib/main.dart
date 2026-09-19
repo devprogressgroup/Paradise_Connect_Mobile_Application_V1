@@ -83,6 +83,10 @@ import 'package:progress_group/features/contact/domain/usecases/sales_hierarchy/
 import 'package:progress_group/features/contact/domain/usecases/sales_hierarchy/get_sales_general_managers_usecase.dart';
 import 'package:progress_group/features/contact/domain/usecases/sales_hierarchy/get_sales_teams_paginated_usecase.dart';
 import 'package:progress_group/features/contact/domain/usecases/lost_reason/get_lost_reason.dart';
+import 'package:progress_group/features/reserve-order/data/datasources/reserve_order_remote_datasource.dart';
+import 'package:progress_group/features/reserve-order/domain/repositories/reserve_order_repository_impl.dart';
+import 'package:progress_group/features/reserve-order/domain/usecases/get_reserve_statuses_usecase.dart';
+import 'package:progress_group/features/reserve-order/presentation/state/reserve_status/reserve_status_bloc.dart';
 import 'package:progress_group/features/contact/presentation/state/attachment/attachment_cubit.dart';
 import 'package:progress_group/features/contact/presentation/state/info_source/info_source_bloc.dart';
 import 'package:progress_group/features/contact/presentation/state/sales_hierarchy/sales_hierarchy_service.dart';
@@ -462,8 +466,13 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     final getPropertyCommercialUnitsUseCase = GetPropertyCommercialUnitsUseCase(contactRepository);
     final getUnitHierarchyUseCase = GetUnitHierarchyUseCase(contactRepository);
     final getUnitLotsUseCase = GetUnitLotsUseCase(contactRepository);
-    
-    
+
+
+    final reserveOrderRemoteDataSource = ReserveOrderRemoteDataSourceImpl(dioClient.dio);
+    final reserveOrderRepository = ReserveOrderRepositoryImpl(reserveOrderRemoteDataSource);
+    final getReserveStatusesUseCase = GetReserveStatusesUseCase(reserveOrderRepository);
+
+
     final siteplanRemoteDataSource = SiteplanRemoteDataSourceImpl(dioClient.dio);
     final siteplanRepository = SitePlanRepositoryImpl(siteplanRemoteDataSource, localDataSource);
 
@@ -545,6 +554,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
             BlocProvider(create: (_) => GlobalNotificationCubit(globalNotificationRemoteDataSource)),
             BlocProvider(create: (_) => WhatsappActivityBloc(getWhatsappActivityUseCase)),
             BlocProvider(create: (_) => InfoSourceBloc(getInfoSourcesUseCase: getInfoSourcesUseCase)),
+            BlocProvider(create: (_) => ReserveStatusBloc(getReserveStatusesUseCase: getReserveStatusesUseCase)),
             BlocProvider(create: (_) => SalesHierarchyService(
               getSalesOwnersUseCase: getSalesOwnersUseCase,
               getSalesExecutivesUseCase: getSalesExecutivesUseCase,

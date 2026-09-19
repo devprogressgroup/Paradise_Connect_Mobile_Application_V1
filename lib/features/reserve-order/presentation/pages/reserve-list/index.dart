@@ -1,11 +1,24 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 import 'package:progress_group/core/constants/colors.dart';
 import 'package:progress_group/core/services/analytics_service.dart';
 import 'package:progress_group/core/utils/helpers/number_helper.dart';
 import 'package:progress_group/core/utils/widget/custom_filter_button.dart';
 import 'package:progress_group/core/utils/widget/custom_search_field.dart';
+import 'package:progress_group/features/contact/data/arguments/contact_dropdown_args.dart';
+import 'package:progress_group/features/contact/data/models/dropdown/contact_filter_result.dart';
+import 'package:progress_group/features/contact/domain/entities/info_source/info_source.dart';
+import 'package:progress_group/features/contact/presentation/state/info_source/info_source_bloc.dart';
+import 'package:progress_group/features/contact/presentation/state/info_source/info_source_event.dart';
+import 'package:progress_group/features/contact/presentation/state/info_source/info_source_state.dart';
+import 'package:progress_group/features/contact/presentation/state/sales_hierarchy/sales_hierarchy_service.dart';
+import 'package:progress_group/features/contact/presentation/widgets/contact_filter_sheet.dart';
 import 'package:progress_group/features/reserve-order/data/datasources/reserve_order_list_dummy_datasource.dart';
 import 'package:progress_group/features/reserve-order/data/models/reserve_order_list_item.dart';
+import 'package:progress_group/features/reserve-order/presentation/state/reserve_status/reserve_status_bloc.dart';
+import 'package:progress_group/features/reserve-order/presentation/state/reserve_status/reserve_status_event.dart';
+import 'package:progress_group/features/reserve-order/presentation/state/reserve_status/reserve_status_state.dart';
 
 import '../create/index.dart';
 import '../detail/index.dart';
@@ -14,7 +27,10 @@ import '../detail/index.dart';
 ///
 /// Catatan: sementara masih pakai data contoh ([ReserveOrderListDummyDataSource]), belum
 /// disambungkan ke API asli. Struktur & data mengikuti prototype `reserve-order-prototype (1).html`
-/// (bagian LIST) biar gampang disambung ke datasource sungguhan nanti.
+/// (bagian LIST) biar gampang disambung ke datasource sungguhan nanti. Filter/sort sheet-nya
+/// sudah dibuat sama seperti punya Contact (lihat [ContactFilterSheet] & rute
+/// `detailContactDropdown`) supaya kalau list-nya nanti disambung ke API asli, UI filternya
+/// tidak perlu dibongkar lagi.
 class ReserveOrderListPage extends StatefulWidget {
   const ReserveOrderListPage({super.key});
 
@@ -32,17 +48,6 @@ class _ReserveOrderListPageState extends State<ReserveOrderListPage> {
     MapEntry('name_desc', 'Nama: Z-A'),
   ];
 
-  static const _statusOptions = <String>[
-    'Diproses',
-    'RBA',
-    'RBB',
-    'SP',
-    'Proses Bank',
-    'SPK',
-    'Akad/PPJB ✓',
-    'Ditolak',
-  ];
-
   final _searchController = TextEditingController();
   final _searchFocus = FocusNode();
 
@@ -50,12 +55,25 @@ class _ReserveOrderListPageState extends State<ReserveOrderListPage> {
 
   String _search = '';
   String _sort = _defaultSort;
-  final Set<String> _statusFilter = {};
+  bool _openingFilterSheet = false;
+
+  Set<int> _statusIds = {};
+  Set<int> _channelIds = {};
+  Set<int> _channelDetailIds = {};
+  Set<int> _ownerIds = {};
+  Set<int> _executiveIds = {};
+  Set<int> _supervisorIds = {};
+  Set<int> _managerIds = {};
+  Set<int> _gmIds = {};
+  Set<int> _teamIds = {};
+  String? _project;
 
   @override
   void initState() {
     super.initState();
     AnalyticsService.logScreenView('reserve_order_list');
+    context.read<ReserveStatusBloc>().add(const FetchReserveStatusesEvent());
+    context.read<InfoSourceBloc>().add(const FetchInfoSourcesEvent(type: 1));
   }
 
   @override
@@ -65,13 +83,42 @@ class _ReserveOrderListPageState extends State<ReserveOrderListPage> {
     super.dispose();
   }
 
+  int get _activeFilterCount {
+    var n = 0;
+    if (_statusIds.isNotEmpty) n++;
+    if (_channelIds.isNotEmpty) n++;
+    if (_channelDetailIds.isNotEmpty) n++;
+    if (_ownerIds.isNotEmpty) n++;
+    if (_executiveIds.isNotEmpty) n++;
+    if (_supervisorIds.isNotEmpty) n++;
+    if (_managerIds.isNotEmpty) n++;
+    if (_gmIds.isNotEmpty) n++;
+    if (_teamIds.isNotEmpty) n++;
+    if (_project != null && _project!.isNotEmpty) n++;
+    return n;
+  }
+
   List<ReserveOrderListItem> get _visibleItems {
     final term = _search.trim().toLowerCase();
+
+    // Data list-nya masih dummy (belum ada field channel/owner/dst di [ReserveOrderListItem]),
+    // jadi baru dimensi status yang benar-benar menyaring hasil — dimensi lain tetap bisa
+    // dipilih di sheet-nya tapi menunggu list-nya disambung ke API asli untuk ikut menyaring.
+    final statusNames = _statusIds.isEmpty
+        ? const <String>{}
+        : context
+            .read<ReserveStatusBloc>()
+            .state
+            .statuses
+            .where((e) => _statusIds.contains(e.statusReserveId))
+            .map((e) => e.displayName)
+            .toSet();
+
     final list = _items.where((o) {
       final matchTerm = term.isEmpty ||
           o.customerName.toLowerCase().contains(term) ||
           o.unitName.toLowerCase().contains(term);
-      final matchStatus = _statusFilter.isEmpty || _statusFilter.contains(o.status);
+      final matchStatus = statusNames.isEmpty || statusNames.contains(o.status);
       return matchTerm && matchStatus;
     }).toList();
 
@@ -161,6 +208,7 @@ class _ReserveOrderListPageState extends State<ReserveOrderListPage> {
 
   Widget _buildFilterRow() {
     final sortLabel = _sortOptions.firstWhere((e) => e.key == _sort).value;
+    final filterCount = _activeFilterCount;
     return Align(
       alignment: Alignment.centerLeft,
       child: SingleChildScrollView(
@@ -176,12 +224,40 @@ class _ReserveOrderListPageState extends State<ReserveOrderListPage> {
               onClear: _sort != _defaultSort ? () => setState(() => _sort = _defaultSort) : null,
             ),
             const SizedBox(width: 8),
-            CustomFilterButton(
-              key: const ValueKey('reserve_order_filter_button'),
-              label: _statusFilter.isEmpty ? 'Filter' : _statusFilter.length == 1 ? _statusFilter.first : '${_statusFilter.length} Status',
-              isSelected: _statusFilter.isNotEmpty,
-              onTap: _openFilterSheet,
-              onClear: _statusFilter.isNotEmpty ? () => setState(_statusFilter.clear) : null,
+            Stack(
+              clipBehavior: Clip.none,
+              children: [
+                CustomFilterButton(
+                  key: const ValueKey('reserve_order_filter_button'),
+                  label: 'Filter',
+                  isSelected: filterCount > 0,
+                  onTap: _openingFilterSheet ? () {} : _openFilterSheet,
+                ),
+                if (_openingFilterSheet)
+                  const Positioned(
+                    right: 10,
+                    top: 0,
+                    bottom: 0,
+                    child: Center(
+                      child: SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2)),
+                    ),
+                  ),
+                if (filterCount > 0)
+                  Positioned(
+                    top: 4,
+                    right: 4,
+                    child: Container(
+                      padding: const EdgeInsets.all(3),
+                      constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
+                      decoration: const BoxDecoration(color: Color(redColor), shape: BoxShape.circle),
+                      child: Text(
+                        '$filterCount',
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(color: Color(whiteColor), fontSize: 9, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  ),
+              ],
             ),
           ],
         ),
@@ -191,27 +267,147 @@ class _ReserveOrderListPageState extends State<ReserveOrderListPage> {
 
   Future<void> _openSortSheet() async {
     AnalyticsService.logEvent('reserve_order_list_sort');
-    final result = await showModalBottomSheet<String>(
-      context: context,
-      backgroundColor: Colors.transparent,
-      builder: (ctx) => _SortSheet(options: _sortOptions, current: _sort),
+    final selectedIndex = _sortOptions.indexWhere((e) => e.key == _sort);
+    final items = List.generate(
+      _sortOptions.length,
+      (i) => OwnerDropdownItem(id: i, name: _sortOptions[i].value),
     );
-    if (result != null) setState(() => _sort = result);
+
+    final result = await context.pushNamed(
+      'detailContactDropdown',
+      extra: ContactDropdownArgs(
+        title: 'Urutkan',
+        items: items,
+        selectedId: selectedIndex >= 0 ? selectedIndex : 0,
+        isMultiSelect: false,
+        allowClear: _sort != _defaultSort,
+        preserveOrder: true,
+      ),
+    );
+
+    if (result is List) {
+      if (mounted) setState(() => _sort = _defaultSort);
+      return;
+    }
+    if (result != null && mounted) {
+      final selected = result as OwnerDropdownItem;
+      setState(() => _sort = _sortOptions[selected.id!].key);
+    }
+  }
+
+  Future<T> _waitUntilReady<T>(Stream<T> stream, bool Function(T) isReady, T current) {
+    if (isReady(current)) return Future.value(current);
+    return stream.firstWhere(isReady).timeout(const Duration(seconds: 6), onTimeout: () => current);
   }
 
   Future<void> _openFilterSheet() async {
     AnalyticsService.logEvent('reserve_order_list_filter');
-    final result = await showModalBottomSheet<Set<String>>(
+    final statusBloc = context.read<ReserveStatusBloc>();
+    final sourceBloc = context.read<InfoSourceBloc>();
+
+    setState(() => _openingFilterSheet = true);
+    await Future.wait([
+      _waitUntilReady<ReserveStatusState>(
+        statusBloc.stream,
+        (s) => s.status != ReserveStatusEnum.initial && s.status != ReserveStatusEnum.loading,
+        statusBloc.state,
+      ),
+      _waitUntilReady<InfoSourceState>(
+        sourceBloc.stream,
+        (s) => s.status != InfoSourceStatus.initial && s.status != InfoSourceStatus.loading,
+        sourceBloc.state,
+      ),
+    ]);
+    if (!mounted) return;
+    setState(() => _openingFilterSheet = false);
+
+    final statusState = statusBloc.state;
+    final sourceState = sourceBloc.state;
+
+    final statusItems = statusState.status == ReserveStatusEnum.loaded
+        ? statusState.statuses
+            .map((e) => OwnerDropdownItem(id: e.statusReserveId, name: e.displayName))
+            .toList()
+        : <OwnerDropdownItem>[];
+    final channelItems = (sourceState.sourcesMap[1] ?? const <InfoSource>[])
+        .map((e) => OwnerDropdownItem(id: e.id, name: e.name))
+        .toList();
+
+    final checkGroups = <ContactCheckGroup>[
+      ContactCheckGroup(
+        key: 'status',
+        label: 'Status Reserve',
+        section: 'Data Reserve',
+        searchable: true,
+        items: statusItems,
+      ),
+      ContactCheckGroup(
+        key: 'channel',
+        label: 'Sales Channel',
+        section: null,
+        searchable: false,
+        items: channelItems,
+      ),
+    ];
+
+    final hierarchyService = context.read<SalesHierarchyService>();
+    final paginatedGroups = <PaginatedCheckGroup>[
+      PaginatedCheckGroup(
+        key: 'channelDetail',
+        label: 'Sales Channel Detail',
+        section: 'Data Reserve',
+        fetchPage: hierarchyService.channelDetail,
+      ),
+      PaginatedCheckGroup(key: 'owner', label: 'Owner', section: 'Sales', fetchPage: hierarchyService.owners),
+      PaginatedCheckGroup(key: 'executive', label: 'Sales Executive', section: 'Sales', fetchPage: hierarchyService.executives),
+      PaginatedCheckGroup(key: 'supervisor', label: 'Sales Supervisor', section: 'Sales', fetchPage: hierarchyService.supervisors),
+      PaginatedCheckGroup(key: 'manager', label: 'Sales Manager', section: 'Sales', fetchPage: hierarchyService.managers),
+      PaginatedCheckGroup(key: 'gm', label: 'General Manager', section: 'Sales', fetchPage: hierarchyService.generalManagers),
+      PaginatedCheckGroup(key: 'team', label: 'Sales Team', section: 'Sales', fetchPage: hierarchyService.teams),
+    ];
+
+    final initialChecks = <String, Set<int>>{
+      'status': _statusIds,
+      'channel': _channelIds,
+      'channelDetail': _channelDetailIds,
+      'owner': _ownerIds,
+      'executive': _executiveIds,
+      'supervisor': _supervisorIds,
+      'manager': _managerIds,
+      'gm': _gmIds,
+      'team': _teamIds,
+    };
+
+    if (!mounted) return;
+    final result = await showModalBottomSheet<ContactFilterResult>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (ctx) => _FilterSheet(options: _statusOptions, initial: _statusFilter),
+      builder: (_) => ContactFilterSheet(
+        checkGroups: checkGroups,
+        paginatedGroups: paginatedGroups,
+        initialChecks: initialChecks,
+        initialDates: const {},
+        initialProject: _project,
+        showDateSection: false,
+        dataSectionTitle: 'Data Reserve',
+      ),
     );
-    if (result != null) setState(() {
-      _statusFilter
-        ..clear()
-        ..addAll(result);
-    });
+
+    if (result != null) {
+      setState(() {
+        _statusIds = result.statusIds;
+        _channelIds = result.channelIds;
+        _channelDetailIds = result.channelDetailIds;
+        _ownerIds = result.ownerIds;
+        _executiveIds = result.executiveIds;
+        _supervisorIds = result.supervisorIds;
+        _managerIds = result.managerIds;
+        _gmIds = result.generalManagerIds;
+        _teamIds = result.teamIds;
+        _project = result.project;
+      });
+    }
   }
 
   Widget _buildBody(List<ReserveOrderListItem> items) {
@@ -334,130 +530,3 @@ class _ReserveOrderListPageState extends State<ReserveOrderListPage> {
     );
   }
 }
-
-class _SortSheet extends StatelessWidget {
-  final List<MapEntry<String, String>> options;
-  final String current;
-
-  const _SortSheet({required this.options, required this.current});
-
-  @override
-  Widget build(BuildContext context) {
-    return SafeArea(
-      child: Container(
-        decoration: const BoxDecoration(
-          color: Color(whiteColor),
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-        ),
-        padding: const EdgeInsets.symmetric(vertical: 12),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 8),
-              child: Text('Urutkan', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Color(blue2Color))),
-            ),
-            for (final option in options)
-              InkWell(
-                onTap: () => Navigator.of(context).pop(option.key),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 13),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        option.value,
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: option.key == current ? const Color(primaryColor) : const Color(blue2Color),
-                          fontWeight: option.key == current ? FontWeight.w700 : FontWeight.normal,
-                        ),
-                      ),
-                      if (option.key == current) const Icon(Icons.check, size: 18, color: Color(primaryColor)),
-                    ],
-                  ),
-                ),
-              ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _FilterSheet extends StatefulWidget {
-  final List<String> options;
-  final Set<String> initial;
-
-  const _FilterSheet({required this.options, required this.initial});
-
-  @override
-  State<_FilterSheet> createState() => _FilterSheetState();
-}
-
-class _FilterSheetState extends State<_FilterSheet> {
-  late final Set<String> _selected = {...widget.initial};
-
-  @override
-  Widget build(BuildContext context) {
-    return SafeArea(
-      child: Container(
-        decoration: const BoxDecoration(
-          color: Color(whiteColor),
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-        ),
-        padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text('Filter Status', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Color(blue2Color))),
-                InkWell(
-                  onTap: () => setState(_selected.clear),
-                  child: const Text('↻ Reset', style: TextStyle(fontSize: 12, color: Color(primaryColor), fontWeight: FontWeight.w700)),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            for (final status in widget.options)
-              InkWell(
-                onTap: () => setState(() {
-                  if (!_selected.add(status)) _selected.remove(status);
-                }),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 10),
-                  child: Row(
-                    children: [
-                      Icon(
-                        _selected.contains(status) ? Icons.check_box : Icons.check_box_outline_blank,
-                        size: 20,
-                        color: _selected.contains(status) ? const Color(primaryColor) : const Color(grey7Color),
-                      ),
-                      const SizedBox(width: 10),
-                      Text(status, style: const TextStyle(fontSize: 13, color: Color(blue2Color))),
-                    ],
-                  ),
-                ),
-              ),
-            const SizedBox(height: 10),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () => Navigator.of(context).pop(_selected),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(primaryColor),
-                  padding: const EdgeInsets.symmetric(vertical: 13),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(11)),
-                ),
-                child: const Text('Terapkan Filter', style: TextStyle(color: Color(whiteColor), fontWeight: FontWeight.bold, fontSize: 13)),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-

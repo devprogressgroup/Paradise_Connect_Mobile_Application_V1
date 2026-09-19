@@ -88,7 +88,7 @@ class ReserveOrderListDummyDataSource {
       ),
       ReserveOrderListItem(
         customerName: 'Ikram Wiksa',
-        status: 'Akad/PPJB ✓',
+        status: 'Akad/PPJB',
         statusColor: const Color(successColor),
         unitName: 'Blok BC6 No. 12',
         unitSub: 'PAR2 · Delano',

@@ -29,6 +29,8 @@ class ContactFilterSheet extends StatefulWidget {
   final Map<String, Set<int>> initialChecks;
   final Map<String, DateRangeValue?> initialDates;
   final String? initialProject;
+  final bool showDateSection;
+  final String dataSectionTitle;
 
   const ContactFilterSheet({
     super.key,
@@ -37,6 +39,8 @@ class ContactFilterSheet extends StatefulWidget {
     required this.initialChecks,
     required this.initialDates,
     required this.initialProject,
+    this.showDateSection = true,
+    this.dataSectionTitle = 'Data Kontak',
   });
 
   @override
@@ -295,9 +299,9 @@ class _ContactFilterSheetState extends State<ContactFilterSheet> {
     ];
 
     return [
-      _sectionCard('Data Kontak', dataKontak),
+      _sectionCard(widget.dataSectionTitle, dataKontak),
       if (sales.isNotEmpty) _sectionCard('Sales', sales),
-      _sectionCard('Tanggal', tanggal),
+      if (widget.showDateSection) _sectionCard('Tanggal', tanggal),
       const SizedBox(height: 8),
     ];
   }
@@ -349,6 +353,7 @@ class _ContactFilterSheetState extends State<ContactFilterSheet> {
   IconData _sectionIcon(String section) {
     switch (section) {
       case 'Data Kontak':
+      case 'Data Reserve':
         return Icons.contact_page_rounded;
       case 'Sales':
         return Icons.groups_rounded;
