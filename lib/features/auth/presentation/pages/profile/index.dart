@@ -1,11 +1,8 @@
-﻿import 'package:flutter/foundation.dart' show kIsWeb, debugPrint;
-import 'package:progress_group/core/utils/web_debug_util.dart' as web_debug;
+﻿import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:local_auth/local_auth.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:progress_group/core/network/proxy_cipher.dart';
 import 'package:progress_group/core/utils/widget/shimmer_loading.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
@@ -147,7 +144,6 @@ class _ProfilePageState extends State<ProfilePage> {
             onPressed: () {
               Navigator.pop(ctx);
               AnalyticsService.logEvent('profile_logout');
-              web_debug.logDebugError('LogoutEvent dipicu dari: tombol Logout di halaman Profile');
               context.read<AuthBloc>().add(LogoutEvent());
             },
             child: Text('Logout', style: TextStyle(color: Color(redAccentColor))),
