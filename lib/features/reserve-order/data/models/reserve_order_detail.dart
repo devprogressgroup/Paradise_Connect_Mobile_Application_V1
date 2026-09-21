@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:progress_group/core/constants/colors.dart';
+import 'package:progress_group/features/reserve-order/domain/entities/reserve_order_detail_entity.dart';
 
 import 'reserve_order_customer_data.dart';
 
@@ -44,13 +46,15 @@ class ReserveOrderTimelineStep {
 class ReserveOrderChatMessage {
   final String who;
   final String role;
+  final bool isMe;
   final String time;
   final String text;
   final Color color;
 
   ReserveOrderChatMessage({
     required this.who,
-    required this.role,
+    this.role = '',
+    this.isMe = false,
     required this.time,
     required this.text,
     required this.color,
@@ -59,6 +63,11 @@ class ReserveOrderChatMessage {
 
 /// Satu Reserve Order lengkap dengan detail — dipakai `ReserveOrderDetailPage`.
 class ReserveOrderDetail {
+  final int reserveOrderId;
+
+  /// contact_id (m_contacts) pemilik order ini — null kalau reserve order lama belum tercatat
+  /// contact_id-nya; kalau null, tombol upload dokumen di tab Attachment dinonaktifkan.
+  final int? contactId;
   String customerName;
   final String avatarInitials;
   String phone;
@@ -74,10 +83,22 @@ class ReserveOrderDetail {
   ReserveOrderCustomerData customer;
   final List<String> requiredDocs;
   final Map<String, bool> docsUploaded;
+
+  /// `attachment_type_id` (m_attachment_type) per nama dokumen di [requiredDocs] — dipakai saat
+  /// upload lewat `POST /contacts/{contact_id}/attachments`.
+  final Map<String, int> docAttachmentTypeIds;
   final List<ReserveOrderChatMessage> notes;
   final int totalPaidSoFar;
 
+  /// Nilai APA ADANYA field yang bisa diedit lewat "Edit Reserve Order" (`POST
+  /// /reserve-order/edit/{id}`) — dipakai buat prefill form-nya.
+  final String? reserveNote;
+  final int? caraBayarId;
+  final String? caraBayarName;
+
   ReserveOrderDetail({
+    required this.reserveOrderId,
+    this.contactId,
     required this.customerName,
     required this.avatarInitials,
     required this.phone,
@@ -93,7 +114,76 @@ class ReserveOrderDetail {
     required this.customer,
     required this.requiredDocs,
     required this.docsUploaded,
+    this.docAttachmentTypeIds = const {},
     required this.notes,
     this.totalPaidSoFar = 2000000,
+    this.reserveNote,
+    this.caraBayarId,
+    this.caraBayarName,
   });
+
+  /// Backend cuma expose satu `is_rejected` gabungan (SA ATAU Kasir) tanpa membedakan sumbernya,
+  /// dan cuma `update` (Perbaiki Data Customer) yang mereset flag penolakan di kedua sisi — jadi
+  /// untuk kasus Ditolak apa pun, "Perbaiki Data Customer" adalah satu-satunya aksi yang benar2
+  /// mengeluarkan order dari status Ditolak.
+  factory ReserveOrderDetail.fromEntity(ReserveOrderDetailEntity e) {
+    final initials = e.customerName.trim().isEmpty
+        ? '-'
+        : e.customerName
+              .trim()
+              .split(RegExp(r'\s+'))
+              .take(2)
+              .map((s) => s[0].toUpperCase())
+              .join();
+
+    return ReserveOrderDetail(
+      reserveOrderId: e.reserveOrderId,
+      contactId: e.contactId,
+      customerName: e.customerName,
+      avatarInitials: initials,
+      phone: e.phoneNumber ?? '-',
+      unitName: e.unitName ?? '-',
+      unitSub: e.unitSub ?? '',
+      canTopup: e.canTopup,
+      rejected: e.isRejected,
+      rejectStage: e.rejectStage,
+      rejectReason: e.rejectReason,
+      rejectFixIsCustomerData: e.isRejected,
+      timeline: e.timeline
+          .map(
+            (s) => ReserveOrderTimelineStep(
+              label: s.label,
+              sub: s.sub,
+              status: switch (s.status) {
+                ReserveOrderStageStatus.done => ReserveOrderStepStatus.done,
+                ReserveOrderStageStatus.active =>
+                  ReserveOrderStepStatus.active,
+                ReserveOrderStageStatus.todo => ReserveOrderStepStatus.todo,
+              },
+            ),
+          )
+          .toList(),
+      customer: ReserveOrderCustomerData(raw: e.customer),
+      requiredDocs: e.requiredDocs.map((d) => d.name).toList(),
+      docsUploaded: {for (final d in e.requiredDocs) d.name: d.uploaded},
+      docAttachmentTypeIds: {
+        for (final d in e.requiredDocs) d.name: d.attachmentTypeId,
+      },
+      notes: e.messages
+          .map(
+            (m) => ReserveOrderChatMessage(
+              who: m.who,
+              isMe: m.isMe,
+              time: m.time ?? '',
+              text: m.text,
+              color: const Color(primaryColor),
+            ),
+          )
+          .toList(),
+      totalPaidSoFar: e.totalPaidSoFar.round(),
+      reserveNote: e.reserveNote,
+      caraBayarId: e.caraBayarId,
+      caraBayarName: e.caraBayarName,
+    );
+  }
 }

@@ -1,23 +1,31 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show Clipboard, ClipboardData;
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:progress_group/core/constants/assets.dart';
 import 'package:progress_group/core/constants/colors.dart';
 import 'package:progress_group/core/utils/widget/custom_bg_icon.dart';
 import 'package:progress_group/core/utils/widget/custom_buttomsheet.dart';
 import 'package:progress_group/core/utils/widget/custom_dropdown_group.dart';
+import 'package:progress_group/core/utils/widget/custom_snackbar.dart';
 import 'package:progress_group/core/utils/widget/reject_banner.dart';
-import 'package:progress_group/features/reserve-order/data/datasources/reserve_order_detail_dummy_datasource.dart';
+import 'package:progress_group/features/contact/data/arguments/contact_detail_args.dart';
+import 'package:progress_group/features/contact/domain/entities/contact/contact_entity.dart';
 import 'package:progress_group/features/reserve-order/data/models/reserve_order_customer_data.dart';
 import 'package:progress_group/features/reserve-order/data/models/reserve_order_detail.dart';
+import 'package:progress_group/features/reserve-order/presentation/state/reserve_order_detail/reserve_order_detail_cubit.dart';
+import 'package:progress_group/features/reserve-order/presentation/state/reserve_order_detail/reserve_order_detail_state.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../edit-customer/index.dart';
+import '../edit-order/index.dart';
 import '../top-up/index.dart';
 
 class ReserveOrderDetailPage extends StatefulWidget {
-  final bool initiallyRejected;
+  final int reserveOrderId;
 
-  const ReserveOrderDetailPage({super.key, this.initiallyRejected = false});
+  const ReserveOrderDetailPage({super.key, required this.reserveOrderId});
 
   @override
   State<ReserveOrderDetailPage> createState() => _ReserveOrderDetailPageState();
@@ -28,15 +36,13 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage>
   late final TabController _tabController;
   final _messageController = TextEditingController();
   final _messageScrollController = ScrollController();
-  late final ReserveOrderDetail _order =
-      const ReserveOrderDetailDummyDataSource().getOrder(
-        rejected: widget.initiallyRejected,
-      );
+  bool _sendingMessage = false;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 4, vsync: this);
+    context.read<ReserveOrderDetailCubit>().fetch(widget.reserveOrderId);
   }
 
   @override
@@ -49,7 +55,50 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage>
 
   @override
   Widget build(BuildContext context) {
-    final order = _order;
+    return BlocBuilder<ReserveOrderDetailCubit, ReserveOrderDetailState>(
+      builder: (context, state) {
+        if (state.detail == null) {
+          if (state.status == ReserveOrderDetailStatus.error) {
+            return Scaffold(
+              appBar: AppBar(title: const Text('Reserve Order')),
+              body: Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        state.errorMessage ??
+                            'Gagal memuat detail reserve order.',
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 10),
+                      TextButton(
+                        onPressed: () => context
+                            .read<ReserveOrderDetailCubit>()
+                            .fetch(widget.reserveOrderId),
+                        child: const Text('Coba lagi'),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          }
+          return const Scaffold(
+            body: Center(child: CircularProgressIndicator()),
+          );
+        }
+
+        return _buildScaffold(
+          context,
+          ReserveOrderDetail.fromEntity(state.detail!),
+        );
+      },
+    );
+  }
+
+  Widget _buildScaffold(BuildContext context, ReserveOrderDetail order) {
     return Scaffold(
       backgroundColor: const Color(backgroundColor),
       appBar: AppBar(
@@ -205,17 +254,10 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage>
                 borderRadius: BorderRadius.circular(11),
               ),
             ),
-            onPressed: () => order.rejectFixIsCustomerData
-                ? _openEditCustomer(order)
-                : _openResubmitPayment(order),
-            child: Text(
-              order.rejectFixIsCustomerData
-                  ? 'Perbaiki Data Customer'
-                  : 'Edit & Ajukan Ulang',
-              style: const TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.w700,
-              ),
+            onPressed: () => _openEditCustomer(order),
+            child: const Text(
+              'Perbaiki Data Customer',
+              style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
             ),
           ),
         ),
@@ -579,7 +621,7 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage>
       );
     }
     return InkWell(
-      onTap: () => setState(() => order.docsUploaded[docName] = true),
+      onTap: () => _uploadDocument(order, docName),
       child: Container(
         width: double.infinity,
         margin: const EdgeInsets.only(bottom: 8),
@@ -612,6 +654,42 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage>
     );
   }
 
+  /// Buka halaman "Attachment" yang sama dipakai tab Attachment di Contact Detail (`ContactAddPage`
+  /// page 5, `POST /contacts/{contact_id}/attachments`) — Attachment Type-nya di-preset & dikunci
+  /// ke dokumen yang di-tap (`reserveOrderId` + `initialAttachmentTypeId` di `ContactDetailArgs`)
+  /// supaya upload-nya pasti kehitung di `required_docs.uploaded` order INI. Fetch ulang detail
+  /// setelah kembali supaya checklist-nya ikut ter-refresh (baik upload sukses maupun dibatalkan).
+  Future<void> _uploadDocument(ReserveOrderDetail order, String docName) async {
+    if (order.contactId == null) {
+      showSnackbar(
+        context,
+        'Reserve order ini belum terhubung ke data kontak, tidak bisa upload dokumen.',
+        isError: true,
+      );
+      return;
+    }
+    final attachmentTypeId = order.docAttachmentTypeIds[docName];
+    if (attachmentTypeId == null) return;
+
+    await context.pushNamed(
+      'addContact',
+      extra: ContactDetailArgs(
+        dataContact: ContactEntity(
+          contactId: order.contactId,
+          fullName: order.customerName,
+        ),
+        page: 5,
+        namePage: 'Attachment',
+        reserveOrderId: order.reserveOrderId,
+        initialAttachmentTypeId: attachmentTypeId,
+        initialAttachmentTypeName: docName,
+      ),
+    );
+
+    if (!mounted) return;
+    await context.read<ReserveOrderDetailCubit>().fetch(order.reserveOrderId);
+  }
+
   // ===================== MESSAGES =====================
 
   Widget _buildMessagesTab(ReserveOrderDetail order) {
@@ -639,6 +717,65 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage>
   }
 
   Widget _buildMessageItem(ReserveOrderChatMessage note) {
+    return note.isMe ? _buildMessageBubbleRight(note) : _buildMessageBubbleLeft(note);
+  }
+
+  Widget _messageBubbleContent(ReserveOrderChatMessage note, {required bool isMe}) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: isMe
+            ? const Color(primaryColor).withValues(alpha: 0.1)
+            : const Color(grey11Color),
+        borderRadius: BorderRadius.circular(12).copyWith(
+          topRight: isMe ? Radius.zero : null,
+          topLeft: isMe ? null : Radius.zero,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            note.text,
+            style: const TextStyle(
+              fontSize: 11.5,
+              color: Colors.black87,
+              height: 1.4,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Bubble punya sendiri ("me" — dari `create_user_id` yang sama dengan user login, lihat
+  /// `is_me` di `ReserveOrderService::getDetail()`), rata kanan tanpa avatar, khas chat.
+  Widget _buildMessageBubbleRight(ReserveOrderChatMessage note) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.end,
+        children: [
+          Flexible(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  note.time,
+                  style: const TextStyle(fontSize: 9, color: Color(grey4Color)),
+                ),
+                const SizedBox(height: 2),
+                _messageBubbleContent(note, isMe: true),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Bubble dari orang lain, rata kiri dengan avatar inisial.
+  Widget _buildMessageBubbleLeft(ReserveOrderChatMessage note) {
     final initials = note.who.length >= 2
         ? note.who.substring(0, 2).toUpperCase()
         : note.who.toUpperCase();
@@ -660,44 +797,31 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage>
             ),
           ),
           const SizedBox(width: 8),
-          Expanded(
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-              decoration: BoxDecoration(
-                color: const Color(grey11Color),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+          Flexible(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text.rich(
+                  TextSpan(
                     children: [
-                      Expanded(
-                        child: Text.rich(
-                          TextSpan(
-                            children: [
-                              TextSpan(
-                                text: note.who,
-                                style: const TextStyle(
-                                  fontSize: 10.5,
-                                  fontWeight: FontWeight.w700,
-                                  color: Color(grey1Color),
-                                ),
-                              ),
-                              TextSpan(
-                                text: ' · ${note.role}',
-                                style: const TextStyle(
-                                  fontSize: 10.5,
-                                  color: Color(grey4Color),
-                                ),
-                              ),
-                            ],
-                          ),
+                      TextSpan(
+                        text: note.who,
+                        style: const TextStyle(
+                          fontSize: 10.5,
+                          fontWeight: FontWeight.w700,
+                          color: Color(grey1Color),
                         ),
                       ),
-                      Text(
-                        note.time,
+                      if (note.role.isNotEmpty)
+                        TextSpan(
+                          text: ' · ${note.role}',
+                          style: const TextStyle(
+                            fontSize: 10.5,
+                            color: Color(grey4Color),
+                          ),
+                        ),
+                      TextSpan(
+                        text: ' · ${note.time}',
                         style: const TextStyle(
                           fontSize: 9,
                           color: Color(grey4Color),
@@ -705,17 +829,10 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage>
                       ),
                     ],
                   ),
-                  const SizedBox(height: 2),
-                  Text(
-                    note.text,
-                    style: const TextStyle(
-                      fontSize: 11.5,
-                      color: Colors.black87,
-                      height: 1.4,
-                    ),
-                  ),
-                ],
-              ),
+                ),
+                const SizedBox(height: 2),
+                _messageBubbleContent(note, isMe: false),
+              ],
             ),
           ),
         ],
@@ -754,7 +871,7 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage>
             ),
             const SizedBox(width: 8),
             InkWell(
-              onTap: () => _sendMessage(order),
+              onTap: _sendingMessage ? null : () => _sendMessage(order),
               borderRadius: BorderRadius.circular(18),
               child: Container(
                 width: 36,
@@ -763,7 +880,15 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage>
                   color: Color(primaryColor),
                   shape: BoxShape.circle,
                 ),
-                child: Icon(Icons.send, color: Colors.white, size: 18),
+                child: _sendingMessage
+                    ? const Padding(
+                        padding: EdgeInsets.all(9),
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : const Icon(Icons.send, color: Colors.white, size: 18),
               ),
             ),
           ],
@@ -772,21 +897,29 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage>
     );
   }
 
-  void _sendMessage(ReserveOrderDetail order) {
+  /// `POST /reserve-order/message/{id}` — baris chat baru cukup didapat dari `getDetail()` yang
+  /// dibalikkan (via [ReserveOrderDetailCubit] yang rebuild `order` di `build()`), tidak perlu
+  /// di-append manual ke [order.notes].
+  Future<void> _sendMessage(ReserveOrderDetail order) async {
     final text = _messageController.text.trim();
-    if (text.isEmpty) return;
-    setState(() {
-      order.notes.add(
-        ReserveOrderChatMessage(
-          who: 'Anda',
-          role: 'Sales',
-          time: 'baru saja',
-          text: text,
-          color: const Color(primaryColor),
-        ),
-      );
-      _messageController.clear();
-    });
+    if (text.isEmpty || _sendingMessage) return;
+
+    setState(() => _sendingMessage = true);
+
+    final error = await context.read<ReserveOrderDetailCubit>().sendMessage(
+      order.reserveOrderId,
+      text,
+    );
+
+    if (!mounted) return;
+    setState(() => _sendingMessage = false);
+
+    if (error != null) {
+      showSnackbar(context, error, isError: true);
+      return;
+    }
+
+    _messageController.clear();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_messageScrollController.hasClients) {
         _messageScrollController.animateTo(
@@ -800,11 +933,22 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage>
 
   // ===================== ACTIONS =====================
 
-  void _callCustomer(ReserveOrderDetail order) =>
-      _showComingSoon('Menelepon ${order.phone}');
+  Future<void> _callCustomer(ReserveOrderDetail order) async {
+    if (order.phone.isEmpty || order.phone == '-') return;
+    await launchUrl(Uri(scheme: 'tel', path: order.phone));
+  }
 
-  void _chatCustomer(ReserveOrderDetail order) =>
-      _showComingSoon('Membuka WhatsApp ke ${order.phone}');
+  Future<void> _chatCustomer(ReserveOrderDetail order) async {
+    if (order.phone.isEmpty || order.phone == '-') return;
+    var phone = order.phone.replaceAll(RegExp(r'[^0-9]'), '');
+    if (phone.startsWith('0')) {
+      phone = '62${phone.substring(1)}';
+    }
+    await launchUrl(
+      Uri.parse('https://wa.me/$phone'),
+      mode: LaunchMode.externalApplication,
+    );
+  }
 
   void _openMenu(ReserveOrderDetail order) {
     showCustomBottomSheet(
@@ -822,7 +966,7 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage>
           _menuItem(
             '✎',
             'Edit Reserve Order',
-            () => _showComingSoon('Edit Reserve Order'),
+            () => _openEditOrder(order),
           ),
           _menuItem(
             '🗑️',
@@ -840,6 +984,7 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage>
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => TopupReserveOrderPage(
+          reserveOrderId: order.reserveOrderId,
           unitName: order.unitName,
           customerName: order.customerName,
           currentStatus: order.rejected ? 'Ditolak' : 'Diproses',
@@ -849,51 +994,50 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage>
     );
   }
 
-  void _openResubmitPayment(ReserveOrderDetail order) {
-    Navigator.of(context).push(
+  /// Sama seperti [_openEditCustomer] — begitu `edit` sukses, cubit emit detail baru & halaman
+  /// ini rebuild otomatis lewat `BlocBuilder`, tidak perlu merge manual.
+  Future<void> _openEditOrder(ReserveOrderDetail order) async {
+    await Navigator.of(context).push<bool>(
       MaterialPageRoute(
-        builder: (_) => TopupReserveOrderPage(
-          unitName: order.unitName,
-          customerName: order.customerName,
-          currentStatus: 'Ditolak',
-          totalPaidSoFar: order.totalPaidSoFar,
-          isResubmit: true,
-          rejectReason: order.rejectReason,
-          suggestedAmount: order.price != null
-              ? order.price! - order.totalPaidSoFar
-              : null,
+        builder: (_) => EditReserveOrderPage(
+          reserveOrderId: order.reserveOrderId,
+          initialNote: order.reserveNote,
+          initialCaraBayarId: order.caraBayarId,
+          initialCaraBayarName: order.caraBayarName,
         ),
       ),
     );
   }
 
+  /// Detail page-nya bersumber dari [ReserveOrderDetailCubit] — begitu `update` sukses, cubit
+  /// emit detail baru & `BlocBuilder` di `build()` otomatis rebuild dgn data terbaru, jadi tidak
+  /// perlu lagi merge manual hasil balik halaman ini ke `order`.
   Future<void> _openEditCustomer(
     ReserveOrderDetail order, {
     String? highlightKey,
   }) async {
-    final updated = await Navigator.of(context).push<ReserveOrderCustomerData>(
+    await Navigator.of(context).push<bool>(
       MaterialPageRoute(
         builder: (_) => EditCustomerReserveOrderPage(
+          reserveOrderId: order.reserveOrderId,
           customer: order.customer,
           highlightKey: highlightKey,
         ),
       ),
     );
-    if (updated == null || !mounted) return;
-    setState(() {
-      order.customer = updated;
-      order.customerName = updated.nama ?? order.customerName;
-      order.phone = updated.hp ?? order.phone;
-    });
   }
 
+  /// `DELETE /reserve-order/{id}` — hard delete PERMANEN (TTS, item pembayaran, dokumen, log
+  /// aktivitas ikut terhapus). Begitu sukses, halaman ini pop dgn `true` supaya List Reserve Order
+  /// (yang menunggu hasil push-nya) tahu harus refresh.
   Future<void> _confirmDelete(ReserveOrderDetail order) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Hapus Reserve Order?'),
         content: Text(
-          'Hapus Reserve Order ${order.unitName} a.n. ${order.customerName}? Tindakan ini tidak bisa dibatalkan.',
+          'Hapus Reserve Order ${order.unitName} a.n. ${order.customerName}? '
+          'Seluruh riwayat pembayaran (TTS) & dokumen ikut terhapus PERMANEN — tindakan ini tidak bisa dibatalkan.',
         ),
         actions: [
           TextButton(
@@ -910,7 +1054,20 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage>
         ],
       ),
     );
-    if (confirmed == true && mounted) Navigator.of(context).pop();
+    if (confirmed != true || !mounted) return;
+
+    final error = await context.read<ReserveOrderDetailCubit>().delete(
+      order.reserveOrderId,
+    );
+
+    if (!mounted) return;
+
+    if (error != null) {
+      showSnackbar(context, error, isError: true);
+      return;
+    }
+
+    Navigator.of(context).pop(true);
   }
 
   void _shareOrder(ReserveOrderDetail order) {

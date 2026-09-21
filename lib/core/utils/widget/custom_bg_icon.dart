@@ -40,7 +40,7 @@ class BgIcon extends StatelessWidget {
                   errorBuilder: (_, __, ___) => Icon(fallbackIcon),
                   color: color,
                 )
-              : Icon(fallbackIcon, size: 35,),
+              : Icon(fallbackIcon, size: 30,color: color),
         ),
       ),
     );

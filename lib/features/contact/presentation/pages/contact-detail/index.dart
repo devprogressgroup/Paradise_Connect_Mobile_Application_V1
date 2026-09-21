@@ -622,7 +622,9 @@ class _ContactDetailPageState extends State<ContactDetailPage>
             "Reserve Order",
             _navigateToReserveOrder,
             color: Color(primaryColor),
-            fallbackIcon: Icons.receipt_long_outlined,
+          
+            fallbackIcon: Icons.local_offer,
+            
           ),
         ],
       ),

@@ -128,6 +128,16 @@ class _ContactFilterSheetState extends State<ContactFilterSheet> {
     });
   }
 
+  /// Reset di header cuma bersihkan draft ("Terapkan" tetap harus dipencet buat kirim ke server)
+  /// — kalau sheet ditutup lewat X/swipe-down setelah Reset (bukan Terapkan), hasil reset itu
+  /// hilang begitu saja dan caller tidak pernah tahu (list di belakang tetap pakai filter lama).
+  /// Reset harus langsung berlaku: bersihkan draft LALU tutup sheet sambil kirim hasil kosongnya,
+  /// persis seperti user pencet Terapkan sesaat setelah Reset.
+  void _resetAndApply() {
+    _resetStaged();
+    Navigator.pop(context, _buildResult());
+  }
+
   ContactFilterResult _buildResult() => ContactFilterResult(
     statusIds: _stagedChecks['status'] ?? const {},
     channelIds: _stagedChecks['channel'] ?? const {},
@@ -204,7 +214,7 @@ class _ContactFilterSheetState extends State<ContactFilterSheet> {
                   ),
                 ),
                 TextButton.icon(
-                  onPressed: activeCount > 0 ? _resetStaged : null,
+                  onPressed: activeCount > 0 ? _resetAndApply : null,
                   style: TextButton.styleFrom(
                     foregroundColor: Color(primaryColor),
                     disabledForegroundColor: Color(grey7Color),

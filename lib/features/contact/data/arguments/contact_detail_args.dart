@@ -15,6 +15,17 @@ class ContactDetailArgs {
   final String? focusField;
   final String? buttonLabel;
 
+  /// Diisi kalau flow attachment (page 5) ini dibuka dari Reserve Order (tab Attachment, tap salah
+  /// satu dokumen wajib) — supaya upload-nya ikut kehitung di `required_docs.uploaded` order itu
+  /// (lihat `UploadAttachmentParams.reserveOrderId`), bukan cuma nempel ke contact_id.
+  final int? reserveOrderId;
+
+  /// Attachment Type yang harus dipakai (mis. "Form Visitor") kalau dokumennya sudah ditentukan
+  /// dari baris yang di-tap — dropdown "Attachment Type" langsung ke-preset & dikunci (tidak bisa
+  /// diganti) supaya upload-nya benar2 masuk ke slot dokumen wajib yang dimaksud.
+  final int? initialAttachmentTypeId;
+  final String? initialAttachmentTypeName;
+
   ContactDetailArgs({
     this.dataAttachment,
     this.dataContact,
@@ -26,6 +37,9 @@ class ContactDetailArgs {
     this.sourceRoute,
     this.focusField,
     this.buttonLabel,
+    this.reserveOrderId,
+    this.initialAttachmentTypeId,
+    this.initialAttachmentTypeName,
   });
 
   ContactDetailArgs copyWith({
@@ -39,6 +53,9 @@ class ContactDetailArgs {
     String? sourceRoute,
     String? focusField,
     String? buttonLabel,
+    int? reserveOrderId,
+    int? initialAttachmentTypeId,
+    String? initialAttachmentTypeName,
   }) {
     return ContactDetailArgs(
       dataAttachment: dataAttachment ?? this.dataAttachment,
@@ -51,6 +68,11 @@ class ContactDetailArgs {
       sourceRoute: sourceRoute ?? this.sourceRoute,
       focusField: focusField ?? this.focusField,
       buttonLabel: buttonLabel ?? this.buttonLabel,
+      reserveOrderId: reserveOrderId ?? this.reserveOrderId,
+      initialAttachmentTypeId:
+          initialAttachmentTypeId ?? this.initialAttachmentTypeId,
+      initialAttachmentTypeName:
+          initialAttachmentTypeName ?? this.initialAttachmentTypeName,
     );
   }
 }

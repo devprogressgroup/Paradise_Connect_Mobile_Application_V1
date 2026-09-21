@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
@@ -14,8 +16,9 @@ import 'package:progress_group/features/contact/presentation/state/info_source/i
 import 'package:progress_group/features/contact/presentation/state/info_source/info_source_state.dart';
 import 'package:progress_group/features/contact/presentation/state/sales_hierarchy/sales_hierarchy_service.dart';
 import 'package:progress_group/features/contact/presentation/widgets/contact_filter_sheet.dart';
-import 'package:progress_group/features/reserve-order/data/datasources/reserve_order_list_dummy_datasource.dart';
 import 'package:progress_group/features/reserve-order/data/models/reserve_order_list_item.dart';
+import 'package:progress_group/features/reserve-order/presentation/state/reserve_order_list/reserve_order_list_cubit.dart';
+import 'package:progress_group/features/reserve-order/presentation/state/reserve_order_list/reserve_order_list_state.dart';
 import 'package:progress_group/features/reserve-order/presentation/state/reserve_status/reserve_status_bloc.dart';
 import 'package:progress_group/features/reserve-order/presentation/state/reserve_status/reserve_status_event.dart';
 import 'package:progress_group/features/reserve-order/presentation/state/reserve_status/reserve_status_state.dart';
@@ -23,14 +26,9 @@ import 'package:progress_group/features/reserve-order/presentation/state/reserve
 import '../detail/index.dart';
 import '../select-contact/index.dart';
 
-/// Menu "Reserve Order" — halaman list transaksi.
-///
-/// Catatan: sementara masih pakai data contoh ([ReserveOrderListDummyDataSource]), belum
-/// disambungkan ke API asli. Struktur & data mengikuti prototype `reserve-order-prototype (1).html`
-/// (bagian LIST) biar gampang disambung ke datasource sungguhan nanti. Filter/sort sheet-nya
-/// sudah dibuat sama seperti punya Contact (lihat [ContactFilterSheet] & rute
-/// `detailContactDropdown`) supaya kalau list-nya nanti disambung ke API asli, UI filternya
-/// tidak perlu dibongkar lagi.
+/// Menu "Reserve Order" — halaman list transaksi, disambungkan ke `GET /reserve-order/list`
+/// lewat [ReserveOrderListCubit] (search, filter status, & sort `terbaru`/`terlama` diteruskan ke
+/// server; dimensi filter lain di sheet-nya — channel, owner, dst — belum didukung endpoint-nya).
 class ReserveOrderListPage extends StatefulWidget {
   const ReserveOrderListPage({super.key});
 
@@ -50,8 +48,8 @@ class _ReserveOrderListPageState extends State<ReserveOrderListPage> {
 
   final _searchController = TextEditingController();
   final _searchFocus = FocusNode();
-
-  final _items = const ReserveOrderListDummyDataSource().getAll();
+  final _scrollController = ScrollController();
+  Timer? _debounce;
 
   String _search = '';
   String _sort = _defaultSort;
@@ -74,13 +72,43 @@ class _ReserveOrderListPageState extends State<ReserveOrderListPage> {
     AnalyticsService.logScreenView('reserve_order_list');
     context.read<ReserveStatusBloc>().add(const FetchReserveStatusesEvent());
     context.read<InfoSourceBloc>().add(const FetchInfoSourcesEvent(type: 1));
+    _scrollController.addListener(_onScroll);
+    _fetch();
   }
 
   @override
   void dispose() {
+    _debounce?.cancel();
     _searchController.dispose();
     _searchFocus.dispose();
+    _scrollController.dispose();
     super.dispose();
+  }
+
+  Future<void> _fetch() {
+    return context.read<ReserveOrderListCubit>().fetch(
+      search: _search.trim().isEmpty ? null : _search.trim(),
+      statusReserveIds: _statusIds.isEmpty ? null : _statusIds.toList(),
+      sort: _sort == 'created_asc' ? 'terlama' : 'terbaru',
+      salesChannelIds: _channelIds.isEmpty ? null : _channelIds.toList(),
+      channelDetailIds: _channelDetailIds.isEmpty ? null : _channelDetailIds.toList(),
+      ownerIds: _ownerIds.isEmpty ? null : _ownerIds.toList(),
+      salesExecutiveIds: _executiveIds.isEmpty ? null : _executiveIds.toList(),
+      salesSupervisorIds: _supervisorIds.isEmpty ? null : _supervisorIds.toList(),
+      salesManagerIds: _managerIds.isEmpty ? null : _managerIds.toList(),
+      generalManagerIds: _gmIds.isEmpty ? null : _gmIds.toList(),
+    );
+  }
+
+  void _onScroll() {
+    if (_scrollController.position.pixels >=
+        _scrollController.position.maxScrollExtent - 200) {
+      final state = context.read<ReserveOrderListCubit>().state;
+      if (state.status != ReserveOrderListStatus.loading &&
+          state.status != ReserveOrderListStatus.loadingMore) {
+        context.read<ReserveOrderListCubit>().loadMore();
+      }
+    }
   }
 
   int get _activeFilterCount {
@@ -98,93 +126,73 @@ class _ReserveOrderListPageState extends State<ReserveOrderListPage> {
     return n;
   }
 
-  List<ReserveOrderListItem> get _visibleItems {
-    final term = _search.trim().toLowerCase();
-
-    // Data list-nya masih dummy (belum ada field channel/owner/dst di [ReserveOrderListItem]),
-    // jadi baru dimensi status yang benar-benar menyaring hasil — dimensi lain tetap bisa
-    // dipilih di sheet-nya tapi menunggu list-nya disambung ke API asli untuk ikut menyaring.
-    final statusNames = _statusIds.isEmpty
-        ? const <String>{}
-        : context
-              .read<ReserveStatusBloc>()
-              .state
-              .statuses
-              .where((e) => _statusIds.contains(e.statusReserveId))
-              .map((e) => e.displayName)
-              .toSet();
-
-    final list = _items.where((o) {
-      final matchTerm =
-          term.isEmpty ||
-          o.customerName.toLowerCase().contains(term) ||
-          o.unitName.toLowerCase().contains(term);
-      final matchStatus = statusNames.isEmpty || statusNames.contains(o.status);
-      return matchTerm && matchStatus;
-    }).toList();
-
-    list.sort((a, b) {
-      switch (_sort) {
-        case 'created_asc':
-          return a.createdAt.compareTo(b.createdAt);
-        case 'name_asc':
-          return a.customerName.compareTo(b.customerName);
-        case 'name_desc':
-          return b.customerName.compareTo(a.customerName);
-        case 'created_desc':
-        default:
-          return b.createdAt.compareTo(a.createdAt);
-      }
-    });
-    return list;
+  /// Server sudah urutkan `terbaru`/`terlama`; `name_asc`/`name_desc` belum didukung endpoint-nya
+  /// jadi diurut ulang di client di atas hasil halaman yang sudah termuat.
+  List<ReserveOrderListItem> _sortedItems(ReserveOrderListState state) {
+    final items = state.items.map(ReserveOrderListItem.fromEntity).toList();
+    if (_sort == 'name_asc') {
+      items.sort((a, b) => a.customerName.compareTo(b.customerName));
+    } else if (_sort == 'name_desc') {
+      items.sort((a, b) => b.customerName.compareTo(a.customerName));
+    }
+    return items;
   }
 
   @override
   Widget build(BuildContext context) {
-    final visible = _visibleItems;
-    return Scaffold(
-      backgroundColor: const Color(grey11Color),
-      body: SafeArea(
-        child: Column(
-          children: [
-            _buildHeader(),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 10),
-              child: customSearchField(
-                controller: _searchController,
-                focusNode: _searchFocus,
-                hintText: 'Cari nama / unit...',
-                onChanged: (value) {
-                  AnalyticsService.logEvent('reserve_order_list_search');
-                  setState(() => _search = value);
-                },
-              ),
+    return BlocBuilder<ReserveOrderListCubit, ReserveOrderListState>(
+      builder: (context, state) {
+        final visible = _sortedItems(state);
+        return Scaffold(
+          backgroundColor: const Color(grey11Color),
+          body: SafeArea(
+            child: Column(
+              children: [
+                _buildHeader(state),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 10),
+                  child: customSearchField(
+                    controller: _searchController,
+                    focusNode: _searchFocus,
+                    hintText: 'Cari nama / unit...',
+                    onChanged: (value) {
+                      AnalyticsService.logEvent('reserve_order_list_search');
+                      _search = value;
+                      _debounce?.cancel();
+                      _debounce = Timer(
+                        const Duration(milliseconds: 400),
+                        _fetch,
+                      );
+                    },
+                  ),
+                ),
+                _buildFilterRow(),
+                Expanded(child: _buildBody(state, visible)),
+              ],
             ),
-            _buildFilterRow(),
-            Expanded(child: _buildBody(visible)),
-          ],
-        ),
-      ),
-      floatingActionButton: Padding(
-        padding: const EdgeInsets.only(bottom: 10),
-        child: FloatingActionButton(
-          onPressed: () {
-            AnalyticsService.logEvent('reserve_order_list_fab_create');
-            Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (_) => const SelectContactForReserveOrderPage(),
-              ),
-            );
-          },
-          backgroundColor: const Color(primaryColor),
-          shape: const CircleBorder(),
-          child: const Icon(Icons.add, color: Color(whiteColor)),
-        ),
-      ),
+          ),
+          floatingActionButton: Padding(
+            padding: const EdgeInsets.only(bottom: 10),
+            child: FloatingActionButton(
+              onPressed: () {
+                AnalyticsService.logEvent('reserve_order_list_fab_create');
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => const SelectContactForReserveOrderPage(),
+                  ),
+                );
+              },
+              backgroundColor: const Color(primaryColor),
+              shape: const CircleBorder(),
+              child: const Icon(Icons.add, color: Color(whiteColor)),
+            ),
+          ),
+        );
+      },
     );
   }
 
-  Widget _buildHeader() {
+  Widget _buildHeader(ReserveOrderListState state) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
@@ -205,7 +213,7 @@ class _ReserveOrderListPageState extends State<ReserveOrderListPage> {
           ),
           const SizedBox(height: 2),
           Text(
-            '${_items.length} transaksi aktif',
+            '${state.total} transaksi aktif',
             style: const TextStyle(fontSize: 11, color: Color(grey4Color)),
           ),
         ],
@@ -310,11 +318,16 @@ class _ReserveOrderListPageState extends State<ReserveOrderListPage> {
 
     if (result is List) {
       if (mounted) setState(() => _sort = _defaultSort);
+      _fetch();
       return;
     }
     if (result != null && mounted) {
       final selected = result as OwnerDropdownItem;
-      setState(() => _sort = _sortOptions[selected.id!].key);
+      final newSort = _sortOptions[selected.id!].key;
+      final wasServerSort = _sort == 'created_desc' || _sort == 'created_asc';
+      final isServerSort = newSort == 'created_desc' || newSort == 'created_asc';
+      setState(() => _sort = newSort);
+      if (wasServerSort != isServerSort || isServerSort) _fetch();
     }
   }
 
@@ -475,10 +488,35 @@ class _ReserveOrderListPageState extends State<ReserveOrderListPage> {
         _teamIds = result.teamIds;
         _project = result.project;
       });
+      _fetch();
     }
   }
 
-  Widget _buildBody(List<ReserveOrderListItem> items) {
+  Widget _buildBody(ReserveOrderListState state, List<ReserveOrderListItem> items) {
+    if (state.status == ReserveOrderListStatus.loading && items.isEmpty) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (state.status == ReserveOrderListStatus.error && items.isEmpty) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                state.errorMessage ?? 'Gagal memuat daftar reserve order.',
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontSize: 12, color: Color(grey4Color)),
+              ),
+              const SizedBox(height: 10),
+              TextButton(onPressed: _fetch, child: const Text('Coba lagi')),
+            ],
+          ),
+        ),
+      );
+    }
+
     if (items.isEmpty) {
       return Center(
         child: Padding(
@@ -492,26 +530,46 @@ class _ReserveOrderListPageState extends State<ReserveOrderListPage> {
       );
     }
 
-    return ListView.separated(
-      padding: const EdgeInsets.fromLTRB(16, 4, 16, 20),
-      itemCount: items.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 10),
-      itemBuilder: (context, index) => _buildCard(items[index]),
+    return RefreshIndicator(
+      onRefresh: _fetch,
+      child: ListView.separated(
+        controller: _scrollController,
+        padding: const EdgeInsets.fromLTRB(16, 4, 16, 20),
+        itemCount: items.length + (state.hasMore ? 1 : 0),
+        separatorBuilder: (_, __) => const SizedBox(height: 10),
+        itemBuilder: (context, index) {
+          if (index >= items.length) {
+            return const Padding(
+              padding: EdgeInsets.symmetric(vertical: 16),
+              child: Center(
+                child: SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+              ),
+            );
+          }
+          return _buildCard(items[index]);
+        },
+      ),
     );
   }
 
   Widget _buildCard(ReserveOrderListItem order) {
     return InkWell(
       borderRadius: BorderRadius.circular(14),
-      onTap: () {
+      onTap: () async {
         AnalyticsService.logEvent('reserve_order_list_open_detail');
-        Navigator.of(context).push(
+        // Detail bisa balik `true` kalau reserve order-nya baru saja dihapus (hard delete) —
+        // refresh list-nya biar baris yang sudah tidak ada di server ikut hilang dari layar.
+        final deleted = await Navigator.of(context).push<bool>(
           MaterialPageRoute(
-            builder: (_) => ReserveOrderDetailPage(
-              initiallyRejected: order.status == 'Ditolak',
-            ),
+            builder: (_) =>
+                ReserveOrderDetailPage(reserveOrderId: order.reserveOrderId),
           ),
         );
+        if (deleted == true) _fetch();
       },
       child: Container(
         width: double.infinity,

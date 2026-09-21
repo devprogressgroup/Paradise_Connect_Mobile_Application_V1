@@ -85,14 +85,23 @@ import 'package:progress_group/features/contact/domain/usecases/lost_reason/get_
 import 'package:progress_group/features/reserve-order/data/datasources/reserve_order_remote_datasource.dart';
 import 'package:progress_group/features/reserve-order/domain/repositories/reserve_order_repository_impl.dart';
 import 'package:progress_group/features/reserve-order/domain/usecases/create_reserve_order_usecase.dart';
+import 'package:progress_group/features/reserve-order/domain/usecases/delete_reserve_order_usecase.dart';
+import 'package:progress_group/features/reserve-order/domain/usecases/edit_reserve_order_usecase.dart';
 import 'package:progress_group/features/reserve-order/domain/usecases/get_cara_bayar_usecase.dart';
 import 'package:progress_group/features/reserve-order/domain/usecases/get_payment_types_usecase.dart';
+import 'package:progress_group/features/reserve-order/domain/usecases/get_reserve_order_detail_usecase.dart';
+import 'package:progress_group/features/reserve-order/domain/usecases/get_reserve_order_list_usecase.dart';
 import 'package:progress_group/features/reserve-order/domain/usecases/get_reserve_statuses_usecase.dart';
 import 'package:progress_group/features/reserve-order/domain/usecases/get_select_unit_usecase.dart';
 import 'package:progress_group/features/reserve-order/domain/usecases/get_work_category_usecase.dart';
+import 'package:progress_group/features/reserve-order/domain/usecases/send_reserve_order_message_usecase.dart';
+import 'package:progress_group/features/reserve-order/domain/usecases/topup_reserve_order_usecase.dart';
+import 'package:progress_group/features/reserve-order/domain/usecases/update_reserve_order_customer_usecase.dart';
 import 'package:progress_group/features/reserve-order/presentation/state/cara_bayar/cara_bayar_bloc.dart';
 import 'package:progress_group/features/reserve-order/presentation/state/create_reserve_order/create_reserve_order_cubit.dart';
 import 'package:progress_group/features/reserve-order/presentation/state/payment_type/payment_type_bloc.dart';
+import 'package:progress_group/features/reserve-order/presentation/state/reserve_order_detail/reserve_order_detail_cubit.dart';
+import 'package:progress_group/features/reserve-order/presentation/state/reserve_order_list/reserve_order_list_cubit.dart';
 import 'package:progress_group/features/reserve-order/presentation/state/reserve_status/reserve_status_bloc.dart';
 import 'package:progress_group/features/reserve-order/presentation/state/select_unit/select_unit_bloc.dart';
 import 'package:progress_group/features/reserve-order/presentation/state/work_category/work_category_bloc.dart';
@@ -477,6 +486,13 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     final getSelectUnitUseCase = GetSelectUnitUseCase(reserveOrderRepository);
     final getPaymentTypesUseCase = GetPaymentTypesUseCase(reserveOrderRepository,);
     final createReserveOrderUseCase = CreateReserveOrderUseCase(reserveOrderRepository);
+    final getReserveOrderListUseCase = GetReserveOrderListUseCase(reserveOrderRepository,);
+    final getReserveOrderDetailUseCase = GetReserveOrderDetailUseCase(reserveOrderRepository,);
+    final updateReserveOrderCustomerUseCase = UpdateReserveOrderCustomerUseCase(reserveOrderRepository,);
+    final topupReserveOrderUseCase = TopupReserveOrderUseCase(reserveOrderRepository);
+    final sendReserveOrderMessageUseCase = SendReserveOrderMessageUseCase(reserveOrderRepository,);
+    final editReserveOrderUseCase = EditReserveOrderUseCase(reserveOrderRepository);
+    final deleteReserveOrderUseCase = DeleteReserveOrderUseCase(reserveOrderRepository);
 
     final siteplanRemoteDataSource = SiteplanRemoteDataSourceImpl(dioClient.dio,);
     final siteplanRepository = SitePlanRepositoryImpl(siteplanRemoteDataSource,localDataSource,);
@@ -721,6 +737,23 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
               BlocProvider(
                 create: (_) =>
                     CreateReserveOrderCubit(createReserveOrderUseCase),
+              ),
+              BlocProvider(
+                create: (_) => ReserveOrderListCubit(
+                  getReserveOrderListUseCase: getReserveOrderListUseCase,
+                ),
+              ),
+              BlocProvider(
+                create: (_) => ReserveOrderDetailCubit(
+                  getReserveOrderDetailUseCase: getReserveOrderDetailUseCase,
+                  updateReserveOrderCustomerUseCase:
+                      updateReserveOrderCustomerUseCase,
+                  topupReserveOrderUseCase: topupReserveOrderUseCase,
+                  sendReserveOrderMessageUseCase:
+                      sendReserveOrderMessageUseCase,
+                  editReserveOrderUseCase: editReserveOrderUseCase,
+                  deleteReserveOrderUseCase: deleteReserveOrderUseCase,
+                ),
               ),
               BlocProvider(
                 create: (_) => SalesHierarchyService(

@@ -31,9 +31,9 @@ class ApiConstants {
 
     AppEnvironment.development: _EnvConfig(
       label: 'Development IP',
-      baseUrl: 'http://172.20.10.3:1100/api',
-      storageUrl: 'http://172.20.10.3:1100/storage',
-      serverUrl: 'http://172.20.10.3:1100',
+      baseUrl: 'http://192.168.8.40:1100/api',
+      storageUrl: 'http://192.168.8.40:1100/storage',
+      serverUrl: 'http://192.168.8.40:1100',
     ),
 
     // AppEnvironment.development2: _EnvConfig(
@@ -97,8 +97,7 @@ class ApiConstants {
     envNotifier.value = env;
   }
 
-  static _EnvConfig get _config =>
-      _configs[_currentEnv] ?? _configs[AppEnvironment.production]!;
+  static _EnvConfig get _config => _configs[_currentEnv] ?? _configs[AppEnvironment.production]!;
 
   static String get baseUrl => _config.baseUrl;
   static String get storageUrl => _config.storageUrl;

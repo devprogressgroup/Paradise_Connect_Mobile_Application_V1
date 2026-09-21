@@ -635,6 +635,7 @@ class ContactRemoteDataSourceImpl implements ContactRemoteDataSource {
         final body = <String, dynamic>{
           if (params.dealId != null) 'deal_id': params.dealId,
           if (params.activityId != null) 'activity_id': params.activityId,
+          if (params.reserveOrderId != null) 'reserve_order_id': params.reserveOrderId,
           'attachment_type_id': params.attachmentTypeId,
           if (params.attachmentNote != null) 'attachment_note': params.attachmentNote,
           'files': filesDataUris,
@@ -653,6 +654,7 @@ class ContactRemoteDataSourceImpl implements ContactRemoteDataSource {
       final body = <String, dynamic>{
         if (params.dealId != null) 'deal_id': params.dealId,
         if (params.activityId != null) 'activity_id': params.activityId,
+        if (params.reserveOrderId != null) 'reserve_order_id': params.reserveOrderId,
         'attachment_type_id': params.attachmentTypeId,
         if (params.attachmentNote != null) 'attachment_note': params.attachmentNote,
         if (fileBase64.isNotEmpty) ...{

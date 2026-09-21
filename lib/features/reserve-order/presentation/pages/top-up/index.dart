@@ -2,12 +2,18 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:progress_group/core/constants/colors.dart';
 import 'package:progress_group/core/utils/helpers/number_helper.dart';
 import 'package:progress_group/core/utils/widget/custom_button.dart';
 import 'package:progress_group/core/utils/widget/custom_file_picker.dart';
 import 'package:progress_group/core/utils/widget/custom_snackbar.dart';
 import 'package:progress_group/core/utils/widget/reject_banner.dart';
+import 'package:progress_group/features/reserve-order/domain/entities/topup_reserve_order_params.dart';
+import 'package:progress_group/features/reserve-order/presentation/state/payment_type/payment_type_bloc.dart';
+import 'package:progress_group/features/reserve-order/presentation/state/payment_type/payment_type_event.dart';
+import 'package:progress_group/features/reserve-order/presentation/state/payment_type/payment_type_state.dart';
+import 'package:progress_group/features/reserve-order/presentation/state/reserve_order_detail/reserve_order_detail_cubit.dart';
 
 enum _PayMode { cash, transfer }
 
@@ -29,6 +35,7 @@ class _PaymentBlock {
 /// Timeline detail Reserve Order. Struktur & interaksi mengikuti bagian PAYMENT pada
 /// prototype `reserve-order-prototype (1).html` (mode topup).
 class TopupReserveOrderPage extends StatefulWidget {
+  final int reserveOrderId;
   final String unitName;
   final String customerName;
   final String currentStatus;
@@ -40,6 +47,7 @@ class TopupReserveOrderPage extends StatefulWidget {
 
   const TopupReserveOrderPage({
     super.key,
+    required this.reserveOrderId,
     this.unitName = 'Blok E1 No. 19',
     this.customerName = 'Luthfi Fajri',
     this.currentStatus = 'Diproses',
@@ -55,14 +63,6 @@ class TopupReserveOrderPage extends StatefulWidget {
 }
 
 class _TopupReserveOrderPageState extends State<TopupReserveOrderPage> {
-  static const _paymentTypes = [
-    'Reserve',
-    'Top up Reserve',
-    'RB',
-    'Top up RB',
-    'SP',
-    'Top up SP',
-  ];
   static const _quickAmounts = [
     2000000,
     3000000,
@@ -75,7 +75,8 @@ class _TopupReserveOrderPageState extends State<TopupReserveOrderPage> {
   ];
 
   final _catatanController = TextEditingController();
-  late String _jenisPembayaran;
+  int? _paymentTypeId;
+  String? _paymentTypeName;
   late final List<_PaymentBlock> _blocks;
   bool _isSubmitting = false;
   bool _showSuccess = false;
@@ -87,7 +88,7 @@ class _TopupReserveOrderPageState extends State<TopupReserveOrderPage> {
   @override
   void initState() {
     super.initState();
-    _jenisPembayaran = widget.isResubmit ? 'Reserve' : 'Top up Reserve';
+    context.read<PaymentTypeBloc>().add(const FetchPaymentTypesEvent());
     _blocks = [
       _PaymentBlock(
         mode: _PayMode.transfer,
@@ -395,16 +396,24 @@ class _TopupReserveOrderPageState extends State<TopupReserveOrderPage> {
   Widget _buildJenisChips() {
     return SizedBox(
       height: 34,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        itemCount: _paymentTypes.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 8),
-        itemBuilder: (context, i) {
-          final type = _paymentTypes[i];
-          return _selectablePill(
-            label: type,
-            selected: type == _jenisPembayaran,
-            onTap: () => setState(() => _jenisPembayaran = type),
+      child: BlocBuilder<PaymentTypeBloc, PaymentTypeState>(
+        builder: (context, state) {
+          final options = state.items;
+          return ListView.separated(
+            scrollDirection: Axis.horizontal,
+            itemCount: options.length,
+            separatorBuilder: (_, __) => const SizedBox(width: 8),
+            itemBuilder: (context, i) {
+              final opt = options[i];
+              return _selectablePill(
+                label: opt.name,
+                selected: _paymentTypeId == opt.paymentTypeId,
+                onTap: () => setState(() {
+                  _paymentTypeId = opt.paymentTypeId;
+                  _paymentTypeName = opt.name;
+                }),
+              );
+            },
           );
         },
       ),
@@ -816,9 +825,39 @@ class _TopupReserveOrderPageState extends State<TopupReserveOrderPage> {
       showSnackbar(context, 'Nominal top up belum diisi.', isError: true);
       return;
     }
+
     setState(() => _isSubmitting = true);
-    await Future.delayed(const Duration(milliseconds: 800));
+
+    final params = TopupReserveOrderParams(
+      paymentTypeId: _paymentTypeId,
+      note: _catatanController.text.trim().isEmpty
+          ? null
+          : _catatanController.text.trim(),
+      payments: _blocks
+          .map(
+            (b) => TopupReserveOrderPaymentParams(
+              paymentMethod: b.mode == _PayMode.cash ? 'cash' : 'transfer',
+              amount: b.amount.toDouble(),
+              proofBytes: b.proof?.bytes,
+              proofFileName: b.proof?.name,
+            ),
+          )
+          .toList(),
+    );
+
+    final error = await context.read<ReserveOrderDetailCubit>().topup(
+      widget.reserveOrderId,
+      params,
+    );
+
     if (!mounted) return;
+
+    if (error != null) {
+      setState(() => _isSubmitting = false);
+      showSnackbar(context, error, isError: true);
+      return;
+    }
+
     final methodsLabel = _blocks
         .map(
           (b) =>
@@ -829,7 +868,7 @@ class _TopupReserveOrderPageState extends State<TopupReserveOrderPage> {
       _isSubmitting = false;
       _totalAfterSubmit = widget.totalPaidSoFar + _total;
       _successText =
-          '$_jenisPembayaran — ${_blocks.length} metode pembayaran ($methodsLabel) untuk ${widget.unitName} sedang diverifikasi.';
+          '${_paymentTypeName ?? 'Top Up'} — ${_blocks.length} metode pembayaran ($methodsLabel) untuk ${widget.unitName} sedang diverifikasi.';
       _showSuccess = true;
     });
   }

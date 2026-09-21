@@ -161,17 +161,15 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
 
   List<String> _genderOptions = ['Laki-laki', 'Perempuan'];
   List<String> _maritalOptions = ['Menikah', 'Belum Menikah', 'Cerai'];
-  List<double> _amountPresets = [2000000, 3000000, 5000000, 10000000, 15000000];
+  List<double> _amountPresets = [2000000, 3000000, 5000000, 10000000, 15000000,20000000,25000000,50000000];
 
   @override
   void initState() {
     super.initState();
     if (widget.contactName != null) _namaCtrl.text = widget.contactName!;
     if (widget.contactPhone != null) _hpCtrl.text = widget.contactPhone!;
-    if (widget.contactKtpNumber != null)
-      _ktpCtrl.text = widget.contactKtpNumber!;
-    if (widget.contactAddress != null)
-      _alamatCtrl.text = widget.contactAddress!;
+    if (widget.contactKtpNumber != null) _ktpCtrl.text = widget.contactKtpNumber!;
+    if (widget.contactAddress != null) _alamatCtrl.text = widget.contactAddress!;
     if (widget.contactGender != null &&
         _genderOptions.contains(widget.contactGender)) {
       _gender = widget.contactGender;
@@ -862,15 +860,15 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
   Widget _availabilityBadge(bool available) => Container(
     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
     decoration: BoxDecoration(
-      color: Color(available ? availableColor : reserveColor),
+      color: Color(available ? availableColor : holdColor),
       borderRadius: BorderRadius.circular(20),
     ),
     child: Text(
       available ? 'Available' : 'Not Available',
       style: TextStyle(
-        fontSize: 9.5,
-        fontWeight: FontWeight.w700,
-        color: Color(available ? roAvailableTextColor : roUnavailableTextColor),
+        fontSize: 10,
+        fontWeight: FontWeight.bold,
+        color: Color(available ? whiteColor : whiteColor),
       ),
     ),
   );
@@ -1656,12 +1654,12 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    if ((widget.contactUnits ?? []).isNotEmpty) ...[
-                      _infoNotice(
-                        'Riwayat unit dari Contact: ${widget.contactUnits!.map((u) => u.label).join(', ')}',
-                      ),
-                      const SizedBox(height: 12),
-                    ],
+                    // if ((widget.contactUnits ?? []).isNotEmpty) ...[
+                    //   _infoNotice(
+                    //     'Riwayat unit dari Contact: ${widget.contactUnits!.map((u) => u.label).join(', ')}',
+                    //   ),
+                    //   const SizedBox(height: 12),
+                    // ],
                     _pickerFieldRow(
                       label: 'Pilih Project',
                       value: _selectedProject,
@@ -1932,38 +1930,44 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
           const SizedBox(height: 4),
           _fieldLabel('Nominal'),
           SizedBox(
-            height: 40,
-            child: ListView.separated(
-              scrollDirection: Axis.horizontal,
-              itemCount: _amountPresets.length,
-              separatorBuilder: (_, __) => const SizedBox(width: 8),
-              itemBuilder: (_, i) {
-                final amt = _amountPresets[i];
-                final selected = tx.amount == amt;
-                return ChoiceChip(
-                  label: Text(
-                    _formatAmountShort(amt),
-                    style: TextStyle(
-                      fontSize: 11.5,
-                      fontWeight: FontWeight.w700,
-                      color: selected ? Color(primaryColor) : Color(grey1Color),
+            height: 46,
+            width: 300,
+            child: Scrollbar(
+              // thumbVisibility: true,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.only(bottom: 6),
+                itemCount: _amountPresets.length,
+                separatorBuilder: (_, __) => const SizedBox(width: 8),
+                itemBuilder: (_, i) {
+                  final amt = _amountPresets[i];
+                  final selected = tx.amount == amt;
+                  return ChoiceChip(
+                    labelPadding: const EdgeInsets.symmetric(horizontal: 12),
+                    label: Text(
+                      _formatAmountShort(amt),
+                      style: TextStyle(
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.w700,
+                        color: selected ? Color(primaryColor) : Color(grey1Color),
+                      ),
                     ),
-                  ),
-                  selected: selected,
-                  onSelected: (_) => setState(() {
-                    tx.amount = amt;
-                    tx.amountCtrl.text = _formatRupiah(amt);
-                  }),
-                  selectedColor: const Color(roSelectedBgColor),
-                  backgroundColor: Color(whiteColor),
-                  side: BorderSide(
-                    color: selected ? Color(primaryColor) : Color(grey7Color),
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(9),
-                  ),
-                );
-              },
+                    selected: selected,
+                    onSelected: (_) => setState(() {
+                      tx.amount = amt;
+                      tx.amountCtrl.text = _formatRupiah(amt);
+                    }),
+                    selectedColor: const Color(roSelectedBgColor),
+                    backgroundColor: Color(whiteColor),
+                    side: BorderSide(
+                      color: selected ? Color(primaryColor) : Color(grey7Color),
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(9),
+                    ),
+                  );
+                },
+              ),
             ),
           ),
           const SizedBox(height: 8),
@@ -2031,45 +2035,49 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
             ),
           _fieldLabel('Jenis Pembayaran'),
           SizedBox(
-            height: 34,
+            height: 40,
             child: BlocBuilder<PaymentTypeBloc, PaymentTypeState>(
               builder: (context, state) {
                 final options = state.items;
-                return ListView.separated(
-                  scrollDirection: Axis.horizontal,
-                  itemCount: options.length,
-                  separatorBuilder: (_, __) => const SizedBox(width: 8),
-                  itemBuilder: (_, i) {
-                    final opt = options[i];
-                    final selected = draft.paymentTypeId == opt.paymentTypeId;
-                    return ChoiceChip(
-                      label: Text(
-                        opt.name,
-                        style: TextStyle(
-                          fontSize: 11.5,
-                          fontWeight: FontWeight.w700,
+                return Scrollbar(
+                  thumbVisibility: true,
+                  child: ListView.separated(
+                    scrollDirection: Axis.horizontal,
+                    padding: const EdgeInsets.only(bottom: 6),
+                    itemCount: options.length,
+                    separatorBuilder: (_, __) => const SizedBox(width: 8),
+                    itemBuilder: (_, i) {
+                      final opt = options[i];
+                      final selected = draft.paymentTypeId == opt.paymentTypeId;
+                      return ChoiceChip(
+                        label: Text(
+                          opt.name,
+                          style: TextStyle(
+                            fontSize: 11.5,
+                            fontWeight: FontWeight.w700,
+                            color: selected
+                                ? Color(primaryColor)
+                                : Color(grey1Color),
+                          ),
+                        ),
+                        selected: selected,
+                        onSelected: (_) => setState(() {
+                          draft.paymentType = opt.name;
+                          draft.paymentTypeId = opt.paymentTypeId;
+                        }),
+                        selectedColor: const Color(roSelectedBgColor),
+                        backgroundColor: Color(whiteColor),
+                        side: BorderSide(
                           color: selected
                               ? Color(primaryColor)
-                              : Color(grey1Color),
+                              : Color(grey7Color),
                         ),
-                      ),
-                      selected: selected,
-                      onSelected: (_) => setState(() {
-                        draft.paymentType = opt.name;
-                        draft.paymentTypeId = opt.paymentTypeId;
-                      }),
-                      selectedColor: const Color(roSelectedBgColor),
-                      backgroundColor: Color(whiteColor),
-                      side: BorderSide(
-                        color: selected
-                            ? Color(primaryColor)
-                            : Color(grey7Color),
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(9),
-                      ),
-                    );
-                  },
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(9),
+                        ),
+                      );
+                    },
+                  ),
                 );
               },
             ),
@@ -2131,8 +2139,7 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
                     subtitle: 'Wajib',
                     file: _ktpFile,
                     existingUrl: _existingKtpUrl,
-                    onViewExisting: () =>
-                        _openExistingAttachment(_existingKtpUrl),
+                    onViewExisting: () =>_openExistingAttachment(_existingKtpUrl),
                     onTap: () => _pickDocument((f) {
                       _ktpFile = f;
                       _existingKtpUrl = null;
@@ -2199,9 +2206,7 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
   }
 
   void _submitDocument() {
-    final hasKtp =
-        _ktpFile != null ||
-        (_existingKtpUrl != null && _existingKtpUrl!.isNotEmpty);
+    final hasKtp = _hasKtp;
     final missingProof = _unitDrafts.any(
       (d) =>
           d.tx.any((t) => t.mode == _PaymentMode.transfer && t.proof == null),
@@ -2317,6 +2322,9 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
     );
   }
 
+  bool get _hasKtp =>
+      _ktpFile != null || (_existingKtpUrl != null && _existingKtpUrl!.isNotEmpty);
+
   Widget _review() {
     final grandTotal = _unitDrafts.fold<double>(0, (s, d) => s + d.total);
     final hasTransfer = _unitDrafts.any(
@@ -2391,9 +2399,13 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
                         _reviewLine('Sales Team', widget.salesTeamName ?? '-'),
                         _reviewLine(
                           'Dokumen Identitas',
-                          'KTP ✓${hasTransfer ? ' · Bukti Bayar ✓' : ''}',
-                          valueColor: Color(successColor),
-                          suffix: '(1x, semua unit)',
+                          _hasKtp
+                              ? 'KTP ✓${hasTransfer ? ' · Bukti Bayar ✓' : ''}'
+                              : 'KTP belum diupload',
+                          valueColor: _hasKtp
+                              ? Color(successColor)
+                              : Color(redColor),
+                          suffix: _hasKtp ? '(1x, semua unit)' : null,
                         ),
                         _reviewLine(
                           'Jumlah Unit',
@@ -2424,6 +2436,25 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
   }
 
   void _submitReserveOrder() {
+    // Guard terakhir sebelum kirim ke server — Review sebelumnya sempat menampilkan "KTP ✓" tanpa
+    // benar2 mengecek state (lihat riwayat bug), jadi divalidasi ulang di sini juga supaya kalau
+    // sampai lolos ke titik ini tanpa KTP, user langsung diarahkan balik ke step Dokumen dengan
+    // alasan yang jelas — bukan submit dulu ke server baru gagal dgn pesan yang membingungkan.
+    if (!_hasKtp) {
+      setState(() {
+        _step = 3;
+        _showDocumentValidation = true;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Dokumen KTP Pemohon belum ada — silakan upload ulang.',
+          ),
+        ),
+      );
+      return;
+    }
+
     final custBirthDate = _tglLahir != null
         ? DateFormat('yyyy-MM-dd').format(_tglLahir!)
         : null;
@@ -2440,20 +2471,13 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
       'work_category': _kategoriPekerjaan,
       'cust_occupation': _pekerjaanCtrl.text.trim(),
       'cara_bayar_id': _caraBayarId,
+      if (_caraBayar == 'Lainnya' && _caraBayarLainnyaCtrl.text.trim().isNotEmpty)
+        'cara_bayar_lainnya': _caraBayarLainnyaCtrl.text.trim(),
       if (_pasanganCtrl.text.trim().isNotEmpty)
         'spouse_name': _pasanganCtrl.text.trim(),
     };
 
-    // "Cara Pembayaran Lainnya" tidak punya kolom sendiri di backend — dilipat ke reserve_note
-    // biar tetap tercatat, digabung dengan catatan bebas dari step Dokumen.
-    final caraBayarLainnya = _caraBayar == 'Lainnya'
-        ? _caraBayarLainnyaCtrl.text.trim()
-        : '';
-    final catatan = _catatanCtrl.text.trim();
-    final reserveNote = [
-      if (caraBayarLainnya.isNotEmpty) 'Cara bayar lainnya: $caraBayarLainnya',
-      if (catatan.isNotEmpty) catatan,
-    ].join(' — ');
+    final reserveNote = _catatanCtrl.text.trim();
 
     final ktp = _ktpFile != null
         ? CreateReserveOrderFile(bytes: _ktpFile!.bytes, fileName: _ktpFile!.name)
@@ -2521,7 +2545,12 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
   // ---------------------------------------------------------------------
 
   void _goToReserveOrderList() {
-    Navigator.of(context).maybePop();
+    // Wizard ini punya 2 entry point (tombol "Reserve Order" di Contact Detail via push biasa,
+    // atau lewat FAB List Reserve Order -> SelectContactPage via pushReplacement) — `maybePop()`
+    // cuma benar utk entry point kedua. `goNamed` selalu landing di /reserve-order apa pun jalan
+    // masuknya, sekalian membuang halaman wizard (& Contact Detail-nya kalau dari entry point 1)
+    // dari stack.
+    context.goNamed('reserve_order');
   }
 
   void _resetForm() {
@@ -2552,7 +2581,13 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
       _caraBayarId = null;
       _ktpFile = null;
       _npwpFile = null;
+      // existingKtpUrl/existingNpwpUrl ikut direset ke nilai awal widget — kalau cuma ID-nya yang
+      // dipulihkan (bukan url-nya), _hasKtp/_docRow bakal salah baca "belum ada dokumen" walau
+      // existing_attachment_id-nya sebenarnya valid (atau sebaliknya, submission gagal diam-diam
+      // krn _existingKtpUrl null padahal itu satu2nya yang dicek gate-nya).
+      _existingKtpUrl = widget.existingKtpAttachmentUrl;
       _existingKtpAttachmentId = widget.existingKtpAttachmentId;
+      _existingNpwpUrl = widget.existingNpwpAttachmentUrl;
       _existingNpwpAttachmentId = widget.existingNpwpAttachmentId;
       _selectedProject = null;
       _unitTab = 'contact';

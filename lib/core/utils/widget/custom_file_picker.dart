@@ -1,4 +1,6 @@
-﻿import 'package:file_picker/file_picker.dart';
+﻿import 'dart:io';
+
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
@@ -220,9 +222,19 @@ class _FilePickerSheet extends StatelessWidget {
       if (result == null || result.files.isEmpty) return null;
       final f = result.files.single;
       final isPdf = f.name.toLowerCase().endsWith('.pdf');
+      // `withData: true` di atas biasanya sudah mengisi `f.bytes`, tapi di beberapa perangkat
+      // Android (content:// provider tertentu, file besar) file_picker cuma ngisi `f.path` dan
+      // ngebiarin `bytes` null. Kalau bytes-nya sampai null di sini, upload (Reserve Order,
+      // attachment, dst) diam-diam skip dokumen ini karena semua caller cuma baca `.bytes` —
+      // bukan fallback ke `.path` — jadi baca manual dari path di sini supaya `bytes` SELALU
+      // terisi selama filenya beneran ada.
+      var bytes = f.bytes;
+      if (bytes == null && !kIsWeb && f.path != null) {
+        bytes = await File(f.path!).readAsBytes();
+      }
       return PickedFileResult(
         path: kIsWeb ? null : f.path,
-        bytes: f.bytes,
+        bytes: bytes,
         name: f.name,
         isImage: false,
         isPdf: isPdf,

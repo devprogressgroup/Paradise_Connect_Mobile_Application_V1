@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 import 'package:progress_group/core/constants/colors.dart';
 import 'package:progress_group/core/utils/widget/custom_buttomsheet.dart';
 import 'package:progress_group/core/utils/widget/custom_dropdown_group.dart';
+import 'package:progress_group/core/utils/widget/custom_snackbar.dart';
 import 'package:progress_group/features/reserve-order/data/models/reserve_order_customer_data.dart';
+import 'package:progress_group/features/reserve-order/domain/entities/update_reserve_order_customer_params.dart';
+import 'package:progress_group/features/reserve-order/presentation/state/reserve_order_detail/reserve_order_detail_cubit.dart';
 
 /// Halaman "Edit Data Pembeli" — field & tampilannya diambil dari
 /// `lib/features/reserve-order/presentation/pages/edit/index.dart` di branch `reserve-order`
@@ -15,11 +19,13 @@ import 'package:progress_group/features/reserve-order/data/models/reserve_order_
 /// [highlightKey], kalau diisi (dari tap salah satu baris di tab Customer), scroll ke field itu &
 /// beri highlight sementara (~3 detik) — gaya sama seperti `ContactFormPage`.
 class EditCustomerReserveOrderPage extends StatefulWidget {
+  final int reserveOrderId;
   final ReserveOrderCustomerData customer;
   final String? highlightKey;
 
   const EditCustomerReserveOrderPage({
     super.key,
+    required this.reserveOrderId,
     required this.customer,
     this.highlightKey,
   });
@@ -489,12 +495,21 @@ class _EditCustomerReserveOrderPageState
     }
 
     setState(() => _submitting = true);
-    await Future.delayed(const Duration(milliseconds: 500));
-    if (!mounted) return;
 
-    final updated = ReserveOrderCustomerData(raw: _buildRaw());
+    final error = await context.read<ReserveOrderDetailCubit>().updateCustomer(
+      widget.reserveOrderId,
+      UpdateReserveOrderCustomerParams(customer: _buildRaw()),
+    );
+
+    if (!mounted) return;
     setState(() => _submitting = false);
-    Navigator.of(context).pop(updated);
+
+    if (error != null) {
+      showSnackbar(context, error, isError: true);
+      return;
+    }
+
+    Navigator.of(context).pop(true);
   }
 
   Map<String, dynamic> _buildRaw() {

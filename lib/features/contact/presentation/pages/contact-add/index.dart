@@ -343,6 +343,14 @@ class _ContactAddPageState extends State<ContactAddPage> {
         descTC.text = data.attachmentNote;
         existingImageUrl = data.attachmentUrl;
       });
+    } else if (widget.args.page == 5 && widget.args.initialAttachmentTypeId != null) {
+      // Dibuka dari salah satu baris dokumen wajib Reserve Order — Attachment Type sudah pasti,
+      // langsung di-preset (dropdown-nya ikut dikunci, lihat `locked` di widget Attachment Type).
+      setState(() {
+        selectedTypeId = widget.args.initialAttachmentTypeId;
+        selectedTypeName =
+            widget.args.initialAttachmentTypeName ?? selectedTypeName;
+      });
     }
 
     context.read<AttachmentTypeBloc>().add(FetchAttachmentTypesEvent());
@@ -667,6 +675,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
 
       final params = UploadAttachmentParams(
         contactId: contactId,
+        reserveOrderId: widget.args.reserveOrderId,
         attachmentTypeId: selectedTypeId!,
         attachmentNote: descTC.text.isEmpty ? null : descTC.text,
         file: finalFile,
@@ -714,6 +723,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
 
     final params = UploadAttachmentParams(
       contactId: contactId,
+      reserveOrderId: widget.args.reserveOrderId,
       attachmentTypeId: selectedTypeId!,
       attachmentNote: descTC.text.isEmpty ? null : descTC.text,
       filesBytesList: compressedBytes,
@@ -2410,8 +2420,14 @@ class _ContactAddPageState extends State<ContactAddPage> {
             SizedBox(height: 6),
             BlocBuilder<AttachmentTypeBloc, AttachmentTypeState>(
               builder: (context, state) {
+                // Dari Reserve Order (baris dokumen wajib sudah menentukan tipenya) — dropdown
+                // dikunci supaya upload-nya tidak melenceng dari slot dokumen yang di-tap.
+                final locked = widget.args.reserveOrderId != null &&
+                    widget.args.initialAttachmentTypeId != null;
                 return GestureDetector(
-                  onTap: () async {
+                  onTap: locked
+                      ? null
+                      : () async {
                     AnalyticsService.logEvent('contact_add_select_attachment_type');
                     if (state is AttachmentTypeLoaded) {
                       final items = state.data
@@ -2449,6 +2465,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
                     width: double.infinity,
                     height: 40,
                     decoration: BoxDecoration(
+                      color: locked ? Color(grey9Color) : null,
                       border: Border.all(color: Color(grey8Color)),
                       borderRadius: BorderRadius.circular(8),
                     ),
@@ -2471,7 +2488,9 @@ class _ContactAddPageState extends State<ContactAddPage> {
                             ),
                           ),
                         ),
-                        if (state is AttachmentTypeLoading)
+                        if (locked)
+                          Icon(Icons.lock_outline, size: 18, color: Color(grey2Color))
+                        else if (state is AttachmentTypeLoading)
                           SizedBox(
                             width: 20,
                             height: 20,

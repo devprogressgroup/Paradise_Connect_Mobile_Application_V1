@@ -6,13 +6,17 @@ class UploadAttachmentParams {
   final int contactId;
   final int? dealId;
   final int? activityId;
+
+  /// Diisi kalau upload-nya datang dari halaman Reserve Order — supaya dokumen ikut kehitung di
+  /// `required_docs.uploaded` (`ReserveOrderService::getDetail`), bukan cuma nempel ke contact_id.
+  final int? reserveOrderId;
   final int attachmentTypeId;
   final String? attachmentNote;
-  
+
   final File? file;
   final Uint8List? fileBytes;
   final String? fileName;
-  
+
   final List<Uint8List>? filesBytesList;
   final List<String>? fileNames;
 
@@ -20,6 +24,7 @@ class UploadAttachmentParams {
     required this.contactId,
     this.dealId,
     this.activityId,
+    this.reserveOrderId,
     required this.attachmentTypeId,
     this.attachmentNote,
     this.file,

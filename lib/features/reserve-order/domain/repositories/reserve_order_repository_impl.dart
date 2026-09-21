@@ -4,9 +4,14 @@ import 'package:progress_group/features/reserve-order/data/datasources/reserve_o
 import 'package:progress_group/features/reserve-order/domain/entities/cara_bayar_entity.dart';
 import 'package:progress_group/features/reserve-order/domain/entities/create_reserve_order_params.dart';
 import 'package:progress_group/features/reserve-order/domain/entities/create_reserve_order_result_entity.dart';
+import 'package:progress_group/features/reserve-order/domain/entities/edit_reserve_order_params.dart';
 import 'package:progress_group/features/reserve-order/domain/entities/payment_type_entity.dart';
+import 'package:progress_group/features/reserve-order/domain/entities/reserve_order_detail_entity.dart';
+import 'package:progress_group/features/reserve-order/domain/entities/reserve_order_list_item_entity.dart';
 import 'package:progress_group/features/reserve-order/domain/entities/reserve_status_entity.dart';
 import 'package:progress_group/features/reserve-order/domain/entities/select_unit_entity.dart';
+import 'package:progress_group/features/reserve-order/domain/entities/topup_reserve_order_params.dart';
+import 'package:progress_group/features/reserve-order/domain/entities/update_reserve_order_customer_params.dart';
 import 'package:progress_group/features/reserve-order/domain/repositories/reserve_order_repository.dart';
 
 class ReserveOrderRepositoryImpl implements ReserveOrderRepository {
@@ -77,6 +82,132 @@ class ReserveOrderRepositoryImpl implements ReserveOrderRepository {
     try {
       final result = await remoteDataSource.createReserveOrder(params);
       return Right(result);
+    } catch (e) {
+      return Left(cleanErrorMessage(e));
+    }
+  }
+
+  @override
+  Future<Either<String, ReserveOrderListResultEntity>> getReserveOrderList({
+    String? search,
+    List<int>? statusReserveIds,
+    bool? rejected,
+    String? sort,
+    List<int>? salesChannelIds,
+    List<int>? channelDetailIds,
+    List<int>? ownerIds,
+    List<int>? salesExecutiveIds,
+    List<int>? salesSupervisorIds,
+    List<int>? salesManagerIds,
+    List<int>? generalManagerIds,
+    int page = 1,
+    int perPage = 15,
+  }) async {
+    try {
+      final result = await remoteDataSource.getReserveOrderList(
+        search: search,
+        statusReserveIds: statusReserveIds,
+        rejected: rejected,
+        sort: sort,
+        salesChannelIds: salesChannelIds,
+        channelDetailIds: channelDetailIds,
+        ownerIds: ownerIds,
+        salesExecutiveIds: salesExecutiveIds,
+        salesSupervisorIds: salesSupervisorIds,
+        salesManagerIds: salesManagerIds,
+        generalManagerIds: generalManagerIds,
+        page: page,
+        perPage: perPage,
+      );
+      return Right(result);
+    } catch (e) {
+      return Left(cleanErrorMessage(e));
+    }
+  }
+
+  @override
+  Future<Either<String, ReserveOrderDetailEntity>> getReserveOrderDetail(
+    int reserveOrderId,
+  ) async {
+    try {
+      final result = await remoteDataSource.getReserveOrderDetail(
+        reserveOrderId,
+      );
+      return Right(result);
+    } catch (e) {
+      return Left(cleanErrorMessage(e));
+    }
+  }
+
+  @override
+  Future<Either<String, ReserveOrderDetailEntity>> updateReserveOrderCustomer(
+    int reserveOrderId,
+    UpdateReserveOrderCustomerParams params,
+  ) async {
+    try {
+      final result = await remoteDataSource.updateReserveOrderCustomer(
+        reserveOrderId,
+        params,
+      );
+      return Right(result);
+    } catch (e) {
+      return Left(cleanErrorMessage(e));
+    }
+  }
+
+  @override
+  Future<Either<String, ReserveOrderDetailEntity>> topupReserveOrder(
+    int reserveOrderId,
+    TopupReserveOrderParams params,
+  ) async {
+    try {
+      final result = await remoteDataSource.topupReserveOrder(
+        reserveOrderId,
+        params,
+      );
+      return Right(result);
+    } catch (e) {
+      return Left(cleanErrorMessage(e));
+    }
+  }
+
+  @override
+  Future<Either<String, ReserveOrderDetailEntity>> sendReserveOrderMessage(
+    int reserveOrderId,
+    String message,
+  ) async {
+    try {
+      final result = await remoteDataSource.sendReserveOrderMessage(
+        reserveOrderId,
+        message,
+      );
+      return Right(result);
+    } catch (e) {
+      return Left(cleanErrorMessage(e));
+    }
+  }
+
+  @override
+  Future<Either<String, ReserveOrderDetailEntity>> editReserveOrder(
+    int reserveOrderId,
+    EditReserveOrderParams params,
+  ) async {
+    try {
+      final result = await remoteDataSource.editReserveOrder(
+        reserveOrderId,
+        params,
+      );
+      return Right(result);
+    } catch (e) {
+      return Left(cleanErrorMessage(e));
+    }
+  }
+
+  @override
+  Future<Either<String, void>> deleteReserveOrder(int reserveOrderId) async {
+    try {
+      await remoteDataSource.deleteReserveOrder(reserveOrderId);
+      return const Right(null);
     } catch (e) {
       return Left(cleanErrorMessage(e));
     }
