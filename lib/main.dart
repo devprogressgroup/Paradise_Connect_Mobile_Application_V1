@@ -97,6 +97,7 @@ import 'package:progress_group/features/reserve-order/domain/usecases/get_work_c
 import 'package:progress_group/features/reserve-order/domain/usecases/send_reserve_order_message_usecase.dart';
 import 'package:progress_group/features/reserve-order/domain/usecases/topup_reserve_order_usecase.dart';
 import 'package:progress_group/features/reserve-order/domain/usecases/update_reserve_order_customer_usecase.dart';
+import 'package:progress_group/features/reserve-order/domain/usecases/ocr_ktp_usecase.dart';
 import 'package:progress_group/features/reserve-order/presentation/state/cara_bayar/cara_bayar_bloc.dart';
 import 'package:progress_group/features/reserve-order/presentation/state/create_reserve_order/create_reserve_order_cubit.dart';
 import 'package:progress_group/features/reserve-order/presentation/state/payment_type/payment_type_bloc.dart';
@@ -486,6 +487,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     final getSelectUnitUseCase = GetSelectUnitUseCase(reserveOrderRepository);
     final getPaymentTypesUseCase = GetPaymentTypesUseCase(reserveOrderRepository,);
     final createReserveOrderUseCase = CreateReserveOrderUseCase(reserveOrderRepository);
+    final ocrKtpUseCase = OcrKtpUseCase(reserveOrderRepository);
     final getReserveOrderListUseCase = GetReserveOrderListUseCase(reserveOrderRepository,);
     final getReserveOrderDetailUseCase = GetReserveOrderDetailUseCase(reserveOrderRepository,);
     final updateReserveOrderCustomerUseCase = UpdateReserveOrderCustomerUseCase(reserveOrderRepository,);
@@ -736,7 +738,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
               ),
               BlocProvider(
                 create: (_) =>
-                    CreateReserveOrderCubit(createReserveOrderUseCase),
+                    CreateReserveOrderCubit(createReserveOrderUseCase, ocrKtpUseCase),
               ),
               BlocProvider(
                 create: (_) => ReserveOrderListCubit(

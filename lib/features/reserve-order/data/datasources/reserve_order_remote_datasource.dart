@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:dio/dio.dart';
 import 'package:progress_group/core/utils/helpers/error_message.dart';
 import 'package:progress_group/features/reserve-order/data/models/cara_bayar_model.dart';
@@ -57,6 +59,7 @@ abstract class ReserveOrderRemoteDataSource {
     EditReserveOrderParams params,
   );
   Future<void> deleteReserveOrder(int reserveOrderId);
+  Future<Map<String, dynamic>> ocrKtp(Uint8List imageBytes, {String? filename});
 }
 
 class ReserveOrderRemoteDataSourceImpl implements ReserveOrderRemoteDataSource {
@@ -457,10 +460,31 @@ class ReserveOrderRemoteDataSourceImpl implements ReserveOrderRemoteDataSource {
     }
   }
 
-  /// Bangun `FormData` multipart dengan key bracket-notation persis yang divalidasi
-  /// `ReserveOrderController::store` (`customer[cust_name]`, `units[0][payments][0][amount]`,
-  /// `documents[ktp]` sbg file, dst) — dibangun manual (bukan lewat auto-nesting `FormData.fromMap`)
-  /// supaya bentuknya pasti sama persis dengan yang sudah diuji lewat Postman.
+  @override
+  Future<Map<String, dynamic>> ocrKtp(Uint8List imageBytes, {String? filename}) async {
+    try {
+      final response = await dio.post(
+        '/ocr/ktp',
+        data: FormData.fromMap({
+          'file': MultipartFile.fromBytes(
+            imageBytes,
+            filename: filename ?? 'ktp.jpg',
+          ),
+        }),
+      );
+
+      if (response.data['status'] == true) {
+        return response.data['data'] as Map<String, dynamic>;
+      }
+
+      throw Exception(
+        response.data['message'] ?? 'Failed to read KTP data',
+      );
+    } on DioException catch (e) {
+      throw Exception(getErrorMessage(e, 'Failed to read KTP data'));
+    }
+  }
+
   FormData _buildFormData(CreateReserveOrderParams p) {
     final data = <String, dynamic>{'contact_id': p.contactId.toString()};
 

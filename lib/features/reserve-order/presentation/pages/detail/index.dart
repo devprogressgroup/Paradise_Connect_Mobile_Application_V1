@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart' show Clipboard, ClipboardData;
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
@@ -19,7 +18,6 @@ import 'package:progress_group/features/reserve-order/presentation/state/reserve
 import 'package:url_launcher/url_launcher.dart';
 
 import '../edit-customer/index.dart';
-import '../edit-order/index.dart';
 import '../top-up/index.dart';
 
 class ReserveOrderDetailPage extends StatefulWidget {
@@ -965,8 +963,8 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage>
           ),
           _menuItem(
             '✎',
-            'Edit Reserve Order',
-            () => _openEditOrder(order),
+            'Edit Data Pembeli',
+            () => _openEditCustomer(order),
           ),
           _menuItem(
             '🗑️',
@@ -974,7 +972,6 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage>
             () => _confirmDelete(order),
             color: const Color(redColor),
           ),
-          _menuItem('🔗', 'Share Reserve Order', () => _shareOrder(order)),
         ],
       ),
     );
@@ -989,21 +986,6 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage>
           customerName: order.customerName,
           currentStatus: order.rejected ? 'Ditolak' : 'Diproses',
           totalPaidSoFar: order.totalPaidSoFar,
-        ),
-      ),
-    );
-  }
-
-  /// Sama seperti [_openEditCustomer] — begitu `edit` sukses, cubit emit detail baru & halaman
-  /// ini rebuild otomatis lewat `BlocBuilder`, tidak perlu merge manual.
-  Future<void> _openEditOrder(ReserveOrderDetail order) async {
-    await Navigator.of(context).push<bool>(
-      MaterialPageRoute(
-        builder: (_) => EditReserveOrderPage(
-          reserveOrderId: order.reserveOrderId,
-          initialNote: order.reserveNote,
-          initialCaraBayarId: order.caraBayarId,
-          initialCaraBayarName: order.caraBayarName,
         ),
       ),
     );
@@ -1070,14 +1052,6 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage>
     Navigator.of(context).pop(true);
   }
 
-  void _shareOrder(ReserveOrderDetail order) {
-    Clipboard.setData(
-      ClipboardData(
-        text: 'https://devconnect.paradise.id/reserve-order/${order.unitName}',
-      ),
-    );
-    _showComingSoon('Link Reserve Order disalin ke clipboard (simulasi)');
-  }
 
   Widget _menuItem(
     String icon,
@@ -1116,11 +1090,6 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage>
     );
   }
 
-  void _showComingSoon(String feature) {
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text('$feature belum tersedia')));
-  }
 }
 
 String _rupiah(int value) => NumberFormat.currency(

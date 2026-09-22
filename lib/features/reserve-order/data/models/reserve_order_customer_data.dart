@@ -102,12 +102,6 @@ const List<String> reserveWorkCategoryItems = [
   'Pegawai',
   'Profesional',
 ];
-const List<String> reserveCaraBayarItems = [
-  'KPR',
-  'Cash Keras',
-  'Cash Bertahap',
-  'Lainnya',
-];
 const List<ReserveCustomerFieldSection> reserveCustomerFieldSections = [
   ReserveCustomerFieldSection(
     title: 'Data Pembeli',
@@ -164,9 +158,8 @@ const List<ReserveCustomerFieldSection> reserveCustomerFieldSections = [
       ),
       ReserveCustomerFieldSpec(
         key: 'cara_bayar_name',
-        label: 'Cara Pembarayan',
+        label: 'Cara Pembayaran',
         kind: ReserveCustomerFieldKind.option,
-        options: reserveCaraBayarItems,
       ),
       ReserveCustomerFieldSpec(
         key: 'cust_religion',
@@ -279,8 +272,6 @@ const List<ReserveCustomerFieldSection> reserveCustomerFieldSections = [
       ReserveCustomerFieldSpec(
         key: 'cust_area',
         label: 'Kode Area (sesuai KTP)',
-        kind: ReserveCustomerFieldKind.option,
-        options: [],
       ),
       ReserveCustomerFieldSpec(key: 'nama_kota', label: 'Kota (sesuai KTP)'),
       ReserveCustomerFieldSpec(
@@ -303,8 +294,6 @@ const List<ReserveCustomerFieldSection> reserveCustomerFieldSections = [
       ReserveCustomerFieldSpec(
         key: 'current_area',
         label: 'Kode Area Saat Ini',
-        kind: ReserveCustomerFieldKind.option,
-        options: [],
       ),
       ReserveCustomerFieldSpec(key: 'current_city', label: 'Kota Saat Ini'),
       ReserveCustomerFieldSpec(
@@ -320,8 +309,6 @@ const List<ReserveCustomerFieldSection> reserveCustomerFieldSections = [
       ReserveCustomerFieldSpec(
         key: 'mailing_area',
         label: 'Kode Area Surat-Menyurat',
-        kind: ReserveCustomerFieldKind.option,
-        options: [],
       ),
       ReserveCustomerFieldSpec(
         key: 'mailing_city',
@@ -362,8 +349,6 @@ const List<ReserveCustomerFieldSection> reserveCustomerFieldSections = [
       ReserveCustomerFieldSpec(
         key: 'mate_ktp_area',
         label: 'Kode Area KTP',
-        kind: ReserveCustomerFieldKind.option,
-        options: [],
       ),
       ReserveCustomerFieldSpec(key: 'mate_ktp_city', label: 'Kota KTP'),
       ReserveCustomerFieldSpec(
@@ -379,8 +364,6 @@ const List<ReserveCustomerFieldSection> reserveCustomerFieldSections = [
       ReserveCustomerFieldSpec(
         key: 'mate_current_area',
         label: 'Kode Area Saat Ini',
-        kind: ReserveCustomerFieldKind.option,
-        options: [],
       ),
       ReserveCustomerFieldSpec(
         key: 'mate_current_city',
@@ -399,8 +382,6 @@ const List<ReserveCustomerFieldSection> reserveCustomerFieldSections = [
       ReserveCustomerFieldSpec(
         key: 'mate_mailing_area',
         label: 'Kode Area Surat-Menyurat',
-        kind: ReserveCustomerFieldKind.option,
-        options: [],
       ),
       ReserveCustomerFieldSpec(
         key: 'mate_mailing_city',
@@ -432,8 +413,6 @@ const List<ReserveCustomerFieldSection> reserveCustomerFieldSections = [
       ReserveCustomerFieldSpec(
         key: 'work_area',
         label: 'Kode Area Kantor',
-        kind: ReserveCustomerFieldKind.option,
-        options: [],
       ),
       ReserveCustomerFieldSpec(key: 'cust_work_city', label: 'Kota Kantor'),
       ReserveCustomerFieldSpec(
@@ -481,8 +460,6 @@ const List<ReserveCustomerFieldSection> reserveCustomerFieldSections = [
       ReserveCustomerFieldSpec(
         key: 'spouse_area',
         label: 'Kode Area Kantor',
-        kind: ReserveCustomerFieldKind.option,
-        options: [],
       ),
       ReserveCustomerFieldSpec(key: 'spouse_work_city', label: 'Kota Kantor'),
       ReserveCustomerFieldSpec(

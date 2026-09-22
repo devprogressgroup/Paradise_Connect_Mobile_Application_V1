@@ -882,13 +882,77 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
     if (result == null) return;
     setState(() => _ktpFile = result);
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text(
-          'Foto KTP tersimpan sebagai dokumen KTP Pemohon. Lengkapi data di bawah secara manual.',
-        ),
-      ),
+
+    if (result.bytes == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Isi foto KTP tidak ditemukan.')),
+      );
+      return;
+    }
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const Center(child: CircularProgressIndicator()),
     );
+
+    try {
+      final response = await context
+          .read<CreateReserveOrderCubit>()
+          .processOcrKtp(result.bytes!, filename: result.name);
+
+      if (!mounted) return;
+      Navigator.of(context, rootNavigator: true).pop(); // close loading
+
+      if (response != null && response['fields'] != null) {
+        final fields = response['fields'];
+        setState(() {
+          _namaCtrl.text = fields['cust_name'] ?? _namaCtrl.text;
+          _ktpCtrl.text = fields['cust_ktp'] ?? _ktpCtrl.text;
+          _tempatLahirCtrl.text = fields['cust_birth_place'] ?? _tempatLahirCtrl.text;
+          
+          if (fields['cust_birth_date'] != null) {
+            try {
+              _tglLahir = DateTime.parse(fields['cust_birth_date']);
+            } catch (_) {}
+          }
+          if (fields['cust_gender_is_male'] != null) {
+            _gender = fields['cust_gender_is_male'] == true ? 'Laki-laki' : 'Perempuan';
+          }
+          if (fields['cust_marital_status'] != null) {
+            final s = fields['cust_marital_status'].toString().toUpperCase();
+            if (s.contains('BELUM')) {
+              _statusPernikahan = 'Belum Menikah';
+            } else if (s.contains('KAWIN')) {
+              _statusPernikahan = 'Menikah';
+            } else if (s.contains('CERAI')) {
+              _statusPernikahan = 'Cerai';
+            }
+          }
+          if (fields['cust_occupation'] != null) {
+            _pekerjaanCtrl.text = fields['cust_occupation'] ?? _pekerjaanCtrl.text;
+          }
+          
+          final addr1 = fields['cust_address1'] ?? '';
+          final addr2 = fields['cust_address2'] ?? '';
+          if (addr1.toString().isNotEmpty || addr2.toString().isNotEmpty) {
+            _alamatCtrl.text = '$addr1 $addr2'.trim();
+          }
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Data KTP berhasil dibaca. Mohon periksa kembali.'),
+          ),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      Navigator.of(context, rootNavigator: true).pop(); // close loading
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.toString().replaceAll('Exception: ', ''))),
+      );
+    }
   }
 
   Widget _customer() {
@@ -2545,12 +2609,17 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
   // ---------------------------------------------------------------------
 
   void _goToReserveOrderList() {
-    // Wizard ini punya 2 entry point (tombol "Reserve Order" di Contact Detail via push biasa,
-    // atau lewat FAB List Reserve Order -> SelectContactPage via pushReplacement) — `maybePop()`
-    // cuma benar utk entry point kedua. `goNamed` selalu landing di /reserve-order apa pun jalan
-    // masuknya, sekalian membuang halaman wizard (& Contact Detail-nya kalau dari entry point 1)
-    // dari stack.
-    context.goNamed('reserve_order');
+    // Wizard ini (dan SelectContactPage di bawahnya kalau masuk lewat FAB List Reserve Order)
+    // selalu di-push IMPERATIF (Navigator.push biasa) di atas Navigator internal ShellRoute —
+    // `goNamed` cuma reset state DEKLARATIF go_router, dia tidak tahu-menahu soal route imperatif
+    // ini jadi TIDAK ikut membuangnya. Kalau dipanggil sendirian, wizard ini tetap nangkring di
+    // atas dan kelihatan seperti tombolnya tidak berfungsi. Route/state di sini ditangkap dulu
+    // SEBELUM pop, karena begitu popUntil membuang route halaman ini sendiri, `context`-nya ikut
+    // unmounted.
+    final navigator = Navigator.of(context);
+    final router = GoRouter.of(context);
+    navigator.popUntil((route) => route.isFirst);
+    router.goNamed('reserve_order');
   }
 
   void _resetForm() {
