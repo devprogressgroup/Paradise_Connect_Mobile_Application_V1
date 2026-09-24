@@ -73,6 +73,11 @@ class ReserveOrderDetail {
   String phone;
   final String unitName;
   final String unitSub;
+
+  /// `product_name`, `project_name` (cluster), `township_name` — ditampilkan di header detail.
+  final String? productName;
+  final String? projectName;
+  final String? townshipName;
   final int? price;
   final bool canTopup;
   final bool rejected;
@@ -104,6 +109,9 @@ class ReserveOrderDetail {
     required this.phone,
     required this.unitName,
     required this.unitSub,
+    this.productName,
+    this.projectName,
+    this.townshipName,
     this.price,
     required this.canTopup,
     required this.rejected,
@@ -143,7 +151,12 @@ class ReserveOrderDetail {
       avatarInitials: initials,
       phone: e.phoneNumber ?? '-',
       unitName: e.unitName ?? '-',
-      unitSub: e.unitSub ?? '',
+      unitSub: [e.townshipName, e.unitSub, e.productName]
+          .where((s) => (s ?? '').trim().isNotEmpty)
+          .join(' · '),
+      productName: e.productName,
+      projectName: e.unitSub,
+      townshipName: e.townshipName,
       canTopup: e.canTopup,
       rejected: e.isRejected,
       rejectStage: e.rejectStage,

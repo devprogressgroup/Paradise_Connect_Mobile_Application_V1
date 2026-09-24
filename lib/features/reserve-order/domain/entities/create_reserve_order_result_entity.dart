@@ -21,7 +21,9 @@ class CreateReserveOrderItemEntity extends Equatable {
   final int reserveOrderId;
   final String? propertyName;
   final int? statusReserveId;
+  final double amountRp;
   final int reserveOrderTtsId;
+  final String? paymentTypeName;
   final String ttsNumber;
   final double ttsAmountRp;
 
@@ -29,7 +31,9 @@ class CreateReserveOrderItemEntity extends Equatable {
     required this.reserveOrderId,
     this.propertyName,
     this.statusReserveId,
+    this.amountRp = 0,
     required this.reserveOrderTtsId,
+    this.paymentTypeName,
     required this.ttsNumber,
     required this.ttsAmountRp,
   });
@@ -39,7 +43,9 @@ class CreateReserveOrderItemEntity extends Equatable {
         reserveOrderId,
         propertyName,
         statusReserveId,
+        amountRp,
         reserveOrderTtsId,
+        paymentTypeName,
         ttsNumber,
         ttsAmountRp,
       ];

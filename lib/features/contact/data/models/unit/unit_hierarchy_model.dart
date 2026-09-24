@@ -3,6 +3,7 @@ class UnitCluster {
   final int companyId;
   final int townshipId;
   final String projectName;
+  final int totalAvailable;
   final List<UnitProduct> products;
 
   const UnitCluster({
@@ -10,6 +11,7 @@ class UnitCluster {
     this.companyId = 0,
     this.townshipId = 0,
     required this.projectName,
+    this.totalAvailable = 0,
     this.products = const [],
   });
 
@@ -18,6 +20,7 @@ class UnitCluster {
     companyId: j['company_id'] ?? 0,
     townshipId: j['township_id'] ?? 0,
     projectName: (j['project_name'] ?? '').toString(),
+    totalAvailable: (j['total_available'] as num?)?.toInt() ?? 0,
     products: ((j['products'] as List?) ?? const [])
         .map((e) => UnitProduct.fromJson(e as Map<String, dynamic>))
         .toList(),
@@ -30,6 +33,7 @@ class UnitProduct {
   final int townshipId;
   final String? productName;
   final String displayName;
+  final int totalAvailable;
   final String? spec;
   final int? productCategoryId;
   final double? luasBangunan;
@@ -43,6 +47,7 @@ class UnitProduct {
     this.townshipId = 0,
     this.productName,
     required this.displayName,
+    this.totalAvailable = 0,
     this.spec,
     this.productCategoryId,
     this.luasBangunan,
@@ -57,6 +62,7 @@ class UnitProduct {
     townshipId: j['township_id'] ?? 0,
     productName: j['product_name']?.toString(),
     displayName: (j['display_name'] ?? j['product_name'] ?? '').toString(),
+    totalAvailable: (j['total_available'] as num?)?.toInt() ?? 0,
     spec: j['spec']?.toString(),
     productCategoryId: j['product_category_id'],
     luasBangunan: j['luas_bangunan'] is num

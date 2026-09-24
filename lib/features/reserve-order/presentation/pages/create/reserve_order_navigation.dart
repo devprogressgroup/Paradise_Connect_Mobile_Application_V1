@@ -27,6 +27,8 @@ ContactAttachment? _matchAttachment(
 /// Buka wizard Create Reserve Order dengan data default dari [contact] (nama, no HP, No. KTP,
 /// alamat, jenis kelamin dari salutation, sales channel, project terakhir, riwayat unit) dan,
 /// kalau [attachments] diisi, attachment KTP/NPWP yang sudah ada supaya tidak perlu upload ulang.
+/// [initialCustomer] (data `customer` dari detail Reserve Order sebelumnya) menimpa data contact
+/// supaya field seperti tempat/tanggal lahir, pekerjaan, dan cara bayar ikut terisi.
 ///
 /// Dipakai dari dua entry point: tombol "Reserve Order" di Log Activity Contact Detail, dan
 /// halaman pilih Contact (`SelectContactForReserveOrderPage`) saat masuk lewat FAB list Reserve
@@ -36,12 +38,16 @@ void navigateToCreateReserveOrder(
   BuildContext context, {
   required ContactEntity contact,
   List<ContactAttachment> attachments = const [],
+  Map<String, dynamic>? initialCustomer,
   bool replace = false,
 }) {
   final contactId = contact.contactId;
   if (contactId == null) return;
 
-  final ktp = _matchAttachment(attachments, 'ktp');
+  // "KTP Pemohon" didahulukan — tipe "KTP Pendukung" juga mengandung kata 'ktp'.
+  final ktp =
+      _matchAttachment(attachments, 'ktp pemohon') ??
+      _matchAttachment(attachments, 'ktp');
   final npwp = _matchAttachment(attachments, 'npwp');
 
   final route = MaterialPageRoute<void>(
@@ -70,6 +76,7 @@ void navigateToCreateReserveOrder(
       salesGeneralManagerName: contact.salesGeneralManagerName,
       salesTeamId: contact.salesTeamId,
       salesTeamName: contact.salesTeamName,
+      initialCustomer: initialCustomer,
     ),
   );
 

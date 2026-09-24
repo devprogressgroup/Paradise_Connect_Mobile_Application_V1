@@ -16,6 +16,8 @@ import 'package:progress_group/features/contact/presentation/state/unit_picker/u
 import 'package:progress_group/features/contact/presentation/state/unit_picker/unit_picker_state.dart';
 import 'package:progress_group/features/reserve-order/data/models/reserve_unit_option.dart';
 import 'package:progress_group/features/reserve-order/domain/entities/create_reserve_order_params.dart';
+import 'package:progress_group/features/reserve-order/domain/entities/create_reserve_order_result_entity.dart';
+import 'package:progress_group/features/reserve-order/presentation/pages/detail/index.dart';
 import 'package:progress_group/features/reserve-order/domain/entities/select_unit_entity.dart';
 import 'package:progress_group/features/reserve-order/presentation/state/cara_bayar/cara_bayar_bloc.dart';
 import 'package:progress_group/features/reserve-order/presentation/state/cara_bayar/cara_bayar_event.dart';
@@ -36,11 +38,6 @@ import 'package:progress_group/features/saleskit/presentation/state/township/tow
 import 'package:progress_group/features/saleskit/presentation/state/township/township_state.dart';
 
 class CreateReserveOrderPage extends StatefulWidget {
-  /// contactId Contact — wajib diisi, dipakai buat panggil endpoint
-  /// `/reserve-order/select-unit` (`ReserveOrderController::selectUnit`) yang isi tab "Unit dari
-  /// Contact". Wizard ini cuma bisa dibuka lewat Contact Detail atau lewat
-  /// `SelectContactForReserveOrderPage` (dari FAB list Reserve Order) — keduanya selalu punya
-  /// contact yang dipilih lebih dulu.
   final int contactId;
   final String? contactName;
   final String? contactPhone;
@@ -50,31 +47,16 @@ class CreateReserveOrderPage extends StatefulWidget {
   final String? salesChannel;
   final String? salesChannelDetail;
 
-  /// Township id project default Contact (`last_project_id`/`first_project_id` dari
-  /// `GET /contacts/:id` — PK-nya sama dengan `id` di `GET /property/townships`). Dipakai buat
-  /// auto-select "Pilih Project" dengan dicocokkan by ID ke daftar township yang sudah dimuat —
-  /// TANPA fetch ulang township list (sudah di-fetch sekali di level app, lihat `main.dart`).
-  /// Kalau id-nya tidak ketemu di daftar yang dimuat, "Pilih Project" dibiarkan kosong (bukan
-  /// ditebak dari nama teks) — user pilih manual lewat [_openProjectPicker].
   final int? contactProjectId;
 
-  /// Riwayat unit milik Contact (dari `ContactEntity.units`) — cuma dipakai buat banner info di
-  /// step Unit; isi tab "Unit dari Contact" sendiri datang dari [SelectUnitBloc]
-  /// (`/reserve-order/select-unit`), lihat [_fetchSelectUnitFor].
   final List<SelectedUnit>? contactUnits;
 
   final String? existingKtpAttachmentUrl;
   final String? existingNpwpAttachmentUrl;
 
-  /// `contact_attachment_id` dari lampiran yang sama (kalau ada) — dipakai submit reserve order
-  /// supaya bisa reuse lampiran ini (`documents.ktp.existing_attachment_id`) TANPA upload ulang.
   final int? existingKtpAttachmentId;
   final int? existingNpwpAttachmentId;
 
-  /// Hirarki sales milik Contact ini (id + nama sudah di-resolve backend, lihat
-  /// `GET /contacts/{id}` — `ContactService::getContactDetails`). Dipakai apa adanya di step
-  /// Review & dikirim ke `POST /reserve-order/create` — TIDAK ditebak dari user yang login,
-  /// supaya reserve order tetap tercatat di bawah sales team yang memang menangani Contact ini.
   final int? salesExecutiveId;
   final String? salesExecutiveName;
   final int? salesSupervisorId;
@@ -85,6 +67,11 @@ class CreateReserveOrderPage extends StatefulWidget {
   final String? salesGeneralManagerName;
   final int? salesTeamId;
   final String? salesTeamName;
+
+  /// Data customer dari Reserve Order sebelumnya (key `cust_*` sama dengan `customer[...]` di
+  /// `POST /reserve-order/create`) — dipakai buat isi otomatis form saat buat RO baru dari
+  /// customer reserve yang sudah ada.
+  final Map<String, dynamic>? initialCustomer;
 
   const CreateReserveOrderPage({
     super.key,
@@ -112,6 +99,7 @@ class CreateReserveOrderPage extends StatefulWidget {
     this.salesGeneralManagerName,
     this.salesTeamId,
     this.salesTeamName,
+    this.initialCustomer,
   });
 
   @override
@@ -158,6 +146,7 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
   Timer? _otherUnitsSearchDebounce;
 
   String _customerNameSnapshot = '';
+  CreateReserveOrderResultEntity? _createResult;
 
   List<String> _genderOptions = ['Laki-laki', 'Perempuan'];
   List<String> _maritalOptions = ['Menikah', 'Belum Menikah', 'Cerai'];
@@ -174,6 +163,9 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
         _genderOptions.contains(widget.contactGender)) {
       _gender = widget.contactGender;
     }
+    if (widget.initialCustomer != null) {
+      _applyInitialCustomer(widget.initialCustomer!);
+    }
     _existingKtpUrl = widget.existingKtpAttachmentUrl;
     _existingNpwpUrl = widget.existingNpwpAttachmentUrl;
     _existingKtpAttachmentId = widget.existingKtpAttachmentId;
@@ -181,19 +173,12 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
     if (widget.contactUnits != null && widget.contactUnits!.isEmpty) {
       _unitTab = 'other';
     }
-    // Township sudah di-fetch sekali di level app (lihat `main.dart`) — jangan fetch ulang di
-    // sini, cuma cocokkan ke daftar yang sudah dimuat kalau memang sudah ada. Kalau belum dimuat
-    // (jarang terjadi), biarkan kosong; fetch baru dipicu saat user beneran buka picker-nya
-    // sendiri lewat `_openProjectPicker`.
     if (widget.contactProjectId != null) {
       final townshipState = context.read<TownshipBloc>().state;
       if (townshipState is TownshipLoaded) {
-        final match = townshipState.townships.where(
-          (t) => t.id == widget.contactProjectId,
-        );
-        if (match.isNotEmpty) {
-          _onProjectChanged(match.first.name, id: match.first.id);
-        }
+        _applyContactProject(townshipState);
+      } else if (townshipState is! TownshipLoading) {
+        context.read<TownshipBloc>().add(GetTownshipsEvent());
       }
     }
     context.read<CaraBayarBloc>().add(const FetchCaraBayarEvent());
@@ -228,27 +213,96 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
     }
   }
 
+  void _applyInitialCustomer(Map<String, dynamic> c) {
+    String? text(String key) {
+      final v = c[key];
+      if (v == null) return null;
+      final s = '$v'.trim();
+      return s.isEmpty ? null : s;
+    }
+
+    void fill(TextEditingController ctrl, String key) {
+      final v = text(key);
+      if (v != null) ctrl.text = v;
+    }
+
+    fill(_namaCtrl, 'cust_name');
+    fill(_ktpCtrl, 'cust_ktp');
+    fill(_tempatLahirCtrl, 'cust_birth_place');
+    fill(_alamatCtrl, 'cust_address1');
+    fill(_hpCtrl, 'cust_telp_mobile1');
+    fill(_pasanganCtrl, 'spouse_name');
+    fill(_pekerjaanCtrl, 'cust_occupation');
+    fill(_caraBayarLainnyaCtrl, 'cara_bayar_lainnya');
+
+    final birth = text('cust_birth_date');
+    if (birth != null) _tglLahir = DateTime.tryParse(birth);
+
+    final isMale = c['cust_gender_is_male'];
+    if (isMale is bool) {
+      _gender = isMale ? 'Laki-laki' : 'Perempuan';
+    } else if (isMale is num) {
+      _gender = isMale != 0 ? 'Laki-laki' : 'Perempuan';
+    }
+
+    final marital = text('cust_marital_status');
+    if (marital != null) {
+      final m = marital.toUpperCase();
+      if (_maritalOptions.contains(marital)) {
+        _statusPernikahan = marital;
+      } else if (m.contains('BELUM')) {
+        _statusPernikahan = 'Belum Menikah';
+      } else if (m.contains('KAWIN') || m.contains('MENIKAH')) {
+        _statusPernikahan = 'Menikah';
+      } else if (m.contains('CERAI')) {
+        _statusPernikahan = 'Cerai';
+      }
+    }
+
+    _kategoriPekerjaan = text('work_category') ?? _kategoriPekerjaan;
+    final caraBayarId = c['cara_bayar_id'];
+    if (caraBayarId is num) _caraBayarId = caraBayarId.toInt();
+    _caraBayar = text('cara_bayar_name') ?? _caraBayar;
+  }
+
+  /// Pilih otomatis project terakhir contact kalau user belum memilih project.
+  void _applyContactProject(TownshipLoaded state) {
+    if (_selectedProject != null || widget.contactProjectId == null) return;
+    final match = state.townships.where((t) => t.id == widget.contactProjectId);
+    if (match.isNotEmpty) {
+      _onProjectChanged(match.first.name, id: match.first.id);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    return PopScope(
-      canPop: _step == 1,
-      onPopInvokedWithResult: (didPop, result) {
-        if (didPop) return;
-        if (_step > 1) setState(() => _step -= 1);
+    return BlocListener<TownshipBloc, TownshipState>(
+      listenWhen: (prev, curr) =>
+          curr is TownshipLoaded &&
+          _selectedProject == null &&
+          widget.contactProjectId != null,
+      listener: (context, state) {
+        if (state is TownshipLoaded) {
+          setState(() => _applyContactProject(state));
+        }
       },
-      child: switch (_step) {
-        1 => _customer(),
-        2 => _unit(),
-        3 => _document(),
-        4 => _review(),
-        _ => _success(),
-      },
+      child: PopScope(
+        canPop: _step == 1,
+        onPopInvokedWithResult: (didPop, result) {
+          if (didPop) return;
+          if (_step > 1) setState(() => _step -= 1);
+        },
+        child: switch (_step) {
+          1 => _customer(),
+          2 => _unit(),
+          3 => _document(),
+          4 => _review(),
+          _ => _success(),
+        },
+      ),
     );
   }
 
-  // ---------------------------------------------------------------------
-  // Shared chrome
-  // ---------------------------------------------------------------------
 
   Widget _appBar(String title, String? subtitle) {
     return Container(
@@ -403,15 +457,7 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
               : (focused ? Color(primaryColor) : Color(grey7Color)),
         ),
       );
-  Widget _errorText(bool show) => show
-      ? Padding(
-          padding: const EdgeInsets.only(top: 4),
-          child: Text(
-            'Wajib diisi',
-            style: TextStyle(fontSize: 11, color: Color(redColor)),
-          ),
-        )
-      : const SizedBox.shrink();
+  Widget _errorText(bool show, {String message = 'Wajib diisi'}) => show ? Padding( padding: const EdgeInsets.only(top: 4), child: Text( message, style: TextStyle(fontSize: 11, color: Color(redColor)), ), ) : const SizedBox.shrink();
 
   Widget _underlineFieldFrame(Widget child, {bool isError = false}) {
     return Container(
@@ -589,9 +635,15 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
     TextInputType? keyboardType,
     int maxLines = 1,
     List<TextInputFormatter>? inputFormatters,
+    int? exactLength,
   }) {
-    final isError =
-        _showCustomerValidation && required && controller.text.trim().isEmpty;
+    final text = controller.text.trim();
+    final isEmptyError = _showCustomerValidation && required && text.isEmpty;
+    final isLengthError = _showCustomerValidation &&
+        exactLength != null &&
+        text.isNotEmpty &&
+        text.length != exactLength;
+    final isError = isEmptyError || isLengthError;
     final labelColor = isError ? Color(redColor) : Color(grey2Color);
     return _underlineFieldFrame(
       isError: isError,
@@ -609,7 +661,9 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
               fontWeight: FontWeight.w700,
               color: Color(blackColor),
             ),
-            onChanged: required ? (_) => setState(() {}) : null,
+            onChanged: required || exactLength != null
+                ? (_) => setState(() {})
+                : null,
             decoration: InputDecoration(
               isDense: true,
               label: _requiredLabel(
@@ -629,7 +683,10 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
               contentPadding: EdgeInsets.zero,
             ),
           ),
-          _errorText(isError),
+          _errorText(
+            isError,
+            message: isLengthError ? 'Harus $exactLength digit' : 'Wajib diisi',
+          ),
         ],
       ),
     );
@@ -873,22 +930,89 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
     ),
   );
 
-  // ---------------------------------------------------------------------
-  // STEP 1 — Customer
-  // ---------------------------------------------------------------------
 
   Future<void> _pickKtpPhoto() async {
     final result = await CustomFilePicker.show(context, allowDocuments: false);
     if (result == null) return;
     setState(() => _ktpFile = result);
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text(
-          'Foto KTP tersimpan sebagai dokumen KTP Pemohon. Lengkapi data di bawah secara manual.',
-        ),
-      ),
+
+    if (result.bytes == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Isi foto KTP tidak ditemukan.')),
+      );
+      return;
+    }
+
+    final cubit = context.read<CreateReserveOrderCubit>();
+    final navigator = Navigator.of(context, rootNavigator: true);
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      useRootNavigator: true,
+      builder: (_) => const Center(child: CircularProgressIndicator()),
     );
+
+    Map<String, dynamic>? response;
+    Object? error;
+    try {
+      response = await cubit.processOcrKtp(result.bytes!, filename: result.name);
+    } catch (e) {
+      error = e;
+    } finally {
+      navigator.pop();
+    }
+
+    if (!mounted) return;
+    if (error != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(error.toString().replaceAll('Exception: ', ''))),
+      );
+      return;
+    }
+
+    if (response != null && response['fields'] != null) {
+      final fields = response['fields'];
+      setState(() {
+        _namaCtrl.text = fields['cust_name'] ?? _namaCtrl.text;
+        _ktpCtrl.text = fields['cust_ktp'] ?? _ktpCtrl.text;
+        _tempatLahirCtrl.text = fields['cust_birth_place'] ?? _tempatLahirCtrl.text;
+        
+        if (fields['cust_birth_date'] != null) {
+          try {
+            _tglLahir = DateTime.parse(fields['cust_birth_date']);
+          } catch (_) {}
+        }
+        if (fields['cust_gender_is_male'] != null) {
+          _gender = fields['cust_gender_is_male'] == true ? 'Laki-laki' : 'Perempuan';
+        }
+        if (fields['cust_marital_status'] != null) {
+          final s = fields['cust_marital_status'].toString().toUpperCase();
+          if (s.contains('BELUM')) {
+            _statusPernikahan = 'Belum Menikah';
+          } else if (s.contains('KAWIN')) {
+            _statusPernikahan = 'Menikah';
+          } else if (s.contains('CERAI')) {
+            _statusPernikahan = 'Cerai';
+          }
+        }
+        if (fields['cust_occupation'] != null) {
+          _pekerjaanCtrl.text = fields['cust_occupation'] ?? _pekerjaanCtrl.text;
+        }
+        
+        final addr1 = fields['cust_address1'] ?? '';
+        final addr2 = fields['cust_address2'] ?? '';
+        if (addr1.toString().isNotEmpty || addr2.toString().isNotEmpty) {
+          _alamatCtrl.text = '$addr1 $addr2'.trim();
+        }
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Data KTP berhasil dibaca. Mohon periksa kembali.'),
+        ),
+      );
+    }
   }
 
   Widget _customer() {
@@ -966,6 +1090,7 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
                     controller: _ktpCtrl,
                     required: true,
                     hint: '16 digit NIK',
+                    exactLength: 16,
                     keyboardType: TextInputType.number,
                     inputFormatters: [
                       FilteringTextInputFormatter.digitsOnly,
@@ -1073,7 +1198,7 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
   void _submitCustomer() {
     final requiredOk =
         _namaCtrl.text.trim().isNotEmpty &&
-        _ktpCtrl.text.trim().isNotEmpty &&
+        _ktpCtrl.text.trim().length == 16 &&
         _tempatLahirCtrl.text.trim().isNotEmpty &&
         _tglLahir != null &&
         _gender != null &&
@@ -1099,9 +1224,6 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
     setState(() => _step = 2);
   }
 
-  // ---------------------------------------------------------------------
-  // STEP 2 — Unit (dummy data — belum konek API)
-  // ---------------------------------------------------------------------
 
   void _toggleUnit(ReserveUnitOption u) {
     if (!u.available) {
@@ -1126,11 +1248,6 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
 
   bool _isUnitSelected(String id) => _selectedUnits.any((u) => u.id == id);
 
-  /// Buka picker "Pilih Project" — pola yang sama seperti field "Project" di ContactFormPage
-  /// (`context.pushNamed('detailContactDropdown', ...)`, lihat contact-form/index.dart): halaman
-  /// terpisah dengan search, bukan `DropdownButtonFormField` inline. Ini juga menghindari risiko
-  /// assertion Flutter kalau `_selectedProject` belum/tidak lagi cocok dengan salah satu item
-  /// saat widget di-rebuild.
   Future<void> _openProjectPicker() async {
     final townshipState = context.read<TownshipBloc>().state;
     if (townshipState is! TownshipLoaded) {
@@ -1159,9 +1276,6 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
     }
   }
 
-  /// Ambil unit riwayat Contact dari endpoint `/reserve-order/select-unit`
-  /// (`ReserveOrderController::selectUnit`) untuk project yang lagi dipilih
-  /// ([_selectedProjectId], sudah di-set duluan oleh [_onProjectChanged]).
   void _fetchSelectUnitFor() {
     final townshipId = _selectedProjectId;
     if (townshipId == null) {
@@ -1173,10 +1287,6 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
     );
   }
 
-  /// Petakan hasil `/reserve-order/select-unit` ke [ReserveUnitOption] buat ditampilkan lewat
-  /// widget baris unit yang sudah ada (`_contactUnitRow`/`_specialRow`/`_kavlingRow`). Status
-  /// ketersediaan dibaca langsung dari `display_status_name` ("Available"/"Not Available") yang
-  /// sudah disederhanakan backend — bukan resolve `status_id` manual di client.
   ReserveUnitOption _toReserveUnitOption(SelectUnitEntity u) {
     final contextLabel = [
       u.clusterName,
@@ -1200,11 +1310,6 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
     );
   }
 
-  /// Dipanggil setiap kali project berubah (lewat picker manual — selalu bawa [id] dari
-  /// `OwnerDropdownItem` — maupun auto-select dari Contact di [initState]) — reset unit terpilih,
-  /// muat ulang hierarki "Pilih Unit Lain", dan fetch ulang "Unit dari Contact" untuk project itu.
-  /// Default tab ("contact" vs "other") diterapkan reaktif lewat listener [SelectUnitBloc] di
-  /// [_unit] begitu hasil fetch-nya datang.
   void _onProjectChanged(String? project, {int? id}) {
     _selectedProject = project;
     _selectedProjectId = id;
@@ -1220,8 +1325,6 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
     _fetchSelectUnitFor();
   }
 
-  /// Debounce pencarian di tab "Pilih Unit Lain" — hierarki cluster/tipe difilter server-side
-  /// (`?search=` di `GetUnitHierarchyUseCase`), bukan filter lokal seperti dummy sebelumnya.
   void _onOtherUnitsSearchChanged(String value) {
     _otherUnitsSearchDebounce?.cancel();
     _otherUnitsSearchDebounce = Timer(const Duration(milliseconds: 350), () {
@@ -1364,24 +1467,20 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
       child: InkWell(
         onTap: () => _toggleUnit(u),
         borderRadius: BorderRadius.circular(9),
-        child: Opacity(
-          opacity: u.available ? 1 : 0.55,
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
-            decoration: BoxDecoration(
-              color: selected ? const Color(roSelectedBgColor) : null,
-              borderRadius: BorderRadius.circular(9),
-            ),
-            child: Row(
-              children: [
-                _checkbox(selected),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Text(u.name, style: const TextStyle(fontSize: 12.5)),
-                ),
-                _availabilityBadge(u.available),
-              ],
-            ),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
+          decoration: BoxDecoration(
+            color: selected ? const Color(roSelectedBgColor) : null,
+            borderRadius: BorderRadius.circular(9),
+          ),
+          child: Row(
+            children: [
+              _checkbox(selected),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(u.name, style: const TextStyle(fontSize: 12.5)),
+              ),
+            ],
           ),
         ),
       ),
@@ -1425,12 +1524,10 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
     ),
   );
 
-  /// Baris header cluster yang bisa di-tap buat expand/collapse — dipasangkan dengan
-  /// [_clusterHeader] (label statis) di tab "Pilih Unit Lain" yang datanya dari
-  /// `GET /property/units/hierarchy?township_id=` ([UnitPickerCubit]/`GetUnitHierarchyUseCase`).
   Widget _otherClusterHeaderTile(
     bool expanded,
     String name,
+    int totalAvailable,
     VoidCallback onTap,
   ) {
     return InkWell(
@@ -1447,19 +1544,28 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
             ),
             const SizedBox(width: 2),
             Expanded(child: _clusterHeader(name)),
+            const SizedBox(width: 8),
+            _availableCount(totalAvailable),
           ],
         ),
       ),
     );
   }
 
-  /// Baris header tipe/produk yang bisa di-tap buat expand/collapse — saat diexpand pertama
-  /// kali, [UnitPickerCubit.toggleProduct] otomatis fetch kavlingnya lewat
-  /// `GET /property/units/hierarchy?product_id=&township_id=` ([GetUnitLotsUseCase]).
+  Widget _availableCount(int total) => Text(
+    '$total tersedia',
+    style: TextStyle(
+      fontSize: 11,
+      fontWeight: FontWeight.w600,
+      color: total > 0 ? Color(primaryColor) : Color(grey5Color),
+    ),
+  );
+
   Widget _otherProductHeaderTile(
     bool expanded,
     String tipe,
     String sub,
+    int totalAvailable,
     VoidCallback onTap,
   ) {
     return InkWell(
@@ -1474,6 +1580,8 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
           ),
           const SizedBox(width: 2),
           Expanded(child: _tipeHeader(tipe, sub)),
+          const SizedBox(width: 8),
+          _availableCount(totalAvailable),
         ],
       ),
     );
@@ -1500,6 +1608,7 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
         expanded,
         product.displayName,
         product.spec ?? '',
+        product.totalAvailable,
         () => cubit.toggleProduct(product),
       ),
       if (expanded) ...[
@@ -1540,13 +1649,15 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
             ),
           )
         else
-          for (final lot in lots)
+          for (final lot in lots.where(
+            (l) => (l.displayStatusName ?? 'Available') == 'Available',
+          ))
             _kavlingRow(
               ReserveUnitOption(
                 id: 'lot-${cluster.projectId}-${product.productId}-${lot.propertyId}',
                 name: lot.propertyName,
                 context: contextLabel,
-                available: (lot.displayStatusName ?? 'Available') == 'Available',
+                available: true,
                 townshipId: cluster.townshipId,
                 companyId: cluster.companyId,
                 clusterId: cluster.projectId,
@@ -1571,6 +1682,7 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
         child: _otherClusterHeaderTile(
           expanded,
           cluster.projectName,
+          cluster.totalAvailable,
           () => cubit.toggleCluster(cluster.projectId),
         ),
       ),
@@ -1580,10 +1692,6 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
     ];
   }
 
-  /// Tab "Pilih Unit Lain" — hierarki cluster → tipe → kavling dari
-  /// `GET /property/units/hierarchy?township_id=` (`ReserveOrderController` belum ada
-  /// endpoint sendiri buat ini, jadi reuse [UnitPickerCubit] yang sudah dipakai fitur Contact).
-  /// Kavling per tipe baru di-fetch (`?product_id=&township_id=`) saat tipenya diexpand.
   Widget _otherUnitsTree(String project) {
     return BlocBuilder<UnitPickerCubit, UnitPickerState>(
       builder: (context, state) {
@@ -1624,27 +1732,7 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
         : '${_selectedUnits.length} unit dipilih: ${_selectedUnits.map((u) => u.name).join(', ')}';
     return Scaffold(
       backgroundColor: Color(whiteColor),
-      // Fallback pasif kalau township belum dimuat saat halaman ini pertama kali dibuka (jarang
-      // — lihat komentar di `initState`) — cuma nyimak state yang SUDAH di-fetch di level app,
-      // TIDAK dispatch fetch baru sendiri.
-      body: BlocListener<TownshipBloc, TownshipState>(
-        listenWhen: (prev, curr) =>
-            curr is TownshipLoaded &&
-            _selectedProject == null &&
-            widget.contactProjectId != null,
-        listener: (context, state) {
-          if (state is TownshipLoaded) {
-            final match = state.townships.where(
-              (t) => t.id == widget.contactProjectId,
-            );
-            if (match.isNotEmpty) {
-              setState(
-                () => _onProjectChanged(match.first.name, id: match.first.id),
-              );
-            }
-          }
-        },
-        child: Column(
+      body: Column(
           children: [
             _appBar('Pilih Unit', _customerNameSnapshot),
             _stepIndicator(2),
@@ -1654,12 +1742,6 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // if ((widget.contactUnits ?? []).isNotEmpty) ...[
-                    //   _infoNotice(
-                    //     'Riwayat unit dari Contact: ${widget.contactUnits!.map((u) => u.label).join(', ')}',
-                    //   ),
-                    //   const SizedBox(height: 12),
-                    // ],
                     _pickerFieldRow(
                       label: 'Pilih Project',
                       value: _selectedProject,
@@ -1789,7 +1871,6 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
             ),
           ],
         ),
-      ),
     );
   }
 
@@ -1818,9 +1899,6 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
     });
   }
 
-  // ---------------------------------------------------------------------
-  // STEP 3 — Dokumen
-  // ---------------------------------------------------------------------
 
   Widget _payModeButton(String label, bool selected, VoidCallback onTap) {
     return InkWell(
@@ -1933,7 +2011,6 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
             height: 46,
             width: 300,
             child: Scrollbar(
-              // thumbVisibility: true,
               child: ListView.separated(
                 scrollDirection: Axis.horizontal,
                 padding: const EdgeInsets.only(bottom: 6),
@@ -2033,7 +2110,7 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
                 style: TextStyle(fontSize: 10, color: Color(grey4Color)),
               ),
             ),
-          _fieldLabel('Jenis Pembayaran'),
+          _fieldLabel('Jenis Pembayaran', required: true),
           SizedBox(
             height: 40,
             child: BlocBuilder<PaymentTypeBloc, PaymentTypeState>(
@@ -2049,6 +2126,8 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
                     itemBuilder: (_, i) {
                       final opt = options[i];
                       final selected = draft.paymentTypeId == opt.paymentTypeId;
+                      final isError =
+                          _showDocumentValidation && draft.paymentTypeId == null;
                       return ChoiceChip(
                         label: Text(
                           opt.name,
@@ -2070,6 +2149,8 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
                         side: BorderSide(
                           color: selected
                               ? Color(primaryColor)
+                              : isError
+                              ? Color(redColor)
                               : Color(grey7Color),
                         ),
                         shape: RoundedRectangleBorder(
@@ -2081,6 +2162,10 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
                 );
               },
             ),
+          ),
+          _errorText(
+            _showDocumentValidation && draft.paymentTypeId == null,
+            message: 'Pilih jenis pembayaran',
           ),
           const SizedBox(height: 12),
           for (int t = 0; t < draft.tx.length; t++) _txBlock(draft, t),
@@ -2207,17 +2292,20 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
 
   void _submitDocument() {
     final hasKtp = _hasKtp;
+    final missingPaymentType = _unitDrafts.any((d) => d.paymentTypeId == null);
     final missingProof = _unitDrafts.any(
       (d) =>
           d.tx.any((t) => t.mode == _PaymentMode.transfer && t.proof == null),
     );
-    if (!hasKtp || missingProof) {
+    if (!hasKtp || missingPaymentType || missingProof) {
       setState(() => _showDocumentValidation = true);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
             !hasKtp
                 ? 'KTP Pemohon wajib diupload.'
+                : missingPaymentType
+                ? 'Jenis Pembayaran wajib dipilih untuk semua unit.'
                 : 'Bukti Non Tunai wajib diupload untuk semua pembayaran Non Tunai.',
           ),
         ),
@@ -2227,9 +2315,6 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
     setState(() => _step = 4);
   }
 
-  // ---------------------------------------------------------------------
-  // STEP 4 — Review
-  // ---------------------------------------------------------------------
 
   Widget _reviewLine(
     String label,
@@ -2337,7 +2422,10 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
             context,
           ).showSnackBar(SnackBar(content: Text(state.message)));
         } else if (state is CreateReserveOrderSuccess) {
-          setState(() => _step = 5);
+          setState(() {
+            _createResult = state.result;
+            _step = 5;
+          });
         }
       },
       builder: (context, state) {
@@ -2415,6 +2503,12 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
                           'Total Semua Unit',
                           '${_formatRupiah(grandTotal)} ✓',
                           valueColor: Color(successColor),
+                        ),
+                        _reviewLine(
+                          'Catatan',
+                          _catatanCtrl.text.trim().isEmpty
+                              ? '-'
+                              : _catatanCtrl.text.trim(),
                           isLast: true,
                         ),
                       ],
@@ -2436,10 +2530,6 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
   }
 
   void _submitReserveOrder() {
-    // Guard terakhir sebelum kirim ke server — Review sebelumnya sempat menampilkan "KTP ✓" tanpa
-    // benar2 mengecek state (lihat riwayat bug), jadi divalidasi ulang di sini juga supaya kalau
-    // sampai lolos ke titik ini tanpa KTP, user langsung diarahkan balik ke step Dokumen dengan
-    // alasan yang jelas — bukan submit dulu ke server baru gagal dgn pesan yang membingungkan.
     if (!_hasKtp) {
       setState(() {
         _step = 3;
@@ -2540,17 +2630,12 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
     context.read<CreateReserveOrderCubit>().submit(params);
   }
 
-  // ---------------------------------------------------------------------
-  // STEP 5 — Success
-  // ---------------------------------------------------------------------
 
   void _goToReserveOrderList() {
-    // Wizard ini punya 2 entry point (tombol "Reserve Order" di Contact Detail via push biasa,
-    // atau lewat FAB List Reserve Order -> SelectContactPage via pushReplacement) — `maybePop()`
-    // cuma benar utk entry point kedua. `goNamed` selalu landing di /reserve-order apa pun jalan
-    // masuknya, sekalian membuang halaman wizard (& Contact Detail-nya kalau dari entry point 1)
-    // dari stack.
-    context.goNamed('reserve_order');
+    final navigator = Navigator.of(context);
+    final router = GoRouter.of(context);
+    navigator.popUntil((route) => route.isFirst);
+    router.goNamed('reserve_order');
   }
 
   void _resetForm() {
@@ -2581,10 +2666,6 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
       _caraBayarId = null;
       _ktpFile = null;
       _npwpFile = null;
-      // existingKtpUrl/existingNpwpUrl ikut direset ke nilai awal widget — kalau cuma ID-nya yang
-      // dipulihkan (bukan url-nya), _hasKtp/_docRow bakal salah baca "belum ada dokumen" walau
-      // existing_attachment_id-nya sebenarnya valid (atau sebaliknya, submission gagal diam-diam
-      // krn _existingKtpUrl null padahal itu satu2nya yang dicek gate-nya).
       _existingKtpUrl = widget.existingKtpAttachmentUrl;
       _existingKtpAttachmentId = widget.existingKtpAttachmentId;
       _existingNpwpUrl = widget.existingNpwpAttachmentUrl;
@@ -2594,15 +2675,90 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
       _selectedUnits = [];
       _unitDrafts = [];
       _customerNameSnapshot = '';
+      _createResult = null;
     });
   }
 
+  void _openReserveOrderDetail(int reserveOrderId) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => ReserveOrderDetailPage(reserveOrderId: reserveOrderId),
+      ),
+    );
+  }
+
+  Widget _successOrderCard(CreateReserveOrderItemEntity o, String custName) {
+    final sub = [
+      custName,
+      if (o.ttsNumber.isNotEmpty) 'TTS ${o.ttsNumber}',
+      if (o.amountRp > 0) _formatRupiah(o.amountRp),
+    ].where((e) => e.isNotEmpty).join(' · ');
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: () => _openReserveOrderDetail(o.reserveOrderId),
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Color(grey10Color)),
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      o.propertyName ?? '-',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    Text(
+                      sub,
+                      style: TextStyle(fontSize: 9.5, color: Color(grey4Color)),
+                    ),
+                  ],
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Color(warningColor),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  'Diproses',
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w700,
+                    color: Color(whiteColor),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 4),
+              Icon(Icons.chevron_right, size: 18, color: Color(grey5Color)),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _success() {
-    final multi = _unitDrafts.length > 1;
-    final unitNames = _unitDrafts.map((d) => d.unit.name).join(', ');
+    final orders = _createResult?.orders ?? const <CreateReserveOrderItemEntity>[];
+    final custName = (_createResult?.custName ?? '').isNotEmpty
+        ? _createResult!.custName
+        : _customerNameSnapshot;
+    final multi = orders.length > 1;
+    final unitNames = orders.map((o) => o.propertyName ?? '-').join(', ');
     final text = multi
-        ? '${_unitDrafts.length} Reserve Order ($unitNames) a.n. $_customerNameSnapshot sedang diproses. Dokumen identitas cukup diupload sekali untuk semuanya.'
-        : '$unitNames a.n. $_customerNameSnapshot sedang diproses.';
+        ? '${orders.length} Reserve Order ($unitNames) a.n. $custName sedang diproses. Dokumen identitas cukup diupload sekali untuk semuanya.'
+        : '$unitNames a.n. $custName sedang diproses.';
     return Scaffold(
       backgroundColor: Color(whiteColor),
       body: SafeArea(
@@ -2646,62 +2802,7 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
                       ),
                     ),
                     const SizedBox(height: 16),
-                    for (final d in _unitDrafts)
-                      Container(
-                        width: double.infinity,
-                        margin: const EdgeInsets.only(bottom: 8),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 10,
-                        ),
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: Color(grey10Color)),
-                        ),
-                        child: Row(
-                          children: [
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    d.unit.name,
-                                    style: const TextStyle(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w700,
-                                    ),
-                                  ),
-                                  Text(
-                                    _customerNameSnapshot,
-                                    style: TextStyle(
-                                      fontSize: 9.5,
-                                      color: Color(grey4Color),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 10,
-                                vertical: 4,
-                              ),
-                              decoration: BoxDecoration(
-                                color: Color(warningColor),
-                                borderRadius: BorderRadius.circular(20),
-                              ),
-                              child: Text(
-                                'Diproses',
-                                style: TextStyle(
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.w700,
-                                  color: Color(whiteColor),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
+                    for (final o in orders) _successOrderCard(o, custName),
                   ],
                 ),
               ),
@@ -2716,8 +2817,14 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
                 child: Column(
                   children: [
                     customButton(
-                      _goToReserveOrderList,
-                      'Lihat di Reserve Order',
+                      orders.length == 1
+                          ? () => _openReserveOrderDetail(
+                              orders.first.reserveOrderId,
+                            )
+                          : _goToReserveOrderList,
+                      orders.length == 1
+                          ? 'Lihat Detail Reserve Order'
+                          : 'Lihat di Reserve Order',
                     ),
                     const SizedBox(height: 8),
                     SizedBox(
@@ -2784,7 +2891,7 @@ class _PaymentTxDraft {
 
 class _UnitPaymentDraft {
   final ReserveUnitOption unit;
-  String paymentType = 'Reserve';
+  String paymentType = '';
   int? paymentTypeId;
   final List<_PaymentTxDraft> tx;
 

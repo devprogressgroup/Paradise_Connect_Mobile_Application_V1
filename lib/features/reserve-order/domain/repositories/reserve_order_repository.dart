@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:dartz/dartz.dart';
 import 'package:progress_group/features/reserve-order/domain/entities/cara_bayar_entity.dart';
 import 'package:progress_group/features/reserve-order/domain/entities/create_reserve_order_params.dart';
@@ -58,4 +60,8 @@ abstract class ReserveOrderRepository {
     EditReserveOrderParams params,
   );
   Future<Either<String, void>> deleteReserveOrder(int reserveOrderId);
+  Future<Either<String, Map<String, dynamic>>> ocrKtp(
+    Uint8List imageBytes, {
+    String? filename,
+  });
 }

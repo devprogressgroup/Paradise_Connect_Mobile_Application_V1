@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:dartz/dartz.dart';
 import 'package:progress_group/core/utils/helpers/error_message.dart';
 import 'package:progress_group/features/reserve-order/data/datasources/reserve_order_remote_datasource.dart';
@@ -208,6 +210,22 @@ class ReserveOrderRepositoryImpl implements ReserveOrderRepository {
     try {
       await remoteDataSource.deleteReserveOrder(reserveOrderId);
       return const Right(null);
+    } catch (e) {
+      return Left(cleanErrorMessage(e));
+    }
+  }
+
+  @override
+  Future<Either<String, Map<String, dynamic>>> ocrKtp(
+    Uint8List imageBytes, {
+    String? filename,
+  }) async {
+    try {
+      final result = await remoteDataSource.ocrKtp(
+        imageBytes,
+        filename: filename,
+      );
+      return Right(result);
     } catch (e) {
       return Left(cleanErrorMessage(e));
     }

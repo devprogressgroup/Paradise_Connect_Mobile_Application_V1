@@ -170,6 +170,21 @@ class _ContactPageState extends State<ContactPage> {
         clearReserveDates: widget.initialReserveStartDate == null,
         clearSpDates: widget.initialSpStartDate == null,
         clearLostDates: widget.initialLostStartDate == null,
+        // ContactBloc dipakai bareng fitur lain (mis. filter Owner/Sales* di select-contact
+        // reserve-order) yang mem-fetch dgn ownerIds/dst pada bloc SHARED yang sama — kalau tidak
+        // di-clear eksplisit di sini, _onFetchContacts() akan "mewarisi" filter itu lewat fallback
+        // `event.x ?? state.x` walau halaman Contacts ini tidak pernah memilihnya sendiri.
+        clearStatus: widget.initialStatusIds == null,
+        clearSalesChannel: widget.initialSalesChannelIds == null,
+        clearSalesChannelDetail: true,
+        clearOwner: true,
+        clearSalesExecutive: true,
+        clearSalesSupervisor: true,
+        clearSalesManager: true,
+        clearSalesGeneralManager: true,
+        clearSalesTeam: true,
+        clearProject: true,
+        clearSort: true,
       ),
     );
 
@@ -269,6 +284,19 @@ class _ContactPageState extends State<ContactPage> {
           clearReserveDates: widget.initialReserveStartDate == null,
           clearSpDates: widget.initialSpStartDate == null,
           clearLostDates: widget.initialLostStartDate == null,
+          // Sama alasannya dgn initState() di atas — cegah warisan filter Owner/Sales*/dst dari
+          // bloc shared.
+          clearStatus: newIds == null,
+          clearSalesChannel: newChannelIds == null,
+          clearSalesChannelDetail: true,
+          clearOwner: true,
+          clearSalesExecutive: true,
+          clearSalesSupervisor: true,
+          clearSalesManager: true,
+          clearSalesGeneralManager: true,
+          clearSalesTeam: true,
+          clearProject: true,
+          clearSort: true,
         ),
       );
     }
