@@ -108,17 +108,41 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage>
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Text(
-              'Reserve Order',
-              style: TextStyle(
+            Text(
+              order.unitName,
+              style: const TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.w700,
                 color: Colors.black,
               ),
             ),
-            Text(
-              order.unitName,
-              style: const TextStyle(fontSize: 11, color: Color(grey4Color)),
+            // Text(
+            //   order.unitName,
+            //   style: const TextStyle(fontSize: 11, color: Color(grey4Color)),
+            // ),
+            SizedBox(
+              width: double.infinity,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    "${order.productName} | ${order.projectName}",
+                    style: const TextStyle(
+                      fontSize: 11,
+                      color: Color(grey4Color),
+                    ),
+                    maxLines: 1,
+                  ),
+                   Text(
+                    "${order.townshipName}",
+                    style: const TextStyle(
+                      fontSize: 11,
+                      color: Color(grey4Color),
+                    ),
+                    maxLines: 1,
+                  ),
+                ],
+              ),
             ),
           ],
         ),
@@ -147,6 +171,58 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage>
     );
   }
 
+  /// Info unit: property (kavling), product (tipe), project (cluster), township. Baris yang
+  /// datanya kosong tidak ditampilkan.
+  Widget _buildUnitInfo(ReserveOrderDetail order) {
+    String? clean(String? s) {
+      final t = s?.trim() ?? '';
+      return t.isEmpty || t == '-' ? null : t;
+    }
+
+    final rows = <MapEntry<String, String>>[
+      if (clean(order.unitName) != null) MapEntry('Unit', clean(order.unitName)!),
+      if (clean(order.productName) != null)
+        MapEntry('Tipe', clean(order.productName)!),
+      if (clean(order.projectName) != null)
+        MapEntry('Cluster', clean(order.projectName)!),
+      if (clean(order.townshipName) != null)
+        MapEntry('Project', clean(order.townshipName)!),
+    ];
+    if (rows.isEmpty) return const SizedBox.shrink();
+
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(top: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Column(
+        children: [
+          for (final r in rows)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 3),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+
+                  Expanded(
+                    child: Text(
+                      r.value,
+                      style: const TextStyle(
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildHeader(ReserveOrderDetail order) {
     return Container(
       color: const Color(whiteColor),
@@ -155,7 +231,8 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage>
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
               CircleAvatar(
                 radius: 20,
@@ -173,6 +250,7 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage>
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Text(
                       order.customerName,
@@ -181,14 +259,8 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage>
                         fontWeight: FontWeight.w700,
                       ),
                     ),
-                    const SizedBox(height: 2),
-                    Text(
-                      [order.unitName, order.unitSub, order.phone].join(' · '),
-                      style: const TextStyle(
-                        fontSize: 11,
-                        color: Color(grey4Color),
-                      ),
-                    ),
+                
+                    
                     if (order.price != null)
                       Text(
                         _rupiah(order.price!),
@@ -202,6 +274,7 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage>
               ),
             ],
           ),
+         
           const SizedBox(height: 12),
 
           Row(

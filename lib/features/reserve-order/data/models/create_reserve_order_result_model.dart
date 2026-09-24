@@ -26,7 +26,9 @@ class CreateReserveOrderItemModel extends CreateReserveOrderItemEntity {
     required super.reserveOrderId,
     super.propertyName,
     super.statusReserveId,
+    super.amountRp,
     required super.reserveOrderTtsId,
+    super.paymentTypeName,
     required super.ttsNumber,
     required super.ttsAmountRp,
   });
@@ -37,7 +39,9 @@ class CreateReserveOrderItemModel extends CreateReserveOrderItemEntity {
       reserveOrderId: json['reserve_order_id'] as int,
       propertyName: json['property_name'] as String?,
       statusReserveId: json['status_reserve_id'] as int?,
+      amountRp: (json['amount_rp'] as num?)?.toDouble() ?? 0,
       reserveOrderTtsId: tts['reserve_order_tts_id'] as int,
+      paymentTypeName: tts['payment_type_name'] as String?,
       ttsNumber: tts['tts_number'] as String? ?? '',
       ttsAmountRp: (tts['tts_amount_rp'] as num?)?.toDouble() ?? 0,
     );

@@ -210,7 +210,7 @@ const List<ReserveCustomerFieldSection> reserveCustomerFieldSections = [
     ],
   ),
   ReserveCustomerFieldSection(
-    title: 'Calon Pasangan',
+    title: 'Pasangan',
     fields: [
       ReserveCustomerFieldSpec(key: 'spouse_name', label: 'Nama Pasangan'),
       ReserveCustomerFieldSpec(
@@ -322,7 +322,7 @@ const List<ReserveCustomerFieldSection> reserveCustomerFieldSections = [
     ],
   ),
   ReserveCustomerFieldSection(
-    title: 'Alamat Calon Pasangan (Pembeli Bersama)',
+    title: 'Alamat Pasangan (Pembeli Bersama)',
     fields: [
       ReserveCustomerFieldSpec(key: 'mate_name', label: 'Nama'),
       ReserveCustomerFieldSpec(
@@ -441,7 +441,7 @@ const List<ReserveCustomerFieldSection> reserveCustomerFieldSections = [
     ],
   ),
   ReserveCustomerFieldSection(
-    title: 'Data Pekerjaan Calon Pasangan',
+    title: 'Data Pekerjaan Pasangan',
     fields: [
       ReserveCustomerFieldSpec(key: 'spouse_occupation', label: 'Pekerjaan'),
       ReserveCustomerFieldSpec(

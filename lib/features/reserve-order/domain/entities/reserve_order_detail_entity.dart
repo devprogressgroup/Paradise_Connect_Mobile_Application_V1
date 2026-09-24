@@ -184,7 +184,11 @@ class ReserveOrderDetailEntity extends Equatable {
   final String customerName;
   final String? phoneNumber;
   final String? unitName;
+
+  /// `project_name` (cluster), mis. "Cluster EcoArdence".
   final String? unitSub;
+  final String? productName;
+  final String? townshipName;
   final String? caraBayarName;
   final bool canTopup;
   final String? statusLabel;
@@ -217,6 +221,8 @@ class ReserveOrderDetailEntity extends Equatable {
     this.phoneNumber,
     this.unitName,
     this.unitSub,
+    this.productName,
+    this.townshipName,
     this.caraBayarName,
     this.canTopup = false,
     this.statusLabel,
@@ -246,6 +252,8 @@ class ReserveOrderDetailEntity extends Equatable {
     phoneNumber,
     unitName,
     unitSub,
+    productName,
+    townshipName,
     caraBayarName,
     reserveNote,
     caraBayarId,
