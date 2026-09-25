@@ -138,6 +138,13 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
   int? _existingKtpAttachmentId;
   int? _existingNpwpAttachmentId;
 
+  // Cek No. KTP (GET /reserve-order/check-ktp): pasangan KTP+nama terakhir yg sudah dicek (biar
+  // dialog gak muncul berulang tiap ketik), dan nama pemilik lama kalau KTP ini ternyata milik
+  // orang lain (null = aman) — dipakai utk pesan error di field KTP & cegat tombol Lanjut.
+  String? _checkedKtpKey;
+  String? _ktpOwnerConflict;
+  bool _checkingKtp = false;
+
   String? _selectedProject;
   int? _selectedProjectId;
   String _unitTab = 'contact';
@@ -636,6 +643,8 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
     int maxLines = 1,
     List<TextInputFormatter>? inputFormatters,
     int? exactLength,
+    ValueChanged<String>? onChanged,
+    String? extraError,
   }) {
     final text = controller.text.trim();
     final isEmptyError = _showCustomerValidation && required && text.isEmpty;
@@ -643,7 +652,7 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
         exactLength != null &&
         text.isNotEmpty &&
         text.length != exactLength;
-    final isError = isEmptyError || isLengthError;
+    final isError = isEmptyError || isLengthError || extraError != null;
     final labelColor = isError ? Color(redColor) : Color(grey2Color);
     return _underlineFieldFrame(
       isError: isError,
@@ -661,8 +670,11 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
               fontWeight: FontWeight.w700,
               color: Color(blackColor),
             ),
-            onChanged: required || exactLength != null
-                ? (_) => setState(() {})
+            onChanged: required || exactLength != null || onChanged != null
+                ? (v) {
+                    setState(() {});
+                    onChanged?.call(v);
+                  }
                 : null,
             decoration: InputDecoration(
               isDense: true,
@@ -685,7 +697,8 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
           ),
           _errorText(
             isError,
-            message: isLengthError ? 'Harus $exactLength digit' : 'Wajib diisi',
+            message: extraError ??
+                (isLengthError ? 'Harus $exactLength digit' : 'Wajib diisi'),
           ),
         ],
       ),
@@ -1012,7 +1025,332 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
           content: Text('Data KTP berhasil dibaca. Mohon periksa kembali.'),
         ),
       );
+      // Hasil scan langsung dicek juga — sales gak perlu tahu ada langkah "cek NIK".
+      if (_ktpCtrl.text.trim().length == 16) _checkKtp();
     }
+  }
+
+  static bool _sameName(String a, String b) =>
+      a.trim().toLowerCase() == b.trim().toLowerCase();
+
+  void _onKtpChanged(String value) {
+    final ktp = value.trim();
+    if (ktp.length == 16) {
+      _checkKtp();
+    } else if (_ktpOwnerConflict != null) {
+      setState(() => _ktpOwnerConflict = null);
+    }
+  }
+
+  /// Cek No. KTP ke server & tampilkan dialog kalau sudah terdaftar. Balik `true` kalau boleh
+  /// lanjut ke step Unit. Gagal koneksi → dianggap boleh (server tetap validasi saat simpan).
+  /// [force] = tetap cek walau pasangan KTP+nama ini sudah pernah dicek (dipakai tombol Lanjut
+  /// selama masih ada bentrok, supaya dialognya muncul lagi).
+  Future<bool> _checkKtp({bool force = false}) async {
+    final ktp = _ktpCtrl.text.trim();
+    final name = _namaCtrl.text.trim();
+    if (ktp.length != 16 || _checkingKtp) return _ktpOwnerConflict == null;
+    final key = '$ktp|${name.toLowerCase()}';
+    if (!force && key == _checkedKtpKey) return _ktpOwnerConflict == null;
+
+    _checkingKtp = true;
+    final res = await context.read<CreateReserveOrderCubit>().checkKtp(
+          ktp,
+          custName: name.isEmpty ? null : name,
+        );
+    _checkingKtp = false;
+    if (!mounted || res == null) return true;
+    // KTP sudah diganti lagi selama request jalan → hasil ini basi.
+    if (_ktpCtrl.text.trim() != ktp) return _ktpOwnerConflict == null;
+    _checkedKtpKey = key;
+
+    // Customer milik sales lain (di luar scope) → server TIDAK kirim datanya, jadi cuma kasih tau
+    // & sales isi sendiri. Nama beda tetap ditahan (pasti ditolak saat simpan), tapi nama pemilik
+    // tidak ditampilkan — '' = bentrok dgn nama yg disembunyikan.
+    if (res['found'] == true && res['in_scope'] == false) {
+      final nameMatch = res['name_match'] as bool?;
+      await _showOtherSalesDialog(
+        handledBy: '${res['handled_by'] ?? ''}'.trim(),
+        nameMismatch: nameMatch == false,
+      );
+      if (!mounted) return false;
+      final blocked = nameMatch == false;
+      setState(() => _ktpOwnerConflict = blocked ? '' : null);
+      return !blocked;
+    }
+
+    final customer = res['customer'] as Map<String, dynamic>?;
+    if (res['found'] != true || customer == null) {
+      if (_ktpOwnerConflict != null) setState(() => _ktpOwnerConflict = null);
+      return true;
+    }
+
+    final ownerName = '${customer['cust_name'] ?? ''}'.trim();
+    final nameMatch = res['name_match'] as bool?; // null = nama belum diisi
+    final orders = (res['reserve_orders'] as List?) ?? const [];
+    final docs = (res['documents'] as Map?) ?? const {};
+    final hasOldKtpPhoto = docs['ktp'] != null && _ktpFile == null;
+
+    final useOldData = await _showKtpFoundDialog(
+      ownerName: ownerName,
+      typedName: name,
+      nameMatch: nameMatch,
+      units: [
+        for (final o in orders)
+          if ('${(o as Map)['property_name'] ?? ''}'.trim().isNotEmpty)
+            '${o['property_name']}'.trim(),
+      ],
+      unitCount: orders.length,
+      hasOldKtpPhoto: hasOldKtpPhoto,
+    );
+    if (!mounted) return false;
+
+    if (useOldData == true) {
+      setState(() {
+        _applyInitialCustomer(customer);
+        _applyOldDocuments(docs);
+        _ktpOwnerConflict = null;
+        _checkedKtpKey = '$ktp|${ownerName.toLowerCase()}';
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Data customer sudah diisi otomatis. Cek lagi ya sebelum lanjut.'),
+        ),
+      );
+      return true;
+    }
+
+    // Nama cocok tapi sales pilih isi sendiri → boleh; nama beda / "bukan orang ini" → tahan.
+    final blocked = nameMatch != true;
+    setState(() => _ktpOwnerConflict = blocked ? ownerName : null);
+    return !blocked;
+  }
+
+  /// Pakai foto KTP/NPWP yang dulu pernah diupload — KECUALI sales barusan foto yang baru.
+  void _applyOldDocuments(Map docs) {
+    final ktp = docs['ktp'] as Map?;
+    if (ktp != null && _ktpFile == null) {
+      _existingKtpUrl = ktp['attachment_path'] as String?;
+      _existingKtpAttachmentId = (ktp['contact_attachment_id'] as num?)?.toInt();
+    }
+    final npwp = docs['npwp'] as Map?;
+    if (npwp != null && _npwpFile == null) {
+      _existingNpwpUrl = npwp['attachment_path'] as String?;
+      _existingNpwpAttachmentId = (npwp['contact_attachment_id'] as num?)?.toInt();
+    }
+  }
+
+  /// Dialog "No. KTP sudah terdaftar" — bahasa awam, satu tombol utama. Balik true = pakai data
+  /// lama (isi otomatis), false/null = tidak.
+  /// Dialog "Customer ini dipegang sales lain" — cuma pemberitahuan (1 tombol), tanpa data
+  /// customer apa pun krn memang tidak dikirim server.
+  Future<void> _showOtherSalesDialog({
+    required String handledBy,
+    required bool nameMismatch,
+  }) {
+    const bodyStyle = TextStyle(fontSize: 13, height: 1.45, color: Color(blackColor));
+    const bold = TextStyle(fontWeight: FontWeight.w700);
+    final salesText = handledBy.isEmpty ? 'sales lain' : handledBy;
+
+    return showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: Color(whiteColor),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        titlePadding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+        contentPadding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+        actionsPadding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
+        title: Row(
+          children: [
+            Icon(Icons.lock_outline, color: Color(warningColor), size: 26),
+            const SizedBox(width: 10),
+            const Expanded(
+              child: Text(
+                'Customer ini dipegang sales lain',
+                style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+              ),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text.rich(
+              TextSpan(
+                style: bodyStyle,
+                children: [
+                  const TextSpan(text: 'No. KTP ini sudah terdaftar dan ditangani oleh '),
+                  TextSpan(text: salesText, style: bold),
+                  const TextSpan(text: ', jadi datanya tidak bisa diisi otomatis.'),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              nameMismatch
+                  ? 'Nama yang kamu isi tidak sama dengan data yang terdaftar. Cek lagi nama & No. KTP sesuai KTP customer.'
+                  : 'Kamu tetap bisa lanjut dengan mengisi data customer sendiri sesuai KTP.',
+              style: bodyStyle.copyWith(
+                fontWeight: FontWeight.w600,
+                color: nameMismatch ? Color(redColor) : Color(blackColor),
+              ),
+            ),
+            const SizedBox(height: 10),
+            Text(
+              'Kalau ada yang janggal, hubungi $salesText atau admin.',
+              style: TextStyle(fontSize: 12, color: Color(grey2Color)),
+            ),
+          ],
+        ),
+        actions: [
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: () => Navigator.pop(ctx),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Color(primaryColor),
+                foregroundColor: Color(whiteColor),
+                minimumSize: const Size(double.infinity, 44),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(11)),
+              ),
+              child: const Text('Mengerti', style: TextStyle(fontWeight: FontWeight.w700)),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<bool?> _showKtpFoundDialog({
+    required String ownerName,
+    required String typedName,
+    required bool? nameMatch,
+    required List<String> units,
+    required int unitCount,
+    required bool hasOldKtpPhoto,
+  }) {
+    final isConflict = nameMatch == false;
+    final title = nameMatch == true
+        ? 'Customer lama ditemukan'
+        : (isConflict ? 'No. KTP ini sudah dipakai' : 'No. KTP ini sudah terdaftar');
+    final unitText = unitCount == 0
+        ? ''
+        : ' dan sudah pernah reserve $unitCount unit'
+            '${units.isEmpty ? '' : ' (${units.take(3).join(', ')}${units.length > 3 ? ', …' : ''})'}';
+    const bodyStyle = TextStyle(fontSize: 13, height: 1.45, color: Color(blackColor));
+    const bold = TextStyle(fontWeight: FontWeight.w700);
+
+    return showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: Color(whiteColor),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        titlePadding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+        contentPadding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+        actionsPadding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
+        title: Row(
+          children: [
+            Icon(
+              isConflict ? Icons.error_outline : Icons.person_search_outlined,
+              color: Color(isConflict ? warningColor : primaryColor),
+              size: 26,
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                title,
+                style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+              ),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text.rich(
+              TextSpan(
+                style: bodyStyle,
+                children: [
+                  const TextSpan(text: 'No. KTP ini terdaftar atas nama '),
+                  TextSpan(text: ownerName, style: bold),
+                  TextSpan(text: '$unitText.'),
+                  if (isConflict) ...[
+                    const TextSpan(text: '\n\nNama yang kamu isi: '),
+                    TextSpan(text: typedName, style: bold),
+                    const TextSpan(text: '.'),
+                  ],
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              nameMatch == true
+                  ? 'Mau datanya diisi otomatis? Kamu tinggal cek lalu lanjut.'
+                  : 'Apakah ini orang yang sama?',
+              style: bodyStyle.copyWith(fontWeight: FontWeight.w600),
+            ),
+            if (hasOldKtpPhoto) ...[
+              const SizedBox(height: 10),
+              Row(
+                children: [
+                  Icon(Icons.check_circle, size: 16, color: Color(successColor)),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      'Foto KTP lama juga dipakai, tidak perlu foto ulang.',
+                      style: TextStyle(fontSize: 12, color: Color(successColor)),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+            if (isConflict) ...[
+              const SizedBox(height: 10),
+              Text(
+                'Kalau bukan, cek lagi No. KTP-nya — satu No. KTP hanya untuk satu orang.',
+                style: TextStyle(fontSize: 12, color: Color(grey2Color)),
+              ),
+            ],
+          ],
+        ),
+        actions: [
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Color(primaryColor),
+                foregroundColor: Color(whiteColor),
+                minimumSize: const Size(double.infinity, 44),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(11)),
+              ),
+              child: Text(
+                nameMatch == true
+                    ? 'Isi Otomatis'
+                    : 'Ya, pakai data $ownerName',
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(fontWeight: FontWeight.w700),
+              ),
+            ),
+          ),
+          const SizedBox(height: 6),
+          SizedBox(
+            width: double.infinity,
+            child: TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              style: TextButton.styleFrom(foregroundColor: Color(grey2Color)),
+              child: Text(
+                nameMatch == true ? 'Isi Sendiri' : 'Bukan, cek No. KTP lagi',
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _customer() {
@@ -1084,6 +1422,13 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
                     label: 'Nama Lengkap (sesuai KTP)',
                     controller: _namaCtrl,
                     required: true,
+                    onChanged: (v) {
+                      // Nama sudah dibetulkan jadi nama pemilik KTP → peringatan hilang sendiri.
+                      if ((_ktpOwnerConflict ?? '').isNotEmpty &&
+                          _sameName(v, _ktpOwnerConflict!)) {
+                        setState(() => _ktpOwnerConflict = null);
+                      }
+                    },
                   ),
                   _textField(
                     label: 'No. KTP',
@@ -1091,6 +1436,12 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
                     required: true,
                     hint: '16 digit NIK',
                     exactLength: 16,
+                    onChanged: _onKtpChanged,
+                    extraError: _ktpOwnerConflict == null
+                        ? null
+                        : (_ktpOwnerConflict!.isEmpty
+                            ? 'No. KTP ini sudah terdaftar dengan nama lain. Pastikan nama sesuai KTP.'
+                            : 'No. KTP ini sudah terdaftar atas nama $_ktpOwnerConflict'),
                     keyboardType: TextInputType.number,
                     inputFormatters: [
                       FilteringTextInputFormatter.digitsOnly,
@@ -1195,7 +1546,7 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
     );
   }
 
-  void _submitCustomer() {
+  Future<void> _submitCustomer() async {
     final requiredOk =
         _namaCtrl.text.trim().isNotEmpty &&
         _ktpCtrl.text.trim().length == 16 &&
@@ -1220,6 +1571,10 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
       );
       return;
     }
+    // Cek ulang No. KTP (nama bisa sudah diganti sejak dicek) — kalau masih bentrok, dialog
+    // muncul lagi di sini, BUKAN baru ketahuan di step Review saat simpan.
+    final ktpOk = await _checkKtp(force: _ktpOwnerConflict != null);
+    if (!mounted || !ktpOk) return;
     _customerNameSnapshot = _namaCtrl.text.trim();
     setState(() => _step = 2);
   }
@@ -2670,6 +3025,8 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
       _existingKtpAttachmentId = widget.existingKtpAttachmentId;
       _existingNpwpUrl = widget.existingNpwpAttachmentUrl;
       _existingNpwpAttachmentId = widget.existingNpwpAttachmentId;
+      _checkedKtpKey = null;
+      _ktpOwnerConflict = null;
       _selectedProject = null;
       _unitTab = 'contact';
       _selectedUnits = [];

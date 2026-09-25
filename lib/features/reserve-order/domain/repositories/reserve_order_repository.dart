@@ -37,6 +37,8 @@ abstract class ReserveOrderRepository {
     List<int>? salesSupervisorIds,
     List<int>? salesManagerIds,
     List<int>? generalManagerIds,
+    List<int>? salesTeamIds,
+    String? project,
     int page,
     int perPage,
   });
@@ -63,5 +65,9 @@ abstract class ReserveOrderRepository {
   Future<Either<String, Map<String, dynamic>>> ocrKtp(
     Uint8List imageBytes, {
     String? filename,
+  });
+  Future<Either<String, Map<String, dynamic>>> checkKtp(
+    String custKtp, {
+    String? custName,
   });
 }

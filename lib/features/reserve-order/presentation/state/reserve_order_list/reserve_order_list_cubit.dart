@@ -4,8 +4,7 @@ import 'reserve_order_list_state.dart';
 
 /// State list Reserve Order (`GET /reserve-order/list`) — search, status, sort, dan grup filter
 /// "Data Reserve"/"Sales" dari `ContactFilterSheet` (channel/channelDetail/owner/executive/
-/// supervisor/manager/gm) semuanya diteruskan ke server. `sales_team_id` & Project (masih nama
-/// hardcode, belum di-resolve ke township_id) belum didukung endpoint-nya.
+/// supervisor/manager/gm/team) + Project (nama township) semuanya diteruskan ke server.
 ///
 /// PENTING: [fetch] SELALU dipanggil dengan seluruh filter yang sedang aktif di halaman (bukan
 /// patch parsial) — jadi tiap parameter di sini APAPUN nilainya (termasuk null/kosong) langsung
@@ -30,6 +29,8 @@ class ReserveOrderListCubit extends Cubit<ReserveOrderListState> {
   List<int> _salesSupervisorIds = const [];
   List<int> _salesManagerIds = const [];
   List<int> _generalManagerIds = const [];
+  List<int> _salesTeamIds = const [];
+  String? _project;
 
   Future<void> fetch({
     String? search,
@@ -43,6 +44,8 @@ class ReserveOrderListCubit extends Cubit<ReserveOrderListState> {
     List<int>? salesSupervisorIds,
     List<int>? salesManagerIds,
     List<int>? generalManagerIds,
+    List<int>? salesTeamIds,
+    String? project,
   }) async {
     _search = search;
     _statusIds = statusReserveIds ?? const [];
@@ -55,6 +58,8 @@ class ReserveOrderListCubit extends Cubit<ReserveOrderListState> {
     _salesSupervisorIds = salesSupervisorIds ?? const [];
     _salesManagerIds = salesManagerIds ?? const [];
     _generalManagerIds = generalManagerIds ?? const [];
+    _salesTeamIds = salesTeamIds ?? const [];
+    _project = project;
 
     emit(state.copyWith(status: ReserveOrderListStatus.loading));
 
@@ -70,6 +75,8 @@ class ReserveOrderListCubit extends Cubit<ReserveOrderListState> {
       salesSupervisorIds: _salesSupervisorIds.isEmpty ? null : _salesSupervisorIds,
       salesManagerIds: _salesManagerIds.isEmpty ? null : _salesManagerIds,
       generalManagerIds: _generalManagerIds.isEmpty ? null : _generalManagerIds,
+      salesTeamIds: _salesTeamIds.isEmpty ? null : _salesTeamIds,
+      project: _project,
       page: 1,
     );
 
@@ -111,6 +118,8 @@ class ReserveOrderListCubit extends Cubit<ReserveOrderListState> {
       salesSupervisorIds: _salesSupervisorIds.isEmpty ? null : _salesSupervisorIds,
       salesManagerIds: _salesManagerIds.isEmpty ? null : _salesManagerIds,
       generalManagerIds: _generalManagerIds.isEmpty ? null : _generalManagerIds,
+      salesTeamIds: _salesTeamIds.isEmpty ? null : _salesTeamIds,
+      project: _project,
       page: state.currentPage + 1,
     );
 

@@ -97,6 +97,8 @@ class _ReserveOrderListPageState extends State<ReserveOrderListPage> {
       salesSupervisorIds: _supervisorIds.isEmpty ? null : _supervisorIds.toList(),
       salesManagerIds: _managerIds.isEmpty ? null : _managerIds.toList(),
       generalManagerIds: _gmIds.isEmpty ? null : _gmIds.toList(),
+      salesTeamIds: _teamIds.isEmpty ? null : _teamIds.toList(),
+      project: (_project ?? '').isEmpty ? null : _project,
     );
   }
 

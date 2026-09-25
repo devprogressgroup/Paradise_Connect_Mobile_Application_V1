@@ -102,6 +102,8 @@ class ReserveOrderRepositoryImpl implements ReserveOrderRepository {
     List<int>? salesSupervisorIds,
     List<int>? salesManagerIds,
     List<int>? generalManagerIds,
+    List<int>? salesTeamIds,
+    String? project,
     int page = 1,
     int perPage = 15,
   }) async {
@@ -118,6 +120,8 @@ class ReserveOrderRepositoryImpl implements ReserveOrderRepository {
         salesSupervisorIds: salesSupervisorIds,
         salesManagerIds: salesManagerIds,
         generalManagerIds: generalManagerIds,
+        salesTeamIds: salesTeamIds,
+        project: project,
         page: page,
         perPage: perPage,
       );
@@ -225,6 +229,19 @@ class ReserveOrderRepositoryImpl implements ReserveOrderRepository {
         imageBytes,
         filename: filename,
       );
+      return Right(result);
+    } catch (e) {
+      return Left(cleanErrorMessage(e));
+    }
+  }
+
+  @override
+  Future<Either<String, Map<String, dynamic>>> checkKtp(
+    String custKtp, {
+    String? custName,
+  }) async {
+    try {
+      final result = await remoteDataSource.checkKtp(custKtp, custName: custName);
       return Right(result);
     } catch (e) {
       return Left(cleanErrorMessage(e));

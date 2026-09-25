@@ -19,6 +19,8 @@ class GetReserveOrderListUseCase {
     List<int>? salesSupervisorIds,
     List<int>? salesManagerIds,
     List<int>? generalManagerIds,
+    List<int>? salesTeamIds,
+    String? project,
     int page = 1,
     int perPage = 15,
   }) async {
@@ -34,6 +36,8 @@ class GetReserveOrderListUseCase {
       salesSupervisorIds: salesSupervisorIds,
       salesManagerIds: salesManagerIds,
       generalManagerIds: generalManagerIds,
+      salesTeamIds: salesTeamIds,
+      project: project,
       page: page,
       perPage: perPage,
     );

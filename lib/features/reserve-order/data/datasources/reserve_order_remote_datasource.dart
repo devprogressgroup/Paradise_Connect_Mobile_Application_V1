@@ -38,6 +38,8 @@ abstract class ReserveOrderRemoteDataSource {
     List<int>? salesSupervisorIds,
     List<int>? salesManagerIds,
     List<int>? generalManagerIds,
+    List<int>? salesTeamIds,
+    String? project,
     int page,
     int perPage,
   });
@@ -60,6 +62,7 @@ abstract class ReserveOrderRemoteDataSource {
   );
   Future<void> deleteReserveOrder(int reserveOrderId);
   Future<Map<String, dynamic>> ocrKtp(Uint8List imageBytes, {String? filename});
+  Future<Map<String, dynamic>> checkKtp(String custKtp, {String? custName});
 }
 
 class ReserveOrderRemoteDataSourceImpl implements ReserveOrderRemoteDataSource {
@@ -196,6 +199,8 @@ class ReserveOrderRemoteDataSourceImpl implements ReserveOrderRemoteDataSource {
     List<int>? salesSupervisorIds,
     List<int>? salesManagerIds,
     List<int>? generalManagerIds,
+    List<int>? salesTeamIds,
+    String? project,
     int page = 1,
     int perPage = 15,
   }) async {
@@ -222,6 +227,9 @@ class ReserveOrderRemoteDataSourceImpl implements ReserveOrderRemoteDataSource {
             'sales_manager_id': salesManagerIds.join(','),
           if (generalManagerIds != null && generalManagerIds.isNotEmpty)
             'general_manager_id': generalManagerIds.join(','),
+          if (salesTeamIds != null && salesTeamIds.isNotEmpty)
+            'sales_team_id': salesTeamIds.join(','),
+          if ((project ?? '').isNotEmpty) 'project': project,
           'page': page,
           'per_page': perPage,
         },
@@ -482,6 +490,29 @@ class ReserveOrderRemoteDataSourceImpl implements ReserveOrderRemoteDataSource {
       );
     } on DioException catch (e) {
       throw Exception(getErrorMessage(e, 'Failed to read KTP data'));
+    }
+  }
+
+  /// `GET /reserve-order/check-ktp` — NIK sudah terdaftar atau belum (+ data customer lama utk
+  /// isi otomatis). Balik `data` apa adanya: found, name_match, customer, documents, reserve_orders.
+  @override
+  Future<Map<String, dynamic>> checkKtp(String custKtp, {String? custName}) async {
+    try {
+      final response = await dio.get(
+        '/reserve-order/check-ktp',
+        queryParameters: {
+          'cust_ktp': custKtp,
+          if ((custName ?? '').isNotEmpty) 'cust_name': custName,
+        },
+      );
+
+      if (response.data['status'] == true) {
+        return response.data['data'] as Map<String, dynamic>;
+      }
+
+      throw Exception(response.data['message'] ?? 'Failed to check KTP');
+    } on DioException catch (e) {
+      throw Exception(getErrorMessage(e, 'Failed to check KTP'));
     }
   }
 
