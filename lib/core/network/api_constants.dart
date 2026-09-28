@@ -36,12 +36,12 @@ class ApiConstants {
       serverUrl: 'http://192.168.8.40:1100',
     ),
 
-    // AppEnvironment.development2: _EnvConfig(
-    //   label: 'Development 2',
-    //   baseUrl: 'http://172.20.10.2:8000/api',
-    //   storageUrl: 'http://172.20.10.2:8000/storage',
-    //   serverUrl: 'http://172.20.10.2:8000',
-    // ),
+    AppEnvironment.development2: _EnvConfig(
+      label: 'Development 2',
+      baseUrl: 'http://172.20.10.3:1100/api',
+      storageUrl: 'http://172.20.10.3:1100/storage',
+      serverUrl: 'http://172.20.10.3:1100',
+    ),
     AppEnvironment.developmnetDomain: _EnvConfig(
       label: 'Development',
       baseUrl: 'https://apidevconnect.paradise.id/api',

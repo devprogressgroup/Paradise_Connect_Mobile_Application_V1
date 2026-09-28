@@ -24,6 +24,7 @@ import 'package:progress_group/features/reserve-order/presentation/state/cara_ba
 import 'package:progress_group/features/reserve-order/presentation/state/cara_bayar/cara_bayar_state.dart';
 import 'package:progress_group/features/reserve-order/presentation/state/create_reserve_order/create_reserve_order_cubit.dart';
 import 'package:progress_group/features/reserve-order/presentation/state/create_reserve_order/create_reserve_order_state.dart';
+import 'package:progress_group/features/reserve-order/presentation/state/reserve_order_list/reserve_order_list_cubit.dart';
 import 'package:progress_group/features/reserve-order/presentation/state/payment_type/payment_type_bloc.dart';
 import 'package:progress_group/features/reserve-order/presentation/state/payment_type/payment_type_event.dart';
 import 'package:progress_group/features/reserve-order/presentation/state/payment_type/payment_type_state.dart';
@@ -144,6 +145,9 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
   // orang lain (null = aman) — dipakai utk pesan error di field KTP & cegat tombol Lanjut.
   String? _checkedKtpKey;
   String? _ktpOwnerConflict;
+  /// Masuk dari tab "Customer Reserve" → identitas customer sudah dipilih sendiri oleh sales,
+  /// jadi cek No. KTP (dan dialognya) dilewati. Dimatikan lagi saat form direset.
+  late bool _fromReserveCustomer = widget.initialCustomer != null;
   bool _checkingKtp = false;
 
   String? _selectedProject;
@@ -1050,6 +1054,7 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
   Future<bool> _checkKtp({bool force = false}) async {
     final ktp = _ktpCtrl.text.trim();
     final name = _namaCtrl.text.trim();
+    if (_fromReserveCustomer) return true;
     if (ktp.length != 16 || _checkingKtp) return _ktpOwnerConflict == null;
     final key = '$ktp|${name.toLowerCase()}';
     if (!force && key == _checkedKtpKey) return _ktpOwnerConflict == null;
@@ -3005,6 +3010,8 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
   void _goToReserveOrderList() {
     final navigator = Navigator.of(context);
     final router = GoRouter.of(context);
+    // List-nya bisa jadi masih ada di bawah stack (state lama) → muat ulang supaya RO baru muncul.
+    context.read<ReserveOrderListCubit>().refresh();
     navigator.popUntil((route) => route.isFirst);
     router.goNamed('reserve_order');
   }
@@ -3043,6 +3050,7 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
       _existingNpwpAttachmentId = widget.existingNpwpAttachmentId;
       _checkedKtpKey = null;
       _ktpOwnerConflict = null;
+      _fromReserveCustomer = false;
       _selectedProject = null;
       _unitTab = 'contact';
       _selectedUnits = [];
@@ -3190,14 +3198,8 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
                 child: Column(
                   children: [
                     customButton(
-                      orders.length == 1
-                          ? () => _openReserveOrderDetail(
-                              orders.first.reserveOrderId,
-                            )
-                          : _goToReserveOrderList,
-                      orders.length == 1
-                          ? 'Lihat Detail Reserve Order'
-                          : 'Lihat di Reserve Order',
+                      _goToReserveOrderList,
+                      'Lihat di Reserve Order',
                     ),
                     const SizedBox(height: 8),
                     SizedBox(

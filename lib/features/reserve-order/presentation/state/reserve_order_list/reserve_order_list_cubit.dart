@@ -99,6 +99,23 @@ class ReserveOrderListCubit extends Cubit<ReserveOrderListState> {
     );
   }
 
+  /// Muat ulang halaman pertama dengan filter/sort terakhir yang dipakai list.
+  Future<void> refresh() => fetch(
+        search: _search,
+        statusReserveIds: _statusIds,
+        rejected: _rejected,
+        sort: _sort,
+        salesChannelIds: _salesChannelIds,
+        channelDetailIds: _channelDetailIds,
+        ownerIds: _ownerIds,
+        salesExecutiveIds: _salesExecutiveIds,
+        salesSupervisorIds: _salesSupervisorIds,
+        salesManagerIds: _salesManagerIds,
+        generalManagerIds: _generalManagerIds,
+        salesTeamIds: _salesTeamIds,
+        project: _project,
+      );
+
   Future<void> loadMore() async {
     if (state.status == ReserveOrderListStatus.loadingMore || !state.hasMore) {
       return;

@@ -236,55 +236,6 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage>
     );
   }
 
-  /// Info unit: property (kavling), product (tipe), project (cluster), township. Baris yang
-  /// datanya kosong tidak ditampilkan.
-  Widget _buildUnitInfo(ReserveOrderDetail order) {
-    String? clean(String? s) {
-      final t = s?.trim() ?? '';
-      return t.isEmpty || t == '-' ? null : t;
-    }
-
-    final rows = <MapEntry<String, String>>[
-      if (clean(order.unitName) != null)
-        MapEntry('Unit', clean(order.unitName)!),
-      if (clean(order.productName) != null)
-        MapEntry('Tipe', clean(order.productName)!),
-      if (clean(order.projectName) != null)
-        MapEntry('Cluster', clean(order.projectName)!),
-      if (clean(order.townshipName) != null)
-        MapEntry('Project', clean(order.townshipName)!),
-    ];
-    if (rows.isEmpty) return const SizedBox.shrink();
-
-    return Container(
-      width: double.infinity,
-      margin: const EdgeInsets.only(top: 12),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(borderRadius: BorderRadius.circular(10)),
-      child: Column(
-        children: [
-          for (final r in rows)
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 3),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: Text(
-                      r.value,
-                      style: const TextStyle(
-                        fontSize: 11.5,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-        ],
-      ),
-    );
-  }
 
   Widget _buildHeader(ReserveOrderDetail order) {
     return Container(

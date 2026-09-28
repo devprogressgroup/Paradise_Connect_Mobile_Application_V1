@@ -381,7 +381,11 @@ class _MainLayoutState extends State<MainLayout> {
         child: SafeArea(
           child: Padding(
             padding: const EdgeInsets.symmetric(vertical: 16.0),
-            child: Column(
+            child: CustomScrollView(
+              slivers: [
+                SliverFillRemaining(
+                  hasScrollBody: false,
+                  child: Column(
               mainAxisAlignment: MainAxisAlignment.start,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -525,6 +529,9 @@ class _MainLayoutState extends State<MainLayout> {
                     ),
                   ),
                 const SizedBox(height: 16),
+              ],
+                  ),
+                ),
               ],
             ),
           ),
