@@ -52,6 +52,7 @@ class ReserveOrderAttachmentEntity extends Equatable {
   final String? attachmentPath;
   final int? reserveOrderTtsId;
   final String? verificationStatus;
+  final String? verificationNote;
   final DateTime? createDatetime;
 
   const ReserveOrderAttachmentEntity({
@@ -60,8 +61,11 @@ class ReserveOrderAttachmentEntity extends Equatable {
     this.attachmentPath,
     this.reserveOrderTtsId,
     this.verificationStatus,
+    this.verificationNote,
     this.createDatetime,
   });
+
+  bool get isRejected => verificationStatus == 'rejected';
 
   @override
   List<Object?> get props => [
@@ -70,6 +74,7 @@ class ReserveOrderAttachmentEntity extends Equatable {
     attachmentPath,
     reserveOrderTtsId,
     verificationStatus,
+    verificationNote,
     createDatetime,
   ];
 }

@@ -92,6 +92,12 @@ class ReserveOrderDetail {
   /// `attachment_type_id` (m_attachment_type) per nama dokumen di [requiredDocs] — dipakai saat
   /// upload lewat `POST /contacts/{contact_id}/attachments`.
   final Map<String, int> docAttachmentTypeIds;
+
+  /// SEMUA attachment per nama dokumen di [requiredDocs], terbaru di depan (termasuk file TTS/
+  /// bukti bayar yang punya `reserve_order_tts_id`) — 1 jenis dokumen bisa berisi beberapa file,
+  /// masing2 punya status verifikasi sendiri. Dipakai buat lihat file & "Upload Ulang"
+  /// (`PATCH /contacts/{contact_id}/attachments/{id}`, `reserve_order_tts_id` file lama ikut dikirim).
+  final Map<String, List<ReserveOrderAttachmentEntity>> docAttachments;
   final List<ReserveOrderChatMessage> notes;
   final int totalPaidSoFar;
 
@@ -123,6 +129,7 @@ class ReserveOrderDetail {
     required this.requiredDocs,
     required this.docsUploaded,
     this.docAttachmentTypeIds = const {},
+    this.docAttachments = const {},
     required this.notes,
     this.totalPaidSoFar = 2000000,
     this.reserveNote,
@@ -144,6 +151,27 @@ class ReserveOrderDetail {
               .map((s) => s[0].toUpperCase())
               .join();
 
+    final docAttachments = <String, List<ReserveOrderAttachmentEntity>>{};
+    for (final d in e.requiredDocs) {
+      final candidates = e.attachments
+          .where(
+            (a) =>
+                a.attachmentTypeId == d.attachmentTypeId &&
+                (a.attachmentPath ?? '').isNotEmpty,
+          )
+          .toList();
+      if (candidates.isEmpty) continue;
+      candidates.sort((a, b) {
+        final byDate = (b.createDatetime ?? DateTime(0)).compareTo(
+          a.createDatetime ?? DateTime(0),
+        );
+        return byDate != 0
+            ? byDate
+            : b.contactAttachmentId.compareTo(a.contactAttachmentId);
+      });
+      docAttachments[d.name] = candidates;
+    }
+
     return ReserveOrderDetail(
       reserveOrderId: e.reserveOrderId,
       contactId: e.contactId,
@@ -151,9 +179,11 @@ class ReserveOrderDetail {
       avatarInitials: initials,
       phone: e.phoneNumber ?? '-',
       unitName: e.unitName ?? '-',
-      unitSub: [e.townshipName, e.unitSub, e.productName]
-          .where((s) => (s ?? '').trim().isNotEmpty)
-          .join(' · '),
+      unitSub: [
+        e.townshipName,
+        e.unitSub,
+        e.productName,
+      ].where((s) => (s ?? '').trim().isNotEmpty).join(' · '),
       productName: e.productName,
       projectName: e.unitSub,
       townshipName: e.townshipName,
@@ -169,8 +199,7 @@ class ReserveOrderDetail {
               sub: s.sub,
               status: switch (s.status) {
                 ReserveOrderStageStatus.done => ReserveOrderStepStatus.done,
-                ReserveOrderStageStatus.active =>
-                  ReserveOrderStepStatus.active,
+                ReserveOrderStageStatus.active => ReserveOrderStepStatus.active,
                 ReserveOrderStageStatus.todo => ReserveOrderStepStatus.todo,
               },
             ),
@@ -182,6 +211,7 @@ class ReserveOrderDetail {
       docAttachmentTypeIds: {
         for (final d in e.requiredDocs) d.name: d.attachmentTypeId,
       },
+      docAttachments: docAttachments,
       notes: e.messages
           .map(
             (m) => ReserveOrderChatMessage(

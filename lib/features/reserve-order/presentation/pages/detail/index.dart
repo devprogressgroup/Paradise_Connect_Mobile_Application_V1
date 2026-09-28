@@ -8,13 +8,17 @@ import 'package:progress_group/core/utils/widget/custom_bg_icon.dart';
 import 'package:progress_group/core/utils/widget/custom_buttomsheet.dart';
 import 'package:progress_group/core/utils/widget/custom_dropdown_group.dart';
 import 'package:progress_group/core/utils/widget/custom_snackbar.dart';
+import 'package:progress_group/core/utils/widget/drive_image/drive_image.dart';
 import 'package:progress_group/core/utils/widget/reject_banner.dart';
 import 'package:progress_group/features/contact/data/arguments/contact_detail_args.dart';
+import 'package:progress_group/features/contact/domain/entities/attachment/attachment_entity.dart';
 import 'package:progress_group/features/contact/domain/entities/contact/contact_entity.dart';
 import 'package:progress_group/features/reserve-order/data/models/reserve_order_customer_data.dart';
 import 'package:progress_group/features/reserve-order/data/models/reserve_order_detail.dart';
+import 'package:progress_group/features/reserve-order/domain/entities/reserve_order_detail_entity.dart';
 import 'package:progress_group/features/reserve-order/presentation/state/reserve_order_detail/reserve_order_detail_cubit.dart';
 import 'package:progress_group/features/reserve-order/presentation/state/reserve_order_detail/reserve_order_detail_state.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../edit-customer/index.dart';
@@ -36,24 +40,76 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage>
   final _messageScrollController = ScrollController();
   bool _sendingMessage = false;
 
+  static const _messagesTabIndex = 3;
+
+  /// Jumlah pesan yang sudah pernah dilihat user di tab Messages order ini (disimpan per
+  /// reserve order di SharedPreferences) — pesan orang lain di atas jumlah ini = belum dibaca,
+  /// ditandai titik merah di tab Messages.
+  int? _seenMessageCount;
+  bool _seenLoaded = false;
+
+  String get _seenKey => 'reserve_order_seen_messages_${widget.reserveOrderId}';
+
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 4, vsync: this);
-    context.read<ReserveOrderDetailCubit>().fetch(widget.reserveOrderId);
+    _tabController = TabController(length: 4, vsync: this)
+      ..addListener(_onTabChanged);
+    _loadSeenMessageCount();
+    _refresh();
   }
 
   @override
   void dispose() {
+    _tabController.removeListener(_onTabChanged);
     _tabController.dispose();
     _messageController.dispose();
     _messageScrollController.dispose();
     super.dispose();
   }
 
+  Future<void> _refresh() =>
+      context.read<ReserveOrderDetailCubit>().fetch(widget.reserveOrderId);
+
+  Future<void> _loadSeenMessageCount() async {
+    final prefs = await SharedPreferences.getInstance();
+    if (!mounted) return;
+    setState(() {
+      _seenMessageCount = prefs.getInt(_seenKey);
+      _seenLoaded = true;
+    });
+    _markMessagesSeenIfOpen();
+  }
+
+  void _onTabChanged() {
+    if (_tabController.index == _messagesTabIndex) _markMessagesSeenIfOpen();
+  }
+
+  /// Tandai semua pesan sudah dibaca kalau tab Messages sedang terbuka (dipanggil saat pindah
+  /// tab & tiap detail ter-refresh).
+  void _markMessagesSeenIfOpen() {
+    if (!_seenLoaded || _tabController.index != _messagesTabIndex) return;
+    final detail = context.read<ReserveOrderDetailCubit>().state.detail;
+    if (detail == null || detail.reserveOrderId != widget.reserveOrderId)
+      return;
+    final count = detail.messages.length;
+    if (_seenMessageCount == count) return;
+    setState(() => _seenMessageCount = count);
+    SharedPreferences.getInstance().then((p) => p.setInt(_seenKey, count));
+  }
+
+  bool _hasUnreadMessages(ReserveOrderDetail order) {
+    if (!_seenLoaded) return false;
+    final seen = _seenMessageCount ?? 0;
+    if (order.notes.length <= seen) return false;
+    return order.notes.skip(seen).any((m) => !m.isMe);
+  }
+
   @override
   Widget build(BuildContext context) {
-    return BlocBuilder<ReserveOrderDetailCubit, ReserveOrderDetailState>(
+    return BlocConsumer<ReserveOrderDetailCubit, ReserveOrderDetailState>(
+      listenWhen: (prev, curr) => prev.detail != curr.detail,
+      listener: (context, state) => _markMessagesSeenIfOpen(),
       builder: (context, state) {
         if (state.detail == null) {
           if (state.status == ReserveOrderDetailStatus.error) {
@@ -133,7 +189,7 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage>
                     ),
                     maxLines: 1,
                   ),
-                   Text(
+                  Text(
                     "${order.townshipName}",
                     style: const TextStyle(
                       fontSize: 11,
@@ -152,14 +208,23 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage>
         child: Column(
           children: [
             _buildHeader(order),
-            _buildTabBar(),
+            _buildTabBar(order),
             Expanded(
               child: TabBarView(
                 controller: _tabController,
                 children: [
-                  _buildTimelineTab(order),
-                  _buildCustomerTab(order),
-                  _buildAttachmentTab(order),
+                  RefreshIndicator(
+                    onRefresh: _refresh,
+                    child: _buildTimelineTab(order),
+                  ),
+                  RefreshIndicator(
+                    onRefresh: _refresh,
+                    child: _buildCustomerTab(order),
+                  ),
+                  RefreshIndicator(
+                    onRefresh: _refresh,
+                    child: _buildAttachmentTab(order),
+                  ),
                   _buildMessagesTab(order),
                 ],
               ),
@@ -180,7 +245,8 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage>
     }
 
     final rows = <MapEntry<String, String>>[
-      if (clean(order.unitName) != null) MapEntry('Unit', clean(order.unitName)!),
+      if (clean(order.unitName) != null)
+        MapEntry('Unit', clean(order.unitName)!),
       if (clean(order.productName) != null)
         MapEntry('Tipe', clean(order.productName)!),
       if (clean(order.projectName) != null)
@@ -194,9 +260,7 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage>
       width: double.infinity,
       margin: const EdgeInsets.only(top: 12),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(10),
-      ),
+      decoration: BoxDecoration(borderRadius: BorderRadius.circular(10)),
       child: Column(
         children: [
           for (final r in rows)
@@ -205,7 +269,6 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage>
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-
                   Expanded(
                     child: Text(
                       r.value,
@@ -259,8 +322,7 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage>
                         fontWeight: FontWeight.w700,
                       ),
                     ),
-                
-                    
+
                     if (order.price != null)
                       Text(
                         _rupiah(order.price!),
@@ -274,7 +336,7 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage>
               ),
             ],
           ),
-         
+
           const SizedBox(height: 12),
 
           Row(
@@ -328,7 +390,10 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage>
             onPressed: () => _openEditCustomer(order),
             child: const Text(
               'Perbaiki Data Customer',
-              style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w700,
+              ),
             ),
           ),
         ),
@@ -336,7 +401,8 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage>
     );
   }
 
-  Widget _buildTabBar() {
+  Widget _buildTabBar(ReserveOrderDetail order) {
+    final unread = _hasUnreadMessages(order);
     return Container(
       color: const Color(whiteColor),
       child: TabBar(
@@ -349,11 +415,31 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage>
           fontWeight: FontWeight.w600,
         ),
         indicatorColor: const Color(primaryColor),
-        tabs: const [
-          Tab(text: 'Timeline'),
-          Tab(text: 'Customer'),
-          Tab(text: 'Attachment'),
-          Tab(text: 'Messages'),
+        tabs: [
+          const Tab(text: 'Timeline'),
+          const Tab(text: 'Customer'),
+          const Tab(text: 'Attachment'),
+          Tab(
+            child: Stack(
+              clipBehavior: Clip.none,
+              children: [
+                const Text('Messages'),
+                if (unread)
+                  Positioned(
+                    top: -2,
+                    right: -9,
+                    child: Container(
+                      width: 8,
+                      height: 8,
+                      decoration: const BoxDecoration(
+                        color: Color(redColor),
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
         ],
       ),
     );
@@ -363,6 +449,7 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage>
 
   Widget _buildTimelineTab(ReserveOrderDetail order) {
     return SingleChildScrollView(
+      physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.all(14),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -528,6 +615,7 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage>
   Widget _buildCustomerTab(ReserveOrderDetail order) {
     final raw = order.customer.raw;
     return SingleChildScrollView(
+      physics: const AlwaysScrollableScrollPhysics(),
       child: Column(
         children: [
           for (final section in reserveCustomerFieldSections)
@@ -612,6 +700,7 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage>
 
   Widget _buildAttachmentTab(ReserveOrderDetail order) {
     return SingleChildScrollView(
+      physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.all(14),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -641,52 +730,78 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage>
   Widget _buildDocRow(ReserveOrderDetail order, String docName) {
     final uploaded = order.docsUploaded[docName] ?? false;
     final icon = reserveOrderDocIcons[docName] ?? '📄';
-    if (uploaded) {
+    final files = order.docAttachments[docName] ?? const [];
+    if (uploaded || files.isNotEmpty) {
+      final anyRejected = files.any((a) => a.isRejected);
+      final rejectedCount = files.where((a) => a.isRejected).length;
+      final summary = files.isEmpty
+          ? 'Terupload'
+          : [
+              '${files.length} file',
+              if (rejectedCount > 0) '$rejectedCount ditolak',
+            ].join(' · ');
       return Container(
         width: double.infinity,
         margin: const EdgeInsets.only(bottom: 8),
         padding: const EdgeInsets.all(10),
         decoration: BoxDecoration(
-          border: Border.all(color: const Color(grey10Color)),
+          border: Border.all(
+            color: anyRejected
+                ? const Color(redColor)
+                : const Color(grey10Color),
+          ),
           borderRadius: BorderRadius.circular(12),
         ),
-        child: Row(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Container(
-              width: 34,
-              height: 34,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: const Color(roIconBgColor),
-                borderRadius: BorderRadius.circular(9),
-              ),
-              child: Text(icon, style: const TextStyle(fontSize: 16)),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    docName,
-                    style: const TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
+            Row(
+              children: [
+                _docIconBox(icon),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        docName,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        summary,
+                        style: TextStyle(
+                          fontSize: 10,
+                          color: anyRejected
+                              ? const Color(redColor)
+                              : const Color(grey4Color),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                InkWell(
+                  borderRadius: BorderRadius.circular(8),
+                  onTap: () => _uploadDocument(order, docName),
+                  child: const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                    child: Text(
+                      '+ Tambah',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        color: Color(primaryColor),
+                      ),
                     ),
                   ),
-                  const SizedBox(height: 2),
-                  const Text(
-                    'Terupload',
-                    style: TextStyle(fontSize: 10, color: Color(grey4Color)),
-                  ),
-                ],
-              ),
+                ),
+              ],
             ),
-            const Icon(
-              Icons.check_circle,
-              color: Color(successColor),
-              size: 18,
-            ),
+            for (var i = 0; i < files.length; i++)
+              _buildDocFileRow(order, docName, icon, files[i], i + 1),
           ],
         ),
       );
@@ -761,26 +876,253 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage>
     await context.read<ReserveOrderDetailCubit>().fetch(order.reserveOrderId);
   }
 
+  void _viewDocument(String url) {
+    if (url.isEmpty) return;
+    context.pushNamed('attachmentWebView', extra: url);
+  }
+
+  Widget _docIconBox(String icon) {
+    return Container(
+      width: 34,
+      height: 34,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: const Color(roIconBgColor),
+        borderRadius: BorderRadius.circular(9),
+      ),
+      child: Text(icon, style: const TextStyle(fontSize: 16)),
+    );
+  }
+
+  /// Satu file di dalam kartu dokumen — status verifikasinya sendiri2 (1 jenis dokumen bisa
+  /// berisi beberapa file). Kalau ditolak reviewer, alasannya (`verification_note`) ditampilkan
+  /// supaya sales tahu apa yang harus diperbaiki sebelum upload ulang.
+  Widget _buildDocFileRow(
+    ReserveOrderDetail order,
+    String docName,
+    String icon,
+    ReserveOrderAttachmentEntity file,
+    int number,
+  ) {
+    final url = file.attachmentPath ?? '';
+    final rejectNote = file.verificationNote?.trim() ?? '';
+    final (statusLabel, statusColor) = switch (file.verificationStatus) {
+      'rejected' => ('Ditolak', const Color(redColor)),
+      'approved' => ('Disetujui', const Color(successColor)),
+      _ => ('Menunggu verifikasi', const Color(grey4Color)),
+    };
+    final uploadedAt = file.createDatetime == null
+        ? null
+        : DateFormat(
+            'dd MMM yyyy HH:mm',
+          ).format(file.createDatetime!.toLocal());
+
+    return InkWell(
+      borderRadius: BorderRadius.circular(8),
+      onTap: () => _openDocFileMenu(order, docName, file, number),
+      child: Container(
+        width: double.infinity,
+        margin: const EdgeInsets.only(top: 8),
+        padding: const EdgeInsets.only(top: 8),
+        decoration: const BoxDecoration(
+          border: Border(top: BorderSide(color: Color(grey10Color))),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                url.isEmpty
+                    ? _docIconBox(icon)
+                    : ClipRRect(
+                        borderRadius: BorderRadius.circular(9),
+                        child: DriveImage(
+                          url: url,
+                          width: 34,
+                          height: 34,
+                          fit: BoxFit.cover,
+                          onTap: () => _viewDocument(url),
+                          errorWidget: _docIconBox(icon),
+                        ),
+                      ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'File $number',
+                        style: const TextStyle(
+                          fontSize: 11.5,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      if (uploadedAt != null)
+                        Text(
+                          uploadedAt,
+                          style: const TextStyle(
+                            fontSize: 9.5,
+                            color: Color(grey4Color),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 3,
+                  ),
+                  decoration: BoxDecoration(
+                    color: statusColor.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Text(
+                    statusLabel,
+                    style: TextStyle(
+                      fontSize: 9.5,
+                      fontWeight: FontWeight.w700,
+                      color: statusColor,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            if (file.isRejected)
+              Container(
+                width: double.infinity,
+                margin: const EdgeInsets.only(top: 6),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                decoration: BoxDecoration(
+                  color: const Color(redColor).withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  'Alasan ditolak: ${rejectNote.isEmpty ? '-' : rejectNote}',
+                  style: const TextStyle(
+                    fontSize: 10.5,
+                    color: Color(redColor),
+                    height: 1.4,
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _openDocFileMenu(
+    ReserveOrderDetail order,
+    String docName,
+    ReserveOrderAttachmentEntity file,
+    int number,
+  ) {
+    final url = file.attachmentPath ?? '';
+    showCustomBottomSheet(
+      context: context,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(bottom: 6),
+            child: Text(
+              '$docName · File $number',
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+            ),
+          ),
+          if (url.isNotEmpty)
+            _menuItem('👁️', 'Lihat Dokumen', () => _viewDocument(url)),
+          _menuItem(
+            '⤴️',
+            'Upload Ulang',
+            () => _reuploadDocument(order, docName, file),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Ganti file dokumen yang sudah terupload — pakai mode edit attachment di `ContactAddPage`
+  /// (page 7, `PATCH /contacts/{contact_id}/attachments/{id}`) supaya baris attachment yang sama
+  /// (yang sudah tertaut ke reserve order ini) yang diganti filenya.
+  Future<void> _reuploadDocument(
+    ReserveOrderDetail order,
+    String docName,
+    ReserveOrderAttachmentEntity attachment,
+  ) async {
+    final attachmentTypeId = order.docAttachmentTypeIds[docName];
+    if (order.contactId == null || attachmentTypeId == null) {
+      return _uploadDocument(order, docName);
+    }
+
+    await context.pushNamed(
+      'addContact',
+      extra: ContactDetailArgs(
+        dataContact: ContactEntity(
+          contactId: order.contactId,
+          fullName: order.customerName,
+        ),
+        dataAttachment: ContactAttachment(
+          contactAttachmentId: attachment.contactAttachmentId,
+          contactId: order.contactId!,
+          attachmentTypeId: attachmentTypeId,
+          attachmentUrl: attachment.attachmentPath ?? '',
+          attachmentTypeName: docName,
+          attachmentNote: '',
+          createDatetime: attachment.createDatetime ?? DateTime.now(),
+        ),
+        page: 7,
+        reserveOrderTtsId: attachment.reserveOrderTtsId,
+        namePage: 'Attachment',
+        reserveOrderId: order.reserveOrderId,
+        initialAttachmentTypeId: attachmentTypeId,
+        initialAttachmentTypeName: docName,
+      ),
+    );
+
+    if (!mounted) return;
+    await _refresh();
+  }
+
   // ===================== MESSAGES =====================
 
   Widget _buildMessagesTab(ReserveOrderDetail order) {
     return Column(
       children: [
         Expanded(
-          child: order.notes.isEmpty
-              ? const Center(
-                  child: Text(
-                    'Belum ada pesan',
-                    style: TextStyle(color: Color(grey4Color), fontSize: 12),
+          child: RefreshIndicator(
+            onRefresh: _refresh,
+            child: order.notes.isEmpty
+                ? LayoutBuilder(
+                    builder: (context, constraints) => ListView(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      children: [
+                        SizedBox(
+                          height: constraints.maxHeight,
+                          child: const Center(
+                            child: Text(
+                              'Belum ada pesan',
+                              style: TextStyle(
+                                color: Color(grey4Color),
+                                fontSize: 12,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  )
+                : ListView.builder(
+                    controller: _messageScrollController,
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    padding: const EdgeInsets.all(14),
+                    itemCount: order.notes.length,
+                    itemBuilder: (context, index) =>
+                        _buildMessageItem(order.notes[index]),
                   ),
-                )
-              : ListView.builder(
-                  controller: _messageScrollController,
-                  padding: const EdgeInsets.all(14),
-                  itemCount: order.notes.length,
-                  itemBuilder: (context, index) =>
-                      _buildMessageItem(order.notes[index]),
-                ),
+          ),
         ),
         _buildMessageInput(order),
       ],
@@ -788,10 +1130,15 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage>
   }
 
   Widget _buildMessageItem(ReserveOrderChatMessage note) {
-    return note.isMe ? _buildMessageBubbleRight(note) : _buildMessageBubbleLeft(note);
+    return note.isMe
+        ? _buildMessageBubbleRight(note)
+        : _buildMessageBubbleLeft(note);
   }
 
-  Widget _messageBubbleContent(ReserveOrderChatMessage note, {required bool isMe}) {
+  Widget _messageBubbleContent(
+    ReserveOrderChatMessage note, {
+    required bool isMe,
+  }) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       decoration: BoxDecoration(
@@ -1034,11 +1381,7 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage>
               style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
             ),
           ),
-          _menuItem(
-            '✎',
-            'Edit Data Pembeli',
-            () => _openEditCustomer(order),
-          ),
+          _menuItem('✎', 'Edit Data Pembeli', () => _openEditCustomer(order)),
           _menuItem(
             '🗑️',
             'Delete Reserve Order',
@@ -1125,7 +1468,6 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage>
     Navigator.of(context).pop(true);
   }
 
-
   Widget _menuItem(
     String icon,
     String label,
@@ -1162,7 +1504,6 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage>
       ),
     );
   }
-
 }
 
 String _rupiah(int value) => NumberFormat.currency(

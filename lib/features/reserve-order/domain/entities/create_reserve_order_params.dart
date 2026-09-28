@@ -121,6 +121,9 @@ class CreateReserveOrderPaymentParams extends Equatable {
   final String? bankName;
   final String? referenceNumber;
 
+  /// Tanggal bukti transfer (`reference_date`, `YYYY-MM-DD`) — diisi untuk pembayaran Non Tunai.
+  final DateTime? referenceDate;
+
   const CreateReserveOrderPaymentParams({
     required this.paymentMethod,
     required this.amount,
@@ -128,6 +131,7 @@ class CreateReserveOrderPaymentParams extends Equatable {
     this.proofFileName,
     this.bankName,
     this.referenceNumber,
+    this.referenceDate,
   });
 
   @override
@@ -138,5 +142,6 @@ class CreateReserveOrderPaymentParams extends Equatable {
         proofFileName,
         bankName,
         referenceNumber,
+        referenceDate,
       ];
 }

@@ -584,6 +584,12 @@ class ReserveOrderRemoteDataSourceImpl implements ReserveOrderRemoteDataSource {
           data['units[$i][payments][$j][reference_number]'] =
               pay.referenceNumber;
         }
+        if (pay.referenceDate != null) {
+          data['units[$i][payments][$j][reference_date]'] = pay.referenceDate!
+              .toIso8601String()
+              .split('T')
+              .first;
+        }
         if (pay.proofBytes != null) {
           data['units[$i][payments][$j][proof]'] = MultipartFile.fromBytes(
             pay.proofBytes!,

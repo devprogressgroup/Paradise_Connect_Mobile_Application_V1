@@ -500,34 +500,28 @@ class _ReserveOrderListPageState extends State<ReserveOrderListPage> {
     }
 
     if (state.status == ReserveOrderListStatus.error && items.isEmpty) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                state.errorMessage ?? 'Gagal memuat daftar reserve order.',
-                textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 12, color: Color(grey4Color)),
-              ),
-              const SizedBox(height: 10),
-              TextButton(onPressed: _fetch, child: const Text('Coba lagi')),
-            ],
-          ),
+      return _refreshableMessage(
+        Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              state.errorMessage ?? 'Gagal memuat daftar reserve order.',
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 12, color: Color(grey4Color)),
+            ),
+            const SizedBox(height: 10),
+            TextButton(onPressed: _fetch, child: const Text('Coba lagi')),
+          ],
         ),
       );
     }
 
     if (items.isEmpty) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Text(
-            'Tidak ada Reserve Order yang cocok dengan pencarian/filter.',
-            textAlign: TextAlign.center,
-            style: const TextStyle(fontSize: 12, color: Color(grey4Color)),
-          ),
+      return _refreshableMessage(
+        const Text(
+          'Tidak ada Reserve Order yang cocok dengan pencarian/filter.',
+          textAlign: TextAlign.center,
+          style: TextStyle(fontSize: 12, color: Color(grey4Color)),
         ),
       );
     }
@@ -536,6 +530,8 @@ class _ReserveOrderListPageState extends State<ReserveOrderListPage> {
       onRefresh: _fetch,
       child: ListView.separated(
         controller: _scrollController,
+        // Wajib supaya tarik-refresh tetap jalan walau item-nya sedikit (belum bisa di-scroll).
+        physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.fromLTRB(16, 4, 16, 20),
         itemCount: items.length + (state.hasMore ? 1 : 0),
         separatorBuilder: (_, __) => const SizedBox(height: 10),
@@ -554,6 +550,29 @@ class _ReserveOrderListPageState extends State<ReserveOrderListPage> {
           }
           return _buildCard(items[index]);
         },
+      ),
+    );
+  }
+
+  /// Pesan kosong/error yang tetap bisa ditarik untuk refresh.
+  Widget _refreshableMessage(Widget child) {
+    return RefreshIndicator(
+      onRefresh: _fetch,
+      child: LayoutBuilder(
+        builder: (context, constraints) => ListView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          children: [
+            SizedBox(
+              height: constraints.maxHeight,
+              child: Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: child,
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

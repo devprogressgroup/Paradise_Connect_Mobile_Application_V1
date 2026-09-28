@@ -33,6 +33,7 @@ import 'package:progress_group/features/reserve-order/presentation/state/select_
 import 'package:progress_group/features/reserve-order/presentation/state/work_category/work_category_bloc.dart';
 import 'package:progress_group/features/reserve-order/presentation/state/work_category/work_category_event.dart';
 import 'package:progress_group/features/reserve-order/presentation/state/work_category/work_category_state.dart';
+import 'package:progress_group/features/reserve-order/presentation/widgets/reference_date_field.dart';
 import 'package:progress_group/features/saleskit/presentation/state/township/township_bloc.dart';
 import 'package:progress_group/features/saleskit/presentation/state/township/township_event.dart';
 import 'package:progress_group/features/saleskit/presentation/state/township/township_state.dart';
@@ -2359,6 +2360,11 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
               onRemove: () => setState(() => tx.proof = null),
               isError: proofError,
             ),
+            ReferenceDateField(
+              value: tx.referenceDate,
+              onChanged: (d) => setState(() => tx.referenceDate = d),
+              isError: _showDocumentValidation && tx.referenceDate == null,
+            ),
           ],
           const SizedBox(height: 4),
           _fieldLabel('Nominal'),
@@ -2652,7 +2658,12 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
       (d) =>
           d.tx.any((t) => t.mode == _PaymentMode.transfer && t.proof == null),
     );
-    if (!hasKtp || missingPaymentType || missingProof) {
+    final missingReferenceDate = _unitDrafts.any(
+      (d) => d.tx.any(
+        (t) => t.mode == _PaymentMode.transfer && t.referenceDate == null,
+      ),
+    );
+    if (!hasKtp || missingPaymentType || missingProof || missingReferenceDate) {
       setState(() => _showDocumentValidation = true);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -2661,7 +2672,9 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
                 ? 'KTP Pemohon wajib diupload.'
                 : missingPaymentType
                 ? 'Jenis Pembayaran wajib dipilih untuk semua unit.'
-                : 'Bukti Non Tunai wajib diupload untuk semua pembayaran Non Tunai.',
+                : missingProof
+                ? 'Bukti Non Tunai wajib diupload untuk semua pembayaran Non Tunai.'
+                : 'Tanggal Bukti Transfer wajib diisi untuk semua pembayaran Non Tunai.',
           ),
         ),
       );
@@ -2961,6 +2974,9 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
                     amount: t.amount,
                     proofBytes: t.proof?.bytes,
                     proofFileName: t.proof?.name,
+                    referenceDate: t.mode == _PaymentMode.transfer
+                        ? t.referenceDate
+                        : null,
                   ),
                 )
                 .toList(),
@@ -3238,6 +3254,9 @@ class _PaymentTxDraft {
   _PaymentMode mode = _PaymentMode.transfer;
   double amount = 3000000;
   PickedFileResult? proof;
+
+  /// Tanggal bukti transfer (`reference_date`) — wajib untuk Non Tunai.
+  DateTime? referenceDate;
   final TextEditingController amountCtrl;
 
   _PaymentTxDraft()

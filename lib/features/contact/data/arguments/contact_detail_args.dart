@@ -20,6 +20,10 @@ class ContactDetailArgs {
   /// (lihat `UploadAttachmentParams.reserveOrderId`), bukan cuma nempel ke contact_id.
   final int? reserveOrderId;
 
+  /// TTS (`reserve_order_tts_id`) file yang di-"Upload Ulang" (page 7) — dikirim ulang di
+  /// `PATCH /contacts/{contact_id}/attachments/{id}` supaya tetap tertaut ke TTS yang sama.
+  final int? reserveOrderTtsId;
+
   /// Attachment Type yang harus dipakai (mis. "Form Visitor") kalau dokumennya sudah ditentukan
   /// dari baris yang di-tap — dropdown "Attachment Type" langsung ke-preset & dikunci (tidak bisa
   /// diganti) supaya upload-nya benar2 masuk ke slot dokumen wajib yang dimaksud.
@@ -38,6 +42,7 @@ class ContactDetailArgs {
     this.focusField,
     this.buttonLabel,
     this.reserveOrderId,
+    this.reserveOrderTtsId,
     this.initialAttachmentTypeId,
     this.initialAttachmentTypeName,
   });
@@ -54,6 +59,7 @@ class ContactDetailArgs {
     String? focusField,
     String? buttonLabel,
     int? reserveOrderId,
+    int? reserveOrderTtsId,
     int? initialAttachmentTypeId,
     String? initialAttachmentTypeName,
   }) {
@@ -69,6 +75,7 @@ class ContactDetailArgs {
       focusField: focusField ?? this.focusField,
       buttonLabel: buttonLabel ?? this.buttonLabel,
       reserveOrderId: reserveOrderId ?? this.reserveOrderId,
+      reserveOrderTtsId: reserveOrderTtsId ?? this.reserveOrderTtsId,
       initialAttachmentTypeId:
           initialAttachmentTypeId ?? this.initialAttachmentTypeId,
       initialAttachmentTypeName:

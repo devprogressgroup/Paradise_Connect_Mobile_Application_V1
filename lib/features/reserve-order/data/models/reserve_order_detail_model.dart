@@ -41,6 +41,7 @@ class ReserveOrderAttachmentModel extends ReserveOrderAttachmentEntity {
     super.attachmentPath,
     super.reserveOrderTtsId,
     super.verificationStatus,
+    super.verificationNote,
     super.createDatetime,
   });
 
@@ -51,6 +52,7 @@ class ReserveOrderAttachmentModel extends ReserveOrderAttachmentEntity {
       attachmentPath: json['attachment_path'] as String?,
       reserveOrderTtsId: json['reserve_order_tts_id'] as int?,
       verificationStatus: json['verification_status'] as String?,
+      verificationNote: json['verification_note'] as String?,
       createDatetime: DateTime.tryParse(
         json['create_datetime'] as String? ?? '',
       ),

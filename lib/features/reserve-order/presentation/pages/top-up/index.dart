@@ -1,5 +1,3 @@
-import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -14,6 +12,7 @@ import 'package:progress_group/features/reserve-order/presentation/state/payment
 import 'package:progress_group/features/reserve-order/presentation/state/payment_type/payment_type_event.dart';
 import 'package:progress_group/features/reserve-order/presentation/state/payment_type/payment_type_state.dart';
 import 'package:progress_group/features/reserve-order/presentation/state/reserve_order_detail/reserve_order_detail_cubit.dart';
+import 'package:progress_group/features/reserve-order/presentation/widgets/reference_date_field.dart';
 
 enum _PayMode { cash, transfer }
 
@@ -21,6 +20,9 @@ class _PaymentBlock {
   _PayMode mode;
   int amount;
   PickedFileResult? proof;
+
+  /// Tanggal bukti transfer (`reference_date`) — wajib untuk Non Tunai.
+  DateTime? referenceDate;
   final TextEditingController amountController;
 
   _PaymentBlock({this.mode = _PayMode.transfer, this.amount = 2000000})
@@ -79,6 +81,7 @@ class _TopupReserveOrderPageState extends State<TopupReserveOrderPage> {
   String? _paymentTypeName;
   late final List<_PaymentBlock> _blocks;
   bool _isSubmitting = false;
+  bool _showValidation = false;
   bool _showSuccess = false;
   String _successText = '';
   int _totalAfterSubmit = 0;
@@ -132,18 +135,9 @@ class _TopupReserveOrderPageState extends State<TopupReserveOrderPage> {
                     ],
                     _buildStatusCard(),
                     const SizedBox(height: 16),
-                    _buildFieldLabel('Jenis Pembayaran'),
-                    const SizedBox(height: 8),
-                    _buildJenisChips(),
-                    const SizedBox(height: 6),
-                    for (var i = 0; i < _blocks.length; i++) ...[
-                      _buildPaymentBlock(i),
-                      const SizedBox(height: 12),
-                    ],
-                    _buildAddMoreButton(),
-                    const SizedBox(height: 16),
-                    _buildFieldLabel('Catatan'),
-                    const SizedBox(height: 8),
+                    _buildPaymentCard(),
+                    const SizedBox(height: 4),
+                    _fieldLabel('Catatan'),
                     _buildCatatanField(),
                   ],
                 ),
@@ -382,71 +376,168 @@ class _TopupReserveOrderPageState extends State<TopupReserveOrderPage> {
     );
   }
 
-  Widget _buildFieldLabel(String text) {
-    return Text(
-      text,
-      style: const TextStyle(
-        fontSize: 11.5,
-        fontWeight: FontWeight.w700,
-        color: Color(grey1Color),
+  // ===== UI kartu pembayaran — disamakan dengan "Pembayaran per Unit" di Create Reserve Order =====
+
+  Widget _fieldLabel(String text, {bool required = false}) => Padding(
+    padding: const EdgeInsets.only(bottom: 6),
+    child: RichText(
+      text: TextSpan(
+        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
+        children: [
+          TextSpan(
+            text: text,
+            style: const TextStyle(color: Color(grey1Color)),
+          ),
+          if (required)
+            const TextSpan(
+              text: ' *',
+              style: TextStyle(color: Color(redColor)),
+            ),
+        ],
+      ),
+    ),
+  );
+
+  Widget _errorText(bool show, {String message = 'Wajib diisi'}) => show
+      ? Padding(
+          padding: const EdgeInsets.only(top: 4),
+          child: Text(
+            message,
+            style: const TextStyle(fontSize: 11, color: Color(redColor)),
+          ),
+        )
+      : const SizedBox.shrink();
+
+  InputBorder _fieldBorder({bool focused = false}) => UnderlineInputBorder(
+    borderSide: BorderSide(
+      color: focused ? const Color(primaryColor) : const Color(grey7Color),
+    ),
+  );
+
+  Widget _buildPaymentCard() {
+    final jenisError = _showValidation && _paymentTypeId == null;
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(roCardBgColor),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(grey10Color), width: 1.3),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _fieldLabel('Jenis Pembayaran', required: true),
+          SizedBox(
+            height: 40,
+            child: BlocBuilder<PaymentTypeBloc, PaymentTypeState>(
+              builder: (context, state) {
+                final options = state.items;
+                return Scrollbar(
+                  thumbVisibility: true,
+                  child: ListView.separated(
+                    scrollDirection: Axis.horizontal,
+                    padding: const EdgeInsets.only(bottom: 6),
+                    itemCount: options.length,
+                    separatorBuilder: (_, __) => const SizedBox(width: 8),
+                    itemBuilder: (_, i) {
+                      final opt = options[i];
+                      final selected = _paymentTypeId == opt.paymentTypeId;
+                      return ChoiceChip(
+                        label: Text(
+                          opt.name,
+                          style: TextStyle(
+                            fontSize: 11.5,
+                            fontWeight: FontWeight.w700,
+                            color: selected
+                                ? const Color(primaryColor)
+                                : const Color(grey1Color),
+                          ),
+                        ),
+                        selected: selected,
+                        onSelected: (_) => setState(() {
+                          _paymentTypeId = opt.paymentTypeId;
+                          _paymentTypeName = opt.name;
+                        }),
+                        selectedColor: const Color(roSelectedBgColor),
+                        backgroundColor: const Color(whiteColor),
+                        side: BorderSide(
+                          color: selected
+                              ? const Color(primaryColor)
+                              : jenisError
+                              ? const Color(redColor)
+                              : const Color(grey7Color),
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(9),
+                        ),
+                      );
+                    },
+                  ),
+                );
+              },
+            ),
+          ),
+          _errorText(jenisError, message: 'Pilih jenis pembayaran'),
+          const SizedBox(height: 12),
+          for (var i = 0; i < _blocks.length; i++) _buildPaymentBlock(i),
+          Text(
+            'Total Pembayaran: Rp ${NumberHelper.thousands(_total)}',
+            style: const TextStyle(
+              fontSize: 11.5,
+              fontWeight: FontWeight.w700,
+              color: Color(successColor),
+            ),
+          ),
+          const SizedBox(height: 8),
+          OutlinedButton(
+            onPressed: () => setState(
+              () => _blocks.add(
+                _PaymentBlock(mode: _PayMode.cash, amount: 2000000),
+              ),
+            ),
+            style: OutlinedButton.styleFrom(
+              minimumSize: const Size(double.infinity, 40),
+              foregroundColor: const Color(primaryColor),
+              side: const BorderSide(color: Color(primaryColor)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+            child: const Text(
+              '+ Bayar Lagi',
+              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
+            ),
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildJenisChips() {
-    return SizedBox(
-      height: 34,
-      child: BlocBuilder<PaymentTypeBloc, PaymentTypeState>(
-        builder: (context, state) {
-          final options = state.items;
-          return ListView.separated(
-            scrollDirection: Axis.horizontal,
-            itemCount: options.length,
-            separatorBuilder: (_, __) => const SizedBox(width: 8),
-            itemBuilder: (context, i) {
-              final opt = options[i];
-              return _selectablePill(
-                label: opt.name,
-                selected: _paymentTypeId == opt.paymentTypeId,
-                onTap: () => setState(() {
-                  _paymentTypeId = opt.paymentTypeId;
-                  _paymentTypeName = opt.name;
-                }),
-              );
-            },
-          );
-        },
-      ),
-    );
-  }
-
-  Widget _selectablePill({
-    required String label,
-    required bool selected,
-    required VoidCallback onTap,
-  }) {
+  Widget _payModeButton(String label, bool selected, VoidCallback onTap) {
     return InkWell(
-      borderRadius: BorderRadius.circular(9),
       onTap: onTap,
+      borderRadius: BorderRadius.circular(11),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
+        padding: const EdgeInsets.symmetric(vertical: 10),
         alignment: Alignment.center,
         decoration: BoxDecoration(
           color: selected
               ? const Color(roSelectedBgColor)
               : const Color(whiteColor),
-          borderRadius: BorderRadius.circular(9),
+          borderRadius: BorderRadius.circular(11),
           border: Border.all(
             color: selected
                 ? const Color(primaryColor)
                 : const Color(grey7Color),
-            width: 1.4,
+            width: 1.3,
           ),
         ),
         child: Text(
           label,
           style: TextStyle(
-            fontSize: 11,
+            fontSize: 12,
             fontWeight: FontWeight.w700,
             color: selected
                 ? const Color(primaryColor)
@@ -459,31 +550,35 @@ class _TopupReserveOrderPageState extends State<TopupReserveOrderPage> {
 
   Widget _buildPaymentBlock(int index) {
     final block = _blocks[index];
+    final proofError =
+        _showValidation &&
+        block.mode == _PayMode.transfer &&
+        block.proof == null;
     return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(13),
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
-        color: const Color(roCardBgColor),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(grey10Color), width: 1.4),
+        color: const Color(whiteColor),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(grey10Color)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                'Metode Pembayaran ${index + 1}',
-                style: const TextStyle(
-                  fontSize: 10.5,
-                  fontWeight: FontWeight.w700,
-                  color: Color(grey4Color),
-                  letterSpacing: 0.3,
+              Expanded(
+                child: Text(
+                  'Metode Pembayaran ${index + 1}',
+                  style: const TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w700,
+                    color: Color(grey4Color),
+                  ),
                 ),
               ),
               if (_blocks.length > 1)
-                InkWell(
+                GestureDetector(
                   onTap: () => setState(() {
                     _blocks[index].dispose();
                     _blocks.removeAt(index);
@@ -491,7 +586,7 @@ class _TopupReserveOrderPageState extends State<TopupReserveOrderPage> {
                   child: const Text(
                     '✕ Hapus',
                     style: TextStyle(
-                      fontSize: 10.5,
+                      fontSize: 10,
                       fontWeight: FontWeight.w700,
                       color: Color(redColor),
                     ),
@@ -499,61 +594,88 @@ class _TopupReserveOrderPageState extends State<TopupReserveOrderPage> {
                 ),
             ],
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 8),
           Row(
             children: [
               Expanded(
-                child: _payToggleButton(
-                  icon: '💵',
-                  label: 'Tunai',
-                  selected: block.mode == _PayMode.cash,
-                  onTap: () => setState(() => block.mode = _PayMode.cash),
+                child: _payModeButton(
+                  '💵 Tunai',
+                  block.mode == _PayMode.cash,
+                  () => setState(() => block.mode = _PayMode.cash),
                 ),
               ),
               const SizedBox(width: 8),
               Expanded(
-                child: _payToggleButton(
-                  icon: '🏦',
-                  label: 'Non Tunai',
-                  selected: block.mode == _PayMode.transfer,
-                  onTap: () => setState(() => block.mode = _PayMode.transfer),
+                child: _payModeButton(
+                  '🏦 Non Tunai',
+                  block.mode == _PayMode.transfer,
+                  () => setState(() => block.mode = _PayMode.transfer),
                 ),
               ),
             ],
           ),
           if (block.mode == _PayMode.transfer) ...[
             const SizedBox(height: 10),
-            _buildProofRow(block),
+            _buildProofRow(block, isError: proofError),
+            ReferenceDateField(
+              value: block.referenceDate,
+              onChanged: (d) => setState(() => block.referenceDate = d),
+              isError: _showValidation && block.referenceDate == null,
+            ),
           ],
-          const SizedBox(height: 12),
-          _buildFieldLabel('Nominal'),
-          const SizedBox(height: 8),
+          const SizedBox(height: 4),
+          _fieldLabel('Nominal'),
           SizedBox(
-            height: 34,
-            child: ListView.separated(
-              scrollDirection: Axis.horizontal,
-              itemCount: _quickAmounts.length,
-              separatorBuilder: (_, __) => const SizedBox(width: 7),
-              itemBuilder: (context, i) {
-                final amount = _quickAmounts[i];
-                return _selectablePill(
-                  label: _fmtAmt(amount),
-                  selected: block.amount == amount,
-                  onTap: () => setState(() {
-                    block.amount = amount;
-                    block.amountController.text = NumberHelper.thousands(
-                      amount,
-                    );
-                    block.amountController.selection = TextSelection.collapsed(
-                      offset: block.amountController.text.length,
-                    );
-                  }),
-                );
-              },
+            height: 46,
+            child: Scrollbar(
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.only(bottom: 6),
+                itemCount: _quickAmounts.length,
+                separatorBuilder: (_, __) => const SizedBox(width: 8),
+                itemBuilder: (_, i) {
+                  final amount = _quickAmounts[i];
+                  final selected = block.amount == amount;
+                  return ChoiceChip(
+                    labelPadding: const EdgeInsets.symmetric(horizontal: 12),
+                    label: Text(
+                      _fmtAmt(amount),
+                      style: TextStyle(
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.w700,
+                        color: selected
+                            ? const Color(primaryColor)
+                            : const Color(grey1Color),
+                      ),
+                    ),
+                    selected: selected,
+                    onSelected: (_) => setState(() {
+                      block.amount = amount;
+                      block.amountController.text = NumberHelper.thousands(
+                        amount,
+                      );
+                      block.amountController.selection =
+                          TextSelection.collapsed(
+                            offset: block.amountController.text.length,
+                          );
+                    }),
+                    selectedColor: const Color(roSelectedBgColor),
+                    backgroundColor: const Color(whiteColor),
+                    side: BorderSide(
+                      color: selected
+                          ? const Color(primaryColor)
+                          : const Color(grey7Color),
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(9),
+                    ),
+                  );
+                },
+              ),
             ),
           ),
           const SizedBox(height: 8),
-          TextField(
+          TextFormField(
             controller: block.amountController,
             keyboardType: TextInputType.number,
             inputFormatters: [_ThousandsInputFormatter()],
@@ -563,36 +685,24 @@ class _TopupReserveOrderPageState extends State<TopupReserveOrderPage> {
                 () => block.amount = digits.isEmpty ? 0 : int.parse(digits),
               );
             },
-            style: const TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-              color: Color(blue2Color),
-            ),
+            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
             decoration: InputDecoration(
+              isDense: true,
+              filled: true,
+              fillColor: const Color(grey11Color),
               prefixText: 'Rp ',
               prefixStyle: const TextStyle(
                 fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color: Color(blue2Color),
+                fontWeight: FontWeight.w700,
+                color: Colors.black,
               ),
-              filled: true,
-              fillColor: const Color(grey11Color),
               contentPadding: const EdgeInsets.symmetric(
-                horizontal: 14,
-                vertical: 12,
+                horizontal: 12,
+                vertical: 11,
               ),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(10),
-                borderSide: const BorderSide(color: Color(grey7Color)),
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(10),
-                borderSide: const BorderSide(color: Color(grey7Color)),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(10),
-                borderSide: const BorderSide(color: Color(primaryColor)),
-              ),
+              border: _fieldBorder(),
+              enabledBorder: _fieldBorder(),
+              focusedBorder: _fieldBorder(focused: true),
             ),
           ),
         ],
@@ -600,157 +710,91 @@ class _TopupReserveOrderPageState extends State<TopupReserveOrderPage> {
     );
   }
 
-  Widget _payToggleButton({
-    required String icon,
-    required String label,
-    required bool selected,
-    required VoidCallback onTap,
-  }) {
-    return InkWell(
-      borderRadius: BorderRadius.circular(11),
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 11),
-        decoration: BoxDecoration(
-          color: selected
-              ? const Color(roSelectedBgColor)
-              : const Color(whiteColor),
-          borderRadius: BorderRadius.circular(11),
-          border: Border.all(
-            color: selected
-                ? const Color(primaryColor)
-                : const Color(grey7Color),
-            width: 1.4,
-          ),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(icon, style: const TextStyle(fontSize: 14)),
-            const SizedBox(width: 6),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w700,
-                color: selected
-                    ? const Color(primaryColor)
-                    : const Color(grey1Color),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildProofRow(_PaymentBlock block) {
-    final uploaded = block.proof != null;
-    return InkWell(
-      borderRadius: BorderRadius.circular(12),
-      onTap: () async {
-        final result = await CustomFilePicker.show(context);
-        if (!mounted || result == null) return;
-        setState(() => block.proof = result);
-      },
-      child: Container(
-        padding: const EdgeInsets.all(10),
-        decoration: BoxDecoration(
-          color: const Color(whiteColor),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: uploaded
-                ? const Color(successColor)
-                : const Color(grey10Color),
-          ),
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 36,
-              height: 36,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: const Color(roIconBgColor),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: const Text('🧾', style: TextStyle(fontSize: 16)),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  RichText(
-                    text: const TextSpan(
-                      children: [
-                        TextSpan(
-                          text: 'Bukti Non Tunai ',
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w700,
-                            color: Color(blue2Color),
-                          ),
-                        ),
-                        TextSpan(
-                          text: '· Wajib',
-                          style: TextStyle(
-                            fontSize: 10,
-                            color: Color(grey4Color),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    uploaded ? block.proof!.name : 'Ketuk untuk upload',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontSize: 10.5,
-                      color: uploaded
-                          ? const Color(grey4Color)
-                          : const Color(primaryColor),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            if (uploaded)
-              const Icon(
-                Icons.check_circle,
-                size: 18,
-                color: Color(successColor),
-              ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildAddMoreButton() {
-    return InkWell(
-      borderRadius: BorderRadius.circular(11),
-      onTap: () => setState(
-        () => _blocks.add(_PaymentBlock(mode: _PayMode.cash, amount: 2000000)),
-      ),
-      child: CustomPaint(
-        painter: _DashedBorderPainter(
-          color: const Color(primaryColor),
-          radius: 11,
-        ),
+  /// Sama dengan `_docRow` Bukti Non Tunai di Create Reserve Order (preview file + tombol hapus).
+  Widget _buildProofRow(_PaymentBlock block, {bool isError = false}) {
+    final file = block.proof;
+    final uploaded = file != null;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: () async {
+          final result = await CustomFilePicker.show(context);
+          if (!mounted || result == null) return;
+          setState(() => block.proof = result);
+        },
         child: Container(
-          width: double.infinity,
-          padding: const EdgeInsets.symmetric(vertical: 12),
-          alignment: Alignment.center,
-          child: const Text(
-            '+ Bayar Lagi',
-            style: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w700,
-              color: Color(primaryColor),
+          padding: const EdgeInsets.all(10),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: isError ? const Color(redColor) : const Color(grey10Color),
             ),
+          ),
+          child: Row(
+            children: [
+              if (uploaded)
+                FilePreviewWidget(
+                  file: file,
+                  size: 44,
+                  onRemove: () => setState(() => block.proof = null),
+                )
+              else
+                Container(
+                  width: 44,
+                  height: 44,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: const Color(grey11Color),
+                    borderRadius: BorderRadius.circular(9),
+                  ),
+                  child: const Text('🧾', style: TextStyle(fontSize: 18)),
+                ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    RichText(
+                      text: const TextSpan(
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.black,
+                        ),
+                        children: [
+                          TextSpan(text: 'Bukti Non Tunai'),
+                          TextSpan(
+                            text: ' · Wajib',
+                            style: TextStyle(
+                              fontSize: 10.5,
+                              color: Color(grey4Color),
+                              fontWeight: FontWeight.w400,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      uploaded ? 'Terupload' : 'Ketuk untuk upload',
+                      style: TextStyle(
+                        fontSize: 10.5,
+                        color: uploaded
+                            ? const Color(grey4Color)
+                            : const Color(primaryColor),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              if (uploaded)
+                const Icon(
+                  Icons.check_circle,
+                  color: Color(successColor),
+                  size: 18,
+                ),
+            ],
           ),
         ),
       ),
@@ -810,13 +854,22 @@ class _TopupReserveOrderPageState extends State<TopupReserveOrderPage> {
   }
 
   Future<void> _submit() async {
+    final missingPaymentType = _paymentTypeId == null;
     final missingProof = _blocks.any(
       (b) => b.mode == _PayMode.transfer && b.proof == null,
     );
-    if (missingProof) {
+    final missingReferenceDate = _blocks.any(
+      (b) => b.mode == _PayMode.transfer && b.referenceDate == null,
+    );
+    if (missingPaymentType || missingProof || missingReferenceDate) {
+      setState(() => _showValidation = true);
       showSnackbar(
         context,
-        'Setiap transaksi Non Tunai wajib upload bukti pembayaran.',
+        missingPaymentType
+            ? 'Jenis Pembayaran wajib dipilih.'
+            : missingProof
+            ? 'Setiap transaksi Non Tunai wajib upload bukti pembayaran.'
+            : 'Tanggal Bukti Transfer wajib diisi untuk setiap transaksi Non Tunai.',
         isError: true,
       );
       return;
@@ -840,6 +893,9 @@ class _TopupReserveOrderPageState extends State<TopupReserveOrderPage> {
               amount: b.amount.toDouble(),
               proofBytes: b.proof?.bytes,
               proofFileName: b.proof?.name,
+              referenceDate: b.mode == _PayMode.transfer
+                  ? b.referenceDate
+                  : null,
             ),
           )
           .toList(),
@@ -888,60 +944,4 @@ class _ThousandsInputFormatter extends TextInputFormatter {
       selection: TextSelection.collapsed(offset: formatted.length),
     );
   }
-}
-
-class _DashedBorderPainter extends CustomPainter {
-  final Color color;
-  final double radius;
-
-  const _DashedBorderPainter({required this.color, required this.radius});
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = color
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.4;
-    final rrect = RRect.fromRectAndRadius(
-      Offset.zero & size,
-      Radius.circular(radius),
-    );
-    final path = _dashPath(
-      Path()..addRRect(rrect),
-      dashLength: 5,
-      gapLength: 4,
-    );
-    canvas.drawPath(path, paint);
-  }
-
-  Path _dashPath(
-    Path source, {
-    required double dashLength,
-    required double gapLength,
-  }) {
-    final dashed = Path();
-    for (final metric in source.computeMetrics()) {
-      var distance = 0.0;
-      var draw = true;
-      while (distance < metric.length) {
-        final length = draw ? dashLength : gapLength;
-        if (draw) {
-          dashed.addPath(
-            metric.extractPath(
-              distance,
-              math.min(distance + length, metric.length),
-            ),
-            Offset.zero,
-          );
-        }
-        distance += length;
-        draw = !draw;
-      }
-    }
-    return dashed;
-  }
-
-  @override
-  bool shouldRepaint(covariant _DashedBorderPainter oldDelegate) =>
-      oldDelegate.color != color || oldDelegate.radius != radius;
 }
