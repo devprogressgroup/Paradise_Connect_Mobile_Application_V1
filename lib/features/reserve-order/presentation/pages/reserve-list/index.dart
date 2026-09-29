@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:progress_group/core/utils/helpers/permissions_helper.dart';
 import 'package:go_router/go_router.dart';
 import 'package:progress_group/core/constants/colors.dart';
 import 'package:progress_group/core/services/analytics_service.dart';
@@ -173,7 +174,7 @@ class _ReserveOrderListPageState extends State<ReserveOrderListPage> {
               ],
             ),
           ),
-          floatingActionButton: Padding(
+          floatingActionButton: !PermissionsHelper.canCreateReserveOrder ? null : Padding(
             padding: const EdgeInsets.only(bottom: 10),
             child: FloatingActionButton(
               onPressed: () {

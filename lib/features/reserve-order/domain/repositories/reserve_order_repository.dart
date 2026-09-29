@@ -69,5 +69,6 @@ abstract class ReserveOrderRepository {
   Future<Either<String, Map<String, dynamic>>> checkKtp(
     String custKtp, {
     String? custName,
+    int? contactId,
   });
 }

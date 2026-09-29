@@ -463,6 +463,8 @@ class AppRouter {
           GoRoute(
             path: '/reserve-order',
             name: 'reserve_order',
+            redirect: (context, state) =>
+                PermissionsHelper.canAccessReserveOrder ? null : '/',
             builder: (context, state) => const ReserveOrderListPage(),
           ),
           GoRoute(

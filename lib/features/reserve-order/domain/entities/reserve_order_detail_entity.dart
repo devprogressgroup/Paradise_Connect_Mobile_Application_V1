@@ -196,6 +196,11 @@ class ReserveOrderDetailEntity extends Equatable {
   final String? townshipName;
   final String? caraBayarName;
   final bool canTopup;
+
+  /// Flag kapabilitas per-record dari backend (`can_edit`/`can_delete`, scope Own/Team/Any form
+  /// "Reserve Order"). Hanya untuk UX (sembunyikan tombol) — enforcement tetap di server.
+  final bool canEdit;
+  final bool canDelete;
   final String? statusLabel;
   final bool isRejected;
   final String? rejectStage;
@@ -230,6 +235,8 @@ class ReserveOrderDetailEntity extends Equatable {
     this.townshipName,
     this.caraBayarName,
     this.canTopup = false,
+    this.canEdit = true,
+    this.canDelete = true,
     this.statusLabel,
     this.isRejected = false,
     this.rejectStage,
@@ -266,6 +273,8 @@ class ReserveOrderDetailEntity extends Equatable {
     productId,
     companyId,
     canTopup,
+    canEdit,
+    canDelete,
     statusLabel,
     isRejected,
     rejectStage,

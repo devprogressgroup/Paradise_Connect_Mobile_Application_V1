@@ -239,9 +239,10 @@ class ReserveOrderRepositoryImpl implements ReserveOrderRepository {
   Future<Either<String, Map<String, dynamic>>> checkKtp(
     String custKtp, {
     String? custName,
+    int? contactId,
   }) async {
     try {
-      final result = await remoteDataSource.checkKtp(custKtp, custName: custName);
+      final result = await remoteDataSource.checkKtp(custKtp, custName: custName, contactId: contactId);
       return Right(result);
     } catch (e) {
       return Left(cleanErrorMessage(e));

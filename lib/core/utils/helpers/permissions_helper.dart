@@ -122,4 +122,10 @@ class PermissionsHelper {
 
   static bool get canReadInbox            => checkScoped('Inbox', 'ReadOnly');
   static bool get canAccessInbox          => canReadInbox;
+
+  static bool get canCreateReserveOrder  => check('Reserve Order', 'Create');
+  static bool get canModifyReserveOrder  => checkScoped('Reserve Order', 'Modify');
+  static bool get canDeleteReserveOrder  => checkScoped('Reserve Order', 'Delete');
+  static bool get canReadReserveOrder    => checkScoped('Reserve Order', 'ReadOnly') || canModifyReserveOrder || canDeleteReserveOrder;
+  static bool get canAccessReserveOrder  => canReadReserveOrder || canCreateReserveOrder;
 }

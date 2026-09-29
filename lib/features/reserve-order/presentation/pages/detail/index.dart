@@ -232,7 +232,7 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage>
           ],
         ),
       ),
-      bottomNavigationBar: order.rejected ? _buildResubmitFooter(order) : null,
+      bottomNavigationBar: order.rejected && order.canEdit ? _buildResubmitFooter(order) : null,
     );
   }
 
@@ -301,7 +301,8 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage>
                 asset: icContactDetailWA,
                 onTap: () => _chatCustomer(order),
               ),
-              BgIcon(onTap: () => _openMenu(order)),
+              if (order.canEdit || order.canDelete)
+                BgIcon(onTap: () => _openMenu(order)),
             ],
           ),
           if (order.rejected)
@@ -410,7 +411,7 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage>
               order.timeline[i],
               isLast: i == order.timeline.length - 1,
             ),
-          if (order.canTopup) ...[
+          if (order.canTopup && order.canEdit) ...[
             const SizedBox(height: 4),
             SizedBox(
               width: double.infinity,
@@ -578,10 +579,12 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage>
                     _customerRow(
                       section.fields[i].label,
                       displayValueFor(section.fields[i], raw),
-                      onTap: () => _openEditCustomer(
-                        order,
-                        highlightKey: section.fields[i].key,
-                      ),
+                      onTap: order.canEdit
+                          ? () => _openEditCustomer(
+                              order,
+                              highlightKey: section.fields[i].key,
+                            )
+                          : null,
                       showDivider: i != section.fields.length - 1,
                     ),
                 ],
@@ -595,7 +598,7 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage>
   Widget _customerRow(
     String label,
     String? value, {
-    required VoidCallback onTap,
+    VoidCallback? onTap,
     bool showDivider = true,
   }) {
     return InkWell(
@@ -1075,7 +1078,7 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage>
                   ),
           ),
         ),
-        _buildMessageInput(order),
+        if (order.canEdit) _buildMessageInput(order),
       ],
     );
   }
@@ -1332,13 +1335,15 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage>
               style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
             ),
           ),
-          _menuItem('✎', 'Edit Data Pembeli', () => _openEditCustomer(order)),
-          _menuItem(
-            '🗑️',
-            'Delete Reserve Order',
-            () => _confirmDelete(order),
-            color: const Color(redColor),
-          ),
+          if (order.canEdit)
+            _menuItem('✎', 'Edit Data Pembeli', () => _openEditCustomer(order)),
+          if (order.canDelete)
+            _menuItem(
+              '🗑️',
+              'Delete Reserve Order',
+              () => _confirmDelete(order),
+              color: const Color(redColor),
+            ),
         ],
       ),
     );

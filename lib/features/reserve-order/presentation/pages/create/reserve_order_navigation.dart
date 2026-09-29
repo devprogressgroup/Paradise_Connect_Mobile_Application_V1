@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:progress_group/core/utils/helpers/permissions_helper.dart';
+import 'package:progress_group/core/utils/widget/custom_snackbar.dart';
 import 'package:progress_group/features/contact/domain/entities/attachment/attachment_entity.dart';
 import 'package:progress_group/features/contact/domain/entities/contact/contact_entity.dart';
 import 'index.dart';
@@ -41,6 +43,12 @@ void navigateToCreateReserveOrder(
   Map<String, dynamic>? initialCustomer,
   bool replace = false,
 }) {
+  // Gate fitur 'Create' form "Reserve Order" (software Mobile). Server juga menolak (403).
+  if (!PermissionsHelper.canCreateReserveOrder) {
+    showSnackbar(context, 'Anda tidak memiliki akses membuat Reserve Order.', isError: true);
+    return;
+  }
+
   final contactId = contact.contactId;
   if (contactId == null) return;
 

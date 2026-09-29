@@ -9,7 +9,8 @@ class CheckKtpUseCase {
   Future<Either<String, Map<String, dynamic>>> call(
     String custKtp, {
     String? custName,
+    int? contactId,
   }) async {
-    return await repository.checkKtp(custKtp, custName: custName);
+    return await repository.checkKtp(custKtp, custName: custName, contactId: contactId);
   }
 }

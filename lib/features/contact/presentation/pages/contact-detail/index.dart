@@ -616,16 +616,16 @@ class _ContactDetailPageState extends State<ContactDetailPage>
             },
             color: Color(primaryColor),
           ),
-          ContactOptionsSheet.buildIconLink(
-            context,
-            null,
-            "Reserve Order",
-            _navigateToReserveOrder,
-            color: Color(primaryColor),
-          
-            fallbackIcon: Icons.local_offer,
-            
-          ),
+          if (PermissionsHelper.canCreateReserveOrder)
+            ContactOptionsSheet.buildIconLink(
+              context,
+              null,
+              "Reserve Order",
+              _navigateToReserveOrder,
+              color: Color(primaryColor),
+
+              fallbackIcon: Icons.local_offer,
+            ),
         ],
       ),
     );

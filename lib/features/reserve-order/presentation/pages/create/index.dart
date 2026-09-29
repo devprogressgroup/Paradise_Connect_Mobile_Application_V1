@@ -1063,6 +1063,7 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
     final res = await context.read<CreateReserveOrderCubit>().checkKtp(
           ktp,
           custName: name.isEmpty ? null : name,
+          contactId: widget.contactId,
         );
     _checkingKtp = false;
     if (!mounted || res == null) return true;
@@ -1070,19 +1071,12 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
     if (_ktpCtrl.text.trim() != ktp) return _ktpOwnerConflict == null;
     _checkedKtpKey = key;
 
-    // Customer milik sales lain (di luar scope) → server TIDAK kirim datanya, jadi cuma kasih tau
-    // & sales isi sendiri. Nama beda tetap ditahan (pasti ditolak saat simpan), tapi nama pemilik
-    // tidak ditampilkan — '' = bentrok dgn nama yg disembunyikan.
+    // Server cuma lapor found=true kalau OWNER contact ini sudah punya customer dgn NIK tsb; NIK yg
+    // cuma ada di owner lain → found=false (tanpa popup) & create membuat customer baru.
+    // Cabang in_scope=false di bawah hanya jaga-jaga utk respons backend lama.
     if (res['found'] == true && res['in_scope'] == false) {
-      final nameMatch = res['name_match'] as bool?;
-      await _showOtherSalesDialog(
-        handledBy: '${res['handled_by'] ?? ''}'.trim(),
-        nameMismatch: nameMatch == false,
-      );
-      if (!mounted) return false;
-      final blocked = nameMatch == false;
-      setState(() => _ktpOwnerConflict = blocked ? '' : null);
-      return !blocked;
+      if (_ktpOwnerConflict != null) setState(() => _ktpOwnerConflict = null);
+      return true;
     }
 
     final customer = res['customer'] as Map<String, dynamic>?;
@@ -1148,87 +1142,6 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
 
   /// Dialog "No. KTP sudah terdaftar" — bahasa awam, satu tombol utama. Balik true = pakai data
   /// lama (isi otomatis), false/null = tidak.
-  /// Dialog "Customer ini dipegang sales lain" — cuma pemberitahuan (1 tombol), tanpa data
-  /// customer apa pun krn memang tidak dikirim server.
-  Future<void> _showOtherSalesDialog({
-    required String handledBy,
-    required bool nameMismatch,
-  }) {
-    const bodyStyle = TextStyle(fontSize: 13, height: 1.45, color: Color(blackColor));
-    const bold = TextStyle(fontWeight: FontWeight.w700);
-    final salesText = handledBy.isEmpty ? 'sales lain' : handledBy;
-
-    return showDialog<void>(
-      context: context,
-      barrierDismissible: false,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: Color(whiteColor),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        titlePadding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
-        contentPadding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
-        actionsPadding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
-        title: Row(
-          children: [
-            Icon(Icons.lock_outline, color: Color(warningColor), size: 26),
-            const SizedBox(width: 10),
-            const Expanded(
-              child: Text(
-                'Customer ini dipegang sales lain',
-                style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
-              ),
-            ),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text.rich(
-              TextSpan(
-                style: bodyStyle,
-                children: [
-                  const TextSpan(text: 'No. KTP ini sudah terdaftar dan ditangani oleh '),
-                  TextSpan(text: salesText, style: bold),
-                  const TextSpan(text: ', jadi datanya tidak bisa diisi otomatis.'),
-                ],
-              ),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              nameMismatch
-                  ? 'Nama yang kamu isi tidak sama dengan data yang terdaftar. Cek lagi nama & No. KTP sesuai KTP customer.'
-                  : 'Kamu tetap bisa lanjut dengan mengisi data customer sendiri sesuai KTP.',
-              style: bodyStyle.copyWith(
-                fontWeight: FontWeight.w600,
-                color: nameMismatch ? Color(redColor) : Color(blackColor),
-              ),
-            ),
-            const SizedBox(height: 10),
-            Text(
-              'Kalau ada yang janggal, hubungi $salesText atau admin.',
-              style: TextStyle(fontSize: 12, color: Color(grey2Color)),
-            ),
-          ],
-        ),
-        actions: [
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              onPressed: () => Navigator.pop(ctx),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Color(primaryColor),
-                foregroundColor: Color(whiteColor),
-                minimumSize: const Size(double.infinity, 44),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(11)),
-              ),
-              child: const Text('Mengerti', style: TextStyle(fontWeight: FontWeight.w700)),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   Future<bool?> _showKtpFoundDialog({
     required String ownerName,
     required String typedName,

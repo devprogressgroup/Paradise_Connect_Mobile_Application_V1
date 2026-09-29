@@ -23,8 +23,9 @@ class CreateReserveOrderCubit extends Cubit<CreateReserveOrderState> {
   Future<Map<String, dynamic>?> checkKtp(
     String custKtp, {
     String? custName,
+    int? contactId,
   }) async {
-    final result = await checkKtpUseCase(custKtp, custName: custName);
+    final result = await checkKtpUseCase(custKtp, custName: custName, contactId: contactId);
     return result.fold((_) => null, (data) => data);
   }
 

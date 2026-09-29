@@ -80,6 +80,10 @@ class ReserveOrderDetail {
   final String? townshipName;
   final int? price;
   final bool canTopup;
+
+  /// `can_edit` / `can_delete` dari backend (scope Own/Team/Any) — atur tampil tombol aksi.
+  final bool canEdit;
+  final bool canDelete;
   final bool rejected;
   final String? rejectStage;
   final String? rejectReason;
@@ -120,6 +124,8 @@ class ReserveOrderDetail {
     this.townshipName,
     this.price,
     required this.canTopup,
+    this.canEdit = true,
+    this.canDelete = true,
     required this.rejected,
     this.rejectStage,
     this.rejectReason,
@@ -188,6 +194,8 @@ class ReserveOrderDetail {
       projectName: e.unitSub,
       townshipName: e.townshipName,
       canTopup: e.canTopup,
+      canEdit: e.canEdit,
+      canDelete: e.canDelete,
       rejected: e.isRejected,
       rejectStage: e.rejectStage,
       rejectReason: e.rejectReason,

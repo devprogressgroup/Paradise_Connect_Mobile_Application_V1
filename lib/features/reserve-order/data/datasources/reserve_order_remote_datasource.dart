@@ -62,7 +62,7 @@ abstract class ReserveOrderRemoteDataSource {
   );
   Future<void> deleteReserveOrder(int reserveOrderId);
   Future<Map<String, dynamic>> ocrKtp(Uint8List imageBytes, {String? filename});
-  Future<Map<String, dynamic>> checkKtp(String custKtp, {String? custName});
+  Future<Map<String, dynamic>> checkKtp(String custKtp, {String? custName, int? contactId});
 }
 
 class ReserveOrderRemoteDataSourceImpl implements ReserveOrderRemoteDataSource {
@@ -496,13 +496,15 @@ class ReserveOrderRemoteDataSourceImpl implements ReserveOrderRemoteDataSource {
   /// `GET /reserve-order/check-ktp` — NIK sudah terdaftar atau belum (+ data customer lama utk
   /// isi otomatis). Balik `data` apa adanya: found, name_match, customer, documents, reserve_orders.
   @override
-  Future<Map<String, dynamic>> checkKtp(String custKtp, {String? custName}) async {
+  Future<Map<String, dynamic>> checkKtp(String custKtp, {String? custName, int? contactId}) async {
     try {
       final response = await dio.get(
         '/reserve-order/check-ktp',
         queryParameters: {
           'cust_ktp': custKtp,
           if ((custName ?? '').isNotEmpty) 'cust_name': custName,
+          // Popup/isi otomatis mengikuti customer milik OWNER contact ini (bukan user login).
+          if (contactId != null) 'contact_id': contactId,
         },
       );
 
