@@ -1,6 +1,3 @@
-
-
-
 import 'dart:async';
 import 'dart:html' as html;
 import 'dart:js' as js;
@@ -20,7 +17,12 @@ class WebViewPage extends StatefulWidget {
   final String title;
   final bool showHeader;
 
-  const WebViewPage({super.key, required this.url, required this.title, this.showHeader = true});
+  const WebViewPage({
+    super.key,
+    required this.url,
+    required this.title,
+    this.showHeader = true,
+  });
 
   bool get isPdf {
     final u = url.toLowerCase();
@@ -29,7 +31,14 @@ class WebViewPage extends StatefulWidget {
 
   bool get isImage {
     final u = url.toLowerCase();
-    return ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp'].any((ext) => u.contains(ext));
+    return [
+      '.jpg',
+      '.jpeg',
+      '.png',
+      '.gif',
+      '.webp',
+      '.bmp',
+    ].any((ext) => u.contains(ext));
   }
 
   @override
@@ -74,7 +83,8 @@ class _WebViewPageState extends State<WebViewPage> {
 
   void _startTimeout(String url) {
     _timeoutTimer?.cancel();
-    final isDriveOrPdf = _extractFolderId(url) != null ||
+    final isDriveOrPdf =
+        _extractFolderId(url) != null ||
         _extractDriveId(url) != null ||
         widget.isPdf;
     _timeoutTimer = Timer(Duration(seconds: isDriveOrPdf ? 12 : 8), () {
@@ -87,10 +97,8 @@ class _WebViewPageState extends State<WebViewPage> {
   }
 
   void _setupOpenInterceptor() {
-    
-    
-    
-    js.context.callMethod('eval', ['''
+    js.context.callMethod('eval', [
+      '''
       if (!window.__flutterNavIntercepted) {
         window.__flutterNavIntercepted = true;
         window.open = function(url, name, features) {
@@ -100,7 +108,8 @@ class _WebViewPageState extends State<WebViewPage> {
           return { closed: false, close: function(){}, focus: function(){} };
         };
       }
-    ''']);
+    ''',
+    ]);
 
     _navigateListener = (html.Event event) {
       if (event is html.CustomEvent && mounted) {
@@ -129,11 +138,6 @@ class _WebViewPageState extends State<WebViewPage> {
     super.dispose();
   }
 
-  
-  
-  
-  
-  
   String _toEmbedUrl(String url) {
     final youtubeId = _extractYoutubeId(url);
     if (youtubeId != null) {
@@ -174,7 +178,6 @@ class _WebViewPageState extends State<WebViewPage> {
     return null;
   }
 
-
   bool _isSharing = false;
 
   Future<void> _shareUrl() async {
@@ -187,23 +190,39 @@ class _WebViewPageState extends State<WebViewPage> {
     try {
       final response = await Dio().get<List<int>>(
         widget.url,
-        options: Options(responseType: ResponseType.bytes, followRedirects: true),
+        options: Options(
+          responseType: ResponseType.bytes,
+          followRedirects: true,
+        ),
       );
       final bytes = Uint8List.fromList(response.data ?? []);
       if (bytes.isEmpty) throw Exception('File kosong');
 
-      final ext = extensionFromUrl(widget.url) ??
-          extensionFromContentDisposition(response.headers.value('content-disposition')) ??
+      final ext =
+          extensionFromUrl(widget.url) ??
+          extensionFromContentDisposition(
+            response.headers.value('content-disposition'),
+          ) ??
           extensionFromContentType(response.headers.value('content-type')) ??
           (widget.isPdf ? '.pdf' : '.bin');
-      final titleName = widget.title.replaceAll(RegExp(r'[^\w\s\-]'), '').trim();
+      final titleName = widget.title
+          .replaceAll(RegExp(r'[^\w\s\-]'), '')
+          .trim();
 
-      await Share.shareXFiles(
-        [XFile.fromData(bytes, name: '$titleName$ext', mimeType: mimeTypeFromExtension(ext))],
-        subject: widget.title,
-      );
+      await Share.shareXFiles([
+        XFile.fromData(
+          bytes,
+          name: '$titleName$ext',
+          mimeType: mimeTypeFromExtension(ext),
+        ),
+      ], subject: widget.title);
     } catch (_) {
-      if (mounted) showSnackbar(context, 'Gagal mengunduh file, membagikan link saja', isError: true);
+      if (mounted)
+        showSnackbar(
+          context,
+          'Gagal mengunduh file, membagikan link saja',
+          isError: true,
+        );
       await Share.share(widget.url, subject: widget.title);
     } finally {
       if (mounted) setState(() => _isSharing = false);
@@ -229,7 +248,7 @@ class _WebViewPageState extends State<WebViewPage> {
                 iconLeftOnTap: _shareUrl,
               ),
             ),
-          
+
           // if (_showFallbackBanner)
           //   Container(
           //     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -258,16 +277,13 @@ class _WebViewPageState extends State<WebViewPage> {
           //       ],
           //     ),
           //   ),
-
           if (_isLoading)
             const LinearProgressIndicator(
               minHeight: 2,
               backgroundColor: Color(transparentColor),
               valueColor: AlwaysStoppedAnimation<Color>(Color(primaryColor)),
             ),
-          Expanded(
-            child: HtmlElementView(viewType: _viewId),
-          ),
+          Expanded(child: HtmlElementView(viewType: _viewId)),
         ],
       ),
     );

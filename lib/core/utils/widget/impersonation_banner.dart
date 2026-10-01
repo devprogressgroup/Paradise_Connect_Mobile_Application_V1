@@ -45,7 +45,11 @@ class ImpersonationBanner extends StatelessWidget {
               padding: const EdgeInsets.fromLTRB(6, 6, 8, 6),
               child: Row(
                 children: [
-                  const Icon(Icons.visibility, color: Color(whiteColor), size: 18),
+                  const Icon(
+                    Icons.visibility,
+                    color: Color(whiteColor),
+                    size: 18,
+                  ),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
@@ -61,14 +65,31 @@ class ImpersonationBanner extends StatelessWidget {
                   ),
                   TextButton.icon(
                     onPressed: () => _confirmStopImpersonation(context),
-                    icon: const Icon(Icons.logout, color: Color(whiteColor), size: 16),
-                    label: const Text('Keluar', style: TextStyle(color: Color(whiteColor), fontWeight: FontWeight.bold)),
+                    icon: const Icon(
+                      Icons.logout,
+                      color: Color(whiteColor),
+                      size: 16,
+                    ),
+                    label: const Text(
+                      'Keluar',
+                      style: TextStyle(
+                        color: Color(whiteColor),
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                     style: TextButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 2,
+                      ),
                       minimumSize: const Size(0, 32),
                       tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                      backgroundColor: Color(whiteColor).withValues(alpha: 0.18),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      backgroundColor: Color(
+                        whiteColor,
+                      ).withValues(alpha: 0.18),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
                     ),
                   ),
                 ],

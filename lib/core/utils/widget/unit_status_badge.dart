@@ -36,7 +36,11 @@ class UnitStatusBadge extends StatelessWidget {
       ),
       child: Text(
         label,
-        style: const TextStyle(color: Color(whiteColor), fontSize: 11, fontWeight: FontWeight.bold),
+        style: const TextStyle(
+          color: Color(whiteColor),
+          fontSize: 11,
+          fontWeight: FontWeight.bold,
+        ),
       ),
     );
   }

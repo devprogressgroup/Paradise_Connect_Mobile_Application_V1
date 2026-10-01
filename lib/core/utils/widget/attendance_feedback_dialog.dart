@@ -25,8 +25,13 @@ Future<void> showAttendanceFeedbackDialog(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  isOk ? '✅ Feedback Absensi: Sesuai' : '⚠️ Feedback Absensi: Perlu Perbaikan',
-                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  isOk
+                      ? '✅ Feedback Absensi: Sesuai'
+                      : '⚠️ Feedback Absensi: Perlu Perbaikan',
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
                 const SizedBox(height: 14),
                 if (photoUrl.isNotEmpty) ...[
@@ -43,20 +48,20 @@ Future<void> showAttendanceFeedbackDialog(
                   const SizedBox(height: 12),
                 ],
                 if (categoryLabels.isNotEmpty) ...[
-                  const Text('Catatan masalah:', style: TextStyle(fontWeight: FontWeight.bold)),
+                  const Text(
+                    'Catatan masalah:',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
                   const SizedBox(height: 4),
                   ...categoryLabels.map((c) => Text('• $c')),
                   const SizedBox(height: 8),
                 ],
                 if (note.isNotEmpty) Text(note),
                 const SizedBox(height: 20),
-                customButton(
-                  () {
-                    Navigator.of(ctx).pop();
-                    onAcknowledge();
-                  },
-                  'OK, Paham',
-                ),
+                customButton(() {
+                  Navigator.of(ctx).pop();
+                  onAcknowledge();
+                }, 'OK, Paham'),
               ],
             ),
           ),

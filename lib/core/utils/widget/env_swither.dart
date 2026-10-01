@@ -11,7 +11,8 @@ const _envColors = {
 
 void showEnvSwitcher(BuildContext context) {
   final available = ApiConstants.availableEnvironments;
-  if (available.length == 1 && available.contains(AppEnvironment.production)) return;
+  if (available.length == 1 && available.contains(AppEnvironment.production))
+    return;
 
   showModalBottomSheet(
     context: context,
@@ -25,7 +26,9 @@ void showEnvSwitcher(BuildContext context) {
         valueListenable: ApiConstants.envNotifier,
         builder: (_, currentEnv, __) {
           final available = ApiConstants.availableEnvironments;
-          final options = _envColors.entries.where((e) => available.contains(e.key)).toList();
+          final options = _envColors.entries
+              .where((e) => available.contains(e.key))
+              .toList();
           return ConstrainedBox(
             constraints: BoxConstraints(minHeight: screenHeight * 0.45),
             child: Padding(
@@ -39,17 +42,19 @@ void showEnvSwitcher(BuildContext context) {
                     style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 20),
-                  ...options.map((e) => Padding(
-                        padding: const EdgeInsets.only(bottom: 12),
-                        child: _EnvOption(
-                          ctx: ctx,
-                          env: e.key,
-                          label: ApiConstants.labelFor(e.key),
-                          subtitle: ApiConstants.baseUrlFor(e.key),
-                          color: e.value,
-                          currentEnv: currentEnv,
-                        ),
-                      )),
+                  ...options.map(
+                    (e) => Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: _EnvOption(
+                        ctx: ctx,
+                        env: e.key,
+                        label: ApiConstants.labelFor(e.key),
+                        subtitle: ApiConstants.baseUrlFor(e.key),
+                        color: e.value,
+                        currentEnv: currentEnv,
+                      ),
+                    ),
+                  ),
                   const SizedBox(height: 16),
                 ],
               ),
@@ -91,7 +96,9 @@ class _EnvOption extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         decoration: BoxDecoration(
-          color: isSelected ? color.withValues(alpha: 0.08) : Color(greyShade500).withValues(alpha: 0.06),
+          color: isSelected
+              ? color.withValues(alpha: 0.08)
+              : Color(greyShade500).withValues(alpha: 0.06),
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
             color: isSelected ? color : Color(transparentColor),
@@ -110,8 +117,20 @@ class _EnvOption extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(label, style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: isSelected ? color : Color(blackColor).withAlpha(87))),
-                  Text(subtitle, style: TextStyle(fontSize: 12, color: Color(greyShade600))),
+                  Text(
+                    label,
+                    style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 14,
+                      color: isSelected
+                          ? color
+                          : Color(blackColor).withAlpha(87),
+                    ),
+                  ),
+                  Text(
+                    subtitle,
+                    style: TextStyle(fontSize: 12, color: Color(greyShade600)),
+                  ),
                 ],
               ),
             ),

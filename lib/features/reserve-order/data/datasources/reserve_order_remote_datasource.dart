@@ -54,8 +54,12 @@ abstract class ReserveOrderRemoteDataSource {
   );
   Future<ReserveOrderDetailModel> sendReserveOrderMessage(
     int reserveOrderId,
-    String message,
-  );
+    String message, {
+    Uint8List? attachmentBytes,
+    String? attachmentPath,
+    String? attachmentName,
+    int? contactAttachmentId,
+  });
   Future<ReserveOrderDetailModel> editReserveOrder(
     int reserveOrderId,
     EditReserveOrderParams params,
@@ -394,12 +398,35 @@ class ReserveOrderRemoteDataSourceImpl implements ReserveOrderRemoteDataSource {
   @override
   Future<ReserveOrderDetailModel> sendReserveOrderMessage(
     int reserveOrderId,
-    String message,
-  ) async {
+    String message, {
+    Uint8List? attachmentBytes,
+    String? attachmentPath,
+    String? attachmentName,
+    int? contactAttachmentId,
+  }) async {
     try {
+      final data = <String, dynamic>{
+        if (message.isNotEmpty) 'message': message,
+        // Attachment yang sudah ada di order ini — backend pakai ulang file-nya & menulis
+        // detailnya (Attachment Type, No. TTS, deskripsi, status) di pesan.
+        if (contactAttachmentId != null)
+          'contact_attachment_id': contactAttachmentId,
+      };
+      if (attachmentBytes != null) {
+        data['attachment'] = MultipartFile.fromBytes(
+          attachmentBytes,
+          filename: attachmentName ?? 'attachment',
+        );
+      } else if (attachmentPath != null) {
+        data['attachment'] = await MultipartFile.fromFile(
+          attachmentPath,
+          filename: attachmentName,
+        );
+      }
+
       final response = await dio.post(
         '/reserve-order/message/$reserveOrderId',
-        data: FormData.fromMap({'message': message}),
+        data: FormData.fromMap(data),
       );
 
       if (response.data['status'] == true) {

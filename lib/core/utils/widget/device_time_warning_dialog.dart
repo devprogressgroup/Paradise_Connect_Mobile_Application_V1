@@ -16,7 +16,10 @@ const String certErrorMessage =
     'punya akses" padahal sebenarnya cuma gagal konek. Mohon aktifkan '
     '"Tanggal & waktu otomatis" di pengaturan HP, lalu buka ulang aplikasi.';
 
-void showDeviceTimeWarningDialog(BuildContext context, {String message = _defaultDriftMessage}) {
+void showDeviceTimeWarningDialog(
+  BuildContext context, {
+  String message = _defaultDriftMessage,
+}) {
   showDialog(
     context: context,
     barrierDismissible: true,
@@ -36,7 +39,10 @@ void showDeviceTimeWarningDialog(BuildContext context, {String message = _defaul
             },
             child: Text(
               'Buka Pengaturan',
-              style: TextStyle(color: Color(primaryColor), fontWeight: FontWeight.bold),
+              style: TextStyle(
+                color: Color(primaryColor),
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ),
       ],

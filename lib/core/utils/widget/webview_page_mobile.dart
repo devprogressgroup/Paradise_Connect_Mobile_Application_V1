@@ -1,4 +1,4 @@
-﻿import 'dart:io';
+import 'dart:io';
 
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
@@ -32,7 +32,14 @@ class WebViewPage extends StatefulWidget {
 
   bool get isImage {
     final urlLower = url.toLowerCase();
-    return ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp'].any((ext) => urlLower.contains(ext));
+    return [
+      '.jpg',
+      '.jpeg',
+      '.png',
+      '.gif',
+      '.webp',
+      '.bmp',
+    ].any((ext) => urlLower.contains(ext));
   }
 
   @override
@@ -51,14 +58,19 @@ class _WebViewPageState extends State<WebViewPage> {
     setState(() => _isSharing = true);
     try {
       final dir = await getTemporaryDirectory();
-      final titleName = widget.title.replaceAll(RegExp(r'[^\w\s\-]'), '').trim();
+      final titleName = widget.title
+          .replaceAll(RegExp(r'[^\w\s\-]'), '')
+          .trim();
       final urlExt = extensionFromUrl(widget.url);
       var filePath = '${dir.path}/$titleName${urlExt ?? '.tmp'}';
 
       final response = await Dio().download(
         widget.url,
         filePath,
-        options: Options(followRedirects: true, receiveTimeout: const Duration(seconds: 60)),
+        options: Options(
+          followRedirects: true,
+          receiveTimeout: const Duration(seconds: 60),
+        ),
       );
 
       if (response.statusCode != 200) {
@@ -66,7 +78,10 @@ class _WebViewPageState extends State<WebViewPage> {
       }
 
       if (urlExt == null) {
-        final resolvedExt = extensionFromContentDisposition(response.headers.value('content-disposition')) ??
+        final resolvedExt =
+            extensionFromContentDisposition(
+              response.headers.value('content-disposition'),
+            ) ??
             extensionFromContentType(response.headers.value('content-type')) ??
             (widget.isPdf ? '.pdf' : '.bin');
         final newPath = '${dir.path}/$titleName$resolvedExt';
@@ -78,7 +93,12 @@ class _WebViewPageState extends State<WebViewPage> {
 
       await Share.shareXFiles([XFile(filePath)], subject: widget.title);
     } catch (_) {
-      if (mounted) showSnackbar(context, 'Gagal mengunduh file, membagikan link saja', isError: true);
+      if (mounted)
+        showSnackbar(
+          context,
+          'Gagal mengunduh file, membagikan link saja',
+          isError: true,
+        );
       await Share.share(widget.url, subject: widget.title);
     } finally {
       if (mounted) setState(() => _isSharing = false);
@@ -151,8 +171,12 @@ class _PdfViewerWidgetState extends State<PdfViewerWidget> {
       final dir = await getTemporaryDirectory();
 
       final safeName = widget.url.split('/').last.split('?').first;
-      final ext = safeName.contains('.') ? '.${safeName.split('.').last}' : '.pdf';
-      final titleName = widget.title.replaceAll(RegExp(r'[^\w\s\-]'), '').trim();
+      final ext = safeName.contains('.')
+          ? '.${safeName.split('.').last}'
+          : '.pdf';
+      final titleName = widget.title
+          .replaceAll(RegExp(r'[^\w\s\-]'), '')
+          .trim();
       final filePath = '${dir.path}/$titleName$ext';
 
       final response = await Dio().download(
@@ -210,9 +234,7 @@ class _PdfViewerWidgetState extends State<PdfViewerWidget> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            CircularProgressIndicator(
-              value: progress > 0 ? progress : null,
-            ),
+            CircularProgressIndicator(value: progress > 0 ? progress : null),
             const SizedBox(height: 12),
             Text(
               progress > 0
@@ -236,9 +258,7 @@ class _PdfViewerWidgetState extends State<PdfViewerWidget> {
           error = cleanErrorMessage(e);
         });
       },
-      onPageError: (page, e) {
-      
-      },
+      onPageError: (page, e) {},
     );
   }
 }
@@ -247,11 +267,7 @@ class WebViewerWidget extends StatefulWidget {
   final String url;
   final String title;
 
-  const WebViewerWidget({
-    super.key,
-    required this.url,
-    required this.title,
-  });
+  const WebViewerWidget({super.key, required this.url, required this.title});
 
   @override
   State<WebViewerWidget> createState() => _WebViewerWidgetState();
@@ -284,9 +300,17 @@ class _WebViewerWidgetState extends State<WebViewerWidget> {
 
   String _filenameFromTitle() {
     final title = widget.title.trim();
-   
+
     final urlLower = widget.url.toLowerCase();
-    for (final ext in ['.mp4', '.mov', '.avi', '.mkv', '.webm', '.pdf', '.zip']) {
+    for (final ext in [
+      '.mp4',
+      '.mov',
+      '.avi',
+      '.mkv',
+      '.webm',
+      '.pdf',
+      '.zip',
+    ]) {
       if (urlLower.contains(ext)) {
         final safe = title.replaceAll(RegExp(r'[<>:"/\\|?*]'), '_');
         return '$safe$ext';
@@ -333,10 +357,7 @@ class _WebViewerWidgetState extends State<WebViewerWidget> {
       fit: StackFit.expand,
       children: [
         WebViewWidget(controller: controller),
-        if (isLoading)
-          const Center(
-            child: CircularProgressIndicator(),
-          ),
+        if (isLoading) const Center(child: CircularProgressIndicator()),
       ],
     );
   }

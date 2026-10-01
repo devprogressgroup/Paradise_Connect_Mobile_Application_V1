@@ -33,7 +33,6 @@ class FloatingDownloadManager {
   }
 }
 
-
 class FloatingDownloadWidget extends StatefulWidget {
   final String url;
   final String filename;
@@ -63,7 +62,9 @@ class _FloatingDownloadWidgetState extends State<FloatingDownloadWidget>
   bool get _isDone => _localPath != null;
 
   String get _ext {
-    final name = _resolvedFilename.isNotEmpty ? _resolvedFilename : widget.filename;
+    final name = _resolvedFilename.isNotEmpty
+        ? _resolvedFilename
+        : widget.filename;
     final dot = name.lastIndexOf('.');
     return dot >= 0 ? name.substring(dot).toLowerCase() : '';
   }
@@ -78,11 +79,17 @@ class _FloatingDownloadWidgetState extends State<FloatingDownloadWidget>
 
   bool get _canOpen => _isVideo || _isPdf || _isImage;
 
-  String get _openLabel =>
-      _isVideo ? 'Tonton' : _isPdf ? 'Buka PDF' : 'Lihat';
+  String get _openLabel => _isVideo
+      ? 'Tonton'
+      : _isPdf
+      ? 'Buka PDF'
+      : 'Lihat';
 
-  IconData get _openIcon =>
-      _isVideo ? Icons.play_circle_outline : _isPdf ? Icons.picture_as_pdf : Icons.image;
+  IconData get _openIcon => _isVideo
+      ? Icons.play_circle_outline
+      : _isPdf
+      ? Icons.picture_as_pdf
+      : Icons.image;
 
   @override
   void initState() {
@@ -107,7 +114,6 @@ class _FloatingDownloadWidgetState extends State<FloatingDownloadWidget>
     super.dispose();
   }
 
-
   Future<String> _resolveFilename() async {
     try {
       final response = await Dio().head(
@@ -124,24 +130,31 @@ class _FloatingDownloadWidgetState extends State<FloatingDownloadWidget>
     return widget.filename;
   }
 
-
   static String _parseContentDisposition(String cd) {
-  
-    var m = RegExp(r"filename\*=UTF-8''([^;\s]+)", caseSensitive: false).firstMatch(cd);
+    var m = RegExp(
+      r"filename\*=UTF-8''([^;\s]+)",
+      caseSensitive: false,
+    ).firstMatch(cd);
     if (m != null) {
-      final name = Uri.decodeComponent(m.group(1) ?? '').replaceAll(RegExp(r'[<>:"/\\|?*]'), '_').trim();
+      final name = Uri.decodeComponent(
+        m.group(1) ?? '',
+      ).replaceAll(RegExp(r'[<>:"/\\|?*]'), '_').trim();
       if (name.isNotEmpty) return name;
     }
-  
+
     m = RegExp(r'filename="([^"]+)"', caseSensitive: false).firstMatch(cd);
     if (m != null) {
-      final name = (m.group(1) ?? '').replaceAll(RegExp(r'[<>:"/\\|?*]'), '_').trim();
+      final name = (m.group(1) ?? '')
+          .replaceAll(RegExp(r'[<>:"/\\|?*]'), '_')
+          .trim();
       if (name.isNotEmpty) return name;
     }
-  
+
     m = RegExp(r'filename=([^;\s"]+)', caseSensitive: false).firstMatch(cd);
     if (m != null) {
-      final name = (m.group(1) ?? '').replaceAll(RegExp(r'[<>:"/\\|?*]'), '_').trim();
+      final name = (m.group(1) ?? '')
+          .replaceAll(RegExp(r'[<>:"/\\|?*]'), '_')
+          .trim();
       if (name.isNotEmpty) return name;
     }
     return '';
@@ -152,7 +165,6 @@ class _FloatingDownloadWidgetState extends State<FloatingDownloadWidget>
       final dir = await getTemporaryDirectory();
       _cancelToken = CancelToken();
 
-    
       final resolved = await _resolveFilename();
       if (mounted) setState(() => _resolvedFilename = resolved);
 
@@ -230,7 +242,6 @@ class _FloatingDownloadWidgetState extends State<FloatingDownloadWidget>
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-              
                 Row(
                   children: [
                     _StatusIcon(isDone: _isDone, isError: _error != null),
@@ -278,13 +289,16 @@ class _FloatingDownloadWidgetState extends State<FloatingDownloadWidget>
                       },
                       child: const Padding(
                         padding: EdgeInsets.all(4),
-                        child: Icon(Icons.close, size: 18, color: Color(greyShade500)),
+                        child: Icon(
+                          Icons.close,
+                          size: 18,
+                          color: Color(greyShade500),
+                        ),
                       ),
                     ),
                   ],
                 ),
 
-              
                 if (!_isDone && _error == null) ...[
                   const SizedBox(height: 10),
                   ClipRRect(
@@ -298,7 +312,6 @@ class _FloatingDownloadWidgetState extends State<FloatingDownloadWidget>
                   ),
                 ],
 
-              
                 if (_isDone) ...[
                   const SizedBox(height: 12),
                   Row(
@@ -315,7 +328,7 @@ class _FloatingDownloadWidgetState extends State<FloatingDownloadWidget>
                         ),
                         const SizedBox(width: 8),
                       ],
-                    
+
                       Expanded(
                         child: _ActionButton(
                           icon: Icons.share,
@@ -337,7 +350,6 @@ class _FloatingDownloadWidgetState extends State<FloatingDownloadWidget>
   }
 }
 
-
 class _StatusIcon extends StatelessWidget {
   final bool isDone;
   final bool isError;
@@ -345,8 +357,18 @@ class _StatusIcon extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (isError) return const Icon(Icons.error_outline, color: Color(redAccentColor), size: 22);
-    if (isDone) return const Icon(Icons.check_circle, color: Color(greenMaterialColor), size: 22);
+    if (isError)
+      return const Icon(
+        Icons.error_outline,
+        color: Color(redAccentColor),
+        size: 22,
+      );
+    if (isDone)
+      return const Icon(
+        Icons.check_circle,
+        color: Color(greenMaterialColor),
+        size: 22,
+      );
     return SizedBox(
       width: 22,
       height: 22,
@@ -375,7 +397,9 @@ class _ActionButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final shape = RoundedRectangleBorder(borderRadius: BorderRadius.circular(10));
+    final shape = RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(10),
+    );
     final child = Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
@@ -412,7 +436,6 @@ class _ActionButton extends StatelessWidget {
     );
   }
 }
-
 
 class _VideoPlayerPage extends StatefulWidget {
   final String filePath;
@@ -475,10 +498,9 @@ class _VideoPlayerPageState extends State<_VideoPlayerPage> {
         actions: [
           IconButton(
             icon: const Icon(Icons.share),
-            onPressed: () => Share.shareXFiles(
-              [XFile(widget.filePath)],
-              subject: widget.title,
-            ),
+            onPressed: () => Share.shareXFiles([
+              XFile(widget.filePath),
+            ], subject: widget.title),
           ),
         ],
       ),
@@ -492,7 +514,6 @@ class _VideoPlayerPageState extends State<_VideoPlayerPage> {
     );
   }
 }
-
 
 class _PdfLocalViewerPage extends StatefulWidget {
   final String filePath;
@@ -519,10 +540,9 @@ class _PdfLocalViewerPageState extends State<_PdfLocalViewerPage> {
         actions: [
           IconButton(
             icon: const Icon(Icons.share),
-            onPressed: () => Share.shareXFiles(
-              [XFile(widget.filePath)],
-              subject: widget.title,
-            ),
+            onPressed: () => Share.shareXFiles([
+              XFile(widget.filePath),
+            ], subject: widget.title),
           ),
         ],
       ),
@@ -541,7 +561,6 @@ class _PdfLocalViewerPageState extends State<_PdfLocalViewerPage> {
     );
   }
 }
-
 
 class _ImageViewerPage extends StatelessWidget {
   final String filePath;
@@ -564,10 +583,8 @@ class _ImageViewerPage extends StatelessWidget {
         actions: [
           IconButton(
             icon: const Icon(Icons.share),
-            onPressed: () => Share.shareXFiles(
-              [XFile(filePath)],
-              subject: title,
-            ),
+            onPressed: () =>
+                Share.shareXFiles([XFile(filePath)], subject: title),
           ),
         ],
       ),

@@ -11,8 +11,7 @@ class DriveImage extends StatefulWidget {
   final Widget? errorWidget;
   final VoidCallback? onTap;
   final FilterQuality filterQuality;
-  
-  
+
   final VoidCallback? onLoad;
 
   const DriveImage({
@@ -50,7 +49,7 @@ class _DriveImageState extends State<DriveImage> {
         ? w
         : (h != null && h.isFinite && h > 0 ? h : null);
     if (basis == null) return 1000;
-    
+
     return (basis * 2).round().clamp(1, 1600).toInt();
   }
 
@@ -62,10 +61,7 @@ class _DriveImageState extends State<DriveImage> {
       height: widget.height,
       fit: widget.fit,
       filterQuality: widget.filterQuality,
-      
-      
-      
-      
+
       cacheWidth: _targetWidth(),
       loadingBuilder: (context, child, progress) {
         if (progress == null) {
@@ -96,7 +92,11 @@ class _DriveImageState extends State<DriveImage> {
       height: widget.height,
       color: Color(greyShade200),
       alignment: Alignment.center,
-      child: const Icon(Icons.broken_image, size: 40, color: Color(greyShade500)),
+      child: const Icon(
+        Icons.broken_image,
+        size: 40,
+        color: Color(greyShade500),
+      ),
     );
   }
 }

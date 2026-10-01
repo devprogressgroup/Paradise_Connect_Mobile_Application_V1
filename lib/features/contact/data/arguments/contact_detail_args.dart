@@ -30,6 +30,11 @@ class ContactDetailArgs {
   final int? initialAttachmentTypeId;
   final String? initialAttachmentTypeName;
 
+  /// true = page 5 dibuka dari tombol "Attachment" di tab Messages Reserve Order — file yang
+  /// diupload (beserta Attachment Type + deskripsinya) ikut masuk sebagai pesan di order
+  /// [reserveOrderId] (`UploadAttachmentParams.postToMessage`).
+  final bool postToReserveOrderMessage;
+
   ContactDetailArgs({
     this.dataAttachment,
     this.dataContact,
@@ -45,6 +50,7 @@ class ContactDetailArgs {
     this.reserveOrderTtsId,
     this.initialAttachmentTypeId,
     this.initialAttachmentTypeName,
+    this.postToReserveOrderMessage = false,
   });
 
   ContactDetailArgs copyWith({
@@ -62,6 +68,7 @@ class ContactDetailArgs {
     int? reserveOrderTtsId,
     int? initialAttachmentTypeId,
     String? initialAttachmentTypeName,
+    bool? postToReserveOrderMessage,
   }) {
     return ContactDetailArgs(
       dataAttachment: dataAttachment ?? this.dataAttachment,
@@ -80,6 +87,8 @@ class ContactDetailArgs {
           initialAttachmentTypeId ?? this.initialAttachmentTypeId,
       initialAttachmentTypeName:
           initialAttachmentTypeName ?? this.initialAttachmentTypeName,
+      postToReserveOrderMessage:
+          postToReserveOrderMessage ?? this.postToReserveOrderMessage,
     );
   }
 }

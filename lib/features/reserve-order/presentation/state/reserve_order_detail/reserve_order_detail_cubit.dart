@@ -1,4 +1,7 @@
+import 'dart:typed_data';
+
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:progress_group/features/contact/domain/usecases/attachment/delete_attachment_usecase.dart';
 import 'package:progress_group/features/reserve-order/domain/entities/edit_reserve_order_params.dart';
 import 'package:progress_group/features/reserve-order/domain/entities/topup_reserve_order_params.dart';
 import 'package:progress_group/features/reserve-order/domain/entities/update_reserve_order_customer_params.dart';
@@ -21,6 +24,10 @@ class ReserveOrderDetailCubit extends Cubit<ReserveOrderDetailState> {
   final EditReserveOrderUseCase editReserveOrderUseCase;
   final DeleteReserveOrderUseCase deleteReserveOrderUseCase;
 
+  /// Dipinjam dari fitur Contact — dokumen reserve order tersimpan di d_contact_attachment, jadi
+  /// hapusnya lewat endpoint yang sama (`DELETE /contacts/{contact_id}/attachments/{id}`).
+  final DeleteAttachmentUseCase deleteAttachmentUseCase;
+
   ReserveOrderDetailCubit({
     required this.getReserveOrderDetailUseCase,
     required this.updateReserveOrderCustomerUseCase,
@@ -28,6 +35,7 @@ class ReserveOrderDetailCubit extends Cubit<ReserveOrderDetailState> {
     required this.sendReserveOrderMessageUseCase,
     required this.editReserveOrderUseCase,
     required this.deleteReserveOrderUseCase,
+    required this.deleteAttachmentUseCase,
   }) : super(const ReserveOrderDetailState());
 
   Future<void> fetch(int reserveOrderId) async {
@@ -105,12 +113,23 @@ class ReserveOrderDetailCubit extends Cubit<ReserveOrderDetailState> {
     );
   }
 
-  Future<String?> sendMessage(int reserveOrderId, String message) async {
+  Future<String?> sendMessage(
+    int reserveOrderId,
+    String message, {
+    Uint8List? attachmentBytes,
+    String? attachmentPath,
+    String? attachmentName,
+    int? contactAttachmentId,
+  }) async {
     emit(state.copyWith(status: ReserveOrderDetailStatus.mutating));
 
     final result = await sendReserveOrderMessageUseCase(
       reserveOrderId,
       message,
+      attachmentBytes: attachmentBytes,
+      attachmentPath: attachmentPath,
+      attachmentName: attachmentName,
+      contactAttachmentId: contactAttachmentId,
     );
 
     return result.fold(
@@ -175,5 +194,33 @@ class ReserveOrderDetailCubit extends Cubit<ReserveOrderDetailState> {
       );
       return message;
     }, (_) => null);
+  }
+
+  /// Hapus 1 dokumen order (file Drive-nya ikut terhapus), lalu fetch ulang detail supaya daftar
+  /// file & checklist dokumen wajib ikut ter-refresh. Balik pesan error, atau null kalau sukses.
+  Future<String?> deleteAttachment({
+    required int reserveOrderId,
+    required int contactId,
+    required int attachmentId,
+  }) async {
+    emit(state.copyWith(status: ReserveOrderDetailStatus.mutating));
+
+    final result = await deleteAttachmentUseCase(
+      contactId: contactId,
+      attachmentId: attachmentId,
+    );
+    final error = result.fold((message) => message, (_) => null);
+    if (error != null) {
+      emit(
+        state.copyWith(
+          status: ReserveOrderDetailStatus.loaded,
+          errorMessage: error,
+        ),
+      );
+      return error;
+    }
+
+    await fetch(reserveOrderId);
+    return null;
   }
 }

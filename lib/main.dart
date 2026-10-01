@@ -244,25 +244,22 @@ void main() async {
   AnalyticsService.loadFromPrefs(prefs);
   ImpersonationManager.bind(prefs);
 
+  ApiConstants.loadCachedSettings(prefs);
+
+  // /settings & /analytics-events TIDAK di-await: sebelum runApp() Flutter belum bisa
+  // menggambar apa pun (layar putih), jadi menunggu network di sini = layar putih sampai
+  // timeout di jaringan lambat. Nilai terakhir sudah dipasang dari cache (settings di atas,
+  // analytics via loadFromPrefs); hasil terbaru diterapkan begitu sampai — applySettings()
+  // cuma bump settingsVersion kalau isinya memang berubah.
   try {
-    final localDs = AuthLocalDataSourceImpl(prefs);
-    final dio = DioClient(localDs).dio;
-    // getSettings() & refreshEnabledEvents() independen satu sama lain — DIPANGGIL dulu (bukan
-    // di-await) di sini supaya keduanya jalan PARALEL di background, baru di-await satu-satu di
-    // bawah. Sebelumnya sequential (getSettings selesai baru refreshEnabledEvents mulai), jadi
-    // splash screen nunggu 2x round-trip network yang sebetulnya bisa bersamaan. Timeout jaga-jaga
-    // per panggilan (pola sama seperti PushNotificationService di bawah) — backend yang lambat
-    // tidak boleh bikin app nge-hang di splash tanpa batas waktu.
-    final settingsFuture = SettingsRemoteDataSource(dio).getSettings();
-    final analyticsFuture = AnalyticsService.refreshEnabledEvents(dio);
-    final settings = await settingsFuture.timeout(
-      const Duration(seconds: 8),
-      onTimeout: () => <Map<String, dynamic>>[],
-    );
-    if (settings.isNotEmpty) ApiConstants.applySettings(settings);
-    await analyticsFuture.timeout(const Duration(seconds: 8), onTimeout: () {});
+    final dio = DioClient(AuthLocalDataSourceImpl(prefs)).dio;
+    SettingsRemoteDataSource(dio).getSettings().then((settings) {
+      if (settings.isNotEmpty) ApiConstants.applySettings(settings);
+    }).catchError((_) {});
+    AnalyticsService.refreshEnabledEvents(dio).catchError((_) {});
   } catch (_) {}
 
+  var firebaseReady = false;
   try {
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
@@ -272,14 +269,7 @@ void main() async {
         _firebaseMessagingBackgroundHandler,
       );
     }
-    // Timeout jaga-jaga: init ini jalan sebelum runApp(), jadi kalau ada panggilan di
-    // dalamnya yang menggantung (mis. permission/service-worker API browser yang tidak
-    // pernah resolve di Safari), seluruh app ikut macet di splash bawaan browser tanpa
-    // batas waktu. Lebih baik lanjut tanpa push notification daripada app tidak bisa dibuka.
-    await PushNotificationService.initialize().timeout(
-      const Duration(seconds: 8),
-      onTimeout: () {},
-    );
+    firebaseReady = true;
   } catch (_) {}
 
   AppRouter.init();
@@ -306,6 +296,17 @@ void main() async {
   );
 
   runApp(MyApp(prefs: prefs));
+
+  // Init push notification SETELAH runApp(): di Android isinya minta izin notifikasi (dialog)
+  // + getInitialMessage(), di Safari bisa menggantung — tidak boleh menahan app tampil.
+  // processPendingMessage() dipanggil setelah init selesai karena notifikasi yang membuka app
+  // dari kondisi mati baru terbaca di getInitialMessage() di dalam initialize().
+  if (firebaseReady) {
+    PushNotificationService.initialize()
+        .timeout(const Duration(seconds: 8), onTimeout: () {})
+        .catchError((_) {})
+        .whenComplete(PushNotificationService.processPendingMessage);
+  }
 }
 
 class MyApp extends StatefulWidget {
@@ -326,12 +327,18 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     WidgetsBinding.instance.addObserver(this);
     ApiConstants.envNotifier.addListener(_resetApp);
     PushNotificationService.otaTrigger.addListener(_onOtaTrigger);
+    ApiConstants.settingsVersion.addListener(_onSettingsChanged);
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      PushNotificationService.processPendingMessage();
       _checkVersion();
       PushNotificationService.checkAndShowUpdateBanner();
       OldAppCheckService.check();
     });
+  }
+
+  // Settings sekarang bisa datang setelah frame pertama (lihat main()), jadi LAST_VERSION
+  // terbaru mungkin baru ada sesudah _checkVersion() pertama — cek ulang saat berubah.
+  void _onSettingsChanged() {
+    if (_updateResult == null) _checkVersion();
   }
 
   void _onOtaTrigger() {
@@ -382,6 +389,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     WidgetsBinding.instance.removeObserver(this);
     ApiConstants.envNotifier.removeListener(_resetApp);
     PushNotificationService.otaTrigger.removeListener(_onOtaTrigger);
+    ApiConstants.settingsVersion.removeListener(_onSettingsChanged);
     super.dispose();
   }
 
@@ -757,6 +765,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
                       sendReserveOrderMessageUseCase,
                   editReserveOrderUseCase: editReserveOrderUseCase,
                   deleteReserveOrderUseCase: deleteReserveOrderUseCase,
+                  deleteAttachmentUseCase: deleteAttachmentUseCase,
                 ),
               ),
               BlocProvider(

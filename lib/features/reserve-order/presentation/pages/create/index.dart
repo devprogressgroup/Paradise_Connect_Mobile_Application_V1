@@ -2747,6 +2747,13 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
                       children: [
                         _reviewLine('Nama Customer', _customerNameSnapshot),
                         _reviewLine(
+                          'Cara Pembayaran',
+                          _caraBayar == 'Lainnya' &&
+                                  _caraBayarLainnyaCtrl.text.trim().isNotEmpty
+                              ? 'Lainnya — ${_caraBayarLainnyaCtrl.text.trim()}'
+                              : (_caraBayar ?? '-'),
+                        ),
+                        _reviewLine(
                           'Sales Channel',
                           widget.salesChannel ?? '-',
                         ),

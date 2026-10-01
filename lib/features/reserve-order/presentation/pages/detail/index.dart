@@ -4,9 +4,12 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:progress_group/core/constants/assets.dart';
 import 'package:progress_group/core/constants/colors.dart';
+import 'package:progress_group/core/utils/helpers/permissions_helper.dart';
 import 'package:progress_group/core/utils/widget/custom_bg_icon.dart';
 import 'package:progress_group/core/utils/widget/custom_buttomsheet.dart';
 import 'package:progress_group/core/utils/widget/custom_dropdown_group.dart';
+import 'package:progress_group/core/utils/widget/custom_file_picker.dart';
+import 'package:progress_group/core/utils/widget/custom_loading.dart';
 import 'package:progress_group/core/utils/widget/custom_snackbar.dart';
 import 'package:progress_group/core/utils/widget/drive_image/drive_image.dart';
 import 'package:progress_group/core/utils/widget/reject_banner.dart';
@@ -40,6 +43,15 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage>
   final _messageScrollController = ScrollController();
   bool _sendingMessage = false;
 
+  /// Lampiran yang dipilih untuk pesan berikutnya (dikirim bareng teks, boleh tanpa teks).
+  PickedFileResult? _messageAttachment;
+
+  /// Attachment yang SUDAH ADA di order ini yang dilampirkan ke pesan berikutnya (mis. Bukti
+  /// Transfer yang mau ditanyakan) — eksklusif dengan [_messageAttachment]; backend memakai ulang
+  /// file-nya & menulis detailnya di pesan.
+  ({String docName, ReserveOrderAttachmentEntity file})? _messageRefAttachment;
+  final _messageFocusNode = FocusNode();
+
   static const _messagesTabIndex = 3;
 
   /// Jumlah pesan yang sudah pernah dilihat user di tab Messages order ini (disimpan per
@@ -64,6 +76,7 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage>
     _tabController.removeListener(_onTabChanged);
     _tabController.dispose();
     _messageController.dispose();
+    _messageFocusNode.dispose();
     _messageScrollController.dispose();
     super.dispose();
   }
@@ -232,10 +245,11 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage>
           ],
         ),
       ),
-      bottomNavigationBar: order.rejected && order.canEdit ? _buildResubmitFooter(order) : null,
+      bottomNavigationBar: order.rejected && order.canEdit
+          ? _buildResubmitFooter(order)
+          : null,
     );
   }
-
 
   Widget _buildHeader(ReserveOrderDetail order) {
     return Container(
@@ -353,6 +367,10 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage>
     );
   }
 
+  Widget _fittedTab(Widget label) => Tab(
+    child: FittedBox(fit: BoxFit.scaleDown, child: label),
+  );
+
   Widget _buildTabBar(ReserveOrderDetail order) {
     final unread = _hasUnreadMessages(order);
     return Container(
@@ -367,12 +385,15 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage>
           fontWeight: FontWeight.w600,
         ),
         indicatorColor: const Color(primaryColor),
+        // 4 tab fixed: padding default 16px/sisi bikin label panjang ("Attachment") kepotong
+        // di layar sempit — padding dikecilkan + FittedBox supaya label mengecil kalau perlu.
+        labelPadding: const EdgeInsets.symmetric(horizontal: 4),
         tabs: [
-          const Tab(text: 'Timeline'),
-          const Tab(text: 'Customer'),
-          const Tab(text: 'Attachment'),
-          Tab(
-            child: Stack(
+          _fittedTab(const Text('Timeline')),
+          _fittedTab(const Text('Customer')),
+          _fittedTab(const Text('Attachment')),
+          _fittedTab(
+            Stack(
               clipBehavior: Clip.none,
               children: [
                 const Text('Messages'),
@@ -675,6 +696,7 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage>
             ),
           ),
           const SizedBox(height: 10),
+          _buildAddNewFileCard(order),
           for (final doc in order.requiredDocs) _buildDocRow(order, doc),
         ],
       ),
@@ -794,12 +816,69 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage>
     );
   }
 
+  /// Kartu "Add New File" (sama seperti di tab Attachment Contact Detail) — upload bebas tanpa
+  /// harus tap salah satu dokumen wajib; Attachment Type dipilih sendiri di halaman upload.
+  Widget _buildAddNewFileCard(ReserveOrderDetail order) {
+    return GestureDetector(
+      onTap: () => _uploadDocument(order, null),
+      child: Container(
+        width: double.infinity,
+        margin: const EdgeInsets.only(bottom: 8),
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          color: const Color(whiteColor),
+          border: Border.all(color: const Color(grey10Color)),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          children: [
+            BgIcon(
+              asset: icUpload,
+              color: const Color(primaryColor),
+              onTap: () => _uploadDocument(order, null),
+            ),
+            const SizedBox(width: 10),
+            const Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Add New File',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: Color(primaryColor),
+                  ),
+                ),
+                Text(
+                  'upload new file',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w400,
+                    color: Color(grey5Color),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   /// Buka halaman "Attachment" yang sama dipakai tab Attachment di Contact Detail (`ContactAddPage`
   /// page 5, `POST /contacts/{contact_id}/attachments`) — Attachment Type-nya di-preset & dikunci
   /// ke dokumen yang di-tap (`reserveOrderId` + `initialAttachmentTypeId` di `ContactDetailArgs`)
   /// supaya upload-nya pasti kehitung di `required_docs.uploaded` order INI. Fetch ulang detail
   /// setelah kembali supaya checklist-nya ikut ter-refresh (baik upload sukses maupun dibatalkan).
-  Future<void> _uploadDocument(ReserveOrderDetail order, String docName) async {
+  /// [docName] null = dari kartu "Add New File": tipe tidak di-preset, user pilih sendiri
+  /// (dropdown tidak dikunci karena `initialAttachmentTypeId` kosong).
+  /// [postToMessage] true = dari kotak "Attachment" di tab Messages: file yang diupload ikut
+  /// dicatat sebagai pesan (Attachment Type + deskripsi jadi teks pesannya).
+  Future<void> _uploadDocument(
+    ReserveOrderDetail order,
+    String? docName, {
+    bool postToMessage = false,
+  }) async {
     if (order.contactId == null) {
       showSnackbar(
         context,
@@ -808,8 +887,10 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage>
       );
       return;
     }
-    final attachmentTypeId = order.docAttachmentTypeIds[docName];
-    if (attachmentTypeId == null) return;
+    final attachmentTypeId = docName == null
+        ? null
+        : order.docAttachmentTypeIds[docName];
+    if (docName != null && attachmentTypeId == null) return;
 
     await context.pushNamed(
       'addContact',
@@ -823,11 +904,13 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage>
         reserveOrderId: order.reserveOrderId,
         initialAttachmentTypeId: attachmentTypeId,
         initialAttachmentTypeName: docName,
+        postToReserveOrderMessage: postToMessage,
       ),
     );
 
     if (!mounted) return;
     await context.read<ReserveOrderDetailCubit>().fetch(order.reserveOrderId);
+    if (mounted && postToMessage) _scrollMessagesToBottom();
   }
 
   void _viewDocument(String url) {
@@ -860,11 +943,9 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage>
   ) {
     final url = file.attachmentPath ?? '';
     final rejectNote = file.verificationNote?.trim() ?? '';
-    final (statusLabel, statusColor) = switch (file.verificationStatus) {
-      'rejected' => ('Ditolak', const Color(redColor)),
-      'approved' => ('Disetujui', const Color(successColor)),
-      _ => ('Menunggu verifikasi', const Color(grey4Color)),
-    };
+    final (statusLabel, statusColor) = _verificationBadge(
+      file.verificationStatus,
+    );
     final uploadedAt = file.createDatetime == null
         ? null
         : DateFormat(
@@ -966,6 +1047,70 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage>
     );
   }
 
+  /// `DELETE /contacts/{contact_id}/attachments/{id}` — baris d_contact_attachment & file Drive-nya
+  /// terhapus permanen (pesan yang melampirkan file ini jadi tidak bisa membukanya lagi).
+  Future<void> _confirmDeleteAttachment(
+    ReserveOrderDetail order,
+    String docName,
+    ReserveOrderAttachmentEntity file,
+    int number,
+  ) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Hapus Dokumen?'),
+        content: Text(
+          'Hapus $docName · File $number? '
+          '${file.verificationStatus == 'approved' ? 'File ini sudah Disetujui. ' : ''}'
+          'File ikut terhapus dari Google Drive, termasuk lampirannya di pesan — '
+          'tindakan ini tidak bisa dibatalkan.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Batal'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text(
+              'Hapus',
+              style: TextStyle(color: Color(redColor)),
+            ),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+
+    final cubit = context.read<ReserveOrderDetailCubit>();
+    final error = await _runWithLoading(
+      'Menghapus dokumen…',
+      () => cubit.deleteAttachment(
+        reserveOrderId: order.reserveOrderId,
+        contactId: order.contactId!,
+        attachmentId: file.contactAttachmentId,
+      ),
+    );
+    if (!mounted) return;
+
+    if (error != null) {
+      showSnackbar(context, error, isError: true);
+      return;
+    }
+
+    if (_messageRefAttachment?.file.contactAttachmentId ==
+        file.contactAttachmentId) {
+      setState(() => _messageRefAttachment = null);
+    }
+    showSnackbar(context, 'Dokumen berhasil dihapus.');
+  }
+
+  (String, Color) _verificationBadge(String? status) => switch (status) {
+    'rejected' => ('Ditolak', const Color(redColor)),
+    'approved' => ('Disetujui', const Color(successColor)),
+    _ => ('Menunggu verifikasi', const Color(grey4Color)),
+  };
+
   void _openDocFileMenu(
     ReserveOrderDetail order,
     String docName,
@@ -988,11 +1133,25 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage>
           ),
           if (url.isNotEmpty)
             _menuItem('👁️', 'Lihat Dokumen', () => _viewDocument(url)),
+          if (order.canEdit)
+            _menuItem(
+              '💬',
+              'Tanyakan di Pesan',
+              () => _attachExistingToMessage(docName, file),
+            ),
           _menuItem(
             '⤴️',
             'Upload Ulang',
             () => _reuploadDocument(order, docName, file),
           ),
+          if (order.contactId != null &&
+              PermissionsHelper.canDeleteAttachmentItem)
+            _menuItem(
+              '🗑️',
+              'Hapus',
+              () => _confirmDeleteAttachment(order, docName, file, number),
+              color: const Color(redColor),
+            ),
         ],
       ),
     );
@@ -1107,15 +1266,188 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            note.text,
+          if (note.hasMeta) ...[
+            _messageMeta(note),
+            if (note.hasAttachment || note.text.isNotEmpty)
+              const SizedBox(height: 6),
+          ],
+          if (note.hasAttachment) _messageAttachmentTile(note),
+          if (note.hasAttachment && note.text.isNotEmpty)
+            const SizedBox(height: 6),
+          if (note.text.isNotEmpty)
+            Text(
+              note.text,
+              style: const TextStyle(
+                fontSize: 11.5,
+                color: Colors.black87,
+                height: 1.4,
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  /// Blok info pesan dari form Tulis Pesan (web) — Customer, Dihubungi oleh, Status, Follow Up.
+  Widget _messageMeta(ReserveOrderChatMessage note) {
+    Widget row(String label, String? value) => Text.rich(
+      TextSpan(
+        children: [
+          TextSpan(text: '$label: '),
+          TextSpan(
+            text: (value ?? '').isNotEmpty ? value : '-',
             style: const TextStyle(
-              fontSize: 11.5,
+              fontWeight: FontWeight.w700,
               color: Colors.black87,
-              height: 1.4,
             ),
           ),
         ],
+      ),
+      style: const TextStyle(
+        fontSize: 10.5,
+        color: Color(grey4Color),
+        height: 1.4,
+      ),
+    );
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        row('Customer', note.customer),
+        row('Dihubungi oleh', note.contactedBy),
+        row('Status', note.status),
+        if ((note.followUp ?? '').isNotEmpty) row('Follow Up', note.followUp),
+      ],
+    );
+  }
+
+  Widget _messageAttachmentTile(ReserveOrderChatMessage note) {
+    final name = (note.attachmentName ?? '').isNotEmpty
+        ? note.attachmentName!
+        : 'Lampiran';
+    final lower = name.toLowerCase();
+    final url = note.attachmentUrl ?? '';
+    final isImage = RegExp(r'\.(jpe?g|png|webp|heic)$').hasMatch(lower);
+
+    // Gambar: langsung preview kecil (thumbnail Drive), tap buka penuh.
+    if (isImage) {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(8),
+        child: DriveImage(
+          url: url,
+          width: 160,
+          height: 160,
+          fit: BoxFit.cover,
+          onTap: () => _viewDocument(url),
+          errorWidget: _messageFileChip(name, Icons.image_outlined, url),
+        ),
+      );
+    }
+
+    if (lower.endsWith('.pdf')) return _messagePdfPreview(name, url);
+
+    return _messageFileChip(name, Icons.insert_drive_file_outlined, url);
+  }
+
+  /// PDF: thumbnail halaman pertama dari Drive + strip nama file di bawah. Kalau link bukan
+  /// Drive, balik ke chip nama file; kalau thumbnail gagal dimuat, tampil ikon PDF besar.
+  Widget _messagePdfPreview(String name, String url) {
+    final fallback = _messageFileChip(name, Icons.picture_as_pdf_outlined, url);
+    if (!url.contains('drive.google.com')) return fallback;
+
+    return GestureDetector(
+      onTap: () => _viewDocument(url),
+      child: Container(
+        width: 160,
+        decoration: BoxDecoration(
+          color: const Color(whiteColor),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: const Color(grey10Color)),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // DriveImage: mobile -> drive.google.com/thumbnail, web (PWA) -> CDN lh3 yang
+            // aman CORS. Keduanya kasih render halaman pertama PDF.
+            DriveImage(
+              url: url,
+              width: 160,
+              height: 120,
+              fit: BoxFit.cover,
+              errorWidget: Container(
+                width: 160,
+                height: 120,
+                color: const Color(grey11Color),
+                alignment: Alignment.center,
+                child: const Icon(
+                  Icons.picture_as_pdf_outlined,
+                  size: 40,
+                  color: Color(redColor),
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.picture_as_pdf_outlined,
+                    size: 16,
+                    color: Color(redColor),
+                  ),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.black87,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _messageFileChip(String name, IconData icon, String url) {
+    return InkWell(
+      onTap: () => _viewDocument(url),
+      borderRadius: BorderRadius.circular(8),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+        decoration: BoxDecoration(
+          color: const Color(whiteColor),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: const Color(grey10Color)),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 18, color: const Color(primaryColor)),
+            const SizedBox(width: 6),
+            Flexible(
+              child: Text(
+                name,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  color: Color(primaryColor),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -1221,47 +1553,71 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage>
       ),
       child: SafeArea(
         top: false,
-        child: Row(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Expanded(
-              child: TextField(
-                controller: _messageController,
-                decoration: InputDecoration(
-                  hintText: 'Tulis catatan…',
-                  filled: true,
-                  fillColor: const Color(grey11Color),
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 10,
-                  ),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(9),
-                    borderSide: BorderSide.none,
+            if (_messageAttachment != null || _messageRefAttachment != null)
+              _buildPendingAttachment(order),
+            Row(
+              children: [
+                InkWell(
+                  onTap: _sendingMessage
+                      ? null
+                      : () => _pickMessageAttachment(order),
+                  borderRadius: BorderRadius.circular(18),
+                  child: const SizedBox(
+                    width: 36,
+                    height: 36,
+                    child: Icon(
+                      Icons.attach_file,
+                      color: Color(grey4Color),
+                      size: 22,
+                    ),
                   ),
                 ),
-              ),
-            ),
-            const SizedBox(width: 8),
-            InkWell(
-              onTap: _sendingMessage ? null : () => _sendMessage(order),
-              borderRadius: BorderRadius.circular(18),
-              child: Container(
-                width: 36,
-                height: 36,
-                decoration: const BoxDecoration(
-                  color: Color(primaryColor),
-                  shape: BoxShape.circle,
+                const SizedBox(width: 4),
+                Expanded(
+                  child: TextField(
+                    controller: _messageController,
+                    focusNode: _messageFocusNode,
+                    decoration: InputDecoration(
+                      hintText: 'Tulis catatan…',
+                      filled: true,
+                      fillColor: const Color(grey11Color),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 10,
+                      ),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(9),
+                        borderSide: BorderSide.none,
+                      ),
+                    ),
+                  ),
                 ),
-                child: _sendingMessage
-                    ? const Padding(
-                        padding: EdgeInsets.all(9),
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white,
-                        ),
-                      )
-                    : const Icon(Icons.send, color: Colors.white, size: 18),
-              ),
+                const SizedBox(width: 8),
+                InkWell(
+                  onTap: _sendingMessage ? null : () => _sendMessage(order),
+                  borderRadius: BorderRadius.circular(18),
+                  child: Container(
+                    width: 36,
+                    height: 36,
+                    decoration: const BoxDecoration(
+                      color: Color(primaryColor),
+                      shape: BoxShape.circle,
+                    ),
+                    child: _sendingMessage
+                        ? const Padding(
+                            padding: EdgeInsets.all(9),
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white,
+                            ),
+                          )
+                        : const Icon(Icons.send, color: Colors.white, size: 18),
+                  ),
+                ),
+              ],
             ),
           ],
         ),
@@ -1269,18 +1625,289 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage>
     );
   }
 
+  /// Lampiran yang menunggu dikirim: file baru dari Kamera/Galeri/Dokumen ([_messageAttachment])
+  /// ATAU attachment yang sudah ada di order ini ([_messageRefAttachment]) beserta detailnya.
+  Widget _buildPendingAttachment(ReserveOrderDetail order) {
+    final file = _messageAttachment;
+    final ref = _messageRefAttachment;
+    final Widget leading;
+    final Widget body;
+    if (file != null) {
+      leading = file.isImage
+          ? FilePreviewWidget(file: file, size: 44)
+          : Icon(
+              file.isPdf
+                  ? Icons.picture_as_pdf_outlined
+                  : Icons.insert_drive_file_outlined,
+              size: 18,
+              color: const Color(primaryColor),
+            );
+      body = Text(
+        file.name,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: const TextStyle(fontSize: 11.5, color: Colors.black87),
+      );
+    } else {
+      leading = _attachmentThumb(ref!.file, ref.docName, 44);
+      body = _attachmentDetail(order, ref.docName, ref.file);
+    }
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(10, 6, 4, 6),
+        decoration: BoxDecoration(
+          color: const Color(grey11Color),
+          borderRadius: BorderRadius.circular(9),
+        ),
+        child: Row(
+          children: [
+            leading,
+            const SizedBox(width: 8),
+            Expanded(child: body),
+            IconButton(
+              visualDensity: VisualDensity.compact,
+              icon: const Icon(Icons.close, size: 18, color: Color(grey4Color)),
+              onPressed: _sendingMessage
+                  ? null
+                  : () => setState(() {
+                      _messageAttachment = null;
+                      _messageRefAttachment = null;
+                    }),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Thumbnail Drive kecil satu attachment order (fallback ikon dokumennya).
+  Widget _attachmentThumb(
+    ReserveOrderAttachmentEntity file,
+    String docName,
+    double size,
+  ) {
+    final icon = reserveOrderDocIcons[docName] ?? '📄';
+    final url = file.attachmentPath ?? '';
+    if (url.isEmpty) return _docIconBox(icon);
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(8),
+      child: DriveImage(
+        url: url,
+        width: size,
+        height: size,
+        fit: BoxFit.cover,
+        errorWidget: _docIconBox(icon),
+      ),
+    );
+  }
+
+  /// Detail satu attachment order: nama dokumen, status verifikasi, No. TTS (kalau terikat ke
+  /// TTS), tanggal upload, dan deskripsinya — sama dengan yang ikut terbawa di pesan.
+  Widget _attachmentDetail(
+    ReserveOrderDetail order,
+    String docName,
+    ReserveOrderAttachmentEntity file,
+  ) {
+    final ttsNumber = order.ttsNumbers[file.reserveOrderTtsId];
+    final (statusLabel, statusColor) = _verificationBadge(
+      file.verificationStatus,
+    );
+    final note = file.attachmentNote?.trim() ?? '';
+    final meta = [
+      if (ttsNumber != null) 'TTS $ttsNumber',
+      if (file.createDatetime != null)
+        DateFormat('dd MMM yyyy HH:mm').format(file.createDatetime!.toLocal()),
+    ].join(' · ');
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          docName,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w700),
+        ),
+        Text.rich(
+          TextSpan(
+            children: [
+              TextSpan(
+                text: statusLabel,
+                style: TextStyle(
+                  color: statusColor,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              if (meta.isNotEmpty) TextSpan(text: ' · $meta'),
+            ],
+          ),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(fontSize: 9.5, color: Color(grey4Color)),
+        ),
+        if (note.isNotEmpty)
+          Text(
+            note,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(fontSize: 10, color: Colors.black87),
+          ),
+      ],
+    );
+  }
+
+  Future<void> _pickMessageAttachment(ReserveOrderDetail order) async {
+    // Foto dikecilkan (maks 1600px, JPEG 75%) supaya upload cepat — tetap jelas dibaca.
+    final result = await CustomFilePicker.show(
+      context,
+      imageMaxDimension: 1600,
+      imageQuality: 75,
+      onAttachment: () => _chooseAttachmentForMessage(order),
+    );
+    if (!mounted || result == null || !result.hasData) return;
+    setState(() {
+      _messageAttachment = result;
+      _messageRefAttachment = null;
+    });
+  }
+
+  /// Kotak "Attachment": upload file baru lewat halaman Attachment (file + Attachment Type +
+  /// deskripsi, ikut masuk jadi pesan) ATAU pilih attachment yang sudah ada di order ini untuk
+  /// ditanyakan — detail file-nya ikut terbawa di pesan. Belum ada attachment = langsung upload.
+  void _chooseAttachmentForMessage(ReserveOrderDetail order) {
+    final existing = [
+      for (final entry in order.docAttachments.entries)
+        for (final file in entry.value) (docName: entry.key, file: file),
+    ];
+    if (existing.isEmpty) {
+      _uploadDocument(order, null, postToMessage: true);
+      return;
+    }
+
+    showCustomBottomSheet(
+      context: context,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Center(
+            child: Text(
+              'Attachment',
+              style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+            ),
+          ),
+          const SizedBox(height: 6),
+          _menuItem(
+            '⤴️',
+            'Upload File Baru',
+            () => _uploadDocument(order, null, postToMessage: true),
+          ),
+          const Divider(height: 8),
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 8),
+            child: Text(
+              'Pilih dari attachment yang sudah ada',
+              style: TextStyle(
+                fontSize: 11.5,
+                fontWeight: FontWeight.w600,
+                color: Color(grey4Color),
+              ),
+            ),
+          ),
+          ConstrainedBox(
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.of(context).size.height * 0.45,
+            ),
+            child: ListView.separated(
+              shrinkWrap: true,
+              itemCount: existing.length,
+              separatorBuilder: (_, __) => const SizedBox(height: 4),
+              itemBuilder: (sheetContext, index) {
+                final item = existing[index];
+                return InkWell(
+                  borderRadius: BorderRadius.circular(8),
+                  onTap: () {
+                    Navigator.pop(sheetContext);
+                    _attachExistingToMessage(item.docName, item.file);
+                  },
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 6),
+                    child: Row(
+                      children: [
+                        _attachmentThumb(item.file, item.docName, 40),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: _attachmentDetail(
+                            order,
+                            item.docName,
+                            item.file,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Lampirkan attachment yang sudah ada ke pesan berikutnya — pindah ke tab Messages & fokus ke
+  /// kolom teks supaya user langsung bisa menulis pertanyaannya.
+  void _attachExistingToMessage(
+    String docName,
+    ReserveOrderAttachmentEntity file,
+  ) {
+    setState(() {
+      _messageRefAttachment = (docName: docName, file: file);
+      _messageAttachment = null;
+    });
+    _tabController.animateTo(_messagesTabIndex);
+    // Kolom teks di tab Messages baru ter-build setelah animasi pindah tab selesai.
+    Future.delayed(kTabScrollDuration, () {
+      if (mounted) _messageFocusNode.requestFocus();
+    });
+  }
+
+  void _scrollMessagesToBottom() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_messageScrollController.hasClients) {
+        _messageScrollController.animateTo(
+          _messageScrollController.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 250),
+          curve: Curves.easeOut,
+        );
+      }
+    });
+  }
+
   /// `POST /reserve-order/message/{id}` — baris chat baru cukup didapat dari `getDetail()` yang
   /// dibalikkan (via [ReserveOrderDetailCubit] yang rebuild `order` di `build()`), tidak perlu
   /// di-append manual ke [order.notes].
   Future<void> _sendMessage(ReserveOrderDetail order) async {
     final text = _messageController.text.trim();
-    if (text.isEmpty || _sendingMessage) return;
+    final attachment = _messageAttachment;
+    final ref = _messageRefAttachment;
+    if ((text.isEmpty && attachment == null && ref == null) ||
+        _sendingMessage) {
+      return;
+    }
 
     setState(() => _sendingMessage = true);
 
     final error = await context.read<ReserveOrderDetailCubit>().sendMessage(
       order.reserveOrderId,
       text,
+      attachmentBytes: attachment?.bytes,
+      attachmentPath: attachment?.path,
+      attachmentName: attachment?.name,
+      contactAttachmentId: ref?.file.contactAttachmentId,
     );
 
     if (!mounted) return;
@@ -1292,15 +1919,11 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage>
     }
 
     _messageController.clear();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (_messageScrollController.hasClients) {
-        _messageScrollController.animateTo(
-          _messageScrollController.position.maxScrollExtent,
-          duration: const Duration(milliseconds: 250),
-          curve: Curves.easeOut,
-        );
-      }
+    setState(() {
+      _messageAttachment = null;
+      _messageRefAttachment = null;
     });
+    _scrollMessagesToBottom();
   }
 
   // ===================== ACTIONS =====================
@@ -1410,8 +2033,10 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage>
     );
     if (confirmed != true || !mounted) return;
 
-    final error = await context.read<ReserveOrderDetailCubit>().delete(
-      order.reserveOrderId,
+    final cubit = context.read<ReserveOrderDetailCubit>();
+    final error = await _runWithLoading(
+      'Menghapus reserve order…',
+      () => cubit.delete(order.reserveOrderId),
     );
 
     if (!mounted) return;
@@ -1422,6 +2047,22 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage>
     }
 
     Navigator.of(context).pop(true);
+  }
+
+  /// Jalankan [task] sambil menampilkan loading yang tidak bisa ditutup, supaya user tahu proses
+  /// hapus (DB + file di Google Drive, bisa beberapa detik) masih berjalan. Navigator-nya diambil
+  /// SEBELUM menunggu supaya loading tetap tertutup walau halaman sudah di-dispose.
+  Future<T> _runWithLoading<T>(
+    String message,
+    Future<T> Function() task,
+  ) async {
+    final navigator = Navigator.of(context, rootNavigator: true);
+    showLoadingDialog(true, context, message: message);
+    try {
+      return await task();
+    } finally {
+      navigator.pop();
+    }
   }
 
   Widget _menuItem(

@@ -25,7 +25,9 @@ class CustomFilterButton extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(14),
         child: Container(
-          constraints: maxWidth != null ? BoxConstraints(maxWidth: maxWidth!) : null,
+          constraints: maxWidth != null
+              ? BoxConstraints(maxWidth: maxWidth!)
+              : null,
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
           decoration: BoxDecoration(
             color: isSelected ? Color(primaryColor) : Color(whiteColor),
@@ -47,20 +49,24 @@ class CustomFilterButton extends StatelessWidget {
             children: [
               Flexible(
                 child: Text(
-                label,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  fontSize: 12,
-                  color: isSelected ? Color(whiteColor) : Color(blackColor),
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: isSelected ? Color(whiteColor) : Color(blackColor),
+                  ),
                 ),
-              ),
               ),
               const SizedBox(width: 4),
               if (isSelected && onClear != null)
                 GestureDetector(
                   onTap: onClear,
-                  child: const Icon(Icons.close_rounded, size: 14, color: Color(whiteColor)),
+                  child: const Icon(
+                    Icons.close_rounded,
+                    size: 14,
+                    color: Color(whiteColor),
+                  ),
                 )
               else
                 Icon(

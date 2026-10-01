@@ -27,12 +27,26 @@ class RejectBanner extends StatelessWidget {
               const Icon(Icons.cancel, size: 15, color: Color(redColor)),
               const SizedBox(width: 6),
               Expanded(
-                child: Text(title, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(redColor))),
+                child: Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: Color(redColor),
+                  ),
+                ),
               ),
             ],
           ),
           const SizedBox(height: 4),
-          Text(reason, style: const TextStyle(fontSize: 11, color: Color(roRejectTextColor), height: 1.4)),
+          Text(
+            reason,
+            style: const TextStyle(
+              fontSize: 11,
+              color: Color(roRejectTextColor),
+              height: 1.4,
+            ),
+          ),
         ],
       ),
     );

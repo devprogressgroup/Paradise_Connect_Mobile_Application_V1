@@ -16,7 +16,8 @@ Future<void> showGlobalNotificationDialog(
   final hasPdf = mediaType == 'pdf' && (mediaUrl?.isNotEmpty ?? false);
   final hasLink = linkUrl != null && linkUrl.isNotEmpty;
   final isInternalLink = linkUrl != null && linkUrl.startsWith('app://');
-  final hasText = title.isNotEmpty || description.isNotEmpty || hasPdf || hasLink;
+  final hasText =
+      title.isNotEmpty || description.isNotEmpty || hasPdf || hasLink;
 
   return showDialog(
     context: context,
@@ -42,7 +43,12 @@ Future<void> showGlobalNotificationDialog(
                     ),
                   if (hasText)
                     Padding(
-                      padding: EdgeInsets.fromLTRB(20, hasImage ? 16 : 24, 20, 20),
+                      padding: EdgeInsets.fromLTRB(
+                        20,
+                        hasImage ? 16 : 24,
+                        20,
+                        20,
+                      ),
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -52,18 +58,30 @@ Future<void> showGlobalNotificationDialog(
                               padding: const EdgeInsets.only(right: 28),
                               child: Text(
                                 title,
-                                style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
+                                style: const TextStyle(
+                                  fontSize: 17,
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
                             ),
                           if (description.isNotEmpty) ...[
                             SizedBox(height: title.isNotEmpty ? 8 : 0),
                             Text(
                               description,
-                              style: TextStyle(fontSize: 14, color: Color(grey2Color), height: 1.4),
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Color(grey2Color),
+                                height: 1.4,
+                              ),
                             ),
                           ],
                           if (hasPdf) ...[
-                            SizedBox(height: (title.isNotEmpty || description.isNotEmpty) ? 16 : 0),
+                            SizedBox(
+                              height:
+                                  (title.isNotEmpty || description.isNotEmpty)
+                                  ? 16
+                                  : 0,
+                            ),
                             InkWell(
                               borderRadius: BorderRadius.circular(12),
                               onTap: () {
@@ -75,65 +93,119 @@ Future<void> showGlobalNotificationDialog(
                               },
                               child: Container(
                                 width: double.maxFinite,
-                                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 14,
+                                  vertical: 12,
+                                ),
                                 decoration: BoxDecoration(
-                                  color: Color(primaryColor).withValues(alpha: 0.08),
+                                  color: Color(
+                                    primaryColor,
+                                  ).withValues(alpha: 0.08),
                                   borderRadius: BorderRadius.circular(12),
-                                  border: Border.all(color: Color(primaryColor).withValues(alpha: 0.3)),
+                                  border: Border.all(
+                                    color: Color(
+                                      primaryColor,
+                                    ).withValues(alpha: 0.3),
+                                  ),
                                 ),
                                 child: Row(
                                   children: [
-                                    Icon(Icons.picture_as_pdf_rounded, color: Color(primaryColor), size: 22),
+                                    Icon(
+                                      Icons.picture_as_pdf_rounded,
+                                      color: Color(primaryColor),
+                                      size: 22,
+                                    ),
                                     const SizedBox(width: 10),
                                     Expanded(
                                       child: Text(
                                         'Lihat Dokumen',
-                                        style: TextStyle(color: Color(primaryColor), fontWeight: FontWeight.w600, fontSize: 14),
+                                        style: TextStyle(
+                                          color: Color(primaryColor),
+                                          fontWeight: FontWeight.w600,
+                                          fontSize: 14,
+                                        ),
                                       ),
                                     ),
-                                    Icon(Icons.chevron_right_rounded, color: Color(primaryColor), size: 20),
+                                    Icon(
+                                      Icons.chevron_right_rounded,
+                                      color: Color(primaryColor),
+                                      size: 20,
+                                    ),
                                   ],
                                 ),
                               ),
                             ),
                           ],
                           if (hasLink) ...[
-                            SizedBox(height: (title.isNotEmpty || description.isNotEmpty || hasPdf) ? 12 : 0),
+                            SizedBox(
+                              height:
+                                  (title.isNotEmpty ||
+                                      description.isNotEmpty ||
+                                      hasPdf)
+                                  ? 12
+                                  : 0,
+                            ),
                             InkWell(
                               borderRadius: BorderRadius.circular(12),
                               onTap: () async {
-                                if (PushNotificationService.tryNavigateInternalLink(linkUrl)) {
+                                if (PushNotificationService.tryNavigateInternalLink(
+                                  linkUrl,
+                                )) {
                                   Navigator.of(ctx).pop();
                                   return;
                                 }
                                 final uri = Uri.tryParse(linkUrl);
                                 if (uri != null && await canLaunchUrl(uri)) {
-                                  launchUrl(uri, mode: LaunchMode.externalApplication);
+                                  launchUrl(
+                                    uri,
+                                    mode: LaunchMode.externalApplication,
+                                  );
                                 }
                               },
                               child: Container(
                                 width: double.maxFinite,
-                                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 14,
+                                  vertical: 12,
+                                ),
                                 decoration: BoxDecoration(
-                                  color: Color(primaryColor).withValues(alpha: 0.08),
+                                  color: Color(
+                                    primaryColor,
+                                  ).withValues(alpha: 0.08),
                                   borderRadius: BorderRadius.circular(12),
-                                  border: Border.all(color: Color(primaryColor).withValues(alpha: 0.3)),
+                                  border: Border.all(
+                                    color: Color(
+                                      primaryColor,
+                                    ).withValues(alpha: 0.3),
+                                  ),
                                 ),
                                 child: Row(
                                   children: [
                                     Icon(
-                                      isInternalLink ? Icons.arrow_forward_rounded : Icons.open_in_new_rounded,
+                                      isInternalLink
+                                          ? Icons.arrow_forward_rounded
+                                          : Icons.open_in_new_rounded,
                                       color: Color(primaryColor),
                                       size: 20,
                                     ),
                                     const SizedBox(width: 10),
                                     Expanded(
                                       child: Text(
-                                        isInternalLink ? 'Lihat Halaman' : 'Buka Link',
-                                        style: TextStyle(color: Color(primaryColor), fontWeight: FontWeight.w600, fontSize: 14),
+                                        isInternalLink
+                                            ? 'Lihat Halaman'
+                                            : 'Buka Link',
+                                        style: TextStyle(
+                                          color: Color(primaryColor),
+                                          fontWeight: FontWeight.w600,
+                                          fontSize: 14,
+                                        ),
                                       ),
                                     ),
-                                    Icon(Icons.chevron_right_rounded, color: Color(primaryColor), size: 20),
+                                    Icon(
+                                      Icons.chevron_right_rounded,
+                                      color: Color(primaryColor),
+                                      size: 20,
+                                    ),
                                   ],
                                 ),
                               ),
@@ -156,7 +228,11 @@ Future<void> showGlobalNotificationDialog(
                   onTap: () => Navigator.of(ctx).pop(),
                   child: const Padding(
                     padding: EdgeInsets.all(6),
-                    child: Icon(Icons.close_rounded, color: Colors.white, size: 18),
+                    child: Icon(
+                      Icons.close_rounded,
+                      color: Colors.white,
+                      size: 18,
+                    ),
                   ),
                 ),
               ),

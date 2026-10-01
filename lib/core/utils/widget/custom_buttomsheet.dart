@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:progress_group/core/constants/colors.dart';
 
-void showCustomBottomSheet({ required BuildContext context, required Widget child,}) {
+void showCustomBottomSheet({
+  required BuildContext context,
+  required Widget child,
+}) {
   showModalBottomSheet(
     context: context,
     isScrollControlled: true,
@@ -9,13 +12,11 @@ void showCustomBottomSheet({ required BuildContext context, required Widget chil
     builder: (context) {
       return Container(
         child: Container(
-          width: double.infinity, 
+          width: double.infinity,
           padding: const EdgeInsets.all(16),
           decoration: const BoxDecoration(
             color: Color(whiteColor),
-            borderRadius: BorderRadius.vertical(
-              top: Radius.circular(20),
-            ),
+            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
           ),
           child: Wrap(
             children: [

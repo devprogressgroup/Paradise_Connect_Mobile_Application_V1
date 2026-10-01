@@ -1,16 +1,15 @@
-﻿import 'dart:io';
+import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../../core/constants/colors.dart';
+import 'web_camera_capture/web_camera_capture.dart';
 
 class PickedFileResult {
-  
   final String? path;
 
-  
   final Uint8List? bytes;
 
   final String name;
@@ -29,13 +28,14 @@ class PickedFileResult {
 }
 
 class CustomFilePicker {
-  
-  
   static Future<PickedFileResult?> show(
     BuildContext context, {
     bool allowCamera = true,
     bool allowImages = true,
     bool allowDocuments = true,
+    double? imageMaxDimension,
+    int? imageQuality,
+    VoidCallback? onAttachment,
   }) {
     return showModalBottomSheet<PickedFileResult?>(
       context: context,
@@ -45,6 +45,9 @@ class CustomFilePicker {
         allowCamera: allowCamera,
         allowImages: allowImages,
         allowDocuments: allowDocuments,
+        imageMaxDimension: imageMaxDimension,
+        imageQuality: imageQuality,
+        onAttachment: onAttachment,
       ),
     );
   }
@@ -55,10 +58,22 @@ class _FilePickerSheet extends StatelessWidget {
   final bool allowImages;
   final bool allowDocuments;
 
+  /// Opsional: kecilkan foto (sisi terpanjang, px) + kualitas JPEG sebelum dikembalikan —
+  /// bikin upload jauh lebih cepat. Null = perilaku lama (foto asli).
+  final double? imageMaxDimension;
+  final int? imageQuality;
+
+  /// Opsional: tampilkan kotak ke-4 "Attachment" — sheet ditutup (hasil null) lalu callback ini
+  /// dipanggil, mis. untuk buka halaman Attachment (file + Attachment Type + deskripsi).
+  final VoidCallback? onAttachment;
+
   const _FilePickerSheet({
     required this.allowCamera,
     required this.allowImages,
     required this.allowDocuments,
+    this.imageMaxDimension,
+    this.imageQuality,
+    this.onAttachment,
   });
 
   @override
@@ -73,7 +88,6 @@ class _FilePickerSheet extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-          
             Container(
               width: 40,
               height: 4,
@@ -98,10 +112,10 @@ class _FilePickerSheet extends StatelessWidget {
                 if (allowCamera)
                   _OptionButton(
                     icon: Icons.camera_alt_rounded,
-                  
+
                     label: 'Kamera',
                     color: Color(primaryColor),
-                    onTap: () => _pick(context, _pickCamera),
+                    onTap: () => _pick(context, () => _pickCamera(context)),
                   ),
                 if (allowImages)
                   _OptionButton(
@@ -117,6 +131,16 @@ class _FilePickerSheet extends StatelessWidget {
                     color: Color(warningColor),
                     onTap: () => _pick(context, _pickDocument),
                   ),
+                if (onAttachment != null)
+                  _OptionButton(
+                    icon: Icons.attach_file_rounded,
+                    label: 'Attachment',
+                    color: Color(purpleColor),
+                    onTap: () {
+                      Navigator.pop(context);
+                      onAttachment!();
+                    },
+                  ),
               ],
             ),
             const SizedBox(height: 8),
@@ -126,7 +150,6 @@ class _FilePickerSheet extends StatelessWidget {
     );
   }
 
-  
   void _pick(
     BuildContext context,
     Future<PickedFileResult?> Function() picker,
@@ -135,24 +158,30 @@ class _FilePickerSheet extends StatelessWidget {
     if (context.mounted) Navigator.pop(context, result);
   }
 
-
-
-
-
-  Future<PickedFileResult?> _pickCamera() async {
+  Future<PickedFileResult?> _pickCamera(BuildContext context) async {
     try {
       if (kIsWeb) {
-      
-      
-      
-        final XFile? file = await ImagePicker().pickImage(source: ImageSource.camera);
-        if (file == null) return null;
-        final bytes = await file.readAsBytes();
-        return PickedFileResult(path: null, bytes: bytes, name: file.name, isImage: true, isPdf: false);
+        // image_picker di web cuma `<input capture>` — di browser desktop jadinya dialog pilih
+        // file, bukan kamera. Pakai getUserMedia langsung supaya kamera beneran kebuka.
+        final bytes = await WebCameraCapture.open(
+          context,
+          maxDimension: imageMaxDimension,
+          quality: imageQuality,
+        );
+        if (bytes == null) return null;
+        return PickedFileResult(
+          path: null,
+          bytes: bytes,
+          name: 'foto_${DateTime.now().millisecondsSinceEpoch}.jpg',
+          isImage: true,
+          isPdf: false,
+        );
       }
       final XFile? file = await ImagePicker().pickImage(
         source: ImageSource.camera,
-        imageQuality: 85,
+        imageQuality: imageQuality ?? 85,
+        maxWidth: imageMaxDimension,
+        maxHeight: imageMaxDimension,
         preferredCameraDevice: CameraDevice.rear,
       );
       if (file == null) return null;
@@ -165,17 +194,29 @@ class _FilePickerSheet extends StatelessWidget {
         isPdf: false,
       );
     } catch (e) {
-    
       return null;
     }
   }
 
-
-
-
   Future<PickedFileResult?> _pickGallery() async {
     try {
-      if (kIsWeb) {
+      if (kIsWeb && (imageMaxDimension != null || imageQuality != null)) {
+        // FilePicker tidak bisa resize — pakai image_picker (web) supaya foto tetap dikecilkan.
+        final XFile? file = await ImagePicker().pickImage(
+          source: ImageSource.gallery,
+          imageQuality: imageQuality,
+          maxWidth: imageMaxDimension,
+          maxHeight: imageMaxDimension,
+        );
+        if (file == null) return null;
+        return PickedFileResult(
+          path: null,
+          bytes: await file.readAsBytes(),
+          name: file.name,
+          isImage: true,
+          isPdf: false,
+        );
+      } else if (kIsWeb) {
         final result = await FilePicker.platform.pickFiles(
           type: FileType.image,
           withData: true,
@@ -190,8 +231,12 @@ class _FilePickerSheet extends StatelessWidget {
           isPdf: false,
         );
       } else {
-        final XFile? file =
-            await ImagePicker().pickImage(source: ImageSource.gallery);
+        final XFile? file = await ImagePicker().pickImage(
+          source: ImageSource.gallery,
+          imageQuality: imageQuality,
+          maxWidth: imageMaxDimension,
+          maxHeight: imageMaxDimension,
+        );
         if (file == null) return null;
         final bytes = await file.readAsBytes();
         return PickedFileResult(
@@ -203,19 +248,23 @@ class _FilePickerSheet extends StatelessWidget {
         );
       }
     } catch (e) {
-    
       return null;
     }
   }
-
-
 
   Future<PickedFileResult?> _pickDocument() async {
     try {
       final result = await FilePicker.platform.pickFiles(
         type: FileType.custom,
         allowedExtensions: [
-          'pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'txt',
+          'pdf',
+          'doc',
+          'docx',
+          'xls',
+          'xlsx',
+          'ppt',
+          'pptx',
+          'txt',
         ],
         withData: true,
       );
@@ -240,7 +289,6 @@ class _FilePickerSheet extends StatelessWidget {
         isPdf: isPdf,
       );
     } catch (e) {
-    
       return null;
     }
   }
@@ -294,8 +342,6 @@ class _OptionButton extends StatelessWidget {
   }
 }
 
-
-
 class FilePreviewWidget extends StatelessWidget {
   final PickedFileResult file;
   final VoidCallback? onRemove;
@@ -340,7 +386,11 @@ class FilePreviewWidget extends StatelessWidget {
                   shape: BoxShape.circle,
                   border: Border.all(color: Color(whiteColor), width: 2),
                 ),
-                child: const Icon(Icons.close, color: Color(whiteColor), size: 11),
+                child: const Icon(
+                  Icons.close,
+                  color: Color(whiteColor),
+                  size: 11,
+                ),
               ),
             ),
           ),
@@ -370,8 +420,8 @@ class FilePreviewWidget extends StatelessWidget {
             file.isPdf
                 ? Icons.picture_as_pdf_rounded
                 : file.isImage
-                    ? Icons.broken_image_rounded
-                    : Icons.insert_drive_file_rounded,
+                ? Icons.broken_image_rounded
+                : Icons.insert_drive_file_rounded,
             color: file.isPdf ? Color(redColor) : Color(primaryColor),
             size: size * 0.42,
           ),

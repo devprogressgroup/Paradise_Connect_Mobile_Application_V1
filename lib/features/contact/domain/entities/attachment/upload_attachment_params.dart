@@ -14,6 +14,10 @@ class UploadAttachmentParams {
   /// TTS (`reserve_order_tts_id`) pemilik file ini — dikirim ulang saat "Upload Ulang" dokumen
   /// TTS/bukti bayar di Reserve Order supaya file penggantinya tetap tertaut ke TTS yang sama.
   final int? reserveOrderTtsId;
+
+  /// true = upload dari tombol "Attachment" di tab Messages Reserve Order — file-nya (beserta
+  /// Attachment Type + deskripsi) ikut tercatat sebagai pesan di order [reserveOrderId].
+  final bool postToMessage;
   final int attachmentTypeId;
   final String? attachmentNote;
 
@@ -30,6 +34,7 @@ class UploadAttachmentParams {
     this.activityId,
     this.reserveOrderId,
     this.reserveOrderTtsId,
+    this.postToMessage = false,
     required this.attachmentTypeId,
     this.attachmentNote,
     this.file,

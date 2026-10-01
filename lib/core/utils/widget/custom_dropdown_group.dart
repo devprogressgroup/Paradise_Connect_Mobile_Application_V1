@@ -13,11 +13,12 @@ class CustomDropdownGroupInbox extends StatefulWidget {
     required this.items,
     required this.hint,
     this.onChanged,
-    required this.icon
+    required this.icon,
   });
 
   @override
-  State<CustomDropdownGroupInbox> createState() => _CustomDropdownGroupInboxState();
+  State<CustomDropdownGroupInbox> createState() =>
+      _CustomDropdownGroupInboxState();
 }
 
 class _CustomDropdownGroupInboxState extends State<CustomDropdownGroupInbox> {
@@ -40,7 +41,7 @@ class _CustomDropdownGroupInboxState extends State<CustomDropdownGroupInbox> {
               mainAxisAlignment: MainAxisAlignment.start,
               children: [
                 Icon(
-                  isOpen ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down, 
+                  isOpen ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
                   color: Color(blue3Color),
                   size: 24,
                 ),
@@ -52,7 +53,6 @@ class _CustomDropdownGroupInboxState extends State<CustomDropdownGroupInbox> {
                     fontWeight: FontWeight.w600,
                   ),
                 ),
-                
               ],
             ),
           ),
@@ -69,16 +69,13 @@ class _CustomDropdownGroupInboxState extends State<CustomDropdownGroupInbox> {
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
               itemCount: widget.items.length,
-              separatorBuilder: (_, __) =>  Container(height: 1),
+              separatorBuilder: (_, __) => Container(height: 1),
               itemBuilder: (context, index) {
                 final item = widget.items[index];
 
                 return InkWell(
                   onTap: () {
-                    setState(() {
-                      
-                      
-                    });
+                    setState(() {});
                     widget.onChanged?.call(item);
                   },
                   child: Padding(
@@ -92,20 +89,21 @@ class _CustomDropdownGroupInboxState extends State<CustomDropdownGroupInbox> {
                             width: 46,
                             height: 40,
                             fit: BoxFit.cover,
-                            errorBuilder: (_, __, ___) =>
-                                Container(
-                                  width: 46,
-                                  height: 40,
-                                  padding: EdgeInsets.all(8),
-                                  decoration: BoxDecoration(
-                                    color: Color(grey10Color),
-                                    shape: BoxShape.circle,
+                            errorBuilder: (_, __, ___) => Container(
+                              width: 46,
+                              height: 40,
+                              padding: EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: Color(grey10Color),
+                                shape: BoxShape.circle,
+                              ),
+                              child: Icon(
+                                widget.icon.icon,
 
-                                  ),
-                                  child: Icon(widget.icon.icon, 
-                                  
-                                  size: 24,color: Color(blue3Color),),
-                                ),
+                                size: 24,
+                                color: Color(blue3Color),
+                              ),
+                            ),
                           ),
                         ),
                         const SizedBox(width: 10),
@@ -150,13 +148,20 @@ class _CustomDropdownGroupInboxState extends State<CustomDropdownGroupInbox> {
                                         ),
                                       ),
                                       Container(
-                                        padding: EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                        padding: EdgeInsets.symmetric(
+                                          horizontal: 10,
+                                          vertical: 4,
+                                        ),
                                         decoration: BoxDecoration(
                                           color: Color(redColor),
-                                          borderRadius: BorderRadius.circular(24),
+                                          borderRadius: BorderRadius.circular(
+                                            24,
+                                          ),
                                           boxShadow: [
                                             BoxShadow(
-                                              color: Color(shadowColor).withOpacity(0.08),
+                                              color: Color(
+                                                shadowColor,
+                                              ).withOpacity(0.08),
                                               blurRadius: 10,
                                               offset: const Offset(0, -2),
                                             ),
@@ -170,11 +175,11 @@ class _CustomDropdownGroupInboxState extends State<CustomDropdownGroupInbox> {
                                             fontWeight: FontWeight.w600,
                                           ),
                                         ),
-                                      )
+                                      ),
                                     ],
                                   ),
                                 ],
-                              )
+                              ),
                             ],
                           ),
                         ),
@@ -190,16 +195,11 @@ class _CustomDropdownGroupInboxState extends State<CustomDropdownGroupInbox> {
   }
 }
 
-
-
-
-
-
 class CustomDropdownGroupContact extends StatefulWidget {
   final String hint;
   final bool? bg;
   final Function()? onTap;
-  final Widget child; 
+  final Widget child;
 
   const CustomDropdownGroupContact({
     super.key,
@@ -214,13 +214,13 @@ class CustomDropdownGroupContact extends StatefulWidget {
       _CustomDropdownGroupContactState();
 }
 
-class _CustomDropdownGroupContactState extends State<CustomDropdownGroupContact> {
+class _CustomDropdownGroupContactState
+    extends State<CustomDropdownGroupContact> {
   bool isOpen = true;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      
       margin: EdgeInsets.only(bottom: !isOpen ? 10 : 0),
       child: Column(
         children: [
@@ -232,7 +232,9 @@ class _CustomDropdownGroupContactState extends State<CustomDropdownGroupContact>
               widget.onTap?.call();
             },
             child: Container(
-              color: widget.bg != null ? Color(transparentColor) : Color(grey9Color) ,
+              color: widget.bg != null
+                  ? Color(transparentColor)
+                  : Color(grey9Color),
               height: 50,
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Row(
@@ -248,19 +250,15 @@ class _CustomDropdownGroupContactState extends State<CustomDropdownGroupContact>
                   Icon(
                     isOpen
                         ? Icons.keyboard_arrow_up
-                        : Icons.keyboard_arrow_down, size: 35,
+                        : Icons.keyboard_arrow_down,
+                    size: 35,
                   ),
                 ],
               ),
             ),
           ),
-      
-      
-          if (isOpen)
-            Container(
-              width: double.infinity,
-              child: widget.child,
-            ),
+
+          if (isOpen) Container(width: double.infinity, child: widget.child),
         ],
       ),
     );

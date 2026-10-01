@@ -1,4 +1,7 @@
+import 'dart:convert';
+
 import 'package:flutter/foundation.dart';
+import 'package:progress_group/core/network/proxy_cipher.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 enum AppEnvironment { production, development, development2, developmnetDomain }
@@ -142,7 +145,37 @@ class ApiConstants {
   static String get prospectStatusLostRangePreset =>
       _prospectStatusLostRangePreset;
 
+  // Cache /settings per environment supaya main() tidak perlu nunggu network sebelum runApp():
+  // nilai terakhir langsung dipakai dari prefs, lalu fetch terbaru jalan di background.
+  static String get _settingsCacheKey => 'cached_settings_${_currentEnv.name}';
+  static String? _settingsSignature;
+
+  static void loadCachedSettings(SharedPreferences prefs) {
+    final raw = ProxyCipher.decryptString(prefs.getString(_settingsCacheKey));
+    if (raw == null) return;
+    try {
+      final list = List<Map<String, dynamic>>.from(jsonDecode(raw) as List);
+      _applySettingValues(list);
+      _settingsSignature = raw;
+    } catch (_) {}
+  }
+
+  /// Terapkan hasil GET /settings. Kalau isinya sama dengan yang sudah terpasang (mis. dari
+  /// cache), tidak melakukan apa-apa — supaya listener [settingsVersion] (Home, Contact)
+  /// tidak reload data tanpa alasan tiap kali settings di-fetch ulang.
   static void applySettings(List<Map<String, dynamic>> settings) {
+    final signature = jsonEncode(settings);
+    if (signature == _settingsSignature) return;
+    _settingsSignature = signature;
+    _applySettingValues(settings);
+    final cacheKey = _settingsCacheKey;
+    SharedPreferences.getInstance()
+        .then((prefs) => prefs.setString(cacheKey, ProxyCipher.encryptString(signature)))
+        .catchError((_) => false);
+    settingsVersion.value++;
+  }
+
+  static void _applySettingValues(List<Map<String, dynamic>> settings) {
     for (final s in settings) {
       final name = s['setting_name'] as String?;
       final value = s['setting_value'] as String?;
@@ -180,7 +213,6 @@ class ApiConstants {
           _prospectStatusLostRangePreset = value;
       }
     }
-    settingsVersion.value++;
   }
 
   static String townshipImageUrl(String slug, String fileName) =>

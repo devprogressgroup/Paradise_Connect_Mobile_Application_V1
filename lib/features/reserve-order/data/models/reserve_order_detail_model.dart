@@ -42,6 +42,7 @@ class ReserveOrderAttachmentModel extends ReserveOrderAttachmentEntity {
     super.reserveOrderTtsId,
     super.verificationStatus,
     super.verificationNote,
+    super.attachmentNote,
     super.createDatetime,
   });
 
@@ -53,6 +54,7 @@ class ReserveOrderAttachmentModel extends ReserveOrderAttachmentEntity {
       reserveOrderTtsId: json['reserve_order_tts_id'] as int?,
       verificationStatus: json['verification_status'] as String?,
       verificationNote: json['verification_note'] as String?,
+      attachmentNote: json['attachment_note'] as String?,
       createDatetime: DateTime.tryParse(
         json['create_datetime'] as String? ?? '',
       ),
@@ -121,6 +123,12 @@ class ReserveOrderMessageModel extends ReserveOrderMessageEntity {
     super.isMe,
     super.time,
     required super.text,
+    super.attachmentUrl,
+    super.attachmentName,
+    super.customer,
+    super.contactedBy,
+    super.status,
+    super.followUp,
   });
 
   factory ReserveOrderMessageModel.fromJson(Map<String, dynamic> json) {
@@ -129,6 +137,12 @@ class ReserveOrderMessageModel extends ReserveOrderMessageEntity {
       isMe: json['is_me'] == true,
       time: json['time'] as String?,
       text: json['text'] as String? ?? '',
+      attachmentUrl: json['attachment_url'] as String?,
+      attachmentName: json['attachment_name'] as String?,
+      customer: json['customer'] as String?,
+      contactedBy: json['contacted_by'] as String?,
+      status: json['status'] as String?,
+      followUp: json['follow_up'] as String?,
     );
   }
 }

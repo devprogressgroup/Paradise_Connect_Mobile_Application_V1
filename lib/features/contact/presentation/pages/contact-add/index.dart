@@ -725,6 +725,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
     final params = UploadAttachmentParams(
       contactId: contactId,
       reserveOrderId: widget.args.reserveOrderId,
+      postToMessage: widget.args.postToReserveOrderMessage,
       attachmentTypeId: selectedTypeId!,
       attachmentNote: descTC.text.isEmpty ? null : descTC.text,
       filesBytesList: compressedBytes,

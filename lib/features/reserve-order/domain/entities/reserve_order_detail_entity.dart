@@ -53,6 +53,9 @@ class ReserveOrderAttachmentEntity extends Equatable {
   final int? reserveOrderTtsId;
   final String? verificationStatus;
   final String? verificationNote;
+
+  /// Deskripsi yang diisi saat upload (`attachment_note`).
+  final String? attachmentNote;
   final DateTime? createDatetime;
 
   const ReserveOrderAttachmentEntity({
@@ -62,6 +65,7 @@ class ReserveOrderAttachmentEntity extends Equatable {
     this.reserveOrderTtsId,
     this.verificationStatus,
     this.verificationNote,
+    this.attachmentNote,
     this.createDatetime,
   });
 
@@ -75,6 +79,7 @@ class ReserveOrderAttachmentEntity extends Equatable {
     reserveOrderTtsId,
     verificationStatus,
     verificationNote,
+    attachmentNote,
     createDatetime,
   ];
 }
@@ -150,15 +155,42 @@ class ReserveOrderMessageEntity extends Equatable {
   final String? time;
   final String text;
 
+  /// Lampiran opsional (link Google Drive) + nama file aslinya.
+  final String? attachmentUrl;
+  final String? attachmentName;
+
+  /// Info dari form Tulis Pesan (web) — pesan lama/log sistem: [contactedBy] & [followUp] kosong.
+  final String? customer;
+  final String? contactedBy;
+  final String? status;
+  final String? followUp;
+
   const ReserveOrderMessageEntity({
     required this.who,
     this.isMe = false,
     this.time,
     required this.text,
+    this.attachmentUrl,
+    this.attachmentName,
+    this.customer,
+    this.contactedBy,
+    this.status,
+    this.followUp,
   });
 
   @override
-  List<Object?> get props => [who, isMe, time, text];
+  List<Object?> get props => [
+    who,
+    isMe,
+    time,
+    text,
+    attachmentUrl,
+    attachmentName,
+    customer,
+    contactedBy,
+    status,
+    followUp,
+  ];
 }
 
 class ReserveOrderSalesEntity extends Equatable {

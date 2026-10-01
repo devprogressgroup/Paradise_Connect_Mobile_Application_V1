@@ -1,5 +1,3 @@
-
-
 import 'package:flutter/material.dart';
 
 import '../../constants/colors.dart';
@@ -40,7 +38,7 @@ class BgIcon extends StatelessWidget {
                   errorBuilder: (_, __, ___) => Icon(fallbackIcon),
                   color: color,
                 )
-              : Icon(fallbackIcon, size: 30,color: color),
+              : Icon(fallbackIcon, size: 30, color: color),
         ),
       ),
     );

@@ -55,8 +55,12 @@ abstract class ReserveOrderRepository {
   );
   Future<Either<String, ReserveOrderDetailEntity>> sendReserveOrderMessage(
     int reserveOrderId,
-    String message,
-  );
+    String message, {
+    Uint8List? attachmentBytes,
+    String? attachmentPath,
+    String? attachmentName,
+    int? contactAttachmentId,
+  });
   Future<Either<String, ReserveOrderDetailEntity>> editReserveOrder(
     int reserveOrderId,
     EditReserveOrderParams params,

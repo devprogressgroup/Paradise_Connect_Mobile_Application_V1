@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:progress_group/core/constants/colors.dart';
 
@@ -10,7 +9,6 @@ class DriveImage extends StatefulWidget {
   final Widget? errorWidget;
   final VoidCallback? onTap;
   final FilterQuality filterQuality;
-
 
   final VoidCallback? onLoad;
 
@@ -32,8 +30,6 @@ class DriveImage extends StatefulWidget {
 
 class _DriveImageWebState extends State<DriveImage> {
   bool _onLoadFired = false;
-
-
 
   void _fireOnLoad() {
     if (_onLoadFired) return;
@@ -57,15 +53,11 @@ class _DriveImageWebState extends State<DriveImage> {
 
   String _toCdnUrl(String url) {
     try {
-      final id = RegExp(r'/d/([a-zA-Z0-9_-]+)').firstMatch(url)?.group(1) ??
+      final id =
+          RegExp(r'/d/([a-zA-Z0-9_-]+)').firstMatch(url)?.group(1) ??
           Uri.parse(url).queryParameters['id'];
       if (id == null) return url;
       final baseUrl = 'https://lh3.googleusercontent.com/d/$id';
-
-
-
-
-
 
       final size = _targetPixelSize();
       if (size == null) return baseUrl;
@@ -83,7 +75,6 @@ class _DriveImageWebState extends State<DriveImage> {
       height: widget.height,
       fit: widget.fit,
       filterQuality: widget.filterQuality,
-
 
       cacheWidth: _targetPixelSize(),
       loadingBuilder: (context, child, progress) {
@@ -119,7 +110,11 @@ class _DriveImageWebState extends State<DriveImage> {
       height: widget.height,
       color: Color(greyShade200),
       alignment: Alignment.center,
-      child: const Icon(Icons.broken_image, size: 40, color: Color(greyShade500)),
+      child: const Icon(
+        Icons.broken_image,
+        size: 40,
+        color: Color(greyShade500),
+      ),
     );
   }
 }

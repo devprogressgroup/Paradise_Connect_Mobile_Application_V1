@@ -27,7 +27,8 @@ class AttendanceAlertsWidget extends StatelessWidget {
           if (!isCheckedIn) {
             final clockInTime = DateTime.tryParse(today.clockIn!);
             if (clockInTime != null) {
-              showCheckIn = AppTime.now().difference(clockInTime).inMinutes >= 10;
+              showCheckIn =
+                  AppTime.now().difference(clockInTime).inMinutes >= 10;
             }
           } else {
             showCheckIn = true;
@@ -40,9 +41,17 @@ class AttendanceAlertsWidget extends StatelessWidget {
         return Column(
           children: [
             if (!isClockedIn)
-              _buildItem(context, 'Kamu belum Clock In hari ini', Icons.fingerprint),
+              _buildItem(
+                context,
+                'Kamu belum Clock In hari ini',
+                Icons.fingerprint,
+              ),
             if (showCheckIn && !isCheckedIn)
-              _buildItem(context, 'Kamu belum Check In hari ini', Icons.location_on_outlined),
+              _buildItem(
+                context,
+                'Kamu belum Check In hari ini',
+                Icons.location_on_outlined,
+              ),
             const SizedBox(height: 8),
           ],
         );
@@ -57,7 +66,9 @@ class AttendanceAlertsWidget extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: BoxDecoration(
           color: Color(whiteColor),
-          border: Border(bottom: BorderSide(color: Color(grey10Color), width: 1)),
+          border: Border(
+            bottom: BorderSide(color: Color(grey10Color), width: 1),
+          ),
           borderRadius: BorderRadius.circular(10),
         ),
         child: Row(
@@ -74,9 +85,30 @@ class AttendanceAlertsWidget extends StatelessWidget {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(message,style: TextStyle(fontSize: 14,fontWeight: FontWeight.bold,color: Color(blackColor),),),
-                    Text('Tap untuk absensi',style: TextStyle(fontSize: 12,fontWeight: FontWeight.bold,color: Color(grey2Color)),),
-                    Text('${DateHelper.formatToIndonesian(AppTime.now(),)}',style: TextStyle(fontSize: 12,fontWeight: FontWeight.bold,color: Color(grey2Color)),),
+                    Text(
+                      message,
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        color: Color(blackColor),
+                      ),
+                    ),
+                    Text(
+                      'Tap untuk absensi',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: Color(grey2Color),
+                      ),
+                    ),
+                    Text(
+                      '${DateHelper.formatToIndonesian(AppTime.now())}',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: Color(grey2Color),
+                      ),
+                    ),
                   ],
                 ),
               ],

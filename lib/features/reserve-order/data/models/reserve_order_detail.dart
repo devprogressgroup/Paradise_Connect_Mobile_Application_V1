@@ -50,6 +50,14 @@ class ReserveOrderChatMessage {
   final String time;
   final String text;
   final Color color;
+  final String? attachmentUrl;
+  final String? attachmentName;
+
+  /// Info dari form Tulis Pesan (web): Customer, Dihubungi oleh, Status Reserve, Follow Up.
+  final String? customer;
+  final String? contactedBy;
+  final String? status;
+  final String? followUp;
 
   ReserveOrderChatMessage({
     required this.who,
@@ -58,7 +66,20 @@ class ReserveOrderChatMessage {
     required this.time,
     required this.text,
     required this.color,
+    this.attachmentUrl,
+    this.attachmentName,
+    this.customer,
+    this.contactedBy,
+    this.status,
+    this.followUp,
   });
+
+  bool get hasAttachment => (attachmentUrl ?? '').isNotEmpty;
+
+  /// Sama dengan web (`_messages.blade.php`): blok info cuma tampil kalau pesannya dari form
+  /// Tulis Pesan — pesan lama/log sistem tidak punya Dihubungi oleh / Follow Up.
+  bool get hasMeta =>
+      (contactedBy ?? '').isNotEmpty || (followUp ?? '').isNotEmpty;
 }
 
 /// Satu Reserve Order lengkap dengan detail — dipakai `ReserveOrderDetailPage`.
@@ -102,6 +123,9 @@ class ReserveOrderDetail {
   /// masing2 punya status verifikasi sendiri. Dipakai buat lihat file & "Upload Ulang"
   /// (`PATCH /contacts/{contact_id}/attachments/{id}`, `reserve_order_tts_id` file lama ikut dikirim).
   final Map<String, List<ReserveOrderAttachmentEntity>> docAttachments;
+
+  /// No. TTS per `reserve_order_tts_id` — buat label file bukti bayar yang terikat ke TTS.
+  final Map<int, String> ttsNumbers;
   final List<ReserveOrderChatMessage> notes;
   final int totalPaidSoFar;
 
@@ -136,6 +160,7 @@ class ReserveOrderDetail {
     required this.docsUploaded,
     this.docAttachmentTypeIds = const {},
     this.docAttachments = const {},
+    this.ttsNumbers = const {},
     required this.notes,
     this.totalPaidSoFar = 2000000,
     this.reserveNote,
@@ -220,6 +245,10 @@ class ReserveOrderDetail {
         for (final d in e.requiredDocs) d.name: d.attachmentTypeId,
       },
       docAttachments: docAttachments,
+      ttsNumbers: {
+        for (final t in e.ttsList)
+          if (t.ttsNumber.isNotEmpty) t.reserveOrderTtsId: t.ttsNumber,
+      },
       notes: e.messages
           .map(
             (m) => ReserveOrderChatMessage(
@@ -228,6 +257,12 @@ class ReserveOrderDetail {
               time: m.time ?? '',
               text: m.text,
               color: const Color(primaryColor),
+              attachmentUrl: m.attachmentUrl,
+              attachmentName: m.attachmentName,
+              customer: m.customer,
+              contactedBy: m.contactedBy,
+              status: m.status,
+              followUp: m.followUp,
             ),
           )
           .toList(),

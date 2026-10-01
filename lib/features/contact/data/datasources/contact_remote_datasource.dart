@@ -636,6 +636,7 @@ class ContactRemoteDataSourceImpl implements ContactRemoteDataSource {
           if (params.dealId != null) 'deal_id': params.dealId,
           if (params.activityId != null) 'activity_id': params.activityId,
           if (params.reserveOrderId != null) 'reserve_order_id': params.reserveOrderId,
+          if (params.postToMessage) 'post_to_message': true,
           'attachment_type_id': params.attachmentTypeId,
           if (params.attachmentNote != null) 'attachment_note': params.attachmentNote,
           'files': filesDataUris,
@@ -655,6 +656,7 @@ class ContactRemoteDataSourceImpl implements ContactRemoteDataSource {
         if (params.dealId != null) 'deal_id': params.dealId,
         if (params.activityId != null) 'activity_id': params.activityId,
         if (params.reserveOrderId != null) 'reserve_order_id': params.reserveOrderId,
+        if (params.postToMessage) 'post_to_message': true,
         'attachment_type_id': params.attachmentTypeId,
         if (params.attachmentNote != null) 'attachment_note': params.attachmentNote,
         if (fileBase64.isNotEmpty) ...{

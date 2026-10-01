@@ -180,12 +180,20 @@ class ReserveOrderRepositoryImpl implements ReserveOrderRepository {
   @override
   Future<Either<String, ReserveOrderDetailEntity>> sendReserveOrderMessage(
     int reserveOrderId,
-    String message,
-  ) async {
+    String message, {
+    Uint8List? attachmentBytes,
+    String? attachmentPath,
+    String? attachmentName,
+    int? contactAttachmentId,
+  }) async {
     try {
       final result = await remoteDataSource.sendReserveOrderMessage(
         reserveOrderId,
         message,
+        attachmentBytes: attachmentBytes,
+        attachmentPath: attachmentPath,
+        attachmentName: attachmentName,
+        contactAttachmentId: contactAttachmentId,
       );
       return Right(result);
     } catch (e) {

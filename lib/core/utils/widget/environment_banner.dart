@@ -28,7 +28,11 @@ class EnvironmentBanner extends StatelessWidget {
               padding: const EdgeInsets.fromLTRB(12, 6, 8, 6),
               child: Row(
                 children: [
-                  const Icon(Icons.dns_outlined, color: Color(whiteColor), size: 18),
+                  const Icon(
+                    Icons.dns_outlined,
+                    color: Color(whiteColor),
+                    size: 18,
+                  ),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(

@@ -1,3 +1,5 @@
+import 'package:dartz/dartz.dart';
+
 import '../../repositories/contact_repository.dart';
 
 class DeleteAttachmentUseCase {
@@ -5,7 +7,7 @@ class DeleteAttachmentUseCase {
 
   DeleteAttachmentUseCase(this.repository);
 
-  Future<void> call({required int contactId,required int attachmentId,}) {
+  Future<Either<String, void>> call({required int contactId,required int attachmentId,}) {
     return repository.deleteAttachment(contactId: contactId,attachmentId: attachmentId,);
   }
 }
