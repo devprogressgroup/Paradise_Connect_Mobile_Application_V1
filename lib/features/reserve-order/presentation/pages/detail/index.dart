@@ -554,29 +554,65 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage>
     );
   }
 
+  /// Pesan terakhir di tahap timeline (`latest_message`) — disamakan dengan web: teks pesan,
+  /// lalu `who · time` di bawahnya, dengan aksen garis di kiri.
   Widget _buildTimelineNote(ReserveOrderTimelineNote note) {
+    final meta = [
+      note.who,
+      note.time,
+    ].where((s) => (s ?? '').trim().isNotEmpty).join(' · ');
     return Container(
       width: double.infinity,
-      margin: const EdgeInsets.only(top: 5),
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+      margin: const EdgeInsets.only(top: 6),
+      clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
         color: const Color(grey11Color),
         borderRadius: BorderRadius.circular(8),
       ),
-      child: RichText(
-        text: TextSpan(
-          style: const TextStyle(
-            fontSize: 10.5,
-            color: Color(grey1Color),
-            height: 1.4,
-          ),
-          children: [
-            const TextSpan(text: '💬 '),
-            TextSpan(
-              text: '${note.who} · ',
-              style: const TextStyle(fontWeight: FontWeight.w700),
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(8, 6, 8, 6),
+        decoration: BoxDecoration(
+          border: Border(
+            left: BorderSide(
+              color: const Color(primaryColor).withValues(alpha: 0.35),
+              width: 3,
             ),
-            TextSpan(text: note.text),
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Padding(
+                  padding: EdgeInsets.only(top: 1.5),
+                  child: Icon(
+                    Icons.chat_bubble_outline,
+                    size: 12,
+                    color: Color(grey1Color),
+                  ),
+                ),
+                const SizedBox(width: 5),
+                Expanded(
+                  child: Text(
+                    note.text,
+                    style: const TextStyle(
+                      fontSize: 11,
+                      color: Colors.black87,
+                      height: 1.35,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            if (meta.isNotEmpty) ...[
+              const SizedBox(height: 2),
+              Text(
+                meta,
+                style: const TextStyle(fontSize: 9.5, color: Color(grey4Color)),
+              ),
+            ],
           ],
         ),
       ),

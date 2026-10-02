@@ -10,13 +10,20 @@ class UnitPickerCubit extends Cubit<UnitPickerState> {
 
   int _townshipId = 0;
   String? townshipName;
+  bool _requireKavling = false;
 
   UnitPickerCubit(this.getHierarchy, this.getLots) : super(const UnitPickerState());
 
-  
-  Future<void> init(int townshipId, {String? townshipName, List<SelectedUnit> initial = const []}) async {
+
+  Future<void> init(
+    int townshipId, {
+    String? townshipName,
+    List<SelectedUnit> initial = const [],
+    bool requireKavling = false,
+  }) async {
     _townshipId = townshipId;
     this.townshipName = townshipName;
+    _requireKavling = requireKavling;
     final sel = {for (final u in initial) u.key: u};
     emit(const UnitPickerState().copyWith(selected: sel));
     await loadTree();
@@ -86,7 +93,15 @@ class UnitPickerCubit extends Cubit<UnitPickerState> {
 
   void _toggle(SelectedUnit u) {
     final m = Map<String, SelectedUnit>.from(state.selected);
-    m.containsKey(u.key) ? m.remove(u.key) : m[u.key] = u;
+    if (m.containsKey(u.key)) {
+      m.remove(u.key);
+    } else {
+      m[u.key] = u;
+      // Mode wajib kavling: begitu unit pasti dipilih, entri "belum tentukan kavling" dibuang.
+      if (_requireKavling && !u.isUndecided) {
+        m.removeWhere((_, s) => s.isUndecided);
+      }
+    }
     emit(state.copyWith(selected: m));
   }
 

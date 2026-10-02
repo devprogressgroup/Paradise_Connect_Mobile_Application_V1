@@ -6,14 +6,26 @@ class ReserveOrderTimelineStepModel extends ReserveOrderTimelineStepEntity {
     required super.label,
     super.sub,
     required super.status,
+    super.latestMessage,
   });
 
   factory ReserveOrderTimelineStepModel.fromJson(Map<String, dynamic> json) {
+    // `is Map` — PHP bisa kirim `[]` (bukan null) kalau kosong.
+    final msg = json['latest_message'];
+    final msgMap = msg is Map<String, dynamic> ? msg : null;
+    final msgText = (msgMap?['text'] as String?)?.trim() ?? '';
     return ReserveOrderTimelineStepModel(
       code: json['code'] as String? ?? '',
       label: json['label'] as String? ?? '',
       sub: json['sub'] as String?,
       status: reserveOrderStageStatusFromApi(json['status'] as String?),
+      latestMessage: msgText.isEmpty
+          ? null
+          : ReserveOrderTimelineMessageEntity(
+              text: msgText,
+              who: msgMap!['who'] as String?,
+              time: msgMap['time'] as String?,
+            ),
     );
   }
 }

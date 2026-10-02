@@ -84,6 +84,9 @@ class CreateReserveOrderUnitParams extends Equatable {
   final String? paymentType;
   final int? paymentTypeId;
   final String? note;
+
+  /// Tanggal Reserve (`reserve_date`, `YYYY-MM-DD`) — diisi sales per unit.
+  final DateTime? reserveDate;
   final List<CreateReserveOrderPaymentParams> payments;
 
   const CreateReserveOrderUnitParams({
@@ -95,6 +98,7 @@ class CreateReserveOrderUnitParams extends Equatable {
     this.paymentType,
     this.paymentTypeId,
     this.note,
+    this.reserveDate,
     required this.payments,
   });
 
@@ -108,6 +112,7 @@ class CreateReserveOrderUnitParams extends Equatable {
         paymentType,
         paymentTypeId,
         note,
+        reserveDate,
         payments,
       ];
 }

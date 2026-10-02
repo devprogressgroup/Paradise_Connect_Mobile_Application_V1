@@ -12,12 +12,16 @@ class UnitPickerScreen extends StatefulWidget {
   final int townshipId;
   final String townshipName;
   final List<SelectedUnit> initial;
+  // true → "belum tentukan kavling" tidak bisa dipilih, tidak ikut dihitung/dikembalikan,
+  // dan otomatis hilang saat unit pasti (kavling / waiting list) dipilih.
+  final bool requireKavling;
 
   const UnitPickerScreen({
     super.key,
     required this.townshipId,
     required this.townshipName,
     this.initial = const [],
+    this.requireKavling = false,
   });
 
   @override
@@ -41,7 +45,14 @@ class _UnitPickerScreenState extends State<UnitPickerScreen> {
           widget.townshipId,
           townshipName: widget.townshipName,
           initial: widget.initial,
+          requireKavling: widget.requireKavling,
         );
+  }
+
+  // Unit yang akan disimpan (dikembalikan ke form).
+  List<SelectedUnit> _savedUnits(UnitPickerState state) {
+    final all = state.selected.values;
+    return widget.requireKavling ? all.where((u) => !u.isUndecided).toList() : all.toList();
   }
 
   @override
@@ -98,7 +109,7 @@ class _UnitPickerScreenState extends State<UnitPickerScreen> {
   }
 
   Widget _header(UnitPickerState state) {
-    final n = state.selected.length;
+    final n = _savedUnits(state).length;
     return Padding(
       padding: const EdgeInsets.fromLTRB(12, 12, 14, 8),
       child: Row(
@@ -261,6 +272,7 @@ class _UnitPickerScreenState extends State<UnitPickerScreen> {
         ),
       ),
       if (expanded) ...[
+        if (!widget.requireKavling)
         _selectRow(
           label: 'Belum menentukan kavling',
           italic: true,
@@ -342,21 +354,24 @@ class _UnitPickerScreenState extends State<UnitPickerScreen> {
   }
 
   Widget _bottomBar(BuildContext context, UnitPickerCubit cubit, UnitPickerState state) {
-    final selected = state.selected.values.toList();
+    // Chip menampilkan semua pilihan (termasuk "belum tentukan kavling" bawaan kontak),
+    // tapi yang dihitung & dikembalikan hanya unit yang disimpan.
+    final chips = state.selected.values.toList();
+    final selected = _savedUnits(state);
     return Container(
       padding: const EdgeInsets.fromLTRB(14, 10, 14, 14),
       decoration: const BoxDecoration(border: Border(top: BorderSide(color: Color(0x14000000)))),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          if (selected.isNotEmpty)
+          if (chips.isNotEmpty)
             Padding(
               padding: const EdgeInsets.only(bottom: 10),
               child: Wrap(
                 spacing: 8,
                 runSpacing: 8,
                 children: [
-                  for (final u in selected)
+                  for (final u in chips)
                     InputChip(
                       label: Text(u.label, style: const TextStyle(fontSize: 11.5, color: _blueText)),
                       backgroundColor: _bluePill,

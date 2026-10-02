@@ -22,9 +22,10 @@ const Map<String, String> reserveOrderDocIcons = {
 enum ReserveOrderStepStatus { done, active, todo }
 
 class ReserveOrderTimelineNote {
-  final String who;
+  final String? who;
   final String text;
-  const ReserveOrderTimelineNote(this.who, this.text);
+  final String? time;
+  const ReserveOrderTimelineNote(this.who, this.text, {this.time});
 }
 
 class ReserveOrderTimelineStep {
@@ -235,6 +236,10 @@ class ReserveOrderDetail {
                 ReserveOrderStageStatus.active => ReserveOrderStepStatus.active,
                 ReserveOrderStageStatus.todo => ReserveOrderStepStatus.todo,
               },
+              notes: [
+                if (s.latestMessage case final m?)
+                  ReserveOrderTimelineNote(m.who, m.text, time: m.time),
+              ],
             ),
           )
           .toList(),

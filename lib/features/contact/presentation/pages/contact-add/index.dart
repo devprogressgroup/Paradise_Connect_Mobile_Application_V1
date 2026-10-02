@@ -43,6 +43,11 @@ import 'package:progress_group/features/contact/presentation/state/prospect_stat
 import 'package:progress_group/features/contact/presentation/state/prospect_status/prospect_status_state.dart';
 import 'package:progress_group/features/contact/presentation/state/contact/contact_bloc.dart';
 import 'package:progress_group/features/contact/presentation/state/contact/contact_event.dart';
+import 'package:progress_group/features/contact/presentation/state/attachment/attachment_cubit.dart';
+import 'package:progress_group/features/contact/presentation/state/attachment/attachment_state.dart';
+import 'package:progress_group/features/reserve-order/presentation/pages/create/reserve_order_navigation.dart';
+import 'package:progress_group/core/utils/helpers/permissions_helper.dart';
+import 'package:progress_group/core/utils/widget/custom_snackbar.dart';
 
 import '../../../../../core/constants/colors.dart';
 import '../../../../../core/utils/helpers/app_time.dart';
@@ -118,6 +123,19 @@ class _ContactAddPageState extends State<ContactAddPage> {
   List<SelectedUnit> _selectedUnits = [];
   List<SelectedUnit> _allUnits = [];
   bool _unitsTouched = false;
+
+  // Lompat tahap (sama dengan form web): tanggal yang diisi untuk tahap yang dilewati, dan
+  // konfirmasi bahwa sisa tahap yang tetap kosong memang sengaja dilewati. Daftar tahapnya
+  // dari server (ProspectStatusEntity.skipStages); di-reset setiap ganti status.
+  final Map<String, DateTime> _skipDates = {};
+  bool _skipAck = false;
+
+  // Status grup 'reserve' tersimpan → sedang memuat detail kontak untuk lanjut ke wizard
+  // Create Reserve Order. Selama true, listener ContactBloc di halaman ini tidak bereaksi.
+  bool _openingReserveOrder = false;
+  // Save terakhir mengirim `defer_status` (status grup reserve ditahan sampai approve Kasir) →
+  // sukses berarti lanjut ke wizard Create Reserve Order, bukan kembali ke Contact Detail.
+  bool _deferredToReserveOrder = false;
 
   File? selectedFile;
   Uint8List? selectedFileBytes;
@@ -760,15 +778,26 @@ class _ContactAddPageState extends State<ContactAddPage> {
   Future<void> _submitUpdateStatus(BuildContext context) async {
 
     final contact = widget.args.dataContact;
-    
+
+    // Lompat tahap: tahap yang tetap kosong wajib dikonfirmasi (aturan sama dengan form web).
+    if (_remainingSkipStages().isNotEmpty && !_skipAck) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Centang konfirmasi lompat tahap, atau isi tanggal tahap yang dilewati.')),
+      );
+      return;
+    }
+
     final editParams = widget.args.createContactParams;
 
-    
-    
-    
+    // Status grup reserve: status & tanggal tahapnya TIDAK dikirim sekarang — berubah setelah
+    // Reserve Order di-approve Kasir. Field lain tetap disimpan, lalu lanjut ke wizard RO.
+    final defer = _willDeferToReserveOrder();
+    _deferredToReserveOrder = defer;
+
+
     final group = _currentStatusGroup();
-    debugPrint('[updateStatus] group=$group selectedDate=$selectedDate selectedStatusId=$selectedStatusId');
-    final d = _buildMilestoneDates(group, contact);
+    debugPrint('[updateStatus] group=$group selectedDate=$selectedDate selectedStatusId=$selectedStatusId defer=$defer');
+    final d = defer ? const <String, String?>{} : _buildMilestoneDates(group, contact);
     debugPrint('[updateStatus] milestoneDates=$d');
     final firstApptDate    = d['firstApptDate'];
     final lastApptDate     = d['lastApptDate'];
@@ -839,10 +868,14 @@ class _ContactAddPageState extends State<ContactAddPage> {
       lastSPDate: lastSPDate,
       lastVisitDate: lastVisitDate,
       lostDate: lostDate,
+
+      skipAck: _remainingSkipStages().isNotEmpty ? _skipAck : null,
+      skipDates: _skipDatesPayload(),
+      deferStatus: defer ? true : null,
     );
 
-    
-    
+
+
     
 
     
@@ -1024,9 +1057,13 @@ class _ContactAddPageState extends State<ContactAddPage> {
         ),
         BlocListener<ContactBloc, ContactState>(
           listener: (ctx, state) {
+            if (_openingReserveOrder) return;
             if (state.status == ContactStatus.updateSuccess) {
               final needsVisitActivity = widget.args.page == 4 || _isVisitGroup(selectedStatusId);
-              if (!needsVisitActivity) {
+              final contactId = widget.args.dataContact?.contactId;
+              if (_deferredToReserveOrder && contactId != null) {
+                _openReserveOrderAfterUpdate(contactId);
+              } else if (!needsVisitActivity) {
                 context.pop(0);
               } else {
                 _contactUpdateDone = true;
@@ -1213,6 +1250,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
         _fieldStatusProspect(),
         SizedBox(height: 12),
         _fieldDate(),
+        _fieldSkippedStages(),
         SizedBox(height: 12),
         if (_currentIsVisitFormStatus()) _fieldJumlahDatang(),
         SizedBox(height: 12),
@@ -1233,6 +1271,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
         _fieldStatusProspect(),
         SizedBox(height: 12),
         _fieldDate(),
+        _fieldSkippedStages(),
         SizedBox(height: 12),
         _fieldProject(),
         SizedBox(height: 12),
@@ -1252,7 +1291,8 @@ class _ContactAddPageState extends State<ContactAddPage> {
       children: [
         _fieldStatusProspect(),
         SizedBox(height: 12),
-        _fieldDate(),
+        _willDeferToReserveOrder() ? _fieldReserveOrderNotice() : _fieldDate(),
+        _fieldSkippedStages(),
         SizedBox(height: 12),
         _fieldProject(),
         SizedBox(height: 12),
@@ -1366,6 +1406,93 @@ class _ContactAddPageState extends State<ContactAddPage> {
 
   
   bool _isVisitGroup(int? id) => _resolveStatusGroup(context.read<ContactFormProspectStatusBloc>().state, id) == 'visit';
+
+  // Grup 'reserve' (10A/10B/30/31/32) = status yang boleh dibuatkan Reserve Order.
+  bool _isReserveGroup(int? id) => _resolveStatusGroup(context.read<ContactFormProspectStatusBloc>().state, id) == 'reserve';
+
+  // Status grup 'reserve' di form Update Status TIDAK langsung diterapkan: Save menyimpan field
+  // lain lalu membuka wizard Create Reserve Order; status kontak baru berubah setelah RO-nya
+  // di-approve Kasir (server). Tanpa akses Create RO → perilaku lama (status langsung berubah).
+  bool _willDeferToReserveOrder() =>
+      widget.args.page == 6 &&
+      _isReserveGroup(selectedStatusId) &&
+      PermissionsHelper.canCreateReserveOrder &&
+      widget.args.dataContact?.contactId != null;
+
+  // Pengganti field "Tanggal ..." untuk status grup reserve: tanggalnya ikut verifikasi Kasir.
+  Widget _fieldReserveOrderNotice() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: Color(whiteColor),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Color(grey7Color)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(Icons.info_outline, color: Color(primaryColor), size: 18),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  "Status menunggu verifikasi Kasir",
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    color: Color(blackColor),
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  "Save akan membuka form Reserve Order (Tanggal Reserve diisi di sana). Status prospek berubah setelah Reserve Order diverifikasi Kasir.",
+                  style: TextStyle(fontSize: 11, color: Color(grey2Color)),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Field lain sudah tersimpan (status ditahan) → langsung lanjut ke wizard Create Reserve Order,
+  // menggantikan halaman ini (Back dari wizard kembali ke Contact Detail). Detail & attachment
+  // dimuat ulang dulu supaya wizard terisi data terbaru — pola sama dengan halaman pilih Contact RO.
+  Future<void> _openReserveOrderAfterUpdate(int contactId) async {
+    setState(() => _openingReserveOrder = true);
+    final contactBloc = context.read<ContactBloc>();
+    final attachmentCubit = context.read<AttachmentCubit>();
+
+    contactBloc.add(FetchContactDetailEvent(contactId));
+    final state = await contactBloc.stream.firstWhere(
+      (s) => s.status == ContactStatus.detailLoaded || s.status == ContactStatus.error,
+    );
+    if (!mounted) return;
+
+    final detail = state.contactDetail;
+    if (state.status != ContactStatus.detailLoaded || detail == null) {
+      // Data form sudah tersimpan; hanya wizard-nya yang gagal dibuka → kembali seperti biasa.
+      showSnackbar(context, 'Data tersimpan, tapi gagal membuka Reserve Order. Buka lagi Update Status Prospect untuk mencoba.', isError: true);
+      context.pop(0);
+      return;
+    }
+
+    await attachmentCubit.fetch(contactId, detail.dealId);
+    if (!mounted) return;
+    final attachmentState = attachmentCubit.state;
+
+    navigateToCreateReserveOrder(
+      context,
+      contact: detail,
+      attachments: attachmentState is AttachmentLoaded ? attachmentState.data : const [],
+      replace: true,
+      notifyPendingProspectStatus: true,
+    );
+  }
 
   
   
@@ -1562,7 +1689,8 @@ class _ContactAddPageState extends State<ContactAddPage> {
 
             final isContactLoading = contactState.status == ContactStatus.creating;
             final isVisitLoading = visitState is VisitLoading;
-            final isLoading = isVisitFlow ? (isVisitLoading || isContactLoading) : isContactLoading;
+            final isLoading = _openingReserveOrder ||
+                (isVisitFlow ? (isVisitLoading || isContactLoading) : isContactLoading);
 
             return customButton(
               isLoading ? null : () {
@@ -1716,6 +1844,217 @@ class _ContactAddPageState extends State<ContactAddPage> {
     );
   }
 
+  // Tahap yang dilewati bila kontak dipindah ke status terpilih (dihitung server per kontak).
+  List<ProspectSkipStage> _currentSkipStages() {
+    final st = context.read<ContactFormProspectStatusBloc>().state;
+    if (st.status != ProspectStatusEnum.loaded) return const [];
+    for (final s in st.statuses) {
+      if (s.statusProspectId == selectedStatusId) return s.skipStages;
+    }
+    return const [];
+  }
+
+  // Tahap dilewati yang TETAP kosong (belum diisi tanggalnya) → inilah yang perlu dikonfirmasi.
+  List<ProspectSkipStage> _remainingSkipStages() =>
+      _currentSkipStages().where((s) => !_skipDates.containsKey(s.key)).toList();
+
+  Map<String, String>? _skipDatesPayload() {
+    final keys = _currentSkipStages().map((s) => s.key).toSet();
+    final out = <String, String>{
+      for (final e in _skipDates.entries)
+        if (keys.contains(e.key)) e.key: DateFormat('yyyy-MM-dd HH:mm:ss').format(e.value),
+    };
+    return out.isEmpty ? null : out;
+  }
+
+  Future<void> _pickSkipDate(String stageKey) async {
+    AnalyticsService.logEvent('contact_add_pick_skip_date');
+    final initial = _skipDates[stageKey] ?? selectedDate ?? AppTime.now();
+
+    final date = await showDatePicker(
+      context: context,
+      initialDate: initial,
+      firstDate: DateTime(2000),
+      lastDate: DateTime(2100),
+    );
+    if (date == null || !mounted) return;
+
+    final time = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay(hour: initial.hour, minute: initial.minute),
+    );
+    if (time == null || !mounted) return;
+
+    setState(() {
+      _skipDates[stageKey] = DateTime(date.year, date.month, date.day, time.hour, time.minute, 0);
+    });
+  }
+
+  // Kartu LOMPAT TAHAP — padanan kotak "Konsumen memang langsung ke ..." di form web. Tanggal
+  // tahap yang dilewati boleh diisi (opsional); yang tetap kosong wajib dikonfirmasi.
+  Widget _fieldSkippedStages() {
+    final stages = _currentSkipStages();
+    if (stages.isEmpty) return const SizedBox.shrink();
+
+    final remaining = _remainingSkipStages();
+    final target = selectedStatusName.contains('-')
+        ? selectedStatusName.split('-').last.trim()
+        : selectedStatusName;
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 12),
+      child: Container(
+        width: double.infinity,
+
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            for (var i = 0; i < stages.length; i++) ...[
+              if (i > 0) const SizedBox(height: 12),
+              _skipDateField(stages[i]),
+            ],
+            if (remaining.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () {
+                  AnalyticsService.logEvent('contact_add_toggle_skip_ack');
+                  setState(() => _skipAck = !_skipAck);
+                },
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 150),
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: _skipAck
+                        ? Color(primaryColor).withValues(alpha: 0.1)
+                        : Color(whiteColor),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: _skipAck ? Color(primaryColor) : Color(grey7Color),
+                    ),
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: Checkbox(
+                          value: _skipAck,
+                          activeColor: Color(primaryColor),
+                          materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          visualDensity: VisualDensity.compact,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+                          onChanged: (val) {
+                            AnalyticsService.logEvent('contact_add_toggle_skip_ack');
+                            setState(() => _skipAck = val ?? false);
+                          },
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text.rich(
+                              TextSpan(
+                                children: [
+                                  const TextSpan(text: "Konsumen langsung ke "),
+                                  TextSpan(text: target, style: const TextStyle(fontWeight: FontWeight.bold)),
+                                  const TextSpan(text: ", lewati "),
+                                  TextSpan(
+                                    text: remaining.map((s) => s.label).join(', '),
+                                    style: const TextStyle(fontWeight: FontWeight.bold),
+                                  ),
+                                  const TextSpan(text: " tanpa tanggal."),
+                                ],
+                              ),
+                              style: TextStyle(fontSize: 12, color: Color(blackColor)),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              "Dianggap disengaja & tidak muncul di bel Prospect Admin.",
+                              style: TextStyle(fontSize: 11, color: Color(grey2Color)),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Desain sama dengan _fieldDate (Tanggal Reserved): label di atas, kotak tanggal di bawah.
+  Widget _skipDateField(ProspectSkipStage stage) {
+    final picked = _skipDates[stage.key];
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text.rich(
+          TextSpan(
+            children: [
+              TextSpan(text: "Tanggal ${stage.label}"),
+              const TextSpan(
+                text: " (opsional)",
+                style: TextStyle(fontWeight: FontWeight.normal),
+              ),
+            ],
+          ),
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.bold,
+            color: Color(grey2Color),
+          ),
+        ),
+        SizedBox(height: 6),
+        GestureDetector(
+          onTap: () => _pickSkipDate(stage.key),
+          child: Container(
+            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Color(grey7Color)),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    picked != null ? DateHelper.formatDateTimeShort(picked) : "Pilih tanggal",
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: picked != null ? FontWeight.bold : FontWeight.normal,
+                      color: picked != null ? Color(blackColor) : Color(grey2Color),
+                    ),
+                  ),
+                ),
+                if (picked != null)
+                  GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: () => setState(() => _skipDates.remove(stage.key)),
+                    child: Padding(
+                      padding: const EdgeInsets.only(right: 12),
+                      child: Icon(Icons.close, color: Color(grey2Color), size: 16),
+                    ),
+                  ),
+                Icon(
+                  Icons.calendar_today,
+                  color: Color(primaryColor),
+                  size: 16,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _fieldStatusProspect() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1772,6 +2111,10 @@ class _ContactAddPageState extends State<ContactAddPage> {
                     );
                 if (picked != null) {
                   setState(() {
+                    if (picked.statusProspectId != selectedStatusId) {
+                      _skipDates.clear();
+                      _skipAck = false;
+                    }
                     selectedStatusId = picked.statusProspectId;
                     selectedStatusName = picked.statusProspectName;
                   });

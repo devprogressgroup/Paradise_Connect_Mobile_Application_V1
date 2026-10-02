@@ -75,6 +75,11 @@ class CreateReserveOrderPage extends StatefulWidget {
   /// customer reserve yang sudah ada.
   final Map<String, dynamic>? initialCustomer;
 
+  /// true = dibuka dari Save form Update Status (status grup reserve). Status prospek kontak
+  /// belum berubah — baru berubah setelah Reserve Order di-approve Kasir — jadi setelah submit
+  /// berhasil ditampilkan popup pemberitahuan.
+  final bool notifyPendingProspectStatus;
+
   const CreateReserveOrderPage({
     super.key,
     required this.contactId,
@@ -102,6 +107,7 @@ class CreateReserveOrderPage extends StatefulWidget {
     this.salesTeamId,
     this.salesTeamName,
     this.initialCustomer,
+    this.notifyPendingProspectStatus = false,
   });
 
   @override
@@ -288,16 +294,33 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
 
   @override
   Widget build(BuildContext context) {
-    return BlocListener<TownshipBloc, TownshipState>(
-      listenWhen: (prev, curr) =>
-          curr is TownshipLoaded &&
-          _selectedProject == null &&
-          widget.contactProjectId != null,
-      listener: (context, state) {
-        if (state is TownshipLoaded) {
-          setState(() => _applyContactProject(state));
-        }
-      },
+    return MultiBlocListener(
+      listeners: [
+        BlocListener<TownshipBloc, TownshipState>(
+          listenWhen: (prev, curr) =>
+              curr is TownshipLoaded &&
+              _selectedProject == null &&
+              widget.contactProjectId != null,
+          listener: (context, state) {
+            if (state is TownshipLoaded) {
+              setState(() => _applyContactProject(state));
+            }
+          },
+        ),
+        // Unit dari Contact untuk project terpilih tidak ada yang Available → langsung buka tab
+        // "Pilih Unit Lain". Dipasang di root (bukan di step 2) karena fetch-nya sudah jalan
+        // sejak step 1 saat project terakhir contact dipilih otomatis.
+        BlocListener<SelectUnitBloc, SelectUnitState>(
+          listenWhen: (prev, curr) =>
+              prev.status != SelectUnitStatus.loaded &&
+              curr.status == SelectUnitStatus.loaded,
+          listener: (context, state) {
+            if (!state.items.any((u) => u.isAvailable)) {
+              setState(() => _unitTab = 'other');
+            }
+          },
+        ),
+      ],
       child: PopScope(
         canPop: _step == 1,
         onPopInvokedWithResult: (didPop, result) {
@@ -1265,6 +1288,65 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
               child: Text(
                 nameMatch == true ? 'Isi Sendiri' : 'Bukan, cek No. KTP lagi',
               ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Popup setelah submit berhasil bila wizard dibuka dari Save form Update Status: status
+  /// prospek kontak belum berubah, baru berubah setelah Reserve Order diverifikasi Kasir.
+  void _showPendingStatusDialog() {
+    const bodyStyle = TextStyle(fontSize: 13, height: 1.45, color: Color(blackColor));
+    const bold = TextStyle(fontWeight: FontWeight.w700);
+
+    showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: Color(whiteColor),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        titlePadding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+        contentPadding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+        actionsPadding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
+        title: Row(
+          children: [
+            Icon(Icons.hourglass_top_rounded, color: Color(primaryColor), size: 26),
+            const SizedBox(width: 10),
+            const Expanded(
+              child: Text(
+                'Menunggu verifikasi',
+                style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+              ),
+            ),
+          ],
+        ),
+        content: const Text.rich(
+          TextSpan(
+            style: bodyStyle,
+            children: [
+              TextSpan(text: 'Reserve Order berhasil dikirim. Status prospek kontak '),
+              TextSpan(text: 'belum berubah', style: bold),
+              TextSpan(
+                text: ' — status akan berubah setelah Reserve Order ini diverifikasi Kasir, '
+                    'mengikuti status Reserve Order-nya.',
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: () => Navigator.pop(ctx),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Color(primaryColor),
+                foregroundColor: Color(whiteColor),
+                minimumSize: const Size(double.infinity, 44),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(11)),
+              ),
+              child: const Text('Mengerti', style: TextStyle(fontWeight: FontWeight.w700)),
             ),
           ),
         ],
@@ -2447,6 +2529,13 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
             message: 'Pilih jenis pembayaran',
           ),
           const SizedBox(height: 12),
+          ReferenceDateField(
+            label: 'Tanggal Reserve',
+            errorText: 'Pilih tanggal reserve',
+            value: draft.transactionDate,
+            onChanged: (d) => setState(() => draft.transactionDate = d),
+            isError: _showDocumentValidation && draft.transactionDate == null,
+          ),
           for (int t = 0; t < draft.tx.length; t++) _txBlock(draft, t),
           Align(
             alignment: Alignment.centerLeft,
@@ -2572,6 +2661,7 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
   void _submitDocument() {
     final hasKtp = _hasKtp;
     final missingPaymentType = _unitDrafts.any((d) => d.paymentTypeId == null);
+    final missingTransactionDate = _unitDrafts.any((d) => d.transactionDate == null);
     final missingProof = _unitDrafts.any(
       (d) =>
           d.tx.any((t) => t.mode == _PaymentMode.transfer && t.proof == null),
@@ -2581,7 +2671,7 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
         (t) => t.mode == _PaymentMode.transfer && t.referenceDate == null,
       ),
     );
-    if (!hasKtp || missingPaymentType || missingProof || missingReferenceDate) {
+    if (!hasKtp || missingPaymentType || missingTransactionDate || missingProof || missingReferenceDate) {
       setState(() => _showDocumentValidation = true);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -2590,6 +2680,8 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
                 ? 'KTP Pemohon wajib diupload.'
                 : missingPaymentType
                 ? 'Jenis Pembayaran wajib dipilih untuk semua unit.'
+                : missingTransactionDate
+                ? 'Tanggal Reserve wajib diisi untuk semua unit.'
                 : missingProof
                 ? 'Bukti Non Tunai wajib diupload untuk semua pembayaran Non Tunai.'
                 : 'Tanggal Bukti Transfer wajib diisi untuk semua pembayaran Non Tunai.',
@@ -2683,6 +2775,10 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
           _reviewLine('Cara Bayar', modes),
           _reviewLine('Jenis Pembayaran', d.paymentType),
           _reviewLine(
+            'Tanggal Reserve',
+            d.transactionDate == null ? '-' : DateFormat('dd/MM/yyyy').format(d.transactionDate!),
+          ),
+          _reviewLine(
             'Nominal Dibayar',
             _formatRupiah(d.total),
             valueColor: Color(successColor),
@@ -2712,6 +2808,7 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
             _createResult = state.result;
             _step = 5;
           });
+          if (widget.notifyPendingProspectStatus) _showPendingStatusDialog();
         }
       },
       builder: (context, state) {
@@ -2890,6 +2987,7 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
             propertyName: d.unit.name,
             paymentType: d.paymentType,
             paymentTypeId: d.paymentTypeId,
+            reserveDate: d.transactionDate,
             payments: d.tx
                 .map(
                   (t) => CreateReserveOrderPaymentParams(
@@ -3191,6 +3289,9 @@ class _UnitPaymentDraft {
   final ReserveUnitOption unit;
   String paymentType = '';
   int? paymentTypeId;
+
+  /// Tanggal Reserve (`reserve_date`) — wajib, diisi sales; tidak boleh ke depan.
+  DateTime? transactionDate;
   final List<_PaymentTxDraft> tx;
 
   _UnitPaymentDraft({required this.unit}) : tx = [_PaymentTxDraft()];

@@ -42,6 +42,7 @@ void navigateToCreateReserveOrder(
   List<ContactAttachment> attachments = const [],
   Map<String, dynamic>? initialCustomer,
   bool replace = false,
+  bool notifyPendingProspectStatus = false,
 }) {
   // Gate fitur 'Create' form "Reserve Order" (software Mobile). Server juga menolak (403).
   if (!PermissionsHelper.canCreateReserveOrder) {
@@ -85,6 +86,7 @@ void navigateToCreateReserveOrder(
       salesTeamId: contact.salesTeamId,
       salesTeamName: contact.salesTeamName,
       initialCustomer: initialCustomer,
+      notifyPendingProspectStatus: notifyPendingProspectStatus,
     ),
   );
 

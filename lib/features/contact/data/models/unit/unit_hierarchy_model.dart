@@ -154,6 +154,9 @@ class SelectedUnit {
 
   bool get isLost => lostDate != null && lostDate!.isNotEmpty;
 
+  // Belum menentukan kavling: bukan kavling tertentu dan bukan waiting list.
+  bool get isUndecided => propertyId == null && !isWaitingList;
+
   String get key =>
       '$clusterId|${productId ?? 0}|${propertyId ?? 0}|${isWaitingList ? 1 : 0}';
 

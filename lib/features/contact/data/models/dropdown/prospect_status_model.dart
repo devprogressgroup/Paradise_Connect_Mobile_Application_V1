@@ -8,6 +8,7 @@ class ProspectStatusModel extends ProspectStatusEntity {
     super.group,
     super.isVisitForm,
     super.isVisitorWi,
+    super.skipStages,
   });
 
   factory ProspectStatusModel.fromJson(Map<String, dynamic> json) {
@@ -18,6 +19,13 @@ class ProspectStatusModel extends ProspectStatusEntity {
       group: (json['group'] as String?)?.isNotEmpty == true ? json['group'] as String : 'db',
       isVisitForm: json['is_visit_form'] == true || json['is_visit_form'] == 1,
       isVisitorWi: json['is_visitor_wi'] == true || json['is_visitor_wi'] == 1,
+      skipStages: (json['skip_stages'] as List<dynamic>? ?? [])
+          .whereType<Map<String, dynamic>>()
+          .map((e) => ProspectSkipStage(
+                key: e['key'] as String,
+                label: (e['label'] as String?) ?? e['key'] as String,
+              ))
+          .toList(),
     );
   }
 
@@ -29,6 +37,7 @@ class ProspectStatusModel extends ProspectStatusEntity {
       'group': group,
       'is_visit_form': isVisitForm,
       'is_visitor_wi': isVisitorWi,
+      'skip_stages': skipStages.map((s) => {'key': s.key, 'label': s.label}).toList(),
     };
   }
 }

@@ -13,6 +13,7 @@ import 'package:progress_group/features/contact/domain/entities/activity/activit
 import 'package:progress_group/features/contact/domain/entities/attachment/attachment_entity.dart';
 import 'package:progress_group/features/contact/domain/entities/activity/activity_prospect_status.dart';
 import 'package:progress_group/features/contact/domain/entities/contact/contact_entity.dart';
+import 'package:progress_group/features/contact/domain/entities/prospect/prospect_status.dart';
 import 'package:progress_group/features/contact/presentation/pages/contact-form/index.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
@@ -26,6 +27,9 @@ import 'package:progress_group/features/contact/presentation/state/attachment/up
 import 'package:progress_group/features/contact/presentation/state/contact/contact_bloc.dart';
 import 'package:progress_group/features/contact/presentation/state/contact/contact_event.dart';
 import 'package:progress_group/features/contact/presentation/state/contact/contact_state.dart';
+import 'package:progress_group/features/contact/presentation/state/prospect_status/prospect_status_bloc.dart';
+import 'package:progress_group/features/contact/presentation/state/prospect_status/prospect_status_event.dart';
+import 'package:progress_group/features/contact/presentation/state/prospect_status/prospect_status_state.dart';
 import 'package:progress_group/features/contact/presentation/state/whatsapp_activity/whatsapp_unread_summary_bloc.dart';
 import 'package:progress_group/features/contact/presentation/state/whatsapp_activity/whatsapp_unread_summary_state.dart';
 import 'package:progress_group/features/reserve-order/presentation/pages/create/reserve_order_navigation.dart';
@@ -37,6 +41,7 @@ import 'package:progress_group/features/inbox/presentation/state/inbox/inbox_sta
 
 import 'package:url_launcher/url_launcher.dart';
 import 'package:progress_group/core/utils/helpers/permissions_helper.dart';
+import 'package:progress_group/core/utils/widget/custom_snackbar.dart';
 import 'package:progress_group/features/auth/presentation/state/auth/auth_bloc.dart';
 import 'package:progress_group/features/auth/presentation/state/auth/auth_event.dart';
 import 'package:progress_group/features/auth/presentation/state/auth/auth_state.dart';
@@ -631,12 +636,30 @@ class _ContactDetailPageState extends State<ContactDetailPage>
     );
   }
 
-  void _navigateToReserveOrder() {
+  Future<void> _navigateToReserveOrder() async {
     AnalyticsService.logEvent('contact_detail_add_reserve_order');
     final contact =
         context.read<ContactBloc>().state.contactDetail ??
         widget.args.dataContact;
     if (contact == null || contact.contactId == null) return;
+
+    // Hanya contact dgn status prospek grup 'reserve' (10A/10B/30/31/32) yang boleh dibuatkan
+    // Reserve Order — sama dengan daftar contact di `SelectContactForReserveOrderPage`.
+    final reserveStatuses = await _loadReserveStatuses();
+    if (!mounted) return;
+    if (reserveStatuses == null) {
+      showSnackbar(context, 'Gagal memuat status prospek. Silakan coba lagi.', isError: true);
+      return;
+    }
+    if (!reserveStatuses.any((s) => s.statusProspectId == contact.statusProspectId)) {
+      final names = reserveStatuses.map((s) => s.statusProspectName).join(', ');
+      showSnackbar(
+        context,
+        'Contact belum bisa Reserve Order. Status prospek minimal harus salah satu dari: $names.',
+        isError: true,
+      );
+      return;
+    }
 
     final attachmentState = context.read<AttachmentCubit>().state;
     final attachments = attachmentState is AttachmentLoaded
@@ -648,6 +671,23 @@ class _ContactDetailPageState extends State<ContactDetailPage>
       contact: contact,
       attachments: attachments,
     );
+  }
+
+  /// Status prospek grup 'reserve' dari [ProspectStatusBloc] global — di-fetch dulu kalau belum
+  /// loaded (mis. Contact Detail dibuka bukan dari halaman Contact). null = gagal dimuat.
+  Future<List<ProspectStatusEntity>?> _loadReserveStatuses() async {
+    final bloc = context.read<ProspectStatusBloc>();
+    var state = bloc.state;
+    if (state.status != ProspectStatusEnum.loaded) {
+      if (state.status != ProspectStatusEnum.loading) {
+        bloc.add(const FetchProspectStatusesEvent());
+      }
+      state = await bloc.stream.firstWhere(
+        (s) => s.status == ProspectStatusEnum.loaded || s.status == ProspectStatusEnum.error,
+      );
+    }
+    if (state.status != ProspectStatusEnum.loaded) return null;
+    return state.statuses.where((s) => s.group == 'reserve').toList();
   }
 
   Widget _buildTabBar() {

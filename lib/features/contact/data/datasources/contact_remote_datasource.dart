@@ -357,6 +357,11 @@ class ContactRemoteDataSourceImpl implements ContactRemoteDataSource {
     
     params.toJson().forEach((key, value) {
       if (key == 'properties_json' || key == 'properties' || value == null) return;
+      // skip_dates (Map tahap → tanggal) dikirim sebagai skip_dates[<tahap>] supaya tetap terbaca server.
+      if (key == 'skip_dates' && value is Map) {
+        value.forEach((stage, date) => data['skip_dates[$stage]'] = date);
+        return;
+      }
       if (value is List || value is Map) return;
       data[key] = value;
     });

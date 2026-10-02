@@ -64,6 +64,13 @@ class CreateContactParams extends Equatable {
   final int? periodePameranId;
   final String? productType;
   final List<Map<String, dynamic>>? units;
+  // Lompat tahap (form Update Status): skipDates = {tahap: 'yyyy-MM-dd HH:mm:ss'} utk tahap
+  // dilewati yang diisi tanggalnya; skipAck = sisa tahap yang tetap kosong memang disengaja.
+  final bool? skipAck;
+  final Map<String, String>? skipDates;
+  // Status grup reserve: jangan ubah status sekarang — server menahannya sampai Reserve Order
+  // di-approve Kasir. Field lain tetap disimpan.
+  final bool? deferStatus;
 
   const CreateContactParams({
     this.fullName,
@@ -128,6 +135,9 @@ class CreateContactParams extends Equatable {
     this.periodePameranId,
     this.productType,
     this.units,
+    this.skipAck,
+    this.skipDates,
+    this.deferStatus,
   });
 
   Map<String, dynamic> toJson() {
@@ -192,6 +202,9 @@ class CreateContactParams extends Equatable {
       if (periodePameranId != null) 'periode_pameran_id': periodePameranId,
       'product_type': productType,
       if (units != null) 'units': units,
+      if (skipAck == true) 'skip_ack': 1,
+      if (skipDates != null && skipDates!.isNotEmpty) 'skip_dates': skipDates,
+      if (deferStatus == true) 'defer_status': 1,
     };
   }
 
@@ -259,5 +272,8 @@ class CreateContactParams extends Equatable {
     periodePameranId,
     productType,
     units,
+    skipAck,
+    skipDates,
+    deferStatus,
   ];
 }

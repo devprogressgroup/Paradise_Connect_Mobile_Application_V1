@@ -601,6 +601,7 @@ class ReserveOrderRemoteDataSourceImpl implements ReserveOrderRemoteDataSource {
       put('payment_type', u.paymentType);
       put('payment_type_id', u.paymentTypeId);
       put('note', u.note);
+      put('reserve_date', u.reserveDate?.toIso8601String().split('T').first);
 
       for (var j = 0; j < u.payments.length; j++) {
         final pay = u.payments[j];

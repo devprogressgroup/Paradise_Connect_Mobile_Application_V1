@@ -13,22 +13,40 @@ ReserveOrderStageStatus reserveOrderStageStatusFromApi(String? value) {
   }
 }
 
+/// Pesan terakhir pada satu tahap timeline (`latest_message`) — `time` sudah diformat server.
+class ReserveOrderTimelineMessageEntity extends Equatable {
+  final String text;
+  final String? who;
+  final String? time;
+
+  const ReserveOrderTimelineMessageEntity({
+    required this.text,
+    this.who,
+    this.time,
+  });
+
+  @override
+  List<Object?> get props => [text, who, time];
+}
+
 /// Satu langkah timeline (10 tahap) — hasil `ReserveOrderService::buildTimeline`.
 class ReserveOrderTimelineStepEntity extends Equatable {
   final String code;
   final String label;
   final String? sub;
   final ReserveOrderStageStatus status;
+  final ReserveOrderTimelineMessageEntity? latestMessage;
 
   const ReserveOrderTimelineStepEntity({
     required this.code,
     required this.label,
     this.sub,
     required this.status,
+    this.latestMessage,
   });
 
   @override
-  List<Object?> get props => [code, label, sub, status];
+  List<Object?> get props => [code, label, sub, status, latestMessage];
 }
 
 class ReserveOrderRequiredDocEntity extends Equatable {
