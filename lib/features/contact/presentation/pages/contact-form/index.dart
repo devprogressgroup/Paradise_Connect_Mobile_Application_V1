@@ -503,6 +503,15 @@ class _ContactFormPageState extends State<ContactFormPage> {
     return sources.where((s) => seen.add(s.name)).toList();
   }
 
+  /// Daftar Channel Detail (type 2) hanya dipakai kalau di-fetch utk Sales Channel yang sedang
+  /// dipilih — InfoSourceBloc global, jadi isinya bisa sisa fetch tanpa sales_channel (mis. saat
+  /// form dibuka sebelum detail kontak termuat) yang di server jatuh ke daftar pameran. null =
+  /// belum ada / tidak cocok → onTap fetch ulang dgn channel sekarang.
+  List<InfoSource>? _source2ForCurrentChannel(InfoSourceState state) {
+    if (state.channelMap[2] != (selectedSource1Name ?? '')) return null;
+    return state.sourcesMap[2];
+  }
+
   
 
   void _applyPameranDate(List<PameranAktifEntity> list, DateTime fallbackNow) {
@@ -621,7 +630,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
       context.read<InfoSourceBloc>().add(const FetchInfoSourcesEvent(type: 1));
     }
 
-    if (context.read<InfoSourceBloc>().state.sourcesMap[2] == null) {
+    if (_source2ForCurrentChannel(context.read<InfoSourceBloc>().state) == null) {
       context.read<InfoSourceBloc>().add(FetchInfoSourcesEvent(type: 2, userId: selectedOwnerId, salesChannel: selectedSource1Name, all: widget.args.page == 1));
     }
 
@@ -2140,7 +2149,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
                             },
                           ),
                           Builder(builder: (context) {
-                            final sources2 = context.watch<InfoSourceBloc>().state.sourcesMap[2];
+                            final sources2 = _source2ForCurrentChannel(context.watch<InfoSourceBloc>().state);
                             final noSalesChannelDetail = _isPameranSource1(selectedSource1Id) && sources2 != null && sources2.isEmpty;
                             return _buildFieldDown(
                             label: "Sales Channel Detail",
@@ -2153,8 +2162,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
                             onTap: () async {
                               AnalyticsService.logEvent('contact_form_select_info_source', parameters: {'field': 'sales_channel_detail'});
                               if (!_guardSalesChain([selectedOwnerId != null, selectLastTownshipId != null, selectedSource1Id != null && selectedSource1Id != 0], ['Owner', 'Project', 'Sales Channel'])) return;
-                              final sourceState = context.read<InfoSourceBloc>().state;
-                              final sources = sourceState.sourcesMap[2];
+                              final sources = _source2ForCurrentChannel(context.read<InfoSourceBloc>().state);
                               if (sources != null) {
                                 final sourceItems = _dedupeByName(sources).map((e) => OwnerDropdownItem(id: e.id, name: e.name)).toList();
                                 final result = await context.pushNamed(
@@ -2702,7 +2710,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
                         },
                       ),
                       Builder(builder: (context) {
-                        final sources2 = context.watch<InfoSourceBloc>().state.sourcesMap[2];
+                        final sources2 = _source2ForCurrentChannel(context.watch<InfoSourceBloc>().state);
                         final noSalesChannelDetail = sources2 != null && sources2.isEmpty;
                         return _buildFieldDown(
                         label: "Sales Channel Detail",
@@ -2715,8 +2723,7 @@ class _ContactFormPageState extends State<ContactFormPage> {
                         onTap: () async {
                           AnalyticsService.logEvent('contact_form_select_info_source', parameters: {'field': 'sales_channel_detail'});
                           if (!_guardSalesChain([selectedOwnerId != null, selectFirstTownshipId != null, selectedSource1Id != null && selectedSource1Id != 0], ['Owner', 'Project', 'Sales Channel'])) return;
-                          final sourceState = context.read<InfoSourceBloc>().state;
-                          final sources = sourceState.sourcesMap[2];
+                          final sources = _source2ForCurrentChannel(context.read<InfoSourceBloc>().state);
                           if (sources != null) {
                             final sourceItems = _dedupeByName(sources).map((e) => OwnerDropdownItem(id: e.id, name: e.name)).toList();
                             final result = await context.pushNamed(
