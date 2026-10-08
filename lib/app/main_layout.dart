@@ -300,9 +300,10 @@ class _MainLayoutState extends State<MainLayout> {
       ),
       bottomNavigationBar: location.endsWith('/camera')
           ? null
-          : SafeArea(
-        top: false,
-        child: Container(
+          // SafeArea di DALAM Container supaya background putih ikut mengisi area home
+          // indicator iOS — kalau SafeArea di luar, area itu transparan dan navbar
+          // kelihatan melayang di atas background halaman.
+          : Container(
         decoration: BoxDecoration(
           color: Color(whiteColor),
           boxShadow: [
@@ -313,6 +314,9 @@ class _MainLayoutState extends State<MainLayout> {
             ),
           ],
         ),
+        child: SafeArea(
+        top: false,
+        child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 6),
         child: BlocBuilder<AuthBloc, AuthState>(
           buildWhen: (prev, curr) => curr is PermissionsLoading || curr is PermissionsLoaded || curr is PermissionsError,
@@ -361,6 +365,7 @@ class _MainLayoutState extends State<MainLayout> {
             );
           },
         ),
+      ),
       ),
       ),
     )));

@@ -1,7 +1,6 @@
 ﻿import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:package_info_plus/package_info_plus.dart';
-import '../../../../../core/utils/web_debug_util.dart' as web_debug;
 import 'package:progress_group/core/services/analytics_service.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
