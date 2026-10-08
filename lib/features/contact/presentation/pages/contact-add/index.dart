@@ -130,6 +130,11 @@ class _ContactAddPageState extends State<ContactAddPage> {
   final Map<String, DateTime> _skipDates = {};
   bool _skipAck = false;
 
+  // Sales Channel kontak Walk-In — dari `is_walk_in` detail kontak (API), BUKAN dari pilihan
+  // Sales Channel di form. Walk-In: kartu lompat tahap & notice verifikasi Kasir tidak
+  // ditampilkan, dan lompatan tahap dianggap disengaja (skip_ack dikirim otomatis).
+  bool _isWalkIn = false;
+
   // Status grup 'reserve' tersimpan → sedang memuat detail kontak untuk lanjut ke wizard
   // Create Reserve Order. Selama true, listener ContactBloc di halaman ini tidak bereaksi.
   bool _openingReserveOrder = false;
@@ -293,6 +298,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
         
         
         selectedStatusId = data.statusProspectId;
+        _isWalkIn = data.isWalkIn ?? false;
 
         selectedBlockNo = params?.lastBlokNo ?? data.lastBlokNo;
         selectedProjectCategory = params?.lastProjectCategory ?? data.lastProjectCategory;
@@ -780,7 +786,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
     final contact = widget.args.dataContact;
 
     // Lompat tahap: tahap yang tetap kosong wajib dikonfirmasi (aturan sama dengan form web).
-    if (_remainingSkipStages().isNotEmpty && !_skipAck) {
+    if (!_isWalkIn && _remainingSkipStages().isNotEmpty && !_skipAck) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Centang konfirmasi lompat tahap, atau isi tanggal tahap yang dilewati.')),
       );
@@ -869,7 +875,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
       lastVisitDate: lastVisitDate,
       lostDate: lostDate,
 
-      skipAck: _remainingSkipStages().isNotEmpty ? _skipAck : null,
+      skipAck: _remainingSkipStages().isNotEmpty ? (_isWalkIn || _skipAck) : null,
       skipDates: _skipDatesPayload(),
       deferStatus: defer ? true : null,
     );
@@ -1076,6 +1082,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
                 selectedProject = data.projectName ?? data.firstProject;
                 
                 selectedStatusId = data.statusProspectId;
+                _isWalkIn = data.isWalkIn ?? false;
                 final statusState = context.read<ContactFormProspectStatusBloc>().state;
                 if (statusState.status == ProspectStatusEnum.loaded) {
                   for (final s in statusState.statuses) {
@@ -1291,7 +1298,10 @@ class _ContactAddPageState extends State<ContactAddPage> {
       children: [
         _fieldStatusProspect(),
         SizedBox(height: 12),
-        _willDeferToReserveOrder() ? _fieldReserveOrderNotice() : _fieldDate(),
+        if (!_willDeferToReserveOrder())
+          _fieldDate()
+        else if (!_isWalkIn)
+          _fieldReserveOrderNotice(),
         _fieldSkippedStages(),
         SizedBox(height: 12),
         _fieldProject(),
@@ -1894,7 +1904,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
   // tahap yang dilewati boleh diisi (opsional); yang tetap kosong wajib dikonfirmasi.
   Widget _fieldSkippedStages() {
     final stages = _currentSkipStages();
-    if (stages.isEmpty) return const SizedBox.shrink();
+    if (stages.isEmpty || _isWalkIn) return const SizedBox.shrink();
 
     final remaining = _remainingSkipStages();
     final target = selectedStatusName.contains('-')

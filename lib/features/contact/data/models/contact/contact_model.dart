@@ -82,6 +82,7 @@ class ContactModel extends ContactEntity {
     super.canEdit,
     super.canDelete,
     super.units,
+    super.isWalkIn,
   });
 
   factory ContactModel.fromJson(Map<String, dynamic> json) {
@@ -166,6 +167,7 @@ class ContactModel extends ContactEntity {
       canEdit: json['can_edit'] == null ? null : (json['can_edit'] == true || json['can_edit'] == 1),
       canDelete: json['can_delete'] == null ? null : (json['can_delete'] == true || json['can_delete'] == 1),
       units: (json['units'] as List?)?.map((e) => SelectedUnit.fromContactJson(e as Map<String, dynamic>)).toList(),
+      isWalkIn: json['is_walk_in'] == null ? null : (json['is_walk_in'] == true || json['is_walk_in'] == 1),
       createdAt: json['created_at'],
       updatedAt: json['updated_at'],
       deletedAt: json['deleted_at'],

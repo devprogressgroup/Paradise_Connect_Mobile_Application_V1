@@ -80,8 +80,10 @@ class ContactEntity extends Equatable {
   
   final bool? canEdit;
   final bool? canDelete;
-  
+
   final List<SelectedUnit>? units;
+  // Sales Channel kontak termasuk Walk-In (setting `SC_WI` di server), dari `is_walk_in`.
+  final bool? isWalkIn;
 
   const ContactEntity({
     this.contactId,
@@ -162,6 +164,7 @@ class ContactEntity extends Equatable {
     this.canEdit,
     this.canDelete,
     this.units,
+    this.isWalkIn,
   });
 
   ContactEntity copyWith({
@@ -242,6 +245,7 @@ class ContactEntity extends Equatable {
     bool? canEdit,
     bool? canDelete,
     List<SelectedUnit>? units,
+    bool? isWalkIn,
   }) {
     return ContactEntity(
       contactId: contactId ?? this.contactId,
@@ -322,6 +326,7 @@ class ContactEntity extends Equatable {
       canEdit: canEdit ?? this.canEdit,
       canDelete: canDelete ?? this.canDelete,
       units: units ?? this.units,
+      isWalkIn: isWalkIn ?? this.isWalkIn,
     );
   }
 
@@ -406,6 +411,7 @@ class ContactEntity extends Equatable {
     canEdit,
     canDelete,
     units,
+    isWalkIn,
   ];
 }
 

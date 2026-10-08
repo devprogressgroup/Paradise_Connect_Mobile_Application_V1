@@ -14,6 +14,7 @@ class UnitPickerScreen extends StatefulWidget {
   final List<SelectedUnit> initial;
   // true → "belum tentukan kavling" tidak bisa dipilih, tidak ikut dihitung/dikembalikan,
   // dan otomatis hilang saat unit pasti (kavling / waiting list) dipilih.
+  // false → hanya placeholder bawaan kontak (tanpa produk) yang otomatis hilang.
   final bool requireKavling;
 
   const UnitPickerScreen({

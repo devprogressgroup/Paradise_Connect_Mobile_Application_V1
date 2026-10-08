@@ -24,7 +24,12 @@ class UnitPickerCubit extends Cubit<UnitPickerState> {
     _townshipId = townshipId;
     this.townshipName = townshipName;
     _requireKavling = requireKavling;
-    final sel = {for (final u in initial) u.key: u};
+    // Placeholder bawaan kontak langsung dibuang kalau sudah ada unit pasti.
+    final hasDecided = initial.any((u) => !u.isUndecided);
+    final sel = {
+      for (final u in initial)
+        if (!(hasDecided && _isPlaceholder(u))) u.key: u,
+    };
     emit(const UnitPickerState().copyWith(selected: sel));
     await loadTree();
   }
@@ -88,6 +93,10 @@ class UnitPickerCubit extends Cubit<UnitPickerState> {
   }
 
   
+  // "Belum tentukan kavling" bawaan kontak (tanpa produk). Pilihan "Belum menentukan kavling"
+  // dari picker selalu membawa produk, jadi tidak termasuk di sini.
+  static bool _isPlaceholder(SelectedUnit u) => u.isUndecided && u.productId == null;
+
   bool isSelected(String key) => state.selected.containsKey(key);
   List<SelectedUnit> get selectedList => state.selected.values.toList();
 
@@ -97,9 +106,11 @@ class UnitPickerCubit extends Cubit<UnitPickerState> {
       m.remove(u.key);
     } else {
       m[u.key] = u;
-      // Mode wajib kavling: begitu unit pasti dipilih, entri "belum tentukan kavling" dibuang.
-      if (_requireKavling && !u.isUndecided) {
-        m.removeWhere((_, s) => s.isUndecided);
+      // Begitu unit pasti (kavling / waiting list) dipilih, placeholder "belum tentukan kavling"
+      // dibuang supaya tidak ikut dikirim ke BE. "Belum menentukan kavling" yang memang dipilih
+      // user tetap dipertahankan, kecuali di mode wajib kavling (semua undecided dibuang).
+      if (!u.isUndecided) {
+        m.removeWhere((_, s) => _requireKavling ? s.isUndecided : _isPlaceholder(s));
       }
     }
     emit(state.copyWith(selected: m));
