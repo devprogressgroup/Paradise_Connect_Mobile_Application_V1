@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kIsWeb, defaultTargetPlatform, TargetPlatform;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -302,9 +303,9 @@ class _MainLayoutState extends State<MainLayout> {
       ),
       bottomNavigationBar: location.endsWith('/camera')
           ? null
-          : SafeArea(
-        top: false,
-        child: Container(
+          // Inset bawah dihitung di DALAM Container supaya background putih ikut mengisi
+          // area home indicator iOS — lihat _navBottomPadding.
+          : Container(
         decoration: BoxDecoration(
           color: Color(whiteColor),
           boxShadow: [
@@ -315,7 +316,8 @@ class _MainLayoutState extends State<MainLayout> {
             ),
           ],
         ),
-        padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 6),
+        child: Padding(
+        padding: EdgeInsets.fromLTRB(6, 15, 6, _navBottomPadding(context)),
         child: BlocBuilder<AuthBloc, AuthState>(
           buildWhen: (prev, curr) => curr is PermissionsLoading || curr is PermissionsLoaded || curr is PermissionsError,
           builder: (context, state) {
@@ -366,6 +368,16 @@ class _MainLayoutState extends State<MainLayout> {
       ),
       ),
     )));
+  }
+
+  // Jarak bawah navbar. Android/web: padding 15 + inset sistem (biasanya 0).
+  // iOS: area home indicator (~34pt) cukup dipakai separuh tanpa tambahan 15 —
+  // kalau dipakai penuh + 15, ikon kelihatan jauh lebih tinggi dibanding Android.
+  double _navBottomPadding(BuildContext context) {
+    final inset = MediaQuery.paddingOf(context).bottom;
+    final isIOSApp = !kIsWeb && defaultTargetPlatform == TargetPlatform.iOS;
+    if (isIOSApp && inset > 0) return inset / 2 > 15 ? inset / 2 : 15;
+    return 15 + inset;
   }
 
 
