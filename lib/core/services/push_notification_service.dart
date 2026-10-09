@@ -7,6 +7,7 @@ import 'package:dio/dio.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
+import 'package:progress_group/core/services/play_update_service.dart';
 import 'package:progress_group/core/services/version_check_service.dart';
 import 'package:progress_group/core/utils/helpers/app_time.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
@@ -72,7 +73,12 @@ class PushNotificationService {
   }
 
   static Future<void> checkAndShowUpdateBanner() async {
-  
+    // Banner ini mengarah ke OTA APK, yang gagal untuk app dari Play (signature beda).
+    // App dari Play diwajibkan update lewat Play In-App Update di VersionCheckService.
+    if (await PlayUpdateService.isFromPlayStore()) return;
+    // iOS cuma bisa di-update lewat App Store, OTA APK tidak berlaku.
+    if (!kIsWeb && Platform.isIOS) return;
+
     try {
       final dio = _dio ?? Dio();
       final resp = await dio.get('/app-version');
@@ -585,6 +591,8 @@ class PushNotificationService {
     final action = data['action'] as String?;
 
     if (type == 'app_update') {
+      // iOS cuma bisa di-update lewat App Store, OTA APK tidak berlaku.
+      if (!kIsWeb && Platform.isIOS) return;
       final url = data['download_url'] as String? ?? data['route'] as String?;
       if (url != null && url.isNotEmpty) {
         PackageInfo.fromPlatform().then((info) {

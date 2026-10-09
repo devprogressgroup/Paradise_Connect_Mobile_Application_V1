@@ -1,5 +1,8 @@
+import 'dart:io' show Platform;
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:progress_group/core/network/api_constants.dart';
+import 'package:progress_group/core/services/play_update_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 const _kInstalledVersionKey = 'installed_app_version';
@@ -9,12 +12,14 @@ class VersionCheckResult {
   final String latestVersion;
   final String currentVersion;
   final String downloadUrl;
+  final bool fromPlayStore;
 
   const VersionCheckResult({
     required this.requiresUpdate,
     required this.latestVersion,
     required this.currentVersion,
     required this.downloadUrl,
+    this.fromPlayStore = false,
   });
 }
 
@@ -37,6 +42,29 @@ class VersionCheckService {
       final savedVersion = await getInstalledVersion();
       if (savedVersion == null) {
         await saveInstalledVersion(currentVersion);
+      }
+
+      // iOS cuma bisa di-update lewat App Store — UpdateScreen (OTA APK) tidak jalan di iOS
+      // dan malah mengunci user di layar "Mempersiapkan..." selamanya.
+      if (!kIsWeb && Platform.isIOS) {
+        return VersionCheckResult(
+          requiresUpdate: false,
+          latestVersion: currentVersion,
+          currentVersion: currentVersion,
+          downloadUrl: '',
+        );
+      }
+
+      // Install dari Play: sumber kebenarannya Play, bukan LAST_VERSION — setiap rilis baru
+      // di Play langsung wajib di-update (immediate). Lihat PlayUpdateService.
+      if (await PlayUpdateService.isFromPlayStore()) {
+        return VersionCheckResult(
+          requiresUpdate: await PlayUpdateService.isUpdateAvailable(),
+          latestVersion: '',
+          currentVersion: currentVersion,
+          downloadUrl: '',
+          fromPlayStore: true,
+        );
       }
 
       final latestVersion = ApiConstants.lastVersion;

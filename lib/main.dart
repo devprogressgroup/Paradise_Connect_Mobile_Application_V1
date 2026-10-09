@@ -7,8 +7,10 @@ import 'package:flutter/services.dart';
 import 'package:flutter_web_plugins/url_strategy.dart';
 import 'package:app_links/app_links.dart';
 import 'package:progress_group/core/constants/colors.dart';
+import 'package:progress_group/core/screens/play_update_screen.dart';
 import 'package:progress_group/core/screens/update_screen.dart';
 import 'package:progress_group/core/services/old_app_check_service.dart';
+import 'package:progress_group/core/services/play_update_service.dart';
 import 'core/utils/web_debug_util.dart' as web_debug;
 import 'core/utils/web_update.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -341,12 +343,16 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     if (_updateResult == null) _checkVersion();
   }
 
-  void _onOtaTrigger() {
+  Future<void> _onOtaTrigger() async {
     final result = PushNotificationService.otaTrigger.value;
-    if (result != null && mounted) {
-      setState(() => _updateResult = result);
-      PushNotificationService.otaTrigger.value = null;
+    if (result == null || !mounted) return;
+    PushNotificationService.otaTrigger.value = null;
+    // App dari Play tidak bisa di-update pakai APK OTA (signature beda) — cek ke Play saja.
+    if (await PlayUpdateService.isFromPlayStore()) {
+      _checkVersion();
+      return;
     }
+    if (mounted) setState(() => _updateResult = result);
   }
 
   @override
@@ -881,11 +887,13 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
                 children: [
                   child!,
                   if (_updateResult != null)
-                    UpdateScreen(
-                      downloadUrl: _updateResult!.downloadUrl,
-                      currentVersion: _updateResult!.currentVersion,
-                      latestVersion: _updateResult!.latestVersion,
-                    ),
+                    _updateResult!.fromPlayStore
+                        ? const PlayUpdateScreen()
+                        : UpdateScreen(
+                            downloadUrl: _updateResult!.downloadUrl,
+                            currentVersion: _updateResult!.currentVersion,
+                            latestVersion: _updateResult!.latestVersion,
+                          ),
                 ],
               ),
             ),

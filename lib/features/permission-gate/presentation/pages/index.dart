@@ -50,7 +50,10 @@ class _PermissionGatePageState extends State<PermissionGatePage> with WidgetsBin
       _locationServiceEnabled && _items.every((i) => _granted[i.type] == true);
 
   Future<void> _refresh() async {
-    _locationServiceEnabled = await DevicePermissionGate.isLocationServiceEnabled();
+    // Tanpa item yang di-gate (iOS, lihat [DevicePermissionGate.requiredItems]), GPS
+    // mati pun tidak boleh menahan user di sini — absensi sudah cek GPS sendiri.
+    _locationServiceEnabled =
+        _items.isEmpty || await DevicePermissionGate.isLocationServiceEnabled();
     for (final item in _items) {
       _granted[item.type] = await DevicePermissionGate.isGranted(item.type);
       _permanentlyDenied[item.type] = await DevicePermissionGate.isPermanentlyDenied(item.type);
