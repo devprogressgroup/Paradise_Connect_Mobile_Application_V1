@@ -56,12 +56,18 @@ class ReserveOrderAttachmentModel extends ReserveOrderAttachmentEntity {
     super.verificationNote,
     super.attachmentNote,
     super.createDatetime,
+    super.isVerifiable,
   });
 
+  /// attachment_type_id yang diverifikasi Kasir: 1 KTP Pemohon, 15 Bukti Transfer — fallback kalau
+  /// server belum mengirim `is_verifiable`.
+  static const _verifiableTypeIds = {1, 15};
+
   factory ReserveOrderAttachmentModel.fromJson(Map<String, dynamic> json) {
+    final typeId = json['attachment_type_id'] as int?;
     return ReserveOrderAttachmentModel(
       contactAttachmentId: json['contact_attachment_id'] as int,
-      attachmentTypeId: json['attachment_type_id'] as int?,
+      attachmentTypeId: typeId,
       attachmentPath: json['attachment_path'] as String?,
       reserveOrderTtsId: json['reserve_order_tts_id'] as int?,
       verificationStatus: json['verification_status'] as String?,
@@ -70,6 +76,7 @@ class ReserveOrderAttachmentModel extends ReserveOrderAttachmentEntity {
       createDatetime: DateTime.tryParse(
         json['create_datetime'] as String? ?? '',
       ),
+      isVerifiable: json['is_verifiable'] as bool? ?? _verifiableTypeIds.contains(typeId),
     );
   }
 }

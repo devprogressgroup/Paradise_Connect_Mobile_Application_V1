@@ -1021,13 +1021,13 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage>
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        'File $number',
-                        style: const TextStyle(
-                          fontSize: 11.5,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
+                      // Text(
+                      //   'File $number',
+                      //   style: const TextStyle(
+                      //     fontSize: 11.5,
+                      //     fontWeight: FontWeight.w600,
+                      //   ),
+                      // ),
                       if (uploadedAt != null)
                         Text(
                           uploadedAt,
@@ -1039,24 +1039,26 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage>
                     ],
                   ),
                 ),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 3,
-                  ),
-                  decoration: BoxDecoration(
-                    color: statusColor.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Text(
-                    statusLabel,
-                    style: TextStyle(
-                      fontSize: 9.5,
-                      fontWeight: FontWeight.w700,
-                      color: statusColor,
+                // Status verifikasi hanya utk KTP Pemohon & Bukti Transfer (`isVerifiable`).
+                if (file.isVerifiable)
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 3,
+                    ),
+                    decoration: BoxDecoration(
+                      color: statusColor.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Text(
+                      statusLabel,
+                      style: TextStyle(
+                        fontSize: 9.5,
+                        fontWeight: FontWeight.w700,
+                        color: statusColor,
+                      ),
                     ),
                   ),
-                ),
               ],
             ),
             if (file.isRejected)
@@ -1097,7 +1099,7 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage>
         title: const Text('Hapus Dokumen?'),
         content: Text(
           'Hapus $docName · File $number? '
-          '${file.verificationStatus == 'approved' ? 'File ini sudah Disetujui. ' : ''}'
+          '${file.isVerifiable && file.verificationStatus == 'approved' ? 'File ini sudah Disetujui. ' : ''}'
           'File ikut terhapus dari Google Drive, termasuk lampirannya di pesan — '
           'tindakan ini tidak bisa dibatalkan.',
         ),
@@ -1770,14 +1772,17 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage>
         Text.rich(
           TextSpan(
             children: [
-              TextSpan(
-                text: statusLabel,
-                style: TextStyle(
-                  color: statusColor,
-                  fontWeight: FontWeight.w700,
+              // Status verifikasi hanya utk KTP Pemohon & Bukti Transfer (`isVerifiable`).
+              if (file.isVerifiable)
+                TextSpan(
+                  text: statusLabel,
+                  style: TextStyle(
+                    color: statusColor,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
-              ),
-              if (meta.isNotEmpty) TextSpan(text: ' · $meta'),
+              if (meta.isNotEmpty)
+                TextSpan(text: file.isVerifiable ? ' · $meta' : meta),
             ],
           ),
           maxLines: 1,

@@ -76,6 +76,10 @@ class ReserveOrderAttachmentEntity extends Equatable {
   final String? attachmentNote;
   final DateTime? createDatetime;
 
+  /// Dokumen ini punya status verifikasi? (`is_verifiable`) — hanya KTP Pemohon & Bukti Transfer.
+  /// Dokumen lain tampil tanpa status (Menunggu verifikasi/Disetujui/Ditolak).
+  final bool isVerifiable;
+
   const ReserveOrderAttachmentEntity({
     required this.contactAttachmentId,
     this.attachmentTypeId,
@@ -85,9 +89,10 @@ class ReserveOrderAttachmentEntity extends Equatable {
     this.verificationNote,
     this.attachmentNote,
     this.createDatetime,
+    this.isVerifiable = true,
   });
 
-  bool get isRejected => verificationStatus == 'rejected';
+  bool get isRejected => isVerifiable && verificationStatus == 'rejected';
 
   @override
   List<Object?> get props => [
@@ -99,6 +104,7 @@ class ReserveOrderAttachmentEntity extends Equatable {
     verificationNote,
     attachmentNote,
     createDatetime,
+    isVerifiable,
   ];
 }
 

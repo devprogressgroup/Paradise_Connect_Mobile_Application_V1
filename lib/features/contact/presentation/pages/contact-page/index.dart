@@ -411,7 +411,11 @@ class _ContactPageState extends State<ContactPage> {
                     ),
                     Expanded(
                       child: BlocConsumer<ContactBloc, ContactState>(
-                        listenWhen: (prev, curr) => curr.status == ContactStatus.error && prev.status == ContactStatus.loading,
+                        // Error saat memuat list ATAU saat hapus kontak (mis. ditolak server karena
+                        // status kontak sudah SP) — pesan dari server ditampilkan apa adanya.
+                        listenWhen: (prev, curr) =>
+                            curr.status == ContactStatus.error &&
+                            (prev.status == ContactStatus.loading || prev.status == ContactStatus.deleting),
                         listener: (context, state) {
                           final msg = (state.errorMessage ?? '').replaceFirst('Exception: ', '').trim();
                           showErrorDialog(
