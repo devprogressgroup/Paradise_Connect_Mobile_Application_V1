@@ -34,17 +34,49 @@ class UnitPickerCubit extends Cubit<UnitPickerState> {
     await loadTree();
   }
 
+  // Batas tipe yang di-expand otomatis saat search, supaya kata kunci yang terlalu umum
+  // tidak memicu banyak request kavling sekaligus (cluster tetap di-expand semua).
+  static const _autoExpandMaxProducts = 10;
+
   Future<void> loadTree() async {
+    final search = state.search;
     emit(state.copyWith(status: UnitPickerStatus.loading));
-    final res = await getHierarchy(townshipId: _townshipId, search: state.search.isEmpty ? null : state.search);
+    final res = await getHierarchy(townshipId: _townshipId, search: search.isEmpty ? null : search);
+    // Respons kata kunci lama dibuang kalau user sudah mengetik kata kunci baru.
+    if (search != state.search) return;
     res.fold(
       (f) => emit(state.copyWith(status: UnitPickerStatus.error, errorMessage: f)),
-      (clusters) => emit(state.copyWith(status: UnitPickerStatus.loaded, clusters: clusters)),
+      (clusters) {
+        emit(state.copyWith(status: UnitPickerStatus.loaded, clusters: clusters));
+        if (search.isNotEmpty) _autoExpand(clusters);
+      },
     );
   }
 
+  // Hasil search langsung dibuka sampai level kavling supaya yang cocok langsung kelihatan.
+  void _autoExpand(List<UnitCluster> clusters) {
+    final products = [for (final c in clusters) ...c.products];
+    final expandProducts = products.length <= _autoExpandMaxProducts;
+    emit(state.copyWith(
+      expandedClusters: {for (final c in clusters) c.projectId},
+      expandedProducts: expandProducts ? {for (final p in products) productKey(p)} : const {},
+    ));
+    if (!expandProducts) return;
+    for (final p in products) {
+      loadLots(p);
+    }
+  }
+
   void setSearch(String q) {
-    emit(state.copyWith(search: q));
+    if (q == state.search) return;
+    // Cache kavling ikut terfilter search → dibuang tiap ganti kata kunci, expand juga di-reset.
+    emit(state.copyWith(
+      search: q,
+      lotsByProduct: const {},
+      loadingProductIds: const {},
+      expandedClusters: const {},
+      expandedProducts: const {},
+    ));
     loadTree();
   }
 
@@ -74,14 +106,17 @@ class UnitPickerCubit extends Cubit<UnitPickerState> {
 
   Future<void> loadLots(UnitProduct product) async {
     final key = productKey(product);
+    final search = state.search;
     emit(state.copyWith(loadingProductIds: {...state.loadingProductIds, key}));
-    
+
+    // BE: cari nama cluster/tipe → semua kavlingnya; cari nama kavling → hanya yang cocok.
     final res = await getLots(
       productId: product.productId,
       townshipId: product.townshipId != 0 ? product.townshipId : _townshipId,
       companyId: product.companyId,
-      search: null,
+      search: search.isEmpty ? null : search,
     );
+    if (search != state.search) return;
     final done = Set<String>.from(state.loadingProductIds)..remove(key);
     res.fold(
       (f) => emit(state.copyWith(loadingProductIds: done, errorMessage: f)),
