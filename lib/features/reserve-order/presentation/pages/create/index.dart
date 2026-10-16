@@ -1652,7 +1652,7 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
       id: 'deal-${u.dealId}',
       name:
           u.propertyName ??
-          (u.isWaitingList ? 'Waiting list' : 'Belum tentukan kavling'),
+          (u.isWaitingList ? 'Waitinglist' : 'Belum tentukan kavling'),
       context: contextLabel,
       available: u.isAvailable,
       special: u.propertyId == null,
@@ -1983,7 +1983,7 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
         _specialRow(
           ReserveUnitOption(
             id: 'waiting-${cluster.projectId}-${product.productId}',
-            name: 'Waiting list',
+            name: 'Waitinglist',
             context: contextLabel,
             special: true,
             townshipId: cluster.townshipId,

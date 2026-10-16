@@ -89,6 +89,7 @@ import 'package:progress_group/features/reserve-order/domain/repositories/reserv
 import 'package:progress_group/features/reserve-order/domain/usecases/create_reserve_order_usecase.dart';
 import 'package:progress_group/features/reserve-order/domain/usecases/delete_reserve_order_usecase.dart';
 import 'package:progress_group/features/reserve-order/domain/usecases/edit_reserve_order_usecase.dart';
+import 'package:progress_group/features/reserve-order/domain/usecases/update_reserve_order_questionnaire_usecase.dart';
 import 'package:progress_group/features/reserve-order/domain/usecases/get_cara_bayar_usecase.dart';
 import 'package:progress_group/features/reserve-order/domain/usecases/get_payment_types_usecase.dart';
 import 'package:progress_group/features/reserve-order/domain/usecases/get_reserve_order_detail_usecase.dart';
@@ -510,6 +511,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     final topupReserveOrderUseCase = TopupReserveOrderUseCase(reserveOrderRepository);
     final sendReserveOrderMessageUseCase = SendReserveOrderMessageUseCase(reserveOrderRepository,);
     final editReserveOrderUseCase = EditReserveOrderUseCase(reserveOrderRepository);
+    final updateReserveOrderQuestionnaireUseCase = UpdateReserveOrderQuestionnaireUseCase(reserveOrderRepository);
     final deleteReserveOrderUseCase = DeleteReserveOrderUseCase(reserveOrderRepository);
 
     final siteplanRemoteDataSource = SiteplanRemoteDataSourceImpl(dioClient.dio,);
@@ -770,6 +772,8 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
                   sendReserveOrderMessageUseCase:
                       sendReserveOrderMessageUseCase,
                   editReserveOrderUseCase: editReserveOrderUseCase,
+                  updateReserveOrderQuestionnaireUseCase:
+                      updateReserveOrderQuestionnaireUseCase,
                   deleteReserveOrderUseCase: deleteReserveOrderUseCase,
                   deleteAttachmentUseCase: deleteAttachmentUseCase,
                 ),

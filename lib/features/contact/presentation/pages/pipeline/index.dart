@@ -134,7 +134,7 @@ class _PipelineScreenState extends State<PipelineScreen> {
     if ((d.propertyName ?? '').isNotEmpty) {
       unitSub = d.propertyName! + (d.isHoek ? '  •  Hook' : '');
     } else if (d.isWaitingList) {
-      unitSub = 'Waiting list';
+      unitSub = 'Waitinglist';
     } else if (unitPath.isNotEmpty) {
       unitSub = 'Belum tentukan kavling';
     } else {

@@ -19,12 +19,14 @@ import 'package:progress_group/features/contact/domain/entities/contact/contact_
 import 'package:progress_group/features/reserve-order/data/models/reserve_order_customer_data.dart';
 import 'package:progress_group/features/reserve-order/data/models/reserve_order_detail.dart';
 import 'package:progress_group/features/reserve-order/domain/entities/reserve_order_detail_entity.dart';
+import 'package:progress_group/features/reserve-order/domain/entities/reserve_order_questionnaire_entity.dart';
 import 'package:progress_group/features/reserve-order/presentation/state/reserve_order_detail/reserve_order_detail_cubit.dart';
 import 'package:progress_group/features/reserve-order/presentation/state/reserve_order_detail/reserve_order_detail_state.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../edit-customer/index.dart';
+import '../questionnaire/index.dart';
 import '../top-up/index.dart';
 
 class ReserveOrderDetailPage extends StatefulWidget {
@@ -280,12 +282,32 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage>
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Text(
-                      order.customerName,
-                      style: const TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700,
-                      ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          order.customerName,
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        InkWell(
+                          onTap: () =>  _openContactDetail(order),
+                          child: Row(
+                            children: [
+                              Icon(Icons.arrow_forward, size: 12, color: Color(primaryColor),),
+                              Text(
+                                " Detail Contact",
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  color: Color(primaryColor),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
 
                     if (order.price != null)
@@ -302,8 +324,8 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage>
             ],
           ),
 
-          const SizedBox(height: 12),
-
+         
+      
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
@@ -315,6 +337,7 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage>
                 asset: icContactDetailWA,
                 onTap: () => _chatCustomer(order),
               ),
+             
               if (order.canEdit || order.canDelete)
                 BgIcon(onTap: () => _openMenu(order)),
             ],
@@ -468,6 +491,7 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage>
     ReserveOrderTimelineStep step, {
     required bool isLast,
   }) {
+    final cancelled = step.cancelLabel != null;
     return IntrinsicHeight(
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -477,7 +501,7 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage>
             child: Column(
               children: [
                 const SizedBox(height: 2),
-                _stepDot(step.status),
+                _stepDot(step.status, cancelled: cancelled),
                 if (!isLast)
                   Expanded(
                     child: Container(width: 2, color: const Color(grey10Color)),
@@ -492,21 +516,37 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage>
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    step.label,
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: step.status == ReserveOrderStepStatus.todo
-                          ? FontWeight.w600
-                          : FontWeight.w700,
-                      color: switch (step.status) {
-                        ReserveOrderStepStatus.active => const Color(
-                          primaryColor,
+                  // Wrap — badge turun ke baris berikutnya kalau tidak muat di samping label.
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 3,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    children: [
+                      Text(
+                        step.label,
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight:
+                              step.status == ReserveOrderStepStatus.todo &&
+                                  !cancelled
+                              ? FontWeight.w600
+                              : FontWeight.w700,
+                          color: cancelled
+                              ? const Color(redColor)
+                              : switch (step.status) {
+                                  ReserveOrderStepStatus.active => const Color(
+                                    primaryColor,
+                                  ),
+                                  ReserveOrderStepStatus.todo => const Color(
+                                    grey4Color,
+                                  ),
+                                  ReserveOrderStepStatus.done => Colors.black87,
+                                },
                         ),
-                        ReserveOrderStepStatus.todo => const Color(grey4Color),
-                        ReserveOrderStepStatus.done => Colors.black87,
-                      },
-                    ),
+                      ),
+                      // Cukup "Batal" — nama tahapnya (Reserve / SP) sudah jadi label di sebelahnya.
+                      if (cancelled) _stepBadge('Batal', const Color(redColor)),
+                    ],
                   ),
                   if (step.sub != null) ...[
                     const SizedBox(height: 2),
@@ -514,10 +554,15 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage>
                       step.sub!,
                       style: TextStyle(
                         fontSize: 10,
-                        color: step.subColor ?? const Color(grey4Color),
+                        color:
+                            step.subColor ??
+                            (cancelled
+                                ? const Color(redColor)
+                                : const Color(grey4Color)),
                       ),
                     ),
                   ],
+                  // if (step.tts.isNotEmpty) _buildTimelineTtsList(step.tts),
                   for (final note in step.notes) _buildTimelineNote(note),
                 ],
               ),
@@ -528,18 +573,115 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage>
     );
   }
 
-  Widget _stepDot(ReserveOrderStepStatus status) {
+  /// Rincian TTS satu tahap (Reserve / RB / SP) + status verifikasi pembayaran Kasir per TTS.
+  Widget _buildTimelineTtsList(List<ReserveOrderTimelineTtsEntity> items) {
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(top: 6),
+      padding: const EdgeInsets.fromLTRB(8, 6, 8, 6),
+      decoration: BoxDecoration(
+        border: Border.all(color: const Color(grey10Color)),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Column(
+        children: [
+          for (var i = 0; i < items.length; i++) ...[
+            if (i > 0) const Divider(height: 10, color: Color(grey10Color)),
+            _timelineTtsRow(items[i]),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _timelineTtsRow(ReserveOrderTimelineTtsEntity tts) {
+    final (icon, color) = switch (tts.paymentStatus) {
+      'approved' => (Icons.check_circle, const Color(successColor)),
+      'rejected' => (Icons.cancel, const Color(redColor)),
+      _ => (Icons.schedule, const Color(warningColor)),
+    };
+    final title = [
+      'TTS ${tts.ttsNumber ?? '-'}',
+      if (tts.paymentTypeName != null) tts.paymentTypeName!,
+    ].join(' · ');
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.black87,
+                ),
+              ),
+            ),
+            Text(
+              _rupiah(tts.amount.round()),
+              style: const TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+                color: Colors.black87,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 2),
+        Row(
+          children: [
+            Icon(icon, size: 12, color: color),
+            const SizedBox(width: 4),
+            Expanded(
+              child: Text(
+                tts.paymentLabel,
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w600,
+                  color: color,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _stepBadge(String label, Color color) => Container(
+    padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+    decoration: BoxDecoration(
+      color: color,
+      borderRadius: BorderRadius.circular(10),
+    ),
+    child: Text(
+      label,
+      style: const TextStyle(
+        fontSize: 9.5,
+        fontWeight: FontWeight.w700,
+        color: Color(whiteColor),
+      ),
+    ),
+  );
+
+  Widget _stepDot(ReserveOrderStepStatus status, {bool cancelled = false}) {
     final size = status == ReserveOrderStepStatus.active ? 16.0 : 13.0;
-    final fill = switch (status) {
-      ReserveOrderStepStatus.done => const Color(successColor),
-      ReserveOrderStepStatus.active => const Color(primaryColor),
-      ReserveOrderStepStatus.todo => const Color(whiteColor),
-    };
-    final border = switch (status) {
-      ReserveOrderStepStatus.done => const Color(successColor),
-      ReserveOrderStepStatus.active => const Color(primaryColor),
-      ReserveOrderStepStatus.todo => const Color(grey7Color),
-    };
+    final fill = cancelled
+        ? const Color(redColor)
+        : switch (status) {
+            ReserveOrderStepStatus.done => const Color(successColor),
+            ReserveOrderStepStatus.active => const Color(primaryColor),
+            ReserveOrderStepStatus.todo => const Color(whiteColor),
+          };
+    final border = cancelled
+        ? const Color(redColor)
+        : switch (status) {
+            ReserveOrderStepStatus.done => const Color(successColor),
+            ReserveOrderStepStatus.active => const Color(primaryColor),
+            ReserveOrderStepStatus.todo => const Color(grey7Color),
+          };
     return Container(
       width: size,
       height: size,
@@ -647,7 +789,50 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage>
                 ],
               ),
             ),
+          if (order.questionnaire case final questionnaire?)
+            _questionnaireSection(order, questionnaire),
         ],
+      ),
+    );
+  }
+
+  /// Section "Kuesioner" — 1 baris per pertanyaan yg tampil (ringkasan jawaban dari server), tap
+  /// membuka form kuesioner ([ReserveOrderQuestionnairePage]).
+  Widget _questionnaireSection(
+    ReserveOrderDetail order,
+    ReserveQuestionnaireEntity questionnaire,
+  ) {
+    final questions = questionnaire.questions
+        .where((q) => q.isVisible(questionnaire.valueOf))
+        .toList();
+    return CustomDropdownGroupContact(
+      hint: 'Kuesioner',
+      child: Column(
+        children: [
+          for (var i = 0; i < questions.length; i++)
+            _customerRow(
+              questions[i].text ?? questions[i].title,
+              questions[i].answer,
+              onTap: order.canEdit
+                  ? () => _openQuestionnaire(order, questionnaire)
+                  : null,
+              showDivider: i != questions.length - 1,
+            ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _openQuestionnaire(
+    ReserveOrderDetail order,
+    ReserveQuestionnaireEntity questionnaire,
+  ) async {
+    await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (_) => ReserveOrderQuestionnairePage(
+          reserveOrderId: order.reserveOrderId,
+          questionnaire: questionnaire,
+        ),
       ),
     );
   }
@@ -1983,6 +2168,20 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage>
     await launchUrl(
       Uri.parse('https://wa.me/$phone'),
       mode: LaunchMode.externalApplication,
+    );
+  }
+
+  /// Detail lengkap kontak di-fetch ulang sendiri oleh ContactDetailPage — cukup kirim contactId.
+  void _openContactDetail(ReserveOrderDetail order) {
+    context.pushNamed(
+      'detailContact',
+      extra: ContactDetailArgs(
+        dataContact: ContactEntity(
+          contactId: order.contactId,
+          fullName: order.customerName,
+        ),
+        initialTab: 0,
+      ),
     );
   }
 

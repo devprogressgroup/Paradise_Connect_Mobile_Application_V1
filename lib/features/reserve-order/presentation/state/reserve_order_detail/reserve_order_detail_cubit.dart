@@ -11,6 +11,7 @@ import 'package:progress_group/features/reserve-order/domain/usecases/get_reserv
 import 'package:progress_group/features/reserve-order/domain/usecases/send_reserve_order_message_usecase.dart';
 import 'package:progress_group/features/reserve-order/domain/usecases/topup_reserve_order_usecase.dart';
 import 'package:progress_group/features/reserve-order/domain/usecases/update_reserve_order_customer_usecase.dart';
+import 'package:progress_group/features/reserve-order/domain/usecases/update_reserve_order_questionnaire_usecase.dart';
 import 'reserve_order_detail_state.dart';
 
 /// State detail 1 Reserve Order — juga menangani "Perbaiki Data Customer" (`update`) & "Top Up
@@ -22,6 +23,8 @@ class ReserveOrderDetailCubit extends Cubit<ReserveOrderDetailState> {
   final TopupReserveOrderUseCase topupReserveOrderUseCase;
   final SendReserveOrderMessageUseCase sendReserveOrderMessageUseCase;
   final EditReserveOrderUseCase editReserveOrderUseCase;
+  final UpdateReserveOrderQuestionnaireUseCase
+  updateReserveOrderQuestionnaireUseCase;
   final DeleteReserveOrderUseCase deleteReserveOrderUseCase;
 
   /// Dipinjam dari fitur Contact — dokumen reserve order tersimpan di d_contact_attachment, jadi
@@ -34,6 +37,7 @@ class ReserveOrderDetailCubit extends Cubit<ReserveOrderDetailState> {
     required this.topupReserveOrderUseCase,
     required this.sendReserveOrderMessageUseCase,
     required this.editReserveOrderUseCase,
+    required this.updateReserveOrderQuestionnaireUseCase,
     required this.deleteReserveOrderUseCase,
     required this.deleteAttachmentUseCase,
   }) : super(const ReserveOrderDetailState());
@@ -158,6 +162,37 @@ class ReserveOrderDetailCubit extends Cubit<ReserveOrderDetailState> {
     emit(state.copyWith(status: ReserveOrderDetailStatus.mutating));
 
     final result = await editReserveOrderUseCase(reserveOrderId, params);
+
+    return result.fold(
+      (message) {
+        emit(
+          state.copyWith(
+            status: ReserveOrderDetailStatus.loaded,
+            errorMessage: message,
+          ),
+        );
+        return message;
+      },
+      (data) {
+        emit(
+          state.copyWith(status: ReserveOrderDetailStatus.loaded, detail: data),
+        );
+        return null;
+      },
+    );
+  }
+
+  /// Simpan kuesioner customer — [answers] = `questioner[<name>]`, balik detail terbaru.
+  Future<String?> updateQuestionnaire(
+    int reserveOrderId,
+    Map<String, String?> answers,
+  ) async {
+    emit(state.copyWith(status: ReserveOrderDetailStatus.mutating));
+
+    final result = await updateReserveOrderQuestionnaireUseCase(
+      reserveOrderId,
+      answers,
+    );
 
     return result.fold(
       (message) {

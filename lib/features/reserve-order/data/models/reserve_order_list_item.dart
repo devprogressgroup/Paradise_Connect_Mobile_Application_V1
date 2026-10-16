@@ -71,7 +71,7 @@ Color reserveOrderStatusColor({
       return const Color(infoColor);
     case 4: // Reserve Batal
     case 8: // SP Batal
-      return const Color(grey4Color);
+      return const Color(redColor);
     case 2: // Reserve
     default:
       return const Color(warningColor);

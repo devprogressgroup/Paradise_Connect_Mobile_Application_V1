@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import 'package:progress_group/features/reserve-order/domain/entities/reserve_order_questionnaire_entity.dart';
 
 enum ReserveOrderStageStatus { done, active, todo }
 
@@ -29,6 +30,36 @@ class ReserveOrderTimelineMessageEntity extends Equatable {
   List<Object?> get props => [text, who, time];
 }
 
+/// Satu TTS di rincian tahap timeline (`tts`) — `paymentStatus` = verifikasi pembayaran Kasir per
+/// TTS (`approved` / `rejected` / `pending`), teksnya dari server ([paymentLabel]).
+class ReserveOrderTimelineTtsEntity extends Equatable {
+  final String? ttsNumber;
+  final String? paymentTypeName;
+  final double amount;
+  final String? ttsDate;
+  final String paymentStatus;
+  final String paymentLabel;
+
+  const ReserveOrderTimelineTtsEntity({
+    this.ttsNumber,
+    this.paymentTypeName,
+    required this.amount,
+    this.ttsDate,
+    required this.paymentStatus,
+    required this.paymentLabel,
+  });
+
+  @override
+  List<Object?> get props => [
+    ttsNumber,
+    paymentTypeName,
+    amount,
+    ttsDate,
+    paymentStatus,
+    paymentLabel,
+  ];
+}
+
 /// Satu langkah timeline (10 tahap) — hasil `ReserveOrderService::buildTimeline`.
 class ReserveOrderTimelineStepEntity extends Equatable {
   final String code;
@@ -37,16 +68,32 @@ class ReserveOrderTimelineStepEntity extends Equatable {
   final ReserveOrderStageStatus status;
   final ReserveOrderTimelineMessageEntity? latestMessage;
 
+  /// Nama status Batal (mis. "SP Batal") kalau order dibatalkan di tahap ini, null kalau tidak.
+  final String? cancelLabel;
+
+  /// Rincian TTS tahap ini (Reserve / RB / SP), kosong di tahap lain.
+  final List<ReserveOrderTimelineTtsEntity> tts;
+
   const ReserveOrderTimelineStepEntity({
     required this.code,
     required this.label,
     this.sub,
     required this.status,
     this.latestMessage,
+    this.cancelLabel,
+    this.tts = const [],
   });
 
   @override
-  List<Object?> get props => [code, label, sub, status, latestMessage];
+  List<Object?> get props => [
+    code,
+    label,
+    sub,
+    status,
+    latestMessage,
+    cancelLabel,
+    tts,
+  ];
 }
 
 class ReserveOrderRequiredDocEntity extends Equatable {
@@ -265,6 +312,9 @@ class ReserveOrderDetailEntity extends Equatable {
 
   /// Row `m_customer_reserve` apa adanya (cocok langsung dgn `ReserveOrderCustomerData.raw`).
   final Map<String, dynamic> customer;
+
+  /// Kuesioner customer (null = order tanpa customer / backend lama).
+  final ReserveQuestionnaireEntity? questionnaire;
   final List<ReserveOrderRequiredDocEntity> requiredDocs;
   final List<ReserveOrderAttachmentEntity> attachments;
   final List<ReserveOrderTtsEntity> ttsList;
@@ -299,6 +349,7 @@ class ReserveOrderDetailEntity extends Equatable {
     this.rejectReason,
     this.timeline = const [],
     this.customer = const {},
+    this.questionnaire,
     this.requiredDocs = const [],
     this.attachments = const [],
     this.ttsList = const [],
@@ -337,6 +388,7 @@ class ReserveOrderDetailEntity extends Equatable {
     rejectReason,
     timeline,
     customer,
+    questionnaire,
     requiredDocs,
     attachments,
     ttsList,

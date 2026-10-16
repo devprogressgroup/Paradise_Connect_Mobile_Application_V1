@@ -163,7 +163,7 @@ class SelectedUnit {
   String get label {
     final t = productName ?? '-';
     if (propertyId != null) return '$t · ${propertyName ?? propertyId}';
-    if (isWaitingList) return '$t · Waiting list';
+    if (isWaitingList) return '$t · Waitinglist';
     return '$t · Belum tentukan kavling';
   }
 

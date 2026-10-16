@@ -64,6 +64,10 @@ abstract class ReserveOrderRemoteDataSource {
     int reserveOrderId,
     EditReserveOrderParams params,
   );
+  Future<ReserveOrderDetailModel> updateQuestionnaire(
+    int reserveOrderId,
+    Map<String, String?> answers,
+  );
   Future<void> deleteReserveOrder(int reserveOrderId);
   Future<Map<String, dynamic>> ocrKtp(Uint8List imageBytes, {String? filename});
   Future<Map<String, dynamic>> checkKtp(String custKtp, {String? custName, int? contactId});
@@ -477,6 +481,33 @@ class ReserveOrderRemoteDataSourceImpl implements ReserveOrderRemoteDataSource {
       );
     } on DioException catch (e) {
       throw Exception(getErrorMessage(e, 'Failed to edit reserve order'));
+    }
+  }
+
+  /// Kuesioner customer — [answers] = `questioner[<name>]` (lihat `ReserveQuestionInputEntity`),
+  /// dikirim JSON (bukan FormData) supaya nilai kosong tetap terkirim sbg null.
+  @override
+  Future<ReserveOrderDetailModel> updateQuestionnaire(
+    int reserveOrderId,
+    Map<String, String?> answers,
+  ) async {
+    try {
+      final response = await dio.post(
+        '/reserve-order/questionnaire/$reserveOrderId',
+        data: {'questioner': answers},
+      );
+
+      if (response.data['status'] == true) {
+        return ReserveOrderDetailModel.fromJson(
+          response.data['data'] as Map<String, dynamic>,
+        );
+      }
+
+      throw Exception(
+        response.data['message'] ?? 'Failed to save questionnaire',
+      );
+    } on DioException catch (e) {
+      throw Exception(getErrorMessage(e, 'Failed to save questionnaire'));
     }
   }
 

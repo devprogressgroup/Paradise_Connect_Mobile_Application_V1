@@ -285,7 +285,7 @@ class _UnitPickerScreenState extends State<UnitPickerScreen> {
           },
         ),
         _selectRow(
-          label: 'Waiting list',
+          label: 'Waitinglist',
           italic: true,
           color: _amber,
           checked: cubit.isSelected(_key(cluster.projectId, product.productId, 0, true)),

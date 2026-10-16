@@ -218,6 +218,22 @@ class ReserveOrderRepositoryImpl implements ReserveOrderRepository {
   }
 
   @override
+  Future<Either<String, ReserveOrderDetailEntity>> updateQuestionnaire(
+    int reserveOrderId,
+    Map<String, String?> answers,
+  ) async {
+    try {
+      final result = await remoteDataSource.updateQuestionnaire(
+        reserveOrderId,
+        answers,
+      );
+      return Right(result);
+    } catch (e) {
+      return Left(cleanErrorMessage(e));
+    }
+  }
+
+  @override
   Future<Either<String, void>> deleteReserveOrder(int reserveOrderId) async {
     try {
       await remoteDataSource.deleteReserveOrder(reserveOrderId);

@@ -2293,7 +2293,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
     if (u.propertyId != null && (u.propertyName ?? '').trim().isNotEmpty) {
       return [u.propertyName!.trim(), tail].where((e) => e.isNotEmpty).join(' ');
     }
-    final status = u.isWaitingList ? 'Waiting list' : 'Belum tentukan kavling';
+    final status = u.isWaitingList ? 'Waitinglist' : 'Belum tentukan kavling';
     return tail.isNotEmpty ? '$tail · $status' : status;
   }
 

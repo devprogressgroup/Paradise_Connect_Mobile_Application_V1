@@ -8,6 +8,9 @@ const _envBannerColors = {
   AppEnvironment.developmnetDomain: Color(0xFF8B5CF6),
 };
 
+// Sementara disembunyikan. Set ke true untuk menampilkan banner lagi.
+const _showEnvBanner = false;
+
 /// Banner status environment — mirip [ImpersonationBanner], nempel di atas.
 /// Tidak muncul saat environment production.
 class EnvironmentBanner extends StatelessWidget {
@@ -15,6 +18,7 @@ class EnvironmentBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (!_showEnvBanner) return const SizedBox.shrink();
     return ValueListenableBuilder<AppEnvironment>(
       valueListenable: ApiConstants.envNotifier,
       builder: (context, env, _) {

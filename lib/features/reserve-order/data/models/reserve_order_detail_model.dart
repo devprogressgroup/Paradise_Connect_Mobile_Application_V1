@@ -1,3 +1,4 @@
+import 'package:progress_group/features/reserve-order/data/models/reserve_order_questionnaire_model.dart';
 import 'package:progress_group/features/reserve-order/domain/entities/reserve_order_detail_entity.dart';
 
 class ReserveOrderTimelineStepModel extends ReserveOrderTimelineStepEntity {
@@ -7,6 +8,8 @@ class ReserveOrderTimelineStepModel extends ReserveOrderTimelineStepEntity {
     super.sub,
     required super.status,
     super.latestMessage,
+    super.cancelLabel,
+    super.tts,
   });
 
   factory ReserveOrderTimelineStepModel.fromJson(Map<String, dynamic> json) {
@@ -14,6 +17,7 @@ class ReserveOrderTimelineStepModel extends ReserveOrderTimelineStepEntity {
     final msg = json['latest_message'];
     final msgMap = msg is Map<String, dynamic> ? msg : null;
     final msgText = (msgMap?['text'] as String?)?.trim() ?? '';
+    final cancelLabel = (json['cancel_label'] as String?)?.trim() ?? '';
     return ReserveOrderTimelineStepModel(
       code: json['code'] as String? ?? '',
       label: json['label'] as String? ?? '',
@@ -26,6 +30,20 @@ class ReserveOrderTimelineStepModel extends ReserveOrderTimelineStepEntity {
               who: msgMap!['who'] as String?,
               time: msgMap['time'] as String?,
             ),
+      cancelLabel: cancelLabel.isEmpty ? null : cancelLabel,
+      tts: ((json['tts'] as List?) ?? const [])
+          .whereType<Map<String, dynamic>>()
+          .map(
+            (t) => ReserveOrderTimelineTtsEntity(
+              ttsNumber: t['tts_number']?.toString(),
+              paymentTypeName: t['payment_type_name'] as String?,
+              amount: (t['amount'] as num?)?.toDouble() ?? 0,
+              ttsDate: t['tts_date'] as String?,
+              paymentStatus: t['payment_status'] as String? ?? 'pending',
+              paymentLabel: t['payment_label'] as String? ?? '',
+            ),
+          )
+          .toList(),
     );
   }
 }
@@ -204,6 +222,7 @@ class ReserveOrderDetailModel extends ReserveOrderDetailEntity {
     super.rejectReason,
     super.timeline,
     super.customer,
+    super.questionnaire,
     super.requiredDocs,
     super.attachments,
     super.ttsList,
@@ -249,6 +268,11 @@ class ReserveOrderDetailModel extends ReserveOrderDetailEntity {
           )
           .toList(),
       customer: json['customer'] as Map<String, dynamic>? ?? const {},
+      questionnaire: json['questionnaire'] is Map<String, dynamic>
+          ? ReserveQuestionnaireModel.fromJson(
+              json['questionnaire'] as Map<String, dynamic>,
+            )
+          : null,
       requiredDocs: requiredDocs
           .map(
             (e) =>

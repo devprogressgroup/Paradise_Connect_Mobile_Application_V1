@@ -65,6 +65,10 @@ abstract class ReserveOrderRepository {
     int reserveOrderId,
     EditReserveOrderParams params,
   );
+  Future<Either<String, ReserveOrderDetailEntity>> updateQuestionnaire(
+    int reserveOrderId,
+    Map<String, String?> answers,
+  );
   Future<Either<String, void>> deleteReserveOrder(int reserveOrderId);
   Future<Either<String, Map<String, dynamic>>> ocrKtp(
     Uint8List imageBytes, {

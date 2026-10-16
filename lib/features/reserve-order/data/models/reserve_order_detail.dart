@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:progress_group/core/constants/colors.dart';
 import 'package:progress_group/features/reserve-order/domain/entities/reserve_order_detail_entity.dart';
+import 'package:progress_group/features/reserve-order/domain/entities/reserve_order_questionnaire_entity.dart';
 
 import 'reserve_order_customer_data.dart';
 
@@ -34,6 +35,8 @@ class ReserveOrderTimelineStep {
   final Color? subColor;
   final ReserveOrderStepStatus status;
   final List<ReserveOrderTimelineNote> notes;
+  final String? cancelLabel;
+  final List<ReserveOrderTimelineTtsEntity> tts;
 
   const ReserveOrderTimelineStep({
     required this.label,
@@ -41,6 +44,8 @@ class ReserveOrderTimelineStep {
     this.subColor,
     required this.status,
     this.notes = const [],
+    this.cancelLabel,
+    this.tts = const [],
   });
 }
 
@@ -112,6 +117,9 @@ class ReserveOrderDetail {
   final bool rejectFixIsCustomerData;
   final List<ReserveOrderTimelineStep> timeline;
   ReserveOrderCustomerData customer;
+
+  /// Kuesioner customer (tab Customer) — null = order tanpa customer / backend lama.
+  final ReserveQuestionnaireEntity? questionnaire;
   final List<String> requiredDocs;
   final Map<String, bool> docsUploaded;
 
@@ -157,6 +165,7 @@ class ReserveOrderDetail {
     this.rejectFixIsCustomerData = false,
     required this.timeline,
     required this.customer,
+    this.questionnaire,
     required this.requiredDocs,
     required this.docsUploaded,
     this.docAttachmentTypeIds = const {},
@@ -240,10 +249,13 @@ class ReserveOrderDetail {
                 if (s.latestMessage case final m?)
                   ReserveOrderTimelineNote(m.who, m.text, time: m.time),
               ],
+              cancelLabel: s.cancelLabel,
+              tts: s.tts,
             ),
           )
           .toList(),
       customer: ReserveOrderCustomerData(raw: e.customer),
+      questionnaire: e.questionnaire,
       requiredDocs: e.requiredDocs.map((d) => d.name).toList(),
       docsUploaded: {for (final d in e.requiredDocs) d.name: d.uploaded},
       docAttachmentTypeIds: {
