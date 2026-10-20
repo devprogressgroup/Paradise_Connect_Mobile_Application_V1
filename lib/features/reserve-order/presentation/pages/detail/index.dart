@@ -32,7 +32,16 @@ import '../top-up/index.dart';
 class ReserveOrderDetailPage extends StatefulWidget {
   final int reserveOrderId;
 
-  const ReserveOrderDetailPage({super.key, required this.reserveOrderId});
+  /// Tab yang langsung terbuka (mis. [messagesTabIndex] dari push notification pesan baru).
+  final int initialTab;
+
+  static const messagesTabIndex = 3;
+
+  const ReserveOrderDetailPage({
+    super.key,
+    required this.reserveOrderId,
+    this.initialTab = 0,
+  });
 
   @override
   State<ReserveOrderDetailPage> createState() => _ReserveOrderDetailPageState();
@@ -54,7 +63,7 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage>
   ({String docName, ReserveOrderAttachmentEntity file})? _messageRefAttachment;
   final _messageFocusNode = FocusNode();
 
-  static const _messagesTabIndex = 3;
+  static const _messagesTabIndex = ReserveOrderDetailPage.messagesTabIndex;
 
   /// Jumlah pesan yang sudah pernah dilihat user di tab Messages order ini (disimpan per
   /// reserve order di SharedPreferences) — pesan orang lain di atas jumlah ini = belum dibaca,
@@ -67,8 +76,11 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 4, vsync: this)
-      ..addListener(_onTabChanged);
+    _tabController = TabController(
+      length: 4,
+      vsync: this,
+      initialIndex: widget.initialTab,
+    )..addListener(_onTabChanged);
     _loadSeenMessageCount();
     _refresh();
   }

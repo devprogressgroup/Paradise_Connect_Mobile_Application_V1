@@ -113,4 +113,8 @@ const int roNoticeInfoBgColor = 0xFFE7F6FE;  // latar notice info (mis. "pilih p
 const int roNoticeInfoTextColor = 0xFF065C7C; // teks notice info
 const int roAvailableTextColor = 0xFF1A3D00;   // teks badge "Available"
 const int roUnavailableTextColor = 0xFF5C5400; // teks badge "Not Available"
+
+// marketing feed
+const int feedPinkColor = 0xFFE91E63;   // salah satu warna avatar inisial
+const int feedBronzeColor = 0xFFC77D43; // medali peringkat #3 Wall of Fame
 //dark

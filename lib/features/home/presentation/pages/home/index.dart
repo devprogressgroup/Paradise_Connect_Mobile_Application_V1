@@ -249,8 +249,8 @@ class _HomePageState extends State<HomePage> with RouteAware {
                   final showBadge = hasUnseenNotif || hasUnreadWA;
 
                   return customHeader(
-                    context, 
-                    'Dashboard',
+                    context,
+                    'Report',
                     iconRight: Icons.menu,
                     iconRightOnTap: () {
                       AnalyticsService.logEvent('home_open_menu');

@@ -40,6 +40,12 @@ import '../features/permission-gate/presentation/pages/index.dart';
 import '../features/siap-huni/presentation/pages/index.dart';
 import '../features/contact/presentation/pages/pipeline/index.dart';
 import '../features/reserve-order/presentation/pages/reserve-list/index.dart';
+import '../features/marketing-feed/domain/entities/feed_post_entity.dart';
+import '../features/marketing-feed/presentation/pages/drafts/index.dart';
+import '../features/marketing-feed/presentation/pages/feed/index.dart';
+import '../features/marketing-feed/presentation/pages/poll-form/index.dart';
+import '../features/marketing-feed/presentation/pages/post-form/index.dart';
+import '../features/marketing-feed/presentation/pages/share-moment/index.dart';
 import 'main_layout.dart';
 import '../core/services/analytics_service.dart';
 import '../core/utils/helpers/permissions_helper.dart';
@@ -224,10 +230,11 @@ class AppRouter {
           return MainLayout(child: child);
         },
         routes: [
+          // Home = Marketing Feed. Dashboard lama (HomePage) pindah ke '/report'.
           GoRoute(
             path: '/',
             name: 'home',
-            builder: (context, state) => const HomePage(),
+            builder: (context, state) => const MarketingFeedPage(),
             routes: [
               GoRoute(
                 name: 'taskHome',
@@ -236,7 +243,38 @@ class AppRouter {
                   return const TaskPage();
                 },
               ),
+              GoRoute(
+                name: 'marketingFeedShare',
+                path: 'marketing-feed/share',
+                builder: (context, state) => const FeedShareMomentPage(),
+              ),
+              GoRoute(
+                name: 'marketingFeedPostForm',
+                path: 'marketing-feed/post-form',
+                redirect: (context, state) =>
+                    PermissionsHelper.canModerateMarketingFeed ? null : '/',
+                builder: (context, state) => FeedPostFormPage(post: state.extra as FeedPostEntity?),
+              ),
+              GoRoute(
+                name: 'marketingFeedPollForm',
+                path: 'marketing-feed/poll-form',
+                redirect: (context, state) =>
+                    PermissionsHelper.canModerateMarketingFeed ? null : '/',
+                builder: (context, state) => FeedPollFormPage(post: state.extra as FeedPostEntity?),
+              ),
+              GoRoute(
+                name: 'marketingFeedDrafts',
+                path: 'marketing-feed/drafts',
+                redirect: (context, state) =>
+                    PermissionsHelper.canModerateMarketingFeed ? null : '/',
+                builder: (context, state) => const FeedDraftsPage(),
+              ),
             ]
+          ),
+          GoRoute(
+            path: '/report',
+            name: 'report',
+            builder: (context, state) => const HomePage(),
           ),
           GoRoute(
             path: '/contact',

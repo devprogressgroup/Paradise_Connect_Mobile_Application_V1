@@ -41,9 +41,9 @@ class ApiConstants {
 
     AppEnvironment.development2: _EnvConfig(
       label: 'Development 2',
-      baseUrl: 'http://172.20.10.3:1100/api',
-      storageUrl: 'http://172.20.10.3:1100/storage',
-      serverUrl: 'http://172.20.10.3:1100',
+      baseUrl: 'http://172.20.10.2:1100/api',
+      storageUrl: 'http://172.20.10.2:1100/storage',
+      serverUrl: 'http://172.20.10.2:1100',
     ),
     AppEnvironment.developmnetDomain: _EnvConfig(
       label: 'Development',

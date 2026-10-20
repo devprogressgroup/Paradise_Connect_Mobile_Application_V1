@@ -200,6 +200,26 @@ import 'features/landing-page/data/datasources/landing_page_remote_datasource.da
 import 'features/landing-page/data/repositories/landing_page_repository_impl.dart';
 import 'features/landing-page/domain/usecases/get_landing_page_url_usecase.dart';
 import 'features/landing-page/presentation/state/landing_page_cubit.dart';
+import 'features/marketing-feed/data/datasources/marketing_feed_dummy_datasource.dart';
+import 'features/marketing-feed/domain/repositories/marketing_feed_repository_impl.dart';
+import 'features/marketing-feed/domain/usecases/add_feed_comment_usecase.dart';
+import 'features/marketing-feed/domain/usecases/delete_feed_post_usecase.dart';
+import 'features/marketing-feed/domain/usecases/get_feed_comments_usecase.dart';
+import 'features/marketing-feed/domain/usecases/get_feed_drafts_usecase.dart';
+import 'features/marketing-feed/domain/usecases/get_feed_post_usecase.dart';
+import 'features/marketing-feed/domain/usecases/get_feed_posts_usecase.dart';
+import 'features/marketing-feed/domain/usecases/get_personal_funnel_usecase.dart';
+import 'features/marketing-feed/domain/usecases/get_wall_of_fame_usecase.dart';
+import 'features/marketing-feed/domain/usecases/publish_feed_post_now_usecase.dart';
+import 'features/marketing-feed/domain/usecases/react_feed_post_usecase.dart';
+import 'features/marketing-feed/domain/usecases/save_feed_post_usecase.dart';
+import 'features/marketing-feed/domain/usecases/share_feed_moment_usecase.dart';
+import 'features/marketing-feed/domain/usecases/toggle_feed_comment_like_usecase.dart';
+import 'features/marketing-feed/domain/usecases/vote_feed_poll_usecase.dart';
+import 'features/marketing-feed/presentation/state/feed_comments/feed_comments_cubit.dart';
+import 'features/marketing-feed/presentation/state/feed_compose/feed_compose_cubit.dart';
+import 'features/marketing-feed/presentation/state/feed_drafts/feed_drafts_cubit.dart';
+import 'features/marketing-feed/presentation/state/marketing_feed/marketing_feed_cubit.dart';
 
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {}
@@ -324,6 +344,11 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   Key _blocKey = UniqueKey();
   VersionCheckResult? _updateResult;
 
+  // Marketing Feed masih pakai data dummy in-memory (backend belum ada). Disimpan di State —
+  // bukan dibuat di build() seperti datasource lain — supaya datanya tidak ter-reset tiap root
+  // rebuild; dibuat ulang bersama bloc di _resetApp. Ganti ke implementasi Dio begitu API siap.
+  MarketingFeedDummyDataSource _marketingFeedDataSource = MarketingFeedDummyDataSource();
+
   @override
   void initState() {
     super.initState();
@@ -408,6 +433,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
       AppRouter.init();
 
       _blocKey = UniqueKey();
+      _marketingFeedDataSource = MarketingFeedDummyDataSource();
     });
   }
 
@@ -543,6 +569,22 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     final validasiCheckInUseCase = ValidasiCheckInUseCase(attendanceRepository);
     final getAttendanceApprovalTodayUseCase = GetAttendanceApprovalTodayUseCase(attendanceRepository,);
     final postAttendanceApprovalUseCase = PostAttendanceApprovalUseCase(attendanceRepository,);
+
+    final marketingFeedRepository = MarketingFeedRepositoryImpl(_marketingFeedDataSource);
+    final getFeedPostsUseCase = GetFeedPostsUseCase(marketingFeedRepository);
+    final getFeedPostUseCase = GetFeedPostUseCase(marketingFeedRepository);
+    final getPersonalFunnelUseCase = GetPersonalFunnelUseCase(marketingFeedRepository);
+    final getWallOfFameUseCase = GetWallOfFameUseCase(marketingFeedRepository);
+    final reactFeedPostUseCase = ReactFeedPostUseCase(marketingFeedRepository);
+    final voteFeedPollUseCase = VoteFeedPollUseCase(marketingFeedRepository);
+    final getFeedCommentsUseCase = GetFeedCommentsUseCase(marketingFeedRepository);
+    final addFeedCommentUseCase = AddFeedCommentUseCase(marketingFeedRepository);
+    final toggleFeedCommentLikeUseCase = ToggleFeedCommentLikeUseCase(marketingFeedRepository);
+    final shareFeedMomentUseCase = ShareFeedMomentUseCase(marketingFeedRepository);
+    final saveFeedPostUseCase = SaveFeedPostUseCase(marketingFeedRepository);
+    final getFeedDraftsUseCase = GetFeedDraftsUseCase(marketingFeedRepository);
+    final publishFeedPostNowUseCase = PublishFeedPostNowUseCase(marketingFeedRepository);
+    final deleteFeedPostUseCase = DeleteFeedPostUseCase(marketingFeedRepository);
 
     return MaterialApp.router(
       debugShowCheckedModeBanner: false,
@@ -848,6 +890,36 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
                   shareCaptionUseCase,
                 ),
               ),
+              BlocProvider(
+                create: (_) => MarketingFeedCubit(
+                  getFeedPostsUseCase: getFeedPostsUseCase,
+                  getFeedPostUseCase: getFeedPostUseCase,
+                  getPersonalFunnelUseCase: getPersonalFunnelUseCase,
+                  getWallOfFameUseCase: getWallOfFameUseCase,
+                  reactFeedPostUseCase: reactFeedPostUseCase,
+                  voteFeedPollUseCase: voteFeedPollUseCase,
+                ),
+              ),
+              BlocProvider(
+                create: (_) => FeedCommentsCubit(
+                  getFeedCommentsUseCase: getFeedCommentsUseCase,
+                  addFeedCommentUseCase: addFeedCommentUseCase,
+                  toggleFeedCommentLikeUseCase: toggleFeedCommentLikeUseCase,
+                ),
+              ),
+              BlocProvider(
+                create: (_) => FeedComposeCubit(
+                  shareFeedMomentUseCase: shareFeedMomentUseCase,
+                  saveFeedPostUseCase: saveFeedPostUseCase,
+                ),
+              ),
+              BlocProvider(
+                create: (_) => FeedDraftsCubit(
+                  getFeedDraftsUseCase: getFeedDraftsUseCase,
+                  publishFeedPostNowUseCase: publishFeedPostNowUseCase,
+                  deleteFeedPostUseCase: deleteFeedPostUseCase,
+                ),
+              ),
             ],
             child: MultiBlocListener(
               listeners: [
@@ -875,6 +947,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
                 BlocListener<ProfileBloc, ProfileState>(
                   listener: (context, state) {
                     if (state is ProfileLoaded) {
+                      _marketingFeedDataSource.useProfile(state.profile);
                       AnalyticsService.setUserProperties(
                         userId: state.profile.userId.toString(),
                         role: state.profile.userRoleName,

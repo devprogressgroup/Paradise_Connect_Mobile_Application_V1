@@ -20,6 +20,7 @@ import 'package:progress_group/features/contact/data/arguments/contact_detail_ar
 import 'package:progress_group/features/contact/domain/entities/activity/activity_entity.dart';
 import 'package:progress_group/features/contact/domain/entities/contact/contact_entity.dart';
 import 'package:progress_group/features/notif/presentation/state/received_notif_cubit.dart';
+import 'package:progress_group/features/reserve-order/presentation/pages/detail/index.dart';
 import 'package:progress_group/core/constants/attendance_feedback_labels.dart';
 import 'package:progress_group/core/constants/colors.dart';
 import 'package:progress_group/core/utils/widget/attendance_feedback_dialog.dart';
@@ -655,6 +656,29 @@ class PushNotificationService {
         return;
       }
       AppRouter.router.go('/contact');
+      return;
+    }
+
+    // Dikirim ReserveOrderNotificationService (backend) ke owner kontak: Kasir approve
+    // reserve order / approve top up / status diubah Sales Admin / pesan baru di tab Messages / RO
+    // jadi antrean #1 kavling yg baru dilepas. Buka list Reserve Order dulu lalu detail-nya di
+    // atasnya (sama seperti tap kartu di list, Back balik ke list) — pesan baru langsung ke tab Messages.
+    // Dicek per PREFIX `reserve_order_` (bukan daftar type satu-satu) supaya type baru dari backend
+    // langsung ikut membuka detail tanpa harus menunggu update app.
+    if (type != null && type.startsWith('reserve_order_')) {
+      AppRouter.router.go('/reserve-order');
+      final reserveOrderId = int.tryParse(data['reserve_order_id']?.toString() ?? '');
+      if (reserveOrderId == null) return;
+      _showDialogAfterFrame(() {
+        AppRouter.rootNavigatorKey.currentState?.push(
+          MaterialPageRoute(
+            builder: (_) => ReserveOrderDetailPage(
+              reserveOrderId: reserveOrderId,
+              initialTab: type == 'reserve_order_message' ? ReserveOrderDetailPage.messagesTabIndex : 0,
+            ),
+          ),
+        );
+      });
       return;
     }
 

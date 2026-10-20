@@ -66,7 +66,8 @@ class _MainLayoutState extends State<MainLayout> {
   };
 
   static const _drawerNavEventByPath = {
-    '/': 'main_layout_drawer_nav_dashboard',
+    '/': 'main_layout_drawer_nav_home',
+    '/report': 'main_layout_drawer_nav_dashboard',
     '/contact': 'main_layout_drawer_nav_contacts',
     '/inbox': 'main_layout_drawer_nav_inbox',
     '/site-plan': 'main_layout_drawer_nav_site_plan',
@@ -184,7 +185,7 @@ class _MainLayoutState extends State<MainLayout> {
 
   int get _currentIndex {
     final location = GoRouterState.of(context).uri.path;
-    if (location == '/') return 0;
+    if (location == '/' || location.startsWith('/marketing-feed')) return 0;
     if (location.startsWith('/contact')) return 1;
     if (location.startsWith('/inbox')) return 2;
     if (location.startsWith('/site-plan')) return 4;
@@ -193,6 +194,7 @@ class _MainLayoutState extends State<MainLayout> {
     if (location.startsWith('/profile')) return 7;
     if (location.startsWith('/landing-page')) return 8;
     if (location.startsWith('/reserve-order')) return 10;
+    if (location.startsWith('/report')) return 11;
     return -1;
   }
   
@@ -221,6 +223,8 @@ class _MainLayoutState extends State<MainLayout> {
     final currentIndex = _currentIndex;
     final location = GoRouterState.of(context).uri.path;
     final isAttendance = location.startsWith('/attandance');
+    // Home (Marketing Feed) & Report (dashboard lama) sama-sama punya tombol menu di header.
+    final hasDrawer = location == '/' || location == '/report';
 
     final statusBarStyle = isAttendance  ? const SystemUiOverlayStyle(statusBarColor: Color(primaryColor),statusBarIconBrightness: Brightness.light,statusBarBrightness: Brightness.dark)  : const SystemUiOverlayStyle(statusBarColor: Color(whiteColor),statusBarIconBrightness: Brightness.dark,statusBarBrightness: Brightness.light,);
     
@@ -265,7 +269,7 @@ class _MainLayoutState extends State<MainLayout> {
     child: Scaffold(
       key: _scaffoldKey,
       drawerEnableOpenDragGesture: false,
-      drawer: location == '/' ? _buildFloatingDrawer(context) : null,
+      drawer: hasDrawer ? _buildFloatingDrawer(context) : null,
       drawerScrimColor: Color(background2Color).withOpacity(0.16),
       body: Column(
         children: [
@@ -278,7 +282,7 @@ class _MainLayoutState extends State<MainLayout> {
                 return Stack(
                   children: [
                     widget.child,
-                    if (location == '/')
+                    if (hasDrawer)
                       Positioned(
                         left: 20,
                         top: 10,
@@ -466,7 +470,8 @@ class _MainLayoutState extends State<MainLayout> {
                   ),
                 ),
                 SizedBox(height: 10),
-                _buildDrawerItem(context, icSidebarDashboard, 'Dashboard', path: '/', index: 0),
+                _buildDrawerItem(context, icNavHome, 'Home', path: '/', index: 0),
+                _buildDrawerItem(context, icSidebarDashboard, 'Report', path: '/report', index: 11),
                 if (PermissionsHelper.canAccessContacts)
                   _buildDrawerItem(context, icSidebarContacts, 'Contacts', path: '/contact', index: 1),
                 if (PermissionsHelper.canAccessInbox)
@@ -553,7 +558,7 @@ class _MainLayoutState extends State<MainLayout> {
     );
   }
 
-  Widget _buildDrawerItem(BuildContext context, String icon, String title, {required String path, required int index, IconData? iconData}) {
+  Widget _buildDrawerItem(BuildContext context, String icon, String title, {required String path, required int index, IconData? iconData, String? badge}) {
     final currentIndex = _currentIndex;
     final isActive = currentIndex == index || (index == 4 && currentIndex == 3);
 
@@ -590,6 +595,20 @@ class _MainLayoutState extends State<MainLayout> {
                         color: isActive ? Color(primaryColor) : Color(grey2Color),
                       ),
                     ),
+                    if (badge != null) ...[
+                      const SizedBox(width: 6),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                        decoration: BoxDecoration(
+                          color: Color(orangeAccentColor),
+                          borderRadius: BorderRadius.circular(99),
+                        ),
+                        child: Text(
+                          badge,
+                          style: TextStyle(fontSize: 9.5, fontWeight: FontWeight.w800, color: Color(whiteColor)),
+                        ),
+                      ),
+                    ],
                   ],
                 ),
               ),
