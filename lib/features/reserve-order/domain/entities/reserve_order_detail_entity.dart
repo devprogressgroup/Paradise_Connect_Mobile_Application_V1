@@ -300,6 +300,10 @@ class ReserveOrderDetailEntity extends Equatable {
   final String? caraBayarName;
   final bool canTopup;
 
+  /// `topup_locked_reason` — terisi kalau order sudah SP: tombol "+ Top Up Pembayaran" tampil
+  /// disable dengan alasan ini (bukan disembunyikan seperti order Ditolak/Batal).
+  final String? topupLockedReason;
+
   /// Flag kapabilitas per-record dari backend (`can_edit`/`can_delete`, scope Own/Team/Any form
   /// "Reserve Order"). Hanya untuk UX (sembunyikan tombol) — enforcement tetap di server.
   final bool canEdit;
@@ -341,6 +345,7 @@ class ReserveOrderDetailEntity extends Equatable {
     this.townshipName,
     this.caraBayarName,
     this.canTopup = false,
+    this.topupLockedReason,
     this.canEdit = true,
     this.canDelete = true,
     this.statusLabel,
@@ -380,6 +385,7 @@ class ReserveOrderDetailEntity extends Equatable {
     productId,
     companyId,
     canTopup,
+    topupLockedReason,
     canEdit,
     canDelete,
     statusLabel,
