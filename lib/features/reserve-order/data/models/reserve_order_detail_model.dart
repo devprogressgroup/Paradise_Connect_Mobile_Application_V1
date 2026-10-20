@@ -214,6 +214,7 @@ class ReserveOrderDetailModel extends ReserveOrderDetailEntity {
     super.townshipName,
     super.caraBayarName,
     super.canTopup,
+    super.topupLockedReason,
     super.canEdit,
     super.canDelete,
     super.statusLabel,
@@ -254,6 +255,7 @@ class ReserveOrderDetailModel extends ReserveOrderDetailEntity {
       townshipName: json['township_name'] as String?,
       caraBayarName: json['cara_bayar_name'] as String?,
       canTopup: json['can_topup'] == true,
+      topupLockedReason: json['topup_locked_reason'] as String?,
       // Default true bila backend lama belum kirim flag — server tetap menolak (403) bila tak berhak.
       canEdit: json['can_edit'] != false,
       canDelete: json['can_delete'] != false,

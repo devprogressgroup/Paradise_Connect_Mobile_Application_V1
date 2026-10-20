@@ -455,14 +455,17 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage>
               order.timeline[i],
               isLast: i == order.timeline.length - 1,
             ),
-          if (order.canTopup && order.canEdit) ...[
+          // Sudah SP (topupLockedReason) → tombol tetap tampil tapi DISABLE + alasannya; order
+          // Ditolak/Batal (canTopup false tanpa alasan) → tombol disembunyikan seperti sebelumnya.
+          if (order.canEdit &&
+              (order.canTopup || order.topupLockedReason != null)) ...[
             const SizedBox(height: 4),
             SizedBox(
               width: double.infinity,
               child: OutlinedButton(
                 style: OutlinedButton.styleFrom(
-                  side: const BorderSide(
-                    color: Color(primaryColor),
+                  side: BorderSide(
+                    color: Color(order.canTopup ? primaryColor : grey7Color),
                     width: 1.4,
                   ),
                   padding: const EdgeInsets.symmetric(vertical: 12),
@@ -470,17 +473,28 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage>
                     borderRadius: BorderRadius.circular(11),
                   ),
                 ),
-                onPressed: () => _openTopup(order),
-                child: const Text(
+                onPressed: order.canTopup ? () => _openTopup(order) : null,
+                child: Text(
                   '+ Top Up Pembayaran',
                   style: TextStyle(
-                    color: Color(primaryColor),
+                    color: Color(order.canTopup ? primaryColor : grey4Color),
                     fontWeight: FontWeight.w700,
                     fontSize: 13,
                   ),
                 ),
               ),
             ),
+            if (!order.canTopup && order.topupLockedReason != null) ...[
+              const SizedBox(height: 6),
+              Text(
+                order.topupLockedReason!,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  color: Color(grey4Color),
+                  fontSize: 11,
+                ),
+              ),
+            ],
           ],
         ],
       ),

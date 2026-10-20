@@ -108,6 +108,9 @@ class ReserveOrderDetail {
   final int? price;
   final bool canTopup;
 
+  /// Terisi kalau order sudah SP → tombol top up tampil disable + alasan ini.
+  final String? topupLockedReason;
+
   /// `can_edit` / `can_delete` dari backend (scope Own/Team/Any) — atur tampil tombol aksi.
   final bool canEdit;
   final bool canDelete;
@@ -157,6 +160,7 @@ class ReserveOrderDetail {
     this.townshipName,
     this.price,
     required this.canTopup,
+    this.topupLockedReason,
     this.canEdit = true,
     this.canDelete = true,
     required this.rejected,
@@ -229,6 +233,7 @@ class ReserveOrderDetail {
       projectName: e.unitSub,
       townshipName: e.townshipName,
       canTopup: e.canTopup,
+      topupLockedReason: e.topupLockedReason,
       canEdit: e.canEdit,
       canDelete: e.canDelete,
       rejected: e.isRejected,
