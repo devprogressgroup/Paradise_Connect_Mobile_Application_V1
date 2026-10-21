@@ -127,6 +127,11 @@ class ReserveOrderAttachmentEntity extends Equatable {
   /// Dokumen lain tampil tanpa status (Menunggu verifikasi/Disetujui/Ditolak).
   final bool isVerifiable;
 
+  /// `locked` — dokumen customer (KTP, NPWP, KK, dst — dipakai bersama semua RO customer) & salah satu
+  /// RO customer ini sudah Akad: Upload Ulang / Hapus disable (alasan: `doc_locked_reason` detail).
+  /// Bukti Transfer / dokumen TTS selalu false.
+  final bool locked;
+
   const ReserveOrderAttachmentEntity({
     required this.contactAttachmentId,
     this.attachmentTypeId,
@@ -137,6 +142,7 @@ class ReserveOrderAttachmentEntity extends Equatable {
     this.attachmentNote,
     this.createDatetime,
     this.isVerifiable = true,
+    this.locked = false,
   });
 
   bool get isRejected => isVerifiable && verificationStatus == 'rejected';
@@ -152,6 +158,7 @@ class ReserveOrderAttachmentEntity extends Equatable {
     attachmentNote,
     createDatetime,
     isVerifiable,
+    locked,
   ];
 }
 
@@ -300,9 +307,21 @@ class ReserveOrderDetailEntity extends Equatable {
   final String? caraBayarName;
   final bool canTopup;
 
-  /// `topup_locked_reason` — terisi kalau order sudah SP: tombol "+ Top Up Pembayaran" tampil
+  /// `topup_locked_reason` — terisi kalau order sudah SP / Akad: tombol "+ Top Up Pembayaran" tampil
   /// disable dengan alasan ini (bukan disembunyikan seperti order Ditolak/Batal).
   final String? topupLockedReason;
+
+  /// `edit_locked_reason` — terisi kalau order sudah Akad/PPJB: SEMUA edit dikunci (banner di header;
+  /// `can_edit`/`can_delete` ikut false dari backend, upload/hapus dokumen juga disembunyikan).
+  final String? editLockedReason;
+
+  /// `doc_locked_reason` — terisi kalau salah satu RO customer ini sudah Akad: dokumen customer
+  /// (`attachments[].locked`) tidak bisa diganti/dihapus, tambah dokumen tetap boleh (RO belum Akad).
+  final String? docLockedReason;
+
+  /// `delete_locked_reason` — terisi kalau order sudah Akad / sudah diverifikasi Kasir: menu
+  /// "Delete Reserve Order" tampil disable dengan alasan ini (`can_delete` ikut false).
+  final String? deleteLockedReason;
 
   /// Flag kapabilitas per-record dari backend (`can_edit`/`can_delete`, scope Own/Team/Any form
   /// "Reserve Order"). Hanya untuk UX (sembunyikan tombol) — enforcement tetap di server.
@@ -346,6 +365,9 @@ class ReserveOrderDetailEntity extends Equatable {
     this.caraBayarName,
     this.canTopup = false,
     this.topupLockedReason,
+    this.editLockedReason,
+    this.docLockedReason,
+    this.deleteLockedReason,
     this.canEdit = true,
     this.canDelete = true,
     this.statusLabel,
@@ -386,6 +408,9 @@ class ReserveOrderDetailEntity extends Equatable {
     companyId,
     canTopup,
     topupLockedReason,
+    editLockedReason,
+    docLockedReason,
+    deleteLockedReason,
     canEdit,
     canDelete,
     statusLabel,

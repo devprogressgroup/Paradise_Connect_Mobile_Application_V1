@@ -108,8 +108,19 @@ class ReserveOrderDetail {
   final int? price;
   final bool canTopup;
 
-  /// Terisi kalau order sudah SP → tombol top up tampil disable + alasan ini.
+  /// Terisi kalau order sudah SP / Akad → tombol top up tampil disable + alasan ini.
   final String? topupLockedReason;
+
+  /// Terisi kalau order sudah Akad/PPJB → semua edit dikunci (banner di header + aksi disembunyikan).
+  final String? editLockedReason;
+  bool get editLocked => editLockedReason != null;
+
+  /// Terisi kalau salah satu RO customer ini sudah Akad → dokumen customer (`locked`) tidak bisa
+  /// diganti/dihapus; tambah dokumen tetap boleh.
+  final String? docLockedReason;
+
+  /// Terisi kalau order sudah Akad / sudah diverifikasi Kasir → menu Delete tampil disable.
+  final String? deleteLockedReason;
 
   /// `can_edit` / `can_delete` dari backend (scope Own/Team/Any) — atur tampil tombol aksi.
   final bool canEdit;
@@ -161,6 +172,9 @@ class ReserveOrderDetail {
     this.price,
     required this.canTopup,
     this.topupLockedReason,
+    this.editLockedReason,
+    this.docLockedReason,
+    this.deleteLockedReason,
     this.canEdit = true,
     this.canDelete = true,
     required this.rejected,
@@ -234,6 +248,9 @@ class ReserveOrderDetail {
       townshipName: e.townshipName,
       canTopup: e.canTopup,
       topupLockedReason: e.topupLockedReason,
+      editLockedReason: e.editLockedReason,
+      docLockedReason: e.docLockedReason,
+      deleteLockedReason: e.deleteLockedReason,
       canEdit: e.canEdit,
       canDelete: e.canDelete,
       rejected: e.isRejected,

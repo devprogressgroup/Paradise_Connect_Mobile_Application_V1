@@ -338,7 +338,11 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage>
                 onTap: () => _chatCustomer(order),
               ),
              
-              if (order.canEdit || order.canDelete)
+              // Sudah Akad / diverifikasi Kasir → ⋮ tetap tampil, isinya disable (lihat _openMenu).
+              if (order.canEdit ||
+                  order.canDelete ||
+                  order.editLocked ||
+                  order.deleteLockedReason != null)
                 BgIcon(onTap: () => _openMenu(order)),
             ],
           ),
@@ -351,11 +355,14 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage>
                 reason: order.rejectReason ?? '',
               ),
             ),
+          
           const SizedBox(height: 4),
         ],
       ),
     );
   }
+
+  
 
   Widget _buildResubmitFooter(ReserveOrderDetail order) {
     return Container(
@@ -455,9 +462,10 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage>
               order.timeline[i],
               isLast: i == order.timeline.length - 1,
             ),
-          // Sudah SP (topupLockedReason) → tombol tetap tampil tapi DISABLE + alasannya; order
-          // Ditolak/Batal (canTopup false tanpa alasan) → tombol disembunyikan seperti sebelumnya.
-          if (order.canEdit &&
+          // Sudah SP / Akad (topupLockedReason) → tombol tetap tampil tapi DISABLE + alasannya (Akad:
+          // canEdit false, tetap tampil lewat editLocked); order Ditolak/Batal (canTopup false tanpa
+          // alasan) → tombol disembunyikan seperti sebelumnya.
+          if ((order.canEdit || order.editLocked) &&
               (order.canTopup || order.topupLockedReason != null)) ...[
             const SizedBox(height: 4),
             SizedBox(
@@ -931,6 +939,10 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage>
             ),
           ),
           const SizedBox(height: 10),
+          // RO lain customer ini sudah Akad → dokumen customer tidak bisa diganti/dihapus (menu file
+          // disable), tambah dokumen tetap boleh.
+          // Sudah Akad → dokumen tidak bisa ditambah/diganti/dihapus (ditolak juga di server):
+          // kartu upload & tombol "+ Tambah" tampil disable.
           _buildAddNewFileCard(order),
           for (final doc in order.requiredDocs) _buildDocRow(order, doc),
         ],
@@ -996,15 +1008,22 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage>
                 ),
                 InkWell(
                   borderRadius: BorderRadius.circular(8),
-                  onTap: () => _uploadDocument(order, docName),
-                  child: const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                  onTap: order.editLocked
+                      ? null
+                      : () => _uploadDocument(order, docName),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 4,
+                    ),
                     child: Text(
                       '+ Tambah',
                       style: TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.w700,
-                        color: Color(primaryColor),
+                        color: order.editLocked
+                            ? const Color(grey7Color)
+                            : const Color(primaryColor),
                       ),
                     ),
                   ),
@@ -1018,7 +1037,7 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage>
       );
     }
     return InkWell(
-      onTap: () => _uploadDocument(order, docName),
+      onTap: order.editLocked ? null : () => _uploadDocument(order, docName),
       child: Container(
         width: double.infinity,
         margin: const EdgeInsets.only(bottom: 8),
@@ -1041,9 +1060,9 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage>
               ),
             ),
             const SizedBox(height: 2),
-            const Text(
-              'Ketuk untuk upload',
-              style: TextStyle(fontSize: 10.5, color: Color(grey4Color)),
+            Text(
+              order.editLocked ? 'Belum diupload' : 'Ketuk untuk upload',
+              style: const TextStyle(fontSize: 10.5, color: Color(grey4Color)),
             ),
           ],
         ),
@@ -1053,48 +1072,53 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage>
 
   /// Kartu "Add New File" (sama seperti di tab Attachment Contact Detail) — upload bebas tanpa
   /// harus tap salah satu dokumen wajib; Attachment Type dipilih sendiri di halaman upload.
+  /// Sudah Akad ([ReserveOrderDetail.editLocked]) → kartu tampil abu-abu & tidak bisa di-tap.
   Widget _buildAddNewFileCard(ReserveOrderDetail order) {
+    final locked = order.editLocked;
+    final onTap = locked ? null : () => _uploadDocument(order, null);
+    final accent = locked
+        ? const Color(grey5Color)
+        : const Color(primaryColor);
     return GestureDetector(
-      onTap: () => _uploadDocument(order, null),
-      child: Container(
-        width: double.infinity,
-        margin: const EdgeInsets.only(bottom: 8),
-        padding: const EdgeInsets.all(10),
-        decoration: BoxDecoration(
-          color: const Color(whiteColor),
-          border: Border.all(color: const Color(grey10Color)),
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Row(
-          children: [
-            BgIcon(
-              asset: icUpload,
-              color: const Color(primaryColor),
-              onTap: () => _uploadDocument(order, null),
-            ),
-            const SizedBox(width: 10),
-            const Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Add New File',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w700,
-                    color: Color(primaryColor),
+      onTap: onTap,
+      child: Opacity(
+        opacity: locked ? 0.5 : 1,
+        child: Container(
+          width: double.infinity,
+          margin: const EdgeInsets.only(bottom: 8),
+          padding: const EdgeInsets.all(10),
+          decoration: BoxDecoration(
+            color: const Color(whiteColor),
+            border: Border.all(color: const Color(grey10Color)),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Row(
+            children: [
+              BgIcon(asset: icUpload, color: accent, onTap: onTap),
+              const SizedBox(width: 10),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Add New File',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      color: accent,
+                    ),
                   ),
-                ),
-                Text(
-                  'upload new file',
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w400,
-                    color: Color(grey5Color),
+                  Text(
+                    locked ? 'dokumen terkunci (sudah Akad)' : 'upload new file',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w400,
+                      color: Color(grey5Color),
+                    ),
                   ),
-                ),
-              ],
-            ),
-          ],
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -1355,6 +1379,9 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage>
     int number,
   ) {
     final url = file.attachmentPath ?? '';
+    // RO ini sudah Akad, atau dokumen customer (file.locked) & salah satu RO customer ini sudah Akad.
+    final lockReason =
+        order.editLockedReason ?? (file.locked ? order.docLockedReason : null);
     showCustomBottomSheet(
       context: context,
       child: Column(
@@ -1376,10 +1403,13 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage>
               'Tanyakan di Pesan',
               () => _attachExistingToMessage(docName, file),
             ),
+          // Terkunci (lockReason) → file tidak bisa diganti/dihapus (ditolak juga di server): tampil
+          // disable. Bukti Transfer / dokumen TTS RO yg belum Akad tetap bisa.
           _menuItem(
             '⤴️',
             'Upload Ulang',
             () => _reuploadDocument(order, docName, file),
+            enabled: lockReason == null,
           ),
           if (order.contactId != null &&
               PermissionsHelper.canDeleteAttachmentItem)
@@ -1388,6 +1418,7 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage>
               'Hapus',
               () => _confirmDeleteAttachment(order, docName, file, number),
               color: const Color(redColor),
+              enabled: lockReason == null,
             ),
         ],
       ),
@@ -2212,14 +2243,23 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage>
               style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
             ),
           ),
-          if (order.canEdit)
-            _menuItem('✎', 'Edit Data Pembeli', () => _openEditCustomer(order)),
-          if (order.canDelete)
+          // Sudah Akad → backend kirim can_edit/can_delete false; item tetap tampil tapi disable.
+          if (order.canEdit || order.editLocked)
+            _menuItem(
+              '✎',
+              'Edit Data Pembeli',
+              () => _openEditCustomer(order),
+              enabled: !order.editLocked,
+            ),
+          // Sudah diverifikasi Kasir / Akad (deleteLockedReason) → Delete tampil disable (ditolak juga
+          // di server).
+          if (order.canDelete || order.deleteLockedReason != null)
             _menuItem(
               '🗑️',
               'Delete Reserve Order',
               () => _confirmDelete(order),
               color: const Color(redColor),
+              enabled: order.deleteLockedReason == null,
             ),
         ],
       ),
@@ -2319,38 +2359,49 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage>
     }
   }
 
+  /// [enabled] false → item tetap tampil tapi abu-abu & tidak bisa di-tap (mis. sudah Akad).
   Widget _menuItem(
     String icon,
     String label,
     VoidCallback onTap, {
     Color? color,
+    bool enabled = true,
   }) {
     return InkWell(
-      onTap: () {
-        Navigator.pop(context);
-        onTap();
-      },
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 11),
-        child: Row(
-          children: [
-            Text(
-              icon,
-              style: TextStyle(
-                fontSize: 16,
-                color: color ?? const Color(grey1Color),
+      onTap: enabled
+          ? () {
+              Navigator.pop(context);
+              onTap();
+            }
+          : null,
+      child: Opacity(
+        opacity: enabled ? 1 : 0.4,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 11),
+          child: Row(
+            children: [
+              Text(
+                icon,
+                style: TextStyle(
+                  fontSize: 16,
+                  color: enabled
+                      ? color ?? const Color(grey1Color)
+                      : const Color(grey5Color),
+                ),
               ),
-            ),
-            const SizedBox(width: 12),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 14,
-                color: color ?? Colors.black87,
-                fontWeight: FontWeight.w600,
+              const SizedBox(width: 12),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 14,
+                  color: enabled
+                      ? color ?? Colors.black87
+                      : const Color(grey5Color),
+                  fontWeight: FontWeight.w600,
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

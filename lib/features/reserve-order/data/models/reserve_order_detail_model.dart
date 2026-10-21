@@ -75,6 +75,7 @@ class ReserveOrderAttachmentModel extends ReserveOrderAttachmentEntity {
     super.attachmentNote,
     super.createDatetime,
     super.isVerifiable,
+    super.locked,
   });
 
   /// attachment_type_id yang diverifikasi Kasir: 1 KTP Pemohon, 15 Bukti Transfer — fallback kalau
@@ -95,6 +96,7 @@ class ReserveOrderAttachmentModel extends ReserveOrderAttachmentEntity {
         json['create_datetime'] as String? ?? '',
       ),
       isVerifiable: json['is_verifiable'] as bool? ?? _verifiableTypeIds.contains(typeId),
+      locked: json['locked'] == true,
     );
   }
 }
@@ -215,6 +217,9 @@ class ReserveOrderDetailModel extends ReserveOrderDetailEntity {
     super.caraBayarName,
     super.canTopup,
     super.topupLockedReason,
+    super.editLockedReason,
+    super.docLockedReason,
+    super.deleteLockedReason,
     super.canEdit,
     super.canDelete,
     super.statusLabel,
@@ -256,6 +261,9 @@ class ReserveOrderDetailModel extends ReserveOrderDetailEntity {
       caraBayarName: json['cara_bayar_name'] as String?,
       canTopup: json['can_topup'] == true,
       topupLockedReason: json['topup_locked_reason'] as String?,
+      editLockedReason: json['edit_locked_reason'] as String?,
+      docLockedReason: json['doc_locked_reason'] as String?,
+      deleteLockedReason: json['delete_locked_reason'] as String?,
       // Default true bila backend lama belum kirim flag — server tetap menolak (403) bila tak berhak.
       canEdit: json['can_edit'] != false,
       canDelete: json['can_delete'] != false,
