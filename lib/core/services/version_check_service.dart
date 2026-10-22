@@ -1,3 +1,5 @@
+import 'dart:io' show Platform;
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:progress_group/core/network/api_constants.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -37,6 +39,17 @@ class VersionCheckService {
       final savedVersion = await getInstalledVersion();
       if (savedVersion == null) {
         await saveInstalledVersion(currentVersion);
+      }
+
+      // iOS cuma bisa di-update lewat App Store — UpdateScreen (OTA APK) tidak jalan di iOS
+      // dan malah mengunci user di layar "Mempersiapkan..." selamanya.
+      if (!kIsWeb && Platform.isIOS) {
+        return VersionCheckResult(
+          requiresUpdate: false,
+          latestVersion: currentVersion,
+          currentVersion: currentVersion,
+          downloadUrl: '',
+        );
       }
 
       final latestVersion = ApiConstants.lastVersion;

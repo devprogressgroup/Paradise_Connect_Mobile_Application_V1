@@ -25,7 +25,7 @@ class DevicePermissionItem {
 }
 
 /// Gate izin perangkat (kamera, galeri, lokasi, kontak, notifikasi) yang wajib
-/// diberikan sebelum aplikasi bisa dipakai. Terpisah dari [PermissionsHelper]
+/// diberikan sebelum aplikasi bisa dipakai (kecuali iOS, lihat [requiredItems]). Terpisah dari [PermissionsHelper]
 /// yang mengatur hak akses fitur berbasis role dari backend.
 class DevicePermissionGate {
   DevicePermissionGate._();
@@ -86,6 +86,11 @@ class DevicePermissionGate {
               i.type == DevicePermissionType.notification)
           .toList();
     }
+    // iOS tidak men-gate izin apa pun — App Review menolak app yang mewajibkan izin
+    // sebelum bisa dipakai (Guideline 5.1.1 & 4.5.4). Di iOS tiap izin diminta saat
+    // fiturnya dipakai: kamera & lokasi di absensi, kontak di form kontak, notifikasi
+    // oleh PushNotificationService.initialize() saat app start.
+    if (Platform.isIOS) return const [];
     if (!Platform.isAndroid) {
       return _items.where((i) => i.type != DevicePermissionType.installPackages).toList();
     }
