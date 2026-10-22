@@ -1,4 +1,4 @@
-﻿import 'package:flutter/foundation.dart' show kIsWeb;
+﻿import 'package:flutter/foundation.dart' show kIsWeb, kReleaseMode, defaultTargetPlatform;
 import 'package:flutter/material.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:progress_group/core/services/analytics_service.dart';
@@ -211,6 +211,10 @@ class _LoginPageState extends State<LoginPage> {
                       // Header
                       GestureDetector(
                         onTap: () {
+                          // Pilihan server dev dimatikan di build release iOS: App Review menolak fitur
+                          // tersembunyi (Guideline 2.3.1), dan reviewer bisa nyasar ke server dev sehingga
+                          // akun demo gagal login.
+                          if (kReleaseMode && !kIsWeb && defaultTargetPlatform == TargetPlatform.iOS) return;
                           AnalyticsService.logEvent('login_env_switcher');
                           showEnvSwitcher(context);
                         },
