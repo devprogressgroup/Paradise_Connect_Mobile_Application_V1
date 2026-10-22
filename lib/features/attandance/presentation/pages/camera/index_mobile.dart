@@ -10,6 +10,7 @@ import 'package:intl/intl.dart';
 import 'package:progress_group/core/utils/helpers/app_time.dart';
 import 'package:progress_group/core/utils/helpers/date_helper.dart';
 import 'package:progress_group/core/services/analytics_service.dart';
+import 'package:progress_group/core/utils/helpers/device_permission_gate.dart';
 import 'package:progress_group/core/utils/widget/custom_button.dart';
 import 'package:progress_group/features/attandance/data/arguments/attandance_args.dart';
 import 'package:progress_group/features/attandance/presentation/state/attandance/attendance_bloc.dart';
@@ -49,6 +50,7 @@ class _CameraPageState extends State<CameraPage> {
   bool _isAddingMore = false;
   AttendanceLocation? _selectedPameranLocation;
   String? _cameraError;
+  bool _cameraPermissionDenied = false;
 
   bool get _showRealtimeLocationWarning {
     final flag = widget.args.flag;
@@ -120,6 +122,18 @@ class _CameraPageState extends State<CameraPage> {
       if (mounted) {
         setState(() => _cameraError = "Kamera timeout, coba lagi.");
       }
+    } on CameraException catch (e) {
+      // iOS tidak lewat permission gate (lihat DevicePermissionGate.requiredItems), jadi
+      // izin kamera baru diminta di sini — kalau ditolak, "Coba Lagi" percuma, user harus
+      // mengaktifkannya sendiri lewat Pengaturan.
+      if (!mounted) return;
+      final denied = e.code.startsWith('CameraAccess');
+      setState(() {
+        _cameraPermissionDenied = denied;
+        _cameraError = denied
+            ? "Izin kamera ditolak. Aktifkan akses kamera di Pengaturan untuk melakukan absensi."
+            : "Gagal membuka kamera, coba lagi.";
+      });
     } catch (_) {
       if (mounted) {
         setState(() => _cameraError = "Gagal membuka kamera, coba lagi.");
@@ -324,15 +338,25 @@ class _CameraPageState extends State<CameraPage> {
                 style: const TextStyle(color: Color(greyShade500), fontSize: 14),
               ),
               const SizedBox(height: 24),
-              ElevatedButton.icon(
-                onPressed: () {
-                  AnalyticsService.logEvent('camera_retry_camera');
-                  setState(() => _cameraError = null);
-                  _initCamera();
-                },
-                icon: const Icon(Icons.refresh),
-                label: const Text('Coba Lagi'),
-              ),
+              if (_cameraPermissionDenied)
+                ElevatedButton.icon(
+                  onPressed: () {
+                    AnalyticsService.logEvent('camera_open_settings');
+                    DevicePermissionGate.openAppSettings();
+                  },
+                  icon: const Icon(Icons.settings),
+                  label: const Text('Buka Pengaturan'),
+                )
+              else
+                ElevatedButton.icon(
+                  onPressed: () {
+                    AnalyticsService.logEvent('camera_retry_camera');
+                    setState(() => _cameraError = null);
+                    _initCamera();
+                  },
+                  icon: const Icon(Icons.refresh),
+                  label: const Text('Coba Lagi'),
+                ),
             ],
           ),
         ),

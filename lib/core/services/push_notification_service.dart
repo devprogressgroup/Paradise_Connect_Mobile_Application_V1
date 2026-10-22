@@ -72,7 +72,9 @@ class PushNotificationService {
   }
 
   static Future<void> checkAndShowUpdateBanner() async {
-  
+    // iOS cuma bisa di-update lewat App Store, OTA APK tidak berlaku.
+    if (!kIsWeb && Platform.isIOS) return;
+
     try {
       final dio = _dio ?? Dio();
       final resp = await dio.get('/app-version');
@@ -585,6 +587,8 @@ class PushNotificationService {
     final action = data['action'] as String?;
 
     if (type == 'app_update') {
+      // iOS cuma bisa di-update lewat App Store, OTA APK tidak berlaku.
+      if (!kIsWeb && Platform.isIOS) return;
       final url = data['download_url'] as String? ?? data['route'] as String?;
       if (url != null && url.isNotEmpty) {
         PackageInfo.fromPlatform().then((info) {
