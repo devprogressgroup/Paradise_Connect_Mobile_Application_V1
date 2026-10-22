@@ -14,9 +14,7 @@ class SalesbookSyncService {
         data: FormData.fromMap({'contact_id': contactId}),
         options: Options(headers: {'X-App-Token': ApiConstants.salesbookWebhookToken}),
       );
-      // debugPrint('[SalesbookSync] contact_id=$contactId → ${response.statusCode} ${response.data}');
     } catch (e) {
-      // debugPrint('[SalesbookSync] ERROR contact_id=$contactId → $e');
     }
   }
 }

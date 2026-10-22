@@ -260,7 +260,6 @@ class _ProfilePageState extends State<ProfilePage> {
           emailTC.text = state.profile.email;
           phoneTC.text = state.profile.phoneNumber;
         } else if (state is ProfileFailure) {
-          // debugPrint('ProfileFailure: ${state.message}');
         }
       },
       builder: (context, state) {
@@ -568,7 +567,6 @@ class _ProfilePageState extends State<ProfilePage> {
                     //       final prefs = await SharedPreferences.getInstance();
                     //       final stored = prefs.getString('auth_token');
                     //       final token = ProxyCipher.decryptString(stored) ?? '-';
-                    //       debugPrint('[TOKEN] $token');
                     //       await Clipboard.setData(ClipboardData(text: token));
                     //       if (context.mounted) showSnackbar(context, 'Token disalin ke clipboard', isError: false);
                     //     },

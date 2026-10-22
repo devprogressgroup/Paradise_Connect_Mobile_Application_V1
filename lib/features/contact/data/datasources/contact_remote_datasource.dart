@@ -2,7 +2,6 @@
 
 import 'dart:convert';
 import 'package:dio/dio.dart';
-import 'package:flutter/material.dart';
 import 'package:progress_group/core/utils/helpers/error_message.dart';
 import 'package:progress_group/features/contact/data/models/activity/activitty_prospect_status._model.dart';
 import 'package:progress_group/features/contact/data/models/activity/activity_api_model.dart';
@@ -411,7 +410,6 @@ class ContactRemoteDataSourceImpl implements ContactRemoteDataSource {
     try {
       final hasFiles = params.propertyFileBytes?.isNotEmpty == true;
       final data = hasFiles ? _buildFormData(params) : params.toJson();
-      debugPrint('[updateContact] PATCH /contacts/$id body: ${const JsonEncoder.withIndent('  ').convert(params.toJson())}');
       final response = await dio.patch('/contacts/$id', data: data);
 
       if (response.data['status'] != true) {

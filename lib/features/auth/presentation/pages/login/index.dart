@@ -171,7 +171,6 @@ class _LoginPageState extends State<LoginPage> {
           _passwordController.text = state.password;
           setState(() => _rememberMe = true);
         } else if (state is AuthFailure) {
-          // debugPrint('AuthFailure: ${state.error}');
            showSnackbar(context, state.error, isError: true);
         }
       },
