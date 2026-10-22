@@ -32,11 +32,13 @@ class DefaultFirebaseOptions {
 
   static const FirebaseOptions ios = FirebaseOptions(
     apiKey: 'AIzaSyA4zCrddsInlOO8UjNzfr_5bGnYTE63RLs',
-    appId: '1:729428932735:ios:c7491da858b2495aa6274a',
+    appId: '1:729428932735:ios:aa21bbed74a377f1a6274a',
     messagingSenderId: '729428932735',
     projectId: 'paradise-connect-mobile-6effd',
     storageBucket: 'paradise-connect-mobile-6effd.firebasestorage.app',
-    iosBundleId: 'id.co.progressgroup.connect',
+    // SATU "s" — harus sama persis dengan bundle ID app di App Store Connect (tidak bisa diubah
+    // setelah build pertama diunggah). Android tetap id.co.progressgroup.connect.
+    iosBundleId: 'id.co.progresgroup.connect',
   );
   
 

@@ -9,7 +9,7 @@
 	<key>PLIST_VERSION</key>
 	<string>1</string>
 	<key>BUNDLE_ID</key>
-	<string>id.co.progressgroup.connect</string>
+	<string>id.co.progresgroup.connect</string>
 	<key>PROJECT_ID</key>
 	<string>paradise-connect-mobile-6effd</string>
 	<key>STORAGE_BUCKET</key>
@@ -25,6 +25,6 @@
 	<key>IS_SIGNIN_ENABLED</key>
 	<true></true>
 	<key>GOOGLE_APP_ID</key>
-	<string>1:729428932735:ios:c7491da858b2495aa6274a</string>
+	<string>1:729428932735:ios:aa21bbed74a377f1a6274a</string>
 </dict>
 </plist>

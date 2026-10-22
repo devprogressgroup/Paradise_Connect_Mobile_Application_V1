@@ -1,0 +1,50 @@
+# Build IPA iOS & upload ke App Store Connect — otomatis tiap push ke branch ios-app.
+# Aktifkan di Codemagic: pengaturan app → "Switch to YAML configuration".
+workflows:
+  ios-release:
+    name: iOS Release
+    instance_type: mac_mini_m2
+    max_build_duration: 60
+    integrations:
+      # Teams → Integrations → Developer Portal: nama App Store Connect API key yang didaftarkan.
+      app_store_connect: "code magic paradise connect"
+    environment:
+      flutter: 3.41.6 # samakan dengan versi Flutter lokal
+      xcode: latest
+      cocoapods: default
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: id.co.progresgroup.connect # SATU "s", sama dengan App Store Connect
+      vars:
+        # App Store Connect → App Information → Apple ID (angka).
+        APP_STORE_APPLE_ID: 6820334471
+    cache:
+      cache_paths:
+        - $HOME/.pub-cache
+    triggering:
+      events:
+        - push
+      branch_patterns:
+        - pattern: ios-app
+          include: true
+      cancel_previous_builds: true
+    scripts:
+      - name: Code signing
+        script: xcode-project use-profiles
+      - name: Get packages
+        script: flutter pub get
+      - name: Build IPA
+        script: |
+          # Build number = build terakhir di TestFlight + 1, jadi tidak perlu naikkan
+          # angka setelah "+" di pubspec.yaml tiap build. Versi (1.0.6) tetap dari pubspec.
+          BUILD_NUMBER=$(($(app-store-connect get-latest-testflight-build-number "$APP_STORE_APPLE_ID") + 1))
+          flutter build ipa --release \
+            --build-number=$BUILD_NUMBER \
+            --export-options-plist=/Users/builder/export_options.plist
+    artifacts:
+      - build/ios/ipa/*.ipa
+    publishing:
+      app_store_connect:
+        auth: integration
+        # false = Codemagic selesai begitu upload beres, tanpa menunggu Apple memproses build.
+        submit_to_testflight: false
