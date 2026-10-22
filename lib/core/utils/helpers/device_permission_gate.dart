@@ -10,7 +10,7 @@ import 'package:progress_group/core/utils/web_debug_util.dart' as web_debug;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'camera_permission_primer.dart';
 
-enum DevicePermissionType { camera, gallery, location, contacts, notification, installPackages, batteryOptimization }
+enum DevicePermissionType { camera, gallery, location, notification, installPackages, batteryOptimization }
 
 class DevicePermissionItem {
   final DevicePermissionType type;
@@ -24,7 +24,7 @@ class DevicePermissionItem {
   });
 }
 
-/// Gate izin perangkat (kamera, galeri, lokasi, kontak, notifikasi) yang wajib
+/// Gate izin perangkat (kamera, galeri, lokasi, notifikasi) yang wajib
 /// diberikan sebelum aplikasi bisa dipakai (kecuali iOS, lihat [requiredItems]). Terpisah dari [PermissionsHelper]
 /// yang mengatur hak akses fitur berbasis role dari backend.
 class DevicePermissionGate {
@@ -47,11 +47,6 @@ class DevicePermissionGate {
       description: 'Untuk mencatat lokasi saat melakukan absensi',
     ),
     DevicePermissionItem(
-      type: DevicePermissionType.contacts,
-      label: 'Kontak',
-      description: 'Untuk mengisi data kontak otomatis dari buku kontak',
-    ),
-    DevicePermissionItem(
       type: DevicePermissionType.notification,
       label: 'Notifikasi',
       description: 'Untuk menerima notifikasi tugas, approval, dan update',
@@ -69,10 +64,13 @@ class DevicePermissionGate {
     // ulang tiba-tiba dan menunda mereka sampai ke splash/login. Diminta secara
     // terpisah & non-blocking lewat [maybePromptBatteryOptimization], sekali saja
     // setelah login (lihat pemanggilnya di splash/index.dart).
+    //
+    // Kontak juga SENGAJA tidak ada di sini: Android pakai picker nomor sistem tanpa
+    // READ_CONTACTS (kebijakan Izin Kontak Google Play, lihat ContactPickerService), iOS
+    // minta izinnya sendiri saat user tap import di form kontak.
   ];
 
-  /// Kontak tidak tersedia di web (flutter_contacts mobile-only), dan galeri
-  /// di web ditangani file picker browser tanpa izin OS terpisah, jadi keduanya
+  /// Galeri di web ditangani file picker browser tanpa izin OS terpisah, jadi
   /// tidak di-gate di web. Instal pembaruan (APK sideload) cuma konsep Android,
   /// jadi tidak relevan di web maupun iOS. Kamera DI-gate di web juga (lewat
   /// getUserMedia, lihat [request]) supaya diminta di awal sekali di gate ini,
@@ -186,9 +184,6 @@ class DevicePermissionGate {
         // status limited, bukan granted, walau user sudah mengizinkan akses parsial —
         // itu tetap cukup buat fitur upload foto di app ini.
         return status.isGranted || status.isLimited;
-      case DevicePermissionType.contacts:
-        if (kIsWeb) return true;
-        return (await ph.Permission.contacts.status).isGranted;
       case DevicePermissionType.installPackages:
         return OtaUpdateService.canInstallPackages();
       case DevicePermissionType.batteryOptimization:
@@ -218,7 +213,6 @@ class DevicePermissionGate {
         case DevicePermissionType.camera:
           return _guard(() async => await queryCameraPermissionState() == 'denied', false);
         case DevicePermissionType.gallery:
-        case DevicePermissionType.contacts:
         case DevicePermissionType.installPackages:
         case DevicePermissionType.batteryOptimization:
           return false;
@@ -236,8 +230,6 @@ class DevicePermissionGate {
         return (await ph.Permission.camera.status).isPermanentlyDenied;
       case DevicePermissionType.gallery:
         return (await (await _galleryPermission()).status).isPermanentlyDenied;
-      case DevicePermissionType.contacts:
-        return (await ph.Permission.contacts.status).isPermanentlyDenied;
       case DevicePermissionType.installPackages:
         // Bukan runtime permission dialog biasa — tidak ada state "ditolak permanen",
         // cuma toggle di halaman Settings khusus yang dibuka lewat request().
@@ -277,9 +269,6 @@ class DevicePermissionGate {
         if (kIsWeb) return true;
         final status = await (await _galleryPermission()).request();
         return status.isGranted || status.isLimited;
-      case DevicePermissionType.contacts:
-        if (kIsWeb) return true;
-        return (await ph.Permission.contacts.request()).isGranted;
       case DevicePermissionType.installPackages:
         // Tidak ada dialog — satu-satunya cara adalah buka halaman Settings khusus dan
         // menunggu user kembali (lifecycle resumed di halaman gate akan re-check statusnya).

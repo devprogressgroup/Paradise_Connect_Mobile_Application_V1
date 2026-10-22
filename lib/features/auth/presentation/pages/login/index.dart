@@ -552,13 +552,16 @@ class _LoginPageState extends State<LoginPage> {
                           Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Text("Don't have an account? ", style: TextStyle( fontSize: 12, color: Color(greyShade500)),),
+                              // Bukan pendaftaran publik — akun dibuat HRD, di sini cuma aktivasi (set password via OTP).
+                              // Jangan pakai istilah "Sign Up": App Review menganggapnya pembuatan akun dan mewajibkan
+                              // fitur hapus akun (Guideline 5.1.1(v)).
+                              Text("New employee? ", style: TextStyle( fontSize: 12, color: Color(greyShade500)),),
                               GestureDetector(
                                 onTap: () async {
                                  AnalyticsService.logEvent('login_sign_up');
                                  context.pushNamed("forgot_password", extra: {'step': 1, 'isRegister': true});
                                 },
-                                child: Text("Sign Up", style: TextStyle( fontSize: 12, fontWeight: FontWeight.w700, color: Color(primaryColor), decoration: TextDecoration.underline, decorationColor: Color(primaryColor), decorationThickness: 1,),textAlign: TextAlign.center,)),
+                                child: Text("Activate Account", style: TextStyle( fontSize: 12, fontWeight: FontWeight.w700, color: Color(primaryColor), decoration: TextDecoration.underline, decorationColor: Color(primaryColor), decorationThickness: 1,),textAlign: TextAlign.center,)),
                             ],
                           ),
                         

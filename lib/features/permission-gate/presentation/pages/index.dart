@@ -152,8 +152,6 @@ class _PermissionGatePageState extends State<PermissionGatePage> with WidgetsBin
         return Icons.photo_library_rounded;
       case DevicePermissionType.location:
         return Icons.location_on_rounded;
-      case DevicePermissionType.contacts:
-        return Icons.contacts_rounded;
       case DevicePermissionType.notification:
         return Icons.notifications_rounded;
       case DevicePermissionType.installPackages:

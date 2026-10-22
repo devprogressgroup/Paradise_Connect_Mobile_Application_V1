@@ -1,5 +1,6 @@
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart' show kIsWeb, defaultTargetPlatform, TargetPlatform;
 import 'package:progress_group/core/services/analytics_service.dart';
+import 'package:progress_group/core/services/contact_picker_service.dart';
 import 'package:progress_group/core/utils/widget/custom_button.dart';
 import 'package:progress_group/core/utils/helpers/permissions_helper.dart';
 import 'package:progress_group/core/services/salesbook_sync_service.dart';
@@ -1444,27 +1445,14 @@ class _ContactFormPageState extends State<ContactFormPage> {
 
   Future<void> _importFromContacts() async {
     AnalyticsService.logEvent('contact_form_import_from_contacts');
-    final status = await FlutterContacts.permissions.request(PermissionType.read);
-    final granted = status == PermissionStatus.granted || status == PermissionStatus.limited;
-    if (!granted) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Izin akses kontak diperlukan')),
-        );
-      }
-      return;
-    }
     try {
-      final contact = await FlutterContacts.native.showPicker();
-      final contactId = contact?.id;
-      if (contactId == null || !mounted) return;
+      final picked = defaultTargetPlatform == TargetPlatform.android
+          ? await ContactPickerService.pickPhone()
+          : await _pickContactIos();
+      if (picked == null || !mounted) return;
 
-      final full = await FlutterContacts.get(contactId, properties: ContactProperties.allProperties);
-      if (full == null || !mounted) return;
-
-      final name = full.displayName ?? '';
-      final rawPhone = full.phones.isNotEmpty ? full.phones.first.number : '';
-      String phone = rawPhone.replaceAll(RegExp(r'[\s\-\(\)]'), '');
+      final name = picked.name;
+      String phone = picked.phone.replaceAll(RegExp(r'[\s\-\(\)]'), '');
       if (phone.startsWith('+62')) {
         phone = '62${phone.substring(3)}';
       } else if (phone.startsWith('08')) {
@@ -1482,6 +1470,31 @@ class _ContactFormPageState extends State<ContactFormPage> {
         );
       }
     }
+  }
+
+  /// Picker flutter_contacts tanpa izin cuma memberi id + nama, nomornya harus dibaca ulang
+  /// lewat [FlutterContacts.get] yang butuh izin kontak. Android tidak lewat sini (Google
+  /// Play membatasi READ_CONTACTS), lihat [ContactPickerService].
+  Future<PickedContact?> _pickContactIos() async {
+    final status = await FlutterContacts.permissions.request(PermissionType.read);
+    final granted = status == PermissionStatus.granted || status == PermissionStatus.limited;
+    if (!granted) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Izin akses kontak diperlukan')),
+        );
+      }
+      return null;
+    }
+    final contactId = (await FlutterContacts.native.showPicker())?.id;
+    if (contactId == null) return null;
+
+    final full = await FlutterContacts.get(contactId, properties: ContactProperties.allProperties);
+    if (full == null) return null;
+    return (
+      name: full.displayName ?? '',
+      phone: full.phones.isNotEmpty ? full.phones.first.number : '',
+    );
   }
 
   Future<void> _handleSave() async {
