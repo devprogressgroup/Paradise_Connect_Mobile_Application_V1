@@ -23,6 +23,7 @@ class _EnvConfig {
 class ApiConstants {
   static const String _prefKey = 'app_environment';
   static const String _prefSetKey = 'app_environment_user_set';
+  static const String _prefDemoKey = 'app_demo_session';
 
   static const Map<AppEnvironment, _EnvConfig> _configs = {
     AppEnvironment.production: _EnvConfig(
@@ -53,6 +54,66 @@ class ApiConstants {
     // ),
   };
 
+  // Akun demo (reviewer App Store/Play) login ke server dev supaya data uji mereka tidak ikut
+  // ter-sync ke HubSpot, Google Sheet, dst. SENGAJA di luar [_configs] (tidak muncul di env
+  // switcher) dan tujuannya hardcode di sini: setting DEMO_ACCOUNTS di DB cuma menentukan akun
+  // MANA yang dialihkan, bukan KE MANA. Lihat DemoAccountService.
+  static const _EnvConfig _demoConfig = _EnvConfig(
+    label: 'Demo',
+    baseUrl: 'https://apidevconnect.paradise.id/api',
+    storageUrl: 'https://apidevconnect.paradise.id/storage',
+    serverUrl: 'https://apidevconnect.paradise.id',
+  );
+
+  static bool _demoSession = false;
+  static bool get isDemoSession => _demoSession;
+
+  // Diisi HANYA dari /settings production — DB dev tidak perlu punya DEMO_ACCOUNTS.
+  // [demoAccountsFresh] = sudah dapat dari network di sesi app ini (bukan cuma dari cache).
+  static Set<String> _demoAccounts = {};
+  static bool _demoAccountsFresh = false;
+  static bool get demoAccountsFresh => _demoAccountsFresh;
+  static String get productionBaseUrl => _configs[AppEnvironment.production]!.baseUrl;
+
+  static bool get _isProductionSource =>
+      !_demoSession && _currentEnv == AppEnvironment.production;
+
+  static bool isDemoAccount(String identifier) =>
+      _demoAccounts.contains(identifier.trim().toLowerCase());
+
+  /// Selalu menimpa (bukan merge): baris DEMO_ACCOUNTS dihapus/dikosongkan di DB → daftar
+  /// ikut kosong, fitur demo mati tanpa update app.
+  static void applyDemoAccounts(List<Map<String, dynamic>> productionSettings, {bool fresh = true}) {
+    final row = productionSettings.firstWhere(
+      (s) => s['setting_name'] == 'DEMO_ACCOUNTS',
+      orElse: () => const {},
+    );
+    final value = row['setting_value'] as String? ?? '';
+    _demoAccounts = value
+        .split(',')
+        .map((e) => e.trim().toLowerCase())
+        .where((e) => e.isNotEmpty)
+        .toSet();
+    if (fresh) _demoAccountsFresh = true;
+  }
+
+  /// SENGAJA tidak menyentuh [envNotifier]: listener-nya me-reset seluruh app (main.dart
+  /// _resetApp), yang akan mengosongkan form login di tengah proses login. Request berikutnya
+  /// tetap langsung pindah karena DioClient membaca [baseUrl] ulang per request.
+  static Future<void> setDemoSession(bool value) async {
+    if (_demoSession == value) return;
+    _demoSession = value;
+    _settingsSignature = null;
+    final prefs = await SharedPreferences.getInstance();
+    if (value) {
+      await prefs.setBool(_prefDemoKey, true);
+    } else {
+      await prefs.remove(_prefDemoKey);
+    }
+    // Pakai settings terakhir milik server tujuan (kalau ada) sampai fetch berikutnya.
+    loadCachedSettings(prefs);
+  }
+
   static AppEnvironment _currentEnv = AppEnvironment.production;
   static final ValueNotifier<AppEnvironment> envNotifier = ValueNotifier(
     AppEnvironment.production,
@@ -67,6 +128,7 @@ class ApiConstants {
   static String baseUrlFor(AppEnvironment env) => _configs[env]?.baseUrl ?? '';
 
   static void loadFromPrefs(SharedPreferences prefs) {
+    _demoSession = prefs.getBool(_prefDemoKey) ?? false;
     final userSet = prefs.getBool(_prefSetKey) ?? false;
     if (!userSet) {
       _currentEnv = AppEnvironment.production;
@@ -88,7 +150,9 @@ class ApiConstants {
 
   static Future<void> switchEnv(AppEnvironment env) async {
     _currentEnv = env;
+    _demoSession = false;
     final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_prefDemoKey);
     final key = switch (env) {
       AppEnvironment.development => 'development',
       AppEnvironment.development2 => 'development2',
@@ -100,7 +164,9 @@ class ApiConstants {
     envNotifier.value = env;
   }
 
-  static _EnvConfig get _config => _configs[_currentEnv] ?? _configs[AppEnvironment.production]!;
+  static _EnvConfig get _config => _demoSession
+      ? _demoConfig
+      : _configs[_currentEnv] ?? _configs[AppEnvironment.production]!;
 
   static String get baseUrl => _config.baseUrl;
   static String get storageUrl => _config.storageUrl;
@@ -147,7 +213,8 @@ class ApiConstants {
 
   // Cache /settings per environment supaya main() tidak perlu nunggu network sebelum runApp():
   // nilai terakhir langsung dipakai dari prefs, lalu fetch terbaru jalan di background.
-  static String get _settingsCacheKey => 'cached_settings_${_currentEnv.name}';
+  static String get _settingsCacheKey =>
+      _demoSession ? 'cached_settings_demo' : 'cached_settings_${_currentEnv.name}';
   static String? _settingsSignature;
 
   static void loadCachedSettings(SharedPreferences prefs) {
@@ -156,6 +223,7 @@ class ApiConstants {
     try {
       final list = List<Map<String, dynamic>>.from(jsonDecode(raw) as List);
       _applySettingValues(list);
+      if (_isProductionSource) applyDemoAccounts(list, fresh: false);
       _settingsSignature = raw;
     } catch (_) {}
   }
@@ -164,6 +232,8 @@ class ApiConstants {
   /// cache), tidak melakukan apa-apa — supaya listener [settingsVersion] (Home, Contact)
   /// tidak reload data tanpa alasan tiap kali settings di-fetch ulang.
   static void applySettings(List<Map<String, dynamic>> settings) {
+    // Sebelum cek signature: isi sama dengan cache tetap berarti daftar demo sudah "fresh".
+    if (_isProductionSource) applyDemoAccounts(settings);
     final signature = jsonEncode(settings);
     if (signature == _settingsSignature) return;
     _settingsSignature = signature;

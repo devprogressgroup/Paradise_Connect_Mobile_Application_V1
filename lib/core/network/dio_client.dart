@@ -92,6 +92,9 @@ class DioClient {
     _dio.interceptors.add(
       InterceptorsWrapper(
         onRequest: (options, handler) async {
+          // Ikut env aktif per request, bukan baseUrl saat Dio dibuat — sesi akun demo pindah
+          // server tanpa me-reset app (lihat ApiConstants.setDemoSession).
+          options.baseUrl = ApiConstants.baseUrl;
           final token = await _authLocalDataSource.getToken();
           if (token != null && token.isNotEmpty) {
             options.headers["Authorization"] = "Bearer $token";
