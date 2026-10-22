@@ -36,9 +36,33 @@ Perubahan baru:
 - Login menampilkan "New employee? Activate Account" dan tidak ada istilah pendaftaran akun publik.
 - Di build release iOS, tap "Sign In" tidak membuka pilihan server, jadi reviewer selalu memakai server production.
 
+## Rekaman layar untuk App Review
+
+Persiapan:
+- iPhone asli dengan iOS versi terbaru. Hapus app lama, lalu install build TestFlight 1.0.6 (8) supaya pop-up izin muncul lagi di video.
+- Login memakai akun demo. Jangan pakai akun pribadi, dan jangan sampai ada data customer asli yang tampil.
+- Akun demo jangan superadmin. Kalau superadmin, menu "Login Sebagai User" muncul di halaman Profil.
+- Akun demo berisi data contoh: beberapa kontak, satu percakapan Inbox, beberapa notifikasi, dan minimal satu proyek di Site Plan.
+- Nyalakan Do Not Disturb, lalu tambahkan Screen Recording ke Control Center.
+
+Urutan rekaman (sekitar 3–6 menit, tanpa dipotong di tengah):
+1. Mulai rekam dari home screen iPhone, lalu tap ikon app.
+2. Di halaman login, tap "Activate Account", tampilkan layar aktivasi, lalu kembali.
+3. Login dengan akun demo. Kalau muncul izin notifikasi, pilih Allow.
+4. Home / Dashboard: scroll.
+5. Contact: buka detail kontak, lalu tambah kontak + import dari buku kontak (izin kontak muncul), lalu simpan.
+6. Attendance: Clock In (izin kamera, ambil foto, izin lokasi). Di luar lokasi kerja, statusnya menunggu approval atasan.
+7. Inbox: buka satu percakapan. Jangan mengirim pesan ke customer asli.
+8. Site Plan: pilih proyek, lalu tap satu unit.
+9. Menu samping: Sales Kit (buka satu brosur/video), Siap Huni, Info & Panduan.
+10. Buka halaman notifikasi.
+11. Profil, lalu Logout sampai kembali ke halaman login. Stop rekaman.
+
+Video dilampirkan di balasan App Review. Kalau terlalu besar, upload ke Google Drive atau YouTube (unlisted), lalu tempel link-nya di balasan dan di App Review Information → Notes.
+
 ## Yang masih harus disiapkan di luar kode
 
-- Akun demo di server production berisi data contoh. Clock-in absensi harus bisa dilakukan dari lokasi mana pun.
+- Akun demo di server production berisi data contoh, bukan superadmin. Clock-in di luar lokasi kerja tetap bisa, tapi berstatus menunggu approval atasan.
 - Ajukan *Unlisted App Distribution* (app khusus karyawan, Guideline 3.2): https://developer.apple.com/support/unlisted/request/
 - Rekaman layar dari iPhone asli dengan iOS terbaru (build TestFlight 1.0.6 (8)), dimulai dari membuka app.
 - Balasan untuk App Review, diisi juga di App Review Information → Notes, lengkap dengan kredensial akun demo.
