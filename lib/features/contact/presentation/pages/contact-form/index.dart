@@ -4,7 +4,7 @@ import 'package:progress_group/core/utils/widget/custom_button.dart';
 import 'package:progress_group/core/utils/helpers/permissions_helper.dart';
 import 'package:progress_group/core/services/salesbook_sync_service.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_contacts/flutter_contacts.dart' as fc;
+import 'package:progress_group/core/services/contact_picker_service.dart';
 import 'dart:convert';
 import 'package:flutter/services.dart';
 import 'package:progress_group/core/utils/helpers/app_time.dart';
@@ -1435,25 +1435,13 @@ class _ContactFormPageState extends State<ContactFormPage> {
 
   Future<void> _importFromContacts() async {
     AnalyticsService.logEvent('contact_form_import_from_contacts');
-    await fc.FlutterContacts.permissions.request(fc.PermissionType.read);
-    final granted = await fc.FlutterContacts.permissions.has(fc.PermissionType.read);
-    if (!granted) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Izin akses kontak diperlukan')),
-        );
-      }
-      return;
-    }
+    // Picker bawaan OS — user cuma membagikan satu kontak, jadi tidak perlu izin baca buku kontak.
     try {
-      final contact = await fc.FlutterContacts.native.showPicker(
-        properties: {fc.ContactProperty.phone},
-      );
+      final contact = await ContactPickerService.pickPhone();
       if (contact == null || !mounted) return;
 
-      final name = contact.displayName ?? '';
-      final rawPhone = contact.phones.isNotEmpty ? contact.phones.first.number : '';
-      String phone = rawPhone.replaceAll(RegExp(r'[\s\-\(\)]'), '');
+      final name = contact.name;
+      String phone = contact.phone.replaceAll(RegExp(r'[\s\-\(\)]'), '');
       if (phone.startsWith('+62')) {
         phone = '62${phone.substring(3)}';
       } else if (phone.startsWith('08')) {

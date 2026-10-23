@@ -4,7 +4,9 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
+import android.provider.ContactsContract
 import android.provider.Settings
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.FileProvider
 import io.flutter.embedding.android.FlutterFragmentActivity
 import io.flutter.embedding.engine.FlutterEngine
@@ -13,8 +15,48 @@ import java.io.File
 
 class MainActivity : FlutterFragmentActivity() {
 
+    // Picker nomor telepon bawaan Android: hasilnya URI satu nomor dengan izin baca sementara,
+    // jadi tidak butuh READ_CONTACTS (kebijakan Contacts Permission Google Play).
+    private var pendingContactResult: MethodChannel.Result? = null
+    private val pickPhoneLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { activityResult ->
+        val result = pendingContactResult ?: return@registerForActivityResult
+        pendingContactResult = null
+        val uri = activityResult.data?.data
+        if (activityResult.resultCode != RESULT_OK || uri == null) {
+            result.success(null)
+            return@registerForActivityResult
+        }
+        try {
+            val projection = arrayOf(ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME, ContactsContract.CommonDataKinds.Phone.NUMBER)
+            val picked = contentResolver.query(uri, projection, null, null, null)?.use { cursor ->
+                if (cursor.moveToFirst()) mapOf("name" to cursor.getString(0), "phone" to cursor.getString(1)) else null
+            }
+            result.success(picked)
+        } catch (e: Exception) {
+            result.error("READ_FAILED", e.message, null)
+        }
+    }
+
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "com.example.progress_group/contact_picker")
+            .setMethodCallHandler { call, result ->
+                if (call.method != "pickPhone") {
+                    result.notImplemented()
+                    return@setMethodCallHandler
+                }
+                if (pendingContactResult != null) {
+                    result.error("ALREADY_ACTIVE", "Contact picker sudah terbuka", null)
+                    return@setMethodCallHandler
+                }
+                pendingContactResult = result
+                try {
+                    pickPhoneLauncher.launch(Intent(Intent.ACTION_PICK, ContactsContract.CommonDataKinds.Phone.CONTENT_URI))
+                } catch (e: Exception) {
+                    pendingContactResult = null
+                    result.error("PICKER_UNAVAILABLE", e.message, null)
+                }
+            }
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "com.example.progress_group/install_apk")
             .setMethodCallHandler { call, result ->
                 if (call.method == "installApk") {
