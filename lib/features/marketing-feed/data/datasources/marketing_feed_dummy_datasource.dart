@@ -86,12 +86,19 @@ class MarketingFeedDummyDataSource implements MarketingFeedRemoteDataSource {
   @override
   Future<List<WallOfFameLevelModel>> getWallOfFame() async {
     await Future.delayed(_latency);
-    WallOfFameEntryModel e(String name, String info, String highlight) =>
-        WallOfFameEntryModel(name: name, info: info, highlight: highlight);
+    // [photoId] = foto contoh Unsplash, sama seperti foto post di _seed().
+    WallOfFameEntryModel e(String name, String info, String highlight, [String? photoId]) => WallOfFameEntryModel(
+          name: name,
+          info: info,
+          highlight: highlight,
+          photoUrl: photoId == null
+              ? null
+              : 'https://images.unsplash.com/photo-$photoId?w=240&h=240&fit=crop&crop=faces&q=70',
+        );
     return [
       WallOfFameLevelModel(
         level: 'TOP GM',
-        champion: e('Hendra Wijaya', 'GM PAR1 & PAR2', 'Belum terkalahkan 3 bulan beruntun!'),
+        champion: e('Hendra Wijaya', 'GM PAR1 & PAR2', 'Belum terkalahkan 3 bulan beruntun!', '1507003211169-0a1dd7228f2d'),
         runnersUp: [
           e('Ratna Puspita', 'PRC', 'Comeback kuat bulan ini 💪'),
           e('Agus Salim', 'PAR2', 'Konsisten terus di 3 besar'),
@@ -99,7 +106,7 @@ class MarketingFeedDummyDataSource implements MarketingFeedRemoteDataSource {
       ),
       WallOfFameLevelModel(
         level: 'TOP SM',
-        champion: e('Dewi Kartika', 'SM PAR1', '14 SP tim dalam sebulan'),
+        champion: e('Dewi Kartika', 'SM PAR1', '14 SP tim dalam sebulan', '1494790108377-be9c29b29330'),
         runnersUp: [
           e('Fajar Ramadhan', 'PRC', 'Naik 4 peringkat'),
           e('Lina Nur', 'PAR2', 'Closing rate 38%'),
@@ -107,7 +114,7 @@ class MarketingFeedDummyDataSource implements MarketingFeedRemoteDataSource {
       ),
       WallOfFameLevelModel(
         level: 'TOP SPV',
-        champion: e('Yoga Saputra', 'SPV PAR2', 'Tim paling cepat follow up'),
+        champion: e('Yoga Saputra', 'SPV PAR2', 'Tim paling cepat follow up', '1500648767791-00dcc994a43e'),
         runnersUp: [
           e('Mega Indah', 'PAR1', '9 SP tim'),
           e('Rudi Akbar', 'PRC', 'Visit terbanyak'),
@@ -115,7 +122,7 @@ class MarketingFeedDummyDataSource implements MarketingFeedRemoteDataSource {
       ),
       WallOfFameLevelModel(
         level: 'TOP SE',
-        champion: e('Rina Kartika', 'SE PAR1', '8 unit SP bulan ini, #1 di PAR1'),
+        champion: e('Rina Kartika', 'SE PAR1', '8 unit SP bulan ini, #1 di PAR1', '1438761681033-6461ffad8d80'),
         runnersUp: [
           e('Budi Santoso', 'PAR1', '6 SP, appointment terbanyak'),
           e('Tari Wulan', 'PAR2', 'SP pertama bulan ini 🎉'),

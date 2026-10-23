@@ -77,11 +77,6 @@ svg{display:block;flex:none}
 .av{width:36px;height:36px;border-radius:10px;display:grid;place-items:center;color:var(--white);font-weight:800;font-size:13px;flex:none}
 .rank b{font-size:13px}
 
-/* cta */
-.cta{background:linear-gradient(120deg,var(--primary),var(--secondary));color:var(--white);flex-direction:row;align-items:center;text-align:left;gap:12px;box-shadow:0 4px 12px rgba(33,150,243,.3);cursor:pointer}
-.cta .ib{background:rgba(255,255,255,.2);width:40px;height:40px;border-radius:12px;display:grid;place-items:center;flex:none}
-.cta b{font-size:14px;display:block}.cta small{font-size:12px;opacity:.92}
-
 /* post */
 .pav{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;color:var(--white);font-weight:800;font-size:13px;flex:none}
 .name{font-size:14px;font-weight:700}
@@ -233,7 +228,9 @@ textarea:focus,input[type=text]:focus{border-color:var(--primary);outline:none}
 .t-tips{background:var(--primary)}
 .lcard .lk{display:block;color:inherit;text-decoration:none}
 .lfoot{padding:0 14px 12px}
-.hero .hport{position:absolute;right:-14px;bottom:-4px;width:150px;height:150px}
+.hero .hport{position:absolute;right:16px;top:50%;transform:translateY(-50%);width:82px;height:82px;border-radius:50%;background:rgba(255,255,255,.25)}
+.hero .hport span,.hero .hport img{position:absolute;top:3px;left:3px;width:76px;height:76px;border-radius:50%;object-fit:cover}
+.hero .hport span{display:grid;place-items:center;background:rgba(255,255,255,.18);font-size:26px;font-weight:800}
 .hero b,.hero small{max-width:64%}
 .av{position:relative}
 .medal{position:absolute;top:-6px;left:-6px;width:18px;height:18px;border-radius:50%;font-size:10px;font-weight:900;display:grid;place-items:center;color:#fff;border:2px solid #fff}
@@ -312,7 +309,6 @@ textarea:focus,input[type=text]:focus{border-color:var(--primary);outline:none}
 .flevel+.flevel{border-top:1px solid var(--grey10);padding-top:14px}
 .flv{font-size:12px;font-weight:800;color:var(--primary);letter-spacing:.06em}
 .flevel .hero{height:122px}
-.flevel .hero .hport{width:126px;height:126px}
 
 /* ===== ADMIN WEB — meniru panel Paradise Connect (Bootstrap 5, skin "saas": Inter 13px, bg #f9fbfd, primary #6366f1) ===== */
 .awin{--ap:#6366f1;--ap-sub:rgba(99,102,241,.12);--ap-emph:#4a4db5;--anav:#0d6efd;--abg:#f9fbfd;--abd:rgba(16,24,40,.08);--atx:#313a46;--amut:#6c757d;
@@ -478,6 +474,111 @@ textarea:focus,input[type=text]:focus{border-color:var(--primary);outline:none}
   .abar .url{font-size:11px}
   .adl{flex-wrap:wrap}
 }
+
+/* ===== DATABASE — dokumentasi ERD (isi sama dengan docs/marketing-feed-erd.md). Frame selalu light seperti Admin Web;
+   semua kelas berawalan db-/d- supaya tidak bentrok dengan .card/.chip/.bar milik app ===== */
+#dbMode{--db-bg:#fff;--db-fg:#1d2433;--db-mut:#5d6778;--db-line:#e3e8ef;--db-acc:#1f6fd1;--db-acc-soft:#e8f1fd;--db-warm:#b45f0a;--db-key:#0d7a69;--db-code:#f1f4f8;--db-dline:#a3adbb;
+  --db-ok:#e2f3e8;--db-ok-t:#1c6b3c;--db-info:#e5effc;--db-info-t:#1d5bb5;--db-warn:#fcf0d9;--db-warn-t:#8a5300;--db-bad:#fbe5e3;--db-bad-t:#a8322a;--db-mutbg:#eceff3;--db-mut-t:#4f5868;
+  /* font mono sistem: harus punya glyph box-drawing sendiri, kalau tidak garis kotak diagram jadi tidak rata */
+  --db-mono:ui-monospace,"Cascadia Mono",Consolas,Menlo,"DejaVu Sans Mono",monospace;--amut:#6c757d;
+  color-scheme:light;max-width:1280px;margin:0 auto;border-radius:12px;border:1px solid rgba(127,140,160,.3);box-shadow:0 20px 50px rgba(0,0,0,.18);background:var(--db-bg);color:var(--db-fg);font-size:15px;line-height:1.6}
+#dbMode .abar{border-radius:12px 12px 0 0}
+.db-doc{padding:32px 40px 56px}
+.db-top{display:grid;gap:12px;padding-bottom:24px;margin-bottom:32px;border-bottom:1px solid var(--db-line)}
+.db-eyebrow{margin:0;font-size:12px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;color:var(--db-acc)}
+#dbMode h1{margin:0;font-size:clamp(26px,4vw,36px);font-weight:800;line-height:1.15;letter-spacing:-.01em;text-wrap:balance}
+#dbMode h2{margin:0;font-size:22px;font-weight:800;line-height:1.25;display:flex;align-items:baseline;gap:12px;text-wrap:balance}
+#dbMode p{margin:0;max-width:72ch}
+#dbMode code{font-family:var(--db-mono);font-size:.85em;background:var(--db-code);padding:.12em .38em;border-radius:4px;font-variant-ligatures:none;overflow-wrap:anywhere}
+.db-lede{font-size:17px;color:var(--db-mut)}
+.db-meta{display:flex;flex-wrap:wrap;gap:12px 32px;margin:4px 0 0}
+.db-meta div{display:grid;gap:2px;min-width:0}
+.db-meta dt{font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--db-mut)}
+.db-meta dd{margin:0}
+.db-layout{display:grid;grid-template-columns:180px minmax(0,1fr);gap:44px}
+.db-toc{position:sticky;top:16px;align-self:start;font-size:14px}
+.db-toc p{margin:0 0 8px 10px;font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--db-mut)}
+.db-toc ol{list-style:none;margin:0;padding:0;display:grid;gap:2px}
+.db-toc a{display:flex;gap:10px;padding:6px 10px;border-radius:6px;color:var(--db-mut);text-decoration:none;font-weight:600}
+.db-toc a span{font-family:var(--db-mono);font-size:12px;color:var(--db-acc);padding-top:1px}
+.db-toc a:hover,.db-toc a.db-on{color:var(--db-fg);background:var(--db-acc-soft)}
+.db-main{display:grid;gap:52px;min-width:0}
+.db-main section{display:grid;gap:14px;min-width:0;scroll-margin-top:16px}
+.db-num{font-family:var(--db-mono);font-size:13px;font-weight:700;color:var(--db-acc)}
+.db-note{color:var(--db-mut);font-size:14px}
+.db-tw{overflow-x:auto;min-width:0}
+#dbMode table{border-collapse:collapse;width:100%;font-size:14.5px}
+#dbMode th{text-align:left;font-size:11px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:var(--db-mut);padding:8px 12px;border-bottom:1px solid var(--db-line);white-space:nowrap}
+#dbMode td{padding:9px 12px;border-bottom:1px solid var(--db-line);vertical-align:top}
+#dbMode td:first-child code{white-space:nowrap}
+.db-chip{display:inline-block;font-size:12px;font-weight:700;line-height:1.5;padding:1px 9px;border-radius:99px;white-space:nowrap}
+.db-chip-new{background:var(--db-acc-soft);color:var(--db-acc)}
+.db-chip-ex{background:var(--db-mutbg);color:var(--db-mut-t)}
+.db-chip-pd{border:1px solid var(--db-line);color:var(--db-mut)}
+.db-legend{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:10px 22px;margin:0}
+.db-legend dt{font-family:var(--db-mono);font-size:13px;font-weight:700;white-space:nowrap}
+.db-legend dd{margin:0}
+.db-dg{margin:0;border:1px solid var(--db-line);border-radius:10px;min-width:0}
+.db-dg-bar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 12px;padding:10px 14px;border-bottom:1px solid var(--db-line)}
+.db-dg-bar div{display:grid;min-width:0}
+.db-dg-bar b{font-size:15px}
+.db-dg-bar small{color:var(--db-mut);font-size:13px}
+.db-copy{font-size:13px;font-weight:700;color:var(--db-acc);border:1px solid var(--db-line);border-radius:6px;padding:5px 12px;white-space:nowrap}
+.db-copy:hover{background:var(--db-acc-soft)}
+.db-diagram{margin:0;padding:16px 18px;overflow-x:auto;font-family:var(--db-mono);font-size:13px;line-height:1.2;font-variant-ligatures:none}
+.db-diagram .d-ln{color:var(--db-dline)}
+.db-diagram .d-tn{color:var(--db-acc);font-weight:700}
+.db-diagram .d-tag{color:var(--db-warm);font-weight:600}
+.db-diagram .d-key{color:var(--db-key);font-weight:700}
+.db-diagram .d-ex{color:var(--db-mut)}
+.db-diagram .d-card{color:var(--db-acc);font-weight:700}
+.db-diagram .d-kw{color:var(--db-mut);font-weight:700}
+.db-st{display:inline-block;font-family:var(--db-mono);font-size:12.5px;font-weight:600;padding:1px 8px;border-radius:5px;white-space:nowrap}
+.db-st-draft{background:var(--db-mutbg);color:var(--db-mut-t)}
+.db-st-scheduled{background:var(--db-info);color:var(--db-info-t)}
+.db-st-published{background:var(--db-ok);color:var(--db-ok-t)}
+.db-st-review{background:var(--db-warn);color:var(--db-warn-t)}
+.db-st-rejected{background:var(--db-bad);color:var(--db-bad-t)}
+.db-new{color:var(--db-mut);font-style:italic;white-space:nowrap}
+.db-rules{margin:0;padding-left:20px;display:grid;gap:10px;max-width:76ch}
+.db-rules li::marker{color:var(--db-acc)}
+.db-qs{list-style:none;margin:0;padding:0;display:grid;gap:10px;counter-reset:dbq;max-width:82ch}
+.db-qs li{display:grid;grid-template-columns:24px minmax(0,1fr);gap:10px;padding:12px 16px;border:1px solid var(--db-line);border-radius:10px}
+.db-qs li::before{content:counter(dbq);counter-increment:dbq;font-family:var(--db-mono);font-weight:700;color:var(--db-warm)}
+@media (max-width:860px){
+  .db-doc{padding:24px 18px 40px}
+  .db-layout{grid-template-columns:minmax(0,1fr);gap:28px}
+  .db-toc{position:static}
+  .db-toc ol{display:flex;flex-wrap:wrap;gap:6px}
+  .db-toc a{border:1px solid var(--db-line);padding:4px 10px}
+}
+@media (max-width:480px){.db-diagram{font-size:12px;padding:14px}}
+/* DATABASE: cara membaca + "Dipakai di mana" (klik di prototype -> tabel) */
+#dbMode a{color:var(--db-acc)}
+#dbMode h3{margin:10px 0 0;font-size:16px;font-weight:800}
+.db-howto{margin:0;padding-left:22px;display:grid;gap:8px;max-width:76ch}
+.db-howto li::marker{font-family:var(--db-mono);font-weight:700;color:var(--db-warm)}
+.db-filter{display:flex;flex-wrap:wrap;gap:6px}
+.db-f{font-family:var(--db-mono);font-size:12.5px;padding:3px 10px;border:1px solid var(--db-line);border-radius:99px;color:var(--db-mut)}
+.db-f:hover{background:var(--db-acc-soft);color:var(--db-fg)}
+.db-f[aria-pressed="true"]{background:var(--db-acc);border-color:var(--db-acc);color:#fff}
+.db-use td:first-child{font-weight:700;white-space:nowrap}
+.db-use td:last-child{min-width:300px}
+.db-ops{list-style:none;margin:0;padding:0;display:grid;gap:5px}
+.db-ops li{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 8px}
+.db-ops small{color:var(--db-mut);font-size:13px}
+.db-op{font-family:var(--db-mono);font-size:11.5px;font-weight:700;padding:0 6px;border-radius:4px;min-width:24px;text-align:center}
+.db-op-c{background:var(--db-ok);color:var(--db-ok-t)}
+.db-op-r{background:var(--db-info);color:var(--db-info-t)}
+.db-op-u{background:var(--db-warn);color:var(--db-warn-t)}
+.db-op-d{background:var(--db-bad);color:var(--db-bad-t)}
+.db-op-none{background:var(--db-mutbg);color:var(--db-mut-t)}
+.db-use tr.db-dim td{opacity:.3}
+#dbMode .db-ops li.db-hit code{background:var(--db-acc);color:#fff}
+/* DATABASE: diagram Mermaid (ERD ringkas & flowchart). Sebelum digambar, isinya tampil sebagai kode */
+.db-mermaid{margin:0;padding:16px;overflow-x:auto;font-family:var(--db-mono);font-size:12px;line-height:1.4;color:var(--db-mut);white-space:pre}
+.db-mermaid[data-processed="true"]{white-space:normal;text-align:center;color:inherit}
+.db-mermaid svg{height:auto}
 </style>
 </head>
 <body>
@@ -485,6 +586,7 @@ textarea:focus,input[type=text]:focus{border-color:var(--primary);outline:none}
   <div class="mode" role="tablist" aria-label="Pilih tampilan prototype">
     <button role="tab" aria-selected="true" data-mode="mobile"><i data-ic="mobile" data-s="18"></i>App Mobile</button>
     <button role="tab" aria-selected="false" data-mode="admin"><i data-ic="desktop" data-s="18"></i>Admin Web</button>
+    <button role="tab" aria-selected="false" data-mode="db"><i data-ic="db" data-s="18"></i>Database</button>
   </div>
   <div class="democlock"><i data-ic="clock" data-s="16"></i>Jam simulasi: <b data-clock="full">Sel, 13 Okt 2026 · 09:41:00</b><button id="jumpBtn"><i data-ic="ffwd" data-s="16"></i>Lompat ke jadwal berikutnya</button></div>
 </div>
@@ -685,8 +787,573 @@ textarea:focus,input[type=text]:focus{border-color:var(--primary);outline:none}
   </div>
   <div class="atoast" id="atoast" role="status" hidden></div>
 </div>
+<!-- DATABASE = dokumentasi ERD Marketing Feed. Isi sama dengan docs/marketing-feed-erd.md; diagram ASCII di-generate
+     dari sumber yang sama (jangan rapikan garisnya manual), warnanya ditambahkan JS saat load. -->
+<div id="dbMode" hidden>
+  <div class="abar"><span class="d3"><i></i><i></i><i></i></span><div class="url">docs/marketing-feed-erd.md</div></div>
+  <article class="db-doc">
+    <header class="db-top">
+      <p class="db-eyebrow">Paradise Connect · Rancangan skema database</p>
+      <h1>ERD Marketing Feed</h1>
+      <p class="db-lede">Tabel untuk feed konten di Home aplikasi sales: post, poll, link sosmed, komentar, review kiriman sales, dan Wall of Fame. 10 tabel baru, 6 tabel existing.</p>
+      <dl class="db-meta">
+        <div><dt>Tanggal</dt><dd>23 Oktober 2026</dd></div>
+        <div><dt>Status</dt><dd><span class="db-st db-st-review">usulan</span></dd></div>
+        <div><dt>Area</dt><dd><code>features/marketing-feed</code> + backend <code>Paradise-Connect-1.0</code></dd></div>
+        <div><dt>Sumber</dt><dd>Prototype ini (App Mobile + Admin Web), <code>marketing_feed_remote_datasource.dart</code></dd></div>
+      </dl>
+    </header>
+
+    <div class="db-layout">
+      <nav class="db-toc" aria-label="Daftar isi dokumentasi database">
+        <p>Daftar isi</p>
+        <ol>
+          <li><a href="#db-ringkasan"><span>1</span>Ringkasan</a></li>
+          <li><a href="#db-erd-ringkas"><span>2</span>ERD ringkas</a></li>
+          <li><a href="#db-flow"><span>3</span>Flowchart</a></li>
+          <li><a href="#db-baca"><span>4</span>Cara membaca detail</a></li>
+          <li><a href="#db-erd"><span>5</span>ERD detail</a></li>
+          <li><a href="#db-pakai"><span>6</span>Dipakai di mana</a></li>
+          <li><a href="#db-alur-status"><span>7</span>Alur status</a></li>
+          <li><a href="#db-aturan"><span>8</span>Aturan bisnis</a></li>
+          <li><a href="#db-konvensi"><span>9</span>Konvensi kolom</a></li>
+          <li><a href="#db-pertanyaan"><span>10</span>Pertanyaan terbuka</a></li>
+        </ol>
+      </nav>
+
+      <div class="db-main">
+        <section id="db-ringkasan">
+          <h2><span class="db-num">1</span>Ringkasan</h2>
+          <p>Marketing Feed adalah feed konten di Home aplikasi sales. Moderator (Tim Marketing) membuat post, poll, dan link sosmed dari Admin Web atau app. Konten bisa langsung tayang, dijadwalkan, atau disimpan sebagai draft. Sales mengirim momen lewat "Bagikan Momen"; kiriman itu masuk antrean review dulu sebelum tayang.</p>
+          <p class="db-note">Tabel dan endpoint-nya belum ada. App masih memakai <code>MarketingFeedDummyDataSource</code>.</p>
+          <div class="db-tw">
+            <table>
+              <thead><tr><th>Tabel</th><th>Jenis</th><th>Isi</th></tr></thead>
+              <tbody>
+                <tr><td><code>t_feed_post</code></td><td><span class="db-chip db-chip-new">baru</span></td><td>Header semua konten: jenis, status, target project, pengaturan interaksi, jadwal, review</td></tr>
+                <tr><td><code>d_feed_post_media</code></td><td><span class="db-chip db-chip-new">baru</span></td><td>Foto/video carousel post, atau thumbnail link</td></tr>
+                <tr><td><code>d_feed_poll</code></td><td><span class="db-chip db-chip-new">baru</span></td><td>Detail poll (1:1 dengan post)</td></tr>
+                <tr><td><code>d_feed_poll_option</code></td><td><span class="db-chip db-chip-new">baru</span></td><td>Opsi jawaban poll</td></tr>
+                <tr><td><code>t_feed_poll_vote</code></td><td><span class="db-chip db-chip-new">baru</span></td><td>Suara per user per opsi</td></tr>
+                <tr><td><code>d_feed_link</code></td><td><span class="db-chip db-chip-new">baru</span></td><td>Detail link sosmed (1:1 dengan post)</td></tr>
+                <tr><td><code>t_feed_reaction</code></td><td><span class="db-chip db-chip-new">baru</span></td><td>Like / dislike post</td></tr>
+                <tr><td><code>t_feed_comment</code></td><td><span class="db-chip db-chip-new">baru</span></td><td>Komentar dan balasan (1 tingkat)</td></tr>
+                <tr><td><code>t_feed_comment_like</code></td><td><span class="db-chip db-chip-new">baru</span></td><td>Like komentar</td></tr>
+                <tr><td><code>t_feed_fame</code></td><td><span class="db-chip db-chip-new">baru</span></td><td>Peringkat Wall of Fame per bulan per level</td></tr>
+                <tr><td><code>app_m_user</code></td><td><span class="db-chip db-chip-ex">existing</span></td><td>Penulis, pemberi reaksi, pemilih poll, pemberi komentar, juara</td></tr>
+                <tr><td><code>m_project</code></td><td><span class="db-chip db-chip-ex">existing</span></td><td>Target project konten</td></tr>
+                <tr><td><code>m_sales_person_position</code></td><td><span class="db-chip db-chip-pd">pd_common</span></td><td>Level Wall of Fame (GM/SM/SPV/SE)</td></tr>
+                <tr><td><code>t_global_notifications</code></td><td><span class="db-chip db-chip-ex">existing</span></td><td>Riwayat notifikasi saat post tayang / kiriman direview</td></tr>
+                <tr><td><code>m_contacts</code></td><td><span class="db-chip db-chip-ex">existing</span></td><td>Sumber hitungan "Progress Kamu" (tanpa tabel baru)</td></tr>
+                <tr><td><code>m_prospect_status</code></td><td><span class="db-chip db-chip-pd">pd_common</span></td><td>Pemetaan status prospek ke tahap funnel</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section id="db-erd-ringkas">
+          <h2><span class="db-num">2</span>ERD ringkas</h2>
+          <p>Gambaran besar: hanya nama tabel dan relasinya. Kolom lengkap setiap tabel ada di <a href="#db-erd">ERD detail</a>.</p>
+          <figure class="db-dg"><pre class="db-mermaid">%%{init: {"er": {"layoutDirection": "LR", "minEntityWidth": 60, "entityPadding": 10}}}%%
+erDiagram
+    app_m_user ||--o{ t_feed_post : "menulis"
+    m_project |o--o{ t_feed_post : "target"
+    t_feed_post ||--o{ d_feed_post_media : "media"
+    t_feed_post ||--o| d_feed_poll : "detail poll"
+    d_feed_poll ||--|{ d_feed_poll_option : "opsi"
+    d_feed_poll_option ||--o{ t_feed_poll_vote : "dipilih"
+    t_feed_post ||--o| d_feed_link : "detail link"
+    t_feed_post ||--o{ t_feed_reaction : "direaksi"
+    t_feed_post ||--o{ t_feed_comment : "dikomentari"
+    t_feed_comment |o--o{ t_feed_comment : "balasan"
+    t_feed_comment ||--o{ t_feed_comment_like : "disukai"
+    t_feed_post ||..o{ t_global_notifications : "notif"
+    m_sales_person_position ||--o{ t_feed_fame : "level"
+    m_prospect_status ||--o{ m_contacts : "status prospek"</pre></figure>
+          <ul class="db-rules">
+            <li>Setiap kotak adalah satu tabel. Teks di garis menjelaskan hubungannya, dibaca dari tabel asal ke tabel tujuan.</li>
+            <li>Ujung garis menunjukkan jumlah: <b>dua garis tegak</b> = tepat satu, <b>lingkaran + garis tegak</b> = nol atau satu, <b>garis tegak + cakar</b> = satu atau banyak, <b>lingkaran + cakar</b> = nol atau banyak.</li>
+            <li>Contoh: garis <code>t_feed_post</code> ke <code>t_feed_comment</code> berujung garis tegak di sisi post dan lingkaran + cakar di sisi komentar. Artinya 1 post punya 0 sampai banyak komentar.</li>
+            <li>Garis putus-putus = hubungan tanpa FK. Di sini hanya notifikasi, yang menunjuk post lewat <code>link_url</code>.</li>
+            <li><code>app_m_user</code> juga dirujuk lewat <code>user_id</code> oleh <code>t_feed_poll_vote</code>, <code>t_feed_reaction</code>, <code>t_feed_comment</code>, <code>t_feed_comment_like</code>, dan <code>t_feed_fame</code>. Garisnya tidak digambar supaya diagram tetap terbaca; kolomnya ada di ERD detail.</li>
+            <li>Tabel existing (sudah ada di backend): <code>app_m_user</code>, <code>m_project</code>, <code>m_sales_person_position</code>, <code>t_global_notifications</code>, <code>m_contacts</code>, <code>m_prospect_status</code>. Sisanya tabel baru.</li>
+          </ul>
+        </section>
+
+        <section id="db-flow">
+          <h2><span class="db-num">3</span>Flowchart</h2>
+          <p>Alur dari sisi pengguna. Bentuk silinder adalah tabel yang ditulis atau dibaca di langkah itu; garis putus-putus berarti update counter.</p>
+          <figure class="db-dg">
+            <div class="db-dg-bar"><div><b>3.1 Alur konten</b><small>Dari dibuat moderator atau dikirim sales sampai tayang di feed</small></div></div>
+            <pre class="db-mermaid">flowchart TD
+    A["Moderator buat post / poll / link&lt;br/&gt;Admin Web atau tombol + di app"]
+    M["Sales kirim momen&lt;br/&gt;Bagikan Momen"]
+    DT[("d_feed_post_media&lt;br/&gt;d_feed_poll, d_feed_poll_option&lt;br/&gt;d_feed_link")]
+    A --&gt; DT
+    M --&gt; DT
+    A --&gt; B{"Kapan tayang?"}
+    M --&gt; RV[("t_feed_post&lt;br/&gt;status = review")]
+    B --&gt;|"Simpan draft"| D[("t_feed_post&lt;br/&gt;status = draft")]
+    B --&gt;|"Jadwalkan"| S[("t_feed_post&lt;br/&gt;status = scheduled")]
+    B --&gt;|"Sekarang"| P[("t_feed_post&lt;br/&gt;status = published")]
+    D --&gt;|"Tayangkan"| P
+    D --&gt;|"Jadwalkan"| S
+    S --&gt;|"Batalkan jadwal"| D
+    S --&gt;|"Scheduler: waktu tiba"| P
+    P --&gt;|"Tarik ke draft"| D
+    RV --&gt; Q{"Moderator review"}
+    Q --&gt;|"Setujui &amp; tayangkan"| P
+    Q --&gt;|"Setujui &amp; jadwalkan"| S
+    Q --&gt;|"Tolak + alasan"| RJ[("t_feed_post&lt;br/&gt;status = rejected")]
+    P --&gt; N[("t_global_notifications")]
+    RJ --&gt; N
+    P --&gt; F(["Tampil di feed Home sales"])</pre>
+          </figure>
+          <figure class="db-dg">
+            <div class="db-dg-bar"><div><b>3.2 Alur interaksi di feed</b><small>Yang terjadi saat sales membuka Home dan menyentuh kartu post</small></div></div>
+            <pre class="db-mermaid">flowchart TD
+    H(["Sales buka Home"])
+    H --&gt; R1[("t_feed_post, d_feed_post_media&lt;br/&gt;d_feed_poll, d_feed_poll_option&lt;br/&gt;d_feed_link, app_m_user")]
+    H --&gt; R2[("t_feed_fame&lt;br/&gt;Wall of Fame")]
+    H --&gt; R3[("m_contacts, m_prospect_status&lt;br/&gt;Progress Kamu")]
+    H --&gt; X{"Aksi di kartu post"}
+    X --&gt;|"Suka / tidak suka"| TR[("t_feed_reaction")]
+    X --&gt;|"Kirim jawaban poll"| TV[("t_feed_poll_vote")]
+    X --&gt;|"Komentar / balas"| TC[("t_feed_comment")]
+    X --&gt;|"Bagikan"| SH["Salin link&lt;br/&gt;tanpa tabel"]
+    TC --&gt;|"Suka komentar"| TCL[("t_feed_comment_like")]
+    TR -.-&gt;|"like_count, dislike_count"| C1[("t_feed_post&lt;br/&gt;counter")]
+    TC -.-&gt;|"comment_count"| C1
+    TV -.-&gt;|"vote_count, total_voters"| C2[("d_feed_poll_option&lt;br/&gt;d_feed_poll")]</pre>
+          </figure>
+        </section>
+
+        <section id="db-baca">
+          <h2><span class="db-num">4</span>Cara membaca ERD detail</h2>
+          <p>Setiap kotak adalah satu tabel. Contoh kecil di bawah diambil dari ERD detail; angka di kanan menunjuk ke penjelasan di bawahnya.</p>
+          <figure class="db-dg">
+            <pre class="db-diagram" id="dbEx">┌─────────────────────────────────────────────┐
+│ t_feed_post  [C/R/U/D]                      │         ← (1)
+├─────────────────────────────────────────────┤
+│ PK    feed_post_id                          │         ← (2)
+│       status        draft | scheduled | ... │
+├─────────────────────────────────────────────┤
+│ INDEX idx_t_feed_post_feed (status, ...)    │         ← (3)
+└─────────────────────────────────────────────┘
+  │
+  └─▶ 1:N  t_feed_post.feed_post_id                     ← (4)
+           = t_feed_comment.feed_post_id
+      ┌─────────────────────────────────────────────┐
+      │ t_feed_comment  [C/R/U]                     │   ← (5)
+      ├─────────────────────────────────────────────┤
+      │ PK    feed_comment_id                       │
+      │ FK    feed_post_id                          │
+      └─────────────────────────────────────────────┘</pre>
+          </figure>
+          <ol class="db-howto"><li><b>Nama tabel dan operasinya.</b> <code>[C/R/U/D]</code> artinya fitur Marketing Feed melakukan Create (insert), Read, Update, dan Delete di tabel ini. Tabel existing biasanya cuma <code>[R]</code>.</li><li><b>Kolom.</b> Satu baris = satu kolom, seperti tabel di draw.io. Kiri: <code>PK</code> (kunci utama) atau <code>FK</code> (menyimpan id dari tabel lain). Tengah: nama kolom. Kanan: keterangan isinya.</li><li><b>Index dan catatan.</b> Bagian bawah kotak, setelah garis pemisah, berisi <code>INDEX</code>, <code>UNIQUE</code>, dan aturan khusus tabel itu.</li><li><b>Relasi.</b> <code>1:N</code> artinya 1 baris <code>t_feed_post</code> punya banyak baris <code>t_feed_comment</code>. Dua baris teks di sebelahnya adalah kolom penghubungnya, sama seperti <code>JOIN ... ON t_feed_post.feed_post_id = t_feed_comment.feed_post_id</code>. <code>N:1</code> kebalikannya (banyak baris menunjuk ke 1 baris), <code>1:1</code> artinya berpasangan satu-satu.</li><li><b>Tabel anak</b> digambar menjorok di bawah tabel induknya. Garis <code>│</code> di kiri menyambungkan semua anak dari induk yang sama.</li></ol>
+          <dl class="db-legend">
+            <dt>C R U D</dt><dd>Create (insert), Read (baca), Update (ubah), Delete (hapus). Dipakai juga di bagian "Dipakai di mana".</dd>
+            <dt>(existing)</dt><dd>Tabel sudah ada di database utama, hanya direferensikan.</dd>
+            <dt>(pd_common)</dt><dd>Tabel ada di database <code>pd_common</code> (diakses lewat <code>db_pd_common()</code>). FK-nya FK logis, tidak dibuat constraint.</dd>
+          </dl>
+          <p class="db-note">Mau tahu tabel mana yang terpakai saat kamu klik sesuatu di prototype? Lihat bagian <a href="#db-pakai">Dipakai di mana</a>.</p>
+        </section>
+
+        <section id="db-erd">
+          <h2><span class="db-num">5</span>ERD detail</h2>
+          <figure class="db-dg">
+            <div class="db-dg-bar"><div><b>5.1 Konten &amp; interaksi</b><small>Post, poll, link, reaksi, komentar, notifikasi</small></div><button class="db-copy" type="button" data-db-copy="dbD1">Salin teks</button></div>
+            <pre class="db-diagram" id="dbD1">┌─────────────────────────────────────────────────────────────────────────────┐
+│ t_feed_post  [C/R/U/D]                                                      │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ PK    feed_post_id                                                          │
+│       post_type       post | poll | link                                    │
+│       status          draft | scheduled | published | review | rejected     │
+│       source          admin | mobile                                        │
+│ FK    create_user_id  penulis / pengirim                                    │
+│       is_official     1 = tampil sebagai "Progress Group Marketing"         │
+│ FK    project_id      NULL = semua project                                  │
+│       label           Shoutout, Poll, ..                                    │
+│       pillar          opsional                                              │
+│       body            caption / pertanyaan poll                             │
+│       allow_like      izinkan like                                          │
+│       allow_dislike   izinkan dislike                                       │
+│       allow_comment   izinkan komentar                                      │
+│       allow_reply     izinkan balasan (butuh allow_comment = 1)             │
+│       allow_share     izinkan share                                         │
+│       publish_at      jadwal / waktu tayang                                 │
+│ FK    review_user_id  → app_m_user, moderator yang setuju / tolak           │
+│       review_date                                                           │
+│       reject_reason   tampil ke sales                                       │
+│       like_count      counter                                               │
+│       dislike_count   counter                                               │
+│       comment_count   counter                                               │
+│ FK    update_user_id  → app_m_user                                          │
+│       created_at                                                            │
+│       updated_at                                                            │
+│       deleted_at      soft delete                                           │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ INDEX idx_t_feed_post_feed (status, publish_at)                             │
+│ INDEX idx_t_feed_post_project (project_id, status, publish_at)              │
+│ INDEX idx_t_feed_post_user (create_user_id, status)                         │
+└─────────────────────────────────────────────────────────────────────────────┘
+  │
+  ├─▶ N:1  t_feed_post.create_user_id
+  │        = app_m_user.user_id
+  │   ┌─────────────────────────────────────────────────────────────────────────────┐
+  │   │ app_m_user  [R]  (existing)                                                 │
+  │   ├─────────────────────────────────────────────────────────────────────────────┤
+  │   │ PK    user_id                                                               │
+  │   │       full_name        nama penulis                                         │
+  │   │       photo            foto penulis                                         │
+  │   │       sales_person_id  jabatan · project                                    │
+  │   ├─────────────────────────────────────────────────────────────────────────────┤
+  │   │ juga dirujuk oleh user_id di vote, reaksi, dan komentar                     │
+  │   └─────────────────────────────────────────────────────────────────────────────┘
+  │
+  ├─▶ N:1  t_feed_post.project_id
+  │        = m_project.project_id
+  │   ┌─────────────────────────────────────────────────────────────────────────────┐
+  │   │ m_project  [R]  (existing)                                                  │
+  │   ├─────────────────────────────────────────────────────────────────────────────┤
+  │   │ PK    project_id                                                            │
+  │   │       project_name  PAR1, PAR2, PRC                                         │
+  │   └─────────────────────────────────────────────────────────────────────────────┘
+  │
+  ├─▶ 1:N  t_feed_post.feed_post_id
+  │        = d_feed_post_media.feed_post_id
+  │   ┌─────────────────────────────────────────────────────────────────────────────┐
+  │   │ d_feed_post_media  [C/R/D]                                                  │
+  │   ├─────────────────────────────────────────────────────────────────────────────┤
+  │   │ PK    feed_post_media_id                                                    │
+  │   │ FK    feed_post_id                                                          │
+  │   │       media_type          image | video                                     │
+  │   │       file_path                                                             │
+  │   │       mime_type           JPG / PNG / MP4                                   │
+  │   │       size_bytes          maks 20 MB                                        │
+  │   │       label               teks pengganti kalau gagal dimuat                 │
+  │   │       sort_order          urutan carousel                                   │
+  │   ├─────────────────────────────────────────────────────────────────────────────┤
+  │   │ post: maks 10 file; link: 1 file sebagai thumbnail                          │
+  │   └─────────────────────────────────────────────────────────────────────────────┘
+  │
+  ├─▶ 1:1  t_feed_post.feed_post_id
+  │        = d_feed_poll.feed_post_id
+  │   ┌─────────────────────────────────────────────────────────────────────────────┐
+  │   │ d_feed_poll  [C/R/U]  (post_type = poll)                                    │
+  │   ├─────────────────────────────────────────────────────────────────────────────┤
+  │   │ PK,FK feed_post_id                                                          │
+  │   │       is_multiple   boleh pilih &gt; 1 jawaban                                 │
+  │   │       image_path    gambar pertanyaan, opsional                             │
+  │   │       total_voters  jumlah orang, bukan jumlah suara                        │
+  │   └─────────────────────────────────────────────────────────────────────────────┘
+  │     │
+  │     └─▶ 1:N  d_feed_poll.feed_post_id
+  │              = d_feed_poll_option.feed_post_id
+  │         ┌─────────────────────────────────────────────────────────────────────────────┐
+  │         │ d_feed_poll_option  [C/R/U]                                                 │
+  │         ├─────────────────────────────────────────────────────────────────────────────┤
+  │         │ PK    feed_poll_option_id                                                   │
+  │         │ FK    feed_post_id                                                          │
+  │         │       option_label                                                          │
+  │         │       sort_order           index yang dikirim app saat vote                 │
+  │         │       vote_count           counter                                          │
+  │         ├─────────────────────────────────────────────────────────────────────────────┤
+  │         │ minimal 2 opsi per poll                                                     │
+  │         └─────────────────────────────────────────────────────────────────────────────┘
+  │           │
+  │           └─▶ 1:N  d_feed_poll_option.feed_poll_option_id
+  │                    = t_feed_poll_vote.feed_poll_option_id
+  │               ┌─────────────────────────────────────────────────────────────────────────────┐
+  │               │ t_feed_poll_vote  [C/R]                                                     │
+  │               ├─────────────────────────────────────────────────────────────────────────────┤
+  │               │ PK    feed_poll_vote_id                                                     │
+  │               │ FK    feed_poll_option_id                                                   │
+  │               │ FK    feed_post_id         salinan, untuk cek sudah vote                    │
+  │               │ FK    user_id              → app_m_user                                     │
+  │               │       created_at           suara final, tidak bisa diubah                   │
+  │               ├─────────────────────────────────────────────────────────────────────────────┤
+  │               │ UNIQUE uq_t_feed_poll_vote (feed_poll_option_id, user_id)                   │
+  │               │ INDEX idx_t_feed_poll_vote_user (feed_post_id, user_id)                     │
+  │               └─────────────────────────────────────────────────────────────────────────────┘
+  │
+  ├─▶ 1:1  t_feed_post.feed_post_id
+  │        = d_feed_link.feed_post_id
+  │   ┌─────────────────────────────────────────────────────────────────────────────┐
+  │   │ d_feed_link  [C/R/U]  (post_type = link)                                    │
+  │   ├─────────────────────────────────────────────────────────────────────────────┤
+  │   │ PK,FK feed_post_id                                                          │
+  │   │       platform      youtube | blog | web                                    │
+  │   │       url                                                                   │
+  │   │       channel_name  mis. Progress Group Official                            │
+  │   │       title                                                                 │
+  │   │       description                                                           │
+  │   └─────────────────────────────────────────────────────────────────────────────┘
+  │
+  ├─▶ 1:N  t_feed_post.feed_post_id
+  │        = t_feed_reaction.feed_post_id
+  │   ┌─────────────────────────────────────────────────────────────────────────────┐
+  │   │ t_feed_reaction  [C/R/U/D]                                                  │
+  │   ├─────────────────────────────────────────────────────────────────────────────┤
+  │   │ PK    feed_reaction_id                                                      │
+  │   │ FK    feed_post_id                                                          │
+  │   │ FK    user_id           → app_m_user                                        │
+  │   │       reaction          like | dislike                                      │
+  │   │       created_at                                                            │
+  │   │       updated_at                                                            │
+  │   ├─────────────────────────────────────────────────────────────────────────────┤
+  │   │ UNIQUE uq_t_feed_reaction (feed_post_id, user_id)                           │
+  │   │ ganti reaksi = U, batal reaksi = D                                          │
+  │   └─────────────────────────────────────────────────────────────────────────────┘
+  │
+  ├─▶ 1:N  t_feed_post.feed_post_id
+  │        = t_feed_comment.feed_post_id
+  │   ┌─────────────────────────────────────────────────────────────────────────────┐
+  │   │ t_feed_comment  [C/R/U]                                                     │
+  │   ├─────────────────────────────────────────────────────────────────────────────┤
+  │   │ PK    feed_comment_id                                                       │
+  │   │ FK    feed_post_id                                                          │
+  │   │ FK    parent_comment_id  NULL = komentar utama                              │
+  │   │ FK    create_user_id     → app_m_user, penulis komentar                     │
+  │   │       is_official        komentar moderator                                 │
+  │   │       body                                                                  │
+  │   │       like_count         counter                                            │
+  │   │       is_hidden          disembunyikan moderator                            │
+  │   │ FK    hidden_user_id     → app_m_user                                       │
+  │   │       hidden_at                                                             │
+  │   │       created_at                                                            │
+  │   │       updated_at                                                            │
+  │   │       deleted_at         soft delete                                        │
+  │   ├─────────────────────────────────────────────────────────────────────────────┤
+  │   │ INDEX idx_t_feed_comment_post (feed_post_id, parent_comment_id, created_at) │
+  │   │ C hanya kalau allow_comment = 1                                             │
+  │   └─────────────────────────────────────────────────────────────────────────────┘
+  │     │
+  │     ├─▶ 1:N  t_feed_comment.feed_comment_id
+  │     │        = t_feed_comment.parent_comment_id
+  │     │   ┌─────────────────────────────────────────────────────────────────────────────┐
+  │     │   │ t_feed_comment  (balasan)  [C/R]                                            │
+  │     │   ├─────────────────────────────────────────────────────────────────────────────┤
+  │     │   │ PK    feed_comment_id                                                       │
+  │     │   │ FK    parent_comment_id  wajib komentar utama, balasan maks 1 tingkat       │
+  │     │   ├─────────────────────────────────────────────────────────────────────────────┤
+  │     │   │ C hanya kalau allow_comment = 1 dan allow_reply = 1                         │
+  │     │   └─────────────────────────────────────────────────────────────────────────────┘
+  │     │
+  │     └─▶ 1:N  t_feed_comment.feed_comment_id
+  │              = t_feed_comment_like.feed_comment_id
+  │         ┌─────────────────────────────────────────────────────────────────────────────┐
+  │         │ t_feed_comment_like  [C/R/D]                                                │
+  │         ├─────────────────────────────────────────────────────────────────────────────┤
+  │         │ PK    feed_comment_like_id                                                  │
+  │         │ FK    feed_comment_id                                                       │
+  │         │ FK    user_id               → app_m_user                                    │
+  │         │       created_at                                                            │
+  │         ├─────────────────────────────────────────────────────────────────────────────┤
+  │         │ UNIQUE uq_t_feed_comment_like (feed_comment_id, user_id)                    │
+  │         └─────────────────────────────────────────────────────────────────────────────┘
+  │
+  └─▶ 1:N  t_feed_post.feed_post_id
+           = t_global_notifications.link_url (bukan FK)
+      ┌─────────────────────────────────────────────────────────────────────────────┐
+      │ t_global_notifications  [C]  (existing)                                     │
+      ├─────────────────────────────────────────────────────────────────────────────┤
+      │ PK    global_notification_id                                                │
+      │       title                                                                 │
+      │       description                                                           │
+      │       target_type             all = post tayang, user = hasil review        │
+      │       target_user_ids                                                       │
+      │       link_url                buka post saat notif di-tap                   │
+      ├─────────────────────────────────────────────────────────────────────────────┤
+      │ link_url usulan: app://event/marketing_feed?feed_post_id=&lt;id&gt;               │
+      └─────────────────────────────────────────────────────────────────────────────┘</pre>
+          </figure>
+          <figure class="db-dg">
+            <div class="db-dg-bar"><div><b>5.2 Wall of Fame</b><small>Peringkat bulanan per level</small></div><button class="db-copy" type="button" data-db-copy="dbD2">Salin teks</button></div>
+            <pre class="db-diagram" id="dbD2">┌─────────────────────────────────────────────────────────────────────────────┐
+│ t_feed_fame  [C/R/U]  (Wall of Fame)                                        │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ PK    feed_fame_id                                                          │
+│       period                    tanggal 1 tiap bulan                        │
+│ FK    sales_person_position_id  level GM / SM / SPV / SE                    │
+│       ranking                   1 = juara, 2-3 = peringkat berikut          │
+│ FK    user_id                                                               │
+│       info                      teks jabatan · project                      │
+│       highlight                 mis. "Naik 4 peringkat"                     │
+│       score                     nilai dasar peringkat                       │
+│ FK    create_user_id            → app_m_user                                │
+│       created_at                                                            │
+│       updated_at                                                            │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ UNIQUE uq_t_feed_fame (period, sales_person_position_id, ranking)           │
+└─────────────────────────────────────────────────────────────────────────────┘
+  │
+  ├─▶ N:1  t_feed_fame.sales_person_position_id
+  │        = m_sales_person_position.sales_person_position_id
+  │   ┌─────────────────────────────────────────────────────────────────────────────┐
+  │   │ m_sales_person_position  [R]  (pd_common)                                   │
+  │   ├─────────────────────────────────────────────────────────────────────────────┤
+  │   │ PK    sales_person_position_id                                              │
+  │   │       position_code             GM / SM / SPV / SE                          │
+  │   │       position_name                                                         │
+  │   │       priority                  urutan level di Wall of Fame                │
+  │   └─────────────────────────────────────────────────────────────────────────────┘
+  │
+  └─▶ N:1  t_feed_fame.user_id
+           = app_m_user.user_id
+      ┌─────────────────────────────────────────────────────────────────────────────┐
+      │ app_m_user  [R]  (existing)                                                 │
+      ├─────────────────────────────────────────────────────────────────────────────┤
+      │ PK    user_id                                                               │
+      │       full_name                                                             │
+      │       photo      foto juara                                                 │
+      └─────────────────────────────────────────────────────────────────────────────┘</pre>
+          </figure>
+          <figure class="db-dg">
+            <div class="db-dg-bar"><div><b>5.3 Progress Kamu</b><small>Funnel Leads → Appt → Visit → Reserve → SP, dihitung dari data prospek milik sales yang login</small></div><button class="db-copy" type="button" data-db-copy="dbD3">Salin teks</button></div>
+            <pre class="db-diagram" id="dbD3">┌─────────────────────────────────────────────────────────────────────────────┐
+│ m_contacts  [R]  (existing)                                                 │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ PK    contact_id                                                            │
+│ FK    sales_executive_id  = sales_person_id milik user login                │
+│ FK    status_prospect_id                                                    │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ Progress Kamu: TIDAK ada tabel baru                                         │
+│ periode bulan berjalan, perlu konfirmasi                                    │
+└─────────────────────────────────────────────────────────────────────────────┘
+  │
+  └─▶ N:1  m_contacts.status_prospect_id
+           = m_prospect_status.prospect_status_id
+      ┌─────────────────────────────────────────────────────────────────────────────┐
+      │ m_prospect_status  [R]  (pd_common)                                         │
+      ├─────────────────────────────────────────────────────────────────────────────┤
+      │ PK    prospect_status_id                                                    │
+      │       group_name          dipetakan ke Leads, Appt, Visit, Reserve, SP      │
+      ├─────────────────────────────────────────────────────────────────────────────┤
+      │ pemetaan perlu konfirmasi                                                   │
+      └─────────────────────────────────────────────────────────────────────────────┘</pre>
+          </figure>
+        </section>
+
+        <section id="db-pakai">
+          <h2><span class="db-num">6</span>Dipakai di mana</h2>
+          <p>Setiap baris adalah satu klik atau tampilan di tab App Mobile dan Admin Web, beserta tabel yang dibaca (<b>R</b>) atau ditulis (<b>C</b>/<b>U</b>/<b>D</b>) backend saat itu terjadi. Pilih nama tabel untuk menyorot aksi yang memakainya.</p>
+          <div class="db-filter" role="group" aria-label="Sorot aksi per tabel"><button type="button" class="db-f" data-db-f="" aria-pressed="true">Semua tabel</button><button type="button" class="db-f" data-db-f="t_feed_post" aria-pressed="false">t_feed_post</button><button type="button" class="db-f" data-db-f="d_feed_post_media" aria-pressed="false">d_feed_post_media</button><button type="button" class="db-f" data-db-f="d_feed_poll" aria-pressed="false">d_feed_poll</button><button type="button" class="db-f" data-db-f="d_feed_poll_option" aria-pressed="false">d_feed_poll_option</button><button type="button" class="db-f" data-db-f="t_feed_poll_vote" aria-pressed="false">t_feed_poll_vote</button><button type="button" class="db-f" data-db-f="d_feed_link" aria-pressed="false">d_feed_link</button><button type="button" class="db-f" data-db-f="t_feed_reaction" aria-pressed="false">t_feed_reaction</button><button type="button" class="db-f" data-db-f="t_feed_comment" aria-pressed="false">t_feed_comment</button><button type="button" class="db-f" data-db-f="t_feed_comment_like" aria-pressed="false">t_feed_comment_like</button><button type="button" class="db-f" data-db-f="t_feed_fame" aria-pressed="false">t_feed_fame</button><button type="button" class="db-f" data-db-f="app_m_user" aria-pressed="false">app_m_user</button><button type="button" class="db-f" data-db-f="m_project" aria-pressed="false">m_project</button><button type="button" class="db-f" data-db-f="m_sales_person_position" aria-pressed="false">m_sales_person_position</button><button type="button" class="db-f" data-db-f="t_global_notifications" aria-pressed="false">t_global_notifications</button><button type="button" class="db-f" data-db-f="m_contacts" aria-pressed="false">m_contacts</button><button type="button" class="db-f" data-db-f="m_prospect_status" aria-pressed="false">m_prospect_status</button></div>
+          <h3>App Mobile</h3><p class="db-note">Yang dilihat dan diklik sales (dan moderator lewat tombol +).</p>
+          <div class="db-tw"><table class="db-use"><thead><tr><th>Layar</th><th>Klik / tampilan</th><th>Tabel yang dipakai</th></tr></thead><tbody>
+            <tr data-t="t_feed_post d_feed_post_media d_feed_poll d_feed_poll_option t_feed_poll_vote d_feed_link t_feed_reaction t_feed_comment app_m_user"><td>Home</td><td>Buka app, kartu feed tampil</td><td><ul class="db-ops"><li data-t="t_feed_post"><span class="db-op db-op-r">R</span><code>t_feed_post</code><small>post published yang sesuai project user</small></li><li data-t="d_feed_post_media"><span class="db-op db-op-r">R</span><code>d_feed_post_media</code><small>foto/video carousel, thumbnail link</small></li><li data-t="d_feed_poll"><span class="db-op db-op-r">R</span><code>d_feed_poll</code><small>detail poll</small></li><li data-t="d_feed_poll_option"><span class="db-op db-op-r">R</span><code>d_feed_poll_option</code><small>opsi dan jumlah suara</small></li><li data-t="t_feed_poll_vote"><span class="db-op db-op-r">R</span><code>t_feed_poll_vote</code><small>jawaban saya (sudah vote atau belum)</small></li><li data-t="d_feed_link"><span class="db-op db-op-r">R</span><code>d_feed_link</code><small>kartu link sosmed</small></li><li data-t="t_feed_reaction"><span class="db-op db-op-r">R</span><code>t_feed_reaction</code><small>reaksi saya (like/dislike)</small></li><li data-t="t_feed_comment"><span class="db-op db-op-r">R</span><code>t_feed_comment</code><small>komentar terakhir di bawah post</small></li><li data-t="app_m_user"><span class="db-op db-op-r">R</span><code>app_m_user</code><small>nama dan foto penulis</small></li></ul></td></tr>
+            <tr data-t="t_feed_post"><td>Home</td><td>Kiriman sendiri "Menunggu tinjauan" / "Ditolak" di atas feed</td><td><ul class="db-ops"><li data-t="t_feed_post"><span class="db-op db-op-r">R</span><code>t_feed_post</code><small>create_user_id = saya, status review/rejected, reject_reason</small></li></ul></td></tr>
+            <tr data-t="m_contacts m_prospect_status"><td>Home</td><td>Kartu "Progress Kamu"</td><td><ul class="db-ops"><li data-t="m_contacts"><span class="db-op db-op-r">R</span><code>m_contacts</code><small>kontak milik saya</small></li><li data-t="m_prospect_status"><span class="db-op db-op-r">R</span><code>m_prospect_status</code><small>dipetakan ke Leads → SP</small></li></ul></td></tr>
+            <tr data-t="t_feed_fame m_sales_person_position app_m_user"><td>Home</td><td>Wall of Fame</td><td><ul class="db-ops"><li data-t="t_feed_fame"><span class="db-op db-op-r">R</span><code>t_feed_fame</code><small>peringkat bulan ini</small></li><li data-t="m_sales_person_position"><span class="db-op db-op-r">R</span><code>m_sales_person_position</code><small>label TOP GM/SM/SPV/SE</small></li><li data-t="app_m_user"><span class="db-op db-op-r">R</span><code>app_m_user</code><small>nama dan foto juara</small></li></ul></td></tr>
+            <tr data-t="t_feed_reaction t_feed_post"><td>Kartu post</td><td>Tap Suka / Tidak suka</td><td><ul class="db-ops"><li data-t="t_feed_reaction"><span class="db-op db-op-c">C/U/D</span><code>t_feed_reaction</code><small>reaksi baru = C, ganti = U, batal = D</small></li><li data-t="t_feed_post"><span class="db-op db-op-u">U</span><code>t_feed_post</code><small>like_count, dislike_count</small></li></ul></td></tr>
+            <tr data-t="t_feed_poll_vote d_feed_poll_option d_feed_poll"><td>Kartu poll</td><td>Pilih jawaban, lalu Kirim Jawaban</td><td><ul class="db-ops"><li data-t="t_feed_poll_vote"><span class="db-op db-op-c">C</span><code>t_feed_poll_vote</code><small>1 baris per opsi yang dipilih</small></li><li data-t="d_feed_poll_option"><span class="db-op db-op-u">U</span><code>d_feed_poll_option</code><small>vote_count</small></li><li data-t="d_feed_poll"><span class="db-op db-op-u">U</span><code>d_feed_poll</code><small>total_voters</small></li></ul></td></tr>
+            <tr data-t=""><td>Kartu post</td><td>Tap Bagikan</td><td><ul class="db-ops"><li><span class="db-op db-op-none">–</span><small>cuma menyalin link, tidak menyentuh database</small></li></ul></td></tr>
+            <tr data-t="t_feed_comment t_feed_comment_like app_m_user"><td>Kartu post</td><td>Buka komentar</td><td><ul class="db-ops"><li data-t="t_feed_comment"><span class="db-op db-op-r">R</span><code>t_feed_comment</code><small>komentar dan balasannya</small></li><li data-t="t_feed_comment_like"><span class="db-op db-op-r">R</span><code>t_feed_comment_like</code><small>komentar yang sudah saya sukai</small></li><li data-t="app_m_user"><span class="db-op db-op-r">R</span><code>app_m_user</code><small>nama dan foto pemberi komentar</small></li></ul></td></tr>
+            <tr data-t="t_feed_comment t_feed_post"><td>Komentar</td><td>Kirim komentar</td><td><ul class="db-ops"><li data-t="t_feed_comment"><span class="db-op db-op-c">C</span><code>t_feed_comment</code><small>parent_comment_id = NULL</small></li><li data-t="t_feed_post"><span class="db-op db-op-u">U</span><code>t_feed_post</code><small>comment_count</small></li></ul></td></tr>
+            <tr data-t="t_feed_comment t_feed_post"><td>Komentar</td><td>Balas komentar</td><td><ul class="db-ops"><li data-t="t_feed_comment"><span class="db-op db-op-c">C</span><code>t_feed_comment</code><small>parent_comment_id = id komentar yang dibalas</small></li><li data-t="t_feed_post"><span class="db-op db-op-u">U</span><code>t_feed_post</code><small>comment_count</small></li></ul></td></tr>
+            <tr data-t="t_feed_comment_like t_feed_comment"><td>Komentar</td><td>Suka komentar</td><td><ul class="db-ops"><li data-t="t_feed_comment_like"><span class="db-op db-op-c">C/D</span><code>t_feed_comment_like</code><small>suka = C, batal = D</small></li><li data-t="t_feed_comment"><span class="db-op db-op-u">U</span><code>t_feed_comment</code><small>like_count</small></li></ul></td></tr>
+            <tr data-t="t_feed_post d_feed_post_media"><td>Tombol + › Bagikan Momen</td><td>Kirim untuk Ditinjau</td><td><ul class="db-ops"><li data-t="t_feed_post"><span class="db-op db-op-c">C</span><code>t_feed_post</code><small>status review, source mobile</small></li><li data-t="d_feed_post_media"><span class="db-op db-op-c">C</span><code>d_feed_post_media</code><small>foto/video yang diupload</small></li></ul></td></tr>
+            <tr data-t="t_feed_post d_feed_post_media t_global_notifications"><td>Tombol + › Post Baru</td><td>Publikasikan / Jadwalkan / Simpan Draft</td><td><ul class="db-ops"><li data-t="t_feed_post"><span class="db-op db-op-c">C</span><code>t_feed_post</code><small>status published / scheduled / draft</small></li><li data-t="d_feed_post_media"><span class="db-op db-op-c">C</span><code>d_feed_post_media</code><small>foto/video carousel</small></li><li data-t="t_global_notifications"><span class="db-op db-op-c">C</span><code>t_global_notifications</code><small>hanya kalau langsung tayang</small></li></ul></td></tr>
+            <tr data-t="t_feed_post d_feed_poll d_feed_poll_option t_global_notifications"><td>Tombol + › Poll Baru</td><td>Publikasikan Poll</td><td><ul class="db-ops"><li data-t="t_feed_post"><span class="db-op db-op-c">C</span><code>t_feed_post</code><small>post_type poll</small></li><li data-t="d_feed_poll"><span class="db-op db-op-c">C</span><code>d_feed_poll</code><small>is_multiple, gambar pertanyaan</small></li><li data-t="d_feed_poll_option"><span class="db-op db-op-c">C</span><code>d_feed_poll_option</code><small>minimal 2 opsi</small></li><li data-t="t_global_notifications"><span class="db-op db-op-c">C</span><code>t_global_notifications</code><small>hanya kalau langsung tayang</small></li></ul></td></tr>
+            <tr data-t="t_feed_post"><td>Tombol + › Draft &amp; Terjadwal</td><td>Lihat daftar, Edit, Tayangkan, Hapus</td><td><ul class="db-ops"><li data-t="t_feed_post"><span class="db-op db-op-r">R</span><code>t_feed_post</code><small>status draft dan scheduled</small></li><li data-t="t_feed_post"><span class="db-op db-op-u">U</span><code>t_feed_post</code><small>ubah isi atau status</small></li><li data-t="t_feed_post"><span class="db-op db-op-d">D</span><code>t_feed_post</code><small>hapus = isi deleted_at</small></li></ul></td></tr>
+          </tbody></table></div>
+          <h3>Admin Web</h3><p class="db-note">Menu Marketing Feed di panel admin, dipakai moderator.</p>
+          <div class="db-tw"><table class="db-use"><thead><tr><th>Layar</th><th>Klik / tampilan</th><th>Tabel yang dipakai</th></tr></thead><tbody>
+            <tr data-t="t_feed_post d_feed_post_media d_feed_poll app_m_user"><td>Konten</td><td>Buka daftar konten dan kartu Terjadwal / Draft / Menunggu Review</td><td><ul class="db-ops"><li data-t="t_feed_post"><span class="db-op db-op-r">R</span><code>t_feed_post</code><small>semua status, dihitung per status</small></li><li data-t="d_feed_post_media"><span class="db-op db-op-r">R</span><code>d_feed_post_media</code><small>thumbnail</small></li><li data-t="d_feed_poll"><span class="db-op db-op-r">R</span><code>d_feed_poll</code><small>gambar poll sebagai thumbnail</small></li><li data-t="app_m_user"><span class="db-op db-op-r">R</span><code>app_m_user</code><small>teks "oleh ..."</small></li></ul></td></tr>
+            <tr data-t="t_feed_post d_feed_link"><td>Konten</td><td>Cari konten</td><td><ul class="db-ops"><li data-t="t_feed_post"><span class="db-op db-op-r">R</span><code>t_feed_post</code><small>body</small></li><li data-t="d_feed_link"><span class="db-op db-op-r">R</span><code>d_feed_link</code><small>title</small></li></ul></td></tr>
+            <tr data-t="t_feed_post t_global_notifications"><td>Konten</td><td>Tayangkan / Tayangkan sekarang</td><td><ul class="db-ops"><li data-t="t_feed_post"><span class="db-op db-op-u">U</span><code>t_feed_post</code><small>status published, publish_at = sekarang</small></li><li data-t="t_global_notifications"><span class="db-op db-op-c">C</span><code>t_global_notifications</code><small>notif ke sales</small></li></ul></td></tr>
+            <tr data-t="t_feed_post"><td>Konten</td><td>Batalkan jadwal / Tarik ke draft</td><td><ul class="db-ops"><li data-t="t_feed_post"><span class="db-op db-op-u">U</span><code>t_feed_post</code><small>status draft</small></li></ul></td></tr>
+            <tr data-t="t_feed_post"><td>Konten</td><td>Hapus</td><td><ul class="db-ops"><li data-t="t_feed_post"><span class="db-op db-op-d">D</span><code>t_feed_post</code><small>soft delete (deleted_at)</small></li></ul></td></tr>
+            <tr data-t="t_feed_post"><td>Buat Konten / Edit</td><td>Mengetik di editor (autosave)</td><td><ul class="db-ops"><li data-t="t_feed_post"><span class="db-op db-op-c">C/U</span><code>t_feed_post</code><small>tersimpan sebagai draft</small></li></ul></td></tr>
+            <tr data-t="d_feed_post_media"><td>Editor</td><td>Jenis Post: upload atau hapus foto</td><td><ul class="db-ops"><li data-t="d_feed_post_media"><span class="db-op db-op-c">C/D</span><code>d_feed_post_media</code><small>urutan upload = sort_order</small></li></ul></td></tr>
+            <tr data-t="d_feed_poll d_feed_poll_option"><td>Editor</td><td>Jenis Poll: pertanyaan, opsi, multi-jawaban</td><td><ul class="db-ops"><li data-t="d_feed_poll"><span class="db-op db-op-c">C/U</span><code>d_feed_poll</code><small>is_multiple, gambar pertanyaan</small></li><li data-t="d_feed_poll_option"><span class="db-op db-op-c">C/U/D</span><code>d_feed_poll_option</code><small>tambah, ubah, hapus opsi</small></li></ul></td></tr>
+            <tr data-t="d_feed_link d_feed_post_media"><td>Editor</td><td>Jenis Link Sosmed</td><td><ul class="db-ops"><li data-t="d_feed_link"><span class="db-op db-op-c">C/U</span><code>d_feed_link</code><small>platform, url, judul, deskripsi</small></li><li data-t="d_feed_post_media"><span class="db-op db-op-c">C/U</span><code>d_feed_post_media</code><small>thumbnail</small></li></ul></td></tr>
+            <tr data-t="m_project t_feed_post"><td>Editor</td><td>Target project</td><td><ul class="db-ops"><li data-t="m_project"><span class="db-op db-op-r">R</span><code>m_project</code><small>isi dropdown</small></li><li data-t="t_feed_post"><span class="db-op db-op-u">U</span><code>t_feed_post</code><small>project_id (NULL = semua project)</small></li></ul></td></tr>
+            <tr data-t="t_feed_post"><td>Editor</td><td>Pengaturan interaksi</td><td><ul class="db-ops"><li data-t="t_feed_post"><span class="db-op db-op-u">U</span><code>t_feed_post</code><small>allow_like .. allow_share</small></li></ul></td></tr>
+            <tr data-t="t_feed_post t_global_notifications"><td>Editor</td><td>Publikasikan / Jadwalkan</td><td><ul class="db-ops"><li data-t="t_feed_post"><span class="db-op db-op-u">U</span><code>t_feed_post</code><small>status, publish_at</small></li><li data-t="t_global_notifications"><span class="db-op db-op-c">C</span><code>t_global_notifications</code><small>hanya kalau langsung tayang</small></li></ul></td></tr>
+            <tr data-t="t_feed_post"><td>Kalender Jadwal</td><td>Tab Draft / Terjadwal</td><td><ul class="db-ops"><li data-t="t_feed_post"><span class="db-op db-op-r">R</span><code>t_feed_post</code><small>status draft / scheduled</small></li></ul></td></tr>
+            <tr data-t="t_feed_post d_feed_post_media app_m_user"><td>Review Kiriman Sales</td><td>Buka daftar kiriman</td><td><ul class="db-ops"><li data-t="t_feed_post"><span class="db-op db-op-r">R</span><code>t_feed_post</code><small>status review</small></li><li data-t="d_feed_post_media"><span class="db-op db-op-r">R</span><code>d_feed_post_media</code><small>foto kiriman</small></li><li data-t="app_m_user"><span class="db-op db-op-r">R</span><code>app_m_user</code><small>nama dan jabatan pengirim</small></li></ul></td></tr>
+            <tr data-t="t_feed_post"><td>Review Kiriman Sales</td><td>Toggle "Izinkan komentar"</td><td><ul class="db-ops"><li data-t="t_feed_post"><span class="db-op db-op-u">U</span><code>t_feed_post</code><small>allow_comment, allow_reply</small></li></ul></td></tr>
+            <tr data-t="t_feed_post t_global_notifications"><td>Review Kiriman Sales</td><td>Setujui &amp; tayangkan</td><td><ul class="db-ops"><li data-t="t_feed_post"><span class="db-op db-op-u">U</span><code>t_feed_post</code><small>status published, review_user_id, review_date</small></li><li data-t="t_global_notifications"><span class="db-op db-op-c">C</span><code>t_global_notifications</code><small>notif ke pengirim dan sales</small></li></ul></td></tr>
+            <tr data-t="t_feed_post"><td>Review Kiriman Sales</td><td>Setujui &amp; jadwalkan</td><td><ul class="db-ops"><li data-t="t_feed_post"><span class="db-op db-op-u">U</span><code>t_feed_post</code><small>status scheduled, publish_at, review_user_id</small></li></ul></td></tr>
+            <tr data-t="t_feed_post t_global_notifications"><td>Review Kiriman Sales</td><td>Tolak</td><td><ul class="db-ops"><li data-t="t_feed_post"><span class="db-op db-op-u">U</span><code>t_feed_post</code><small>status rejected, reject_reason, review_user_id</small></li><li data-t="t_global_notifications"><span class="db-op db-op-c">C</span><code>t_global_notifications</code><small>notif ke pengirim</small></li></ul></td></tr>
+          </tbody></table></div>
+          <h3>Sistem</h3><p class="db-note">Berjalan otomatis di backend, tanpa klik.</p>
+          <div class="db-tw"><table class="db-use"><thead><tr><th>Layar</th><th>Klik / tampilan</th><th>Tabel yang dipakai</th></tr></thead><tbody>
+            <tr data-t="t_feed_post t_global_notifications"><td>Scheduler (tiap menit)</td><td>Di prototype: jam simulasi dan tombol "Lompat ke jadwal berikutnya"</td><td><ul class="db-ops"><li data-t="t_feed_post"><span class="db-op db-op-u">U</span><code>t_feed_post</code><small>scheduled → published</small></li><li data-t="t_global_notifications"><span class="db-op db-op-c">C</span><code>t_global_notifications</code><small>notif ke sales</small></li></ul></td></tr>
+            <tr data-t="t_feed_fame"><td>Job bulanan</td><td>Wall of Fame, kalau dihitung otomatis</td><td><ul class="db-ops"><li data-t="t_feed_fame"><span class="db-op db-op-c">C/U</span><code>t_feed_fame</code><small>lihat pertanyaan terbuka no. 1</small></li></ul></td></tr>
+          </tbody></table></div>
+        </section>
+
+        <section id="db-alur-status">
+          <h2><span class="db-num">7</span>Alur status <code>t_feed_post</code></h2>
+          <div class="db-tw">
+            <table>
+              <thead><tr><th>Dari</th><th>Aksi</th><th>Ke</th><th>Oleh</th></tr></thead>
+              <tbody>
+                <tr><td class="db-new">dibuat baru</td><td>Simpan draft / autosave editor</td><td><span class="db-st db-st-draft">draft</span></td><td>Moderator</td></tr>
+                <tr><td class="db-new">dibuat baru</td><td>Publikasikan</td><td><span class="db-st db-st-published">published</span></td><td>Moderator</td></tr>
+                <tr><td class="db-new">dibuat baru</td><td>Jadwalkan</td><td><span class="db-st db-st-scheduled">scheduled</span></td><td>Moderator</td></tr>
+                <tr><td class="db-new">dibuat baru</td><td>Bagikan Momen</td><td><span class="db-st db-st-review">review</span></td><td>Sales</td></tr>
+                <tr><td><span class="db-st db-st-draft">draft</span></td><td>Tayangkan</td><td><span class="db-st db-st-published">published</span></td><td>Moderator</td></tr>
+                <tr><td><span class="db-st db-st-draft">draft</span></td><td>Jadwalkan</td><td><span class="db-st db-st-scheduled">scheduled</span></td><td>Moderator</td></tr>
+                <tr><td><span class="db-st db-st-scheduled">scheduled</span></td><td>Waktu tayang tiba</td><td><span class="db-st db-st-published">published</span></td><td>Scheduler</td></tr>
+                <tr><td><span class="db-st db-st-scheduled">scheduled</span></td><td>Tayangkan sekarang</td><td><span class="db-st db-st-published">published</span></td><td>Moderator</td></tr>
+                <tr><td><span class="db-st db-st-scheduled">scheduled</span></td><td>Batalkan jadwal</td><td><span class="db-st db-st-draft">draft</span></td><td>Moderator</td></tr>
+                <tr><td><span class="db-st db-st-published">published</span></td><td>Tarik ke draft</td><td><span class="db-st db-st-draft">draft</span></td><td>Moderator</td></tr>
+                <tr><td><span class="db-st db-st-review">review</span></td><td>Setujui &amp; tayangkan</td><td><span class="db-st db-st-published">published</span></td><td>Moderator</td></tr>
+                <tr><td><span class="db-st db-st-review">review</span></td><td>Setujui &amp; jadwalkan</td><td><span class="db-st db-st-scheduled">scheduled</span></td><td>Moderator</td></tr>
+                <tr><td><span class="db-st db-st-review">review</span></td><td>Tolak (alasan wajib)</td><td><span class="db-st db-st-rejected">rejected</span></td><td>Moderator</td></tr>
+                <tr><td><span class="db-st db-st-draft">draft</span> <span class="db-st db-st-rejected">rejected</span></td><td>Hapus</td><td>soft delete (<code>deleted_at</code>)</td><td>Moderator</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p class="db-note">Setiap kali status berubah ke <code>published</code>, <code>publish_at</code> diisi waktu saat itu, kecuali post yang tayang dari jadwal: itu memakai waktu jadwalnya.</p>
+        </section>
+
+        <section id="db-aturan">
+          <h2><span class="db-num">8</span>Aturan bisnis</h2>
+          <ul class="db-rules">
+            <li><b>Scheduler</b> jalan tiap menit: <code>status = 'scheduled' AND publish_at &lt;= NOW()</code> diubah ke <code>published</code>, lalu insert ke <code>t_global_notifications</code> dan kirim push.</li>
+            <li><b>Visibilitas feed:</b> <code>status = 'published' AND deleted_at IS NULL AND (project_id IS NULL OR project_id IN &lt;project user&gt;)</code>, urut <code>publish_at DESC</code>. Di halaman 1, kiriman milik user sendiri yang berstatus <code>review</code>/<code>rejected</code> ditaruh paling atas.</li>
+            <li><b>Edit post yang sudah tayang</b> langsung berlaku di app. <code>post_type</code> tidak boleh diganti.</li>
+            <li><b>Pengaturan interaksi</b> divalidasi di backend, bukan cuma di UI. Komentar butuh <code>allow_comment = 1</code>; balasan butuh <code>allow_comment = 1</code> dan <code>allow_reply = 1</code>. Like/dislike ditolak kalau <code>allow_like</code>/<code>allow_dislike</code> = 0.</li>
+            <li><b>Balasan komentar</b> maksimal 1 tingkat: <code>parent_comment_id</code> harus menunjuk komentar yang <code>parent_comment_id</code>-nya NULL.</li>
+            <li><b>Vote poll</b> final, tidak bisa diubah. Untuk poll pilihan tunggal (<code>is_multiple = 0</code>), maksimal 1 baris per (<code>feed_post_id</code>, <code>user_id</code>).</li>
+            <li><b>Reaksi:</b> 1 baris per user per post. Ganti like ↔ dislike = update; batal = delete.</li>
+            <li><b>Counter</b> (<code>like_count</code>, <code>dislike_count</code>, <code>comment_count</code>, <code>vote_count</code>, <code>total_voters</code>, <code>like_count</code> komentar) diupdate dalam transaksi yang sama dengan insert/delete interaksinya.</li>
+            <li><b>Media:</b> maksimal 10 file per post (JPG/PNG/MP4, maks 20 MB per file). Link hanya 1 file thumbnail.</li>
+            <li><b>Moderator</b> ditentukan lewat permission yang sudah ada (mis. <code>marketing-feed.moderate</code>), bukan kolom baru.</li>
+          </ul>
+        </section>
+
+        <section id="db-konvensi">
+          <h2><span class="db-num">9</span>Konvensi kolom</h2>
+          <ul class="db-rules">
+            <li>Kolom audit mengikuti tabel existing (<code>m_contacts</code>): <code>create_user_id</code>, <code>update_user_id</code>, <code>created_at</code>, <code>updated_at</code>, dan <code>deleted_at</code> untuk tabel yang memakai soft delete (<code>t_feed_post</code>, <code>t_feed_comment</code>).</li>
+            <li>Nama index: <code>idx_&lt;tabel&gt;_&lt;tujuan&gt;</code>. Nama unique: <code>uq_&lt;tabel&gt;</code>.</li>
+            <li>Kolom bernama <code>ranking</code>, bukan <code>rank</code>, karena <code>RANK</code> adalah reserved word di MySQL 8.</li>
+          </ul>
+        </section>
+
+        <section id="db-pertanyaan">
+          <h2><span class="db-num">10</span>Pertanyaan terbuka</h2>
+          <ol class="db-qs">
+            <li><div><b>Wall of Fame:</b> dihitung otomatis dari data SP (job bulanan) atau diisi manual oleh admin? Teks highlight di prototype terlihat ditulis manual. <code>t_feed_fame</code> bisa dipakai untuk dua-duanya.</div></li>
+            <li><div><b>Target project:</b> cukup satu project atau semua? Kalau butuh beberapa project sekaligus, <code>project_id</code> diganti tabel pivot <code>d_feed_post_project</code>.</div></li>
+            <li><div><b>Edit opsi poll setelah ada suara:</b> prototype mempertahankan suara selama jumlah opsinya sama. Ini berisiko kalau teks opsinya diganti. Usulan: opsi dikunci begitu ada suara.</div></li>
+            <li><div><b><code>pillar</code>:</b> ada di data prototype tapi tidak ada UI untuk memilihnya. Dipakai untuk laporan atau dibuang?</div></li>
+            <li><div><b>Platform link:</b> Flutter saat ini hanya mengenal <code>youtube</code>/<code>web</code>, sedangkan prototype punya <code>blog</code>. Enum backend dan app perlu disamakan.</div></li>
+            <li><div><b>Progress Kamu:</b> pemetaan <code>m_prospect_status</code> ke 5 tahap funnel, dan periode hitungnya (kontak dibuat bulan ini, atau status berubah bulan ini), perlu dikonfirmasi.</div></li>
+          </ol>
+        </section>
+      </div>
+    </div>
+  </article>
+</div>
 <input type="file" id="filePick" accept="image/*,video/*" multiple hidden>
 
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js"></script>
 <script>
 const $=s=>document.querySelector(s);
 const esc=s=>s.replace(/&/g,'&amp;').replace(/</g,'&lt;');
@@ -726,6 +1393,7 @@ const P={
 };
 Object.assign(P,{
  send:"M2.01 21L23 12 2.01 3 2 10l15 2-15 2z",
+ db:"M2 20h20v-4H2v4zm2-3h2v2H4v-2zM2 4v4h20V4H2zm4 3H4V5h2v2zm-4 7h20v-4H2v4zm2-3h2v2H4v-2z",
  edit:"M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34a.9959.9959 0 00-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z",
  trash:"M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z",
  clock:"M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z",
@@ -938,9 +1606,6 @@ const ILL={
     <rect x="168" y="66" width="64" height="44" rx="12" fill="#F44336"/><path d="M193 78l17 10-17 10z" fill="#fff"/>
     ${T(18,180,12,'#FFCDD2',o.kicker||'WALKTHROUGH',900,'start','letter-spacing="2"')}${T(18,206,22,'#fff',o.title||'Unit Tipe 78/120',900)}
     <rect x="340" y="190" width="46" height="22" rx="4" fill="rgba(0,0,0,.75)"/>${T(363,206,12,'#fff',o.dur||'12:48',800,'middle')}`}},
-
-  portrait(o,id){return {w:400,h:400,s:`${o.long?`<path d="M118 160c0-66 36-100 82-100s82 34 82 100v120H118z" fill="${o.hair}"/>`:''}<circle cx="200" cy="150" r="70" fill="${o.skin||'#F1C27D'}"/><path d="M128 140c0-50 34-78 72-78s72 28 72 78c-14-26-40-36-72-36s-58 10-72 36z" fill="${o.hair||'#3E2723'}"/>
-    <path d="M70 400c0-90 58-150 130-150s130 60 130 150z" fill="${o.shirt||'#263238'}"/><path d="M168 252l32 52 32-52z" fill="#fff"/>${o.tie===null?'':`<path d="M196 262h8l6 60-10 14-10-14z" fill="${o.tie||'#F44336'}"/>`}`}}
 };
 function art(m,cls='art'){
   if(m.url)return m.kind==='video'?`<video class="${cls}" src="${m.url}" muted playsinline preload="metadata"></video>`:`<img class="${cls}" src="${m.url}" alt="${m.cap||'Foto upload'}">`;
@@ -1058,11 +1723,12 @@ const fame={
  "TOP SPV":{h:["YS","Yoga Saputra · SPV PAR2","Tim paling cepat follow up"],r:[["MI","Mega Indah · PAR1","9 SP tim","#4CAF50"],["RA","Rudi Akbar · PRC","Visit terbanyak","#F44336"]]},
  "TOP SE":{h:["RK","Rina Kartika · SE PAR1","8 unit SP bulan ini, #1 di PAR1"],r:[["BS","Budi Santoso · PAR1","6 SP, appointment terbanyak","#6D5DD3"],["TW","Tari Wulan · PAR2","SP pertama bulan ini 🎉","#FF9800"]]}
 };
-const PORT={'TOP GM':{shirt:'#263238'},'TOP SM':{long:1,hair:'#3E2723',shirt:'#3F51B5',tie:null,skin:'#E0AC69'},'TOP SPV':{shirt:'#00695C',tie:'#FFC107',skin:'#C68642',hair:'#212121'},'TOP SE':{long:1,hair:'#4E342E',shirt:'#AD1457',tie:null}};
+/* foto dummy juara #1 (Unsplash, sama dengan data dummy di app); inisial tampil kalau foto gagal dimuat */
+const PHOTO={'TOP GM':'1507003211169-0a1dd7228f2d','TOP SM':'1494790108377-be9c29b29330','TOP SPV':'1500648767791-00dcc994a43e','TOP SE':'1438761681033-6461ffad8d80'};
 /* semua level ditampilkan berurutan, tanpa tombol tab */
 $('#fameAll').innerHTML=Object.entries(fame).map(([k,f])=>`<div class="flevel">
   <div class="flv">${k}</div>
-  <div class="hero"><div class="hport">${art({k:'portrait',o:PORT[k]})}</div><span class="badge">${ic('trophy',13)}#1 Bulan Ini</span><b>${f.h[1]}</b><small>${f.h[2]}</small></div>
+  <div class="hero"><div class="hport"><span>${f.h[0]}</span><img src="https://images.unsplash.com/photo-${PHOTO[k]}?w=240&h=240&fit=crop&crop=faces&q=70" alt="" onerror="this.remove()"></div><span class="badge">${ic('trophy',13)}#1 Bulan Ini</span><b>${f.h[1]}</b><small>${f.h[2]}</small></div>
   ${f.r.map((r,i)=>`<div class="rank"><div class="av" style="background:${r[3]}">${r[0]}<span class="medal m${i+2}">${i+2}</span></div><div style="flex:1"><b>${r[1]}</b><div class="small">${r[2]}</div></div><span class="small" style="font-weight:800">#${i+2}</span></div>`).join('')}
 </div>`).join('');
 
@@ -1102,7 +1768,6 @@ function cardHTML(p,pv=false){
 }
 
 /* ---------- MOBILE: feed ---------- */
-const CTA=`<div class="card cta" role="button" tabindex="0" data-open="sShare"><div class="ib">${ic('camera',22)}</div><div style="flex:1"><b>Baru dapat SP atau momen seru?</b><small>Bagikan ke Marketing Feed</small></div>${ic('chevron')}</div>`;
 function renderFeed(){
   const mine=posts.filter(p=>p.a===ME&&(p.status==='review'||p.status==='rejected')).sort((a,b)=>b.at-a.at);
   const pub=posts.filter(p=>p.status==='published').sort((a,b)=>b.at-a.at);
@@ -1134,7 +1799,6 @@ $('#feed').addEventListener('click',e=>{
   }
   card.querySelector('.fa').outerHTML=footHTML(p);
 });
-$('#feed').addEventListener('keydown',e=>{const c=e.target.closest('.cta');if(c&&(e.key==='Enter'||e.key===' ')){e.preventDefault();openScreen(c.dataset.open)}});
 
 /* ---------- MOBILE: komentar (bottom sheet) ---------- */
 let cPost=null,replyTo=null;
@@ -1280,8 +1944,6 @@ $('#fab').onclick=()=>{const m=$('#menu');m.hidden=!m.hidden;$('#fab').setAttrib
 $('#menu').onclick=e=>{const b=e.target.closest('[data-open]');if(b){$('#menu').hidden=true;$('#fab').setAttribute('aria-expanded','false');openScreen(b.dataset.open)}};
 
 onChange(()=>{renderFeed();if($('#sDrafts').classList.contains('open'))renderDrafts();if(cPost)renderComments()});
-/* ajakan berbagi momen ditaruh paling atas feed, di atas Progress Kamu */
-$('#feed').insertAdjacentHTML('afterbegin',CTA);
 renderFeed();
 
 /* ---------- REPORT: isi dashboard lama ---------- */
@@ -1470,13 +2132,50 @@ awin.addEventListener('input',e=>{if(e.target.id==='aq'){aQuery=e.target.value.t
 
 /* --- ganti mode prototype --- */
 function setMode(m){
-  $('#mobileMode').hidden=m!=='mobile';awin.hidden=m!=='admin';
+  $('#mobileMode').hidden=m!=='mobile';awin.hidden=m!=='admin';$('#dbMode').hidden=m!=='db';
+  $('.democlock').hidden=m==='db';if(m==='db')drawDbMermaid();
   document.querySelectorAll('[data-mode]').forEach(b=>b.setAttribute('aria-selected',b.dataset.mode===m));
   if(m==='admin'&&av!=='editor')renderAdmin();
 }
 document.querySelectorAll('[data-mode]').forEach(b=>b.onclick=()=>setMode(b.dataset.mode));
 $('#jumpBtn').onclick=jumpNext;
 onChange(renderAdmin);
+
+/* ---------- DATABASE: dokumentasi ERD ---------- */
+/* warnai diagram ASCII; garis kotak dibungkus paling akhir supaya pola "│ nama_tabel" masih cocok */
+document.querySelectorAll('.db-diagram').forEach(pre=>{pre.innerHTML=pre.innerHTML
+  .replace(/(│ )([a-z][a-z_]+)(?=  )/g,'$1<span class="d-tn">$2</span>')
+  .replace(/\[[CRUD](?:\/[CRUD])*\]/g,'<span class="d-tag">$&</span>')
+  .replace(/\b(PK|FK)\b/g,'<span class="d-key">$1</span>')
+  .replace(/\((existing|pd_common)\)/g,'<span class="d-ex">$&</span>')
+  .replace(/\b(INDEX|UNIQUE)\b/g,'<span class="d-kw">$1</span>')
+  .replace(/(▶ )(1:N|N:1|1:1)/g,'$1<span class="d-card">$2</span>')
+  .replace(/[─│┌┐└┘├┤▶]+/g,'<span class="d-ln">$&</span>')});
+$('#dbMode').addEventListener('click',e=>{
+  /* "Dipakai di mana": sorot baris yang memakai tabel terpilih */
+  const f=e.target.closest('[data-db-f]');
+  if(f){const t=f.dataset.dbF;
+    document.querySelectorAll('.db-f').forEach(x=>x.setAttribute('aria-pressed',x===f));
+    document.querySelectorAll('.db-use tbody tr').forEach(tr=>tr.classList.toggle('db-dim',!!t&&!tr.dataset.t.split(' ').includes(t)));
+    document.querySelectorAll('.db-ops li').forEach(li=>li.classList.toggle('db-hit',!!t&&li.dataset.t===t));
+    return}
+  const b=e.target.closest('[data-db-copy]');if(!b)return;
+  const pre=document.getElementById(b.dataset.dbCopy),reset=()=>setTimeout(()=>b.textContent='Salin teks',1800);
+  const selectText=()=>{const r=document.createRange();r.selectNodeContents(pre);const s=getSelection();s.removeAllRanges();s.addRange(r);b.textContent='Teks terpilih, tekan Ctrl+C';reset()};
+  try{navigator.clipboard.writeText(pre.innerText).then(()=>{b.textContent='Tersalin';reset()},selectText)}catch{selectText()}
+});
+/* diagram Mermaid digambar saat tab Database pertama kali dibuka: kalau digambar selagi tersembunyi, ukuran teksnya 0 */
+let dbMermaidDone=false;
+function drawDbMermaid(){
+  if(dbMermaidDone||!window.mermaid)return;dbMermaidDone=true;
+  mermaid.initialize({startOnLoad:false,theme:'base',fontFamily:'"Nunito Sans",system-ui,sans-serif',flowchart:{curve:'basis'},
+    themeVariables:{primaryColor:'#e8f1fd',primaryBorderColor:'#1f6fd1',primaryTextColor:'#1d2433',lineColor:'#6b7a90',secondaryColor:'#fcf0d9',tertiaryColor:'#f6f8fb',fontSize:'14px'}});
+  mermaid.run({nodes:document.querySelectorAll('#dbMode .db-mermaid')}).catch(e=>{console.error(e);dbMermaidDone=false});
+}
+/* daftar isi: tandai bagian yang sedang dibaca */
+const dbToc=[...document.querySelectorAll('.db-toc a')];
+const dbIO=new IntersectionObserver(es=>es.forEach(en=>{if(en.isIntersecting)dbToc.forEach(a=>a.classList.toggle('db-on',a.getAttribute('href')==='#'+en.target.id))}),{rootMargin:'-20% 0px -70% 0px'});
+document.querySelectorAll('.db-main section').forEach(s=>dbIO.observe(s));
 
 /* --- editor konten: buat / edit, draft otomatis, jadwal tayang, preview --- */
 let ed=null,asT=null;
