@@ -26,7 +26,7 @@ ContactAttachment? _matchAttachment(
   return null;
 }
 
-/// Buka wizard Create Reserve Order dengan data default dari [contact] (nama, no HP, No. KTP,
+/// Buka wizard Create Reserve Order dengan data default dari [contact] (nama — Name SP kalau ada, no HP, No. KTP,
 /// alamat, jenis kelamin dari salutation, sales channel, project terakhir, riwayat unit) dan,
 /// kalau [attachments] diisi, attachment KTP/NPWP yang sudah ada supaya tidak perlu upload ulang.
 /// [initialCustomer] (data `customer` dari detail Reserve Order sebelumnya) menimpa data contact
@@ -59,10 +59,14 @@ void navigateToCreateReserveOrder(
       _matchAttachment(attachments, 'ktp');
   final npwp = _matchAttachment(attachments, 'npwp');
 
+  // Name SP (t_deals.name_sp deal terakhir, diisi di form Update Status) didahulukan utk "Nama
+  // Lengkap (sesuai KTP)" — kosong → nama contact seperti biasa.
+  final nameSp = contact.nameSP?.trim() ?? '';
+
   final route = MaterialPageRoute<void>(
     builder: (_) => CreateReserveOrderPage(
       contactId: contactId,
-      contactName: contact.fullName,
+      contactName: nameSp.isNotEmpty ? nameSp : contact.fullName,
       contactPhone: contact.whatsappNumber ?? contact.primaryPhone,
       contactKtpNumber: contact.noKtp,
       contactAddress: contact.ktpAddress,
