@@ -11,6 +11,7 @@ import 'package:progress_group/features/reserve-order/domain/entities/payment_ty
 import 'package:progress_group/features/reserve-order/domain/entities/reserve_order_detail_entity.dart';
 import 'package:progress_group/features/reserve-order/domain/entities/reserve_order_list_item_entity.dart';
 import 'package:progress_group/features/reserve-order/domain/entities/reserve_status_entity.dart';
+import 'package:progress_group/features/reserve-order/domain/entities/resubmit_reserve_order_params.dart';
 import 'package:progress_group/features/reserve-order/domain/entities/select_unit_entity.dart';
 import 'package:progress_group/features/reserve-order/domain/entities/topup_reserve_order_params.dart';
 import 'package:progress_group/features/reserve-order/domain/entities/update_reserve_order_customer_params.dart';
@@ -72,6 +73,8 @@ abstract class ReserveOrderRepository {
     int reserveOrderId,
     ChangeReserveOrderUnitParams params,
   );
+  Future<Either<String, ({ReserveOrderDetailEntity detail, String? message})>>
+  resubmitReserveOrder(int reserveOrderId, ResubmitReserveOrderParams params);
   Future<Either<String, void>> deleteReserveOrder(int reserveOrderId);
   Future<Either<String, Map<String, dynamic>>> ocrKtp(
     Uint8List imageBytes, {

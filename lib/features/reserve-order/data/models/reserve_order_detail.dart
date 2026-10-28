@@ -135,6 +135,9 @@ class ReserveOrderDetail {
   final String? rejectStage;
   final String? rejectReason;
   final bool rejectFixIsCustomerData;
+
+  /// Tombol "Pengajuan Ulang" tampil — `can_resubmit`, fallback `rejected && canEdit` (backend lama).
+  final bool canResubmit;
   final List<ReserveOrderTimelineStep> timeline;
   ReserveOrderCustomerData customer;
 
@@ -189,6 +192,7 @@ class ReserveOrderDetail {
     this.rejectStage,
     this.rejectReason,
     this.rejectFixIsCustomerData = false,
+    this.canResubmit = false,
     required this.timeline,
     required this.customer,
     this.questionnaire,
@@ -204,9 +208,9 @@ class ReserveOrderDetail {
     this.caraBayarName,
   });
 
-  /// Backend cuma expose satu `is_rejected` gabungan (SA ATAU Kasir) tanpa membedakan sumbernya.
-  /// Order Ditolak keluar dari status itu lewat salah satu opsi "Perbaiki Reserve Order" — Ganti
-  /// Unit, Top Up, atau Perbaiki Data Customer — yang masing2 langsung mengajukan ulang di server.
+  /// `is_rejected` gabungan (SA ATAU Kasir; sumbernya di `reject_source`). Order Ditolak keluar dari
+  /// status itu lewat tombol "Pengajuan Ulang" — wizard Create mode pengajuan ulang, sekali kirim ke
+  /// `POST /reserve-order/resubmit/{id}`.
   factory ReserveOrderDetail.fromEntity(ReserveOrderDetailEntity e) {
     final initials = e.customerName.trim().isEmpty
         ? '-'
@@ -266,6 +270,7 @@ class ReserveOrderDetail {
       rejectStage: e.rejectStage,
       rejectReason: e.rejectReason,
       rejectFixIsCustomerData: e.isRejected,
+      canResubmit: e.canResubmit ?? (e.isRejected && e.canEdit),
       timeline: e.timeline
           .map(
             (s) => ReserveOrderTimelineStep(

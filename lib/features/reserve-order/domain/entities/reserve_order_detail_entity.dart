@@ -288,6 +288,119 @@ class ReserveOrderSalesEntity extends Equatable {
   List<Object?> get props => [executive, supervisor, manager, generalManager];
 }
 
+/// Satu pembayaran TTS yang bisa diajukan ulang (`resubmit.tts.items[]`).
+class ReserveOrderResubmitPaymentEntity extends Equatable {
+  /// Nilai DB apa adanya: `Tunai` / `Transfer` / `Kartu Kredit` / `Giro`.
+  final String paymentMethod;
+  final double amount;
+  final int? bankId;
+  final String? bankName;
+  final String? cardNetwork;
+  final String? referenceNumber;
+  final DateTime? referenceDate;
+
+  /// `tunai_deposited` — Tunai ini sudah disetor ke bank: tidak boleh dihapus / diubah nominalnya.
+  final bool tunaiDeposited;
+
+  const ReserveOrderResubmitPaymentEntity({
+    required this.paymentMethod,
+    this.amount = 0,
+    this.bankId,
+    this.bankName,
+    this.cardNetwork,
+    this.referenceNumber,
+    this.referenceDate,
+    this.tunaiDeposited = false,
+  });
+
+  @override
+  List<Object?> get props => [
+    paymentMethod,
+    amount,
+    bankId,
+    bankName,
+    cardNetwork,
+    referenceNumber,
+    referenceDate,
+    tunaiDeposited,
+  ];
+}
+
+/// Bukti pembayaran lama TTS (`resubmit.tts.proofs[]`) — dihapus lewat `tts[delete_proof_ids][]`.
+class ReserveOrderResubmitProofEntity extends Equatable {
+  final int contactAttachmentId;
+  final String? attachmentPath;
+  final String? verificationStatus;
+
+  const ReserveOrderResubmitProofEntity({
+    required this.contactAttachmentId,
+    this.attachmentPath,
+    this.verificationStatus,
+  });
+
+  @override
+  List<Object?> get props => [
+    contactAttachmentId,
+    attachmentPath,
+    verificationStatus,
+  ];
+}
+
+/// TTS order yang diajukan ulang (`resubmit.tts`). [editable] false = sudah disetujui Kasir
+/// (biasanya kasus tolak SA) → tampil read-only dgn [lockedReason] & `tts[...]` tidak dikirim.
+class ReserveOrderResubmitTtsEntity extends Equatable {
+  final int reserveOrderTtsId;
+  final String ttsNumber;
+  final int? paymentTypeId;
+  final bool editable;
+  final String? lockedReason;
+  final List<ReserveOrderResubmitPaymentEntity> items;
+  final List<ReserveOrderResubmitProofEntity> proofs;
+
+  const ReserveOrderResubmitTtsEntity({
+    required this.reserveOrderTtsId,
+    this.ttsNumber = '',
+    this.paymentTypeId,
+    this.editable = false,
+    this.lockedReason,
+    this.items = const [],
+    this.proofs = const [],
+  });
+
+  @override
+  List<Object?> get props => [
+    reserveOrderTtsId,
+    ttsNumber,
+    paymentTypeId,
+    editable,
+    lockedReason,
+    items,
+    proofs,
+  ];
+}
+
+/// Data prefill wizard "Pengajuan Ulang" (`resubmit`) — null kalau `can_resubmit` false.
+class ReserveOrderResubmitEntity extends Equatable {
+  final DateTime? reserveDate;
+
+  /// false = order sudah di-approve Kasir, unit hanya bisa diganti SA (alasan: [unitLockedReason]).
+  final bool unitEditable;
+  final String? unitLockedReason;
+
+  /// null = order tanpa TTS.
+  final ReserveOrderResubmitTtsEntity? tts;
+
+  const ReserveOrderResubmitEntity({
+    this.reserveDate,
+    this.unitEditable = false,
+    this.unitLockedReason,
+    this.tts,
+  });
+
+  @override
+  List<Object?> get props => [reserveDate, unitEditable, unitLockedReason, tts];
+}
+
 /// Hasil `GET /reserve-order/detail/{id}` — juga dipakai sbg balikan `update`/`topup`
 /// (`ReserveOrderService::updateCustomer`/`topup` sama-sama return `getDetail()`).
 class ReserveOrderDetailEntity extends Equatable {
@@ -338,6 +451,14 @@ class ReserveOrderDetailEntity extends Equatable {
   final bool isRejected;
   final String? rejectStage;
   final String? rejectReason;
+
+  /// `reject_source` — yang menolak: `kasir` / `sales_admin` (null = tidak sedang ditolak).
+  final String? rejectSource;
+
+  /// `can_resubmit` — Ditolak, user boleh Modify & belum Akad → tombol "Pengajuan Ulang".
+  /// null = backend lama belum kirim field ini (app fallback ke `isRejected && canEdit`).
+  final bool? canResubmit;
+  final ReserveOrderResubmitEntity? resubmit;
   final List<ReserveOrderTimelineStepEntity> timeline;
 
   /// Row `m_customer_reserve` apa adanya (cocok langsung dgn `ReserveOrderCustomerData.raw`).
@@ -383,6 +504,9 @@ class ReserveOrderDetailEntity extends Equatable {
     this.isRejected = false,
     this.rejectStage,
     this.rejectReason,
+    this.rejectSource,
+    this.canResubmit,
+    this.resubmit,
     this.timeline = const [],
     this.customer = const {},
     this.questionnaire,
@@ -428,6 +552,9 @@ class ReserveOrderDetailEntity extends Equatable {
     isRejected,
     rejectStage,
     rejectReason,
+    rejectSource,
+    canResubmit,
+    resubmit,
     timeline,
     customer,
     questionnaire,

@@ -29,11 +29,15 @@ class ReferenceDateField extends StatelessWidget {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
     final lastDate = allowFuture ? DateTime(now.year + 1, 12, 31) : today;
-    final initial = value ?? today;
+    final firstDate = DateTime(now.year - 1);
+    // Nilai prefill (mis. Pengajuan Ulang RO lama) bisa di luar rentang → picker assert.
+    var initial = value ?? today;
+    if (initial.isAfter(lastDate)) initial = lastDate;
+    if (initial.isBefore(firstDate)) initial = firstDate;
     final picked = await showDatePicker(
       context: context,
-      initialDate: initial.isAfter(lastDate) ? lastDate : initial,
-      firstDate: DateTime(now.year - 1),
+      initialDate: initial,
+      firstDate: firstDate,
       lastDate: lastDate,
       helpText: label,
     );

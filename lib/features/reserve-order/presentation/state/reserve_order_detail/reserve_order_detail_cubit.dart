@@ -4,12 +4,14 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:progress_group/features/contact/domain/usecases/attachment/delete_attachment_usecase.dart';
 import 'package:progress_group/features/reserve-order/domain/entities/change_reserve_order_unit_params.dart';
 import 'package:progress_group/features/reserve-order/domain/entities/edit_reserve_order_params.dart';
+import 'package:progress_group/features/reserve-order/domain/entities/resubmit_reserve_order_params.dart';
 import 'package:progress_group/features/reserve-order/domain/entities/topup_reserve_order_params.dart';
 import 'package:progress_group/features/reserve-order/domain/entities/update_reserve_order_customer_params.dart';
 import 'package:progress_group/features/reserve-order/domain/usecases/change_reserve_order_unit_usecase.dart';
 import 'package:progress_group/features/reserve-order/domain/usecases/delete_reserve_order_usecase.dart';
 import 'package:progress_group/features/reserve-order/domain/usecases/edit_reserve_order_usecase.dart';
 import 'package:progress_group/features/reserve-order/domain/usecases/get_reserve_order_detail_usecase.dart';
+import 'package:progress_group/features/reserve-order/domain/usecases/resubmit_reserve_order_usecase.dart';
 import 'package:progress_group/features/reserve-order/domain/usecases/send_reserve_order_message_usecase.dart';
 import 'package:progress_group/features/reserve-order/domain/usecases/topup_reserve_order_usecase.dart';
 import 'package:progress_group/features/reserve-order/domain/usecases/update_reserve_order_customer_usecase.dart';
@@ -25,6 +27,7 @@ class ReserveOrderDetailCubit extends Cubit<ReserveOrderDetailState> {
   final SendReserveOrderMessageUseCase sendReserveOrderMessageUseCase;
   final EditReserveOrderUseCase editReserveOrderUseCase;
   final ChangeReserveOrderUnitUseCase changeReserveOrderUnitUseCase;
+  final ResubmitReserveOrderUseCase resubmitReserveOrderUseCase;
   final DeleteReserveOrderUseCase deleteReserveOrderUseCase;
 
   /// Dipinjam dari fitur Contact — dokumen reserve order tersimpan di d_contact_attachment, jadi
@@ -38,6 +41,7 @@ class ReserveOrderDetailCubit extends Cubit<ReserveOrderDetailState> {
     required this.sendReserveOrderMessageUseCase,
     required this.editReserveOrderUseCase,
     required this.changeReserveOrderUnitUseCase,
+    required this.resubmitReserveOrderUseCase,
     required this.deleteReserveOrderUseCase,
     required this.deleteAttachmentUseCase,
   }) : super(const ReserveOrderDetailState());
@@ -207,6 +211,38 @@ class ReserveOrderDetailCubit extends Cubit<ReserveOrderDetailState> {
           state.copyWith(status: ReserveOrderDetailStatus.loaded, detail: data),
         );
         return null;
+      },
+    );
+  }
+
+  /// "Pengajuan Ulang" order Ditolak (wizard Create mode pengajuan ulang) — sukses: detail diganti
+  /// `data` response & [message] = pesan sukses server; gagal: `ok` false & [message] = error.
+  Future<({bool ok, String? message})> resubmit(
+    int reserveOrderId,
+    ResubmitReserveOrderParams params,
+  ) async {
+    emit(state.copyWith(status: ReserveOrderDetailStatus.mutating));
+
+    final result = await resubmitReserveOrderUseCase(reserveOrderId, params);
+
+    return result.fold(
+      (message) {
+        emit(
+          state.copyWith(
+            status: ReserveOrderDetailStatus.loaded,
+            errorMessage: message,
+          ),
+        );
+        return (ok: false, message: message);
+      },
+      (data) {
+        emit(
+          state.copyWith(
+            status: ReserveOrderDetailStatus.loaded,
+            detail: data.detail,
+          ),
+        );
+        return (ok: true, message: data.message);
       },
     );
   }

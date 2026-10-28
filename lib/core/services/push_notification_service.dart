@@ -7,7 +7,9 @@ import 'package:dio/dio.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:progress_group/core/services/play_update_service.dart';
+import 'package:progress_group/core/utils/helpers/permissions_helper.dart';
 import 'package:progress_group/core/services/version_check_service.dart';
 import 'package:progress_group/core/utils/helpers/app_time.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
@@ -20,6 +22,8 @@ import 'package:progress_group/features/contact/data/arguments/contact_detail_ar
 import 'package:progress_group/features/contact/domain/entities/activity/activity_entity.dart';
 import 'package:progress_group/features/contact/domain/entities/contact/contact_entity.dart';
 import 'package:progress_group/features/notif/presentation/state/received_notif_cubit.dart';
+import 'package:progress_group/features/reserve-order/presentation/pages/detail/index.dart';
+import 'package:progress_group/features/reserve-order/presentation/state/reserve_order_detail/reserve_order_detail_cubit.dart';
 import 'package:progress_group/core/constants/attendance_feedback_labels.dart';
 import 'package:progress_group/core/constants/colors.dart';
 import 'package:progress_group/core/utils/widget/attendance_feedback_dialog.dart';
@@ -539,6 +543,15 @@ class PushNotificationService {
   static void _handleForegroundMessage(RemoteMessage message) {
     final data = _safeData(message);
 
+    // Detail RO yang sama sedang terbuka → langsung di-refresh (notifikasinya tetap tampil).
+    final reserveOrderId = _reserveOrderIdOf(data);
+    final rootContext = AppRouter.rootNavigatorKey.currentContext;
+    if (reserveOrderId != null &&
+        rootContext != null &&
+        ReserveOrderDetailPage.isShowing(reserveOrderId)) {
+      rootContext.read<ReserveOrderDetailCubit>().fetch(reserveOrderId);
+    }
+
     if (data['type'] == 'attendance_feedback') {
       _showDialogAfterFrame(() => _showAttendanceFeedbackDialog(data));
       return;
@@ -668,6 +681,29 @@ class PushNotificationService {
       return;
     }
 
+    // Push Reserve Order (owner contact) → Detail RO-nya. Detail yang sama sedang terbuka → refresh.
+    if (_reserveOrderPushTypes.contains(type) &&
+        PermissionsHelper.canAccessReserveOrder) {
+      final reserveOrderId = _reserveOrderIdOf(data);
+      if (reserveOrderId == null) {
+        AppRouter.router.goNamed('reserve_order');
+      } else if (ReserveOrderDetailPage.isShowing(reserveOrderId)) {
+        context.read<ReserveOrderDetailCubit>().fetch(reserveOrderId);
+      } else {
+        // List di bawahnya supaya Back dari Detail tetap mendarat di Reserve Order.
+        AppRouter.router.goNamed('reserve_order');
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          AppRouter.rootNavigatorKey.currentState?.push(
+            MaterialPageRoute<void>(
+              builder: (_) =>
+                  ReserveOrderDetailPage(reserveOrderId: reserveOrderId),
+            ),
+          );
+        });
+      }
+      return;
+    }
+
     if (type == 'upcoming_task') {
       final activityIdStr = data['activity_id'] as String?;
       final contactIdStr  = data['contact_id'] as String?;
@@ -720,6 +756,23 @@ class PushNotificationService {
     }
 
     AppRouter.router.go('/task-home');
+  }
+
+  /// Type push Reserve Order ke owner contact (semua bawa `reserve_order_id` & `contact_id`).
+  static const _reserveOrderPushTypes = {
+    'reserve_order_approved',
+    'reserve_order_topup_approved',
+    'reserve_order_status_changed',
+    'reserve_order_message',
+    'reserve_order_queue',
+    'reserve_order_rejected', // + rejected_by: kasir / sales_admin
+    'reserve_order_sa_approved',
+    'reserve_order_topup_rejected', // + reserve_order_tts_id
+  };
+
+  static int? _reserveOrderIdOf(Map<String, dynamic> data) {
+    if (!_reserveOrderPushTypes.contains(data['type'])) return null;
+    return int.tryParse(data['reserve_order_id']?.toString() ?? '');
   }
 
   /// Tunda pemanggilan [action] sampai frame yang sedang berjalan selesai. showDialog yang

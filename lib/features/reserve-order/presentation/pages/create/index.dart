@@ -15,8 +15,12 @@ import 'package:progress_group/features/contact/data/models/unit/unit_hierarchy_
 import 'package:progress_group/features/contact/presentation/state/unit_picker/unit_picker_cubit.dart';
 import 'package:progress_group/features/contact/presentation/state/unit_picker/unit_picker_state.dart';
 import 'package:progress_group/features/reserve-order/data/models/reserve_unit_option.dart';
+import 'package:progress_group/features/reserve-order/domain/entities/change_reserve_order_unit_params.dart';
 import 'package:progress_group/features/reserve-order/domain/entities/create_reserve_order_params.dart';
 import 'package:progress_group/features/reserve-order/domain/entities/create_reserve_order_result_entity.dart';
+import 'package:progress_group/features/reserve-order/domain/entities/reserve_order_detail_entity.dart';
+import 'package:progress_group/features/reserve-order/domain/entities/resubmit_reserve_order_params.dart';
+import 'package:progress_group/features/reserve-order/domain/entities/topup_reserve_order_params.dart';
 import 'package:progress_group/features/reserve-order/presentation/pages/detail/index.dart';
 import 'package:progress_group/features/reserve-order/domain/entities/select_unit_entity.dart';
 import 'package:progress_group/features/reserve-order/presentation/state/cara_bayar/cara_bayar_bloc.dart';
@@ -24,6 +28,7 @@ import 'package:progress_group/features/reserve-order/presentation/state/cara_ba
 import 'package:progress_group/features/reserve-order/presentation/state/cara_bayar/cara_bayar_state.dart';
 import 'package:progress_group/features/reserve-order/presentation/state/create_reserve_order/create_reserve_order_cubit.dart';
 import 'package:progress_group/features/reserve-order/presentation/state/create_reserve_order/create_reserve_order_state.dart';
+import 'package:progress_group/features/reserve-order/presentation/state/reserve_order_detail/reserve_order_detail_cubit.dart';
 import 'package:progress_group/features/reserve-order/presentation/state/reserve_order_list/reserve_order_list_cubit.dart';
 import 'package:progress_group/features/reserve-order/presentation/state/payment_type/payment_type_bloc.dart';
 import 'package:progress_group/features/reserve-order/presentation/state/payment_type/payment_type_event.dart';
@@ -86,6 +91,12 @@ class CreateReserveOrderPage extends StatefulWidget {
   /// berhasil ditampilkan popup pemberitahuan.
   final bool notifyPendingProspectStatus;
 
+  /// Mode "Pengajuan Ulang" order Ditolak (tombol di Detail RO, lihat
+  /// `navigateToResubmitReserveOrder`) — wizard diisi dari detail ini, project dikunci, hanya 1
+  /// unit, TTS diedit dari `resubmit.tts`, lalu dikirim ke `POST /reserve-order/resubmit/{id}`.
+  /// Sukses → pop dgn `message` server (tanpa layar sukses). null = Create biasa.
+  final ReserveOrderDetailEntity? resubmitOrder;
+
   const CreateReserveOrderPage({
     super.key,
     required this.contactId,
@@ -114,6 +125,7 @@ class CreateReserveOrderPage extends StatefulWidget {
     this.salesTeamName,
     this.initialCustomer,
     this.notifyPendingProspectStatus = false,
+    this.resubmitOrder,
   });
 
   @override
@@ -162,10 +174,25 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
   // orang lain (null = aman) — dipakai utk pesan error di field KTP & cegat tombol Lanjut.
   String? _checkedKtpKey;
   String? _ktpOwnerConflict;
-  /// Masuk dari tab "Customer Reserve" → identitas customer sudah dipilih sendiri oleh sales,
-  /// jadi cek No. KTP (dan dialognya) dilewati. Dimatikan lagi saat form direset.
-  late bool _fromReserveCustomer = widget.initialCustomer != null;
+  /// Masuk dari tab "Customer Reserve" / Pengajuan Ulang → identitas customer sudah pasti, jadi cek
+  /// No. KTP (dan dialognya) dilewati. Dimatikan lagi saat form direset.
+  late bool _fromReserveCustomer =
+      widget.initialCustomer != null || widget.resubmitOrder != null;
   bool _checkingKtp = false;
+
+  bool get _isResubmit => widget.resubmitOrder != null;
+  ReserveOrderResubmitTtsEntity? get _resubmitTts =>
+      widget.resubmitOrder?.resubmit?.tts;
+
+  /// TTS ikut diedit & dikirim (`tts[...]`) — false kalau order tanpa TTS / TTS sudah disetujui Kasir.
+  bool get _ttsEditable => _resubmitTts?.editable ?? false;
+
+  /// Unit RO saat ini (mode Pengajuan Ulang) — tercentang otomatis.
+  ReserveUnitOption? _currentUnit;
+
+  /// Bukti TTS lama yang ditandai hapus (`tts[delete_proof_ids][]`).
+  final Set<int> _deletedProofIds = {};
+  bool _resubmitting = false;
 
   String? _selectedProject;
   int? _selectedProjectId;
@@ -201,6 +228,7 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
     if (widget.contactUnits != null && widget.contactUnits!.isEmpty) {
       _unitTab = 'other';
     }
+    if (_isResubmit) _applyResubmitOrder();
     if (widget.contactProjectId != null) {
       final townshipState = context.read<TownshipBloc>().state;
       if (townshipState is TownshipLoaded) {
@@ -236,6 +264,7 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
   }
 
   void _goBack() {
+    if (_resubmitting) return;
     if (_step > 1) {
       setState(() => _step -= 1);
     } else {
@@ -284,6 +313,70 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
     _caraBayar = text('cara_bayar_name') ?? _caraBayar;
   }
 
+  /// Prefill mode Pengajuan Ulang: catatan, project (dikunci ke township RO), unit RO saat ini
+  /// (tercentang), dan draft pembayaran dari `resubmit` (TTS, Untuk Pembayaran, Tanggal Reserve).
+  /// Customer & KTP/NPWP sudah lewat [widget.initialCustomer] / `existing*Attachment*`.
+  void _applyResubmitOrder() {
+    final order = widget.resubmitOrder!;
+    _catatanCtrl.text = order.reserveNote ?? '';
+    final unitName = (order.unitName ?? '').trim();
+    final unit = ReserveUnitOption(
+      id: 'current-${order.reserveOrderId}',
+      name: unitName.isEmpty ? 'Unit saat ini' : unitName,
+      context: [order.unitSub, order.productName]
+          .where((s) => (s ?? '').trim().isNotEmpty)
+          .join(' · '),
+      townshipId: order.townshipId,
+      companyId: order.companyId,
+      productId: order.productId,
+      propertyId: order.propertyId,
+    );
+    _currentUnit = unit;
+    _unitTab = 'current';
+    final townshipId = order.townshipId;
+    if (townshipId != null) {
+      _selectedProject = (order.townshipName ?? '').trim().isEmpty
+          ? '-'
+          : order.townshipName!;
+      _selectedProjectId = townshipId;
+      // Cukup pohon "Pilih Unit Lain" — "Unit dari Contact" tidak dipakai saat pengajuan ulang.
+      if (_unitLockReason == null) {
+        context.read<UnitPickerCubit>().init(
+          townshipId,
+          townshipName: _selectedProject,
+        );
+      }
+    }
+    _selectedUnits = [unit];
+    _unitDrafts = [
+      _UnitPaymentDraft.fromResubmit(
+        unit: unit,
+        resubmit: order.resubmit,
+      ),
+    ];
+  }
+
+  /// Alasan unit tidak bisa diganti (mode Pengajuan Ulang) — null = boleh ganti. Backend lama tanpa
+  /// `resubmit` → ikut `can_change_unit`.
+  String? get _unitLockReason {
+    final order = widget.resubmitOrder;
+    if (order == null) return null;
+    final resubmit = order.resubmit;
+    if (!(resubmit?.unitEditable ?? order.canChangeUnit)) {
+      return (resubmit?.unitLockedReason ?? '').trim().isNotEmpty
+          ? resubmit!.unitLockedReason!
+          : 'Reserve order sudah di-approve Kasir — unit hanya bisa diganti Sales Admin.';
+    }
+    if (order.townshipId == null) {
+      return 'Unit reserve order ini belum punya project — hubungi Kasir untuk memilih unit.';
+    }
+    return null;
+  }
+
+  /// Judul AppBar tiap step — mode Pengajuan Ulang selalu "Pengajuan Ulang Reserve Order".
+  String _title(String createTitle) =>
+      _isResubmit ? 'Pengajuan Ulang Reserve Order' : createTitle;
+
   /// Pilih otomatis project terakhir contact kalau user belum memilih project.
   void _applyContactProject(TownshipLoaded state) {
     if (_selectedProject != null || widget.contactProjectId == null) return;
@@ -313,6 +406,7 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
         // sejak step 1 saat project terakhir contact dipilih otomatis.
         BlocListener<SelectUnitBloc, SelectUnitState>(
           listenWhen: (prev, curr) =>
+              !_isResubmit &&
               prev.status != SelectUnitStatus.loaded &&
               curr.status == SelectUnitStatus.loaded,
           listener: (context, state) {
@@ -325,7 +419,7 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
       child: PopScope(
         canPop: _step == 1,
         onPopInvokedWithResult: (didPop, result) {
-          if (didPop) return;
+          if (didPop || _resubmitting) return;
           if (_step > 1) setState(() => _step -= 1);
         },
         child: switch (_step) {
@@ -869,6 +963,7 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
     bool isError = false,
     String? existingUrl,
     VoidCallback? onViewExisting,
+    String existingLabel = 'Sudah ada di data Contact · Ketuk untuk lihat',
   }) {
     final uploaded = file != null;
     final hasExisting =
@@ -931,7 +1026,7 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
                       uploaded
                           ? 'Terupload'
                           : hasExisting
-                          ? 'Sudah ada di data Contact · Ketuk untuk lihat'
+                          ? existingLabel
                           : 'Ketuk untuk upload',
                       style: TextStyle(
                         fontSize: 10.5,
@@ -1393,7 +1488,7 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
       backgroundColor: Color(whiteColor),
       body: Column(
         children: [
-          _appBar('Reserve Order — Customer Baru', 'Data Customer'),
+          _appBar(_title('Reserve Order — Customer Baru'), 'Data Customer'),
           _stepIndicator(1),
           Expanded(
             child: SingleChildScrollView(
@@ -1628,6 +1723,18 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
       );
       return;
     }
+    // Pengajuan Ulang: RO = 1 unit → pilih satu (radio), atau terkunci kalau unit tak bisa diganti.
+    if (_isResubmit) {
+      final lockReason = _unitLockReason;
+      if (lockReason != null) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(lockReason)));
+        return;
+      }
+      setState(() => _selectedUnits = [u]);
+      return;
+    }
     setState(() {
       final idx = _selectedUnits.indexWhere((x) => x.id == u.id);
       if (idx > -1) {
@@ -1763,7 +1870,7 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
     ),
   );
 
-  Widget _contactUnitRow(ReserveUnitOption u) {
+  Widget _contactUnitRow(ReserveUnitOption u, {Widget? trailing}) {
     final selected = _isUnitSelected(u.id);
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
@@ -1809,7 +1916,7 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
                     ],
                   ),
                 ),
-                _availabilityBadge(u.available),
+                trailing ?? _availabilityBadge(u.available),
               ],
             ),
           ),
@@ -2117,16 +2224,43 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
     );
   }
 
+  /// Pengajuan Ulang — isi tab "Unit Saat Ini": unit RO, tercentang otomatis (tap lagi untuk
+  /// kembali ke unit ini setelah memilih unit lain). Terkunci → alasannya ditampilkan.
+  List<Widget> _resubmitCurrentUnit(String? lockReason) {
+    return [
+      _contactUnitRow(
+        _currentUnit!,
+        trailing: Icon(
+          lockReason != null ? Icons.lock_outline : Icons.home_outlined,
+          size: 18,
+          color: Color(grey4Color),
+        ),
+      ),
+      _infoNotice(
+        lockReason ??
+            'Unit bisa diganti lewat tab "Pilih Unit Lain" — hanya di project yang sama.',
+      ),
+    ];
+  }
+
   Widget _unit() {
     final project = _selectedProject;
+    final lockReason = _unitLockReason;
     final countText = _selectedUnits.isEmpty
         ? 'Belum ada unit dipilih'
+        : _isResubmit
+        ? 'Unit dipilih: ${_selectedUnits.first.name}'
         : '${_selectedUnits.length} unit dipilih: ${_selectedUnits.map((u) => u.name).join(', ')}';
     return Scaffold(
       backgroundColor: Color(whiteColor),
       body: Column(
           children: [
-            _appBar('Pilih Unit', _customerNameSnapshot),
+            _appBar(
+              _title('Pilih Unit'),
+              _isResubmit
+                  ? 'Pilih Unit · $_customerNameSnapshot'
+                  : _customerNameSnapshot,
+            ),
             _stepIndicator(2),
             Expanded(
               child: SingleChildScrollView(
@@ -2139,30 +2273,56 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
                       value: _selectedProject,
                       required: true,
                       isError: _showUnitValidation && project == null,
-                      onTap: _openProjectPicker,
+                      onTap: _isResubmit
+                          ? () => ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text(
+                                  'Project tidak bisa diganti saat pengajuan ulang.',
+                                ),
+                              ),
+                            )
+                          : _openProjectPicker,
                     ),
                     const SizedBox(height: 14),
                     Row(
                       children: [
                         Expanded(
-                          child: _unitTabButton(
-                            'Unit dari Contact',
-                            _unitTab == 'contact',
-                            () => setState(() => _unitTab = 'contact'),
-                          ),
+                          // Pengajuan Ulang: "Unit dari Contact" diganti unit RO saat ini.
+                          child: _isResubmit
+                              ? _unitTabButton(
+                                  'Unit Saat Ini',
+                                  _unitTab == 'current',
+                                  () => setState(() => _unitTab = 'current'),
+                                )
+                              : _unitTabButton(
+                                  'Unit dari Contact',
+                                  _unitTab == 'contact',
+                                  () => setState(() => _unitTab = 'contact'),
+                                ),
                         ),
                         const SizedBox(width: 8),
                         Expanded(
                           child: _unitTabButton(
                             'Pilih Unit Lain',
                             _unitTab == 'other',
-                            () => setState(() => _unitTab = 'other'),
+                            () {
+                              // Sudah di-approve Kasir → unit tidak bisa diganti dari sini.
+                              if (lockReason != null) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text(lockReason)),
+                                );
+                                return;
+                              }
+                              setState(() => _unitTab = 'other');
+                            },
                           ),
                         ),
                       ],
                     ),
                     const SizedBox(height: 14),
-                    if (_unitTab == 'contact')
+                    if (_unitTab == 'current')
+                      ..._resubmitCurrentUnit(lockReason)
+                    else if (_unitTab == 'contact')
                       if (project == null)
                         _infoNotice('Pilih project terlebih dahulu.')
                       else
@@ -2276,6 +2436,14 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
       );
       return;
     }
+    // Pengajuan Ulang: 1 draft (TTS order ini) — unit diganti, isian pembayaran tetap.
+    if (_isResubmit) {
+      setState(() {
+        _unitDrafts.first.unit = _selectedUnits.first;
+        _step = 3;
+      });
+      return;
+    }
     final existing = {for (final d in _unitDrafts) d.unit.id: d};
     final next = <_UnitPaymentDraft>[];
     for (final u in _selectedUnits) {
@@ -2319,12 +2487,53 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
     );
   }
 
+  /// Tunai yang sudah disetor ke bank (mode Pengajuan Ulang) tidak boleh diubah.
+  void _setTxMode(_PaymentTxDraft tx, _PaymentMode mode) {
+    if (tx.tunaiDeposited) {
+      _showDepositedNotice();
+      return;
+    }
+    setState(() => tx.setMode(mode));
+  }
+
+  void _showDepositedNotice() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text(
+          'Tunai ini sudah disetor ke bank — tidak bisa dihapus atau diubah nominalnya.',
+        ),
+      ),
+    );
+  }
+
+  /// Info bank/kartu pembayaran TTS lama (tidak bisa diganti di app — belum ada daftar bank).
+  Widget _txBankInfo(_PaymentTxDraft tx) {
+    final parts = [
+      if (tx.originalMethod != null &&
+          tx.originalMethod!.toLowerCase() != 'transfer')
+        tx.originalMethod!,
+      if ((tx.bankName ?? '').isNotEmpty) tx.bankName!,
+      if ((tx.cardNetwork ?? '').isNotEmpty) tx.cardNetwork!,
+    ];
+    if (parts.isEmpty) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Text(
+        '🏦 ${parts.join(' · ')}',
+        style: TextStyle(fontSize: 11, color: Color(grey2Color)),
+      ),
+    );
+  }
+
   Widget _txBlock(_UnitPaymentDraft draft, int t) {
     final tx = draft.tx[t];
+    // Pengajuan Ulang: bukti dicek per TTS (minimal 1, lihat [_ttsProofMissing]), bukan per baris.
     final proofError =
+        !_isResubmit &&
         _showDocumentValidation &&
         tx.mode == _PaymentMode.transfer &&
         tx.proof == null;
+    final locked = tx.tunaiDeposited;
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.all(10),
@@ -2348,7 +2557,7 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
                   ),
                 ),
               ),
-              if (draft.tx.length > 1)
+              if (draft.tx.length > 1 && !locked)
                 GestureDetector(
                   onTap: () => setState(() {
                     draft.tx[t].dispose();
@@ -2372,7 +2581,7 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
                 child: _payModeButton(
                   '💵 Tunai',
                   tx.mode == _PaymentMode.cash,
-                  () => setState(() => tx.mode = _PaymentMode.cash),
+                  () => _setTxMode(tx, _PaymentMode.cash),
                 ),
               ),
               const SizedBox(width: 8),
@@ -2380,73 +2589,124 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
                 child: _payModeButton(
                   '🏦 Non Tunai',
                   tx.mode == _PaymentMode.transfer,
-                  () => setState(() => tx.mode = _PaymentMode.transfer),
+                  () => _setTxMode(tx, _PaymentMode.transfer),
                 ),
               ),
             ],
           ),
+          if (locked)
+            Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: _infoNotice(
+                '🔒 Tunai ini sudah disetor ke bank — tidak bisa dihapus atau diubah nominalnya.',
+              ),
+            ),
           if (tx.mode == _PaymentMode.transfer) ...[
             const SizedBox(height: 10),
+            if (_isResubmit) _txBankInfo(tx),
             _docRow(
               icon: '🧾',
-              title: 'Bukti Non Tunai',
-              subtitle: 'Wajib',
+              title: _isResubmit ? 'Bukti Baru' : 'Bukti Non Tunai',
+              subtitle: _isResubmit ? 'Opsional' : 'Wajib',
               file: tx.proof,
               onTap: () => _pickDocument((f) => tx.proof = f),
               onRemove: () => setState(() => tx.proof = null),
               isError: proofError,
             ),
-            ReferenceDateField(
-              value: tx.referenceDate,
-              onChanged: (d) => setState(() => tx.referenceDate = d),
-              isError: _showDocumentValidation && tx.referenceDate == null,
-            ),
+            if (_isResubmit) ...[
+              _fieldLabel('No. Referensi'),
+              TextFormField(
+                controller: tx.referenceNumberCtrl,
+                style: const TextStyle(fontSize: 13),
+                decoration: InputDecoration(
+                  isDense: true,
+                  filled: true,
+                  fillColor: Color(grey11Color),
+                  hintText: 'Opsional',
+                  hintStyle: TextStyle(color: Color(grey5Color), fontSize: 12),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 11,
+                  ),
+                  border: _fieldBorder(false),
+                  enabledBorder: _fieldBorder(false),
+                  focusedBorder: _fieldBorder(false, focused: true),
+                ),
+              ),
+              const SizedBox(height: 10),
+            ],
+            if (tx.isCreditCard)
+              ReferenceDateField(
+                label: 'Tgl Transaksi',
+                errorText: 'Pilih tanggal transaksi',
+                value: tx.referenceDate,
+                onChanged: (d) => setState(() => tx.referenceDate = d),
+                isError: _showDocumentValidation && tx.referenceDate == null,
+              )
+            else if (tx.isGiro)
+              ReferenceDateField(
+                label: 'Tanggal Jatuh Tempo',
+                errorText: 'Pilih tanggal jatuh tempo',
+                allowFuture: true,
+                value: tx.referenceDate,
+                onChanged: (d) => setState(() => tx.referenceDate = d),
+              )
+            else
+              ReferenceDateField(
+                value: tx.referenceDate,
+                onChanged: (d) => setState(() => tx.referenceDate = d),
+                isError: _showDocumentValidation && tx.referenceDate == null,
+              ),
           ],
           const SizedBox(height: 4),
           _fieldLabel('Nominal'),
-          SizedBox(
-            height: 46,
-            width: 300,
-            child: Scrollbar(
-              child: ListView.separated(
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.only(bottom: 6),
-                itemCount: _amountPresets.length,
-                separatorBuilder: (_, __) => const SizedBox(width: 8),
-                itemBuilder: (_, i) {
-                  final amt = _amountPresets[i];
-                  final selected = tx.amount == amt;
-                  return ChoiceChip(
-                    labelPadding: const EdgeInsets.symmetric(horizontal: 12),
-                    label: Text(
-                      _formatAmountShort(amt),
-                      style: TextStyle(
-                        fontSize: 11.5,
-                        fontWeight: FontWeight.w700,
-                        color: selected ? Color(primaryColor) : Color(grey1Color),
+          if (!locked) ...[
+            SizedBox(
+              height: 46,
+              width: 300,
+              child: Scrollbar(
+                child: ListView.separated(
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.only(bottom: 6),
+                  itemCount: _amountPresets.length,
+                  separatorBuilder: (_, __) => const SizedBox(width: 8),
+                  itemBuilder: (_, i) {
+                    final amt = _amountPresets[i];
+                    final selected = tx.amount == amt;
+                    return ChoiceChip(
+                      labelPadding: const EdgeInsets.symmetric(horizontal: 12),
+                      label: Text(
+                        _formatAmountShort(amt),
+                        style: TextStyle(
+                          fontSize: 11.5,
+                          fontWeight: FontWeight.w700,
+                          color: selected ? Color(primaryColor) : Color(grey1Color),
+                        ),
                       ),
-                    ),
-                    selected: selected,
-                    onSelected: (_) => setState(() {
-                      tx.amount = amt;
-                      tx.amountCtrl.text = _formatRupiah(amt);
-                    }),
-                    selectedColor: const Color(roSelectedBgColor),
-                    backgroundColor: Color(whiteColor),
-                    side: BorderSide(
-                      color: selected ? Color(primaryColor) : Color(grey7Color),
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(9),
-                    ),
-                  );
-                },
+                      selected: selected,
+                      onSelected: (_) => setState(() {
+                        tx.amount = amt;
+                        tx.amountCtrl.text = _formatRupiah(amt);
+                      }),
+                      selectedColor: const Color(roSelectedBgColor),
+                      backgroundColor: Color(whiteColor),
+                      side: BorderSide(
+                        color: selected ? Color(primaryColor) : Color(grey7Color),
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(9),
+                      ),
+                    );
+                  },
+                ),
               ),
             ),
-          ),
-          const SizedBox(height: 8),
+            const SizedBox(height: 8),
+          ],
           TextFormField(
             controller: tx.amountCtrl,
+            readOnly: locked,
+            onTap: locked ? _showDepositedNotice : null,
             keyboardType: TextInputType.number,
             style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
             onChanged: (v) => setState(() => tx.amount = _parseRupiah(v)),
@@ -2468,8 +2728,204 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
     );
   }
 
+  /// Nama "Jenis Pembayaran" draft — prefill Pengajuan Ulang cuma bawa id-nya.
+  String _paymentTypeLabel(_UnitPaymentDraft d, PaymentTypeState state) {
+    if (d.paymentType.isNotEmpty) return d.paymentType;
+    final match = state.items.where((e) => e.paymentTypeId == d.paymentTypeId);
+    return match.isEmpty ? '-' : match.first.name;
+  }
+
+  /// Bukti TTS lama belum cukup: ada Non Tunai tapi bukti lama (yang tidak dihapus) + bukti baru = 0.
+  bool get _ttsProofMissing {
+    final tts = _resubmitTts;
+    if (!_ttsEditable || tts == null || _unitDrafts.isEmpty) return false;
+    final nonCash = _unitDrafts.first.tx.where(
+      (t) => t.mode == _PaymentMode.transfer,
+    );
+    if (nonCash.isEmpty) return false;
+    final oldLeft = tts.proofs
+        .where((p) => !_deletedProofIds.contains(p.contactAttachmentId))
+        .length;
+    return oldLeft + nonCash.where((t) => t.proof != null).length == 0;
+  }
+
+  Widget _ttsHeader(ReserveOrderResubmitTtsEntity tts) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            tts.ttsNumber.isEmpty ? '🧾 TTS' : '🧾 TTS ${tts.ttsNumber}',
+            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
+          ),
+          if (!tts.editable) ...[
+            const SizedBox(height: 6),
+            _infoNotice(
+              '🔒 ${(tts.lockedReason ?? '').trim().isNotEmpty ? tts.lockedReason : 'TTS sudah disetujui Kasir — pembayaran tidak bisa diubah.'}',
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _txReadOnly(_PaymentTxDraft tx) {
+    final info = [
+      tx.methodLabel,
+      if ((tx.bankName ?? '').isNotEmpty) tx.bankName!,
+      if (tx.referenceDate != null)
+        DateFormat('dd/MM/yyyy').format(tx.referenceDate!),
+    ].join(' · ');
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 10),
+      decoration: BoxDecoration(
+        color: Color(whiteColor),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Color(grey10Color)),
+      ),
+      child: _reviewLine(info, _formatRupiah(tx.amount), isLast: true),
+    );
+  }
+
+  Widget _existingProofRow(
+    int index,
+    ReserveOrderResubmitProofEntity proof, {
+    required bool editable,
+  }) {
+    final deleted = _deletedProofIds.contains(proof.contactAttachmentId);
+    final status = switch (proof.verificationStatus) {
+      'approved' => 'Disetujui',
+      'rejected' => 'Ditolak',
+      _ => 'Menunggu verifikasi',
+    };
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: InkWell(
+        onTap: deleted
+            ? null
+            : () => _openExistingAttachment(proof.attachmentPath),
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          padding: const EdgeInsets.all(10),
+          decoration: BoxDecoration(
+            color: Color(whiteColor),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Color(grey10Color)),
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                child: Opacity(
+                  opacity: deleted ? 0.45 : 1,
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 44,
+                        height: 44,
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(
+                          color: Color(grey11Color),
+                          borderRadius: BorderRadius.circular(9),
+                        ),
+                        child: const Text('🧾', style: TextStyle(fontSize: 18)),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Bukti ${index + 1}',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                                decoration: deleted
+                                    ? TextDecoration.lineThrough
+                                    : null,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              deleted
+                                  ? 'Akan dihapus saat diajukan ulang'
+                                  : '$status · Ketuk untuk lihat',
+                              style: TextStyle(
+                                fontSize: 10.5,
+                                color: Color(grey4Color),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              if (editable)
+                TextButton(
+                  onPressed: () => setState(() {
+                    if (deleted) {
+                      _deletedProofIds.remove(proof.contactAttachmentId);
+                    } else {
+                      _deletedProofIds.add(proof.contactAttachmentId);
+                    }
+                  }),
+                  style: TextButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                    minimumSize: const Size(40, 28),
+                  ),
+                  child: Text(
+                    deleted ? 'Batal' : 'Hapus',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      color: Color(deleted ? primaryColor : redColor),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Bukti pembayaran lama TTS (per TTS, bukan per baris pembayaran) — Hapus masuk
+  /// `tts[delete_proof_ids]`; bukti baru ditambah per pembayaran Non Tunai.
+  List<Widget> _existingProofs(
+    ReserveOrderResubmitTtsEntity tts, {
+    required bool editable,
+  }) {
+    if (tts.proofs.isEmpty && !editable) return const [];
+    return [
+      _fieldLabel('Bukti Pembayaran Saat Ini'),
+      if (tts.proofs.isEmpty)
+        Padding(
+          padding: const EdgeInsets.only(bottom: 8),
+          child: Text(
+            'Belum ada bukti pembayaran.',
+            style: TextStyle(fontSize: 11, color: Color(grey4Color)),
+          ),
+        ),
+      for (final (i, p) in tts.proofs.indexed)
+        _existingProofRow(i, p, editable: editable),
+      _errorText(
+        _showDocumentValidation && _ttsProofMissing,
+        message:
+            'Minimal 1 bukti pembayaran Non Tunai — tambahkan bukti baru di pembayaran Non Tunai.',
+      ),
+      const SizedBox(height: 8),
+    ];
+  }
+
   Widget _unitPaymentCard(int index) {
     final draft = _unitDrafts[index];
+    final tts = _resubmitTts;
+    // Pengajuan Ulang: order tanpa TTS / TTS terkunci → pembayaran read-only & tidak dikirim.
+    final payEditable = !_isResubmit || _ttsEditable;
+    final noTts = _isResubmit && tts == null;
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(12),
@@ -2507,63 +2963,74 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
                 style: TextStyle(fontSize: 10, color: Color(grey4Color)),
               ),
             ),
-          _fieldLabel('Jenis Pembayaran', required: true),
-          SizedBox(
-            height: 40,
-            child: BlocBuilder<PaymentTypeBloc, PaymentTypeState>(
-              builder: (context, state) {
-                final options = state.items;
-                return Scrollbar(
-                  thumbVisibility: true,
-                  child: ListView.separated(
-                    scrollDirection: Axis.horizontal,
-                    padding: const EdgeInsets.only(bottom: 6),
-                    itemCount: options.length,
-                    separatorBuilder: (_, __) => const SizedBox(width: 8),
-                    itemBuilder: (_, i) {
-                      final opt = options[i];
-                      final selected = draft.paymentTypeId == opt.paymentTypeId;
-                      final isError =
-                          _showDocumentValidation && draft.paymentTypeId == null;
-                      return ChoiceChip(
-                        label: Text(
-                          opt.name,
-                          style: TextStyle(
-                            fontSize: 11.5,
-                            fontWeight: FontWeight.w700,
+          if (_isResubmit && tts != null) _ttsHeader(tts),
+          if (!payEditable && !noTts)
+            BlocBuilder<PaymentTypeBloc, PaymentTypeState>(
+              builder: (context, state) => _reviewLine(
+                'Jenis Pembayaran',
+                _paymentTypeLabel(draft, state),
+                isLast: true,
+              ),
+            ),
+          if (payEditable) ...[
+            _fieldLabel('Jenis Pembayaran', required: true),
+            SizedBox(
+              height: 40,
+              child: BlocBuilder<PaymentTypeBloc, PaymentTypeState>(
+                builder: (context, state) {
+                  final options = state.items;
+                  return Scrollbar(
+                    thumbVisibility: true,
+                    child: ListView.separated(
+                      scrollDirection: Axis.horizontal,
+                      padding: const EdgeInsets.only(bottom: 6),
+                      itemCount: options.length,
+                      separatorBuilder: (_, __) => const SizedBox(width: 8),
+                      itemBuilder: (_, i) {
+                        final opt = options[i];
+                        final selected = draft.paymentTypeId == opt.paymentTypeId;
+                        final isError =
+                            _showDocumentValidation && draft.paymentTypeId == null;
+                        return ChoiceChip(
+                          label: Text(
+                            opt.name,
+                            style: TextStyle(
+                              fontSize: 11.5,
+                              fontWeight: FontWeight.w700,
+                              color: selected
+                                  ? Color(primaryColor)
+                                  : Color(grey1Color),
+                            ),
+                          ),
+                          selected: selected,
+                          onSelected: (_) => setState(() {
+                            draft.paymentType = opt.name;
+                            draft.paymentTypeId = opt.paymentTypeId;
+                          }),
+                          selectedColor: const Color(roSelectedBgColor),
+                          backgroundColor: Color(whiteColor),
+                          side: BorderSide(
                             color: selected
                                 ? Color(primaryColor)
-                                : Color(grey1Color),
+                                : isError
+                                ? Color(redColor)
+                                : Color(grey7Color),
                           ),
-                        ),
-                        selected: selected,
-                        onSelected: (_) => setState(() {
-                          draft.paymentType = opt.name;
-                          draft.paymentTypeId = opt.paymentTypeId;
-                        }),
-                        selectedColor: const Color(roSelectedBgColor),
-                        backgroundColor: Color(whiteColor),
-                        side: BorderSide(
-                          color: selected
-                              ? Color(primaryColor)
-                              : isError
-                              ? Color(redColor)
-                              : Color(grey7Color),
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(9),
-                        ),
-                      );
-                    },
-                  ),
-                );
-              },
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(9),
+                          ),
+                        );
+                      },
+                    ),
+                  );
+                },
+              ),
             ),
-          ),
-          _errorText(
-            _showDocumentValidation && draft.paymentTypeId == null,
-            message: 'Pilih jenis pembayaran',
-          ),
+            _errorText(
+              _showDocumentValidation && draft.paymentTypeId == null,
+              message: 'Pilih jenis pembayaran',
+            ),
+          ],
           const SizedBox(height: 12),
           ReferenceDateField(
             label: 'Tanggal Reserve',
@@ -2572,34 +3039,45 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
             onChanged: (d) => setState(() => draft.transactionDate = d),
             isError: _showDocumentValidation && draft.transactionDate == null,
           ),
-          for (int t = 0; t < draft.tx.length; t++) _txBlock(draft, t),
-          Align(
-            alignment: Alignment.centerLeft,
-            child: Text(
-              'Total Pembayaran Unit Ini: ${_formatRupiah(draft.total)}',
-              style: TextStyle(
-                fontSize: 11.5,
-                fontWeight: FontWeight.w700,
-                color: Color(successColor),
+          if (noTts)
+            _infoNotice(
+              'Reserve order ini belum punya TTS — tidak ada pembayaran yang ikut diajukan ulang.',
+            )
+          else ...[
+            for (int t = 0; t < draft.tx.length; t++)
+              payEditable ? _txBlock(draft, t) : _txReadOnly(draft.tx[t]),
+            if (_isResubmit && tts != null)
+              ..._existingProofs(tts, editable: payEditable),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                '${_isResubmit ? 'Total Pembayaran' : 'Total Pembayaran Unit Ini'}: ${_formatRupiah(draft.total)}',
+                style: TextStyle(
+                  fontSize: 11.5,
+                  fontWeight: FontWeight.w700,
+                  color: Color(successColor),
+                ),
               ),
             ),
-          ),
-          const SizedBox(height: 8),
-          OutlinedButton(
-            onPressed: () => setState(() => draft.tx.add(_PaymentTxDraft())),
-            style: OutlinedButton.styleFrom(
-              minimumSize: const Size(double.infinity, 40),
-              foregroundColor: Color(primaryColor),
-              side: BorderSide(color: Color(primaryColor)),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
+          ],
+          if (payEditable) ...[
+            const SizedBox(height: 8),
+            OutlinedButton(
+              onPressed: () => setState(() => draft.tx.add(_PaymentTxDraft())),
+              style: OutlinedButton.styleFrom(
+                minimumSize: const Size(double.infinity, 40),
+                foregroundColor: Color(primaryColor),
+                side: BorderSide(color: Color(primaryColor)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+              child: Text(
+                _isResubmit ? '+ Tambah Pembayaran' : '+ Bayar Lagi untuk Unit Ini',
+                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
               ),
             ),
-            child: const Text(
-              '+ Bayar Lagi untuk Unit Ini',
-              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
-            ),
-          ),
+          ],
         ],
       ),
     );
@@ -2609,11 +3087,17 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
     final unitLabel = _selectedUnits.length == 1
         ? _selectedUnits.first.name
         : '${_selectedUnits.length} unit';
+    final existingLabel = _isResubmit
+        ? 'Dokumen reserve order ini · Ketuk untuk lihat'
+        : 'Sudah ada di data Contact · Ketuk untuk lihat';
     return Scaffold(
       backgroundColor: Color(whiteColor),
       body: Column(
         children: [
-          _appBar('Reserve Order', '$_customerNameSnapshot · $unitLabel'),
+          _appBar(
+            _title('Reserve Order'),
+            '$_customerNameSnapshot · $unitLabel',
+          ),
           _stepIndicator(3),
           Expanded(
             child: SingleChildScrollView(
@@ -2628,13 +3112,21 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
                     subtitle: 'Wajib',
                     file: _ktpFile,
                     existingUrl: _existingKtpUrl,
+                    existingLabel: existingLabel,
                     onViewExisting: () =>_openExistingAttachment(_existingKtpUrl),
                     onTap: () => _pickDocument((f) {
                       _ktpFile = f;
                       _existingKtpUrl = null;
                       _existingKtpAttachmentId = null;
                     }),
-                    onRemove: () => setState(() => _ktpFile = null),
+                    // Pengajuan Ulang: batal ganti → KTP yang dipakai order ini muncul lagi.
+                    onRemove: () => setState(() {
+                      _ktpFile = null;
+                      if (_isResubmit) {
+                        _existingKtpUrl = widget.existingKtpAttachmentUrl;
+                        _existingKtpAttachmentId = widget.existingKtpAttachmentId;
+                      }
+                    }),
                     isError:
                         _showDocumentValidation &&
                         _ktpFile == null &&
@@ -2646,6 +3138,7 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
                     subtitle: 'Opsional',
                     file: _npwpFile,
                     existingUrl: _existingNpwpUrl,
+                    existingLabel: existingLabel,
                     onViewExisting: () =>
                         _openExistingAttachment(_existingNpwpUrl),
                     onTap: () => _pickDocument((f) {
@@ -2653,10 +3146,19 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
                       _existingNpwpUrl = null;
                       _existingNpwpAttachmentId = null;
                     }),
-                    onRemove: () => setState(() => _npwpFile = null),
+                    onRemove: () => setState(() {
+                      _npwpFile = null;
+                      if (_isResubmit) {
+                        _existingNpwpUrl = widget.existingNpwpAttachmentUrl;
+                        _existingNpwpAttachmentId =
+                            widget.existingNpwpAttachmentId;
+                      }
+                    }),
                   ),
                   const SizedBox(height: 6),
-                  _sectionLabel('Pembayaran per Unit'),
+                  _sectionLabel(
+                    _isResubmit ? 'Pembayaran' : 'Pembayaran per Unit',
+                  ),
                   for (int i = 0; i < _unitDrafts.length; i++)
                     _unitPaymentCard(i),
                   const SizedBox(height: 4),
@@ -2696,16 +3198,22 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
 
   void _submitDocument() {
     final hasKtp = _hasKtp;
-    final missingPaymentType = _unitDrafts.any((d) => d.paymentTypeId == null);
+    // Pengajuan Ulang dgn TTS terkunci / tanpa TTS: pembayarannya tidak dikirim → tidak divalidasi.
+    final payDrafts = _isResubmit && !_ttsEditable
+        ? const <_UnitPaymentDraft>[]
+        : _unitDrafts;
+    final missingPaymentType = payDrafts.any((d) => d.paymentTypeId == null);
     final missingTransactionDate = _unitDrafts.any((d) => d.transactionDate == null);
-    final missingProof = _unitDrafts.any(
-      (d) =>
-          d.tx.any((t) => t.mode == _PaymentMode.transfer && t.proof == null),
-    );
-    final missingReferenceDate = _unitDrafts.any(
-      (d) => d.tx.any(
-        (t) => t.mode == _PaymentMode.transfer && t.referenceDate == null,
-      ),
+    // Pengajuan Ulang: cukup minimal 1 bukti per TTS (lama yang tidak dihapus + baru).
+    final missingProof = _isResubmit
+        ? _ttsProofMissing
+        : _unitDrafts.any(
+            (d) => d.tx.any(
+              (t) => t.mode == _PaymentMode.transfer && t.proof == null,
+            ),
+          );
+    final missingReferenceDate = payDrafts.any(
+      (d) => d.tx.any((t) => t.needsReferenceDate && t.referenceDate == null),
     );
     if (!hasKtp || missingPaymentType || missingTransactionDate || missingProof || missingReferenceDate) {
       setState(() => _showDocumentValidation = true);
@@ -2719,8 +3227,12 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
                 : missingTransactionDate
                 ? 'Tanggal Reserve wajib diisi untuk semua unit.'
                 : missingProof
-                ? 'Bukti Non Tunai wajib diupload untuk semua pembayaran Non Tunai.'
-                : 'Tanggal Bukti Transfer wajib diisi untuk semua pembayaran Non Tunai.',
+                ? (_isResubmit
+                      ? 'Minimal 1 bukti pembayaran Non Tunai harus ada.'
+                      : 'Bukti Non Tunai wajib diupload untuk semua pembayaran Non Tunai.')
+                : (_isResubmit
+                      ? 'Tgl Transfer / Tgl Transaksi wajib diisi untuk pembayaran Non Tunai.'
+                      : 'Tanggal Bukti Transfer wajib diisi untuk semua pembayaran Non Tunai.'),
           ),
         ),
       );
@@ -2808,8 +3320,13 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
               style: TextStyle(fontSize: 11, color: Color(grey4Color)),
             ),
           ),
-          _reviewLine('Cara Bayar', modes),
-          _reviewLine('Jenis Pembayaran', d.paymentType),
+          if (_isResubmit && d.unit.id != _currentUnit?.id)
+            _reviewLine('Ganti dari', _currentUnit?.name ?? '-'),
+          _reviewLine('Cara Bayar', modes.isEmpty ? '-' : modes),
+          BlocBuilder<PaymentTypeBloc, PaymentTypeState>(
+            builder: (context, state) =>
+                _reviewLine('Jenis Pembayaran', _paymentTypeLabel(d, state)),
+          ),
           _reviewLine(
             'Tanggal Reserve',
             d.transactionDate == null ? '-' : DateFormat('dd/MM/yyyy').format(d.transactionDate!),
@@ -2833,6 +3350,9 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
     final hasTransfer = _unitDrafts.any(
       (d) => d.tx.any((t) => t.mode == _PaymentMode.transfer),
     );
+    if (_isResubmit) {
+      return _reviewScaffold(grandTotal, hasTransfer, _resubmitting);
+    }
     return BlocConsumer<CreateReserveOrderCubit, CreateReserveOrderState>(
       listener: (context, state) {
         if (state is CreateReserveOrderError) {
@@ -2859,7 +3379,10 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
       backgroundColor: Color(whiteColor),
       body: Column(
         children: [
-          _appBar('Review Reserve Order', null),
+          _appBar(
+            _title('Review Reserve Order'),
+            _isResubmit ? 'Review' : null,
+          ),
           _stepIndicator(4),
           Expanded(
             child: SingleChildScrollView(
@@ -2910,7 +3433,9 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
                           'Sales Executive',
                           widget.salesExecutiveName ?? '-',
                         ),
-                        _reviewLine('Sales Team', widget.salesTeamName ?? '-'),
+                        // Detail RO tidak membawa Sales Team → disembunyikan saat Pengajuan Ulang.
+                        if (!_isResubmit)
+                          _reviewLine('Sales Team', widget.salesTeamName ?? '-'),
                         _reviewLine(
                           'Dokumen Identitas',
                           _hasKtp
@@ -2919,14 +3444,17 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
                           valueColor: _hasKtp
                               ? Color(successColor)
                               : Color(redColor),
-                          suffix: _hasKtp ? '(1x, semua unit)' : null,
+                          suffix: _hasKtp && !_isResubmit
+                              ? '(1x, semua unit)'
+                              : null,
                         ),
+                        if (!_isResubmit)
+                          _reviewLine(
+                            'Jumlah Unit',
+                            '${_unitDrafts.length} unit',
+                          ),
                         _reviewLine(
-                          'Jumlah Unit',
-                          '${_unitDrafts.length} unit',
-                        ),
-                        _reviewLine(
-                          'Total Semua Unit',
+                          _isResubmit ? 'Total Pembayaran' : 'Total Semua Unit',
                           '${_formatRupiah(grandTotal)} ✓',
                           valueColor: Color(successColor),
                         ),
@@ -2947,11 +3475,164 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
             ),
           ),
           _footer(
-            submitting ? 'Mengirim...' : 'Submit Reserve Order',
-            submitting ? () {} : _submitReserveOrder,
+            submitting
+                ? 'Mengirim...'
+                : (_isResubmit ? 'Ajukan Ulang' : 'Submit Reserve Order'),
+            submitting
+                ? () {}
+                : (_isResubmit ? _submitResubmit : _submitReserveOrder),
           ),
         ],
       ),
+    );
+  }
+
+  /// `customer[...]` — key & aturan SAMA utk create maupun Pengajuan Ulang.
+  Map<String, dynamic> _customerPayload() {
+    final custBirthDate = _tglLahir != null
+        ? DateFormat('yyyy-MM-dd').format(_tglLahir!)
+        : null;
+
+    return <String, dynamic>{
+      'cust_name': _namaCtrl.text.trim(),
+      'cust_ktp': _ktpCtrl.text.trim(),
+      'cust_birth_place': _tempatLahirCtrl.text.trim(),
+      'cust_birth_date': custBirthDate,
+      'cust_gender_is_male': _gender == 'Laki-laki',
+      'cust_address1': _alamatCtrl.text.trim(),
+      'cust_telp_mobile1': _hpCtrl.text.trim(),
+      'cust_marital_status': _maritalValue(),
+      'work_category': _kategoriPekerjaan,
+      'cust_occupation': _pekerjaanCtrl.text.trim(),
+      'cara_bayar_id': _caraBayarId,
+      if (_caraBayar == 'Lainnya' && _caraBayarLainnyaCtrl.text.trim().isNotEmpty)
+        'cara_bayar_lainnya': _caraBayarLainnyaCtrl.text.trim(),
+      if (_pasanganCtrl.text.trim().isNotEmpty)
+        'spouse_name': _pasanganCtrl.text.trim(),
+    };
+  }
+
+  /// `unit[...]` Pengajuan Ulang. null (tidak dikirim, unit tetap) kalau unit terkunci, data unit
+  /// tidak lengkap, atau unit saat ini tanpa kavling — detail RO tidak membedakan Waitinglist /
+  /// Belum tentukan kavling, jadi `unit_mode`-nya tidak bisa ditebak.
+  ChangeReserveOrderUnitParams? _resubmitUnitParams(ReserveUnitOption u) {
+    if (_unitLockReason != null) return null;
+    final order = widget.resubmitOrder!;
+    // Model hierarki unit default 0 kalau API tidak kirim → pakai milik RO (project sudah dikunci).
+    final townshipId = (u.townshipId ?? 0) != 0 ? u.townshipId : order.townshipId;
+    final companyId = (u.companyId ?? 0) != 0 ? u.companyId : order.companyId;
+    final productId = u.productId;
+    if (townshipId == null || productId == null || companyId == null) {
+      return null;
+    }
+    String? unitMode;
+    if (u.propertyId == null) {
+      if (u.id == _currentUnit?.id) return null;
+      unitMode = u.isWaitingList ? 'waiting' : 'undecided';
+    }
+    return ChangeReserveOrderUnitParams(
+      propertyId: u.propertyId,
+      unitMode: unitMode,
+      productId: productId,
+      townshipId: townshipId,
+      companyId: companyId,
+    );
+  }
+
+  /// `tts[payments][i]` — metode/bank/kartu asli dikirim balik selama Tunai/Non Tunai tidak diganti.
+  TopupReserveOrderPaymentParams _resubmitPayment(_PaymentTxDraft t) {
+    final nonCash = t.mode == _PaymentMode.transfer;
+    final referenceNumber = t.referenceNumberCtrl.text.trim();
+    return TopupReserveOrderPaymentParams(
+      paymentMethod: t.originalMethod ?? (nonCash ? 'transfer' : 'cash'),
+      amount: t.amount,
+      bankId: nonCash ? t.bankId : null,
+      bankName: nonCash ? t.bankName : null,
+      cardNetwork: nonCash ? t.cardNetwork : null,
+      referenceNumber: nonCash && referenceNumber.isNotEmpty
+          ? referenceNumber
+          : null,
+      referenceDate: nonCash ? t.referenceDate : null,
+      proofBytes: nonCash ? t.proof?.bytes : null,
+      proofFileName: nonCash ? t.proof?.name : null,
+    );
+  }
+
+  /// "Ajukan Ulang" → `POST /reserve-order/resubmit/{id}`. Sukses: detail di
+  /// [ReserveOrderDetailCubit] sudah diganti `data` response → pop balik ke Detail dgn `message`.
+  Future<void> _submitResubmit() async {
+    if (_resubmitting) return;
+    if (!_hasKtp) {
+      setState(() {
+        _step = 3;
+        _showDocumentValidation = true;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Dokumen KTP Pemohon belum ada — silakan upload ulang.',
+          ),
+        ),
+      );
+      return;
+    }
+
+    final order = widget.resubmitOrder!;
+    final draft = _unitDrafts.first;
+    final tts = _resubmitTts;
+    final params = ResubmitReserveOrderParams(
+      customer: _customerPayload(),
+      reserveNote: _catatanCtrl.text.trim(),
+      reserveDate: draft.transactionDate,
+      // Tidak dikirim = dokumen lama tetap dipakai.
+      ktp: _ktpFile == null
+          ? null
+          : CreateReserveOrderFile(
+              bytes: _ktpFile!.bytes,
+              fileName: _ktpFile!.name,
+            ),
+      npwp: _npwpFile == null
+          ? null
+          : CreateReserveOrderFile(
+              bytes: _npwpFile!.bytes,
+              fileName: _npwpFile!.name,
+            ),
+      unit: _resubmitUnitParams(draft.unit),
+      tts: _ttsEditable && tts != null
+          ? ResubmitReserveOrderTtsParams(
+              reserveOrderTtsId: tts.reserveOrderTtsId,
+              paymentTypeId: draft.paymentTypeId,
+              payments: draft.tx.map(_resubmitPayment).toList(),
+              deleteProofIds: _deletedProofIds.toList(),
+            )
+          : null,
+    );
+
+    final listCubit = context.read<ReserveOrderListCubit>();
+    setState(() => _resubmitting = true);
+    final result = await context.read<ReserveOrderDetailCubit>().resubmit(
+      order.reserveOrderId,
+      params,
+    );
+    if (!mounted) return;
+    setState(() => _resubmitting = false);
+
+    if (!result.ok) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            result.message ?? 'Gagal mengajukan ulang reserve order.',
+          ),
+        ),
+      );
+      return;
+    }
+    // Badge "Ditolak" di list ikut hilang tanpa perlu tarik-refresh.
+    listCubit.refresh();
+    Navigator.of(context).pop(
+      (result.message ?? '').trim().isNotEmpty
+          ? result.message
+          : 'Reserve order berhasil diajukan ulang.',
     );
   }
 
@@ -2971,27 +3652,7 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
       return;
     }
 
-    final custBirthDate = _tglLahir != null
-        ? DateFormat('yyyy-MM-dd').format(_tglLahir!)
-        : null;
-
-    final customer = <String, dynamic>{
-      'cust_name': _namaCtrl.text.trim(),
-      'cust_ktp': _ktpCtrl.text.trim(),
-      'cust_birth_place': _tempatLahirCtrl.text.trim(),
-      'cust_birth_date': custBirthDate,
-      'cust_gender_is_male': _gender == 'Laki-laki',
-      'cust_address1': _alamatCtrl.text.trim(),
-      'cust_telp_mobile1': _hpCtrl.text.trim(),
-      'cust_marital_status': _maritalValue(),
-      'work_category': _kategoriPekerjaan,
-      'cust_occupation': _pekerjaanCtrl.text.trim(),
-      'cara_bayar_id': _caraBayarId,
-      if (_caraBayar == 'Lainnya' && _caraBayarLainnyaCtrl.text.trim().isNotEmpty)
-        'cara_bayar_lainnya': _caraBayarLainnyaCtrl.text.trim(),
-      if (_pasanganCtrl.text.trim().isNotEmpty)
-        'spouse_name': _pasanganCtrl.text.trim(),
-    };
+    final customer = _customerPayload();
 
     final reserveNote = _catatanCtrl.text.trim();
 
@@ -3307,6 +3968,10 @@ String _formatAmountShort(double v) {
   return '${label}jt';
 }
 
+/// `payment_method` yang dihitung Non Tunai — sama dgn `$isNonCash` di `Api\ReserveOrderController`.
+bool _isNonCashMethod(String method) =>
+    const {'transfer', 'giro', 'kartu kredit'}.contains(method.toLowerCase());
+
 class _PaymentTxDraft {
   _PaymentMode mode = _PaymentMode.transfer;
   double amount = 3000000;
@@ -3316,14 +3981,67 @@ class _PaymentTxDraft {
   DateTime? referenceDate;
   final TextEditingController amountCtrl;
 
+  /// Isian pembayaran TTS lama (mode Pengajuan Ulang): `payment_method` asli (mis. "Kartu Kredit",
+  /// "Giro"), bank & kartu ikut dikirim balik selama Tunai/Non Tunai-nya tidak diganti.
+  String? originalMethod;
+  int? bankId;
+  String? bankName;
+  String? cardNetwork;
+  final TextEditingController referenceNumberCtrl = TextEditingController();
+
+  /// `tunai_deposited` — Tunai sudah disetor ke bank: tidak boleh dihapus/diubah nominalnya.
+  bool tunaiDeposited = false;
+
   _PaymentTxDraft()
     : amountCtrl = TextEditingController(text: _formatRupiah(3000000));
 
-  void dispose() => amountCtrl.dispose();
+  _PaymentTxDraft.fromResubmit(ReserveOrderResubmitPaymentEntity p)
+    : amountCtrl = TextEditingController(text: _formatRupiah(p.amount)) {
+    mode = _isNonCashMethod(p.paymentMethod)
+        ? _PaymentMode.transfer
+        : _PaymentMode.cash;
+    amount = p.amount;
+    referenceDate = p.referenceDate;
+    originalMethod = p.paymentMethod.isEmpty ? null : p.paymentMethod;
+    bankId = p.bankId;
+    bankName = p.bankName;
+    cardNetwork = p.cardNetwork;
+    referenceNumberCtrl.text = p.referenceNumber ?? '';
+    tunaiDeposited = p.tunaiDeposited;
+  }
+
+  /// Ganti Tunai ↔ Non Tunai — metode/bank/kartu asli tidak berlaku lagi.
+  void setMode(_PaymentMode value) {
+    if (value == mode) return;
+    mode = value;
+    originalMethod = null;
+    bankId = null;
+    bankName = null;
+    cardNetwork = null;
+  }
+
+  String? get _method => originalMethod?.toLowerCase();
+  bool get isGiro => _method == 'giro';
+  bool get isCreditCard => _method == 'kartu kredit';
+
+  /// Tgl Transfer / Tgl Transaksi wajib — semua Non Tunai kecuali Giro (`referenceDateError()`).
+  bool get needsReferenceDate => mode == _PaymentMode.transfer && !isGiro;
+
+  String get methodLabel => mode == _PaymentMode.cash
+      ? 'Tunai'
+      : (originalMethod != null && originalMethod!.toLowerCase() != 'transfer'
+            ? originalMethod!
+            : 'Non Tunai');
+
+  void dispose() {
+    amountCtrl.dispose();
+    referenceNumberCtrl.dispose();
+  }
 }
 
 class _UnitPaymentDraft {
-  final ReserveUnitOption unit;
+  /// Tidak final: mode Pengajuan Ulang mengganti unit tanpa membuang isian TTS-nya.
+  ReserveUnitOption unit;
   String paymentType = '';
   int? paymentTypeId;
 
@@ -3332,6 +4050,21 @@ class _UnitPaymentDraft {
   final List<_PaymentTxDraft> tx;
 
   _UnitPaymentDraft({required this.unit}) : tx = [_PaymentTxDraft()];
+
+  /// Draft Pengajuan Ulang — isi dari `resubmit` detail. Order tanpa TTS → tanpa pembayaran.
+  _UnitPaymentDraft.fromResubmit({
+    required this.unit,
+    ReserveOrderResubmitEntity? resubmit,
+  }) : tx = [
+         for (final p in resubmit?.tts?.items ?? const [])
+           _PaymentTxDraft.fromResubmit(p),
+       ] {
+    paymentTypeId = resubmit?.tts?.paymentTypeId;
+    transactionDate = resubmit?.reserveDate;
+    if (tx.isEmpty && (resubmit?.tts?.editable ?? false)) {
+      tx.add(_PaymentTxDraft());
+    }
+  }
 
   double get total => tx.fold(0, (s, t) => s + t.amount);
 

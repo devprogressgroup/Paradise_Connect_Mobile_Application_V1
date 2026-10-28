@@ -27,7 +27,7 @@ import 'package:progress_group/features/reserve-order/presentation/state/reserve
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-import '../change-unit/index.dart';
+import '../create/reserve_order_navigation.dart';
 import '../edit-customer/index.dart';
 import '../top-up/index.dart';
 
@@ -35,6 +35,14 @@ class ReserveOrderDetailPage extends StatefulWidget {
   final int reserveOrderId;
 
   const ReserveOrderDetailPage({super.key, required this.reserveOrderId});
+
+  /// reserve_order_id halaman Detail yang sedang terbuka, urut stack (terakhir = paling atas).
+  static final List<int> _openIds = [];
+
+  /// Detail RO [reserveOrderId] sedang jadi Detail teratas — push notification cukup refresh
+  /// [ReserveOrderDetailCubit] (yang dipakai bersama semua halaman Detail), bukan buka halaman baru.
+  static bool isShowing(int reserveOrderId) =>
+      _openIds.isNotEmpty && _openIds.last == reserveOrderId;
 
   @override
   State<ReserveOrderDetailPage> createState() => _ReserveOrderDetailPageState();
@@ -69,6 +77,7 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage>
   @override
   void initState() {
     super.initState();
+    ReserveOrderDetailPage._openIds.add(widget.reserveOrderId);
     _tabController = TabController(length: 4, vsync: this)
       ..addListener(_onTabChanged);
     _loadSeenMessageCount();
@@ -78,6 +87,10 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage>
 
   @override
   void dispose() {
+    final openIndex = ReserveOrderDetailPage._openIds.lastIndexOf(
+      widget.reserveOrderId,
+    );
+    if (openIndex >= 0) ReserveOrderDetailPage._openIds.removeAt(openIndex);
     _tabController.removeListener(_onTabChanged);
     _tabController.dispose();
     _messageController.dispose();
@@ -250,9 +263,7 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage>
           ],
         ),
       ),
-      bottomNavigationBar: order.rejected && order.canEdit
-          ? _buildResubmitFooter(order)
-          : null,
+      bottomNavigationBar: order.canResubmit ? _buildResubmitFooter() : null,
     );
   }
 
@@ -367,9 +378,9 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage>
 
   
 
-  /// Order Ditolak → "Perbaiki Reserve Order": pilihan Ganti Unit / Top Up / Perbaiki Data Customer
-  /// ([_openFixSheet]). Perbaikan apa pun yang tersimpan langsung mengajukan ulang di server.
-  Widget _buildResubmitFooter(ReserveOrderDetail order) {
+  /// Order Ditolak (`can_resubmit`) → "Pengajuan Ulang": wizard Create Reserve Order mode pengajuan
+  /// ulang ([_openResubmit]) — customer, unit, dokumen & TTS diubah lalu dikirim sekali.
+  Widget _buildResubmitFooter() {
     return Container(
       padding: const EdgeInsets.fromLTRB(14, 10, 14, 14),
       decoration: const BoxDecoration(
@@ -388,9 +399,9 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage>
                 borderRadius: BorderRadius.circular(11),
               ),
             ),
-            onPressed: () => _openFixSheet(order),
+            onPressed: _openResubmit,
             child: const Text(
-              'Perbaiki Reserve Order',
+              'Pengajuan Ulang',
               style: TextStyle(
                 color: Colors.white,
                 fontWeight: FontWeight.w700,
@@ -2278,66 +2289,16 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage>
     );
   }
 
-  /// Pilihan perbaikan order Ditolak — semua tampil (tanpa diarahkan sesuai alasan tolak), kecuali
-  /// Ganti Unit yang hanya selama belum di-approve Kasir (`can_change_unit`).
-  void _openFixSheet(ReserveOrderDetail order) {
-    showCustomBottomSheet(
-      context: context,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Perbaiki Reserve Order',
-            style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
-          ),
-          const SizedBox(height: 4),
-          const Text(
-            'Perbaikan yang disimpan langsung mengajukan ulang reserve order.',
-            style: TextStyle(fontSize: 11.5, color: Color(grey4Color)),
-          ),
-          const SizedBox(height: 6),
-          if (order.canChangeUnit)
-            _menuItem('⇄', 'Ganti Unit', () => _openChangeUnit(order)),
-          _menuItem(
-            '＋',
-            'Top Up Pembayaran',
-            () => _openTopup(order),
-            enabled: order.canTopup,
-          ),
-          _menuItem(
-            '✎',
-            'Perbaiki Data Customer',
-            () => _openEditCustomer(order),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _openChangeUnit(ReserveOrderDetail order) {
-    final townshipId = order.townshipId;
-    if (townshipId == null) {
-      showSnackbar(
-        context,
-        'Unit reserve order ini belum punya project — hubungi Kasir untuk memilih unit.',
-        isError: true,
-      );
+  /// Wizard Create Reserve Order mode "Pengajuan Ulang", diisi dari detail order ini. Sukses →
+  /// detail di [ReserveOrderDetailCubit] sudah diganti `data` response; wizard balik `message` server.
+  Future<void> _openResubmit() async {
+    final detail = context.read<ReserveOrderDetailCubit>().state.detail;
+    if (detail == null || detail.reserveOrderId != widget.reserveOrderId) {
       return;
     }
-    Navigator.of(context).push<bool>(
-      MaterialPageRoute(
-        builder: (_) => ChangeUnitReserveOrderPage(
-          reserveOrderId: order.reserveOrderId,
-          townshipId: townshipId,
-          townshipName: order.townshipName,
-          currentUnitName: order.unitName,
-          currentUnitContext: [order.projectName, order.productName]
-              .where((s) => (s ?? '').trim().isNotEmpty)
-              .join(' · '),
-        ),
-      ),
-    );
+    final message = await navigateToResubmitReserveOrder(context, detail);
+    if (!mounted || message == null) return;
+    showSnackbar(context, message);
   }
 
   void _openTopup(ReserveOrderDetail order) {

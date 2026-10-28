@@ -13,6 +13,7 @@ import 'package:progress_group/features/reserve-order/domain/entities/payment_ty
 import 'package:progress_group/features/reserve-order/domain/entities/reserve_order_detail_entity.dart';
 import 'package:progress_group/features/reserve-order/domain/entities/reserve_order_list_item_entity.dart';
 import 'package:progress_group/features/reserve-order/domain/entities/reserve_status_entity.dart';
+import 'package:progress_group/features/reserve-order/domain/entities/resubmit_reserve_order_params.dart';
 import 'package:progress_group/features/reserve-order/domain/entities/select_unit_entity.dart';
 import 'package:progress_group/features/reserve-order/domain/entities/topup_reserve_order_params.dart';
 import 'package:progress_group/features/reserve-order/domain/entities/update_reserve_order_customer_params.dart';
@@ -240,6 +241,23 @@ class ReserveOrderRepositoryImpl implements ReserveOrderRepository {
         params,
       );
       return Right(result);
+    } catch (e) {
+      return Left(cleanErrorMessage(e));
+    }
+  }
+
+  @override
+  Future<Either<String, ({ReserveOrderDetailEntity detail, String? message})>>
+  resubmitReserveOrder(
+    int reserveOrderId,
+    ResubmitReserveOrderParams params,
+  ) async {
+    try {
+      final result = await remoteDataSource.resubmitReserveOrder(
+        reserveOrderId,
+        params,
+      );
+      return Right((detail: result.detail, message: result.message));
     } catch (e) {
       return Left(cleanErrorMessage(e));
     }

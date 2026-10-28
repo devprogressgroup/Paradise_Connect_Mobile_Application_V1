@@ -156,6 +156,71 @@ class ReserveOrderTtsModel extends ReserveOrderTtsEntity {
   }
 }
 
+class ReserveOrderResubmitModel extends ReserveOrderResubmitEntity {
+  const ReserveOrderResubmitModel({
+    super.reserveDate,
+    super.unitEditable,
+    super.unitLockedReason,
+    super.tts,
+  });
+
+  // Kolom decimal Laravel bisa terkirim sbg string ("3000000.00").
+  static double _double(Object? v) =>
+      v is num ? v.toDouble() : double.tryParse('${v ?? ''}') ?? 0;
+
+  static int? _int(Object? v) =>
+      v is num ? v.toInt() : int.tryParse('${v ?? ''}');
+
+  factory ReserveOrderResubmitModel.fromJson(Map<String, dynamic> json) {
+    final tts = json['tts'];
+    return ReserveOrderResubmitModel(
+      reserveDate: DateTime.tryParse(json['reserve_date'] as String? ?? ''),
+      unitEditable: json['unit_editable'] == true,
+      unitLockedReason: json['unit_locked_reason'] as String?,
+      tts: tts is Map<String, dynamic> ? _tts(tts) : null,
+    );
+  }
+
+  static ReserveOrderResubmitTtsEntity _tts(Map<String, dynamic> json) {
+    return ReserveOrderResubmitTtsEntity(
+      reserveOrderTtsId: _int(json['reserve_order_tts_id']) ?? 0,
+      ttsNumber: json['tts_number']?.toString() ?? '',
+      paymentTypeId: _int(json['payment_type_id']),
+      editable: json['editable'] == true,
+      lockedReason: json['locked_reason'] as String?,
+      items: ((json['items'] as List?) ?? const [])
+          .whereType<Map<String, dynamic>>()
+          .map(
+            (p) => ReserveOrderResubmitPaymentEntity(
+              paymentMethod: p['payment_method']?.toString() ?? '',
+              amount: _double(p['amount']),
+              bankId: _int(p['bank_id']),
+              bankName: p['bank_name'] as String?,
+              cardNetwork: p['card_network'] as String?,
+              referenceNumber: p['reference_number']?.toString(),
+              referenceDate: DateTime.tryParse(
+                p['reference_date'] as String? ?? '',
+              ),
+              tunaiDeposited:
+                  p['tunai_deposited'] == true || p['tunai_deposited'] == 1,
+            ),
+          )
+          .toList(),
+      proofs: ((json['proofs'] as List?) ?? const [])
+          .whereType<Map<String, dynamic>>()
+          .where((p) => _int(p['contact_attachment_id']) != null)
+          .map(
+            (p) => ReserveOrderResubmitProofEntity(
+              contactAttachmentId: _int(p['contact_attachment_id'])!,
+              attachmentPath: p['attachment_path'] as String?,
+              verificationStatus: p['verification_status'] as String?,
+            ),
+          )
+          .toList(),
+    );
+  }
+}
+
 class ReserveOrderMessageModel extends ReserveOrderMessageEntity {
   const ReserveOrderMessageModel({
     required super.who,
@@ -228,6 +293,9 @@ class ReserveOrderDetailModel extends ReserveOrderDetailEntity {
     super.isRejected,
     super.rejectStage,
     super.rejectReason,
+    super.rejectSource,
+    super.canResubmit,
+    super.resubmit,
     super.timeline,
     super.customer,
     super.questionnaire,
@@ -275,6 +343,15 @@ class ReserveOrderDetailModel extends ReserveOrderDetailEntity {
       isRejected: json['is_rejected'] == true,
       rejectStage: json['reject_stage'] as String?,
       rejectReason: json['reject_reason'] as String?,
+      rejectSource: json['reject_source'] as String?,
+      canResubmit: json.containsKey('can_resubmit')
+          ? json['can_resubmit'] == true
+          : null,
+      resubmit: json['resubmit'] is Map<String, dynamic>
+          ? ReserveOrderResubmitModel.fromJson(
+              json['resubmit'] as Map<String, dynamic>,
+            )
+          : null,
       timeline: timeline
           .map(
             (e) =>

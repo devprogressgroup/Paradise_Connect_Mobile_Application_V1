@@ -90,6 +90,7 @@ import 'package:progress_group/features/reserve-order/domain/usecases/create_res
 import 'package:progress_group/features/reserve-order/domain/usecases/delete_reserve_order_usecase.dart';
 import 'package:progress_group/features/reserve-order/domain/usecases/edit_reserve_order_usecase.dart';
 import 'package:progress_group/features/reserve-order/domain/usecases/change_reserve_order_unit_usecase.dart';
+import 'package:progress_group/features/reserve-order/domain/usecases/resubmit_reserve_order_usecase.dart';
 import 'package:progress_group/features/reserve-order/domain/usecases/get_cara_bayar_usecase.dart';
 import 'package:progress_group/features/reserve-order/domain/usecases/get_payment_types_usecase.dart';
 import 'package:progress_group/features/reserve-order/domain/usecases/get_reserve_order_detail_usecase.dart';
@@ -515,6 +516,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     final sendReserveOrderMessageUseCase = SendReserveOrderMessageUseCase(reserveOrderRepository,);
     final editReserveOrderUseCase = EditReserveOrderUseCase(reserveOrderRepository);
     final changeReserveOrderUnitUseCase = ChangeReserveOrderUnitUseCase(reserveOrderRepository);
+    final resubmitReserveOrderUseCase = ResubmitReserveOrderUseCase(reserveOrderRepository);
     final deleteReserveOrderUseCase = DeleteReserveOrderUseCase(reserveOrderRepository);
 
     final siteplanRemoteDataSource = SiteplanRemoteDataSourceImpl(dioClient.dio,);
@@ -774,13 +776,12 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
               BlocProvider(
                 create: (_) => ReserveOrderDetailCubit(
                   getReserveOrderDetailUseCase: getReserveOrderDetailUseCase,
-                  updateReserveOrderCustomerUseCase:
-                      updateReserveOrderCustomerUseCase,
+                  updateReserveOrderCustomerUseCase:updateReserveOrderCustomerUseCase,
                   topupReserveOrderUseCase: topupReserveOrderUseCase,
-                  sendReserveOrderMessageUseCase:
-                      sendReserveOrderMessageUseCase,
+                  sendReserveOrderMessageUseCase:sendReserveOrderMessageUseCase,
                   editReserveOrderUseCase: editReserveOrderUseCase,
                   changeReserveOrderUnitUseCase: changeReserveOrderUnitUseCase,
+                  resubmitReserveOrderUseCase: resubmitReserveOrderUseCase,
                   deleteReserveOrderUseCase: deleteReserveOrderUseCase,
                   deleteAttachmentUseCase: deleteAttachmentUseCase,
                 ),
@@ -791,8 +792,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
                   getSalesExecutivesUseCase: getSalesExecutivesUseCase,
                   getSalesSupervisorsUseCase: getSalesSupervisorsUseCase,
                   getSalesManagersUseCase: getSalesManagersUseCase,
-                  getSalesGeneralManagersUseCase:
-                      getSalesGeneralManagersUseCase,
+                  getSalesGeneralManagersUseCase: getSalesGeneralManagersUseCase,
                   getSalesTeamsPaginatedUseCase: getSalesTeamsPaginatedUseCase,
                   getSalesChannelDetailsUseCase: getSalesChannelDetailsUseCase,
                 ),
