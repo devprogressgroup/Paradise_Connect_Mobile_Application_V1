@@ -304,8 +304,15 @@ class ReserveOrderDetailEntity extends Equatable {
   final String? unitSub;
   final String? productName;
   final String? townshipName;
+
+  /// `township_id` project unit — Ganti Unit dikunci di project ini.
+  final int? townshipId;
   final String? caraBayarName;
   final bool canTopup;
+
+  /// `can_change_unit` — Ganti Unit boleh selama order belum di-approve Kasir (sesudahnya unit
+  /// diganti Sales Admin), sama dgn Ganti Unit Kasir di web.
+  final bool canChangeUnit;
 
   /// `topup_locked_reason` — terisi kalau order sudah SP / Akad: tombol "+ Top Up Pembayaran" tampil
   /// disable dengan alasan ini (bukan disembunyikan seperti order Ditolak/Batal).
@@ -362,8 +369,10 @@ class ReserveOrderDetailEntity extends Equatable {
     this.unitSub,
     this.productName,
     this.townshipName,
+    this.townshipId,
     this.caraBayarName,
     this.canTopup = false,
+    this.canChangeUnit = false,
     this.topupLockedReason,
     this.editLockedReason,
     this.docLockedReason,
@@ -400,6 +409,7 @@ class ReserveOrderDetailEntity extends Equatable {
     unitSub,
     productName,
     townshipName,
+    townshipId,
     caraBayarName,
     reserveNote,
     caraBayarId,
@@ -407,6 +417,7 @@ class ReserveOrderDetailEntity extends Equatable {
     productId,
     companyId,
     canTopup,
+    canChangeUnit,
     topupLockedReason,
     editLockedReason,
     docLockedReason,

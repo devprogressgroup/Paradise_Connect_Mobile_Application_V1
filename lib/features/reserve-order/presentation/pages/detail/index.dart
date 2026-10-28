@@ -20,13 +20,15 @@ import 'package:progress_group/features/reserve-order/data/models/reserve_order_
 import 'package:progress_group/features/reserve-order/data/models/reserve_order_detail.dart';
 import 'package:progress_group/features/reserve-order/domain/entities/reserve_order_detail_entity.dart';
 import 'package:progress_group/features/reserve-order/domain/entities/reserve_order_questionnaire_entity.dart';
+import 'package:progress_group/features/reserve-order/presentation/state/customer_options/customer_options_bloc.dart';
+import 'package:progress_group/features/reserve-order/presentation/state/customer_options/customer_options_event.dart';
 import 'package:progress_group/features/reserve-order/presentation/state/reserve_order_detail/reserve_order_detail_cubit.dart';
 import 'package:progress_group/features/reserve-order/presentation/state/reserve_order_detail/reserve_order_detail_state.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../change-unit/index.dart';
 import '../edit-customer/index.dart';
-import '../questionnaire/index.dart';
 import '../top-up/index.dart';
 
 class ReserveOrderDetailPage extends StatefulWidget {
@@ -71,6 +73,7 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage>
       ..addListener(_onTabChanged);
     _loadSeenMessageCount();
     _refresh();
+    context.read<CustomerOptionsBloc>().add(const FetchCustomerOptionsEvent());
   }
 
   @override
@@ -364,6 +367,8 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage>
 
   
 
+  /// Order Ditolak → "Perbaiki Reserve Order": pilihan Ganti Unit / Top Up / Perbaiki Data Customer
+  /// ([_openFixSheet]). Perbaikan apa pun yang tersimpan langsung mengajukan ulang di server.
   Widget _buildResubmitFooter(ReserveOrderDetail order) {
     return Container(
       padding: const EdgeInsets.fromLTRB(14, 10, 14, 14),
@@ -383,9 +388,9 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage>
                 borderRadius: BorderRadius.circular(11),
               ),
             ),
-            onPressed: () => _openEditCustomer(order),
+            onPressed: () => _openFixSheet(order),
             child: const Text(
-              'Perbaiki Data Customer',
+              'Perbaiki Reserve Order',
               style: TextStyle(
                 color: Colors.white,
                 fontWeight: FontWeight.w700,
@@ -787,19 +792,21 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage>
 
   Widget _buildCustomerTab(ReserveOrderDetail order) {
     final raw = order.customer.raw;
+    // Label dropdown (nama Wilayah Area, rentang Penghasilan, …) dari GET /reserve-order/customer-options.
+    final options = context.watch<CustomerOptionsBloc>().state.options;
     return SingleChildScrollView(
       physics: const AlwaysScrollableScrollPhysics(),
       child: Column(
         children: [
           for (final section in reserveCustomerFieldSections)
             CustomDropdownGroupContact(
-              hint: section.title,
+              hint: section.titleFor(raw),
               child: Column(
                 children: [
                   for (var i = 0; i < section.fields.length; i++)
                     _customerRow(
                       section.fields[i].label,
-                      displayValueFor(section.fields[i], raw),
+                      displayValueFor(section.fields[i], raw, options: options),
                       onTap: order.canEdit
                           ? () => _openEditCustomer(
                               order,
@@ -813,13 +820,28 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage>
             ),
           if (order.questionnaire case final questionnaire?)
             _questionnaireSection(order, questionnaire),
+          // Sales Channel (= Sumber Informasi Dynamics) — dari reserve order, tidak diedit di sini.
+          CustomDropdownGroupContact(
+            hint: reserveSalesChannelSection.title,
+            child: Column(
+              children: [
+                for (final (i, field) in reserveSalesChannelSection.fields.indexed)
+                  _customerRow(
+                    field.label,
+                    displayValueFor(field, raw),
+                    showDivider:
+                        i != reserveSalesChannelSection.fields.length - 1,
+                  ),
+              ],
+            ),
+          ),
         ],
       ),
     );
   }
 
   /// Section "Kuesioner" — 1 baris per pertanyaan yg tampil (ringkasan jawaban dari server), tap
-  /// membuka form kuesioner ([ReserveOrderQuestionnairePage]).
+  /// membuka "Edit Data Customer" di grup Kuesioner (data customer & kuesioner 1 halaman, 1x Save).
   Widget _questionnaireSection(
     ReserveOrderDetail order,
     ReserveQuestionnaireEntity questionnaire,
@@ -836,25 +858,15 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage>
               questions[i].text ?? questions[i].title,
               questions[i].answer,
               onTap: order.canEdit
-                  ? () => _openQuestionnaire(order, questionnaire)
+                  ? () => _openEditCustomer(
+                      order,
+                      highlightKey:
+                          EditCustomerReserveOrderPage.questionnaireKey,
+                    )
                   : null,
               showDivider: i != questions.length - 1,
             ),
         ],
-      ),
-    );
-  }
-
-  Future<void> _openQuestionnaire(
-    ReserveOrderDetail order,
-    ReserveQuestionnaireEntity questionnaire,
-  ) async {
-    await Navigator.of(context).push<bool>(
-      MaterialPageRoute(
-        builder: (_) => ReserveOrderQuestionnairePage(
-          reserveOrderId: order.reserveOrderId,
-          questionnaire: questionnaire,
-        ),
       ),
     );
   }
@@ -2262,6 +2274,68 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage>
               enabled: order.deleteLockedReason == null,
             ),
         ],
+      ),
+    );
+  }
+
+  /// Pilihan perbaikan order Ditolak — semua tampil (tanpa diarahkan sesuai alasan tolak), kecuali
+  /// Ganti Unit yang hanya selama belum di-approve Kasir (`can_change_unit`).
+  void _openFixSheet(ReserveOrderDetail order) {
+    showCustomBottomSheet(
+      context: context,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Perbaiki Reserve Order',
+            style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+          ),
+          const SizedBox(height: 4),
+          const Text(
+            'Perbaikan yang disimpan langsung mengajukan ulang reserve order.',
+            style: TextStyle(fontSize: 11.5, color: Color(grey4Color)),
+          ),
+          const SizedBox(height: 6),
+          if (order.canChangeUnit)
+            _menuItem('⇄', 'Ganti Unit', () => _openChangeUnit(order)),
+          _menuItem(
+            '＋',
+            'Top Up Pembayaran',
+            () => _openTopup(order),
+            enabled: order.canTopup,
+          ),
+          _menuItem(
+            '✎',
+            'Perbaiki Data Customer',
+            () => _openEditCustomer(order),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _openChangeUnit(ReserveOrderDetail order) {
+    final townshipId = order.townshipId;
+    if (townshipId == null) {
+      showSnackbar(
+        context,
+        'Unit reserve order ini belum punya project — hubungi Kasir untuk memilih unit.',
+        isError: true,
+      );
+      return;
+    }
+    Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (_) => ChangeUnitReserveOrderPage(
+          reserveOrderId: order.reserveOrderId,
+          townshipId: townshipId,
+          townshipName: order.townshipName,
+          currentUnitName: order.unitName,
+          currentUnitContext: [order.projectName, order.productName]
+              .where((s) => (s ?? '').trim().isNotEmpty)
+              .join(' · '),
+        ),
       ),
     );
   }

@@ -8,11 +8,17 @@ import 'package:progress_group/core/utils/widget/custom_dropdown_group.dart';
 import 'package:progress_group/core/utils/widget/custom_snackbar.dart';
 import 'package:progress_group/features/reserve-order/data/models/reserve_order_customer_data.dart';
 import 'package:progress_group/features/reserve-order/domain/entities/cara_bayar_entity.dart';
+import 'package:progress_group/features/reserve-order/domain/entities/customer_options_entity.dart';
 import 'package:progress_group/features/reserve-order/domain/entities/update_reserve_order_customer_params.dart';
 import 'package:progress_group/features/reserve-order/presentation/state/cara_bayar/cara_bayar_bloc.dart';
 import 'package:progress_group/features/reserve-order/presentation/state/cara_bayar/cara_bayar_event.dart';
 import 'package:progress_group/features/reserve-order/presentation/state/cara_bayar/cara_bayar_state.dart';
+import 'package:progress_group/features/reserve-order/presentation/state/customer_options/customer_options_bloc.dart';
+import 'package:progress_group/features/reserve-order/presentation/state/customer_options/customer_options_event.dart';
+import 'package:progress_group/features/reserve-order/presentation/state/customer_options/customer_options_state.dart';
 import 'package:progress_group/features/reserve-order/presentation/state/reserve_order_detail/reserve_order_detail_cubit.dart';
+import 'package:progress_group/features/reserve-order/presentation/widgets/option_picker_sheet.dart';
+import 'package:progress_group/features/reserve-order/presentation/widgets/reserve_questionnaire_form.dart';
 
 /// Halaman "Edit Data Pembeli" — field & tampilannya diambil dari
 /// `lib/features/reserve-order/presentation/pages/edit/index.dart` di branch `reserve-order`
@@ -21,8 +27,11 @@ import 'package:progress_group/features/reserve-order/presentation/state/reserve
 /// (read-only) di `ReserveOrderDetailPage`, jadi kalau nambah/ubah field cukup di satu tempat.
 ///
 /// [highlightKey], kalau diisi (dari tap salah satu baris di tab Customer), scroll ke field itu &
-/// beri highlight sementara (~3 detik) — gaya sama seperti `ContactFormPage`.
+/// beri highlight sementara (~3 detik) — gaya sama seperti `ContactFormPage`. [questionnaireKey] =
+/// scroll ke grup Kuesioner (form kuesioner ada di halaman ini juga, tersimpan dgn 1x Save).
 class EditCustomerReserveOrderPage extends StatefulWidget {
+  static const String questionnaireKey = 'kuesioner';
+
   final int reserveOrderId;
   final ReserveOrderCustomerData customer;
   final String? highlightKey;
@@ -43,6 +52,8 @@ class _EditCustomerReserveOrderPageState
     extends State<EditCustomerReserveOrderPage> {
   late Map<String, dynamic> _values;
   final Map<String, TextEditingController> _tc = {};
+  // Isian bebas dropdown yang pilihan "Lainnya"-nya terpilih (lihat [_otherField]).
+  final Map<String, TextEditingController> _otherTc = {};
   final Map<String, GlobalKey> _fieldKeys = {};
 
   String? _highlightedKey;
@@ -56,9 +67,19 @@ class _EditCustomerReserveOrderPageState
   String? _caraBayarName;
   late final TextEditingController _caraBayarLainnyaCtrl;
 
+  /// Isian kuesioner (null = detail tidak punya kuesioner) — ikut terkirim saat Save.
+  ReserveQuestionnaireController? _questionnaire;
+
   @override
   void initState() {
     super.initState();
+    final detail = context.read<ReserveOrderDetailCubit>().state.detail;
+    final questionnaire = detail?.reserveOrderId == widget.reserveOrderId
+        ? detail?.questionnaire
+        : null;
+    if (questionnaire != null) {
+      _questionnaire = ReserveQuestionnaireController(questionnaire);
+    }
     _values = Map<String, dynamic>.of(widget.customer.raw);
     _highlightedKey = widget.highlightKey;
     _caraBayarId = (_values['cara_bayar_id'] as num?)?.toInt();
@@ -67,6 +88,7 @@ class _EditCustomerReserveOrderPageState
       text: _values['cara_bayar_lainnya']?.toString() ?? '',
     );
     context.read<CaraBayarBloc>().add(const FetchCaraBayarEvent());
+    context.read<CustomerOptionsBloc>().add(const FetchCustomerOptionsEvent());
 
     if (_highlightedKey != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -81,10 +103,11 @@ class _EditCustomerReserveOrderPageState
 
   @override
   void dispose() {
-    for (final c in _tc.values) {
+    for (final c in [..._tc.values, ..._otherTc.values]) {
       c.dispose();
     }
     _caraBayarLainnyaCtrl.dispose();
+    _questionnaire?.dispose();
     super.dispose();
   }
 
@@ -168,12 +191,30 @@ class _EditCustomerReserveOrderPageState
                     children: [
                       for (final section in reserveCustomerFieldSections)
                         CustomDropdownGroupContact(
-                          hint: section.title,
+                          hint: section.titleFor(_values),
                           child: Column(
                             children: [
                               for (final field in section.fields)
                                 _buildField(field),
                             ],
+                          ),
+                        ),
+                      // Kuesioner di halaman yang sama — tersimpan bersama data customer (1x Save),
+                      // sama dgn form Edit Customer Reserve web.
+                      if (_questionnaire case final questionnaire?)
+                        Container(
+                          key:
+                              widget.highlightKey ==
+                                  EditCustomerReserveOrderPage.questionnaireKey
+                              ? _keyFor(
+                                  EditCustomerReserveOrderPage.questionnaireKey,
+                                )
+                              : null,
+                          child: CustomDropdownGroupContact(
+                            hint: 'Kuesioner',
+                            child: ReserveQuestionnaireForm(
+                              controller: questionnaire,
+                            ),
                           ),
                         ),
                     ],
@@ -247,13 +288,26 @@ class _EditCustomerReserveOrderPageState
     );
   }
 
+  bool get _sameAsKtp => _values['current_address_similar_ktp'] == true;
+
+  static ReserveCustomerFieldSpec _specFor(String key) =>
+      reserveCustomerFieldSections
+          .expand((s) => s.fields)
+          .firstWhere((f) => f.key == key);
+
   Widget _buildField(ReserveCustomerFieldSpec f) {
     if (f.key == 'cara_bayar_name') return _caraBayarField(f);
+    final ktpKey = roCurrentAddressFromKtp[f.key];
+    if (ktpKey != null && _sameAsKtp) return _ktpMirrorField(f, ktpKey);
     return switch (f.kind) {
       ReserveCustomerFieldKind.text => _textField(f),
       ReserveCustomerFieldKind.date => _dateField(f),
       ReserveCustomerFieldKind.boolChoice => _boolField(f),
-      ReserveCustomerFieldKind.option => _optionField(f),
+      // Opsinya dari backend (GET /reserve-order/customer-options), sama dgn dropdown web admin.
+      ReserveCustomerFieldKind.option =>
+        BlocBuilder<CustomerOptionsBloc, CustomerOptionsState>(
+          builder: (context, state) => _optionField(f, state.options),
+        ),
     };
   }
 
@@ -320,12 +374,96 @@ class _EditCustomerReserveOrderPageState
       fieldKey: f.key,
       label: f.label,
       value: current,
-      onTap: () => _showOptionSheet(
+      onTap: () => showOptionPickerSheet(
+        context: context,
         title: f.label,
-        items: [f.trueLabel!, f.falseLabel!],
+        items: [
+          for (final label in [f.trueLabel!, f.falseLabel!])
+            CustomerOptionEntity(value: label, label: label),
+        ],
         selected: current,
-        onPicked: (v) => setState(() => _values[f.key] = v == f.trueLabel),
+        onPicked: (o) => setState(() {
+          final picked = o.value == f.trueLabel;
+          if (f.key == 'current_address_similar_ktp' && _sameAsKtp && !picked) {
+            _copyKtpToCurrentAddress();
+          }
+          _values[f.key] = picked;
+        }),
       ),
+    );
+  }
+
+  /// "Sama dengan Alamat KTP?" Ya → Tidak: alamat "Sekarang" diawali salinan alamat KTP (selama "Ya"
+  /// memang itu isinya), jadi user tinggal mengubah yang beda, bukan mengetik ulang.
+  void _copyKtpToCurrentAddress() {
+    roCurrentAddressFromKtp.forEach((currentKey, ktpKey) {
+      if (_specFor(ktpKey).kind == ReserveCustomerFieldKind.text) {
+        _c(currentKey).text = _c(ktpKey).text;
+      } else {
+        _values[currentKey] = _values[ktpKey];
+      }
+    });
+  }
+
+  /// Alamat "Sekarang" selama "Sama dengan Alamat KTP?" = Ya — read-only, isinya langsung mengikuti
+  /// field KTP-nya ([roCurrentAddressFromKtp]) saat diketik/dipilih; backend juga menyalinnya saat
+  /// disimpan (MCustomerReserve::syncCurrentAddressWithKtp()).
+  Widget _ktpMirrorField(ReserveCustomerFieldSpec f, String ktpKey) {
+    final ktpSpec = _specFor(ktpKey);
+    if (ktpSpec.kind == ReserveCustomerFieldKind.option) {
+      return BlocBuilder<CustomerOptionsBloc, CustomerOptionsState>(
+        builder: (context, state) => _readOnlyField(
+          f,
+          displayValueFor(ktpSpec, _values, options: state.options),
+        ),
+      );
+    }
+    final controller = _c(ktpKey);
+    return ListenableBuilder(
+      listenable: controller,
+      builder: (context, _) => _readOnlyField(f, controller.text.trim()),
+    );
+  }
+
+  Widget _readOnlyField(ReserveCustomerFieldSpec f, String? value) {
+    return _fieldFrame(
+      f.key,
+      Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  f.label,
+                  style: const TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w700,
+                    color: Color(grey2Color),
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  (value == null || value.isEmpty) ? '-' : value,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: Color(grey4Color),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const Icon(Icons.lock_outline, size: 14, color: Color(grey4Color)),
+          const SizedBox(width: 4),
+          const Text(
+            'Ikut KTP',
+            style: TextStyle(fontSize: 10, color: Color(grey4Color)),
+          ),
+        ],
+      ),
+      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
     );
   }
 
@@ -353,19 +491,94 @@ class _EditCustomerReserveOrderPageState
     );
   }
 
-  Widget _optionField(ReserveCustomerFieldSpec f) {
-    final value = _values[f.key]?.toString();
-    return _buildPickerField(
-      fieldKey: f.key,
-      label: f.label,
-      value: (value == null || value.isEmpty) ? null : value,
-      onTap: () => _showOptionSheet(
-        title: f.label,
-        items: f.options ?? const [],
-        selected: value,
-        onPicked: (v) => setState(() => _values[f.key] = v),
+  /// Dropdown yang opsinya dari API ([options]) — tampil label, simpan value. Pilihan "Lainnya"
+  /// memunculkan isian bebas ([_otherField]), sama dgn web.
+  Widget _optionField(
+    ReserveCustomerFieldSpec f,
+    CustomerOptionsEntity options,
+  ) {
+    final match = options.match(f.key, _values[f.key]);
+    final isOther = _isOther(f.key, options);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildPickerField(
+          fieldKey: f.key,
+          label: f.label,
+          value: isOther
+              ? options.other
+              : match?.label ?? displayValueFor(f, _values, options: options),
+          onTap: () => showOptionPickerSheet(
+            context: context,
+            title: f.label,
+            items: options.optionsFor(f.key),
+            selected: isOther ? options.other : match?.value,
+            onPicked: (o) => setState(() => _values[f.key] = o.value),
+          ),
+        ),
+        if (isOther) _otherField(f, options),
+      ],
+    );
+  }
+
+  /// Pilihan "Lainnya" terpilih di dropdown [key] — dipilih langsung, atau nilai tersimpan di luar
+  /// daftar opsi (isian bebas lama, mis. "sales manager"). Sama dgn web (editField()).
+  bool _isOther(String key, CustomerOptionsEntity options) {
+    if (!options.hasOther(key)) return false;
+    final match = options.match(key, _values[key]);
+    return match == null
+        ? '${_values[key] ?? ''}'.trim().isNotEmpty
+        : match.value == options.other;
+  }
+
+  /// Isian bebas pilihan "Lainnya" — awalnya isian lama (nilai tersimpan di luar daftar opsi).
+  Widget _otherField(ReserveCustomerFieldSpec f, CustomerOptionsEntity options) {
+    final controller = _otherTc.putIfAbsent(f.key, () {
+      final match = options.match(f.key, _values[f.key]);
+      return TextEditingController(
+        text: match == null ? '${_values[f.key] ?? ''}'.trim() : '',
+      );
+    });
+    return _fieldFrame(
+      '${f.key}_lainnya',
+      TextField(
+        controller: controller,
+        style: const TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.w700,
+          color: Color(blackColor),
+        ),
+        decoration: InputDecoration(
+          isDense: true,
+          label: Text(
+            '${f.label} Lainnya',
+            style: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              color: Color(grey2Color),
+            ),
+          ),
+          hintText: 'Sebutkan ${f.label.toLowerCase()} lainnya…',
+          hintStyle: const TextStyle(fontSize: 12, color: Color(grey5Color)),
+          border: InputBorder.none,
+          enabledBorder: InputBorder.none,
+          focusedBorder: InputBorder.none,
+          contentPadding: EdgeInsets.zero,
+        ),
       ),
     );
+  }
+
+  /// Nilai dropdown [key] yang dikirim — value opsinya sbg teks (kolom *_area divalidasi string di
+  /// API); pilihan "Lainnya" → isiannya (kosong = "Lainnya"), sama dgn web (mergeOtherInputs()).
+  String? _optionValue(String key, CustomerOptionsEntity options) {
+    final value = _values[key];
+    if (value == null || '$value'.trim().isEmpty) return null;
+    if (_isOther(key, options)) {
+      final other = _otherTc[key]?.text.trim() ?? '';
+      return other.isNotEmpty ? other : options.other;
+    }
+    return options.match(key, value)?.value ?? '$value';
   }
 
   /// Cara Bayar — spesial-case, sama seperti Create ([create/index.dart]) & Edit Reserve Order
@@ -549,75 +762,6 @@ class _EditCustomerReserveOrderPageState
     );
   }
 
-  /// Sheet pilihan teks polos buat field picker — daftar [items], centang di [selected].
-  void _showOptionSheet({
-    required String title,
-    required List<String> items,
-    required String? selected,
-    required ValueChanged<String> onPicked,
-  }) {
-    showCustomBottomSheet(
-      context: context,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.only(left: 4, bottom: 8),
-            child: Text(
-              title,
-              style: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w700,
-                color: Color(blackColor),
-              ),
-            ),
-          ),
-          if (items.isEmpty)
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 12, horizontal: 4),
-              child: Text(
-                'Tidak ada pilihan tersedia',
-                style: TextStyle(fontSize: 13, color: Color(grey5Color)),
-              ),
-            )
-          else
-            for (final item in items)
-              InkWell(
-                onTap: () {
-                  Navigator.pop(context);
-                  onPicked(item);
-                },
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    vertical: 12,
-                    horizontal: 4,
-                  ),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          item,
-                          style: const TextStyle(
-                            fontSize: 13,
-                            color: Color(blackColor),
-                          ),
-                        ),
-                      ),
-                      if (item == selected)
-                        const Icon(
-                          Icons.check,
-                          size: 18,
-                          color: Color(primaryColor),
-                        ),
-                    ],
-                  ),
-                ),
-              ),
-          const SizedBox(height: 8),
-        ],
-      ),
-    );
-  }
 
   Future<void> _onSubmit() async {
     if (_c('cust_name').text.trim().isEmpty) {
@@ -629,9 +773,13 @@ class _EditCustomerReserveOrderPageState
 
     setState(() => _submitting = true);
 
+    FocusScope.of(context).unfocus();
     final error = await context.read<ReserveOrderDetailCubit>().updateCustomer(
       widget.reserveOrderId,
-      UpdateReserveOrderCustomerParams(customer: _buildRaw()),
+      UpdateReserveOrderCustomerParams(
+        customer: _buildRaw(),
+        questioner: _questionnaire?.answers(),
+      ),
     );
 
     if (!mounted) return;
@@ -647,14 +795,27 @@ class _EditCustomerReserveOrderPageState
 
   Map<String, dynamic> _buildRaw() {
     final raw = Map<String, dynamic>.of(_values);
+    final options = context.read<CustomerOptionsBloc>().state.options;
     for (final section in reserveCustomerFieldSections) {
       for (final f in section.fields) {
+        if (f.kind == ReserveCustomerFieldKind.option &&
+            f.key != 'cara_bayar_name') {
+          raw[f.key] = _optionValue(f.key, options);
+          continue;
+        }
         if (f.kind != ReserveCustomerFieldKind.text) continue;
         final text = _c(f.key).text.trim();
         raw[f.key] = text.isEmpty
             ? null
             : (f.numeric ? num.tryParse(text) : text);
       }
+    }
+    // "Sama dengan Alamat KTP?" = Ya → alamat "Sekarang" = alamat KTP yang terkirim (backend juga
+    // menyalinnya), bukan isian lama field "Sekarang" yang sedang terkunci.
+    if (_sameAsKtp) {
+      roCurrentAddressFromKtp.forEach((currentKey, ktpKey) {
+        raw[currentKey] = raw[ktpKey];
+      });
     }
     // Cara Bayar dikelola lewat state terpisah (_caraBayarId/_caraBayarLainnyaCtrl, lihat
     // initState/_caraBayarField) — timpa di sini supaya nilai TERBARU dari picker yang terkirim,

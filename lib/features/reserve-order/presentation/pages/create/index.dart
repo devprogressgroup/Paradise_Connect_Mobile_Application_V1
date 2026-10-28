@@ -34,6 +34,12 @@ import 'package:progress_group/features/reserve-order/presentation/state/select_
 import 'package:progress_group/features/reserve-order/presentation/state/work_category/work_category_bloc.dart';
 import 'package:progress_group/features/reserve-order/presentation/state/work_category/work_category_event.dart';
 import 'package:progress_group/features/reserve-order/presentation/state/work_category/work_category_state.dart';
+import 'package:progress_group/features/reserve-order/data/models/reserve_order_customer_data.dart';
+import 'package:progress_group/features/reserve-order/domain/entities/customer_options_entity.dart';
+import 'package:progress_group/features/reserve-order/presentation/state/customer_options/customer_options_bloc.dart';
+import 'package:progress_group/features/reserve-order/presentation/state/customer_options/customer_options_event.dart';
+import 'package:progress_group/features/reserve-order/presentation/state/customer_options/customer_options_state.dart';
+import 'package:progress_group/features/reserve-order/presentation/widgets/option_picker_sheet.dart';
 import 'package:progress_group/features/reserve-order/presentation/widgets/reference_date_field.dart';
 import 'package:progress_group/features/saleskit/presentation/state/township/township_bloc.dart';
 import 'package:progress_group/features/saleskit/presentation/state/township/township_event.dart';
@@ -127,6 +133,8 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
   final _alamatCtrl = TextEditingController();
   final _hpCtrl = TextEditingController();
   final _pasanganCtrl = TextEditingController();
+  // Isian bebas Status Pernikahan "Lainnya" — yang disimpan isiannya (sama dgn Paradise Dynamics).
+  final _maritalLainnyaCtrl = TextEditingController();
   final _pekerjaanCtrl = TextEditingController();
   final _caraBayarLainnyaCtrl = TextEditingController();
   final _catatanCtrl = TextEditingController();
@@ -134,6 +142,9 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
 
   DateTime? _tglLahir;
   String? _gender;
+
+  /// Nilai Status Pernikahan yg dipilih — nilai Paradise Dynamics (SINGLE / KAWIN / TUNANGAN /
+  /// [roMaritalOther]); labelnya dari CustomerOptionsBloc (GET /reserve-order/customer-options).
   String? _statusPernikahan;
   String? _kategoriPekerjaan;
   String? _caraBayar;
@@ -167,7 +178,6 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
   CreateReserveOrderResultEntity? _createResult;
 
   List<String> _genderOptions = ['Laki-laki', 'Perempuan'];
-  List<String> _maritalOptions = ['Menikah', 'Belum Menikah', 'Cerai'];
   List<double> _amountPresets = [2000000, 3000000, 5000000, 10000000, 15000000,20000000,25000000,50000000];
 
   @override
@@ -201,6 +211,7 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
     }
     context.read<CaraBayarBloc>().add(const FetchCaraBayarEvent());
     context.read<WorkCategoryBloc>().add(const FetchWorkCategoryEvent());
+    context.read<CustomerOptionsBloc>().add(const FetchCustomerOptionsEvent());
     context.read<PaymentTypeBloc>().add(const FetchPaymentTypesEvent());
   }
 
@@ -212,6 +223,7 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
     _alamatCtrl.dispose();
     _hpCtrl.dispose();
     _pasanganCtrl.dispose();
+    _maritalLainnyaCtrl.dispose();
     _pekerjaanCtrl.dispose();
     _caraBayarLainnyaCtrl.dispose();
     _catatanCtrl.dispose();
@@ -264,18 +276,7 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
     }
 
     final marital = text('cust_marital_status');
-    if (marital != null) {
-      final m = marital.toUpperCase();
-      if (_maritalOptions.contains(marital)) {
-        _statusPernikahan = marital;
-      } else if (m.contains('BELUM')) {
-        _statusPernikahan = 'Belum Menikah';
-      } else if (m.contains('KAWIN') || m.contains('MENIKAH')) {
-        _statusPernikahan = 'Menikah';
-      } else if (m.contains('CERAI')) {
-        _statusPernikahan = 'Cerai';
-      }
-    }
+    if (marital != null) _applyMaritalStatus(marital);
 
     _kategoriPekerjaan = text('work_category') ?? _kategoriPekerjaan;
     final caraBayarId = c['cara_bayar_id'];
@@ -733,6 +734,46 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
     );
   }
 
+  /// Status Pernikahan — tampil label (Belum Menikah / Sudah Menikah / …), yang dikirim nilai Paradise
+  /// Dynamics (SINGLE / KAWIN / TUNANGAN; "Lainnya" → isiannya, lihat [_maritalValue]).
+  Widget _maritalField(CustomerOptionsEntity options) {
+    const key = 'cust_marital_status';
+    final selected = options.match(key, _statusPernikahan);
+    return _pickerFieldRow(
+      label: 'Status Pernikahan',
+      value: selected?.label ?? _statusPernikahan,
+      isError: _showCustomerValidation && _statusPernikahan == null,
+      required: true,
+      onTap: () => showOptionPickerSheet(
+        context: context,
+        title: 'Status Pernikahan',
+        items: options.optionsFor(key),
+        selected: _statusPernikahan,
+        onPicked: (o) => setState(() => _statusPernikahan = o.value),
+      ),
+    );
+  }
+
+  /// Isi Status Pernikahan dari data customer lama / OCR KTP — tidak dikenali (mis. "CERAI HIDUP") =
+  /// "Lainnya" + teks aslinya di isian.
+  void _applyMaritalStatus(String raw) {
+    final value = normalizeMaritalStatus(raw);
+    if (value == null) return;
+    _statusPernikahan = value;
+    _maritalLainnyaCtrl.text =
+        value == roMaritalOther && raw.trim().toUpperCase() != 'LAINNYA'
+        ? raw.trim()
+        : '';
+  }
+
+  /// Nilai Status Pernikahan yang dikirim — "Lainnya" + isian terisi → isiannya (sama dgn Dynamics).
+  String? _maritalValue() {
+    final other = _maritalLainnyaCtrl.text.trim();
+    return _statusPernikahan == roMaritalOther && other.isNotEmpty
+        ? other
+        : _statusPernikahan;
+  }
+
   Widget _dropdownField({
     required String label,
     required String? value,
@@ -1028,14 +1069,7 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
           _gender = fields['cust_gender_is_male'] == true ? 'Laki-laki' : 'Perempuan';
         }
         if (fields['cust_marital_status'] != null) {
-          final s = fields['cust_marital_status'].toString().toUpperCase();
-          if (s.contains('BELUM')) {
-            _statusPernikahan = 'Belum Menikah';
-          } else if (s.contains('KAWIN')) {
-            _statusPernikahan = 'Menikah';
-          } else if (s.contains('CERAI')) {
-            _statusPernikahan = 'Cerai';
-          }
+          _applyMaritalStatus(fields['cust_marital_status'].toString());
         }
         if (fields['cust_occupation'] != null) {
           _pekerjaanCtrl.text = fields['cust_occupation'] ?? _pekerjaanCtrl.text;
@@ -1479,14 +1513,16 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
                     required: true,
                     keyboardType: TextInputType.phone,
                   ),
-                  _dropdownField(
-                    label: 'Status Pernikahan',
-                    value: _statusPernikahan,
-                    items: _maritalOptions,
-                    required: true,
-                    onChanged: (v) => _statusPernikahan = v,
+                  BlocBuilder<CustomerOptionsBloc, CustomerOptionsState>(
+                    builder: (context, state) => _maritalField(state.options),
                   ),
-                  if (_statusPernikahan == 'Menikah')
+                  if (_statusPernikahan == roMaritalOther)
+                    _textField(
+                      label: 'Status Pernikahan Lainnya',
+                      controller: _maritalLainnyaCtrl,
+                      hint: 'Sebutkan status pernikahan…',
+                    ),
+                  if (_statusPernikahan == roMarriedStatus)
                     _textField(
                       label: 'Nama Pasangan',
                       controller: _pasanganCtrl,
@@ -1557,7 +1593,7 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
         _alamatCtrl.text.trim().isNotEmpty &&
         _hpCtrl.text.trim().isNotEmpty &&
         _statusPernikahan != null &&
-        (_statusPernikahan != 'Menikah' ||
+        (_statusPernikahan != roMarriedStatus ||
             _pasanganCtrl.text.trim().isNotEmpty) &&
         _kategoriPekerjaan != null &&
         _pekerjaanCtrl.text.trim().isNotEmpty &&
@@ -2947,7 +2983,7 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
       'cust_gender_is_male': _gender == 'Laki-laki',
       'cust_address1': _alamatCtrl.text.trim(),
       'cust_telp_mobile1': _hpCtrl.text.trim(),
-      'cust_marital_status': _statusPernikahan,
+      'cust_marital_status': _maritalValue(),
       'work_category': _kategoriPekerjaan,
       'cust_occupation': _pekerjaanCtrl.text.trim(),
       'cara_bayar_id': _caraBayarId,
@@ -3057,6 +3093,7 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
       _tglLahir = null;
       _gender = null;
       _statusPernikahan = null;
+      _maritalLainnyaCtrl.clear();
       _kategoriPekerjaan = null;
       _caraBayar = null;
       _caraBayarId = null;

@@ -105,8 +105,14 @@ class ReserveOrderDetail {
   final String? productName;
   final String? projectName;
   final String? townshipName;
+
+  /// `township_id` project unit — Ganti Unit dikunci di project ini.
+  final int? townshipId;
   final int? price;
   final bool canTopup;
+
+  /// Ganti Unit boleh — selama belum di-approve Kasir (`can_change_unit`).
+  final bool canChangeUnit;
 
   /// Terisi kalau order sudah SP / Akad → tombol top up tampil disable + alasan ini.
   final String? topupLockedReason;
@@ -169,8 +175,10 @@ class ReserveOrderDetail {
     this.productName,
     this.projectName,
     this.townshipName,
+    this.townshipId,
     this.price,
     required this.canTopup,
+    this.canChangeUnit = false,
     this.topupLockedReason,
     this.editLockedReason,
     this.docLockedReason,
@@ -196,10 +204,9 @@ class ReserveOrderDetail {
     this.caraBayarName,
   });
 
-  /// Backend cuma expose satu `is_rejected` gabungan (SA ATAU Kasir) tanpa membedakan sumbernya,
-  /// dan cuma `update` (Perbaiki Data Customer) yang mereset flag penolakan di kedua sisi — jadi
-  /// untuk kasus Ditolak apa pun, "Perbaiki Data Customer" adalah satu-satunya aksi yang benar2
-  /// mengeluarkan order dari status Ditolak.
+  /// Backend cuma expose satu `is_rejected` gabungan (SA ATAU Kasir) tanpa membedakan sumbernya.
+  /// Order Ditolak keluar dari status itu lewat salah satu opsi "Perbaiki Reserve Order" — Ganti
+  /// Unit, Top Up, atau Perbaiki Data Customer — yang masing2 langsung mengajukan ulang di server.
   factory ReserveOrderDetail.fromEntity(ReserveOrderDetailEntity e) {
     final initials = e.customerName.trim().isEmpty
         ? '-'
@@ -246,7 +253,9 @@ class ReserveOrderDetail {
       productName: e.productName,
       projectName: e.unitSub,
       townshipName: e.townshipName,
+      townshipId: e.townshipId,
       canTopup: e.canTopup,
+      canChangeUnit: e.canChangeUnit,
       topupLockedReason: e.topupLockedReason,
       editLockedReason: e.editLockedReason,
       docLockedReason: e.docLockedReason,

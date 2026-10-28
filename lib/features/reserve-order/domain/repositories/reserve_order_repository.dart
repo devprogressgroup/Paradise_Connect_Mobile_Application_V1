@@ -4,6 +4,8 @@ import 'package:dartz/dartz.dart';
 import 'package:progress_group/features/reserve-order/domain/entities/cara_bayar_entity.dart';
 import 'package:progress_group/features/reserve-order/domain/entities/create_reserve_order_params.dart';
 import 'package:progress_group/features/reserve-order/domain/entities/create_reserve_order_result_entity.dart';
+import 'package:progress_group/features/reserve-order/domain/entities/customer_options_entity.dart';
+import 'package:progress_group/features/reserve-order/domain/entities/change_reserve_order_unit_params.dart';
 import 'package:progress_group/features/reserve-order/domain/entities/edit_reserve_order_params.dart';
 import 'package:progress_group/features/reserve-order/domain/entities/payment_type_entity.dart';
 import 'package:progress_group/features/reserve-order/domain/entities/reserve_order_detail_entity.dart';
@@ -17,6 +19,7 @@ abstract class ReserveOrderRepository {
   Future<Either<String, List<ReserveStatusEntity>>> getReserveStatuses();
   Future<Either<String, List<CaraBayarEntity>>> getCaraBayar();
   Future<Either<String, List<String>>> getWorkCategory();
+  Future<Either<String, CustomerOptionsEntity>> getCustomerOptions();
   Future<Either<String, List<PaymentTypeEntity>>> getPaymentTypes();
   Future<Either<String, List<SelectUnitEntity>>> getSelectUnit({
     required int contactId,
@@ -65,9 +68,9 @@ abstract class ReserveOrderRepository {
     int reserveOrderId,
     EditReserveOrderParams params,
   );
-  Future<Either<String, ReserveOrderDetailEntity>> updateQuestionnaire(
+  Future<Either<String, ReserveOrderDetailEntity>> changeReserveOrderUnit(
     int reserveOrderId,
-    Map<String, String?> answers,
+    ChangeReserveOrderUnitParams params,
   );
   Future<Either<String, void>> deleteReserveOrder(int reserveOrderId);
   Future<Either<String, Map<String, dynamic>>> ocrKtp(

@@ -33,25 +33,25 @@ class ApiConstants {
       serverUrl: 'https://api.connect.paradise.id',
     ),
 
-    // AppEnvironment.development: _EnvConfig(
-    //   label: 'Development IP',
-    //   baseUrl: 'http://192.168.8.33:1100/api',
-    //   storageUrl: 'http://192.168.8.33:1100/storage',
-    //   serverUrl: 'http://192.168.8.33:1100',
-    // ),
+    AppEnvironment.development: _EnvConfig(
+      label: 'Development IP',
+      baseUrl: 'http://192.168.8.33:1100/api',
+      storageUrl: 'http://192.168.8.33:1100/storage',
+      serverUrl: 'http://192.168.8.33:1100',
+    ),
 
-    // AppEnvironment.development2: _EnvConfig(
-    //   label: 'Development 2',
-    //   baseUrl: 'http://172.20.10.3:1100/api',
-    //   storageUrl: 'http://172.20.10.3:1100/storage',
-    //   serverUrl: 'http://172.20.10.3:1100',
-    // ),
-    // AppEnvironment.developmnetDomain: _EnvConfig(
-    //   label: 'Development',
-    //   baseUrl: 'https://apidevconnect.paradise.id/api',
-    //   storageUrl: 'https://apidevconnect.paradise.id/storage',
-    //   serverUrl: 'https://apidevconnect.paradise.id',
-    // ),
+    AppEnvironment.development2: _EnvConfig(
+      label: 'Development 2',
+      baseUrl: 'http://172.20.10.13:1100/api',
+      storageUrl: 'http://172.20.10.13:1100/storage',
+      serverUrl: 'http://172.20.10.13:1100',
+    ),
+    AppEnvironment.developmnetDomain: _EnvConfig(
+      label: 'Development',
+      baseUrl: 'https://apidevconnect.paradise.id/api',
+      storageUrl: 'https://apidevconnect.paradise.id/storage',
+      serverUrl: 'https://apidevconnect.paradise.id',
+    ),
   };
 
   // Akun demo (reviewer App Store/Play) login ke server dev supaya data uji mereka tidak ikut

@@ -2,16 +2,17 @@ import 'dart:typed_data';
 
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:progress_group/features/contact/domain/usecases/attachment/delete_attachment_usecase.dart';
+import 'package:progress_group/features/reserve-order/domain/entities/change_reserve_order_unit_params.dart';
 import 'package:progress_group/features/reserve-order/domain/entities/edit_reserve_order_params.dart';
 import 'package:progress_group/features/reserve-order/domain/entities/topup_reserve_order_params.dart';
 import 'package:progress_group/features/reserve-order/domain/entities/update_reserve_order_customer_params.dart';
+import 'package:progress_group/features/reserve-order/domain/usecases/change_reserve_order_unit_usecase.dart';
 import 'package:progress_group/features/reserve-order/domain/usecases/delete_reserve_order_usecase.dart';
 import 'package:progress_group/features/reserve-order/domain/usecases/edit_reserve_order_usecase.dart';
 import 'package:progress_group/features/reserve-order/domain/usecases/get_reserve_order_detail_usecase.dart';
 import 'package:progress_group/features/reserve-order/domain/usecases/send_reserve_order_message_usecase.dart';
 import 'package:progress_group/features/reserve-order/domain/usecases/topup_reserve_order_usecase.dart';
 import 'package:progress_group/features/reserve-order/domain/usecases/update_reserve_order_customer_usecase.dart';
-import 'package:progress_group/features/reserve-order/domain/usecases/update_reserve_order_questionnaire_usecase.dart';
 import 'reserve_order_detail_state.dart';
 
 /// State detail 1 Reserve Order — juga menangani "Perbaiki Data Customer" (`update`) & "Top Up
@@ -23,8 +24,7 @@ class ReserveOrderDetailCubit extends Cubit<ReserveOrderDetailState> {
   final TopupReserveOrderUseCase topupReserveOrderUseCase;
   final SendReserveOrderMessageUseCase sendReserveOrderMessageUseCase;
   final EditReserveOrderUseCase editReserveOrderUseCase;
-  final UpdateReserveOrderQuestionnaireUseCase
-  updateReserveOrderQuestionnaireUseCase;
+  final ChangeReserveOrderUnitUseCase changeReserveOrderUnitUseCase;
   final DeleteReserveOrderUseCase deleteReserveOrderUseCase;
 
   /// Dipinjam dari fitur Contact — dokumen reserve order tersimpan di d_contact_attachment, jadi
@@ -37,7 +37,7 @@ class ReserveOrderDetailCubit extends Cubit<ReserveOrderDetailState> {
     required this.topupReserveOrderUseCase,
     required this.sendReserveOrderMessageUseCase,
     required this.editReserveOrderUseCase,
-    required this.updateReserveOrderQuestionnaireUseCase,
+    required this.changeReserveOrderUnitUseCase,
     required this.deleteReserveOrderUseCase,
     required this.deleteAttachmentUseCase,
   }) : super(const ReserveOrderDetailState());
@@ -182,17 +182,15 @@ class ReserveOrderDetailCubit extends Cubit<ReserveOrderDetailState> {
     );
   }
 
-  /// Simpan kuesioner customer — [answers] = `questioner[<name>]`, balik detail terbaru.
-  Future<String?> updateQuestionnaire(
+  /// Ganti Unit (opsi perbaikan order Ditolak) — server memvalidasi kavling & langsung mengajukan
+  /// ulang order yang Ditolak, balik detail terbaru.
+  Future<String?> changeUnit(
     int reserveOrderId,
-    Map<String, String?> answers,
+    ChangeReserveOrderUnitParams params,
   ) async {
     emit(state.copyWith(status: ReserveOrderDetailStatus.mutating));
 
-    final result = await updateReserveOrderQuestionnaireUseCase(
-      reserveOrderId,
-      answers,
-    );
+    final result = await changeReserveOrderUnitUseCase(reserveOrderId, params);
 
     return result.fold(
       (message) {
