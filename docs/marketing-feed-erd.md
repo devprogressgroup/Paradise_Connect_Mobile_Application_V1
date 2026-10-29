@@ -11,8 +11,8 @@ Marketing Feed adalah feed konten di Home aplikasi sales. Moderator (Tim Marketi
 
 | Tabel | Jenis | Isi |
 |---|---|---|
-| `t_feed_post` | baru | Header semua konten: jenis, status, target project, pengaturan interaksi, jadwal, review |
-| `d_feed_post_media` | baru | Foto/video carousel post, atau thumbnail link |
+| `t_feed_post` | baru | Header semua konten: jenis, status, target project, pengaturan interaksi, jadwal, review, sematan (pin) |
+| `d_feed_post_media` | baru | Foto/video carousel post, gambar pertanyaan poll, atau thumbnail link |
 | `d_feed_poll` | baru | Detail poll (1:1 dengan post) |
 | `d_feed_poll_option` | baru | Opsi jawaban poll |
 | `t_feed_poll_vote` | baru | Suara per user per opsi |
@@ -21,6 +21,7 @@ Marketing Feed adalah feed konten di Home aplikasi sales. Moderator (Tim Marketi
 | `t_feed_comment` | baru | Komentar dan balasan (1 tingkat) |
 | `t_feed_comment_like` | baru | Like komentar |
 | `t_feed_fame` | baru | Peringkat Wall of Fame per bulan per level |
+| `d_feed_fame_media` | baru | Foto/video khusus juara #1 Wall of Fame (kolom sama dengan `d_feed_post_media`) |
 | `app_m_user` | existing | Penulis, pemberi reaksi, pemilih poll, pemberi komentar, juara |
 | `m_project` | existing | Target project konten |
 | `m_sales_person_position` | existing (pd_common) | Level Wall of Fame (GM/SM/SPV/SE) |
@@ -29,39 +30,43 @@ Marketing Feed adalah feed konten di Home aplikasi sales. Moderator (Tim Marketi
 
 ## 2. ERD ringkas
 
-Gambaran besar: hanya nama tabel dan relasinya. Kolom lengkap setiap tabel ada di §5.
+Gambaran besar: hanya nama tabel dan relasinya, dibaca dari kiri ke kanan. Kolom lengkap setiap tabel ada di §5.
 
-```mermaid
-%%{init: {"er": {"layoutDirection": "LR", "minEntityWidth": 60, "entityPadding": 10}}}%%
-erDiagram
-    app_m_user ||--o{ t_feed_post : "menulis"
-    m_project |o--o{ t_feed_post : "target"
-    t_feed_post ||--o{ d_feed_post_media : "media"
-    t_feed_post ||--o| d_feed_poll : "detail poll"
-    d_feed_poll ||--|{ d_feed_poll_option : "opsi"
-    d_feed_poll_option ||--o{ t_feed_poll_vote : "dipilih"
-    t_feed_post ||--o| d_feed_link : "detail link"
-    t_feed_post ||--o{ t_feed_reaction : "direaksi"
-    t_feed_post ||--o{ t_feed_comment : "dikomentari"
-    t_feed_comment |o--o{ t_feed_comment : "balasan"
-    t_feed_comment ||--o{ t_feed_comment_like : "disukai"
-    t_feed_post ||..o{ t_global_notifications : "notif"
-    m_sales_person_position ||--o{ t_feed_fame : "level"
-    m_prospect_status ||--o{ m_contacts : "status prospek"
+```
+Konten & interaksi
+──────────────────
+app_m_user* ──1:N──┐
+m_project*  ──1:N──┴── t_feed_post  (+ sematan: pinned_at, pin_user_id, pin_until)
+                       ├──1:N── d_feed_post_media  (foto/video post, gambar poll, thumbnail link)
+                       ├──1:1── d_feed_poll ──1:N── d_feed_poll_option ──1:N── t_feed_poll_vote
+                       ├──1:1── d_feed_link  (url, platform, judul, deskripsi link)
+                       ├──1:N── t_feed_reaction
+                       ├──1:N── t_feed_comment ──1:N── t_feed_comment_like
+                       │        └ balasan: t_feed_comment 1:N ke dirinya sendiri
+                       └··1:N·· t_global_notifications*  (tanpa FK, lewat link_url)
+
+Wall of Fame
+────────────
+m_sales_person_position* ──1:N──┐
+app_m_user*              ──1:N──┴── t_feed_fame
+                                    └──1:N── d_feed_fame_media  (foto/video juara #1)
+
+Progress Kamu
+─────────────
+m_prospect_status* ──1:N── m_contacts*
 ```
 
-- Setiap kotak adalah satu tabel. Teks di garis menjelaskan hubungannya, dibaca dari tabel asal ke tabel tujuan.
-- Ujung garis menunjukkan jumlah: **dua garis tegak** = tepat satu, **lingkaran + garis tegak** = nol atau satu, **garis tegak + cakar** = satu atau banyak, **lingkaran + cakar** = nol atau banyak.
-- Contoh: garis `t_feed_post` ke `t_feed_comment` berujung garis tegak di sisi post dan lingkaran + cakar di sisi komentar. Artinya 1 post punya 0 sampai banyak komentar.
-- Garis putus-putus = hubungan tanpa FK. Di sini hanya notifikasi, yang menunjuk post lewat `link_url`.
-- `app_m_user` juga dirujuk lewat `user_id` oleh `t_feed_poll_vote`, `t_feed_reaction`, `t_feed_comment`, `t_feed_comment_like`, dan `t_feed_fame`. Garisnya tidak digambar supaya diagram tetap terbaca; kolomnya ada di §5.
-- Tabel existing (sudah ada di backend): `app_m_user`, `m_project`, `m_sales_person_position`, `t_global_notifications`, `m_contacts`, `m_prospect_status`. Sisanya tabel baru.
-
-> Diagram Mermaid tampil langsung di GitHub/GitLab dan di tab **Database** prototype. Di VS Code, preview Markdown bawaan butuh ekstensi "Markdown Preview Mermaid Support".
+- Tanda `*` = tabel existing (sudah ada di backend). Tanpa tanda = tabel baru.
+- Teks dalam kurung di samping tabel = isi penting tabel itu, mis. tempat thumbnail link dan kolom sematan. Kolom lengkap ada di §5.
+- `A ──1:N── B` artinya 1 baris A punya banyak baris B, dan B menyimpan id A sebagai FK. `1:1` artinya 1 baris A punya paling banyak 1 baris B.
+- `··` (titik-titik) = hubungan tanpa FK. Di sini hanya notifikasi, yang menunjuk post lewat `link_url`.
+- `app_m_user` juga dirujuk lewat `user_id` oleh `t_feed_poll_vote`, `t_feed_reaction`, `t_feed_comment`, dan `t_feed_comment_like`, serta lewat `pin_user_id` dan `review_user_id` oleh `t_feed_post`. Garisnya tidak digambar supaya diagram tetap sederhana; kolomnya ada di §5.
 
 ## 3. Flowchart
 
 Alur dari sisi pengguna. Bentuk silinder adalah tabel yang ditulis atau dibaca di langkah itu; garis putus-putus berarti update counter.
+
+> Flowchart memakai Mermaid: tampil langsung di GitHub/GitLab dan di tab **Database** prototype. Di VS Code, preview Markdown bawaan butuh ekstensi "Markdown Preview Mermaid Support".
 
 ### 3.1 Alur konten
 
@@ -101,7 +106,7 @@ Yang terjadi saat sales membuka Home dan menyentuh kartu post.
 flowchart TD
     H(["Sales buka Home"])
     H --> R1[("t_feed_post, d_feed_post_media<br/>d_feed_poll, d_feed_poll_option<br/>d_feed_link, app_m_user")]
-    H --> R2[("t_feed_fame<br/>Wall of Fame")]
+    H --> R2[("t_feed_fame, d_feed_fame_media<br/>Wall of Fame")]
     H --> R3[("m_contacts, m_prospect_status<br/>Progress Kamu")]
     H --> X{"Aksi di kartu post"}
     X -->|"Suka / tidak suka"| TR[("t_feed_reaction")]
@@ -176,6 +181,9 @@ Untuk tahu tabel mana yang terpakai saat sesuatu diklik di prototype, lihat §6.
 │       allow_reply     izinkan balasan (butuh allow_comment = 1)             │
 │       allow_share     izinkan share                                         │
 │       publish_at      jadwal / waktu tayang                                 │
+│       pinned_at       NULL = tidak disematkan; diisi saat disematkan        │
+│ FK    pin_user_id     → app_m_user, moderator yang menyematkan              │
+│       pin_until       lepas otomatis; NULL = sampai dilepas manual          │
 │ FK    review_user_id  → app_m_user, moderator yang setuju / tolak           │
 │       review_date                                                           │
 │       reject_reason   tampil ke sales                                       │
@@ -190,6 +198,7 @@ Untuk tahu tabel mana yang terpakai saat sesuatu diklik di prototype, lihat §6.
 │ INDEX idx_t_feed_post_feed (status, publish_at)                             │
 │ INDEX idx_t_feed_post_project (project_id, status, publish_at)              │
 │ INDEX idx_t_feed_post_user (create_user_id, status)                         │
+│ INDEX idx_t_feed_post_pin (status, pinned_at)                               │
 └─────────────────────────────────────────────────────────────────────────────┘
   │
   ├─▶ N:1  t_feed_post.create_user_id
@@ -222,13 +231,14 @@ Untuk tahu tabel mana yang terpakai saat sesuatu diklik di prototype, lihat §6.
   │   │ PK    feed_post_media_id                                                    │
   │   │ FK    feed_post_id                                                          │
   │   │       media_type          image | video                                     │
-  │   │       file_path                                                             │
+  │   │       file_path           path/key di storage (storage menyusul)            │
+  │   │       file_name           nama file asli saat upload                        │
   │   │       mime_type           JPG / PNG / MP4                                   │
   │   │       size_bytes          maks 20 MB                                        │
   │   │       label               teks pengganti kalau gagal dimuat                 │
   │   │       sort_order          urutan carousel                                   │
   │   ├─────────────────────────────────────────────────────────────────────────────┤
-  │   │ post: maks 10 file; link: 1 file sebagai thumbnail                          │
+  │   │ post: maks 10 file; poll & link: 1 file (gambar pertanyaan / thumbnail)     │
   │   └─────────────────────────────────────────────────────────────────────────────┘
   │
   ├─▶ 1:1  t_feed_post.feed_post_id
@@ -238,7 +248,6 @@ Untuk tahu tabel mana yang terpakai saat sesuatu diklik di prototype, lihat §6.
   │   ├─────────────────────────────────────────────────────────────────────────────┤
   │   │ PK,FK feed_post_id                                                          │
   │   │       is_multiple   boleh pilih > 1 jawaban                                 │
-  │   │       image_path    gambar pertanyaan, opsional                             │
   │   │       total_voters  jumlah orang, bukan jumlah suara                        │
   │   └─────────────────────────────────────────────────────────────────────────────┘
   │     │
@@ -384,6 +393,24 @@ Untuk tahu tabel mana yang terpakai saat sesuatu diklik di prototype, lihat §6.
 │ UNIQUE uq_t_feed_fame (period, sales_person_position_id, ranking)           │
 └─────────────────────────────────────────────────────────────────────────────┘
   │
+  ├─▶ 1:N  t_feed_fame.feed_fame_id
+  │        = d_feed_fame_media.feed_fame_id
+  │   ┌─────────────────────────────────────────────────────────────────────────────┐
+  │   │ d_feed_fame_media  [C/R/D]                                                  │
+  │   ├─────────────────────────────────────────────────────────────────────────────┤
+  │   │ PK    feed_fame_media_id                                                    │
+  │   │ FK    feed_fame_id                                                          │
+  │   │       media_type          image | video                                     │
+  │   │       file_path           path/key di storage (storage menyusul)            │
+  │   │       file_name           nama file asli saat upload                        │
+  │   │       mime_type           JPG / PNG / MP4                                   │
+  │   │       size_bytes          maks 20 MB                                        │
+  │   │       label               teks pengganti kalau gagal dimuat                 │
+  │   │       sort_order          urutan (sekarang selalu 1)                        │
+  │   ├─────────────────────────────────────────────────────────────────────────────┤
+  │   │ sama dgn d_feed_post_media; sekarang maks 1 file, juara #1                  │
+  │   └─────────────────────────────────────────────────────────────────────────────┘
+  │
   ├─▶ N:1  t_feed_fame.sales_person_position_id
   │        = m_sales_person_position.sales_person_position_id
   │   ┌─────────────────────────────────────────────────────────────────────────────┐
@@ -402,7 +429,7 @@ Untuk tahu tabel mana yang terpakai saat sesuatu diklik di prototype, lihat §6.
       ├─────────────────────────────────────────────────────────────────────────────┤
       │ PK    user_id                                                               │
       │       full_name                                                             │
-      │       photo      foto juara                                                 │
+      │       photo      foto juara (kalau belum ada media khusus)                  │
       └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -444,10 +471,11 @@ Yang dilihat dan diklik sales (dan moderator lewat tombol +).
 
 | Layar | Klik / tampilan | Tabel yang dipakai |
 |---|---|---|
-| Home | Buka app, kartu feed tampil | `R` `t_feed_post` (post published yang sesuai project user)<br>`R` `d_feed_post_media` (foto/video carousel, thumbnail link)<br>`R` `d_feed_poll` (detail poll)<br>`R` `d_feed_poll_option` (opsi dan jumlah suara)<br>`R` `t_feed_poll_vote` (jawaban saya (sudah vote atau belum))<br>`R` `d_feed_link` (kartu link sosmed)<br>`R` `t_feed_reaction` (reaksi saya (like/dislike))<br>`R` `t_feed_comment` (komentar terakhir di bawah post)<br>`R` `app_m_user` (nama dan foto penulis) |
+| Home | Buka app, kartu feed tampil | `R` `t_feed_post` (post published yang sesuai project user)<br>`R` `d_feed_post_media` (foto/video carousel, gambar poll, thumbnail link)<br>`R` `d_feed_poll` (detail poll)<br>`R` `d_feed_poll_option` (opsi dan jumlah suara)<br>`R` `t_feed_poll_vote` (jawaban saya (sudah vote atau belum))<br>`R` `d_feed_link` (kartu link sosmed)<br>`R` `t_feed_reaction` (reaksi saya (like/dislike))<br>`R` `t_feed_comment` (komentar terakhir di bawah post)<br>`R` `app_m_user` (nama dan foto penulis) |
 | Home | Kiriman sendiri "Menunggu tinjauan" / "Ditolak" di atas feed | `R` `t_feed_post` (create_user_id = saya, status review/rejected, reject_reason) |
+| Home | Kartu berlabel "Disematkan" di urutan paling atas | `R` `t_feed_post` (pinned_at terisi dan pin_until belum lewat, urut pinned_at DESC, maks. 3) |
 | Home | Kartu "Progress Kamu" | `R` `m_contacts` (kontak milik saya)<br>`R` `m_prospect_status` (dipetakan ke Leads → SP) |
-| Home | Wall of Fame | `R` `t_feed_fame` (peringkat bulan ini)<br>`R` `m_sales_person_position` (label TOP GM/SM/SPV/SE)<br>`R` `app_m_user` (nama dan foto juara) |
+| Home | Wall of Fame | `R` `t_feed_fame` (peringkat bulan ini)<br>`R` `d_feed_fame_media` (foto/video kartu juara #1)<br>`R` `m_sales_person_position` (label TOP GM/SM/SPV/SE)<br>`R` `app_m_user` (nama dan foto juara) |
 | Kartu post | Tap Suka / Tidak suka | `C/U/D` `t_feed_reaction` (reaksi baru = C, ganti = U, batal = D)<br>`U` `t_feed_post` (like_count, dislike_count) |
 | Kartu poll | Pilih jawaban, lalu Kirim Jawaban | `C` `t_feed_poll_vote` (1 baris per opsi yang dipilih)<br>`U` `d_feed_poll_option` (vote_count)<br>`U` `d_feed_poll` (total_voters) |
 | Kartu post | Tap Bagikan | tidak ada (cuma menyalin link, tidak menyentuh database) |
@@ -457,7 +485,8 @@ Yang dilihat dan diklik sales (dan moderator lewat tombol +).
 | Komentar | Suka komentar | `C/D` `t_feed_comment_like` (suka = C, batal = D)<br>`U` `t_feed_comment` (like_count) |
 | Tombol + › Bagikan Momen | Kirim untuk Ditinjau | `C` `t_feed_post` (status review, source mobile)<br>`C` `d_feed_post_media` (foto/video yang diupload) |
 | Tombol + › Post Baru | Publikasikan / Jadwalkan / Simpan Draft | `C` `t_feed_post` (status published / scheduled / draft)<br>`C` `d_feed_post_media` (foto/video carousel)<br>`C` `t_global_notifications` (hanya kalau langsung tayang) |
-| Tombol + › Poll Baru | Publikasikan Poll | `C` `t_feed_post` (post_type poll)<br>`C` `d_feed_poll` (is_multiple, gambar pertanyaan)<br>`C` `d_feed_poll_option` (minimal 2 opsi)<br>`C` `t_global_notifications` (hanya kalau langsung tayang) |
+| Tombol + › Poll Baru | Publikasikan Poll | `C` `t_feed_post` (post_type poll)<br>`C` `d_feed_poll` (is_multiple)<br>`C` `d_feed_post_media` (gambar pertanyaan, opsional)<br>`C` `d_feed_poll_option` (minimal 2 opsi)<br>`C` `t_global_notifications` (hanya kalau langsung tayang) |
+| Tombol + › Link YouTube / Website | Publikasikan / Jadwalkan / Simpan Draft | `C` `t_feed_post` (post_type link)<br>`C` `d_feed_link` (platform youtube / web, url, judul, deskripsi)<br>`C` `d_feed_post_media` (1 file thumbnail)<br>`C` `t_global_notifications` (hanya kalau langsung tayang) |
 | Tombol + › Draft & Terjadwal | Lihat daftar, Edit, Tayangkan, Hapus | `R` `t_feed_post` (status draft dan scheduled)<br>`U` `t_feed_post` (ubah isi atau status)<br>`D` `t_feed_post` (hapus = isi deleted_at) |
 
 ### 6.2 Admin Web
@@ -466,24 +495,29 @@ Menu Marketing Feed di panel admin, dipakai moderator.
 
 | Layar | Klik / tampilan | Tabel yang dipakai |
 |---|---|---|
-| Konten | Buka daftar konten dan kartu Terjadwal / Draft / Menunggu Review | `R` `t_feed_post` (semua status, dihitung per status)<br>`R` `d_feed_post_media` (thumbnail)<br>`R` `d_feed_poll` (gambar poll sebagai thumbnail)<br>`R` `app_m_user` (teks "oleh ...") |
+| Konten | Buka daftar konten dan kartu Terjadwal / Draft / Menunggu Review | `R` `t_feed_post` (semua status, dihitung per status)<br>`R` `d_feed_post_media` (thumbnail, termasuk gambar poll)<br>`R` `app_m_user` (teks "oleh ...") |
 | Konten | Cari konten | `R` `t_feed_post` (body)<br>`R` `d_feed_link` (title) |
 | Konten | Tayangkan / Tayangkan sekarang | `U` `t_feed_post` (status published, publish_at = sekarang)<br>`C` `t_global_notifications` (notif ke sales) |
-| Konten | Batalkan jadwal / Tarik ke draft | `U` `t_feed_post` (status draft) |
+| Konten | Batalkan jadwal / Tarik ke draft | `U` `t_feed_post` (status draft; Tarik ke draft juga mengosongkan pinned_at, pin_user_id, pin_until) |
 | Konten | Hapus | `D` `t_feed_post` (soft delete (deleted_at)) |
+| Konten | Sematkan / Lepas sematan (konten berstatus Tayang) | `U` `t_feed_post` (sematkan: pinned_at = sekarang, pin_user_id = moderator; lepas: ketiga kolom pin = NULL) |
+| Konten | Tab "Disematkan" dan badge "Disematkan s.d. ..." | `R` `t_feed_post` (pinned_at, pin_until) |
 | Buat Konten / Edit | Mengetik di editor (autosave) | `C/U` `t_feed_post` (tersimpan sebagai draft) |
 | Editor | Jenis Post: upload atau hapus foto | `C/D` `d_feed_post_media` (urutan upload = sort_order) |
-| Editor | Jenis Poll: pertanyaan, opsi, multi-jawaban | `C/U` `d_feed_poll` (is_multiple, gambar pertanyaan)<br>`C/U/D` `d_feed_poll_option` (tambah, ubah, hapus opsi) |
+| Editor | Jenis Poll: pertanyaan, opsi, multi-jawaban | `C/U` `d_feed_poll` (is_multiple)<br>`C/D` `d_feed_post_media` (gambar pertanyaan, opsional)<br>`C/U/D` `d_feed_poll_option` (tambah, ubah, hapus opsi) |
 | Editor | Jenis Link Sosmed | `C/U` `d_feed_link` (platform, url, judul, deskripsi)<br>`C/U` `d_feed_post_media` (thumbnail) |
 | Editor | Target project | `R` `m_project` (isi dropdown)<br>`U` `t_feed_post` (project_id (NULL = semua project)) |
 | Editor | Pengaturan interaksi | `U` `t_feed_post` (allow_like .. allow_share) |
 | Editor | Publikasikan / Jadwalkan | `U` `t_feed_post` (status, publish_at)<br>`C` `t_global_notifications` (hanya kalau langsung tayang) |
+| Editor | Bagian "Sematkan di Feed" (hanya saat edit konten yang sudah tayang) | `U` `t_feed_post` (pinned_at, pin_user_id, pin_until (Sampai dilepas = NULL, atau 1/3/7 hari)) |
 | Kalender Jadwal | Tab Draft / Terjadwal | `R` `t_feed_post` (status draft / scheduled) |
 | Review Kiriman Sales | Buka daftar kiriman | `R` `t_feed_post` (status review)<br>`R` `d_feed_post_media` (foto kiriman)<br>`R` `app_m_user` (nama dan jabatan pengirim) |
 | Review Kiriman Sales | Toggle "Izinkan komentar" | `U` `t_feed_post` (allow_comment, allow_reply) |
 | Review Kiriman Sales | Setujui & tayangkan | `U` `t_feed_post` (status published, review_user_id, review_date)<br>`C` `t_global_notifications` (notif ke pengirim dan sales) |
 | Review Kiriman Sales | Setujui & jadwalkan | `U` `t_feed_post` (status scheduled, publish_at, review_user_id) |
 | Review Kiriman Sales | Tolak | `U` `t_feed_post` (status rejected, reject_reason, review_user_id)<br>`C` `t_global_notifications` (notif ke pengirim) |
+| Wall of Fame | Buka halaman: juara #1 tiap level bulan ini | `R` `t_feed_fame` (period bulan ini, ranking = 1)<br>`R` `d_feed_fame_media` (media yang sudah ada)<br>`R` `m_sales_person_position` (label TOP GM/SM/SPV/SE)<br>`R` `app_m_user` (nama dan foto profil) |
+| Wall of Fame | Upload foto / video, Pakai foto contoh, Hapus media | `C/D` `d_feed_fame_media` (upload = insert; ganti = hapus baris lama lalu insert; hapus = delete) |
 
 ### 6.3 Sistem
 
@@ -492,7 +526,8 @@ Berjalan otomatis di backend, tanpa klik.
 | Layar | Klik / tampilan | Tabel yang dipakai |
 |---|---|---|
 | Scheduler (tiap menit) | Di prototype: jam simulasi dan tombol "Lompat ke jadwal berikutnya" | `U` `t_feed_post` (scheduled → published)<br>`C` `t_global_notifications` (notif ke sales) |
-| Job bulanan | Wall of Fame, kalau dihitung otomatis | `C/U` `t_feed_fame` (lihat pertanyaan terbuka no. 1) |
+| Scheduler (tiap menit) | Lepas sematan yang sudah lewat `pin_until` | `U` `t_feed_post` (pinned_at, pin_user_id, pin_until = NULL) |
+| Job bulanan | Wall of Fame, kalau dihitung otomatis | `C/U` `t_feed_fame` (lihat pertanyaan terbuka no. 1)<br>`D` `d_feed_fame_media` (kalau juara #1 berganti orang) |
 
 ## 7. Alur status `t_feed_post`
 
@@ -515,23 +550,29 @@ Berjalan otomatis di backend, tanpa klik.
 
 Setiap kali status berubah ke `published`, `publish_at` diisi waktu saat itu (kecuali yang tayang dari jadwal, yang memakai waktu jadwalnya).
 
+Sematan (pin) bukan status. Kolomnya terpisah (`pinned_at`) dan hanya berlaku selama status `published`; keluar dari `published` berarti sematan ikut dilepas.
+
 ## 8. Aturan bisnis
 
 - **Scheduler** jalan tiap menit: `status = 'scheduled' AND publish_at <= NOW()` diubah ke `published`, lalu insert ke `t_global_notifications` dan kirim push.
-- **Visibilitas feed:** `status = 'published' AND deleted_at IS NULL AND (project_id IS NULL OR project_id IN <project user>)`, urut `publish_at DESC`. Di halaman 1, kiriman milik user sendiri yang berstatus `review`/`rejected` ditaruh paling atas.
+- **Visibilitas feed:** `status = 'published' AND deleted_at IS NULL AND (project_id IS NULL OR project_id IN <project user>)`, urut `publish_at DESC`. Di halaman 1, kiriman milik user sendiri yang berstatus `review`/`rejected` ditaruh paling atas, lalu konten yang disematkan, baru feed biasa.
+- **Sematan (pin):** hanya konten `published`. Konten dianggap disematkan kalau `pinned_at` terisi dan (`pin_until` NULL atau masih di masa depan). Maksimal 3 sekaligus, dicek di backend saat menyematkan (bukan constraint DB). Di app, konten yang disematkan diambil dengan query terpisah (`status = 'published' AND pinned_at IS NOT NULL AND (pin_until IS NULL OR pin_until > NOW())`, urut `pinned_at DESC`) dan hanya di halaman 1; query feed biasa mengecualikannya supaya tidak muncul dua kali.
+- **Lepas sematan** terjadi saat moderator menekan Lepas sematan, konten ditarik ke draft atau dihapus, atau scheduler menemukan `pin_until <= NOW()`. Ketiganya mengosongkan `pinned_at`, `pin_user_id`, dan `pin_until`.
 - **Edit post yang sudah tayang** langsung berlaku di app. `post_type` tidak boleh diganti.
 - **Pengaturan interaksi** divalidasi di backend, bukan cuma di UI. Komentar butuh `allow_comment = 1`; balasan butuh `allow_comment = 1` dan `allow_reply = 1`. Like/dislike ditolak kalau `allow_like`/`allow_dislike` = 0.
 - **Balasan komentar** maksimal 1 tingkat: `parent_comment_id` harus menunjuk komentar yang `parent_comment_id`-nya NULL.
 - **Vote poll** final, tidak bisa diubah. Untuk poll pilihan tunggal (`is_multiple = 0`), maksimal 1 baris per (`feed_post_id`, `user_id`).
 - **Reaksi:** 1 baris per user per post. Ganti like ↔ dislike = update; batal = delete.
 - **Counter** (`like_count`, `dislike_count`, `comment_count`, `vote_count`, `total_voters`, `like_count` komentar) diupdate dalam transaksi yang sama dengan insert/delete interaksinya.
-- **Media:** maksimal 10 file per post (JPG/PNG/MP4, maks 20 MB per file). Link hanya 1 file thumbnail.
+- **Media:** maksimal 10 file per post (JPG/PNG/MP4, maks 20 MB per file). Poll dan link maks. 1 file (gambar pertanyaan / thumbnail). Lokasi penyimpanan file belum ditentukan (bukan Google Drive, menyusul); `file_path` menyimpan path/key file di storage itu. Apa pun storage-nya, URL video harus mendukung header `Range` karena pemutar video iOS butuh byte-range.
+- **Media Wall of Fame:** foto JPG/PNG atau video MP4 khusus juara #1, disimpan di `d_feed_fame_media`. Kolomnya sama persis dengan `d_feed_post_media`, jadi upload dan validasinya (maks. 20 MB) memakai kode yang sama. Sekarang maks. 1 file per juara; kalau nanti mau carousel, cukup naikkan batasnya tanpa ubah tabel. Belum ada media = kartu memakai foto profil (`app_m_user.photo`), lalu inisial kalau foto profil juga kosong. Video diputar otomatis tanpa suara dan berulang. Kalau job bulanan menghitung ulang peringkat dan juara #1 berganti orang, baris medianya dihapus.
 - **Moderator** ditentukan lewat permission yang sudah ada (mis. `marketing-feed.moderate`), bukan kolom baru.
 
 ## 9. Konvensi kolom
 
 - Kolom audit mengikuti tabel existing (`m_contacts`): `create_user_id`, `update_user_id`, `created_at`, `updated_at`, dan `deleted_at` untuk tabel yang memakai soft delete (`t_feed_post`, `t_feed_comment`).
-- Nama index: `idx_<tabel>_<tujuan>`. Nama unique: `uq_<tabel>`.
+- Nama index: `idx_<tabel>_<tujuan>`. Nama unique: `uq_<tabel>`. Nama FK mengikuti Laravel: `<tabel>_<kolom>_foreign`.
+- Query CREATE TABLE semua tabel baru ada di `docs/marketing-feed-schema.sql` (sudah diuji di MySQL 8.4).
 - Kolom bernama `ranking`, bukan `rank`, karena `RANK` adalah reserved word di MySQL 8.
 
 ## 10. Pertanyaan terbuka
@@ -542,3 +583,5 @@ Setiap kali status berubah ke `published`, `publish_at` diisi waktu saat itu (ke
 4. **`pillar`:** ada di data prototype tapi tidak ada UI untuk memilihnya. Dipakai untuk laporan atau dibuang?
 5. **Platform link:** Flutter saat ini hanya mengenal `youtube`/`web`, sedangkan prototype punya `blog`. Enum backend dan app perlu disamakan.
 6. **Progress Kamu:** pemetaan `m_prospect_status` ke 5 tahap funnel, dan periode hitungnya (kontak dibuat bulan ini, atau status berubah bulan ini), perlu dikonfirmasi.
+7. **Sematan per project:** sekarang sematan mengikuti target post (`project_id`), dan batas 3 dihitung global. Kalau post "Semua project" perlu disematkan di satu project saja, atau batasnya per project, kolom pin dipindah ke tabel `t_feed_pin (feed_post_id, project_id, pinned_at, pin_user_id, pin_until)`.
+8. **Storage media:** foto/video feed dan Wall of Fame tidak disimpan di Google Drive. Storage penggantinya (dan cara membentuk URL dari `file_path`) masih menyusul.

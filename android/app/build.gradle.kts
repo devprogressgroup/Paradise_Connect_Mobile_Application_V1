@@ -53,6 +53,9 @@ android {
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+        // Nama aplikasi di launcher (dipakai android:label di AndroidManifest.xml).
+        // Build debug meng-override ini jadi "Paradise Connect Dev", lihat buildTypes.
+        manifestPlaceholders["appName"] = "Paradise Connect"
     }
 
     signingConfigs {
@@ -67,12 +70,19 @@ android {
     }
 
     buildTypes {
+        debug {
+            // Bedakan nama di launcher supaya APK dev tidak tertukar dengan APK rilis
+            // yang ter-install berdampingan (applicationId debug di-override di bawah).
+            manifestPlaceholders["appName"] = "Paradise Connect Dev"
+        }
         release {
             // Rilis ini pindah ke release keystore (upload-keystore.jks) secara permanen.
             // Device yang masih pakai APK debug-signed lama wajib uninstall manual sekali
             // sebelum install versi ini (signature berubah, update in-place ditolak Android).
             // Setelah migrasi ini, JANGAN ganti-ganti keystore lagi antar rilis.
-            signingConfig = signingConfigs.getByName("release")
+            // Pakai findByName supaya build debug tetap jalan di mesin tanpa key.properties;
+            // build release tanpa keystore tetap digagalkan lewat cek taskGraph di bawah.
+            signingConfig = signingConfigs.findByName("release")
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(
@@ -80,6 +90,25 @@ android {
                 "proguard-rules.pro"
             )
         }
+    }
+}
+
+// applicationId untuk build type debug di-override di sini (bukan di defaultConfig)
+// supaya APK dev bisa ter-install berdampingan dengan APK rilis di HP yang sama.
+// Release TIDAK disentuh, tetap pakai applicationId dari defaultConfig.
+// "com.example.progress_group" (underscore) dipakai karena cuma itu yang terdaftar di
+// google-services.json; package lain bikin processDebugGoogleServices gagal.
+androidComponents {
+    onVariants(selector().withBuildType("debug")) { variant ->
+        variant.applicationId.set("com.example.progress_group")
+    }
+}
+
+// Build release wajib ditandatangani upload-keystore.jks. Tanpa key.properties, gagalkan
+// di sini daripada diam-diam menghasilkan APK rilis tanpa signature.
+gradle.taskGraph.whenReady {
+    if (!keystorePropertiesFile.exists() && allTasks.any { it.name.contains("Release") }) {
+        throw GradleException("android/key.properties tidak ditemukan: build release butuh upload-keystore.jks.")
     }
 }
 
