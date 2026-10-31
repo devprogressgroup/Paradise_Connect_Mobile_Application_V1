@@ -1,4 +1,5 @@
 import 'package:dartz/dartz.dart';
+import 'package:progress_group/core/network/marketing_feed_exception.dart';
 import 'package:progress_group/core/utils/helpers/error_message.dart';
 import 'package:progress_group/features/marketing-feed/data/datasources/marketing_feed_remote_datasource.dart';
 import 'package:progress_group/features/marketing-feed/domain/entities/feed_comment_entity.dart';
@@ -17,6 +18,9 @@ class MarketingFeedRepositoryImpl implements MarketingFeedRepository {
     try {
       return Right(await call());
     } catch (e) {
+      if (e is MarketingFeedException) {
+        return Left(e.message);
+      }
       return Left(cleanErrorMessage(e));
     }
   }
@@ -38,42 +42,53 @@ class MarketingFeedRepositoryImpl implements MarketingFeedRepository {
       _guard(() => remoteDataSource.getPersonalFunnel());
 
   @override
-  Future<Either<String, FeedPostEntity>> reactToPost(int postId, FeedReaction reaction) =>
+  Future<Either<String, PostReactionResult>> reactToPost(int postId, FeedReaction reaction) =>
       _guard(() => remoteDataSource.reactToPost(postId, reaction));
 
   @override
-  Future<Either<String, FeedPostEntity>> votePoll(int postId, List<int> optionIndexes) =>
+  Future<Either<String, FeedPollEntity>> votePoll(int postId, List<int> optionIndexes) =>
       _guard(() => remoteDataSource.votePoll(postId, optionIndexes));
 
   @override
-  Future<Either<String, List<FeedCommentEntity>>> getComments(int postId) =>
-      _guard(() => remoteDataSource.getComments(postId));
+  Future<Either<String, FeedCommentPageEntity>> getComments(int postId, {int page = 1, int perPage = 10}) =>
+      _guard(() => remoteDataSource.getComments(postId, page: page, perPage: perPage));
 
   @override
-  Future<Either<String, List<FeedCommentEntity>>> addComment(int postId, String text, {int? parentId}) =>
+  Future<Either<String, FeedCommentEntity>> addComment(int postId, String text, {int? parentId}) =>
       _guard(() => remoteDataSource.addComment(postId, text, parentId: parentId));
 
   @override
-  Future<Either<String, List<FeedCommentEntity>>> toggleCommentLike(int postId, int commentId) =>
-      _guard(() => remoteDataSource.toggleCommentLike(postId, commentId));
+  Future<Either<String, CommentLikeResult>> toggleCommentLike(int commentId, {required bool currentlyLiked}) =>
+      _guard(() => remoteDataSource.toggleCommentLike(commentId, currentlyLiked: currentlyLiked));
 
   @override
-  Future<Either<String, FeedPostEntity>> shareMoment(ShareFeedMomentParams params) =>
-      _guard(() => remoteDataSource.shareMoment(params));
+  Future<Either<MarketingFeedException, FeedPostEntity>> shareMoment(ShareFeedMomentParams params) async {
+    try {
+      return Right(await remoteDataSource.shareMoment(params));
+    } catch (e) {
+      return Left(parseMarketingFeedException(e, 'Gagal mengirim momen.'));
+    }
+  }
 
   @override
-  Future<Either<String, FeedPostEntity>> savePost(SaveFeedPostParams params) =>
-      _guard(() => remoteDataSource.savePost(params));
+  Future<Either<String, FeedPageEntity>> getMySubmissions({int page = 1, int perPage = 10}) =>
+      _guard(() => remoteDataSource.getMySubmissions(page: page, perPage: perPage));
 
   @override
-  Future<Either<String, List<FeedPostEntity>>> getDrafts() =>
-      _guard(() => remoteDataSource.getDrafts());
+  Future<Either<String, List<FeedPostEntity>>> getModeratorPosts() =>
+      _guard(() => remoteDataSource.getModeratorPosts());
+
+  /// Sama dengan [shareMoment]: error dibiarkan utuh (kode STORAGE_ERROR, pesan Raptor) untuk dialog upload.
+  @override
+  Future<Either<MarketingFeedException, FeedPostEntity>> savePost(SaveFeedPostParams params) async {
+    try {
+      return Right(await remoteDataSource.savePost(params));
+    } catch (e) {
+      return Left(parseMarketingFeedException(e, 'Gagal menyimpan konten.'));
+    }
+  }
 
   @override
-  Future<Either<String, FeedPostEntity>> publishNow(int postId) =>
-      _guard(() => remoteDataSource.publishNow(postId));
-
-  @override
-  Future<Either<String, void>> deletePost(int postId) =>
-      _guard(() => remoteDataSource.deletePost(postId));
+  Future<Either<String, void>> moderatorAction(int postId, String action) =>
+      _guard(() => remoteDataSource.moderatorAction(postId, action));
 }

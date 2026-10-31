@@ -41,8 +41,11 @@ import '../features/siap-huni/presentation/pages/index.dart';
 import '../features/contact/presentation/pages/pipeline/index.dart';
 import '../features/reserve-order/presentation/pages/reserve-list/index.dart';
 import '../features/marketing-feed/domain/entities/feed_post_entity.dart';
+import '../features/marketing-feed/presentation/pages/detail/index.dart';
 import '../features/marketing-feed/presentation/pages/drafts/index.dart';
 import '../features/marketing-feed/presentation/pages/feed/index.dart';
+import '../features/marketing-feed/presentation/pages/link-form/index.dart';
+import '../features/marketing-feed/presentation/pages/my-submissions/index.dart';
 import '../features/marketing-feed/presentation/pages/poll-form/index.dart';
 import '../features/marketing-feed/presentation/pages/post-form/index.dart';
 import '../features/marketing-feed/presentation/pages/share-moment/index.dart';
@@ -249,24 +252,42 @@ class AppRouter {
                 builder: (context, state) => const FeedShareMomentPage(),
               ),
               GoRoute(
+                name: 'marketingFeedMySubmissions',
+                path: 'marketing-feed/my-submissions',
+                builder: (context, state) => const FeedMySubmissionsPage(),
+              ),
+              // Juga target notifikasi app://marketing_feed?feed_post_id=… (lihat
+              // PushNotificationService.tryNavigateInternalLink).
+              GoRoute(
+                name: 'marketingFeedDetail',
+                path: 'marketing-feed/detail',
+                builder: (context, state) => FeedPostDetailPage(
+                  postId: int.tryParse(state.uri.queryParameters['feed_post_id'] ?? ''),
+                ),
+              ),
+              // Moderator (feature "Modify" form "Marketing Feed"). extra = FeedPostEntity untuk edit.
+              GoRoute(
                 name: 'marketingFeedPostForm',
                 path: 'marketing-feed/post-form',
-                redirect: (context, state) =>
-                    PermissionsHelper.canModerateMarketingFeed ? null : '/',
+                redirect: (context, state) => PermissionsHelper.canModerateMarketingFeed ? null : '/',
                 builder: (context, state) => FeedPostFormPage(post: state.extra as FeedPostEntity?),
               ),
               GoRoute(
                 name: 'marketingFeedPollForm',
                 path: 'marketing-feed/poll-form',
-                redirect: (context, state) =>
-                    PermissionsHelper.canModerateMarketingFeed ? null : '/',
+                redirect: (context, state) => PermissionsHelper.canModerateMarketingFeed ? null : '/',
                 builder: (context, state) => FeedPollFormPage(post: state.extra as FeedPostEntity?),
+              ),
+              GoRoute(
+                name: 'marketingFeedLinkForm',
+                path: 'marketing-feed/link-form',
+                redirect: (context, state) => PermissionsHelper.canModerateMarketingFeed ? null : '/',
+                builder: (context, state) => FeedLinkFormPage(post: state.extra as FeedPostEntity?),
               ),
               GoRoute(
                 name: 'marketingFeedDrafts',
                 path: 'marketing-feed/drafts',
-                redirect: (context, state) =>
-                    PermissionsHelper.canModerateMarketingFeed ? null : '/',
+                redirect: (context, state) => PermissionsHelper.canModerateMarketingFeed ? null : '/',
                 builder: (context, state) => const FeedDraftsPage(),
               ),
             ]

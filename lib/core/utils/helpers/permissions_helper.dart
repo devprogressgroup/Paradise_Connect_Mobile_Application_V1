@@ -129,7 +129,7 @@ class PermissionsHelper {
   static bool get canReadReserveOrder    => checkScoped('Reserve Order', 'ReadOnly') || canModifyReserveOrder || canDeleteReserveOrder;
   static bool get canAccessReserveOrder  => canReadReserveOrder || canCreateReserveOrder;
 
-  // Moderator Marketing Feed: buat post/poll, jadwal, draft. Semua user tetap bisa lihat feed &
-  // "Bagikan Momen" (masuk review moderator).
+  // Moderator Marketing Feed di app: buat post/poll/link, kelola Draft & Terjadwal. Semua user tetap bisa
+  // lihat feed & "Bagikan Momen" (masuk review moderator). Backend mengecek feature yang sama.
   static bool get canModerateMarketingFeed => check('Marketing Feed', 'Modify');
 }

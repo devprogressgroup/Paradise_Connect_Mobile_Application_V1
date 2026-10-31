@@ -269,6 +269,41 @@ textarea:focus,input[type=text]:focus{border-color:var(--primary);outline:none}
 .hint{display:flex;gap:5px;align-items:flex-start;line-height:1.45}.hint svg{margin-top:2px;color:var(--primary)}
 .tg.sub{padding-left:14px}.tg.dis{opacity:.45}.sw[disabled]{cursor:not-allowed}
 
+/* ===== profil sales (Kiriman Saya), draft pribadi, sematan profil: pola profil TikTok ===== */
+.who{text-align:left;align-self:flex-start}
+.phd{display:flex;flex-direction:column;align-items:center;gap:2px;text-align:center;padding:4px 0 2px}
+.pav.lg{width:72px;height:72px;font-size:24px;margin-bottom:6px}
+.phd>b{font-size:17px}
+.pstat{display:flex;justify-content:center;gap:28px;margin-top:10px}
+.pstat span{display:flex;flex-direction:column;align-items:center;font-size:11.5px;font-weight:600;color:var(--grey2)}
+.pstat b{font-size:16px;color:var(--black);font-variant-numeric:tabular-nums}
+.pgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:3px;margin:0 -16px}
+.ptile{position:relative;aspect-ratio:3/4;overflow:hidden;background:var(--grey10);color:var(--white)}
+.ptile .art{position:absolute;inset:0}
+.ptile::after{content:"";position:absolute;inset:auto 0 0;height:45%;background:linear-gradient(180deg,transparent,rgba(0,0,0,.55));pointer-events:none}
+.ptxt{position:absolute;inset:0;padding:10px;background:linear-gradient(160deg,var(--secondary),var(--bg2));font-size:11.5px;font-weight:700;line-height:1.35;text-align:left;display:-webkit-box;-webkit-line-clamp:6;-webkit-box-orient:vertical;overflow:hidden}
+.ppin{position:absolute;top:6px;left:6px;z-index:1;display:flex;align-items:center;gap:3px;background:var(--primary);font-size:10px;font-weight:800;padding:2px 6px 2px 4px;border-radius:4px}
+.pst{position:absolute;top:6px;right:6px;z-index:1;font-size:10px;font-weight:800;padding:2px 6px;border-radius:4px;background:var(--white)}
+.pst.warn{color:var(--orange)}.pst.bad{color:var(--red)}.pst.info{color:var(--primary)}
+.pst.mut{top:auto;right:auto;left:6px;bottom:6px;color:var(--grey2)}
+.plk{position:absolute;left:6px;bottom:6px;z-index:1;display:flex;align-items:center;gap:3px;font-size:11.5px;font-weight:800;font-variant-numeric:tabular-nums}
+.pfold{background:#3A4352}.pfold .art{filter:blur(3px) brightness(.55);transform:scale(1.1)}
+.pfold.rejected{background:#4A2A2E}.pfold.rejected .pdl svg{color:#FF8A80}
+.info.rej{display:flex;gap:6px;align-items:flex-start;background:rgba(244,67,54,.08);color:var(--red);font-weight:600}.info.rej svg{margin-top:1px}
+.pdl{position:absolute;inset:0;z-index:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:11px;font-weight:700}
+.pdl b{font-size:14px}
+.btn.icn{display:flex;align-items:center;justify-content:center;gap:6px}
+/* action sheet: pilihan aksi dari bawah layar */
+.asheet{position:absolute;inset:0;z-index:36}
+.as-pn{position:absolute;left:0;right:0;bottom:0;background:var(--white);border-radius:20px 20px 0 0;padding:0 16px 16px;display:flex;flex-direction:column;transform:translateY(100%);transition:transform .2s ease}
+.asheet.open .sheet-bd{opacity:1}.asheet.open .as-pn{transform:none}
+.as-pn>b{font-size:15px;text-align:center;margin:12px 0 2px}
+.as-pn p{margin:0 0 4px;font-size:12.5px;line-height:1.45;color:var(--grey2);text-align:center}
+#asBtns{display:flex;flex-direction:column;margin-top:8px}
+.as-b{display:flex;align-items:center;gap:12px;padding:13px 6px;font-size:14.5px;font-weight:700;text-align:left;border-top:1px solid var(--grey10)}
+.as-b svg{color:var(--primary)}.as-b.bad,.as-b.bad svg{color:var(--red)}
+.as-b.cancel{justify-content:center;margin-top:6px;border:0;border-radius:12px;background:var(--grey10);color:var(--grey2)}
+@media (prefers-reduced-motion:reduce){.as-pn{transition:none}}
 /* ===== draft & terjadwal ===== */
 .drow{display:flex;gap:12px;background:var(--white);border-radius:10px;box-shadow:var(--shadow);padding:10px}
 .dthumb{width:64px;height:64px;border-radius:8px;overflow:hidden;background:var(--grey10);display:grid;place-items:center;color:var(--grey4);flex:none}
@@ -690,6 +725,7 @@ button.db-t:hover{box-shadow:0 0 0 3px var(--db-acc-soft)}
 
         <div class="menu" id="menu" hidden>
           <button data-open="sShare"><i data-ic="camera"></i><span><b>Bagikan Momen</b><small>Sales</small></span></button>
+          <button data-open="sProfile"><i data-ic="history"></i><span><b>Kiriman Saya</b><small>Sales</small></span></button>
           <button data-open="sPost"><i data-ic="article"></i><span><b>Post Baru</b><small>Moderator</small></span></button>
           <button data-open="sPoll"><i data-ic="poll"></i><span><b>Poll Baru</b><small>Moderator</small></span></button>
           <button data-open="sLink"><i data-ic="link"></i><span><b>Link YouTube / Website</b><small>Moderator</small></span></button>
@@ -741,18 +777,42 @@ button.db-t:hover{box-shadow:0 0 0 3px var(--db-acc-soft)}
       </div>
     </aside>
 
-    <!-- Sales: bagikan konten (masuk antrean review moderator) -->
+    <!-- Sales: profil = Kiriman Saya (milik sendiri) atau profil sales lain dari feed. Seperti profil TikTok:
+         tile Draft paling depan (hanya pemilik), lalu kiriman yang disematkan (maks. 3), lalu kiriman lain -->
+    <section class="screen" id="sProfile">
+      <div class="status"><span data-clock="hm">9:41</span><span>●●● 100%</span></div>
+      <header class="hdr sub"><button class="hb" data-close aria-label="Kembali"><i data-ic="back" data-s="27"></i></button><h1 id="profTitle">Kiriman Saya</h1></header>
+      <div class="form" id="profBody"></div>
+    </section>
+
+    <!-- Sales: detail kiriman dari grid profil; pemilik bisa sematkan / lepas sematan -->
+    <section class="screen" id="sPostView">
+      <div class="status"><span data-clock="hm">9:41</span><span>●●● 100%</span></div>
+      <header class="hdr sub"><button class="hb" data-close aria-label="Kembali"><i data-ic="back" data-s="27"></i></button><h1>Kiriman</h1></header>
+      <div class="form" id="pvBody"></div>
+      <div class="bottom" id="pvBar" hidden></div>
+    </section>
+
+    <!-- Sales: folder pribadi Draft / Ditolak -->
+    <section class="screen" id="sFolder">
+      <div class="status"><span data-clock="hm">9:41</span><span>●●● 100%</span></div>
+      <header class="hdr sub"><button class="hb" data-close aria-label="Kembali"><i data-ic="back" data-s="27"></i></button><h1 id="folderTitle">Draft</h1></header>
+      <div class="form" id="folderBody"></div>
+    </section>
+
+    <!-- Sales: bagikan konten (masuk antrean review moderator) atau simpan sebagai draft -->
     <section class="screen" id="sShare" data-form="share">
       <div class="status"><span data-clock="hm">9:41</span><span>●●● 100%</span></div>
-      <header class="hdr sub"><button class="hb" data-close aria-label="Kembali"><i data-ic="back" data-s="27"></i></button><h1>Bagikan Kontenmu</h1></header>
+      <header class="hdr sub"><button class="hb" data-close aria-label="Kembali"><i data-ic="back" data-s="27"></i></button><h1 id="shareTitle">Bagikan Kontenmu</h1></header>
       <div class="form">
+        <div class="info rej" id="shareReason" hidden></div>
         <div class="lbl">Foto/Video Momen Kamu</div>
         <div class="ups" id="shareMedia"></div>
         <label class="lbl" for="shareTxt">Cerita Singkat</label>
-        <textarea id="shareTxt" rows="4">Barusan site visit bareng keluarga Pak Hartono di Cluster Aurora, langsung minta simulasi KPR! 🙌</textarea>
-        <div class="info">Kiriman kamu akan ditinjau Tim Marketing dulu sebelum tayang di Marketing Feed (biasanya kurang dari 1x24 jam).</div>
+        <textarea id="shareTxt" rows="4"></textarea>
+        <div class="info">Kiriman kamu akan ditinjau Tim Marketing dulu sebelum tayang di Marketing Feed (biasanya kurang dari 1x24 jam). Belum selesai? Simpan sebagai draft dulu.</div>
       </div>
-      <div class="bottom"><button class="btn" data-submit>Kirim untuk Ditinjau</button></div>
+      <div class="bottom two"><button class="btn ghost" data-save-draft>Simpan Draft</button><button class="btn" data-submit>Kirim untuk Ditinjau</button></div>
     </section>
 
     <!-- Moderator: post baru / edit -->
@@ -837,9 +897,20 @@ button.db-t:hover{box-shadow:0 0 0 3px var(--db-acc-soft)}
       </div>
     </section>
 
+    <!-- Pilihan aksi (bottom sheet kecil): simpan draft saat keluar form, aksi draft -->
+    <section class="asheet" id="asheet" hidden>
+      <div class="sheet-bd" data-as-close></div>
+      <div class="as-pn" role="dialog" aria-modal="true" aria-labelledby="asTitle">
+        <div class="grab"></div>
+        <b id="asTitle"></b>
+        <p id="asMsg" hidden></p>
+        <div id="asBtns"></div>
+      </div>
+    </section>
+
     <div class="toast" id="toast" role="status" hidden></div>
   </div>
-  <p class="note">Klik <b>Admin Web</b> di atas untuk membuat konten, menjadwalkan, menyematkan konten di atas feed, me-review kiriman sales, dan memoderasi komentar. Perubahan di admin langsung terlihat di app (dan sebaliknya). Post terjadwal tayang otomatis mengikuti jam simulasi.</p>
+  <p class="note">Di app, tombol <b>+</b> berisi menu sales dan moderator; <b>Kiriman Saya</b> berisi draft pribadi dan kiriman yang bisa disematkan di profil (seperti TikTok); ketuk nama sales di feed untuk melihat profilnya. Klik <b>Admin Web</b> di atas untuk membuat konten, menjadwalkan, menyematkan konten di atas feed, me-review kiriman sales, dan memoderasi komentar. Perubahan di admin langsung terlihat di app (dan sebaliknya). Post terjadwal tayang otomatis mengikuti jam simulasi.</p>
 </div>
 
 <div class="awin" id="adminMode" hidden>
@@ -917,13 +988,13 @@ button.db-t:hover{box-shadow:0 0 0 3px var(--db-acc-soft)}
       <div class="db-main">
         <section id="db-ringkasan">
           <h2><span class="db-num">1</span>Ringkasan</h2>
-          <p>Marketing Feed adalah feed konten di Home aplikasi sales. Moderator (Tim Marketing) membuat post, poll, dan link sosmed dari Admin Web atau app. Konten bisa langsung tayang, dijadwalkan, atau disimpan sebagai draft. Sales mengirim momen lewat "Bagikan Momen"; kiriman itu masuk antrean review dulu sebelum tayang.</p>
+          <p>Marketing Feed adalah feed konten di Home aplikasi sales. Moderator (Tim Marketing) membuat post, poll, dan link sosmed dari Admin Web atau app. Konten bisa langsung tayang, dijadwalkan, atau disimpan sebagai draft. Sales mengirim momen lewat "Bagikan Momen"; kiriman itu bisa disimpan dulu sebagai draft pribadi, lalu masuk antrean review sebelum tayang. Seperti di TikTok, sales juga bisa menyematkan maks. 3 kiriman yang sudah tayang di profilnya (Kiriman Saya).</p>
           <p class="db-note">Tabel dan endpoint-nya belum ada. App masih memakai <code>MarketingFeedDummyDataSource</code>.</p>
           <div class="db-tw">
             <table>
               <thead><tr><th>Tabel</th><th>Jenis</th><th>Isi</th></tr></thead>
               <tbody>
-                <tr><td><code>t_feed_post</code></td><td><span class="db-chip db-chip-new">baru</span></td><td>Header semua konten: jenis, status, target project, pengaturan interaksi, jadwal, review, sematan (pin)</td></tr>
+                <tr><td><code>t_feed_post</code></td><td><span class="db-chip db-chip-new">baru</span></td><td>Header semua konten: jenis, status, target project, pengaturan interaksi, jadwal, review, sematan feed &amp; sematan profil</td></tr>
                 <tr><td><code>d_feed_post_media</code></td><td><span class="db-chip db-chip-new">baru</span></td><td>Foto/video carousel post, gambar pertanyaan poll, atau thumbnail link</td></tr>
                 <tr><td><code>d_feed_poll</code></td><td><span class="db-chip db-chip-new">baru</span></td><td>Detail poll (1:1 dengan post)</td></tr>
                 <tr><td><code>d_feed_poll_option</code></td><td><span class="db-chip db-chip-new">baru</span></td><td>Opsi jawaban poll</td></tr>
@@ -953,7 +1024,7 @@ button.db-t:hover{box-shadow:0 0 0 3px var(--db-acc-soft)}
             <p class="db-ov-title">Konten & interaksi</p>
             <div class="db-ov-row">
               <ul class="db-ov-par"><li><button type="button" class="db-t db-t-ex" data-db-goto="app_m_user" title="Lihat di mana app_m_user dipakai">app_m_user</button><span class="db-rel"><i></i><b>1:N</b><i></i></span></li><li><button type="button" class="db-t db-t-ex" data-db-goto="m_project" title="Lihat di mana m_project dipakai">m_project</button><span class="db-rel"><i></i><b>1:N</b><i></i></span></li></ul>
-              <div class="db-ov-hub"><button type="button" class="db-t db-t-new db-t-hub" data-db-goto="t_feed_post" title="Lihat di mana t_feed_post dipakai">t_feed_post</button><small class="db-ov-cols">+ sematan: <code>pinned_at</code>, <code>pin_user_id</code>, <code>pin_until</code></small></div>
+              <div class="db-ov-hub"><button type="button" class="db-t db-t-new db-t-hub" data-db-goto="t_feed_post" title="Lihat di mana t_feed_post dipakai">t_feed_post</button><small class="db-ov-cols">+ sematan: <code>pinned_at</code>, <code>pin_user_id</code>, <code>pin_until</code>, <code>profile_pin_at</code></small></div>
               <ul class="db-ov-br">
                 <li><span class="db-rel"><i></i><b>1:N</b><i></i></span><button type="button" class="db-t db-t-new" data-db-goto="d_feed_post_media" title="Lihat di mana d_feed_post_media dipakai">d_feed_post_media</button><small>foto/video post, gambar poll, thumbnail link</small></li>
                 <li><span class="db-rel"><i></i><b>1:1</b><i></i></span><button type="button" class="db-t db-t-new" data-db-goto="d_feed_poll" title="Lihat di mana d_feed_poll dipakai">d_feed_poll</button><span class="db-rel"><i></i><b>1:N</b><i></i></span><button type="button" class="db-t db-t-new" data-db-goto="d_feed_poll_option" title="Lihat di mana d_feed_poll_option dipakai">d_feed_poll_option</button><span class="db-rel"><i></i><b>1:N</b><i></i></span><button type="button" class="db-t db-t-new" data-db-goto="t_feed_poll_vote" title="Lihat di mana t_feed_poll_vote dipakai">t_feed_poll_vote</button></li>
@@ -1001,7 +1072,9 @@ button.db-t:hover{box-shadow:0 0 0 3px var(--db-acc-soft)}
     A --&gt; DT
     M --&gt; DT
     A --&gt; B{"Kapan tayang?"}
-    M --&gt; RV[("t_feed_post&lt;br/&gt;status = review")]
+    M --&gt;|"Kirim untuk ditinjau"| RV[("t_feed_post&lt;br/&gt;status = review")]
+    M --&gt;|"Simpan draft"| SD[("t_feed_post&lt;br/&gt;status = draft, pribadi sales")]
+    SD --&gt;|"Kirim untuk ditinjau"| RV
     B --&gt;|"Simpan draft"| D[("t_feed_post&lt;br/&gt;status = draft")]
     B --&gt;|"Jadwalkan"| S[("t_feed_post&lt;br/&gt;status = scheduled")]
     B --&gt;|"Sekarang"| P[("t_feed_post&lt;br/&gt;status = published")]
@@ -1014,6 +1087,7 @@ button.db-t:hover{box-shadow:0 0 0 3px var(--db-acc-soft)}
     Q --&gt;|"Setujui &amp; tayangkan"| P
     Q --&gt;|"Setujui &amp; jadwalkan"| S
     Q --&gt;|"Tolak + alasan"| RJ[("t_feed_post&lt;br/&gt;status = rejected")]
+    RJ --&gt;|"Sales perbaiki &amp; kirim ulang"| RV
     P --&gt; N[("t_global_notifications")]
     RJ --&gt; N
     P --&gt; F(["Tampil di feed Home sales"])</pre>
@@ -1094,6 +1168,7 @@ button.db-t:hover{box-shadow:0 0 0 3px var(--db-acc-soft)}
 │       pinned_at       NULL = tidak disematkan; diisi saat disematkan        │
 │ FK    pin_user_id     → app_m_user, moderator yang menyematkan              │
 │       pin_until       lepas otomatis; NULL = sampai dilepas manual          │
+│       profile_pin_at  sematan di profil pengirim; NULL = tidak              │
 │ FK    review_user_id  → app_m_user, moderator yang setuju / tolak           │
 │       review_date                                                           │
 │       reject_reason   tampil ke sales                                       │
@@ -1384,15 +1459,21 @@ button.db-t:hover{box-shadow:0 0 0 3px var(--db-acc-soft)}
             <tr data-t="t_feed_comment t_feed_post"><td>Komentar</td><td>Kirim komentar</td><td><ul class="db-ops"><li data-t="t_feed_comment"><span class="db-op db-op-c">C</span><code>t_feed_comment</code><small>parent_comment_id = NULL</small></li><li data-t="t_feed_post"><span class="db-op db-op-u">U</span><code>t_feed_post</code><small>comment_count</small></li></ul></td></tr>
             <tr data-t="t_feed_comment t_feed_post"><td>Komentar</td><td>Balas komentar</td><td><ul class="db-ops"><li data-t="t_feed_comment"><span class="db-op db-op-c">C</span><code>t_feed_comment</code><small>parent_comment_id = id komentar yang dibalas</small></li><li data-t="t_feed_post"><span class="db-op db-op-u">U</span><code>t_feed_post</code><small>comment_count</small></li></ul></td></tr>
             <tr data-t="t_feed_comment_like t_feed_comment"><td>Komentar</td><td>Suka komentar</td><td><ul class="db-ops"><li data-t="t_feed_comment_like"><span class="db-op db-op-c">C/D</span><code>t_feed_comment_like</code><small>suka = C, batal = D</small></li><li data-t="t_feed_comment"><span class="db-op db-op-u">U</span><code>t_feed_comment</code><small>like_count</small></li></ul></td></tr>
-            <tr data-t="t_feed_post d_feed_post_media"><td>Tombol + › Bagikan Momen</td><td>Kirim untuk Ditinjau</td><td><ul class="db-ops"><li data-t="t_feed_post"><span class="db-op db-op-c">C</span><code>t_feed_post</code><small>status review, source mobile</small></li><li data-t="d_feed_post_media"><span class="db-op db-op-c">C</span><code>d_feed_post_media</code><small>foto/video yang diupload</small></li></ul></td></tr>
+            <tr data-t="t_feed_post d_feed_post_media"><td>Tombol + › Bagikan Momen</td><td>Kirim untuk Ditinjau</td><td><ul class="db-ops"><li data-t="t_feed_post"><span class="db-op db-op-c">C/U</span><code>t_feed_post</code><small>status review, source mobile; dari draft = U (draft → review)</small></li><li data-t="d_feed_post_media"><span class="db-op db-op-c">C/D</span><code>d_feed_post_media</code><small>foto/video yang diupload atau dihapus</small></li></ul></td></tr>
+            <tr data-t="t_feed_post d_feed_post_media"><td>Tombol + › Bagikan Momen</td><td>Simpan Draft, atau keluar form lalu pilih "Simpan ke Draft"</td><td><ul class="db-ops"><li data-t="t_feed_post"><span class="db-op db-op-c">C/U</span><code>t_feed_post</code><small>status draft, source mobile, create_user_id = saya</small></li><li data-t="d_feed_post_media"><span class="db-op db-op-c">C/D</span><code>d_feed_post_media</code><small>foto/video draft</small></li></ul></td></tr>
+            <tr data-t="t_feed_post d_feed_post_media app_m_user"><td>Tombol + › Kiriman Saya</td><td>Buka profil sendiri: folder Draft &amp; Ditolak, kiriman yang disematkan, lalu kiriman lain</td><td><ul class="db-ops"><li data-t="t_feed_post"><span class="db-op db-op-r">R</span><code>t_feed_post</code><small>create_user_id = saya, semua status; urut profile_pin_at lalu publish_at</small></li><li data-t="d_feed_post_media"><span class="db-op db-op-r">R</span><code>d_feed_post_media</code><small>thumbnail tile</small></li><li data-t="t_feed_post"><span class="db-op db-op-r">R</span><code>t_feed_post</code><small>angka Kiriman / Suka / Komentar = COUNT(*), SUM(like_count), SUM(comment_count) dari kiriman published milik saya; tidak ada kolom baru</small></li><li data-t="app_m_user"><span class="db-op db-op-r">R</span><code>app_m_user</code><small>nama, foto, jabatan</small></li></ul></td></tr>
+            <tr data-t="t_feed_post d_feed_post_media"><td>Kiriman Saya › Draft</td><td>Lanjutkan edit / Kirim untuk ditinjau / Hapus draft</td><td><ul class="db-ops"><li data-t="t_feed_post"><span class="db-op db-op-r">R</span><code>t_feed_post</code><small>status draft milik saya</small></li><li data-t="t_feed_post"><span class="db-op db-op-u">U</span><code>t_feed_post</code><small>ubah isi, atau status draft → review</small></li><li data-t="t_feed_post"><span class="db-op db-op-d">D</span><code>t_feed_post</code><small>hapus = isi deleted_at</small></li><li data-t="d_feed_post_media"><span class="db-op db-op-c">C/D</span><code>d_feed_post_media</code><small>tambah / hapus media saat edit</small></li></ul></td></tr>
+            <tr data-t="t_feed_post d_feed_post_media"><td>Kiriman Saya › Ditolak</td><td>Lihat alasan, Perbaiki &amp; kirim ulang, atau Hapus</td><td><ul class="db-ops"><li data-t="t_feed_post"><span class="db-op db-op-r">R</span><code>t_feed_post</code><small>status rejected milik saya, reject_reason</small></li><li data-t="t_feed_post"><span class="db-op db-op-u">U</span><code>t_feed_post</code><small>kirim ulang: status rejected → review (atau → draft); reject_reason, review_user_id, review_date dikosongkan</small></li><li data-t="t_feed_post"><span class="db-op db-op-d">D</span><code>t_feed_post</code><small>hapus = isi deleted_at</small></li><li data-t="d_feed_post_media"><span class="db-op db-op-c">C/D</span><code>d_feed_post_media</code><small>ganti foto/video saat diperbaiki</small></li></ul></td></tr>
+            <tr data-t="t_feed_post"><td>Kiriman Saya › kiriman tayang</td><td>Sematkan di profil / Lepas sematan</td><td><ul class="db-ops"><li data-t="t_feed_post"><span class="db-op db-op-u">U</span><code>t_feed_post</code><small>profile_pin_at = sekarang / NULL; maks. 3 per sales</small></li></ul></td></tr>
+            <tr data-t="t_feed_post d_feed_post_media app_m_user"><td>Kartu post</td><td>Ketuk nama/foto sales, profilnya terbuka</td><td><ul class="db-ops"><li data-t="t_feed_post"><span class="db-op db-op-r">R</span><code>t_feed_post</code><small>create_user_id = sales itu, status published; urut profile_pin_at lalu publish_at</small></li><li data-t="d_feed_post_media"><span class="db-op db-op-r">R</span><code>d_feed_post_media</code><small>thumbnail tile</small></li><li data-t="t_feed_post"><span class="db-op db-op-r">R</span><code>t_feed_post</code><small>angka Kiriman / Suka / Komentar = COUNT(*), SUM(like_count), SUM(comment_count) dari kiriman published milik sales itu; tidak ada kolom baru</small></li><li data-t="app_m_user"><span class="db-op db-op-r">R</span><code>app_m_user</code><small>nama, foto, jabatan</small></li></ul></td></tr>
             <tr data-t="t_feed_post d_feed_post_media t_global_notifications"><td>Tombol + › Post Baru</td><td>Publikasikan / Jadwalkan / Simpan Draft</td><td><ul class="db-ops"><li data-t="t_feed_post"><span class="db-op db-op-c">C</span><code>t_feed_post</code><small>status published / scheduled / draft</small></li><li data-t="d_feed_post_media"><span class="db-op db-op-c">C</span><code>d_feed_post_media</code><small>foto/video carousel</small></li><li data-t="t_global_notifications"><span class="db-op db-op-c">C</span><code>t_global_notifications</code><small>hanya kalau langsung tayang</small></li></ul></td></tr>
             <tr data-t="t_feed_post d_feed_poll d_feed_post_media d_feed_poll_option t_global_notifications"><td>Tombol + › Poll Baru</td><td>Publikasikan Poll</td><td><ul class="db-ops"><li data-t="t_feed_post"><span class="db-op db-op-c">C</span><code>t_feed_post</code><small>post_type poll</small></li><li data-t="d_feed_poll"><span class="db-op db-op-c">C</span><code>d_feed_poll</code><small>is_multiple</small></li><li data-t="d_feed_post_media"><span class="db-op db-op-c">C</span><code>d_feed_post_media</code><small>gambar pertanyaan, opsional</small></li><li data-t="d_feed_poll_option"><span class="db-op db-op-c">C</span><code>d_feed_poll_option</code><small>minimal 2 opsi</small></li><li data-t="t_global_notifications"><span class="db-op db-op-c">C</span><code>t_global_notifications</code><small>hanya kalau langsung tayang</small></li></ul></td></tr>
             <tr data-t="t_feed_post d_feed_link d_feed_post_media t_global_notifications"><td>Tombol + › Link YouTube / Website</td><td>Publikasikan / Jadwalkan / Simpan Draft</td><td><ul class="db-ops"><li data-t="t_feed_post"><span class="db-op db-op-c">C</span><code>t_feed_post</code><small>post_type link</small></li><li data-t="d_feed_link"><span class="db-op db-op-c">C</span><code>d_feed_link</code><small>platform youtube / web, url, judul, deskripsi</small></li><li data-t="d_feed_post_media"><span class="db-op db-op-c">C</span><code>d_feed_post_media</code><small>1 file thumbnail</small></li><li data-t="t_global_notifications"><span class="db-op db-op-c">C</span><code>t_global_notifications</code><small>hanya kalau langsung tayang</small></li></ul></td></tr>
-            <tr data-t="t_feed_post"><td>Tombol + › Draft &amp; Terjadwal</td><td>Lihat daftar, Edit, Tayangkan, Hapus</td><td><ul class="db-ops"><li data-t="t_feed_post"><span class="db-op db-op-r">R</span><code>t_feed_post</code><small>status draft dan scheduled</small></li><li data-t="t_feed_post"><span class="db-op db-op-u">U</span><code>t_feed_post</code><small>ubah isi atau status</small></li><li data-t="t_feed_post"><span class="db-op db-op-d">D</span><code>t_feed_post</code><small>hapus = isi deleted_at</small></li></ul></td></tr>
+            <tr data-t="t_feed_post"><td>Tombol + › Draft &amp; Terjadwal</td><td>Lihat daftar, Edit, Tayangkan, Hapus</td><td><ul class="db-ops"><li data-t="t_feed_post"><span class="db-op db-op-r">R</span><code>t_feed_post</code><small>status draft (buatan moderator) dan scheduled</small></li><li data-t="t_feed_post"><span class="db-op db-op-u">U</span><code>t_feed_post</code><small>ubah isi atau status</small></li><li data-t="t_feed_post"><span class="db-op db-op-d">D</span><code>t_feed_post</code><small>hapus = isi deleted_at</small></li></ul></td></tr>
           </tbody></table></div>
           <h3>Admin Web</h3><p class="db-note">Menu Marketing Feed di panel admin, dipakai moderator.</p>
           <div class="db-tw"><table class="db-use"><thead><tr><th>Layar</th><th>Klik / tampilan</th><th>Tabel yang dipakai</th></tr></thead><tbody>
-            <tr data-t="t_feed_post d_feed_post_media app_m_user"><td>Konten</td><td>Buka daftar konten dan kartu Terjadwal / Draft / Menunggu Review</td><td><ul class="db-ops"><li data-t="t_feed_post"><span class="db-op db-op-r">R</span><code>t_feed_post</code><small>semua status, dihitung per status</small></li><li data-t="d_feed_post_media"><span class="db-op db-op-r">R</span><code>d_feed_post_media</code><small>thumbnail, termasuk gambar poll</small></li><li data-t="app_m_user"><span class="db-op db-op-r">R</span><code>app_m_user</code><small>teks "oleh ..."</small></li></ul></td></tr>
+            <tr data-t="t_feed_post d_feed_post_media app_m_user"><td>Konten</td><td>Buka daftar konten dan kartu Terjadwal / Draft / Menunggu Review</td><td><ul class="db-ops"><li data-t="t_feed_post"><span class="db-op db-op-r">R</span><code>t_feed_post</code><small>semua status kecuali draft milik sales, dihitung per status</small></li><li data-t="d_feed_post_media"><span class="db-op db-op-r">R</span><code>d_feed_post_media</code><small>thumbnail, termasuk gambar poll</small></li><li data-t="app_m_user"><span class="db-op db-op-r">R</span><code>app_m_user</code><small>teks "oleh ..."</small></li></ul></td></tr>
             <tr data-t="t_feed_post d_feed_link"><td>Konten</td><td>Cari konten</td><td><ul class="db-ops"><li data-t="t_feed_post"><span class="db-op db-op-r">R</span><code>t_feed_post</code><small>body</small></li><li data-t="d_feed_link"><span class="db-op db-op-r">R</span><code>d_feed_link</code><small>title</small></li></ul></td></tr>
             <tr data-t="t_feed_post t_global_notifications"><td>Konten</td><td>Tayangkan / Tayangkan sekarang</td><td><ul class="db-ops"><li data-t="t_feed_post"><span class="db-op db-op-u">U</span><code>t_feed_post</code><small>status published, publish_at = sekarang</small></li><li data-t="t_global_notifications"><span class="db-op db-op-c">C</span><code>t_global_notifications</code><small>notif ke sales</small></li></ul></td></tr>
             <tr data-t="t_feed_post"><td>Konten</td><td>Batalkan jadwal / Tarik ke draft</td><td><ul class="db-ops"><li data-t="t_feed_post"><span class="db-op db-op-u">U</span><code>t_feed_post</code><small>status draft; Tarik ke draft juga mengosongkan pinned_at, pin_user_id, pin_until</small></li></ul></td></tr>
@@ -1407,7 +1488,7 @@ button.db-t:hover{box-shadow:0 0 0 3px var(--db-acc-soft)}
             <tr data-t="t_feed_post"><td>Editor</td><td>Pengaturan interaksi</td><td><ul class="db-ops"><li data-t="t_feed_post"><span class="db-op db-op-u">U</span><code>t_feed_post</code><small>allow_like .. allow_share</small></li></ul></td></tr>
             <tr data-t="t_feed_post t_global_notifications"><td>Editor</td><td>Publikasikan / Jadwalkan</td><td><ul class="db-ops"><li data-t="t_feed_post"><span class="db-op db-op-u">U</span><code>t_feed_post</code><small>status, publish_at</small></li><li data-t="t_global_notifications"><span class="db-op db-op-c">C</span><code>t_global_notifications</code><small>hanya kalau langsung tayang</small></li></ul></td></tr>
             <tr data-t="t_feed_post"><td>Editor</td><td>Bagian "Sematkan di Feed" (hanya saat edit konten yang sudah tayang)</td><td><ul class="db-ops"><li data-t="t_feed_post"><span class="db-op db-op-u">U</span><code>t_feed_post</code><small>pinned_at, pin_user_id, pin_until (Sampai dilepas = NULL, atau 1/3/7 hari)</small></li></ul></td></tr>
-            <tr data-t="t_feed_post"><td>Kalender Jadwal</td><td>Tab Draft / Terjadwal</td><td><ul class="db-ops"><li data-t="t_feed_post"><span class="db-op db-op-r">R</span><code>t_feed_post</code><small>status draft / scheduled</small></li></ul></td></tr>
+            <tr data-t="t_feed_post"><td>Kalender Jadwal</td><td>Tab Draft / Terjadwal</td><td><ul class="db-ops"><li data-t="t_feed_post"><span class="db-op db-op-r">R</span><code>t_feed_post</code><small>status draft buatan moderator / scheduled</small></li></ul></td></tr>
             <tr data-t="t_feed_post d_feed_post_media app_m_user"><td>Review Kiriman Sales</td><td>Buka daftar kiriman</td><td><ul class="db-ops"><li data-t="t_feed_post"><span class="db-op db-op-r">R</span><code>t_feed_post</code><small>status review</small></li><li data-t="d_feed_post_media"><span class="db-op db-op-r">R</span><code>d_feed_post_media</code><small>foto kiriman</small></li><li data-t="app_m_user"><span class="db-op db-op-r">R</span><code>app_m_user</code><small>nama dan jabatan pengirim</small></li></ul></td></tr>
             <tr data-t="t_feed_post"><td>Review Kiriman Sales</td><td>Toggle "Izinkan komentar"</td><td><ul class="db-ops"><li data-t="t_feed_post"><span class="db-op db-op-u">U</span><code>t_feed_post</code><small>allow_comment, allow_reply</small></li></ul></td></tr>
             <tr data-t="t_feed_post t_global_notifications"><td>Review Kiriman Sales</td><td>Setujui &amp; tayangkan</td><td><ul class="db-ops"><li data-t="t_feed_post"><span class="db-op db-op-u">U</span><code>t_feed_post</code><small>status published, review_user_id, review_date</small></li><li data-t="t_global_notifications"><span class="db-op db-op-c">C</span><code>t_global_notifications</code><small>notif ke pengirim dan sales</small></li></ul></td></tr>
@@ -1434,6 +1515,10 @@ button.db-t:hover{box-shadow:0 0 0 3px var(--db-acc-soft)}
                 <tr><td class="db-new">dibuat baru</td><td>Publikasikan</td><td><span class="db-st db-st-published">published</span></td><td>Moderator</td></tr>
                 <tr><td class="db-new">dibuat baru</td><td>Jadwalkan</td><td><span class="db-st db-st-scheduled">scheduled</span></td><td>Moderator</td></tr>
                 <tr><td class="db-new">dibuat baru</td><td>Bagikan Momen</td><td><span class="db-st db-st-review">review</span></td><td>Sales</td></tr>
+                <tr><td class="db-new">dibuat baru</td><td>Bagikan Momen › Simpan draft</td><td><span class="db-st db-st-draft">draft</span></td><td>Sales</td></tr>
+                <tr><td><span class="db-st db-st-draft">draft</span> milik sales</td><td>Kirim untuk ditinjau</td><td><span class="db-st db-st-review">review</span></td><td>Sales</td></tr>
+                <tr><td><span class="db-st db-st-rejected">rejected</span></td><td>Perbaiki &amp; kirim ulang</td><td><span class="db-st db-st-review">review</span></td><td>Sales (pengirim)</td></tr>
+                <tr><td><span class="db-st db-st-rejected">rejected</span></td><td>Perbaiki, lalu Simpan ke Draft</td><td><span class="db-st db-st-draft">draft</span></td><td>Sales (pengirim)</td></tr>
                 <tr><td><span class="db-st db-st-draft">draft</span></td><td>Tayangkan</td><td><span class="db-st db-st-published">published</span></td><td>Moderator</td></tr>
                 <tr><td><span class="db-st db-st-draft">draft</span></td><td>Jadwalkan</td><td><span class="db-st db-st-scheduled">scheduled</span></td><td>Moderator</td></tr>
                 <tr><td><span class="db-st db-st-scheduled">scheduled</span></td><td>Waktu tayang tiba</td><td><span class="db-st db-st-published">published</span></td><td>Scheduler</td></tr>
@@ -1443,12 +1528,13 @@ button.db-t:hover{box-shadow:0 0 0 3px var(--db-acc-soft)}
                 <tr><td><span class="db-st db-st-review">review</span></td><td>Setujui &amp; tayangkan</td><td><span class="db-st db-st-published">published</span></td><td>Moderator</td></tr>
                 <tr><td><span class="db-st db-st-review">review</span></td><td>Setujui &amp; jadwalkan</td><td><span class="db-st db-st-scheduled">scheduled</span></td><td>Moderator</td></tr>
                 <tr><td><span class="db-st db-st-review">review</span></td><td>Tolak (alasan wajib)</td><td><span class="db-st db-st-rejected">rejected</span></td><td>Moderator</td></tr>
-                <tr><td><span class="db-st db-st-draft">draft</span> <span class="db-st db-st-rejected">rejected</span></td><td>Hapus</td><td>soft delete (<code>deleted_at</code>)</td><td>Moderator</td></tr>
+                <tr><td><span class="db-st db-st-draft">draft</span> <span class="db-st db-st-rejected">rejected</span></td><td>Hapus</td><td>soft delete (<code>deleted_at</code>)</td><td>Moderator; Sales untuk draft &amp; kiriman ditolak miliknya</td></tr>
               </tbody>
             </table>
           </div>
           <p class="db-note">Setiap kali status berubah ke <code>published</code>, <code>publish_at</code> diisi waktu saat itu, kecuali post yang tayang dari jadwal: itu memakai waktu jadwalnya.</p>
           <p class="db-note">Sematan (pin) bukan status. Kolomnya terpisah (<code>pinned_at</code>) dan hanya berlaku selama status <code>published</code>; keluar dari <code>published</code> berarti sematan ikut dilepas.</p>
+          <p class="db-note">Sematan profil (<code>profile_pin_at</code>) juga bukan status, dan hanya dihitung selama status <code>published</code>.</p>
         </section>
 
         <section id="db-aturan">
@@ -1458,6 +1544,9 @@ button.db-t:hover{box-shadow:0 0 0 3px var(--db-acc-soft)}
             <li><b>Visibilitas feed:</b> <code>status = 'published' AND deleted_at IS NULL AND (project_id IS NULL OR project_id IN &lt;project user&gt;)</code>, urut <code>publish_at DESC</code>. Di halaman 1, kiriman milik user sendiri yang berstatus <code>review</code>/<code>rejected</code> ditaruh paling atas, lalu konten yang disematkan, baru feed biasa.</li>
             <li><b>Sematan (pin):</b> hanya konten <code>published</code>. Konten dianggap disematkan kalau <code>pinned_at</code> terisi dan (<code>pin_until</code> NULL atau masih di masa depan). Maksimal 3 sekaligus, dicek di backend saat menyematkan (bukan constraint DB). Di app, konten yang disematkan diambil dengan query terpisah (<code>status = 'published' AND pinned_at IS NOT NULL AND (pin_until IS NULL OR pin_until &gt; NOW())</code>, urut <code>pinned_at DESC</code>) dan hanya di halaman 1; query feed biasa mengecualikannya supaya tidak muncul dua kali.</li>
             <li><b>Lepas sematan</b> terjadi saat moderator menekan Lepas sematan, konten ditarik ke draft atau dihapus, atau scheduler menemukan <code>pin_until &lt;= NOW()</code>. Ketiganya mengosongkan <code>pinned_at</code>, <code>pin_user_id</code>, dan <code>pin_until</code>.</li>
+            <li><b>Draft sales:</b> Bagikan Momen bisa disimpan sebagai <code>status = 'draft'</code> (source mobile). Draft hanya terlihat oleh pembuatnya (Kiriman Saya › Draft): tidak masuk feed dan tidak tampil di Admin Web maupun di Draft &amp; Terjadwal moderator. Kirim untuk ditinjau mengubahnya ke <code>review</code>. Admin Web tidak menyediakan "Tarik ke draft" untuk kiriman sales, supaya draft sales selalu milik pembuatnya.</li>
+            <li><b>Kiriman ditolak:</b> hanya terlihat oleh pengirimnya. Di Kiriman Saya kiriman ini ditampung di folder Ditolak (terpisah dari grid, seperti folder Draft) bersama alasannya. Pengirim bisa memperbaiki lalu mengirim ulang (<code>rejected</code> → <code>review</code>, alasan dan data review lama dikosongkan), memindahkannya ke draft, atau menghapusnya. Selama belum diperbaiki, kiriman tetap tampil di atas feed pengirim sesuai aturan visibilitas feed.</li>
+            <li><b>Sematan profil (seperti TikTok):</b> sales bisa menyematkan maks. 3 kiriman miliknya yang <code>published</code> lewat <code>profile_pin_at</code>. Di profilnya (Kiriman Saya, atau profil yang dibuka dari feed), kiriman itu tampil paling depan, urut <code>profile_pin_at DESC</code>, lalu sisanya <code>publish_at DESC</code>. Batas 3 dicek di backend. Urutan feed tidak berubah; sematan di atas feed tetap memakai <code>pinned_at</code> dari moderator. Orang lain hanya melihat kiriman <code>published</code>.</li>
             <li><b>Edit post yang sudah tayang</b> langsung berlaku di app. <code>post_type</code> tidak boleh diganti.</li>
             <li><b>Pengaturan interaksi</b> divalidasi di backend, bukan cuma di UI. Komentar butuh <code>allow_comment = 1</code>; balasan butuh <code>allow_comment = 1</code> dan <code>allow_reply = 1</code>. Like/dislike ditolak kalau <code>allow_like</code>/<code>allow_dislike</code> = 0.</li>
             <li><b>Balasan komentar</b> maksimal 1 tingkat: <code>parent_comment_id</code> harus menunjuk komentar yang <code>parent_comment_id</code>-nya NULL.</li>
@@ -1490,6 +1579,7 @@ button.db-t:hover{box-shadow:0 0 0 3px var(--db-acc-soft)}
             <li><div><b>Platform link:</b> Flutter saat ini hanya mengenal <code>youtube</code>/<code>web</code>, sedangkan prototype punya <code>blog</code>. Enum backend dan app perlu disamakan.</div></li>
             <li><div><b>Progress Kamu:</b> pemetaan <code>m_prospect_status</code> ke 5 tahap funnel, dan periode hitungnya (kontak dibuat bulan ini, atau status berubah bulan ini), perlu dikonfirmasi.</div></li>
             <li><div><b>Sematan per project:</b> sekarang sematan mengikuti target post (<code>project_id</code>), dan batas 3 dihitung global. Kalau post "Semua project" perlu disematkan di satu project saja, atau batasnya per project, kolom pin dipindah ke tabel <code>t_feed_pin (feed_post_id, project_id, pinned_at, pin_user_id, pin_until)</code>.</div></li>
+            <li><div><b>Umur draft sales:</b> disimpan sampai dihapus sendiri seperti TikTok, atau dihapus otomatis setelah sekian hari (mis. 30 hari) supaya media di storage tidak menumpuk?</div></li>
             <li><div><b>Storage media:</b> foto/video feed dan Wall of Fame tidak disimpan di Google Drive. Storage penggantinya (dan cara membentuk URL dari <code>file_path</code>) masih menyusul.</div></li>
           </ol>
         </section>
@@ -1559,6 +1649,7 @@ Object.assign(P,{
  mobile:"M17 1.01L7 1c-1.1 0-2 .9-2 2v18c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V3c0-1.1-.9-1.99-2-1.99zM17 19H7V5h10v14z",
  desktop:"M20 18c1.1 0 1.99-.9 1.99-2L22 6c0-1.1-.9-2-2-2H4c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2H0v2h24v-2h-4zM4 6h16v10H4V6z",
  ffwd:"M4 18l8.5-6L4 6v12zm9-12v12l8.5-6L13 6z",
+ history:"M13 3c-4.97 0-9 4.03-9 9H1l3.89 3.89.07.14L9 12H6c0-3.87 3.13-7 7-7s7 3.13 7 7-3.13 7-7 7c-1.93 0-3.68-.79-4.94-2.06l-1.42 1.42C8.27 19.99 10.51 21 13 21c4.97 0 9-4.03 9-9s-4.03-9-9-9zm-1 5v5l4.28 2.54.72-1.21-3.5-2.08V8H12z",
  link:"M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z",
  block:"M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zM4 12c0-4.42 3.58-8 8-8 1.85 0 3.55.63 4.9 1.69L5.69 16.9C4.63 15.55 4 13.85 4 12zm8 8c-1.85 0-3.55-.63-4.9-1.69L18.31 7.1C19.37 8.45 20 10.15 20 12c0 4.42-3.58 8-8 8z",
  more:"M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"
@@ -1780,7 +1871,7 @@ const SETS=[['like','Izinkan Like'],['dislike','Izinkan Dislike'],['comment','Iz
 const on=(x={})=>({like:1,dislike:1,comment:1,reply:1,share:1,...x});
 let seq=1;
 const cm=(a,text,agoMs,likes=0,replies=[])=>({id:seq++,a,text,at:clock-agoMs,likes,liked:0,hidden:0,replies});
-const P_=o=>({id:seq++,type:'post',status:'published',a:MOD,pillar:'tips',project:'Semua',text:'',media:[],set:on(),at:clock,likes:0,dislikes:0,my:0,comments:[],via:'admin',pinAt:null,pinUntil:null,...o});
+const P_=o=>({id:seq++,type:'post',status:'published',a:MOD,pillar:'tips',project:'Semua',text:'',media:[],set:on(),at:clock,likes:0,dislikes:0,my:0,comments:[],via:'admin',pinAt:null,pinUntil:null,profilePinAt:null,...o});
 
 const posts=[
  P_({pillar:'tips',project:'PAR2',at:clock-2*HOUR,likes:128,dislikes:3,
@@ -1813,7 +1904,22 @@ const posts=[
    text:'🎉 Selamat <b>Tari Wulan</b> (PAR2) untuk SP pertamanya! Welcome to the club.',media:[{k:'award',o:{big:'SP PERTAMA',name:'Tari Wulan',sub:'Sales PAR2 · Oktober 2026',seed:23}}]}),
  P_({a:FR,pillar:'sales',project:'PRC',at:clock-98*HOUR,likes:41,dislikes:2,via:'mobile',
    text:'Open house PRC kemarin rame banget! 23 keluarga datang, 5 lanjut appointment minggu ini.',media:[{k:'openhouse'},{k:'kpr'}],
-   comments:[cm(MOD,'Keren tim PRC! Foto-fotonya boleh kami pakai untuk Instagram ya 🙌',90*HOUR,8)]}),
+   comments:[cm(MOD,'Keren tim PRC! Foto-fotonya boleh kami pakai untuk Instagram ya 🙌',90*HOUR,8)],profilePinAt:clock-90*HOUR}),
+ P_({a:FR,pillar:'sales',project:'PRC',at:clock-30*HOUR,likes:18,via:'mobile',
+   text:'Briefing pagi tim PRC sebelum pameran akhir pekan. Target 40 leads!',media:[{k:'kpr'}]}),
+ /* kiriman lama Budi (user login): tampil di feed dan di profilnya; satu disematkan di profil */
+ P_({a:ME,pillar:'sales',project:'PAR1',at:clock-5*DAY,likes:64,via:'mobile',profilePinAt:clock-4*DAY,
+   text:'Closing 3 unit sekaligus di pameran Mall Kelapa Gading! Makasih tim PAR1 🙌',media:[{k:'booth',o:{}},{k:'sp',o:{title:'3 unit dalam 1 hari!',seed:5}}]}),
+ P_({a:ME,pillar:'sales',project:'PAR1',at:clock-9*DAY,likes:28,via:'mobile',
+   text:'Site visit sore bareng keluarga Pak Hartono, langsung jatuh hati sama fasadnya.',media:[{k:'house',o:{tone:'dusk',label:'Tipe 60/90'}}]}),
+ /* kiriman Budi yang ditolak: ditampung di Kiriman Saya › Ditolak, bisa diperbaiki & dikirim ulang */
+ P_({status:'rejected',a:ME,pillar:'sales',project:'PAR1',at:clock-26*HOUR,via:'mobile',reason:'Foto kurang jelas, mohon upload ulang yang lebih terang',
+   text:'Serah terima kunci unit Pak Darmawan sore ini 🔑',media:[{k:'house',o:{label:'Tipe 60/90'}}]}),
+ /* draft pribadi Budi: hanya terlihat di Kiriman Saya › Draft */
+ P_({status:'draft',a:ME,pillar:'sales',project:'PAR1',at:clock-40*MIN,via:'mobile',
+   text:'Persiapan open house Sabtu ini, booth sudah 80% siap!',media:[{k:'openhouse'}]}),
+ P_({status:'draft',a:ME,pillar:'sales',project:'PAR1',at:clock-2*DAY,via:'mobile',
+   text:'Tips dari lapangan: tanya dulu kebutuhan kamar sebelum menunjuk tipe unit.'}),
 
  /* terjadwal — akan tayang otomatis saat jam simulasi mencapai waktunya */
  P_({status:'scheduled',pillar:'produk',project:'PAR2',at:clock+4*MIN,
@@ -1851,6 +1957,12 @@ const thumbOf=p=>p.media?.[0]||p.poll?.img||null;
 const MAX_PIN=3;
 const isPinned=p=>p.status==='published'&&!!p.pinAt&&(!p.pinUntil||p.pinUntil>clock);
 const unpin=p=>{p.pinAt=p.pinUntil=null};
+/* sematan di profil sales (seperti TikTok): profilePinAt = profile_pin_at. Terpisah dari sematan feed di atas;
+   hanya kiriman tayang, maks. MAX_PROFILE_PIN per sales, dan hanya terlihat di profilnya */
+const MAX_PROFILE_PIN=3;
+const profilePinned=p=>p.status==='published'&&!!p.profilePinAt;
+/* draft milik sales bersifat pribadi: tidak tampil di Admin Web */
+const isSalesDraft=p=>p.status==='draft'&&p.a.role!=='mod';
 /* false = slot sudah penuh; kalau sudah disematkan, cuma batas waktunya yang diganti */
 function pinPost(p,until=null){
   if(!isPinned(p)){if(posts.filter(isPinned).length>=MAX_PIN)return false;p.pinAt=clock}
@@ -1911,7 +2023,9 @@ renderFame();
 /* ---------- MOBILE: kartu feed (dipakai juga untuk preview di Admin Web) ---------- */
 function headHTML(p){
   const a=p.a,sub=p.status==='published'?`${ago(p.at)} · ${p.label||p.project}`:p.status==='scheduled'?`Terjadwal · ${when(p.at)}`:p.status==='draft'?'Draft':`Dikirim ${ago(p.at)}`;
-  return `<div class="row"><div class="pav" style="background:${a.color}">${a.ini}</div><div style="min-width:0"><span class="name">${a.name}</span><div class="small">${sub}</div></div></div>`;
+  const who=`<div class="pav" style="background:${a.color}">${a.ini}</div><div style="min-width:0"><span class="name">${a.name}</span><div class="small">${sub}</div></div>`;
+  /* sales punya profil seperti TikTok: ketuk nama/foto untuk melihat kiriman yang disematkannya */
+  return a.role==='mod'?`<div class="row">${who}</div>`:`<button class="row who" data-act="profile" aria-label="Lihat profil ${a.name}">${who}</button>`;
 }
 function carousel(media){
   if(media.length===1)return `<div class="media one">${art(media[0])}</div>`;
@@ -1955,21 +2069,24 @@ function renderFeed(){
 const notify=m=>{toast(m);atoast(m)};
 const scrollFeedTop=()=>$('#feed').scrollTo({top:$('#stream').previousElementSibling.offsetTop-16,behavior:'smooth'});
 
-$('#feed').addEventListener('scroll',e=>{const s=e.target;if(!s.classList||!s.classList.contains('slides'))return;
+/* dipakai feed dan detail kiriman di profil */
+function slideSync(e){const s=e.target;if(!s.classList||!s.classList.contains('slides'))return;
   const i=Math.round(s.scrollLeft/s.clientWidth),m=s.parentElement;
   m.querySelector('.count').textContent=`${i+1}/${s.children.length}`;
   m.querySelectorAll('.dots i').forEach((d,j)=>d.classList.toggle('on',i===j));
-},true);
-$('#feed').addEventListener('click',e=>{
+}
+function cardClick(e){
   const t=e.target.closest('[data-act],[data-opt],[data-open]');if(!t)return;
   if(t.dataset.open){openScreen(t.dataset.open);return}
-  const card=t.closest('[data-id]'),p=byId(card.dataset.id);
+  const card=t.closest('[data-id]'),p=byId(card.dataset.id),inFeed=e.currentTarget.id==='feed';
   if(t.dataset.opt!==undefined){
     if(p.voted)return;const i=+t.dataset.opt,s=p.sel||[];
     p.sel=p.poll.multi?(s.includes(i)?s.filter(x=>x!==i):[...s,i]):[i];
     card.querySelector('.pollbox').outerHTML=pollHTML(p);return;
   }
   switch(t.dataset.act){
+    /* detail kiriman selalu dibuka dari profil penulisnya, jadi cukup kembali ke profil */
+    case 'profile':if(inFeed)openProfile(p.a);else closeScreen('sPostView');return;
     case 'like':p.my=p.my===1?0:1;break;
     case 'dislike':p.my=p.my===-1?0:-1;break;
     case 'share':toast('Link post disalin, siap dibagikan ke WhatsApp');return;
@@ -1977,7 +2094,10 @@ $('#feed').addEventListener('click',e=>{
     case 'vote':p.sel.forEach(i=>p.poll.votes[i]++);p.poll.n++;p.voted=true;card.querySelector('.pollbox').outerHTML=pollHTML(p);toast('Jawaban terkirim');return;
   }
   card.querySelector('.fa').outerHTML=footHTML(p);
-});
+  if(!inFeed)changed();
+}
+$('#feed').addEventListener('scroll',slideSync,true);
+$('#feed').addEventListener('click',cardClick);
 
 /* ---------- MOBILE: komentar (bottom sheet) ---------- */
 let cPost=null,replyTo=null;
@@ -2010,26 +2130,95 @@ $('#cform').addEventListener('submit',e=>{
   const el=$('#clist');el.scrollTop=el.scrollHeight;
 });
 
-/* ---------- MOBILE: form post / poll / link / bagikan (moderator & sales) ---------- */
-const form={post:{},poll:{},link:{},share:{media:[{k:'openhouse'}]}};
-const formId=k=>'s'+k[0].toUpperCase()+k.slice(1);
-const LFIELD={url:'#linkUrl',chan:'#linkChan',title:'#linkTtl',desc:'#linkDesc'};
-/* isi contoh form Link per platform */
-const LSAMPLE={yt:{url:'https://www.youtube.com',chan:LINKSRC.yt[1],title:'Tur Show Unit Cluster Aurora Tipe 60/90',desc:'Video 6 menit keliling unit contoh, pas buat buyer yang belum sempat datang ke lokasi.'},
-  web:{url:'https://paradise.co.id',chan:LINKSRC.web[1],title:'Price List & Siteplan Cluster Aurora',desc:'Halaman resmi: harga terbaru, unit yang masih tersedia, dan simulasi KPR.'}};
+/* ---------- MOBILE: action sheet (pilihan aksi dari bawah, seperti menu "..." di TikTok) ---------- */
+let asItems=[];
+function ask(title,msg,items,cancel='Batal'){
+  const s=$('#asheet'),m=$('#asMsg');clearTimeout(s._t);asItems=items;
+  $('#asTitle').textContent=title;m.textContent=msg||'';m.hidden=!msg;
+  $('#asBtns').innerHTML=items.map((it,i)=>`<button class="as-b ${it.cls||''}" data-as="${i}">${ic(it.ic,20)}${it.label}</button>`).join('')+`<button class="as-b cancel" data-as-close>${cancel}</button>`;
+  s.hidden=false;requestAnimationFrame(()=>requestAnimationFrame(()=>s.classList.add('open')));
+}
+function closeAsk(){const s=$('#asheet');s.classList.remove('open');s._t=setTimeout(()=>s.hidden=true,200)}
+$('#asheet').addEventListener('click',e=>{
+  if(e.target.closest('[data-as-close]'))return closeAsk();
+  const b=e.target.closest('[data-as]');if(b){closeAsk();asItems[+b.dataset.as].fn()}
+});
+
+/* ---------- MOBILE: Bagikan Momen (sales). Seperti TikTok, kiriman bisa disimpan dulu sebagai draft pribadi ---------- */
+const SHARE_SAMPLE='Barusan site visit bareng keluarga Pak Hartono di Cluster Aurora, langsung minta simulasi KPR! 🙌';
+/* editId = kiriman sendiri yang sedang diubah: draft yang dilanjutkan atau kiriman ditolak yang diperbaiki (null = kiriman baru);
+   from = new | draft | rejected; dirty = ada perubahan sejak form dibuka */
+const form={post:{},poll:{},link:{},share:{media:[]}};
+const SHARE_TITLE={new:'Bagikan Kontenmu',draft:'Lanjutkan Draft',rejected:'Perbaiki Kiriman'};
 let sampleI=3;const nextSample=()=>({...SAMPLES[sampleI++%SAMPLES.length]});
 let pickFor=null;
 $('#filePick').onchange=e=>{[...e.target.files].forEach(f=>pickFor&&pickFor({url:URL.createObjectURL(f),cap:f.name,kind:f.type.startsWith('video')?'video':'image'}));e.target.value='';pickFor=null};
 const pick=(cb,multi=true)=>{pickFor=cb;$('#filePick').multiple=multi;$('#filePick').click()};
 
 const tiles=m=>m.map((x,i)=>`<div class="up has">${art(x)}<button class="rm" data-rm-media="${i}" aria-label="Hapus media">${ic('close',14)}</button></div>`).join('')+(m.length<6?`<button class="up" data-add-media aria-label="Upload foto">${ic('upload',22)}<span>Upload</span></button><button class="up" data-sample aria-label="Pakai gambar contoh">${ic('image',22)}<span>Contoh</span></button>`:'');
+const drawShare=()=>$('#shareMedia').innerHTML=tiles(form.share.media);
+function openShare(p){
+  const from=!p?'new':p.status==='rejected'?'rejected':'draft',r=$('#shareReason');
+  form.share={editId:p?.id||null,from,media:p?[...p.media]:[{k:'openhouse'}],dirty:false};
+  $('#shareTxt').value=p?unesc(plain(p)):SHARE_SAMPLE;
+  $('#shareTitle').textContent=SHARE_TITLE[from];
+  $('#sShare [data-submit]').textContent=from==='rejected'?'Kirim Ulang':'Kirim untuk Ditinjau';
+  r.hidden=from!=='rejected';
+  if(!r.hidden)r.innerHTML=`${ic('block',16)}<span>Ditolak moderator: ${p.reason||'belum sesuai pedoman konten'}</span>`;
+  drawShare();$('#sShare').classList.add('open');
+}
+function openScreen(id){
+  if(id==='sShare')return openShare();
+  if(id==='sProfile')return openProfile(ME);
+  if(id==='sPost')return openPostForm();
+  if(id==='sPoll')return openPollForm();
+  if(id==='sLink')return openLinkForm();
+  if(id==='sDrafts')renderDrafts();
+  document.getElementById(id).classList.add('open');
+}
+const closeScreen=id=>document.getElementById(id).classList.remove('open');
+
+/* keluar dari form yang ada isinya: tawarkan simpan ke draft, seperti TikTok */
+function leaveShare(){
+  const f=form.share;
+  if(!(f.dirty||f.from==='new')||(!$('#shareTxt').value.trim()&&!f.media.length))return closeScreen('sShare');
+  ask(f.from==='draft'?'Simpan perubahan draft?':'Simpan sebagai draft?',`${f.from==='rejected'?'Perbaikanmu':'Kirimanmu'} belum dikirim. Draft hanya bisa kamu lihat dan bisa dilanjutkan kapan saja dari Kiriman Saya.`,
+    [{label:'Simpan ke Draft',ic:'draft',fn:()=>shareSave('draft')},{label:f.from==='new'?'Buang':'Buang perubahan',ic:'trash',cls:'bad',fn:()=>closeScreen('sShare')}],'Lanjut edit');
+}
+$('#sShare').addEventListener('click',e=>{
+  const f=form.share,t=e.target;
+  if(t.closest('[data-close]'))return leaveShare();
+  const rm=t.closest('[data-rm-media]');if(rm){f.media.splice(+rm.dataset.rmMedia,1);f.dirty=true;drawShare();return}
+  if(t.closest('[data-add-media]')){pick(m=>{f.media.push(m);f.dirty=true;drawShare()});return}
+  if(t.closest('[data-sample]')){f.media.push(nextSample());f.dirty=true;drawShare();return}
+  if(t.closest('[data-submit]'))return shareSave('submit');
+  if(t.closest('[data-save-draft]'))return shareSave('draft');
+});
+$('#shareTxt').addEventListener('input',()=>form.share.dirty=true);
+function shareSave(action){
+  const f=form.share,v=$('#shareTxt').value.trim();
+  if(!v&&!f.media.length){toast('Tulis cerita atau tambahkan foto dulu');return}
+  /* kirim ulang kiriman ditolak (atau memindahkannya ke draft) mengosongkan alasan penolakan lama */
+  const d={text:esc(v),media:[...f.media],at:clock,status:action==='draft'?'draft':'review',reason:null},ex=f.editId&&byId(f.editId);
+  if(ex)Object.assign(ex,d);else posts.push(P_({...d,a:ME,pillar:'sales',project:'PAR1',via:'mobile'}));
+  closeScreen('sShare');changed();
+  if(action==='draft'){toast('Tersimpan di Draft. Lanjutkan kapan saja dari Kiriman Saya');return}
+  if(!isOpen('sProfile'))scrollFeedTop();
+  toast(f.from==='rejected'?'Terkirim ulang! Tim Marketing akan meninjau lagi kirimanmu':'Terkirim! Tim Marketing akan meninjau kirimanmu');
+}
+
+/* ---------- MOBILE: form post / poll / link (moderator) ---------- */
+const formId=k=>'s'+k[0].toUpperCase()+k.slice(1);
+const LFIELD={url:'#linkUrl',chan:'#linkChan',title:'#linkTtl',desc:'#linkDesc'};
+/* isi contoh form Link per platform */
+const LSAMPLE={yt:{url:'https://www.youtube.com',chan:LINKSRC.yt[1],title:'Tur Show Unit Cluster Aurora Tipe 60/90',desc:'Video 6 menit keliling unit contoh, pas buat buyer yang belum sempat datang ke lokasi.'},
+  web:{url:'https://paradise.co.id',chan:LINKSRC.web[1],title:'Price List & Siteplan Cluster Aurora',desc:'Halaman resmi: harga terbaru, unit yang masih tersedia, dan simulasi KPR.'}};
 const setHTML=s=>SETS.map(([k,a,b])=>{const dis=k==='reply'&&!s.comment;return `<div class="tg ${k==='reply'?'sub':''} ${dis?'dis':''}"><div>${a}${b?`<div class="small">${b}</div>`:''}</div><button class="sw" role="switch" data-set="${k}" aria-checked="${!!s[k]&&!dis}" aria-label="${a}" ${dis?'disabled':''}></button></div>`}).join('');
 const schedHint=f=>f.mode==='later'?`${ic('clock',13)}<span>Tayang otomatis <b>${isNaN(f.at)?'—':when(f.at)}</b>. Sampai saat itu tersimpan di Draft &amp; Terjadwal.</span>`:'<span>Langsung tayang di Marketing Feed setelah dipublikasikan.</span>';
 const schedHTML=f=>`<div class="seg"><button data-v="now" aria-pressed="${f.mode==='now'}">${ic('send',16)}Sekarang</button><button data-v="later" aria-pressed="${f.mode==='later'}">${ic('clock',16)}Jadwalkan</button></div>${f.mode==='later'?`<div class="when"><input type="date" data-d value="${toDateInput(f.at)}" aria-label="Tanggal tayang"><input type="time" data-t value="${hhmm(f.at)}" aria-label="Jam tayang"></div>`:''}<div class="small hint" data-hint>${schedHint(f)}</div>`;
 
 function drawForm(kind){
   const f=form[kind],s=$('#'+formId(kind));
-  if(kind==='share'){$('#shareMedia').innerHTML=tiles(f.media);return}
   if(kind==='post')$('#postMedia').innerHTML=tiles(f.media);
   /* app hanya mengenal YouTube & Website; Blog muncul saat mengedit link blog buatan Admin Web */
   if(kind==='link'){const ks=Object.keys(LINKSRC).filter(k=>k!=='blog'||f.src==='blog');
@@ -2075,18 +2264,10 @@ function setLinkSrc(src){
   for(const k in LFIELD){const el=$(LFIELD[k]);if(!el.value.trim()||el.value===a[k])el.value=b[k]||''}
   f.src=src;f.media=[];drawForm('link');
 }
-function openScreen(id){
-  if(id==='sPost')return openPostForm();
-  if(id==='sPoll')return openPollForm();
-  if(id==='sLink')return openLinkForm();
-  if(id==='sShare')drawForm('share');
-  if(id==='sDrafts')renderDrafts();
-  document.getElementById(id).classList.add('open');
-}
-const closeScreen=id=>document.getElementById(id).classList.remove('open');
 
 phone.addEventListener('click',e=>{
-  const sc=e.target.closest('.screen[data-form]');if(!sc)return;
+  /* form Bagikan Momen punya handler sendiri (draft, kirim ulang) */
+  const sc=e.target.closest('.screen[data-form]');if(!sc||sc.id==='sShare')return;
   const kind=sc.dataset.form,f=form[kind],t=e.target;
   if(t.closest('[data-close]')){closeScreen(sc.id);return}
   const sw=t.closest('.sw[data-set]');if(sw){const k=sw.dataset.set;f.set[k]=f.set[k]?0:1;if(k==='comment'&&!f.set.comment)f.set.reply=0;if(k==='comment'&&f.set.comment)f.set.reply=1;drawForm(kind);return}
@@ -2107,18 +2288,13 @@ phone.addEventListener('click',e=>{
   if(t.closest('[data-save-draft]'))return save(kind,'draft');
 });
 phone.addEventListener('input',e=>{
-  const sc=e.target.closest('.screen[data-form]');if(!sc)return;const f=form[sc.dataset.form];
+  const sc=e.target.closest('.screen[data-form]');if(!sc||sc.id==='sShare')return;const f=form[sc.dataset.form];
   if(e.target.dataset.i!==undefined)f.answers[e.target.dataset.i]=e.target.value;
   if(e.target.matches('[data-d],[data-t]')){f.at=fromInputs(sc.querySelector('[data-d]').value,sc.querySelector('[data-t]').value);sc.querySelector('[data-hint]').innerHTML=schedHint(f)}
   else if(sc.dataset.form==='link')drawLinkPrev();
 });
 function save(kind,action){
   const f=form[kind];
-  if(kind==='share'){
-    const v=$('#shareTxt').value.trim();if(!v&&!f.media.length){toast('Tulis cerita atau tambahkan foto dulu');return}
-    posts.push(P_({status:'review',a:ME,pillar:'sales',project:'PAR1',via:'mobile',text:esc(v),media:[...f.media],at:clock}));
-    closeScreen('sShare');changed();scrollFeedTop();toast('Terkirim! Tim Marketing akan meninjau kirimanmu');return;
-  }
   let d;
   if(kind==='post'){const v=$('#postTxt').value.trim();if(!v&&!f.media.length){toast('Isi caption atau tambahkan media');return}d={type:'post',text:esc(v),media:[...f.media]}}
   else if(kind==='link'){if(!$('#linkUrl').value.trim()||!$('#linkTtl').value.trim()){toast('Isi URL dan judul link dulu');return}d=linkData()}
@@ -2139,7 +2315,8 @@ function save(kind,action){
 
 /* ---------- MOBILE: Draft & Terjadwal (moderator) ---------- */
 function renderDrafts(){
-  const list=posts.filter(p=>p.status==='scheduled'||p.status==='draft').sort((a,b)=>a.status===b.status?a.at-b.at:a.status==='scheduled'?-1:1);
+  /* draft milik sales bersifat pribadi, jadi tidak ikut di sini */
+  const list=posts.filter(p=>(p.status==='scheduled'||p.status==='draft')&&!isSalesDraft(p)).sort((a,b)=>a.status===b.status?a.at-b.at:a.status==='scheduled'?-1:1);
   $('#draftList').innerHTML=`<div class="info">Post terjadwal tayang otomatis sesuai jam. Draft &amp; jadwal dari Admin Web juga muncul di sini.</div>`+(list.length?list.map(p=>{const th=thumbOf(p);
     return `<div class="drow" data-id="${p.id}"><div class="dthumb">${th?art(th):ic(p.type==='poll'?'poll':'article',24)}</div><div class="dmid"><span class="sbadge ${p.status}">${p.status==='draft'?'Draft':'Terjadwal'}</span><b>${plain(p)}</b><span class="small">${p.status==='scheduled'?`${ic('clock',13)} ${when(p.at)}`:`Diubah ${ago(p.at)}`} · dari ${p.via==='admin'?'Admin Web':'App'}</span>
     <div class="dact"><button data-dedit>${ic('edit',15)}Edit</button><button data-dnow>${ic('send',15)}Tayangkan</button><button data-ddel class="del">${ic('trash',15)}Hapus</button></div></div></div>`}).join(''):`<div class="empty">${ic('draft',36,'var(--grey10)')}<b>Belum ada draft</b><span>Simpan post sebagai draft atau jadwalkan dari form Post Baru.</span></div>`);
@@ -2151,13 +2328,88 @@ $('#sDrafts').addEventListener('click',e=>{
   else if(e.target.closest('[data-dnow]')){p.status='published';p.at=clock;changed();toast('Post ditayangkan sekarang')}
   else if(e.target.closest('[data-ddel]')){posts.splice(posts.indexOf(p),1);changed();toast('Draft dihapus')}
 });
+
+/* ---------- MOBILE: profil sales = Kiriman Saya. Seperti profil TikTok: folder Draft & Ditolak paling depan, lalu kiriman yang disematkan ---------- */
+let profUser=null,pvId=null;
+const likesOf=p=>p.likes+(p.my===1?1:0);
+/* folder pribadi pemilik: kiriman yang belum / tidak tayang ditampung terpisah dari grid */
+const FOLDER={
+  draft:{title:'Draft',ic:'draft',info:'Draft hanya bisa kamu lihat. Ketuk draft untuk melanjutkan, mengirim, atau menghapusnya.',
+    empty:['Belum ada draft','Tekan Simpan Draft di form Bagikan Momen untuk menyimpan kiriman yang belum selesai.']},
+  rejected:{title:'Ditolak',ic:'block',info:'Kiriman yang ditolak moderator, hanya bisa kamu lihat. Ketuk untuk melihat alasannya, lalu perbaiki dan kirim ulang, atau hapus.',
+    empty:['Tidak ada kiriman ditolak','Kiriman yang ditolak moderator akan ditampung di sini.']}
+};
+const folderItems=k=>posts.filter(p=>p.a===ME&&p.status===k).sort((a,b)=>b.at-a.at);
+function tileHTML(p,key,inFolder=false){
+  const th=thumbOf(p),st=inFolder?[ago(p.at),'mut']:{review:['Ditinjau','warn'],scheduled:['Terjadwal','info']}[p.status];
+  return `<button class="ptile" ${key}="${p.id}" aria-label="${attr(plain(p).slice(0,80))}">${th?art(th):`<span class="ptxt">${plain(p)}</span>`}${profilePinned(p)?`<span class="ppin">${ic('pin',11)}Disematkan</span>`:''}${st?`<span class="pst ${st[1]}">${st[0]}</span>`:''}${p.status==='published'?`<span class="plk">${ic('heart',13)}${fmt(likesOf(p))}</span>`:''}</button>`;
+}
+const folderTile=k=>{const d=folderItems(k),F=FOLDER[k];if(!d.length)return '';const th=thumbOf(d[0]);
+  return `<button class="ptile pfold ${k}" data-folder="${k}" aria-label="Buka folder ${F.title}, ${d.length} kiriman">${th?art(th):''}<span class="pdl">${ic(F.ic,22)}<b>${F.title}</b>${d.length} kiriman</span></button>`};
+function openProfile(u){profUser=u;renderProfile();$('#sProfile').classList.add('open');$('#profBody').scrollTop=0}
+function renderProfile(){
+  const u=profUser,me=u===ME,own=posts.filter(p=>p.a===u),pub=own.filter(p=>p.status==='published');
+  const folders=me?folderTile('draft')+folderTile('rejected'):'';
+  /* yang disematkan di depan (terbaru disematkan dulu), sisanya urut terbaru; draft & ditolak ada di foldernya;
+     orang lain hanya melihat yang sudah tayang */
+  const list=own.filter(p=>me?p.status!=='draft'&&p.status!=='rejected':p.status==='published').sort((a,b)=>profilePinned(b)-profilePinned(a)||(profilePinned(a)?b.profilePinAt-a.profilePinAt:b.at-a.at));
+  $('#profTitle').textContent=me?'Kiriman Saya':'Profil';
+  $('#profBody').innerHTML=`<div class="phd"><div class="pav lg" style="background:${u.color}">${u.ini}</div><b>${u.name}</b><span class="small">${u.badge}</span>
+    <div class="pstat"><span><b>${pub.length}</b>Kiriman</span><span><b>${fmt(pub.reduce((n,p)=>n+likesOf(p),0))}</b>Suka</span><span><b>${fmt(pub.reduce((n,p)=>n+countC(p),0))}</b>Komentar</span></div></div>
+  ${list.length||folders?`<div class="pgrid">${folders}${list.map(p=>tileHTML(p,'data-pv')).join('')}</div>`
+    :`<div class="empty">${ic('camera',36,'var(--grey10)')}<b>Belum ada kiriman</b><span>${me?'Bagikan momen closing atau kunjungan serumu lewat tombol Bagikan Momen!':'Kiriman yang sudah tayang akan muncul di sini.'}</span></div>`}`;
+}
+$('#profBody').addEventListener('click',e=>{
+  const fd=e.target.closest('[data-folder]');if(fd){openFolder(fd.dataset.folder);return}
+  const t=e.target.closest('[data-pv]');if(t)openPostView(byId(t.dataset.pv));
+});
+
+/* detail kiriman dari grid profil; pemiliknya bisa menyematkan / melepas sematan */
+function openPostView(p){pvId=p.id;renderPostView();$('#sPostView').classList.add('open');$('#pvBody').scrollTop=0}
+function renderPostView(){
+  const p=byId(pvId),bar=$('#pvBar');if(!p)return closeScreen('sPostView');
+  $('#pvBody').innerHTML=cardHTML(p);
+  bar.hidden=!(p.a===ME&&p.status==='published');
+  if(!bar.hidden)bar.innerHTML=profilePinned(p)?`<button class="btn ghost icn" data-pvpin>${ic('pin',18)}Lepas sematan</button>`:`<button class="btn icn" data-pvpin>${ic('pin',18)}Sematkan di profil</button>`;
+}
+$('#pvBar').addEventListener('click',e=>{if(e.target.closest('[data-pvpin]'))toggleProfilePin(byId(pvId))});
+$('#pvBody').addEventListener('scroll',slideSync,true);
+$('#pvBody').addEventListener('click',cardClick);
+function toggleProfilePin(p){
+  if(profilePinned(p)){p.profilePinAt=null;changed();toast('Sematan dilepas dari profilmu');return}
+  if(posts.filter(x=>x.a===p.a&&profilePinned(x)).length>=MAX_PROFILE_PIN){toast(`Maksimal ${MAX_PROFILE_PIN} kiriman disematkan. Lepas salah satu dulu.`);return}
+  p.profilePinAt=clock;changed();toast('Disematkan di atas profilmu');
+}
+
+/* isi folder Draft / Ditolak: hanya pemiliknya yang bisa melihat */
+let folderKind='draft';
+function openFolder(k){folderKind=k;renderFolder();$('#sFolder').classList.add('open');$('#folderBody').scrollTop=0}
+function renderFolder(){
+  const F=FOLDER[folderKind],d=folderItems(folderKind);
+  $('#folderTitle').textContent=F.title;
+  $('#folderBody').innerHTML=`<div class="info">${F.info}</div>`+(d.length?`<div class="pgrid">${d.map(p=>tileHTML(p,'data-fp',true)).join('')}</div>`
+    :`<div class="empty">${ic(F.ic,36,'var(--grey10)')}<b>${F.empty[0]}</b><span>${F.empty[1]}</span></div>`);
+}
+$('#folderBody').addEventListener('click',e=>{
+  const t=e.target.closest('[data-fp]');if(!t)return;
+  const p=byId(t.dataset.fp),ttl=plain(p),title=ttl.length>60?ttl.slice(0,58)+'…':ttl||'Kiriman tanpa cerita';
+  const del=(label,msg)=>({label,ic:'trash',cls:'bad',fn:()=>{posts.splice(posts.indexOf(p),1);changed();toast(msg)}});
+  if(p.status==='rejected')return ask(title,`Alasan ditolak: ${unesc(p.reason||'belum sesuai pedoman konten')}`,[
+    {label:'Perbaiki & kirim ulang',ic:'edit',fn:()=>openShare(p)},
+    del('Hapus kiriman','Kiriman dihapus')]);
+  ask(title,null,[
+    {label:'Lanjutkan edit',ic:'edit',fn:()=>openShare(p)},
+    {label:'Kirim untuk ditinjau',ic:'send',fn:()=>{p.status='review';p.at=clock;changed();toast('Terkirim! Tim Marketing akan meninjau kirimanmu')}},
+    del('Hapus draft','Draft dihapus')]);
+});
 document.querySelectorAll('.screen:not([data-form]) [data-close]').forEach(b=>b.addEventListener('click',()=>b.closest('.screen').classList.remove('open')));
 
 /* menu FAB */
 $('#fab').onclick=()=>{const m=$('#menu');m.hidden=!m.hidden;$('#fab').setAttribute('aria-expanded',!m.hidden)};
 $('#menu').onclick=e=>{const b=e.target.closest('[data-open]');if(b){$('#menu').hidden=true;$('#fab').setAttribute('aria-expanded','false');openScreen(b.dataset.open)}};
 
-onChange(()=>{renderFeed();if($('#sDrafts').classList.contains('open'))renderDrafts();if(cPost)renderComments()});
+const isOpen=id=>document.getElementById(id).classList.contains('open');
+onChange(()=>{renderFeed();if(cPost)renderComments();if(isOpen('sDrafts'))renderDrafts();if(isOpen('sProfile'))renderProfile();if(isOpen('sPostView'))renderPostView();if(isOpen('sFolder'))renderFolder()});
 renderFeed();
 
 /* ---------- REPORT: isi dashboard lama ---------- */
@@ -2263,13 +2515,13 @@ function renderAdmin(){
 
 /* --- daftar konten --- */
 function aList(){
-  const cnt=s=>posts.filter(p=>p.status===s).length;
-  const tabs=[['all','Semua',posts.length],['scheduled','Terjadwal',cnt('scheduled')],['draft','Draft',cnt('draft')],['review','Review',cnt('review')],['rejected','Ditolak',cnt('rejected')],['pinned','Disematkan',posts.filter(isPinned).length]];
-  const rows=posts.filter(p=>(aFilter==='all'||(aFilter==='pinned'?isPinned(p):p.status===aFilter))&&(!aQuery||plain(p).toLowerCase().includes(aQuery))).sort((a,b)=>b.at-a.at);
+  const all=posts.filter(p=>!isSalesDraft(p)),cnt=s=>all.filter(p=>p.status===s).length;
+  const tabs=[['all','Semua',all.length],['scheduled','Terjadwal',cnt('scheduled')],['draft','Draft',cnt('draft')],['review','Review',cnt('review')],['rejected','Ditolak',cnt('rejected')],['pinned','Disematkan',all.filter(isPinned).length]];
+  const rows=all.filter(p=>(aFilter==='all'||(aFilter==='pinned'?isPinned(p):p.status===aFilter))&&(!aQuery||plain(p).toLowerCase().includes(aQuery))).sort((a,b)=>b.at-a.at);
   const act=p=>{const B=(a,l,c='')=>`<button class="abtn sm ${c}" data-a="${a}">${l}</button>`;
     return {draft:B('edit','Edit')+B('now','Tayangkan','ok')+B('del','Hapus','link bad'),
       scheduled:B('edit','Edit')+B('now','Tayangkan sekarang','ok')+B('unsched','Batalkan jadwal','link'),
-      published:B('edit','Edit')+(isPinned(p)?B('unpin','Lepas sematan','link'):B('pin','Sematkan'))+B('unpub','Tarik ke draft','link'),
+      published:B('edit','Edit')+(isPinned(p)?B('unpin','Lepas sematan','link'):B('pin','Sematkan'))+(p.a.role==='mod'?B('unpub','Tarik ke draft','link'):''),
       review:B('review','Review','pri'),rejected:B('del','Hapus','link bad')}[p.status]};
   const time=p=>p.status==='scheduled'?`${ic('clock',14)}${when(p.at)}`:p.status==='published'?when(p.at):p.status==='draft'?`Diubah ${ago(p.at)}`:`Dikirim ${ago(p.at)}`;
   aBody.innerHTML=`<div class="ahead"><div><h1>Konten Marketing Feed</h1><p>Kelola post, poll, dan link yang tampil di Home aplikasi sales. Post terjadwal tayang otomatis. Maks. ${MAX_PIN} konten tayang bisa disematkan di atas feed.</p></div><button class="abtn pri" data-new>${ic('add',18)}Buat Konten</button></div>
@@ -2284,7 +2536,7 @@ function aList(){
 
 /* --- jadwal: tab Draft & Terjadwal --- */
 function aCal(){
-  const lists={draft:posts.filter(p=>p.status==='draft').sort((a,b)=>b.at-a.at),scheduled:posts.filter(p=>p.status==='scheduled').sort((a,b)=>a.at-b.at)},L=lists[calTab];
+  const lists={draft:posts.filter(p=>p.status==='draft'&&!isSalesDraft(p)).sort((a,b)=>b.at-a.at),scheduled:posts.filter(p=>p.status==='scheduled').sort((a,b)=>a.at-b.at)},L=lists[calTab];
   const row=p=>`<div class="adl" data-id="${p.id}">${athumb(p)}<div><b>${plain(p)}</b><span class="amuted">${calTab==='scheduled'?`<span class="when2">${ic('clock',14)}${when(p.at)}</span> · `:''}${TYPE[p.type]} · ${p.project==='Semua'?'Semua project':p.project}${calTab==='draft'?` · diubah ${ago(p.at)}`:''}</span></div>
     ${calTab==='draft'?`<button class="abtn sm" data-a="edit">Edit</button><button class="abtn sm pri" data-a="plan">Jadwalkan</button><button class="abtn sm link bad" data-a="del">Hapus</button>`
       :`<button class="abtn sm" data-a="edit">Edit</button><button class="abtn sm ok" data-a="now">Tayangkan sekarang</button><button class="abtn sm link" data-a="unsched">Batalkan jadwal</button>`}</div>`;

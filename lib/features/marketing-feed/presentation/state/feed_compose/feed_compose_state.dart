@@ -13,7 +13,13 @@ class FeedComposeInitial extends FeedComposeState {
 }
 
 class FeedComposeSubmitting extends FeedComposeState {
-  const FeedComposeSubmitting();
+  /// 0..1 selama upload multipart; null = belum/tidak diketahui.
+  final double? progress;
+
+  const FeedComposeSubmitting({this.progress});
+
+  @override
+  List<Object?> get props => [progress];
 }
 
 class FeedComposeSuccess extends FeedComposeState {
@@ -27,9 +33,19 @@ class FeedComposeSuccess extends FeedComposeState {
 
 class FeedComposeError extends FeedComposeState {
   final String message;
+  final String? errorCode;
+  final String? raptor;
+  final String? hint;
 
-  const FeedComposeError(this.message);
+  const FeedComposeError(
+    this.message, {
+    this.errorCode,
+    this.raptor,
+    this.hint,
+  });
+
+  bool get isStorageError => errorCode == 'STORAGE_ERROR' || raptor != null;
 
   @override
-  List<Object?> get props => [message];
+  List<Object?> get props => [message, errorCode, raptor, hint];
 }

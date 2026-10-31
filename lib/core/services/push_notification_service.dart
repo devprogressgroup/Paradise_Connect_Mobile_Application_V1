@@ -300,6 +300,18 @@ class PushNotificationService {
       return true;
     }
 
+    // Konten Marketing Feed baru tayang / hasil review kiriman "Bagikan Momen" — buka detail
+    // post-nya (post milik sendiri ikut menampilkan status & alasan ditolak).
+    if (key == 'marketing_feed') {
+      final postId = int.tryParse(uri.queryParameters['feed_post_id'] ?? '');
+      if (postId == null) {
+        AppRouter.router.go('/');
+        return true;
+      }
+      AppRouter.router.go('/marketing-feed/detail?feed_post_id=$postId');
+      return true;
+    }
+
     final path = globalNotificationInternalRoutes[key];
     if (path == null) return false;
 

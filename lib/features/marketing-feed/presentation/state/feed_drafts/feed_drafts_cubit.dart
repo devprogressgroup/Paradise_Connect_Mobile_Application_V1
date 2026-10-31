@@ -19,6 +19,7 @@ class FeedDraftsCubit extends Cubit<FeedDraftsState> {
   Future<void> fetch() async {
     emit(state.copyWith(status: FeedDraftsStatus.loading));
     final result = await getFeedDraftsUseCase();
+    if (isClosed) return;
     result.fold(
       (message) => emit(state.copyWith(status: FeedDraftsStatus.error, errorMessage: message)),
       (data) => emit(FeedDraftsState(status: FeedDraftsStatus.loaded, items: data)),
@@ -29,7 +30,7 @@ class FeedDraftsCubit extends Cubit<FeedDraftsState> {
   Future<String?> publishNow(int postId) async {
     final result = await publishFeedPostNowUseCase(postId);
     return result.fold((message) => message, (_) {
-      emit(state.copyWith(items: state.items.where((p) => p.id != postId).toList()));
+      _remove(postId);
       return null;
     });
   }
@@ -38,8 +39,13 @@ class FeedDraftsCubit extends Cubit<FeedDraftsState> {
   Future<String?> delete(int postId) async {
     final result = await deleteFeedPostUseCase(postId);
     return result.fold((message) => message, (_) {
-      emit(state.copyWith(items: state.items.where((p) => p.id != postId).toList()));
+      _remove(postId);
       return null;
     });
+  }
+
+  void _remove(int postId) {
+    if (isClosed) return;
+    emit(state.copyWith(items: state.items.where((p) => p.id != postId).toList()));
   }
 }

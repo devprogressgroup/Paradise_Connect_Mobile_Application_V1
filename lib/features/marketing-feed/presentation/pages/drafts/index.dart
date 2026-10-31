@@ -11,8 +11,8 @@ import 'package:progress_group/features/marketing-feed/presentation/state/feed_d
 import 'package:progress_group/features/marketing-feed/presentation/widgets/feed_media_view.dart';
 import 'package:progress_group/features/marketing-feed/presentation/widgets/feed_section.dart';
 
-/// Moderator: daftar post terjadwal & draft (dari app maupun Admin Web) — edit, tayangkan
-/// sekarang, atau hapus.
+/// Moderator: daftar konten terjadwal & draft (dari app maupun Admin Web) — edit, tayangkan sekarang,
+/// atau hapus. Pop `true` kalau ada yang ditayangkan supaya feed dimuat ulang.
 class FeedDraftsPage extends StatefulWidget {
   const FeedDraftsPage({super.key});
 
@@ -21,6 +21,8 @@ class FeedDraftsPage extends StatefulWidget {
 }
 
 class _FeedDraftsPageState extends State<FeedDraftsPage> {
+  bool _published = false;
+
   @override
   void initState() {
     super.initState();
@@ -33,30 +35,35 @@ class _FeedDraftsPageState extends State<FeedDraftsPage> {
   }
 
   Future<void> _edit(FeedPostEntity post) async {
-    if (post.type == FeedPostType.link) {
-      _showMessage('Konten link sosmed diedit dari Admin Web');
-      return;
-    }
     AnalyticsService.logEvent('marketing_feed_draft_edit');
-    final saved = await context.pushNamed<bool>(
-      post.type == FeedPostType.poll ? 'marketingFeedPollForm' : 'marketingFeedPostForm',
-      extra: post,
-    );
-    if (saved == true && mounted) context.read<FeedDraftsCubit>().fetch();
+    final route = switch (post.type) {
+      FeedPostType.post => 'marketingFeedPostForm',
+      FeedPostType.poll => 'marketingFeedPollForm',
+      FeedPostType.link => 'marketingFeedLinkForm',
+    };
+    final saved = await context.pushNamed<bool>(route, extra: post);
+    if (saved == true && mounted) {
+      // Simpan dari form edit bisa langsung tayang.
+      _published = true;
+      context.read<FeedDraftsCubit>().fetch();
+    }
   }
 
   Future<void> _publishNow(FeedPostEntity post) async {
     AnalyticsService.logEvent('marketing_feed_draft_publish_now');
     final error = await context.read<FeedDraftsCubit>().publishNow(post.id);
-    if (mounted) _showMessage(error ?? 'Post ditayangkan sekarang');
+    if (!mounted) return;
+    if (error == null) _published = true;
+    _showMessage(error ?? 'Konten ditayangkan, notifikasi dikirim ke sales');
   }
 
   Future<void> _delete(FeedPostEntity post) async {
+    final scheduled = post.status == FeedPostStatus.scheduled;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Text(post.status == FeedPostStatus.draft ? 'Hapus draft?' : 'Hapus post terjadwal?'),
-        content: Text('"${post.plainText}" akan dihapus permanen.'),
+        title: Text(scheduled ? 'Hapus konten terjadwal?' : 'Hapus draft?'),
+        content: Text('"${post.plainText}" akan dihapus${scheduled ? ' dan tidak jadi tayang' : ''}.'),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Batal')),
           TextButton(
@@ -69,37 +76,43 @@ class _FeedDraftsPageState extends State<FeedDraftsPage> {
     if (confirmed != true || !mounted) return;
     AnalyticsService.logEvent('marketing_feed_draft_delete');
     final error = await context.read<FeedDraftsCubit>().delete(post.id);
-    if (mounted) _showMessage(error ?? 'Draft dihapus');
+    if (mounted) _showMessage(error ?? (scheduled ? 'Konten terjadwal dihapus' : 'Draft dihapus'));
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: SafeArea(
-        child: Column(
-          children: [
-            customHeader(context, 'Draft & Terjadwal', isBack: true),
-            Expanded(
-              child: BlocBuilder<FeedDraftsCubit, FeedDraftsState>(
-                builder: (context, state) {
-                  return RefreshIndicator(
-                    onRefresh: () => context.read<FeedDraftsCubit>().fetch(),
-                    child: ListView(
-                      physics: const AlwaysScrollableScrollPhysics(),
-                      padding: const EdgeInsets.all(16),
-                      children: [
-                        const FeedNotice(
-                          'Post terjadwal tayang otomatis sesuai jam. Draft & jadwal dari Admin Web juga muncul di sini.',
-                        ),
-                        const SizedBox(height: 12),
-                        ..._buildBody(state),
-                      ],
-                    ),
-                  );
-                },
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) context.pop(_published);
+      },
+      child: Scaffold(
+        body: SafeArea(
+          child: Column(
+            children: [
+              customHeader(context, 'Draft & Terjadwal', isBack: true, onBack: () => context.pop(_published)),
+              Expanded(
+                child: BlocBuilder<FeedDraftsCubit, FeedDraftsState>(
+                  builder: (context, state) {
+                    return RefreshIndicator(
+                      onRefresh: () => context.read<FeedDraftsCubit>().fetch(),
+                      child: ListView(
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        padding: const EdgeInsets.all(16),
+                        children: [
+                          const FeedNotice(
+                            'Konten terjadwal tayang otomatis sesuai jam. Draft & jadwal dari Admin Web juga muncul di sini.',
+                          ),
+                          const SizedBox(height: 12),
+                          ..._buildBody(state),
+                        ],
+                      ),
+                    );
+                  },
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -127,7 +140,7 @@ class _FeedDraftsPageState extends State<FeedDraftsPage> {
         FeedEmptyState(
           icon: Icons.drafts_outlined,
           title: 'Belum ada draft',
-          message: 'Simpan post sebagai draft atau jadwalkan dari form Post Baru.',
+          message: 'Simpan konten sebagai draft atau jadwalkan dari form Post, Poll, atau Link Baru.',
         ),
       ];
     }
@@ -140,6 +153,7 @@ class _FeedDraftsPageState extends State<FeedDraftsPage> {
   Widget _buildRow(FeedPostEntity post) {
     final scheduled = post.status == FeedPostStatus.scheduled;
     final thumb = post.thumbnail;
+    final township = post.township?.code ?? 'Semua';
     return Container(
       padding: const EdgeInsets.all(10),
       decoration: feedCardDecoration(),
@@ -156,7 +170,11 @@ class _FeedDraftsPageState extends State<FeedDraftsPage> {
                   : ColoredBox(
                       color: const Color(grey10Color),
                       child: Icon(
-                        post.type == FeedPostType.poll ? Icons.poll_outlined : Icons.article_outlined,
+                        switch (post.type) {
+                          FeedPostType.poll => Icons.poll_outlined,
+                          FeedPostType.link => Icons.link,
+                          FeedPostType.post => Icons.article_outlined,
+                        },
                         color: const Color(grey4Color),
                       ),
                     ),
@@ -184,7 +202,7 @@ class _FeedDraftsPageState extends State<FeedDraftsPage> {
                 ),
                 const SizedBox(height: 3),
                 Text(
-                  post.plainText,
+                  post.plainText.isEmpty ? '(tanpa ${post.type == FeedPostType.link ? 'judul' : 'caption'})' : post.plainText,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
@@ -199,14 +217,14 @@ class _FeedDraftsPageState extends State<FeedDraftsPage> {
                     Expanded(
                       child: Text(
                         '${scheduled ? DateHelper.relativeDayTime(post.publishAt) : 'Diubah ${DateHelper.timeAgo(post.publishAt).toLowerCase()}'}'
-                        ' · dari ${post.fromAdminWeb ? 'Admin Web' : 'App'}',
+                        ' · $township · dari ${post.fromAdminWeb ? 'Admin Web' : 'App'}',
                         style: const TextStyle(fontSize: 11.5, color: Color(grey2Color)),
                       ),
                     ),
                   ],
                 ),
                 const SizedBox(height: 4),
-                Row(
+                Wrap(
                   children: [
                     _action(Icons.edit_outlined, 'Edit', () => _edit(post)),
                     _action(Icons.send, 'Tayangkan', () => _publishNow(post)),

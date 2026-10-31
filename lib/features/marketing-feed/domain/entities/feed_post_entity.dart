@@ -12,25 +12,43 @@ enum FeedPostStatus { published, scheduled, draft, review, rejected }
 
 enum FeedReaction { none, like, dislike }
 
+class FeedTownshipEntity extends Equatable {
+  final int id;
+  final String code;
+
+  const FeedTownshipEntity({required this.id, required this.code});
+
+  @override
+  List<Object?> get props => [id, code];
+}
+
 class FeedMediaEntity extends Equatable {
+  final int? id;
   final String? url;
   final String? label;
   final bool isVideo;
+  final int? width;
+  final int? height;
 
   /// Isi file yang baru dipilih dari galeri (belum ter-upload) — dipakai untuk preview lokal.
   final Uint8List? bytes;
   final String? fileName;
+  final String? filePath;
 
   const FeedMediaEntity({
+    this.id,
     this.url,
     this.label,
     this.isVideo = false,
+    this.width,
+    this.height,
     this.bytes,
     this.fileName,
+    this.filePath,
   });
 
   @override
-  List<Object?> get props => [url, label, isVideo, bytes, fileName];
+  List<Object?> get props => [id, url, label, isVideo, width, height, bytes, fileName, filePath];
 }
 
 /// Pengaturan interaksi per post yang diatur moderator. [allowReply] tidak berlaku kalau
@@ -70,57 +88,72 @@ class FeedInteractionSettings extends Equatable {
   List<Object?> get props => [allowLike, allowDislike, allowComment, allowReply, allowShare];
 }
 
-class FeedPollEntity extends Equatable {
-  final List<String> options;
-  final List<int> votes;
+class FeedPollOptionEntity extends Equatable {
+  final int index;
+  final String label;
+  final int votes;
+  final int percent;
 
-  /// Jumlah orang yang sudah menjawab (bukan jumlah suara — poll multi-jawaban bisa >1 suara/orang).
+  const FeedPollOptionEntity({
+    required this.index,
+    required this.label,
+    this.votes = 0,
+    this.percent = 0,
+  });
+
+  @override
+  List<Object?> get props => [index, label, votes, percent];
+}
+
+class FeedPollEntity extends Equatable {
+  final List<FeedPollOptionEntity> options;
   final int totalVoters;
   final bool isMultiple;
   final FeedMediaEntity? image;
   final List<int> myVotes;
+  final bool hasVoted;
 
   const FeedPollEntity({
     required this.options,
-    required this.votes,
     this.totalVoters = 0,
     this.isMultiple = false,
     this.image,
     this.myVotes = const [],
+    this.hasVoted = false,
   });
 
-  bool get hasVoted => myVotes.isNotEmpty;
-
-  int percentOf(int index) {
-    if (totalVoters == 0 || index >= votes.length) return 0;
-    return (votes[index] / totalVoters * 100).round();
+  int percentOf(int optionIndex) {
+    for (final opt in options) {
+      if (opt.index == optionIndex) return opt.percent;
+    }
+    return 0;
   }
 
   @override
-  List<Object?> get props => [options, votes, totalVoters, isMultiple, image, myVotes];
+  List<Object?> get props => [options, totalVoters, isMultiple, image, myVotes, hasVoted];
 }
 
 class FeedLinkEntity extends Equatable {
   final String url;
-
-  /// `youtube` atau `web`.
-  final String source;
-  final String? sourceLabel;
+  final String platform;
+  final String? channel;
   final String title;
   final String? description;
 
   const FeedLinkEntity({
     required this.url,
-    required this.source,
-    this.sourceLabel,
+    required this.platform,
+    this.channel,
     required this.title,
     this.description,
   });
 
-  bool get isYoutube => source == 'youtube';
+  String get source => platform;
+  String? get sourceLabel => channel;
+  bool get isYoutube => platform == 'youtube';
 
   @override
-  List<Object?> get props => [url, source, sourceLabel, title, description];
+  List<Object?> get props => [url, platform, channel, title, description];
 }
 
 class FeedPostEntity extends Equatable {
@@ -128,6 +161,7 @@ class FeedPostEntity extends Equatable {
   final FeedPostType type;
   final FeedPostStatus status;
   final FeedAuthorEntity author;
+  final FeedTownshipEntity? township;
 
   /// Caption/pertanyaan. Bagian yang diapit `**` ditampilkan tebal.
   final String text;
@@ -140,6 +174,7 @@ class FeedPostEntity extends Equatable {
 
   /// Waktu tayang (published/scheduled), waktu dikirim (review/rejected), atau terakhir diubah (draft).
   final DateTime publishAt;
+  final DateTime? submittedAt;
 
   /// Sudah termasuk reaksi user sendiri.
   final int likeCount;
@@ -148,6 +183,7 @@ class FeedPostEntity extends Equatable {
   final int commentCount;
   final FeedCommentEntity? latestComment;
   final String? rejectReason;
+  final bool isPinned;
   final bool isMine;
   final bool fromAdminWeb;
 
@@ -156,6 +192,7 @@ class FeedPostEntity extends Equatable {
     required this.type,
     required this.status,
     required this.author,
+    this.township,
     this.text = '',
     this.label,
     this.project,
@@ -164,31 +201,37 @@ class FeedPostEntity extends Equatable {
     this.link,
     this.settings = const FeedInteractionSettings(),
     required this.publishAt,
+    this.submittedAt,
     this.likeCount = 0,
     this.dislikeCount = 0,
     this.myReaction = FeedReaction.none,
     this.commentCount = 0,
     this.latestComment,
     this.rejectReason,
+    this.isPinned = false,
     this.isMine = false,
     this.fromAdminWeb = false,
   });
 
   String get plainText => type == FeedPostType.link ? (link?.title ?? '') : text.replaceAll('**', '');
 
+  /// Untuk link YouTube tanpa upload manual, backend sudah mengisi [media] dengan thumbnail YouTube.
   FeedMediaEntity? get thumbnail => media.isNotEmpty ? media.first : poll?.image;
 
   FeedPostEntity copyWith({
     int? likeCount,
     int? dislikeCount,
     FeedReaction? myReaction,
+    int? commentCount,
     FeedPollEntity? poll,
+    bool? isPinned,
   }) {
     return FeedPostEntity(
       id: id,
       type: type,
       status: status,
       author: author,
+      township: township,
       text: text,
       label: label,
       project: project,
@@ -197,12 +240,14 @@ class FeedPostEntity extends Equatable {
       link: link,
       settings: settings,
       publishAt: publishAt,
+      submittedAt: submittedAt,
       likeCount: likeCount ?? this.likeCount,
       dislikeCount: dislikeCount ?? this.dislikeCount,
       myReaction: myReaction ?? this.myReaction,
-      commentCount: commentCount,
+      commentCount: commentCount ?? this.commentCount,
       latestComment: latestComment,
       rejectReason: rejectReason,
+      isPinned: isPinned ?? this.isPinned,
       isMine: isMine,
       fromAdminWeb: fromAdminWeb,
     );
@@ -214,6 +259,7 @@ class FeedPostEntity extends Equatable {
     type,
     status,
     author,
+    township,
     text,
     label,
     project,
@@ -222,12 +268,14 @@ class FeedPostEntity extends Equatable {
     link,
     settings,
     publishAt,
+    submittedAt,
     likeCount,
     dislikeCount,
     myReaction,
     commentCount,
     latestComment,
     rejectReason,
+    isPinned,
     isMine,
     fromAdminWeb,
   ];
@@ -235,18 +283,25 @@ class FeedPostEntity extends Equatable {
 
 /// Wrapper paginasi feed.
 class FeedPageEntity extends Equatable {
+  final List<FeedPostEntity> pinned;
   final List<FeedPostEntity> items;
   final int currentPage;
-  final int lastPage;
+  final int perPage;
+  final int total;
+  final bool hasMore;
 
   const FeedPageEntity({
+    this.pinned = const [],
     required this.items,
-    required this.currentPage,
-    required this.lastPage,
+    this.currentPage = 1,
+    this.perPage = 10,
+    this.total = 0,
+    this.hasMore = false,
   });
 
-  bool get hasNextPage => currentPage < lastPage;
+  bool get hasNextPage => hasMore;
+  int get lastPage => perPage > 0 ? ((total + perPage - 1) ~/ perPage) : 1;
 
   @override
-  List<Object?> get props => [items, currentPage, lastPage];
+  List<Object?> get props => [pinned, items, currentPage, perPage, total, hasMore];
 }

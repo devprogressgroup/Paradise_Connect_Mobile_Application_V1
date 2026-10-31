@@ -53,6 +53,16 @@ class DateHelper {
   static DateTime _wallClock(DateTime t) =>
       DateTime.utc(t.year, t.month, t.day, t.hour, t.minute, t.second);
 
+  /// Waktu ISO dari server → jam dinding WIB berflag UTC (konvensi [AppTime.now]). Yang ber-offset
+  /// (mis. `2026-11-01T10:00:00+07:00`) di-parse Dart jadi instan UTC (03:00Z), jadi perlu digeser +7 jam;
+  /// yang tanpa offset sudah jam dinding server (Asia/Jakarta). Null kalau kosong/tidak valid.
+  static DateTime? parseServerTime(String? value) {
+    if (value == null || value.isEmpty) return null;
+    final t = DateTime.tryParse(value);
+    if (t == null) return null;
+    return t.isUtc ? t.add(const Duration(hours: 7)) : _wallClock(t);
+  }
+
   /// "Baru saja", "5 menit lalu", "3 jam lalu", "Kemarin", "4 hari lalu".
   static String timeAgo(DateTime date) {
     final diff = _wallClock(AppTime.now()).difference(_wallClock(date));

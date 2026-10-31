@@ -67,7 +67,11 @@ class FeedPostCard extends StatelessWidget {
                 ],
                 if (post.type == FeedPostType.poll && post.poll != null) ...[
                   const SizedBox(height: 10),
-                  FeedPollBox(poll: post.poll!, onVote: onVote),
+                  FeedPollBox(
+                    poll: post.poll!,
+                    image: post.media.isNotEmpty ? post.media.first : null,
+                    onVote: onVote,
+                  ),
                 ],
               ],
             ),
@@ -98,7 +102,12 @@ class FeedPostCard extends StatelessWidget {
     };
     return Row(
       children: [
-        FeedAvatar(name: author.name, photoUrl: author.photoUrl, isModerator: author.isModerator),
+        FeedAvatar(
+          name: author.name,
+          initials: author.initials,
+          photoUrl: author.photoUrl,
+          isModerator: author.isModerator,
+        ),
         const SizedBox(width: 8),
         Expanded(
           child: Column(
@@ -114,6 +123,31 @@ class FeedPostCard extends StatelessWidget {
             ],
           ),
         ),
+        if (post.isPinned) ...[
+          const SizedBox(width: 8),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+            decoration: BoxDecoration(
+              color: const Color(blueShade50Color),
+              borderRadius: BorderRadius.circular(99),
+            ),
+            child: const Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.push_pin, size: 12, color: Color(primaryColor)),
+                SizedBox(width: 4),
+                Text(
+                  'Disematkan',
+                  style: TextStyle(
+                    fontSize: 10.5,
+                    fontWeight: FontWeight.bold,
+                    color: Color(primaryColor),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ],
     );
   }
@@ -140,6 +174,28 @@ class FeedPostCard extends StatelessWidget {
 
   Widget _buildLinkCard() {
     final link = post.link!;
+    final cover = Stack(
+      children: [
+        FeedMediaView(media: post.thumbnail ?? FeedMediaEntity(isVideo: link.isYoutube)),
+        Positioned(
+          left: 10,
+          bottom: 10,
+          child: Container(
+            width: 26,
+            height: 26,
+            decoration: BoxDecoration(
+              color: Color(link.isYoutube ? redAccentColor : secondaryColor),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              link.isYoutube ? Icons.play_arrow_rounded : Icons.language,
+              size: 16,
+              color: const Color(whiteColor),
+            ),
+          ),
+        ),
+      ],
+    );
     return Container(
       width: double.infinity,
       clipBehavior: Clip.antiAlias,
@@ -152,34 +208,11 @@ class FeedPostCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                SizedBox(
-                  height: 132,
-                  width: double.infinity,
-                  child: Stack(
-                    children: [
-                      FeedMediaView(
-                        media: post.media.isNotEmpty ? post.media.first : FeedMediaEntity(isVideo: link.isYoutube),
-                      ),
-                      Positioned(
-                        left: 10,
-                        bottom: 10,
-                        child: Container(
-                          width: 26,
-                          height: 26,
-                          decoration: BoxDecoration(
-                            color: Color(link.isYoutube ? redAccentColor : secondaryColor),
-                            shape: BoxShape.circle,
-                          ),
-                          child: Icon(
-                            link.isYoutube ? Icons.play_arrow_rounded : Icons.language,
-                            size: 16,
-                            color: const Color(whiteColor),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+                // Thumbnail YouTube 16:9 supaya tidak terpotong; link website tetap banner pendek.
+                if (link.isYoutube)
+                  AspectRatio(aspectRatio: 16 / 9, child: cover)
+                else
+                  SizedBox(height: 132, width: double.infinity, child: cover),
                 Padding(
                   padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
                   child: Column(
@@ -262,7 +295,7 @@ class _FeedPostFooter extends StatelessWidget {
     final liked = post.myReaction == FeedReaction.like;
     final disliked = post.myReaction == FeedReaction.dislike;
     final latest = post.latestComment;
-    final hasActions = s.allowLike || s.allowDislike || s.allowComment || s.allowShare;
+    final hasActions = s.allowLike || s.allowDislike || s.allowComment || post.commentCount > 0 || s.allowShare;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -284,7 +317,8 @@ class _FeedPostFooter extends StatelessWidget {
                   color: disliked ? const Color(orangeAccentColor) : null,
                   onTap: () => onReact?.call(FeedReaction.dislike),
                 ),
-              if (s.allowComment)
+              // Komentar dimatikan: input disembunyikan, tapi komentar lama tetap bisa dibuka.
+              if (s.allowComment || post.commentCount > 0)
                 _action(icon: Icons.chat_bubble_outline, label: '${post.commentCount}', onTap: onComment),
               const Spacer(),
               if (s.allowShare)

@@ -7,45 +7,61 @@ enum MarketingFeedStatus { initial, loading, loadingMore, loaded, error }
 
 class MarketingFeedState extends Equatable {
   final MarketingFeedStatus status;
+  final List<FeedPostEntity> pinnedPosts;
   final List<FeedPostEntity> posts;
   final PersonalFunnelEntity? funnel;
   final List<WallOfFameLevelEntity> wallOfFame;
   final int currentPage;
   final int lastPage;
+  final bool hasMore;
   final String? errorMessage;
 
   const MarketingFeedState({
     this.status = MarketingFeedStatus.initial,
+    this.pinnedPosts = const [],
     this.posts = const [],
     this.funnel,
     this.wallOfFame = const [],
     this.currentPage = 1,
     this.lastPage = 1,
+    this.hasMore = false,
     this.errorMessage,
   });
 
-  bool get hasMore => currentPage < lastPage;
-
   MarketingFeedState copyWith({
     MarketingFeedStatus? status,
+    List<FeedPostEntity>? pinnedPosts,
     List<FeedPostEntity>? posts,
     PersonalFunnelEntity? funnel,
     List<WallOfFameLevelEntity>? wallOfFame,
     int? currentPage,
     int? lastPage,
+    bool? hasMore,
     String? errorMessage,
   }) {
     return MarketingFeedState(
       status: status ?? this.status,
+      pinnedPosts: pinnedPosts ?? this.pinnedPosts,
       posts: posts ?? this.posts,
       funnel: funnel ?? this.funnel,
       wallOfFame: wallOfFame ?? this.wallOfFame,
       currentPage: currentPage ?? this.currentPage,
       lastPage: lastPage ?? this.lastPage,
+      hasMore: hasMore ?? this.hasMore,
       errorMessage: errorMessage,
     );
   }
 
   @override
-  List<Object?> get props => [status, posts, funnel, wallOfFame, currentPage, lastPage, errorMessage];
+  List<Object?> get props => [
+    status,
+    pinnedPosts,
+    posts,
+    funnel,
+    wallOfFame,
+    currentPage,
+    lastPage,
+    hasMore,
+    errorMessage,
+  ];
 }

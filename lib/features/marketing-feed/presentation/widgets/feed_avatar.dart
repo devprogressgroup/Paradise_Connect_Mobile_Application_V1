@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:progress_group/core/constants/colors.dart';
+import 'package:progress_group/core/network/auth_token_cache.dart';
 import 'package:progress_group/core/utils/helpers/initial_name_helper.dart';
 
 const _avatarPalette = [
@@ -16,6 +17,7 @@ const _avatarPalette = [
 /// [radius] null = bulat penuh.
 class FeedAvatar extends StatelessWidget {
   final String name;
+  final String? initials;
   final String? photoUrl;
   final bool isModerator;
   final double size;
@@ -24,6 +26,7 @@ class FeedAvatar extends StatelessWidget {
   const FeedAvatar({
     super.key,
     required this.name,
+    this.initials,
     this.photoUrl,
     this.isModerator = false,
     this.size = 38,
@@ -40,26 +43,37 @@ class FeedAvatar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final initials = Container(
+    final displayText = (initials != null && initials!.isNotEmpty)
+        ? initials!
+        : getInitials(name);
+
+    final initialsWidget = Container(
       width: size,
       height: size,
       alignment: Alignment.center,
       decoration: BoxDecoration(color: _color, borderRadius: _borderRadius),
       child: Text(
-        getInitials(name),
-        style: TextStyle(color: const Color(whiteColor), fontWeight: FontWeight.w800, fontSize: size * 0.34),
+        displayText,
+        style: TextStyle(
+          color: const Color(whiteColor),
+          fontWeight: FontWeight.w800,
+          fontSize: size * 0.34,
+        ),
       ),
     );
+
     final url = photoUrl;
-    if (url == null || url.isEmpty) return initials;
+    if (url == null || url.isEmpty) return initialsWidget;
+
     return ClipRRect(
       borderRadius: _borderRadius,
       child: Image.network(
         url,
+        headers: AuthTokenCache.getAuthHeadersFor(url),
         width: size,
         height: size,
         fit: BoxFit.cover,
-        errorBuilder: (_, __, ___) => initials,
+        errorBuilder: (_, __, ___) => initialsWidget,
       ),
     );
   }

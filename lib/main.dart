@@ -200,7 +200,7 @@ import 'features/landing-page/data/datasources/landing_page_remote_datasource.da
 import 'features/landing-page/data/repositories/landing_page_repository_impl.dart';
 import 'features/landing-page/domain/usecases/get_landing_page_url_usecase.dart';
 import 'features/landing-page/presentation/state/landing_page_cubit.dart';
-import 'features/marketing-feed/data/datasources/marketing_feed_dummy_datasource.dart';
+import 'features/marketing-feed/data/datasources/marketing_feed_remote_datasource.dart';
 import 'features/marketing-feed/domain/repositories/marketing_feed_repository_impl.dart';
 import 'features/marketing-feed/domain/usecases/add_feed_comment_usecase.dart';
 import 'features/marketing-feed/domain/usecases/delete_feed_post_usecase.dart';
@@ -208,6 +208,7 @@ import 'features/marketing-feed/domain/usecases/get_feed_comments_usecase.dart';
 import 'features/marketing-feed/domain/usecases/get_feed_drafts_usecase.dart';
 import 'features/marketing-feed/domain/usecases/get_feed_post_usecase.dart';
 import 'features/marketing-feed/domain/usecases/get_feed_posts_usecase.dart';
+import 'features/marketing-feed/domain/usecases/get_my_submissions_usecase.dart';
 import 'features/marketing-feed/domain/usecases/get_personal_funnel_usecase.dart';
 import 'features/marketing-feed/domain/usecases/get_wall_of_fame_usecase.dart';
 import 'features/marketing-feed/domain/usecases/publish_feed_post_now_usecase.dart';
@@ -344,11 +345,6 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   Key _blocKey = UniqueKey();
   VersionCheckResult? _updateResult;
 
-  // Marketing Feed masih pakai data dummy in-memory (backend belum ada). Disimpan di State —
-  // bukan dibuat di build() seperti datasource lain — supaya datanya tidak ter-reset tiap root
-  // rebuild; dibuat ulang bersama bloc di _resetApp. Ganti ke implementasi Dio begitu API siap.
-  MarketingFeedDummyDataSource _marketingFeedDataSource = MarketingFeedDummyDataSource();
-
   @override
   void initState() {
     super.initState();
@@ -433,7 +429,6 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
       AppRouter.init();
 
       _blocKey = UniqueKey();
-      _marketingFeedDataSource = MarketingFeedDummyDataSource();
     });
   }
 
@@ -570,7 +565,8 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     final getAttendanceApprovalTodayUseCase = GetAttendanceApprovalTodayUseCase(attendanceRepository,);
     final postAttendanceApprovalUseCase = PostAttendanceApprovalUseCase(attendanceRepository,);
 
-    final marketingFeedRepository = MarketingFeedRepositoryImpl(_marketingFeedDataSource);
+    final marketingFeedRemoteDataSource = MarketingFeedRemoteDataSourceImpl(dioClient.dio);
+    final marketingFeedRepository = MarketingFeedRepositoryImpl(marketingFeedRemoteDataSource);
     final getFeedPostsUseCase = GetFeedPostsUseCase(marketingFeedRepository);
     final getFeedPostUseCase = GetFeedPostUseCase(marketingFeedRepository);
     final getPersonalFunnelUseCase = GetPersonalFunnelUseCase(marketingFeedRepository);
@@ -581,6 +577,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     final addFeedCommentUseCase = AddFeedCommentUseCase(marketingFeedRepository);
     final toggleFeedCommentLikeUseCase = ToggleFeedCommentLikeUseCase(marketingFeedRepository);
     final shareFeedMomentUseCase = ShareFeedMomentUseCase(marketingFeedRepository);
+    final getMySubmissionsUseCase = GetMySubmissionsUseCase(marketingFeedRepository);
     final saveFeedPostUseCase = SaveFeedPostUseCase(marketingFeedRepository);
     final getFeedDraftsUseCase = GetFeedDraftsUseCase(marketingFeedRepository);
     final publishFeedPostNowUseCase = PublishFeedPostNowUseCase(marketingFeedRepository);
@@ -898,6 +895,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
                   getWallOfFameUseCase: getWallOfFameUseCase,
                   reactFeedPostUseCase: reactFeedPostUseCase,
                   voteFeedPollUseCase: voteFeedPollUseCase,
+                  getMySubmissionsUseCase: getMySubmissionsUseCase,
                 ),
               ),
               BlocProvider(
@@ -947,7 +945,6 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
                 BlocListener<ProfileBloc, ProfileState>(
                   listener: (context, state) {
                     if (state is ProfileLoaded) {
-                      _marketingFeedDataSource.useProfile(state.profile);
                       AnalyticsService.setUserProperties(
                         userId: state.profile.userId.toString(),
                         role: state.profile.userRoleName,

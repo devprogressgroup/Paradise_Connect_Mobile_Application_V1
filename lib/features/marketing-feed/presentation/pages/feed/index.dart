@@ -73,12 +73,13 @@ class _MarketingFeedPageState extends State<MarketingFeedPage> {
 
   Future<void> _refresh() => context.read<MarketingFeedCubit>().fetch();
 
-  /// Buka halaman form/draft; feed dimuat ulang begitu kembali dengan hasil.
+  /// Buka menu tombol + (Bagikan Momen, Kiriman Saya, form & Draft moderator); feed dimuat ulang begitu
+  /// kembali dengan hasil `true`.
   Future<void> _open(String routeName) async {
     setState(() => _menuOpen = false);
     final changed = await context.pushNamed<bool>(routeName);
     if (!mounted) return;
-    if (changed == true || routeName == 'marketingFeedDrafts') {
+    if (changed == true) {
       await _refresh();
       if (_scrollController.hasClients) {
         _scrollController.animateTo(0, duration: const Duration(milliseconds: 300), curve: Curves.easeOut);
@@ -88,10 +89,6 @@ class _MarketingFeedPageState extends State<MarketingFeedPage> {
 
   void _onFabTap() {
     AnalyticsService.logEvent('marketing_feed_fab');
-    if (!PermissionsHelper.canModerateMarketingFeed) {
-      _open('marketingFeedShare');
-      return;
-    }
     setState(() => _menuOpen = !_menuOpen);
   }
 
@@ -191,11 +188,42 @@ class _MarketingFeedPageState extends State<MarketingFeedPage> {
         },
       ),
       WallOfFameCard(levels: state.wallOfFame),
+      if (state.pinnedPosts.isNotEmpty) ...[
+        const Padding(
+          padding: EdgeInsets.only(top: 4, bottom: 2),
+          child: Row(
+            children: [
+              Icon(Icons.push_pin, size: 16, color: Color(primaryColor)),
+              SizedBox(width: 6),
+              Text(
+                'Disematkan',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Color(primaryColor),
+                ),
+              ),
+            ],
+          ),
+        ),
+        for (final post in state.pinnedPosts)
+          FeedPostCard(
+            key: ValueKey('pinned_${post.id}'),
+            post: post,
+            onReact: (reaction) => _react(post, reaction),
+            onComment: () => _openComments(post),
+            onShare: () => _share(post),
+            onVote: (indexes) {
+              AnalyticsService.logEvent('marketing_feed_vote');
+              return context.read<MarketingFeedCubit>().vote(post.id, indexes);
+            },
+          ),
+      ],
       const Padding(
         padding: EdgeInsets.only(top: 4),
         child: Text('Feed Terbaru', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
       ),
-      if (posts.isEmpty) _buildFeedStatus(state),
+      if (posts.isEmpty && state.pinnedPosts.isEmpty) _buildFeedStatus(state),
       for (final post in posts)
         FeedPostCard(
           key: ValueKey(post.id),
@@ -289,9 +317,14 @@ class _MarketingFeedPageState extends State<MarketingFeedPage> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               _menuItem(Icons.photo_camera_outlined, 'Bagikan Momen', 'Sales', 'marketingFeedShare'),
-              _menuItem(Icons.article_outlined, 'Post Baru', 'Moderator', 'marketingFeedPostForm'),
-              _menuItem(Icons.poll_outlined, 'Poll Baru', 'Moderator', 'marketingFeedPollForm'),
-              _menuItem(Icons.drafts_outlined, 'Draft & Terjadwal', 'Moderator', 'marketingFeedDrafts'),
+              _menuItem(Icons.history_rounded, 'Kiriman Saya', 'Sales', 'marketingFeedMySubmissions'),
+              // Menu moderator: feature "Modify" form "Marketing Feed" (dicek juga di route & backend).
+              if (PermissionsHelper.canModerateMarketingFeed) ...[
+                _menuItem(Icons.article_outlined, 'Post Baru', 'Moderator', 'marketingFeedPostForm'),
+                _menuItem(Icons.poll_outlined, 'Poll Baru', 'Moderator', 'marketingFeedPollForm'),
+                _menuItem(Icons.link, 'Link YouTube / Website', 'Moderator', 'marketingFeedLinkForm'),
+                _menuItem(Icons.drafts_outlined, 'Draft & Terjadwal', 'Moderator', 'marketingFeedDrafts'),
+              ],
             ],
           ),
         ),

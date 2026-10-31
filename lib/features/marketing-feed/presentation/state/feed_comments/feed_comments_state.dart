@@ -1,13 +1,15 @@
 import 'package:equatable/equatable.dart';
 import 'package:progress_group/features/marketing-feed/domain/entities/feed_comment_entity.dart';
 
-enum FeedCommentsStatus { initial, loading, loaded, error }
+enum FeedCommentsStatus { initial, loading, loadingMore, loaded, error }
 
 class FeedCommentsState extends Equatable {
   final FeedCommentsStatus status;
   final int? postId;
   final List<FeedCommentEntity> comments;
   final bool isSending;
+  final int currentPage;
+  final bool hasMore;
   final String? errorMessage;
 
   const FeedCommentsState({
@@ -15,6 +17,8 @@ class FeedCommentsState extends Equatable {
     this.postId,
     this.comments = const [],
     this.isSending = false,
+    this.currentPage = 1,
+    this.hasMore = false,
     this.errorMessage,
   });
 
@@ -24,6 +28,8 @@ class FeedCommentsState extends Equatable {
     FeedCommentsStatus? status,
     List<FeedCommentEntity>? comments,
     bool? isSending,
+    int? currentPage,
+    bool? hasMore,
     String? errorMessage,
   }) {
     return FeedCommentsState(
@@ -31,10 +37,12 @@ class FeedCommentsState extends Equatable {
       postId: postId,
       comments: comments ?? this.comments,
       isSending: isSending ?? this.isSending,
+      currentPage: currentPage ?? this.currentPage,
+      hasMore: hasMore ?? this.hasMore,
       errorMessage: errorMessage,
     );
   }
 
   @override
-  List<Object?> get props => [status, postId, comments, isSending, errorMessage];
+  List<Object?> get props => [status, postId, comments, isSending, currentPage, hasMore, errorMessage];
 }

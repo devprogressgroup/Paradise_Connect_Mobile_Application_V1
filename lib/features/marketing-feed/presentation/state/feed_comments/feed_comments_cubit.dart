@@ -23,7 +23,34 @@ class FeedCommentsCubit extends Cubit<FeedCommentsState> {
     if (state.postId != postId) return;
     result.fold(
       (message) => emit(state.copyWith(status: FeedCommentsStatus.error, errorMessage: message)),
-      (data) => emit(state.copyWith(status: FeedCommentsStatus.loaded, comments: data)),
+      (data) => emit(state.copyWith(
+        status: FeedCommentsStatus.loaded,
+        comments: data.items,
+        currentPage: data.currentPage,
+        hasMore: data.hasMore,
+      )),
+    );
+  }
+
+  /// Halaman komentar utama berikutnya (infinite scroll).
+  Future<void> loadMore() async {
+    final postId = state.postId;
+    if (postId == null || state.status != FeedCommentsStatus.loaded || !state.hasMore) return;
+    emit(state.copyWith(status: FeedCommentsStatus.loadingMore));
+    final result = await getFeedCommentsUseCase(postId, page: state.currentPage + 1);
+    if (state.postId != postId) return;
+    result.fold(
+      (_) => emit(state.copyWith(status: FeedCommentsStatus.loaded)),
+      (data) {
+        // Komentar yang baru dikirim user sudah ditambahkan di akhir list — jangan dobel.
+        final known = state.comments.map((c) => c.id).toSet();
+        emit(state.copyWith(
+          status: FeedCommentsStatus.loaded,
+          comments: [...state.comments, ...data.items.where((c) => !known.contains(c.id))],
+          currentPage: data.currentPage,
+          hasMore: data.hasMore,
+        ));
+      },
     );
   }
 
@@ -39,29 +66,65 @@ class FeedCommentsCubit extends Cubit<FeedCommentsState> {
         emit(state.copyWith(isSending: false));
         return message;
       },
-      (data) {
-        emit(state.copyWith(isSending: false, comments: data));
+      (newComment) {
+        final current = state.comments;
+        final List<FeedCommentEntity> updated;
+        if (parentId == null) {
+          updated = [...current, newComment];
+        } else {
+          updated = current.map((c) {
+            if (c.id == parentId) {
+              return c.copyWith(replies: [...c.replies, newComment]);
+            }
+            return c;
+          }).toList();
+        }
+        emit(state.copyWith(isSending: false, comments: updated));
         return null;
       },
     );
   }
 
-  /// Suka/batal suka — langsung tampil di UI, dikembalikan kalau server gagal.
-  Future<void> toggleLike(int commentId) async {
+  /// Suka/batal suka — langsung tampil di UI, disinkronkan dengan hasil server atau dikembalikan kalau server gagal.
+  /// Balikan: pesan error, atau null kalau sukses.
+  Future<String?> toggleLike(int commentId) async {
     final postId = state.postId;
-    if (postId == null) return;
+    if (postId == null) return null;
     final before = state.comments;
+
+    bool wasLiked = false;
+    for (final c in before) {
+      if (c.id == commentId) {
+        wasLiked = c.isLiked;
+        break;
+      }
+      for (final r in c.replies) {
+        if (r.id == commentId) {
+          wasLiked = r.isLiked;
+          break;
+        }
+      }
+    }
 
     FeedCommentEntity flip(FeedCommentEntity c) => c.id == commentId
         ? c.copyWith(isLiked: !c.isLiked, likeCount: c.likeCount + (c.isLiked ? -1 : 1))
         : c.copyWith(replies: c.replies.map(flip).toList());
     emit(state.copyWith(comments: before.map(flip).toList()));
 
-    final result = await toggleFeedCommentLikeUseCase(postId, commentId);
-    if (state.postId != postId) return;
-    result.fold(
-      (_) => emit(state.copyWith(comments: before)),
-      (data) => emit(state.copyWith(comments: data)),
+    final result = await toggleFeedCommentLikeUseCase(commentId, currentlyLiked: wasLiked);
+    if (state.postId != postId) return null;
+    return result.fold(
+      (message) {
+        emit(state.copyWith(comments: before));
+        return message;
+      },
+      (res) {
+        FeedCommentEntity applyServer(FeedCommentEntity c) => c.id == commentId
+            ? c.copyWith(isLiked: res.liked, likeCount: res.likeCount)
+            : c.copyWith(replies: c.replies.map(applyServer).toList());
+        emit(state.copyWith(comments: state.comments.map(applyServer).toList()));
+        return null;
+      },
     );
   }
 }

@@ -7,7 +7,7 @@ class GetFeedCommentsUseCase {
 
   GetFeedCommentsUseCase(this.repository);
 
-  Future<Either<String, List<FeedCommentEntity>>> call(int postId) async {
-    return await repository.getComments(postId);
+  Future<Either<String, FeedCommentPageEntity>> call(int postId, {int page = 1}) async {
+    return await repository.getComments(postId, page: page);
   }
 }

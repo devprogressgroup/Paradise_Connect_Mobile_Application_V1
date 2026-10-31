@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../../../core/network/auth_token_cache.dart';
 import '../../../../core/network/proxy_cipher.dart';
 
 abstract class AuthLocalDataSource {
@@ -40,6 +41,7 @@ class AuthLocalDataSourceImpl implements AuthLocalDataSource {
   @override
   Future<void> saveToken(String token, {bool persistent = false}) async {
     _sessionToken = token;
+    AuthTokenCache.setToken(token);
     if (persistent || kIsWeb) {
       await sharedPreferences.setString(_tokenKey, ProxyCipher.encryptString(token));
     } else {
@@ -49,14 +51,20 @@ class AuthLocalDataSourceImpl implements AuthLocalDataSource {
 
   @override
   Future<String?> getToken() async {
-    if (_sessionToken != null) return _sessionToken;
+    if (_sessionToken != null) {
+      AuthTokenCache.setToken(_sessionToken);
+      return _sessionToken;
+    }
     final stored = sharedPreferences.getString(_tokenKey);
-    return ProxyCipher.decryptString(stored);
+    final decrypted = ProxyCipher.decryptString(stored);
+    AuthTokenCache.setToken(decrypted);
+    return decrypted;
   }
 
   @override
   Future<void> clearToken() async {
     _sessionToken = null;
+    AuthTokenCache.setToken(null);
     await sharedPreferences.remove(_tokenKey);
     await saveAutoLogin(false);
   }

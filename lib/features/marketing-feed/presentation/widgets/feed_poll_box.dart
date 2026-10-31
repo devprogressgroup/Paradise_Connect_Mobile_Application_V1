@@ -7,10 +7,13 @@ import 'package:progress_group/features/marketing-feed/presentation/widgets/feed
 class FeedPollBox extends StatefulWidget {
   final FeedPollEntity poll;
 
+  /// Gambar pertanyaan. API mengirimnya di `media[]` post, bukan di objek poll.
+  final FeedMediaEntity? image;
+
   /// Balikan: pesan error, atau null kalau terkirim. null = mode pratinjau (tidak bisa dijawab).
   final Future<String?> Function(List<int> optionIndexes)? onVote;
 
-  const FeedPollBox({super.key, required this.poll, this.onVote});
+  const FeedPollBox({super.key, required this.poll, this.image, this.onVote});
 
   @override
   State<FeedPollBox> createState() => _FeedPollBoxState();
@@ -20,15 +23,17 @@ class _FeedPollBoxState extends State<FeedPollBox> {
   final Set<int> _selected = {};
   bool _sending = false;
 
-  void _toggle(int index) {
+  void _toggle(int optionIndex) {
     if (widget.poll.hasVoted || widget.onVote == null) return;
     setState(() {
       if (widget.poll.isMultiple) {
-        _selected.contains(index) ? _selected.remove(index) : _selected.add(index);
+        _selected.contains(optionIndex)
+            ? _selected.remove(optionIndex)
+            : _selected.add(optionIndex);
       } else {
         _selected
           ..clear()
-          ..add(index);
+          ..add(optionIndex);
       }
     });
   }
@@ -38,25 +43,28 @@ class _FeedPollBoxState extends State<FeedPollBox> {
     final error = await widget.onVote!((_selected.toList()..sort()));
     if (!mounted) return;
     setState(() => _sending = false);
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error ?? 'Jawaban terkirim')));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(error ?? 'Suara kamu sudah tercatat.')),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     final poll = widget.poll;
     final voted = poll.hasVoted;
+    final image = widget.image ?? poll.image;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        if (poll.image != null) ...[
+        if (image != null) ...[
           ClipRRect(
             borderRadius: BorderRadius.circular(10),
-            child: AspectRatio(aspectRatio: 16 / 10, child: FeedMediaView(media: poll.image!)),
+            child: AspectRatio(aspectRatio: 16 / 10, child: FeedMediaView(media: image)),
           ),
           const SizedBox(height: 10),
         ],
-        for (var i = 0; i < poll.options.length; i++) ...[
-          _buildOption(i, voted),
+        for (final option in poll.options) ...[
+          _buildOption(option, voted),
           const SizedBox(height: 6),
         ],
         if (!voted) ...[
@@ -94,12 +102,12 @@ class _FeedPollBoxState extends State<FeedPollBox> {
     );
   }
 
-  Widget _buildOption(int index, bool voted) {
+  Widget _buildOption(FeedPollOptionEntity option, bool voted) {
     final poll = widget.poll;
-    final selected = voted ? poll.myVotes.contains(index) : _selected.contains(index);
-    final percent = poll.percentOf(index);
+    final selected = voted ? poll.myVotes.contains(option.index) : _selected.contains(option.index);
+    final percent = option.percent;
     return InkWell(
-      onTap: () => _toggle(index),
+      onTap: () => _toggle(option.index),
       borderRadius: BorderRadius.circular(10),
       child: Container(
         clipBehavior: Clip.antiAlias,
@@ -128,7 +136,7 @@ class _FeedPollBoxState extends State<FeedPollBox> {
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(
-                      poll.options[index],
+                      option.label,
                       style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
                     ),
                   ),

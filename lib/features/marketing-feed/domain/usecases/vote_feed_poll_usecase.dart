@@ -7,7 +7,7 @@ class VoteFeedPollUseCase {
 
   VoteFeedPollUseCase(this.repository);
 
-  Future<Either<String, FeedPostEntity>> call(int postId, List<int> optionIndexes) async {
+  Future<Either<String, FeedPollEntity>> call(int postId, List<int> optionIndexes) async {
     return await repository.votePoll(postId, optionIndexes);
   }
 }
