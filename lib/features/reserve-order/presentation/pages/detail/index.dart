@@ -20,13 +20,15 @@ import 'package:progress_group/features/reserve-order/data/models/reserve_order_
 import 'package:progress_group/features/reserve-order/data/models/reserve_order_detail.dart';
 import 'package:progress_group/features/reserve-order/domain/entities/reserve_order_detail_entity.dart';
 import 'package:progress_group/features/reserve-order/domain/entities/reserve_order_questionnaire_entity.dart';
+import 'package:progress_group/features/reserve-order/presentation/state/customer_options/customer_options_bloc.dart';
+import 'package:progress_group/features/reserve-order/presentation/state/customer_options/customer_options_event.dart';
 import 'package:progress_group/features/reserve-order/presentation/state/reserve_order_detail/reserve_order_detail_cubit.dart';
 import 'package:progress_group/features/reserve-order/presentation/state/reserve_order_detail/reserve_order_detail_state.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../create/reserve_order_navigation.dart';
 import '../edit-customer/index.dart';
-import '../questionnaire/index.dart';
 import '../top-up/index.dart';
 
 class ReserveOrderDetailPage extends StatefulWidget {
@@ -42,6 +44,14 @@ class ReserveOrderDetailPage extends StatefulWidget {
     required this.reserveOrderId,
     this.initialTab = 0,
   });
+
+  /// reserve_order_id halaman Detail yang sedang terbuka, urut stack (terakhir = paling atas).
+  static final List<int> _openIds = [];
+
+  /// Detail RO [reserveOrderId] sedang jadi Detail teratas — push notification cukup refresh
+  /// [ReserveOrderDetailCubit] (yang dipakai bersama semua halaman Detail), bukan buka halaman baru.
+  static bool isShowing(int reserveOrderId) =>
+      _openIds.isNotEmpty && _openIds.last == reserveOrderId;
 
   @override
   State<ReserveOrderDetailPage> createState() => _ReserveOrderDetailPageState();
@@ -76,6 +86,7 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage>
   @override
   void initState() {
     super.initState();
+    ReserveOrderDetailPage._openIds.add(widget.reserveOrderId);
     _tabController = TabController(
       length: 4,
       vsync: this,
@@ -83,10 +94,15 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage>
     )..addListener(_onTabChanged);
     _loadSeenMessageCount();
     _refresh();
+    context.read<CustomerOptionsBloc>().add(const FetchCustomerOptionsEvent());
   }
 
   @override
   void dispose() {
+    final openIndex = ReserveOrderDetailPage._openIds.lastIndexOf(
+      widget.reserveOrderId,
+    );
+    if (openIndex >= 0) ReserveOrderDetailPage._openIds.removeAt(openIndex);
     _tabController.removeListener(_onTabChanged);
     _tabController.dispose();
     _messageController.dispose();
@@ -259,9 +275,7 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage>
           ],
         ),
       ),
-      bottomNavigationBar: order.rejected && order.canEdit
-          ? _buildResubmitFooter(order)
-          : null,
+      bottomNavigationBar: order.canResubmit ? _buildResubmitFooter() : null,
     );
   }
 
@@ -350,7 +364,11 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage>
                 onTap: () => _chatCustomer(order),
               ),
              
-              if (order.canEdit || order.canDelete)
+              // Sudah Akad / diverifikasi Kasir → ⋮ tetap tampil, isinya disable (lihat _openMenu).
+              if (order.canEdit ||
+                  order.canDelete ||
+                  order.editLocked ||
+                  order.deleteLockedReason != null)
                 BgIcon(onTap: () => _openMenu(order)),
             ],
           ),
@@ -363,13 +381,18 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage>
                 reason: order.rejectReason ?? '',
               ),
             ),
+          
           const SizedBox(height: 4),
         ],
       ),
     );
   }
 
-  Widget _buildResubmitFooter(ReserveOrderDetail order) {
+  
+
+  /// Order Ditolak (`can_resubmit`) → "Pengajuan Ulang": wizard Create Reserve Order mode pengajuan
+  /// ulang ([_openResubmit]) — customer, unit, dokumen & TTS diubah lalu dikirim sekali.
+  Widget _buildResubmitFooter() {
     return Container(
       padding: const EdgeInsets.fromLTRB(14, 10, 14, 14),
       decoration: const BoxDecoration(
@@ -388,9 +411,9 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage>
                 borderRadius: BorderRadius.circular(11),
               ),
             ),
-            onPressed: () => _openEditCustomer(order),
+            onPressed: _openResubmit,
             child: const Text(
-              'Perbaiki Data Customer',
+              'Pengajuan Ulang',
               style: TextStyle(
                 color: Colors.white,
                 fontWeight: FontWeight.w700,
@@ -467,9 +490,10 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage>
               order.timeline[i],
               isLast: i == order.timeline.length - 1,
             ),
-          // Sudah SP (topupLockedReason) → tombol tetap tampil tapi DISABLE + alasannya; order
-          // Ditolak/Batal (canTopup false tanpa alasan) → tombol disembunyikan seperti sebelumnya.
-          if (order.canEdit &&
+          // Sudah SP / Akad (topupLockedReason) → tombol tetap tampil tapi DISABLE + alasannya (Akad:
+          // canEdit false, tetap tampil lewat editLocked); order Ditolak/Batal (canTopup false tanpa
+          // alasan) → tombol disembunyikan seperti sebelumnya.
+          if ((order.canEdit || order.editLocked) &&
               (order.canTopup || order.topupLockedReason != null)) ...[
             const SizedBox(height: 4),
             SizedBox(
@@ -791,19 +815,21 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage>
 
   Widget _buildCustomerTab(ReserveOrderDetail order) {
     final raw = order.customer.raw;
+    // Label dropdown (nama Wilayah Area, rentang Penghasilan, …) dari GET /reserve-order/customer-options.
+    final options = context.watch<CustomerOptionsBloc>().state.options;
     return SingleChildScrollView(
       physics: const AlwaysScrollableScrollPhysics(),
       child: Column(
         children: [
           for (final section in reserveCustomerFieldSections)
             CustomDropdownGroupContact(
-              hint: section.title,
+              hint: section.titleFor(raw),
               child: Column(
                 children: [
                   for (var i = 0; i < section.fields.length; i++)
                     _customerRow(
                       section.fields[i].label,
-                      displayValueFor(section.fields[i], raw),
+                      displayValueFor(section.fields[i], raw, options: options),
                       onTap: order.canEdit
                           ? () => _openEditCustomer(
                               order,
@@ -817,13 +843,28 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage>
             ),
           if (order.questionnaire case final questionnaire?)
             _questionnaireSection(order, questionnaire),
+          // Sales Channel (= Sumber Informasi Dynamics) — dari reserve order, tidak diedit di sini.
+          CustomDropdownGroupContact(
+            hint: reserveSalesChannelSection.title,
+            child: Column(
+              children: [
+                for (final (i, field) in reserveSalesChannelSection.fields.indexed)
+                  _customerRow(
+                    field.label,
+                    displayValueFor(field, raw),
+                    showDivider:
+                        i != reserveSalesChannelSection.fields.length - 1,
+                  ),
+              ],
+            ),
+          ),
         ],
       ),
     );
   }
 
   /// Section "Kuesioner" — 1 baris per pertanyaan yg tampil (ringkasan jawaban dari server), tap
-  /// membuka form kuesioner ([ReserveOrderQuestionnairePage]).
+  /// membuka "Edit Data Customer" di grup Kuesioner (data customer & kuesioner 1 halaman, 1x Save).
   Widget _questionnaireSection(
     ReserveOrderDetail order,
     ReserveQuestionnaireEntity questionnaire,
@@ -840,25 +881,15 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage>
               questions[i].text ?? questions[i].title,
               questions[i].answer,
               onTap: order.canEdit
-                  ? () => _openQuestionnaire(order, questionnaire)
+                  ? () => _openEditCustomer(
+                      order,
+                      highlightKey:
+                          EditCustomerReserveOrderPage.questionnaireKey,
+                    )
                   : null,
               showDivider: i != questions.length - 1,
             ),
         ],
-      ),
-    );
-  }
-
-  Future<void> _openQuestionnaire(
-    ReserveOrderDetail order,
-    ReserveQuestionnaireEntity questionnaire,
-  ) async {
-    await Navigator.of(context).push<bool>(
-      MaterialPageRoute(
-        builder: (_) => ReserveOrderQuestionnairePage(
-          reserveOrderId: order.reserveOrderId,
-          questionnaire: questionnaire,
-        ),
       ),
     );
   }
@@ -943,6 +974,10 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage>
             ),
           ),
           const SizedBox(height: 10),
+          // RO lain customer ini sudah Akad → dokumen customer tidak bisa diganti/dihapus (menu file
+          // disable), tambah dokumen tetap boleh.
+          // Sudah Akad → dokumen tidak bisa ditambah/diganti/dihapus (ditolak juga di server):
+          // kartu upload & tombol "+ Tambah" tampil disable.
           _buildAddNewFileCard(order),
           for (final doc in order.requiredDocs) _buildDocRow(order, doc),
         ],
@@ -1008,15 +1043,22 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage>
                 ),
                 InkWell(
                   borderRadius: BorderRadius.circular(8),
-                  onTap: () => _uploadDocument(order, docName),
-                  child: const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                  onTap: order.editLocked
+                      ? null
+                      : () => _uploadDocument(order, docName),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 4,
+                    ),
                     child: Text(
                       '+ Tambah',
                       style: TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.w700,
-                        color: Color(primaryColor),
+                        color: order.editLocked
+                            ? const Color(grey7Color)
+                            : const Color(primaryColor),
                       ),
                     ),
                   ),
@@ -1030,7 +1072,7 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage>
       );
     }
     return InkWell(
-      onTap: () => _uploadDocument(order, docName),
+      onTap: order.editLocked ? null : () => _uploadDocument(order, docName),
       child: Container(
         width: double.infinity,
         margin: const EdgeInsets.only(bottom: 8),
@@ -1053,9 +1095,9 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage>
               ),
             ),
             const SizedBox(height: 2),
-            const Text(
-              'Ketuk untuk upload',
-              style: TextStyle(fontSize: 10.5, color: Color(grey4Color)),
+            Text(
+              order.editLocked ? 'Belum diupload' : 'Ketuk untuk upload',
+              style: const TextStyle(fontSize: 10.5, color: Color(grey4Color)),
             ),
           ],
         ),
@@ -1065,48 +1107,53 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage>
 
   /// Kartu "Add New File" (sama seperti di tab Attachment Contact Detail) — upload bebas tanpa
   /// harus tap salah satu dokumen wajib; Attachment Type dipilih sendiri di halaman upload.
+  /// Sudah Akad ([ReserveOrderDetail.editLocked]) → kartu tampil abu-abu & tidak bisa di-tap.
   Widget _buildAddNewFileCard(ReserveOrderDetail order) {
+    final locked = order.editLocked;
+    final onTap = locked ? null : () => _uploadDocument(order, null);
+    final accent = locked
+        ? const Color(grey5Color)
+        : const Color(primaryColor);
     return GestureDetector(
-      onTap: () => _uploadDocument(order, null),
-      child: Container(
-        width: double.infinity,
-        margin: const EdgeInsets.only(bottom: 8),
-        padding: const EdgeInsets.all(10),
-        decoration: BoxDecoration(
-          color: const Color(whiteColor),
-          border: Border.all(color: const Color(grey10Color)),
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Row(
-          children: [
-            BgIcon(
-              asset: icUpload,
-              color: const Color(primaryColor),
-              onTap: () => _uploadDocument(order, null),
-            ),
-            const SizedBox(width: 10),
-            const Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Add New File',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w700,
-                    color: Color(primaryColor),
+      onTap: onTap,
+      child: Opacity(
+        opacity: locked ? 0.5 : 1,
+        child: Container(
+          width: double.infinity,
+          margin: const EdgeInsets.only(bottom: 8),
+          padding: const EdgeInsets.all(10),
+          decoration: BoxDecoration(
+            color: const Color(whiteColor),
+            border: Border.all(color: const Color(grey10Color)),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Row(
+            children: [
+              BgIcon(asset: icUpload, color: accent, onTap: onTap),
+              const SizedBox(width: 10),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Add New File',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      color: accent,
+                    ),
                   ),
-                ),
-                Text(
-                  'upload new file',
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w400,
-                    color: Color(grey5Color),
+                  Text(
+                    locked ? 'dokumen terkunci (sudah Akad)' : 'upload new file',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w400,
+                      color: Color(grey5Color),
+                    ),
                   ),
-                ),
-              ],
-            ),
-          ],
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -1367,6 +1414,9 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage>
     int number,
   ) {
     final url = file.attachmentPath ?? '';
+    // RO ini sudah Akad, atau dokumen customer (file.locked) & salah satu RO customer ini sudah Akad.
+    final lockReason =
+        order.editLockedReason ?? (file.locked ? order.docLockedReason : null);
     showCustomBottomSheet(
       context: context,
       child: Column(
@@ -1388,10 +1438,13 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage>
               'Tanyakan di Pesan',
               () => _attachExistingToMessage(docName, file),
             ),
+          // Terkunci (lockReason) → file tidak bisa diganti/dihapus (ditolak juga di server): tampil
+          // disable. Bukti Transfer / dokumen TTS RO yg belum Akad tetap bisa.
           _menuItem(
             '⤴️',
             'Upload Ulang',
             () => _reuploadDocument(order, docName, file),
+            enabled: lockReason == null,
           ),
           if (order.contactId != null &&
               PermissionsHelper.canDeleteAttachmentItem)
@@ -1400,6 +1453,7 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage>
               'Hapus',
               () => _confirmDeleteAttachment(order, docName, file, number),
               color: const Color(redColor),
+              enabled: lockReason == null,
             ),
         ],
       ),
@@ -2224,18 +2278,39 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage>
               style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
             ),
           ),
-          if (order.canEdit)
-            _menuItem('✎', 'Edit Data Pembeli', () => _openEditCustomer(order)),
-          if (order.canDelete)
+          // Sudah Akad → backend kirim can_edit/can_delete false; item tetap tampil tapi disable.
+          if (order.canEdit || order.editLocked)
+            _menuItem(
+              '✎',
+              'Edit Data Pembeli',
+              () => _openEditCustomer(order),
+              enabled: !order.editLocked,
+            ),
+          // Sudah diverifikasi Kasir / Akad (deleteLockedReason) → Delete tampil disable (ditolak juga
+          // di server).
+          if (order.canDelete || order.deleteLockedReason != null)
             _menuItem(
               '🗑️',
               'Delete Reserve Order',
               () => _confirmDelete(order),
               color: const Color(redColor),
+              enabled: order.deleteLockedReason == null,
             ),
         ],
       ),
     );
+  }
+
+  /// Wizard Create Reserve Order mode "Pengajuan Ulang", diisi dari detail order ini. Sukses →
+  /// detail di [ReserveOrderDetailCubit] sudah diganti `data` response; wizard balik `message` server.
+  Future<void> _openResubmit() async {
+    final detail = context.read<ReserveOrderDetailCubit>().state.detail;
+    if (detail == null || detail.reserveOrderId != widget.reserveOrderId) {
+      return;
+    }
+    final message = await navigateToResubmitReserveOrder(context, detail);
+    if (!mounted || message == null) return;
+    showSnackbar(context, message);
   }
 
   void _openTopup(ReserveOrderDetail order) {
@@ -2331,38 +2406,49 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage>
     }
   }
 
+  /// [enabled] false → item tetap tampil tapi abu-abu & tidak bisa di-tap (mis. sudah Akad).
   Widget _menuItem(
     String icon,
     String label,
     VoidCallback onTap, {
     Color? color,
+    bool enabled = true,
   }) {
     return InkWell(
-      onTap: () {
-        Navigator.pop(context);
-        onTap();
-      },
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 11),
-        child: Row(
-          children: [
-            Text(
-              icon,
-              style: TextStyle(
-                fontSize: 16,
-                color: color ?? const Color(grey1Color),
+      onTap: enabled
+          ? () {
+              Navigator.pop(context);
+              onTap();
+            }
+          : null,
+      child: Opacity(
+        opacity: enabled ? 1 : 0.4,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 11),
+          child: Row(
+            children: [
+              Text(
+                icon,
+                style: TextStyle(
+                  fontSize: 16,
+                  color: enabled
+                      ? color ?? const Color(grey1Color)
+                      : const Color(grey5Color),
+                ),
               ),
-            ),
-            const SizedBox(width: 12),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 14,
-                color: color ?? Colors.black87,
-                fontWeight: FontWeight.w600,
+              const SizedBox(width: 12),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 14,
+                  color: enabled
+                      ? color ?? Colors.black87
+                      : const Color(grey5Color),
+                  fontWeight: FontWeight.w600,
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

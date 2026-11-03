@@ -235,18 +235,22 @@ class _CustomDropdownGroupContactState
               color: widget.bg != null
                   ? Color(transparentColor)
                   : Color(grey9Color),
-              height: 50,
-              padding: const EdgeInsets.symmetric(horizontal: 16),
+              // minHeight (bukan height tetap) + Expanded: judul panjang turun baris, bukan overflow.
+              constraints: const BoxConstraints(minHeight: 50),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(
-                    widget.hint,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
+                  Expanded(
+                    child: Text(
+                      widget.hint,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ),
+                  const SizedBox(width: 8),
                   Icon(
                     isOpen
                         ? Icons.keyboard_arrow_up

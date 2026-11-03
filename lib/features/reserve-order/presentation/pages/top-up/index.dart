@@ -298,7 +298,7 @@ class _TopupReserveOrderPageState extends State<TopupReserveOrderPage> {
               children: [
                 Text(
                   widget.isResubmit
-                      ? 'Perbaiki Reserve Order'
+                      ? 'Pengajuan Ulang Reserve Order'
                       : 'Top Up Pembayaran',
                   style: const TextStyle(
                     fontSize: 15,
@@ -839,7 +839,7 @@ class _TopupReserveOrderPageState extends State<TopupReserveOrderPage> {
         _isSubmitting ? null : _submit,
         _isSubmitting
             ? 'Mengajukan...'
-            : '${widget.isResubmit ? 'Submit Ulang' : 'Ajukan Top Up'} (Rp ${NumberHelper.thousands(_total)})',
+            : '${widget.isResubmit ? 'Ajukan Ulang' : 'Ajukan Top Up'} (Rp ${NumberHelper.thousands(_total)})',
       ),
     );
   }

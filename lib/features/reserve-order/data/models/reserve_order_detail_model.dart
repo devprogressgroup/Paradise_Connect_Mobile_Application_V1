@@ -75,6 +75,7 @@ class ReserveOrderAttachmentModel extends ReserveOrderAttachmentEntity {
     super.attachmentNote,
     super.createDatetime,
     super.isVerifiable,
+    super.locked,
   });
 
   /// attachment_type_id yang diverifikasi Kasir: 1 KTP Pemohon, 15 Bukti Transfer — fallback kalau
@@ -95,6 +96,7 @@ class ReserveOrderAttachmentModel extends ReserveOrderAttachmentEntity {
         json['create_datetime'] as String? ?? '',
       ),
       isVerifiable: json['is_verifiable'] as bool? ?? _verifiableTypeIds.contains(typeId),
+      locked: json['locked'] == true,
     );
   }
 }
@@ -148,6 +150,71 @@ class ReserveOrderTtsModel extends ReserveOrderTtsEntity {
       items: items
           .map(
             (e) => ReserveOrderTtsItemModel.fromJson(e as Map<String, dynamic>),
+          )
+          .toList(),
+    );
+  }
+}
+
+class ReserveOrderResubmitModel extends ReserveOrderResubmitEntity {
+  const ReserveOrderResubmitModel({
+    super.reserveDate,
+    super.unitEditable,
+    super.unitLockedReason,
+    super.tts,
+  });
+
+  // Kolom decimal Laravel bisa terkirim sbg string ("3000000.00").
+  static double _double(Object? v) =>
+      v is num ? v.toDouble() : double.tryParse('${v ?? ''}') ?? 0;
+
+  static int? _int(Object? v) =>
+      v is num ? v.toInt() : int.tryParse('${v ?? ''}');
+
+  factory ReserveOrderResubmitModel.fromJson(Map<String, dynamic> json) {
+    final tts = json['tts'];
+    return ReserveOrderResubmitModel(
+      reserveDate: DateTime.tryParse(json['reserve_date'] as String? ?? ''),
+      unitEditable: json['unit_editable'] == true,
+      unitLockedReason: json['unit_locked_reason'] as String?,
+      tts: tts is Map<String, dynamic> ? _tts(tts) : null,
+    );
+  }
+
+  static ReserveOrderResubmitTtsEntity _tts(Map<String, dynamic> json) {
+    return ReserveOrderResubmitTtsEntity(
+      reserveOrderTtsId: _int(json['reserve_order_tts_id']) ?? 0,
+      ttsNumber: json['tts_number']?.toString() ?? '',
+      paymentTypeId: _int(json['payment_type_id']),
+      editable: json['editable'] == true,
+      lockedReason: json['locked_reason'] as String?,
+      items: ((json['items'] as List?) ?? const [])
+          .whereType<Map<String, dynamic>>()
+          .map(
+            (p) => ReserveOrderResubmitPaymentEntity(
+              paymentMethod: p['payment_method']?.toString() ?? '',
+              amount: _double(p['amount']),
+              bankId: _int(p['bank_id']),
+              bankName: p['bank_name'] as String?,
+              cardNetwork: p['card_network'] as String?,
+              referenceNumber: p['reference_number']?.toString(),
+              referenceDate: DateTime.tryParse(
+                p['reference_date'] as String? ?? '',
+              ),
+              tunaiDeposited:
+                  p['tunai_deposited'] == true || p['tunai_deposited'] == 1,
+            ),
+          )
+          .toList(),
+      proofs: ((json['proofs'] as List?) ?? const [])
+          .whereType<Map<String, dynamic>>()
+          .where((p) => _int(p['contact_attachment_id']) != null)
+          .map(
+            (p) => ReserveOrderResubmitProofEntity(
+              contactAttachmentId: _int(p['contact_attachment_id'])!,
+              attachmentPath: p['attachment_path'] as String?,
+              verificationStatus: p['verification_status'] as String?,
+            ),
           )
           .toList(),
     );
@@ -212,15 +279,23 @@ class ReserveOrderDetailModel extends ReserveOrderDetailEntity {
     super.unitSub,
     super.productName,
     super.townshipName,
+    super.townshipId,
     super.caraBayarName,
     super.canTopup,
+    super.canChangeUnit,
     super.topupLockedReason,
+    super.editLockedReason,
+    super.docLockedReason,
+    super.deleteLockedReason,
     super.canEdit,
     super.canDelete,
     super.statusLabel,
     super.isRejected,
     super.rejectStage,
     super.rejectReason,
+    super.rejectSource,
+    super.canResubmit,
+    super.resubmit,
     super.timeline,
     super.customer,
     super.questionnaire,
@@ -253,9 +328,14 @@ class ReserveOrderDetailModel extends ReserveOrderDetailEntity {
       unitSub: json['project_name'] as String?,
       productName: json['product_name'] as String?,
       townshipName: json['township_name'] as String?,
+      townshipId: (json['township_id'] as num?)?.toInt(),
       caraBayarName: json['cara_bayar_name'] as String?,
       canTopup: json['can_topup'] == true,
+      canChangeUnit: json['can_change_unit'] == true,
       topupLockedReason: json['topup_locked_reason'] as String?,
+      editLockedReason: json['edit_locked_reason'] as String?,
+      docLockedReason: json['doc_locked_reason'] as String?,
+      deleteLockedReason: json['delete_locked_reason'] as String?,
       // Default true bila backend lama belum kirim flag — server tetap menolak (403) bila tak berhak.
       canEdit: json['can_edit'] != false,
       canDelete: json['can_delete'] != false,
@@ -263,6 +343,15 @@ class ReserveOrderDetailModel extends ReserveOrderDetailEntity {
       isRejected: json['is_rejected'] == true,
       rejectStage: json['reject_stage'] as String?,
       rejectReason: json['reject_reason'] as String?,
+      rejectSource: json['reject_source'] as String?,
+      canResubmit: json.containsKey('can_resubmit')
+          ? json['can_resubmit'] == true
+          : null,
+      resubmit: json['resubmit'] is Map<String, dynamic>
+          ? ReserveOrderResubmitModel.fromJson(
+              json['resubmit'] as Map<String, dynamic>,
+            )
+          : null,
       timeline: timeline
           .map(
             (e) =>

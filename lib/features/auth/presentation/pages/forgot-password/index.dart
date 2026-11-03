@@ -410,7 +410,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
          mainAxisSize: MainAxisSize.min,
          crossAxisAlignment: CrossAxisAlignment.stretch,
          children: [
-           Text(widget.isRegister ? 'Register akun' : 'Forgot Password',textAlign: TextAlign.center,style: TextStyle(fontSize: 18,fontWeight: FontWeight.w700,letterSpacing: 0,color: Color(blue2Color))),
+           Text(widget.isRegister ? 'Activate Employee Account' : 'Forgot Password',textAlign: TextAlign.center,style: TextStyle(fontSize: 18,fontWeight: FontWeight.w700,letterSpacing: 0,color: Color(blue2Color))),
            const SizedBox(height: 4),
            if (widget.isRegister)
              Padding(

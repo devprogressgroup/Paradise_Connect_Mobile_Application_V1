@@ -1,32 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:progress_group/core/constants/colors.dart';
-import 'package:progress_group/core/utils/widget/custom_snackbar.dart';
+import 'package:progress_group/features/reserve-order/domain/entities/customer_options_entity.dart';
 import 'package:progress_group/features/reserve-order/domain/entities/reserve_order_questionnaire_entity.dart';
-import 'package:progress_group/features/reserve-order/presentation/state/reserve_order_detail/reserve_order_detail_cubit.dart';
+import 'package:progress_group/features/reserve-order/presentation/widgets/option_picker_sheet.dart';
 
-/// Form "Kuesioner" customer reserve order — pertanyaan, pilihan & aturannya dari server
-/// (`questionnaire` di detail = form Edit Customer Reserve web), jadi app tidak menyimpan daftar
-/// pertanyaan sendiri. Dibuka dari section Kuesioner di tab Customer; header & tombol Save sama
-/// dgn "Edit Data Customer" ([EditCustomerReserveOrderPage]).
-class ReserveOrderQuestionnairePage extends StatefulWidget {
-  final int reserveOrderId;
+/// Isian kuesioner yang sedang diedit — dipegang halaman pemilik (bukan [ReserveQuestionnaireForm]),
+/// supaya isiannya tidak hilang saat grup "Kuesioner" dilipat (`CustomDropdownGroupContact` membuang
+/// child-nya saat tertutup). Halaman wajib memanggil [dispose].
+class ReserveQuestionnaireController {
   final ReserveQuestionnaireEntity questionnaire;
 
-  const ReserveOrderQuestionnairePage({
-    super.key,
-    required this.reserveOrderId,
-    required this.questionnaire,
-  });
-
-  @override
-  State<ReserveOrderQuestionnairePage> createState() =>
-      _ReserveOrderQuestionnairePageState();
-}
-
-class _ReserveOrderQuestionnairePageState
-    extends State<ReserveOrderQuestionnairePage> {
   /// Nilai pilihan per `name` — check ('1' / ''), radio & pick (value option / 'more' / '').
   final Map<String, String> _values = {};
 
@@ -36,14 +20,8 @@ class _ReserveOrderQuestionnairePageState
   /// Centang di depan isian ber-`toggle` — isian aktif selama dicentang.
   final Map<String, bool> _toggles = {};
 
-  bool _submitting = false;
-
-  List<ReserveQuestionEntity> get _questions => widget.questionnaire.questions;
-
-  @override
-  void initState() {
-    super.initState();
-    for (final q in _questions) {
+  ReserveQuestionnaireController(this.questionnaire) {
+    for (final q in questionnaire.questions) {
       for (final input in q.inputs) {
         if (input.isText) {
           _tc[input.name] = TextEditingController(text: input.value);
@@ -60,100 +38,75 @@ class _ReserveOrderQuestionnairePageState
     }
   }
 
-  @override
   void dispose() {
     for (final c in _tc.values) {
       c.dispose();
     }
-    super.dispose();
   }
 
   String _valueOf(String name) => _values[name] ?? _tc[name]?.text ?? '';
 
+  /// Body `questioner[<name>]` — aturan sama dgn form web: isian kosong / centang mati / pertanyaan
+  /// tersembunyi = null; radio "Lebih dari 3" = 'more' + angka di `<name>more`.
+  Map<String, String?> answers() {
+    String? orNull(String value) => value.trim().isEmpty ? null : value.trim();
+    final answers = <String, String?>{};
+    for (final q in questionnaire.questions) {
+      final visible = q.isVisible(_valueOf);
+      for (final input in q.inputs) {
+        if (input.isText) {
+          final off = input.toggle != null && !(_toggles[input.name] ?? false);
+          answers[input.name] = !visible || off
+              ? null
+              : orNull(_tc[input.name]!.text);
+          continue;
+        }
+        final value = visible ? orNull(_values[input.name] ?? '') : null;
+        answers[input.name] = input.type == 'check' && value != '1'
+            ? null
+            : value;
+        if (input.moreLabel != null) {
+          answers['${input.name}more'] = value == 'more'
+              ? orNull(_tc['${input.name}more']!.text)
+              : null;
+        }
+      }
+    }
+    return answers;
+  }
+}
+
+/// Form "Kuesioner" customer reserve order — pertanyaan, pilihan & aturannya dari server
+/// (`questionnaire` di detail = form Edit Customer Reserve web), jadi app tidak menyimpan daftar
+/// pertanyaan sendiri. Dipasang di halaman "Edit Data Customer" ([EditCustomerReserveOrderPage])
+/// supaya data customer & kuesioner tersimpan dgn 1x Save; isiannya di [controller].
+class ReserveQuestionnaireForm extends StatefulWidget {
+  final ReserveQuestionnaireController controller;
+
+  const ReserveQuestionnaireForm({super.key, required this.controller});
+
+  @override
+  State<ReserveQuestionnaireForm> createState() =>
+      _ReserveQuestionnaireFormState();
+}
+
+class _ReserveQuestionnaireFormState extends State<ReserveQuestionnaireForm> {
+  ReserveQuestionnaireController get _c => widget.controller;
+  Map<String, String> get _values => _c._values;
+  Map<String, TextEditingController> get _tc => _c._tc;
+  Map<String, bool> get _toggles => _c._toggles;
+  List<ReserveQuestionEntity> get _questions => _c.questionnaire.questions;
+
+  String _valueOf(String name) => _c._valueOf(name);
+
   @override
   Widget build(BuildContext context) {
-    return PopScope(
-      canPop: !_submitting,
-      child: Scaffold(
-        backgroundColor: const Color(whiteColor),
-        body: SafeArea(
-          bottom: false,
-          child: Column(
-            children: [
-              _buildHeader(),
-              Expanded(
-                child: ListView(
-                  keyboardDismissBehavior:
-                      ScrollViewKeyboardDismissBehavior.onDrag,
-                  padding: const EdgeInsets.only(bottom: 24),
-                  children: [
-                    for (final q in _questions)
-                      if (q.isVisible(_valueOf)) _buildQuestion(q),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildHeader() {
-    return Container(
-      height: 64,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-      color: const Color(whiteColor),
-      child: Row(
-        children: [
-          GestureDetector(
-            onTap: () => Navigator.of(context).maybePop(),
-            child: const Icon(
-              Icons.arrow_back,
-              color: Color(primaryColor),
-              size: 27,
-            ),
-          ),
-          const SizedBox(width: 10),
-          const Expanded(
-            child: Text(
-              'Kuesioner',
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
-            ),
-          ),
-          const SizedBox(width: 10),
-          GestureDetector(
-            onTap: _submitting ? null : _onSubmit,
-            child: Container(
-              height: 36,
-              width: 100,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(14),
-                color: const Color(blue3Color),
-              ),
-              child: _submitting
-                  ? const SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: Color(whiteColor),
-                      ),
-                    )
-                  : const Text(
-                      'Save',
-                      style: TextStyle(
-                        color: Color(whiteColor),
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-            ),
-          ),
-        ],
-      ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        for (final q in _questions)
+          if (q.isVisible(_valueOf)) _buildQuestion(q),
+      ],
     );
   }
 
@@ -184,7 +137,8 @@ class _ReserveOrderQuestionnairePageState
   }
 
   /// Tabel (Rincian penghuni / Properti pilihan lain) — 1 isian per baris jadi "label  [isian]",
-  /// >1 isian jadi label di atas + isian berjajar (hint = judul kolom [ReserveQuestionEntity.head]).
+  /// >1 isian jadi label di atas + isian berjajar (hint = judul kolom [ReserveQuestionEntity.head]);
+  /// >3 isian (Cluster, Product, Wilayah, Kota) ditata 2 kolom supaya tidak terlalu sempit.
   Widget _buildTable(ReserveQuestionEntity q) {
     final rows = <String, List<ReserveQuestionInputEntity>>{};
     for (final input in q.inputs) {
@@ -204,7 +158,7 @@ class _ReserveOrderQuestionnairePageState
                       Expanded(flex: 3, child: _rowLabel(entry.key)),
                       Expanded(
                         flex: 2,
-                        child: _input(entry.value.first, hint: hintAt(0)),
+                        child: _cell(entry.value.first, hint: hintAt(0)),
                       ),
                     ],
                   )
@@ -213,20 +167,96 @@ class _ReserveOrderQuestionnairePageState
                     children: [
                       _rowLabel(entry.key),
                       const SizedBox(height: 4),
-                      Row(
-                        children: [
-                          for (var i = 0; i < entry.value.length; i++) ...[
-                            if (i > 0) const SizedBox(width: 6),
-                            Expanded(
-                              child: _input(entry.value[i], hint: hintAt(i)),
-                            ),
+                      if (entry.value.length > 3)
+                        LayoutBuilder(
+                          builder: (context, constraints) {
+                            final width = (constraints.maxWidth - 6) / 2;
+                            return Wrap(
+                              spacing: 6,
+                              runSpacing: 6,
+                              children: [
+                                for (var i = 0; i < entry.value.length; i++)
+                                  SizedBox(
+                                    width: width,
+                                    child: _cell(
+                                      entry.value[i],
+                                      hint: hintAt(i),
+                                    ),
+                                  ),
+                              ],
+                            );
+                          },
+                        )
+                      else
+                        Row(
+                          children: [
+                            for (var i = 0; i < entry.value.length; i++) ...[
+                              if (i > 0) const SizedBox(width: 6),
+                              Expanded(
+                                child: _cell(entry.value[i], hint: hintAt(i)),
+                              ),
+                            ],
                           ],
-                        ],
-                      ),
+                        ),
                     ],
                   ),
           ),
       ],
+    );
+  }
+
+  /// Isian 1 sel tabel — dropdown (`select`, mis. Wilayah) atau teks/angka.
+  Widget _cell(ReserveQuestionInputEntity input, {String? hint}) =>
+      input.type == 'select'
+      ? _selectField(input, hint: hint)
+      : _input(input, hint: hint);
+
+  /// Dropdown dari [ReserveQuestionInputEntity.options] (daftar master dari API, mis. 317 Wilayah
+  /// Area) — sheet pilihan yang bisa dicari, sama dgn dropdown Wilayah Area di data customer.
+  Widget _selectField(ReserveQuestionInputEntity input, {String? hint}) {
+    final value = _values[input.name] ?? '';
+    final selected = input.options.where((o) => o.value == value).firstOrNull;
+    final text = selected?.label ?? (value.isEmpty ? null : value);
+    return InkWell(
+      borderRadius: BorderRadius.circular(8),
+      onTap: () => showOptionPickerSheet(
+        context: context,
+        title: hint ?? input.label ?? '',
+        items: [
+          if (value.isNotEmpty)
+            const CustomerOptionEntity(value: '', label: '— Kosongkan —'),
+          for (final o in input.options)
+            CustomerOptionEntity(value: o.value, label: o.label),
+        ],
+        selected: value,
+        onPicked: (o) => setState(() => _values[input.name] = o.value),
+      ),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: const Color(grey9Color)),
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(
+                text ?? hint ?? '',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: text == null
+                    ? const TextStyle(fontSize: 12, color: Color(grey5Color))
+                    : const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+              ),
+            ),
+            const Icon(
+              Icons.arrow_drop_down,
+              size: 20,
+              color: Color(grey4Color),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -256,6 +286,7 @@ class _ReserveOrderQuestionnairePageState
           padding: const EdgeInsets.only(bottom: 6),
           child: switch (input.type) {
             'radio' || 'pick' => _choice(input),
+            'select' => _selectField(input, hint: input.label),
             _ when input.toggle != null => _toggleInput(input),
             _ => _input(input, hint: input.placeholder, label: input.label),
           },
@@ -443,51 +474,4 @@ class _ReserveOrderQuestionnairePageState
     );
   }
 
-  /// Body `questioner[<name>]` — aturan sama dgn form web: isian kosong / centang mati / pertanyaan
-  /// tersembunyi = null; radio "Lebih dari 3" = 'more' + angka di `<name>more`.
-  Map<String, String?> _buildAnswers() {
-    String? orNull(String value) => value.trim().isEmpty ? null : value.trim();
-    final answers = <String, String?>{};
-    for (final q in _questions) {
-      final visible = q.isVisible(_valueOf);
-      for (final input in q.inputs) {
-        if (input.isText) {
-          final off = input.toggle != null && !(_toggles[input.name] ?? false);
-          answers[input.name] = !visible || off
-              ? null
-              : orNull(_tc[input.name]!.text);
-          continue;
-        }
-        final value = visible ? orNull(_values[input.name] ?? '') : null;
-        answers[input.name] = input.type == 'check' && value != '1'
-            ? null
-            : value;
-        if (input.moreLabel != null) {
-          answers['${input.name}more'] = value == 'more'
-              ? orNull(_tc['${input.name}more']!.text)
-              : null;
-        }
-      }
-    }
-    return answers;
-  }
-
-  Future<void> _onSubmit() async {
-    FocusScope.of(context).unfocus();
-    setState(() => _submitting = true);
-
-    final error = await context
-        .read<ReserveOrderDetailCubit>()
-        .updateQuestionnaire(widget.reserveOrderId, _buildAnswers());
-
-    if (!mounted) return;
-    setState(() => _submitting = false);
-
-    if (error != null) {
-      showSnackbar(context, error, isError: true);
-      return;
-    }
-
-    Navigator.of(context).pop(true);
-  }
 }

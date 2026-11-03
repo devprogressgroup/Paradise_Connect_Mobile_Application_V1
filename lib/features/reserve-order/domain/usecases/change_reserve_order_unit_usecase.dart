@@ -1,16 +1,17 @@
 import 'package:dartz/dartz.dart';
+import 'package:progress_group/features/reserve-order/domain/entities/change_reserve_order_unit_params.dart';
 import 'package:progress_group/features/reserve-order/domain/entities/reserve_order_detail_entity.dart';
 import 'package:progress_group/features/reserve-order/domain/repositories/reserve_order_repository.dart';
 
-class UpdateReserveOrderQuestionnaireUseCase {
+class ChangeReserveOrderUnitUseCase {
   final ReserveOrderRepository repository;
 
-  UpdateReserveOrderQuestionnaireUseCase(this.repository);
+  ChangeReserveOrderUnitUseCase(this.repository);
 
   Future<Either<String, ReserveOrderDetailEntity>> call(
     int reserveOrderId,
-    Map<String, String?> answers,
+    ChangeReserveOrderUnitParams params,
   ) async {
-    return await repository.updateQuestionnaire(reserveOrderId, answers);
+    return await repository.changeReserveOrderUnit(reserveOrderId, params);
   }
 }

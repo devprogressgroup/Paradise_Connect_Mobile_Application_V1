@@ -1,0 +1,921 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Dokumentasi Reserve Order</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito+Sans:opsz,wght@6..12,400;6..12,600;6..12,700;6..12,800&display=swap">
+<style>
+/* Format & gaya mengikuti tab "Database" di Marketing Feed Prototype.html. Diagram ERD ASCII di-generate
+   (jangan rapikan garisnya manual), warnanya ditambahkan JS saat load. Dokumen selalu light; hanya panggung luar ikut dark mode. */
+:root{--stage:#e8eef6;--stage-fg:#5b6472;--font:"Nunito Sans",system-ui,-apple-system,"Segoe UI",sans-serif}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--stage:#0e131b;--stage-fg:#93a0b4}}
+:root[data-theme="dark"]{--stage:#0e131b;--stage-fg:#93a0b4}
+*{box-sizing:border-box}
+body{margin:0;background:var(--stage);font-family:var(--font);padding:20px 16px}
+button{font:inherit;color:inherit;cursor:pointer;border:0;background:none;padding:0}
+button:focus-visible,a:focus-visible{outline:2px solid #1f6fd1;outline-offset:2px}
+.abar{display:flex;align-items:center;gap:12px;padding:8px 12px;background:#e9edf3;border-bottom:1px solid #d9dfe8}
+.abar .d3{display:flex;gap:6px}.abar .d3 i{width:11px;height:11px;border-radius:50%;background:#ff5f57}.abar .d3 i+i{background:#febc2e}.abar .d3 i+i+i{background:#28c840}
+.abar .url{flex:1;max-width:520px;margin:0 auto;background:#fff;border-radius:7px;padding:4px 12px;font-size:12px;color:#6c757d;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+#dbMode{--db-bg:#fff;--db-fg:#1d2433;--db-mut:#5d6778;--db-line:#e3e8ef;--db-acc:#1f6fd1;--db-acc-soft:#e8f1fd;--db-warm:#b45f0a;--db-key:#0d7a69;--db-code:#f1f4f8;--db-dline:#a3adbb;
+  --db-ok:#e2f3e8;--db-ok-t:#1c6b3c;--db-info:#e5effc;--db-info-t:#1d5bb5;--db-warn:#fcf0d9;--db-warn-t:#8a5300;--db-bad:#fbe5e3;--db-bad-t:#a8322a;--db-mutbg:#eceff3;--db-mut-t:#4f5868;
+  /* font mono sistem: harus punya glyph box-drawing sendiri, kalau tidak garis kotak diagram jadi tidak rata */
+  --db-mono:ui-monospace,"Cascadia Mono",Consolas,Menlo,"DejaVu Sans Mono",monospace;--db-exb:#b9c2cf;
+  color-scheme:light;max-width:1280px;margin:0 auto;border-radius:12px;border:1px solid rgba(127,140,160,.3);box-shadow:0 20px 50px rgba(0,0,0,.18);background:var(--db-bg);color:var(--db-fg);font-size:15px;line-height:1.6;overflow:hidden}
+#dbMode .abar{border-radius:12px 12px 0 0}
+.db-doc{padding:32px 40px 56px}
+.db-top{display:grid;gap:12px;padding-bottom:24px;margin-bottom:32px;border-bottom:1px solid var(--db-line)}
+.db-eyebrow{margin:0;font-size:12px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;color:var(--db-acc)}
+#dbMode h1{margin:0;font-size:clamp(26px,4vw,36px);font-weight:800;line-height:1.15;letter-spacing:-.01em;text-wrap:balance}
+#dbMode h2{margin:0;font-size:22px;font-weight:800;line-height:1.25;display:flex;align-items:baseline;gap:12px;text-wrap:balance}
+#dbMode h3{margin:10px 0 0;font-size:16px;font-weight:800}
+#dbMode p{margin:0;max-width:72ch}
+#dbMode a{color:var(--db-acc)}
+#dbMode code{font-family:var(--db-mono);font-size:.85em;background:var(--db-code);padding:.12em .38em;border-radius:4px;font-variant-ligatures:none;overflow-wrap:anywhere}
+.db-lede{font-size:17px;color:var(--db-mut)}
+.db-meta{display:flex;flex-wrap:wrap;gap:12px 32px;margin:4px 0 0}
+.db-meta div{display:grid;gap:2px;min-width:0}
+.db-meta dt{font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--db-mut)}
+.db-meta dd{margin:0}
+.db-layout{display:grid;grid-template-columns:180px minmax(0,1fr);gap:44px}
+.db-toc{position:sticky;top:16px;align-self:start;font-size:14px}
+.db-toc p{margin:0 0 8px 10px;font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--db-mut)}
+.db-toc ol{list-style:none;margin:0;padding:0;display:grid;gap:2px}
+.db-toc a{display:flex;gap:10px;padding:6px 10px;border-radius:6px;color:var(--db-mut);text-decoration:none;font-weight:600}
+.db-toc a span{font-family:var(--db-mono);font-size:12px;color:var(--db-acc);padding-top:1px}
+.db-toc a:hover,.db-toc a.db-on{color:var(--db-fg);background:var(--db-acc-soft)}
+.db-main{display:grid;gap:52px;min-width:0}
+.db-main section{display:grid;gap:14px;min-width:0;scroll-margin-top:16px}
+.db-num{font-family:var(--db-mono);font-size:13px;font-weight:700;color:var(--db-acc)}
+.db-note{color:var(--db-mut);font-size:14px}
+.db-tw{overflow-x:auto;min-width:0}
+#dbMode table{border-collapse:collapse;width:100%;font-size:14.5px}
+#dbMode th{text-align:left;font-size:11px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:var(--db-mut);padding:8px 12px;border-bottom:1px solid var(--db-line);white-space:nowrap}
+#dbMode td{padding:9px 12px;border-bottom:1px solid var(--db-line);vertical-align:top}
+#dbMode td:first-child code{white-space:nowrap}
+.db-chip{display:inline-block;font-size:12px;font-weight:700;line-height:1.5;padding:1px 9px;border-radius:99px;white-space:nowrap}
+.db-chip-new{background:var(--db-acc-soft);color:var(--db-acc)}
+.db-chip-ex{background:var(--db-mutbg);color:var(--db-mut-t)}
+.db-chip-pd{border:1px solid var(--db-line);color:var(--db-mut)}
+.db-legend{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:10px 22px;margin:0}
+.db-legend dt{font-family:var(--db-mono);font-size:13px;font-weight:700;white-space:nowrap}
+.db-legend dd{margin:0}
+.db-dg{margin:0;border:1px solid var(--db-line);border-radius:10px;min-width:0}
+.db-dg-bar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 12px;padding:10px 14px;border-bottom:1px solid var(--db-line)}
+.db-dg-bar div{display:grid;min-width:0}
+.db-dg-bar b{font-size:15px}
+.db-dg-bar small{color:var(--db-mut);font-size:13px}
+.db-copy{font-size:13px;font-weight:700;color:var(--db-acc);border:1px solid var(--db-line);border-radius:6px;padding:5px 12px;white-space:nowrap}
+.db-copy:hover{background:var(--db-acc-soft)}
+.db-diagram{margin:0;padding:16px 18px;overflow-x:auto;font-family:var(--db-mono);font-size:13px;line-height:1.2;font-variant-ligatures:none}
+.db-diagram .d-ln{color:var(--db-dline)}
+.db-diagram .d-tn{color:var(--db-acc);font-weight:700}
+.db-diagram .d-tag{color:var(--db-warm);font-weight:600}
+.db-diagram .d-key{color:var(--db-key);font-weight:700}
+.db-diagram .d-ex{color:var(--db-mut)}
+.db-diagram .d-card{color:var(--db-acc);font-weight:700}
+.db-st{display:inline-block;font-family:var(--db-mono);font-size:12.5px;font-weight:600;padding:1px 8px;border-radius:5px;white-space:nowrap}
+.db-st-draft{background:var(--db-mutbg);color:var(--db-mut-t)}
+.db-st-scheduled{background:var(--db-info);color:var(--db-info-t)}
+.db-st-published{background:var(--db-ok);color:var(--db-ok-t)}
+.db-st-review{background:var(--db-warn);color:var(--db-warn-t)}
+.db-st-rejected{background:var(--db-bad);color:var(--db-bad-t)}
+.db-new{color:var(--db-mut);font-style:italic;white-space:nowrap}
+.db-rules{margin:0;padding-left:20px;display:grid;gap:10px;max-width:80ch}
+.db-rules li::marker{color:var(--db-acc)}
+.db-qs{list-style:none;margin:0;padding:0;display:grid;gap:10px;counter-reset:dbq;max-width:86ch}
+.db-qs li{display:grid;grid-template-columns:24px minmax(0,1fr);gap:10px;padding:12px 16px;border:1px solid var(--db-line);border-radius:10px}
+.db-qs li::before{content:counter(dbq);counter-increment:dbq;font-family:var(--db-mono);font-weight:700;color:var(--db-warm)}
+.db-howto{margin:0;padding-left:22px;display:grid;gap:8px;max-width:76ch}
+.db-howto li::marker{font-family:var(--db-mono);font-weight:700;color:var(--db-warm)}
+.db-filter{display:flex;flex-wrap:wrap;gap:6px}
+.db-f{font-family:var(--db-mono);font-size:12.5px;padding:3px 10px;border:1px solid var(--db-line);border-radius:99px;color:var(--db-mut)}
+.db-f:hover{background:var(--db-acc-soft);color:var(--db-fg)}
+.db-f[aria-pressed="true"]{background:var(--db-acc);border-color:var(--db-acc);color:#fff}
+.db-use td:first-child{font-weight:700;white-space:nowrap}
+.db-use td:nth-child(2){min-width:240px;max-width:380px}
+.db-use td:last-child{min-width:320px}
+.db-res{display:block;margin-top:3px;color:var(--db-mut);font-size:13.5px;line-height:1.5}
+.db-ops{list-style:none;margin:0;padding:0;display:grid;gap:5px}
+.db-ops li{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 8px}
+.db-ops small{color:var(--db-mut);font-size:13px}
+.db-op{font-family:var(--db-mono);font-size:11.5px;font-weight:700;padding:0 6px;border-radius:4px;min-width:24px;text-align:center}
+.db-op-c{background:var(--db-ok);color:var(--db-ok-t)}
+.db-op-r{background:var(--db-info);color:var(--db-info-t)}
+.db-op-u{background:var(--db-warn);color:var(--db-warn-t)}
+.db-op-d{background:var(--db-bad);color:var(--db-bad-t)}
+.db-use tr.db-dim td{opacity:.3}
+#dbMode .db-ops li.db-hit code{background:var(--db-acc);color:#fff}
+.db-mermaid{margin:0;padding:16px;overflow-x:auto;font-family:var(--db-mono);font-size:12px;line-height:1.4;color:var(--db-mut);white-space:pre}
+.db-mermaid[data-processed="true"]{white-space:normal;text-align:center;color:inherit}
+.db-mermaid svg{height:auto}
+.db-mermaid[data-processed="true"] svg{display:block;margin:0 auto}
+.db-ov-wrap{padding:20px 22px;overflow-x:auto;display:grid;gap:26px}
+.db-ov{display:grid;gap:10px;min-width:max-content}
+.db-ov-title{font-size:11.5px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--db-mut)}
+.db-ov-row{display:grid;grid-template-columns:auto auto minmax(0,1fr);align-items:center;justify-content:start}
+.db-ov-par,.db-ov-br{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+.db-ov-par li{position:relative;display:flex;align-items:center;justify-content:flex-end}
+.db-ov-par li::after{content:"";position:absolute;right:0;top:0;bottom:-10px;border-right:2px solid var(--db-dline)}
+.db-ov-par li:first-child::after{top:50%}
+.db-ov-par li:last-child::after{bottom:50%}
+.db-ov-hub{position:relative;padding:0 16px}
+.db-ov-hub::before,.db-ov-hub::after{content:"";position:absolute;top:50%;width:16px;border-top:2px solid var(--db-dline)}
+.db-ov-hub::before{left:0}.db-ov-hub::after{right:0}
+.db-ov-br li{position:relative;display:flex;align-items:center}
+.db-ov-br li::before{content:"";position:absolute;left:0;top:0;bottom:-10px;border-left:2px solid var(--db-dline)}
+.db-ov-br li:first-child::before{top:50%}
+.db-ov-br li:last-child::before{bottom:50%}
+.db-ov-br small{margin-left:12px;color:var(--db-mut);font-size:12.5px;white-space:nowrap}
+.db-ov-hub .db-ov-cols{position:absolute;left:16px;right:16px;top:100%;margin-top:6px;font-size:12px;line-height:1.4;color:var(--db-mut)}
+.db-rel{display:inline-flex;align-items:center;flex:none}
+.db-rel i{display:block;width:14px;border-top:2px solid var(--db-dline)}
+.db-rel b{font-family:var(--db-mono);font-size:11.5px;font-weight:700;color:var(--db-acc);background:var(--db-acc-soft);padding:1px 6px;border-radius:4px}
+.db-rel-dash i{border-top-style:dashed}
+.db-t{font-family:var(--db-mono);font-size:13px;font-weight:600;line-height:1.3;padding:6px 10px;border-radius:6px;border:1.5px solid;color:var(--db-fg);white-space:nowrap}
+button.db-t:hover{box-shadow:0 0 0 3px var(--db-acc-soft)}
+.db-t-new{background:var(--db-acc-soft);border-color:var(--db-acc)}
+.db-t-ex{background:var(--db-mutbg);border-color:var(--db-exb)}
+.db-t-hub{font-size:14px;font-weight:800;padding:10px 14px}
+.db-t-sm{font-size:12px;padding:1px 7px}
+.db-dg-bar .db-zoom{display:flex;align-items:center;gap:4px}
+.db-zoom button{font-size:13px;font-weight:700;color:var(--db-acc);border:1px solid var(--db-line);border-radius:6px;padding:3px 10px;min-width:30px}
+.db-zoom button:hover{background:var(--db-acc-soft)}
+.db-zoom span{font-family:var(--db-mono);font-size:12px;color:var(--db-mut);min-width:44px;text-align:center}
+@media (max-width:860px){
+  .db-doc{padding:24px 18px 40px}
+  .db-layout{grid-template-columns:minmax(0,1fr);gap:28px}
+  .db-toc{position:static}
+  .db-toc ol{display:flex;flex-wrap:wrap;gap:6px}
+  .db-toc a{border:1px solid var(--db-line);padding:4px 10px}
+}
+@media (max-width:760px){
+  .db-ov{min-width:0}
+  .db-ov-row{grid-template-columns:minmax(0,1fr);row-gap:10px}
+  .db-ov-par li{justify-content:flex-start}
+  .db-ov-par li::after,.db-ov-hub::before,.db-ov-hub::after{display:none}
+  .db-ov-hub{padding:0}
+  .db-ov-hub .db-ov-cols{position:static;display:block}
+  .db-ov-br{margin-left:14px}
+  .db-ov-br li{flex-wrap:wrap;row-gap:6px}
+}
+@media (max-width:480px){.db-diagram{font-size:12px;padding:14px}body{padding:12px 8px}}
+</style>
+</head>
+<body>
+<div id="dbMode">
+  <div class="abar"><span class="d3"><i></i><i></i><i></i></span><div class="url">docs/reserve-order.md</div></div>
+  <article class="db-doc">
+    <header class="db-top">
+      <p class="db-eyebrow">Paradise Connect · Dokumentasi fitur &amp; database</p>
+      <h1>Reserve Order</h1>
+      <p class="db-lede">Semua fitur Reserve Order di App Mobile (sales) dan Admin Web (Kasir &amp; Sales Admin): buat order, top up, approve / reject pembayaran, ubah status, kunci kavling. Setiap fitur ditulis beserta apa yang berubah di database.</p>
+      <dl class="db-meta">
+        <div><dt>Tanggal</dt><dd>28 Oktober 2026</dd></div>
+        <div><dt>Status</dt><dd><span class="db-st db-st-published">sesuai kode</span></dd></div>
+        <div><dt>Area</dt><dd><code>features/reserve-order</code> + backend <code>Paradise-Connect-1.0</code></dd></div>
+        <div><dt>Sumber</dt><dd><code>ReserveOrderService</code>, <code>ReserveOrderKasirApprovalService</code>, <code>ReserveOrderSaVerificationService</code>, <code>reserve_order_remote_datasource.dart</code></dd></div>
+      </dl>
+    </header>
+
+    <div class="db-layout">
+      <nav class="db-toc" aria-label="Daftar isi">
+        <p>Daftar isi</p>
+        <ol>
+          <li><a href="#db-ringkasan"><span>1</span>Ringkasan</a></li>
+          <li><a href="#db-erd-ringkas"><span>2</span>ERD ringkas</a></li>
+          <li><a href="#db-flow"><span>3</span>Flowchart</a></li>
+          <li><a href="#db-baca"><span>4</span>Cara membaca detail</a></li>
+          <li><a href="#db-erd"><span>5</span>ERD detail</a></li>
+          <li><a href="#db-pakai"><span>6</span>Fitur &amp; efek ke DB</a></li>
+          <li><a href="#db-alur-status"><span>7</span>Alur status</a></li>
+          <li><a href="#db-aturan"><span>8</span>Aturan bisnis</a></li>
+          <li><a href="#db-konvensi"><span>9</span>Konvensi kolom</a></li>
+          <li><a href="#db-pertanyaan"><span>10</span>Catatan &amp; pertanyaan</a></li>
+        </ol>
+      </nav>
+
+      <div class="db-main">
+        <!-- ===================== 1. RINGKASAN ===================== -->
+        <section id="db-ringkasan">
+          <h2><span class="db-num">1</span>Ringkasan</h2>
+          <p>Reserve Order (RO) adalah pemesanan unit oleh customer. Sales membuatnya dari App Mobile (atau admin dari Admin Web). <b>1 RO = 1 unit</b>; customer yang memesan 2 unit punya 2 RO. Setiap pembayaran dicatat sebagai <b>TTS</b> (Tanda Terima Sementara). Setelah dibuat, RO diverifikasi dua tahap di Admin Web: <b>Kasir</b> memeriksa pembayaran, lalu <b>Sales Admin</b> memeriksa unit dan mengubah status (RBB, RBA, SP, Batal).</p>
+          <div class="db-tw">
+            <table>
+              <thead><tr><th>Peran</th><th>Tempat</th><th>Hak akses</th><th>Tugas</th></tr></thead>
+              <tbody>
+                <tr><td><b>Sales</b></td><td>App Mobile</td><td>Form "Reserve Order" (software Mobile): <code>Create</code>, <code>ReadOnly</code>/<code>Modify</code>/<code>Delete</code> + <code>Own</code>/<code>Team</code>/<code>Any</code></td><td>Buat RO, top up, perbaiki data customer, kuesioner, pesan, hapus RO</td></tr>
+                <tr><td><b>Kasir</b></td><td>Admin Web</td><td>Menu "Reserve Order" + fitur <code>VerifyKasir</code></td><td>Approve / reject pembayaran TTS, verifikasi dokumen, setor tunai, sync sheet RB</td></tr>
+                <tr><td><b>Sales Admin</b></td><td>Admin Web</td><td>Menu "Reserve Order" + fitur <code>VerifySA</code></td><td>Ubah status reserve, ganti kavling, poin, alasan batal, sync sheet DSR</td></tr>
+                <tr><td><b>Sistem</b></td><td>Backend</td><td>—</td><td>Push notif ke sales, bel notif admin, tulis Google Sheet, API pihak luar (PD)</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="db-tw">
+            <table>
+              <thead><tr><th>Tabel</th><th>Jenis</th><th>Isi</th></tr></thead>
+              <tbody>
+                <tr><td><code>t_reserve_order</code></td><td><span class="db-chip db-chip-new">inti</span></td><td>Header RO: customer, unit, status reserve, approval Kasir &amp; Sales Admin, tanggal tiap tahap</td></tr>
+                <tr><td><code>t_reserve_order_tts</code></td><td><span class="db-chip db-chip-new">inti</span></td><td>TTS = 1 pembayaran: jenis (Reserve/RB/SP/Top up), nominal, approve/reject Kasir</td></tr>
+                <tr><td><code>t_reserve_order_tts_item</code></td><td><span class="db-chip db-chip-new">inti</span></td><td>Rincian metode bayar per TTS (Tunai, Transfer, Kartu Kredit, Giro) + status setor tunai</td></tr>
+                <tr><td><code>t_reserve_order_activity_message</code></td><td><span class="db-chip db-chip-new">inti</span></td><td>Log otomatis &amp; pesan manual (tab Messages / Pesan, catatan di timeline)</td></tr>
+                <tr><td><code>m_customer_reserve</code></td><td><span class="db-chip db-chip-new">inti</span></td><td>Data pembeli: KTP, alamat, pekerjaan, pasangan</td></tr>
+                <tr><td><code>t_customer_reserve_answer</code></td><td><span class="db-chip db-chip-new">inti</span></td><td>Jawaban kuesioner customer, 1 baris per customer</td></tr>
+                <tr><td><code>t_sync_gsheet</code></td><td><span class="db-chip db-chip-new">inti</span></td><td>Baris RO di Google Sheet RB (Kasir) &amp; DSR (Sales Admin)</td></tr>
+                <tr><td><code>d_contact_attachment</code></td><td><span class="db-chip db-chip-ex">existing</span></td><td>Dokumen &amp; bukti bayar + status verifikasi. Dipakai bersama modul Contacts</td></tr>
+                <tr><td><code>m_sellable_unit</code></td><td><span class="db-chip db-chip-ex">existing</span></td><td>Status kavling. Dikunci / dilepas oleh RO, dibaca siteplan</td></tr>
+                <tr><td><code>m_contacts</code>, <code>t_deals</code>, <code>t_deal_history</code></td><td><span class="db-chip db-chip-ex">existing</span></td><td>Status prospek kontak &amp; deal ikut naik saat RO diproses</td></tr>
+                <tr><td><code>t_global_notifications</code></td><td><span class="db-chip db-chip-ex">existing</span></td><td>Riwayat push notif sales &amp; bel notif admin</td></tr>
+                <tr><td><code>app_m_setting</code></td><td><span class="db-chip db-chip-ex">existing</span></td><td>Counter No. TTS (<code>TTS_NUMBER_COUNTER</code>), tanda tangan &amp; logo cetak TTS</td></tr>
+                <tr><td><code>m_payment_types</code></td><td><span class="db-chip db-chip-ex">existing</span></td><td>Jenis pembayaran: 1 Reserve, 3 RB, 4 Top up RB, 5 SP, 6 Top up SP, 8 Angsuran, 9 Uang Pemesanan</td></tr>
+                <tr><td><code>m_reserve_status</code></td><td><span class="db-chip db-chip-pd">pd_common</span></td><td>Master status reserve + pemetaan ke status kavling (menu Master Status Reserve)</td></tr>
+                <tr><td><code>m_cara_bayar</code>, <code>m_lost_reason</code>, <code>m_bank</code>, <code>m_attachment_type</code>, <code>m_google_sheet_test</code></td><td><span class="db-chip db-chip-pd">pd_common</span></td><td>Master referensi: cara bayar, alasan batal, bank, jenis dokumen, config sheet</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p class="db-note">Daftar lengkap 35 tabel dan langkah baca/tulis per endpoint ada di backend: <code>docs/api/reserve-order/reserve-order-tables.md</code>, <code>reserve-order-db-flow.md</code>, dan <code>docs/laravel-web/reserve-order/reserve-order-web-db-flow.md</code>.</p>
+        </section>
+
+        <!-- ===================== 2. ERD RINGKAS ===================== -->
+        <section id="db-erd-ringkas">
+          <h2><span class="db-num">2</span>ERD ringkas</h2>
+          <p>Gambaran besar: nama tabel dan relasinya, dibaca dari kiri ke kanan. Kolom lengkap ada di <a href="#db-erd">ERD detail</a>. Klik nama tabel untuk melihat fitur mana yang memakainya.</p>
+          <figure class="db-dg db-ov-wrap">
+            <div class="db-ov">
+              <p class="db-ov-title">Reserve order &amp; pembayaran</p>
+              <div class="db-ov-row">
+                <ul class="db-ov-par"><li><button type="button" class="db-t db-t-new" data-db-goto="m_customer_reserve">m_customer_reserve</button><span class="db-rel"><i></i><b>1:N</b><i></i></span></li><li><button type="button" class="db-t db-t-ex" data-db-goto="m_contacts">m_contacts</button><span class="db-rel"><i></i><b>1:N</b><i></i></span></li><li><button type="button" class="db-t db-t-ex" data-db-goto="m_reserve_status">m_reserve_status</button><span class="db-rel"><i></i><b>1:N</b><i></i></span></li></ul>
+                <div class="db-ov-hub"><button type="button" class="db-t db-t-new db-t-hub" data-db-goto="t_reserve_order">t_reserve_order</button><small class="db-ov-cols">approval: <code>kasir_*</code>, <code>sa_*</code></small></div>
+                <ul class="db-ov-br">
+                  <li><span class="db-rel"><i></i><b>1:N</b><i></i></span><button type="button" class="db-t db-t-new" data-db-goto="t_reserve_order_tts">t_reserve_order_tts</button><span class="db-rel"><i></i><b>1:N</b><i></i></span><button type="button" class="db-t db-t-new" data-db-goto="t_reserve_order_tts_item">t_reserve_order_tts_item</button><small>metode bayar</small></li>
+                  <li><span class="db-rel"><i></i><b>1:N</b><i></i></span><button type="button" class="db-t db-t-ex" data-db-goto="d_contact_attachment">d_contact_attachment</button><small>KTP, NPWP, bukti transfer (ke TTS)</small></li>
+                  <li><span class="db-rel"><i></i><b>1:N</b><i></i></span><button type="button" class="db-t db-t-new" data-db-goto="t_reserve_order_activity_message">t_reserve_order_activity_message</button><small>log &amp; pesan</small></li>
+                  <li><span class="db-rel"><i></i><b>1:N</b><i></i></span><button type="button" class="db-t db-t-new" data-db-goto="t_sync_gsheet">t_sync_gsheet</button><small>baris sheet RB / DSR</small></li>
+                  <li><span class="db-rel db-rel-dash"><i></i><b>1:N</b><i></i></span><button type="button" class="db-t db-t-ex" data-db-goto="t_global_notifications">t_global_notifications</button><small>tanpa FK, lewat link</small></li>
+                </ul>
+              </div>
+            </div>
+            <div class="db-ov">
+              <p class="db-ov-title">Kunci kavling</p>
+              <div class="db-ov-row">
+                <ul class="db-ov-par"><li><button type="button" class="db-t db-t-new" data-db-goto="t_reserve_order">t_reserve_order</button><span class="db-rel"><i></i><b>N:1</b><i></i></span></li></ul>
+                <div class="db-ov-hub"><button type="button" class="db-t db-t-ex db-t-hub" data-db-goto="m_sellable_unit">m_sellable_unit</button><small class="db-ov-cols">kunci: township, company, product, property</small></div>
+                <ul class="db-ov-br"><li><small>status kavling mengikuti <code>m_reserve_status.property_unit_status_id</code></small></li></ul>
+              </div>
+            </div>
+            <div class="db-ov">
+              <p class="db-ov-title">Status prospek kontak</p>
+              <div class="db-ov-row">
+                <ul class="db-ov-par"><li><button type="button" class="db-t db-t-new" data-db-goto="t_reserve_order">t_reserve_order</button><span class="db-rel"><i></i><b>N:1</b><i></i></span></li></ul>
+                <div class="db-ov-hub"><button type="button" class="db-t db-t-ex db-t-hub" data-db-goto="m_contacts">m_contacts</button></div>
+                <ul class="db-ov-br"><li><span class="db-rel"><i></i><b>1:N</b><i></i></span><button type="button" class="db-t db-t-ex" data-db-goto="t_deals">t_deals</button><span class="db-rel"><i></i><b>1:N</b><i></i></span><button type="button" class="db-t db-t-ex" data-db-goto="t_deal_history">t_deal_history</button><small>status prospek naik</small></li></ul>
+              </div>
+            </div>
+            <div class="db-ov">
+              <p class="db-ov-title">Customer</p>
+              <div class="db-ov-row">
+                <ul class="db-ov-par"><li><button type="button" class="db-t db-t-new" data-db-goto="t_reserve_order">t_reserve_order</button><span class="db-rel"><i></i><b>N:1</b><i></i></span></li></ul>
+                <div class="db-ov-hub"><button type="button" class="db-t db-t-new db-t-hub" data-db-goto="m_customer_reserve">m_customer_reserve</button></div>
+                <ul class="db-ov-br"><li><span class="db-rel"><i></i><b>1:1</b><i></i></span><button type="button" class="db-t db-t-new" data-db-goto="t_customer_reserve_answer">t_customer_reserve_answer</button><small>jawaban kuesioner</small></li></ul>
+              </div>
+            </div>
+          </figure>
+          <ul class="db-rules">
+            <li><span class="db-t db-t-new db-t-sm">biru</span> = tabel inti modul Reserve Order, <span class="db-t db-t-ex db-t-sm">abu-abu</span> = tabel existing / master yang ikut dibaca atau diubah.</li>
+            <li><code>A ──1:N── B</code> = 1 baris A punya banyak baris B, dan B menyimpan id A. <code>N:1</code> kebalikannya. <code>1:1</code> = berpasangan satu-satu.</li>
+            <li>Garis putus-putus = tanpa FK. Notifikasi menunjuk RO lewat <code>link_url</code> / payload <code>reserve_order_id</code>.</li>
+            <li><code>m_sellable_unit</code> tidak punya FK ke RO. Kuncinya dicari dari deal RO, atau dari <code>property_id</code> + <code>product_id</code> + <code>company_id</code> RO + <code>township_id</code> kavling.</li>
+          </ul>
+        </section>
+
+        <!-- ===================== 3. FLOWCHART ===================== -->
+        <section id="db-flow">
+          <h2><span class="db-num">3</span>Flowchart</h2>
+          <p>Bentuk silinder = tabel / kolom yang ditulis di langkah itu. Belah ketupat = keputusan. Pakai tombol − / + untuk memperbesar diagram.</p>
+          <figure class="db-dg">
+            <div class="db-dg-bar"><div><b>3.1 Alur utama</b><small>Dari dibuat sales sampai Akad</small></div><div class="db-zoom" role="group" aria-label="Zoom diagram"><button type="button" data-db-zoom="out" aria-label="Perkecil">−</button><span data-db-zoom-label>Pas</span><button type="button" data-db-zoom="in" aria-label="Perbesar">+</button><button type="button" data-db-zoom="fit">Pas layar</button></div></div>
+            <pre class="db-mermaid">flowchart TD
+    A(["Sales buat RO&lt;br/&gt;App Mobile, atau admin di Admin Web"])
+    A --&gt; C[("t_reserve_order: status Reserve, belum diverifikasi&lt;br/&gt;t_reserve_order_tts + item&lt;br/&gt;d_contact_attachment: pending")]
+    C --&gt; K{"Kasir: pembayaran&lt;br/&gt;TTS pertama"}
+    K --&gt;|"Reject + alasan"| RJ[("kasir_rejected_* terisi&lt;br/&gt;mobile: Ditolak")]
+    RJ --&gt;|"Sales: Perbaiki Data Customer"| C
+    K --&gt;|"Approve"| KA[("is_kasir_approved = 1&lt;br/&gt;kasir_approve_datetime")]
+    KA --&gt; Q{"Kavling sudah&lt;br/&gt;ditempati RO lain?"}
+    Q --&gt;|"Ya"| W[("status jadi Waitinglist&lt;br/&gt;kavling tidak disentuh")]
+    Q --&gt;|"Tidak"| U[("m_sellable_unit: Sellable jadi Reserve&lt;br/&gt;m_contacts: status prospek naik")]
+    KA --&gt; GS[("t_sync_gsheet&lt;br/&gt;sheet RB + DSR")]
+    W --&gt; SA{"Sales Admin&lt;br/&gt;verifikasi"}
+    U --&gt; SA
+    SA --&gt;|"Approve / Simpan"| ST[("status_reserve_id: RBB, RBA, SP, Batal&lt;br/&gt;kavling &amp; status prospek ikut")]
+    SA --&gt;|"Reject + alasan"| SR[("sa_rejected_* terisi&lt;br/&gt;mobile: Ditolak")]
+    SR --&gt;|"Sales: Perbaiki Data Customer"| SA
+    ST --&gt;|"API PD isi tahap lanjut"| AK(["akad_date terisi&lt;br/&gt;RO terkunci di mobile"])</pre>
+          </figure>
+          <figure class="db-dg">
+            <div class="db-dg-bar"><div><b>3.2 Top up &amp; keputusan Kasir per TTS</b><small>Berlaku untuk TTS pertama maupun top up</small></div><div class="db-zoom" role="group" aria-label="Zoom diagram"><button type="button" data-db-zoom="out" aria-label="Perkecil">−</button><span data-db-zoom-label>Pas</span><button type="button" data-db-zoom="in" aria-label="Perbesar">+</button><button type="button" data-db-zoom="fit">Pas layar</button></div></div>
+            <pre class="db-mermaid">flowchart TD
+    T(["Sales: + Top Up Pembayaran&lt;br/&gt;atau Admin: Create TTS / Top Up"])
+    T --&gt; L{"Status RO sudah SP&lt;br/&gt;atau Akad?"}
+    L --&gt;|"Ya"| X(["Ditolak: tidak bisa top up"])
+    L --&gt;|"Tidak"| N[("t_reserve_order_tts + item&lt;br/&gt;d_contact_attachment bukti: pending&lt;br/&gt;t_reserve_order.amount_rp dihitung ulang")]
+    N --&gt; WHO{"Dibuat user&lt;br/&gt;ber-VerifyKasir?"}
+    WHO --&gt;|"Ya"| AP
+    WHO --&gt;|"Tidak"| K{"Kasir buka TTS"}
+    K --&gt;|"Approve"| CK{"Form TTS lengkap &amp;&lt;br/&gt;tidak ada bukti ditolak?"}
+    CK --&gt;|"Tidak"| E(["422, Approve ditolak"])
+    CK --&gt;|"Ya"| AP[("TTS: is_approved = 1&lt;br/&gt;bukti pending ikut approved&lt;br/&gt;amount_rp = total TTS approved")]
+    K --&gt;|"Reject + alasan"| RJ[("TTS: rejected_datetime")]
+    RJ --&gt; R1{"RO belum lolos Kasir &amp;&lt;br/&gt;tak ada TTS approved lain?"}
+    R1 --&gt;|"Ya"| RO[("RO ikut Ditolak Kasir")]
+    AP --&gt; F{"TTS pertama yang&lt;br/&gt;di-approve?"}
+    F --&gt;|"Ya"| V(["Verifikasi Kasir order-level&lt;br/&gt;lihat 3.1"])
+    F --&gt;|"Tidak, top up"| P[("push Top Up Disetujui&lt;br/&gt;bel Sales Admin")]
+    AP --&gt; G[("t_sync_gsheet&lt;br/&gt;slot pembayaran di sheet RB")]
+    RJ --&gt; G</pre>
+          </figure>
+          <figure class="db-dg">
+            <div class="db-dg-bar"><div><b>3.3 Sales Admin ubah status</b><small>Approve &amp; Sync DSR, Simpan Perubahan, atau Reject</small></div><div class="db-zoom" role="group" aria-label="Zoom diagram"><button type="button" data-db-zoom="out" aria-label="Perkecil">−</button><span data-db-zoom-label>Pas</span><button type="button" data-db-zoom="in" aria-label="Perbesar">+</button><button type="button" data-db-zoom="fit">Pas layar</button></div></div>
+            <pre class="db-mermaid">flowchart TD
+    S(["Sales Admin pilih status&lt;br/&gt;+ tanggal, alasan batal, poin, catatan, kavling&lt;br/&gt;lalu klik Approve, Reject, atau Simpan Perubahan"])
+    S --&gt; L{"Approve / Reject padahal&lt;br/&gt;RO sudah di-approve SA?"}
+    L --&gt;|"Ya"| LX(["422: koreksi lewat Simpan Perubahan"])
+    L --&gt;|"Tidak"| C1{"Status baru menempati kavling&lt;br/&gt;Reserve, RBB, RBA, SP?"}
+    C1 --&gt;|"Ya, tapi kavling dipegang RO lain"| X(["422: batalkan RO itu dulu&lt;br/&gt;atau tetap Waitinglist&lt;br/&gt;berlaku juga untuk Reject"])
+    C1 --&gt;|"Aman"| C2{"Ganti kavling?"}
+    C2 --&gt;|"Ya"| U1[("t_reserve_order: property_id, product_id&lt;br/&gt;t_reserve_order_tts.property_name&lt;br/&gt;sheet RB: Blok / No")]
+    C2 --&gt;|"Tidak"| U2
+    U1 --&gt; U2[("t_reserve_order: status_reserve_id&lt;br/&gt;+ tanggal tahap, lost_reason_id, unit_point, catatan&lt;br/&gt;disimpan di ketiga tombol")]
+    U2 --&gt; B{"Tombol"}
+    B --&gt;|"Approve"| BA[("is_sa_approved = 1&lt;br/&gt;approved_sa_id, sa_approve_datetime&lt;br/&gt;sa_rejected_* = NULL")]
+    B --&gt;|"Simpan Perubahan"| BS[("flag &amp; waktu approve / reject SA&lt;br/&gt;tidak disentuh")]
+    B --&gt;|"Reject + alasan"| BR[("is_sa_approved = 0&lt;br/&gt;sa_rejected_datetime, sa_rejected_reason&lt;br/&gt;approved_sa_id, sa_approve_datetime = NULL")]
+    BA --&gt; P[("m_contacts, t_deals, t_deal_history&lt;br/&gt;status prospek naik")]
+    BS --&gt; P
+    P --&gt; D[("t_sync_gsheet&lt;br/&gt;sheet DSR")]
+    BR --&gt; RX(["Prospek &amp; sheet DSR tidak disentuh&lt;br/&gt;lanjut di 3.4"])
+    BA &amp; BS &amp; BR --&gt; E[("m_sellable_unit ikut status baru, Batal = Sellable&lt;br/&gt;kavling lama kembali Sellable kalau diganti&lt;br/&gt;t_reserve_order_activity_message")]
+    E --&gt;|"status berubah"| N[("push Status Berubah ke owner kontak")]
+    E --&gt;|"kavling dilepas &amp; ada antrean"| Q[("bel Sales Admin&lt;br/&gt;push Kavling Tersedia ke antrean #1")]</pre>
+          </figure>
+          <figure class="db-dg">
+            <div class="db-dg-bar"><div><b>3.4 Setelah Ditolak Sales Admin</b><small>Data yang tersisa, tampilan, dan cara RO masuk antrean lagi</small></div><div class="db-zoom" role="group" aria-label="Zoom diagram"><button type="button" data-db-zoom="out" aria-label="Perkecil">−</button><span data-db-zoom-label>Pas</span><button type="button" data-db-zoom="in" aria-label="Perbesar">+</button><button type="button" data-db-zoom="fit">Pas layar</button></div></div>
+            <pre class="db-mermaid">flowchart TD
+    R(["RO Ditolak Sales Admin"])
+    R --&gt; D[("t_reserve_order&lt;br/&gt;is_sa_approved = 0, sa_rejected_datetime, sa_rejected_reason&lt;br/&gt;is_kasir_approved = 1 &amp; kasir_approve_datetime tetap")]
+    D --&gt; V[("Tidak berubah: TTS, amount_rp, dokumen,&lt;br/&gt;status prospek kontak, baris sheet RB &amp; DSR")]
+    D --&gt; K[("Kavling ikut status yang dipilih saat Reject&lt;br/&gt;Reserve, RBB, RBA, SP = tetap dipegang RO ini&lt;br/&gt;Batal = Sellable")]
+    D --&gt; W(["Admin Web: tab Rejected Admin&lt;br/&gt;Mobile: Ditolak + alasan"])
+    W --&gt; NX{"Langkah berikutnya"}
+    NX --&gt;|"SA: Approve"| A[("is_sa_approved = 1, sa_rejected_* = NULL&lt;br/&gt;prospek naik, sync DSR")]
+    NX --&gt;|"SA: Reject ulang"| RR[("sa_rejected_* ditimpa&lt;br/&gt;alasan &amp; waktu baru")]
+    NX --&gt;|"Sales: Perbaiki Data Customer&lt;br/&gt;atau Top Up"| F[("is_sa_approved, sa_rejected_*,&lt;br/&gt;is_kasir_approved, kasir_rejected_* = NULL&lt;br/&gt;kasir_approve_datetime tetap")]
+    F --&gt; Q(["Antre lagi di tab Sales Admin&lt;br/&gt;badge Diajukan ulang"])
+    NX --&gt;|"Sales: Ganti Unit / Hapus RO"| X(["Tidak bisa:&lt;br/&gt;RO sudah lolos Kasir"])</pre>
+          </figure>
+        </section>
+
+        <!-- ===================== 4. CARA MEMBACA ===================== -->
+        <section id="db-baca">
+          <h2><span class="db-num">4</span>Cara membaca ERD detail</h2>
+          <p>Setiap kotak adalah satu tabel. Contoh kecil di bawah diambil dari ERD detail; angka di kanan menunjuk ke penjelasan di bawahnya.</p>
+          <figure class="db-dg">
+            <pre class="db-diagram" id="dbEx">┌─────────────────────────────────────────────┐
+│ t_reserve_order  [C/R/U/D]                  │         ← (1)
+├─────────────────────────────────────────────┤
+│ PK    reserve_order_id                      │         ← (2)
+│       status_reserve_id  → m_reserve_status │
+├─────────────────────────────────────────────┤
+│ status hanya diubah Sales Admin             │         ← (3)
+└─────────────────────────────────────────────┘
+  │
+  └─▶ 1:N  t_reserve_order.reserve_order_id             ← (4)
+           = t_reserve_order_tts.reserve_order_id
+      ┌─────────────────────────────────────────────┐
+      │ t_reserve_order_tts  [C/R/U/D]              │   ← (5)
+      ├─────────────────────────────────────────────┤
+      │ PK    reserve_order_tts_id                  │
+      │ FK    reserve_order_id                      │
+      └─────────────────────────────────────────────┘</pre>
+          </figure>
+          <ol class="db-howto"><li><b>Nama tabel dan operasinya.</b> <code>[C/R/U/D]</code> artinya modul Reserve Order melakukan Create (insert), Read, Update, dan Delete di tabel ini. Tabel master biasanya cuma <code>[R]</code>.</li><li><b>Kolom.</b> Satu baris = satu kolom. Kiri: <code>PK</code> (kunci utama) atau <code>FK</code> (menyimpan id tabel lain). Tengah: nama kolom. Kanan: keterangan isinya. <code>+ kolom_lain</code> = kolom pasangannya.</li><li><b>Catatan.</b> Bagian bawah kotak, setelah garis pemisah, berisi aturan khusus tabel itu.</li><li><b>Relasi.</b> Dua baris teks di sebelah panah adalah kolom penghubungnya, sama seperti <code>JOIN ... ON t_reserve_order.reserve_order_id = t_reserve_order_tts.reserve_order_id</code>.</li><li><b>Tabel anak</b> digambar menjorok di bawah induknya. Garis <code>│</code> di kiri menyambungkan semua anak dari induk yang sama.</li></ol>
+          <dl class="db-legend">
+            <dt>C R U D</dt><dd>Create (insert), Read (baca), Update (ubah), Delete (hapus). Dipakai juga di bagian "Fitur &amp; efek ke DB".</dd>
+            <dt>(existing)</dt><dd>Tabel milik modul lain di database utama, ikut dibaca / diubah.</dd>
+            <dt>(pd_common)</dt><dd>Tabel di database <code>pd_common</code> (diakses lewat <code>db_pd_common()</code>). FK-nya FK logis, tanpa constraint.</dd>
+          </dl>
+        </section>
+
+        <!-- ===================== 5. ERD DETAIL ===================== -->
+        <section id="db-erd">
+          <h2><span class="db-num">5</span>ERD detail</h2>
+          <p>Hanya kolom yang dipakai alur Reserve Order. Kolom audit lain (<code>update_user_id</code>, dsb.) tidak ditulis.</p>
+          <figure class="db-dg">
+            <div class="db-dg-bar"><div><b>5.1 Reserve order &amp; pembayaran</b><small>RO, customer, TTS, dokumen, log, Google Sheet</small></div><button class="db-copy" type="button" data-db-copy="dbD1">Salin teks</button></div>
+            <pre class="db-diagram" id="dbD1">┌───────────────────────────────────────────────────────────────────────────┐
+│ t_reserve_order  [C/R/U/D]                                                │
+├───────────────────────────────────────────────────────────────────────────┤
+│ PK    reserve_order_id               1 baris = 1 unit                     │
+│       reserve_number                 No. RO (UNIQUE, dari sistem PD)      │
+│ FK    customer_id                                                         │
+│ FK    contact_id                     → m_contacts, kontak asal            │
+│ FK    deal_id                        → t_deals                            │
+│       cust_name, phone_number        salinan data customer                │
+│ FK    property_id                    kavling; NULL = tanpa kavling        │
+│ FK    product_id, company_id         tipe unit + company                  │
+│       property_name                  nama kavling / 'Waitinglist'         │
+│ FK    status_reserve_id              → m_reserve_status                   │
+│ FK    cara_bayar_id                  + cara_bayar_lainnya                 │
+│ FK    lost_reason_id                 alasan batal (status Batal)          │
+│       amount_rp                      total dibayar (TTS approved)         │
+│       reserve_note                   catatan                              │
+│       unit_point                     poin unit, diisi Sales Admin         │
+│ FK    owner_id                       owner kontak, dasar hak akses        │
+│ FK    sales_executive_id             + supervisor, manager, GM            │
+│ FK    sales_team_id                                                       │
+│ FK    sales_channel_id               + sumber_informasi_2                 │
+│       is_kasir_approved              1 = lolos Kasir                      │
+│ FK    approved_kasir_id              + kasir_approve_datetime             │
+│       kasir_rejected_reason          + kasir_rejected_datetime            │
+│       is_sa_approved                 1 = disetujui Sales Admin            │
+│ FK    approved_sa_id                 + sa_approve_datetime                │
+│       sa_rejected_reason             + sa_rejected_datetime               │
+│ FK    sa_seen_user_id                + sa_seen_datetime                   │
+│       leads_date .. last_visit_date  diwarisi dari kontak                 │
+│       reserve_date                   Tanggal Transaksi (wizard)           │
+│       reserve_booking_date           dari TTS RB / Top up RB              │
+│       sp_date                        diisi Sales Admin                    │
+│       lost_date                      semua jenis Batal                    │
+│       collect_data_date .. spk_date  tahap lanjut                         │
+│       akad_date                      terisi = RO terkunci di mobile       │
+│ FK    created_user_id                + created_datetime                   │
+└───────────────────────────────────────────────────────────────────────────┘
+  │
+  ├─▶ N:1  t_reserve_order.customer_id
+  │        = m_customer_reserve.customer_id
+  │   ┌───────────────────────────────────────────────────────────────────────────┐
+  │   │ m_customer_reserve  [C/R/U/D]                                             │
+  │   ├───────────────────────────────────────────────────────────────────────────┤
+  │   │ PK    customer_id                                                         │
+  │   │       cust_ktp         NIK, tidak unik global                             │
+  │   │       cust_name                                                           │
+  │   │       work_category    menentukan dokumen wajib                           │
+  │   │       status_customer  'RESERVE'                                          │
+  │   │ FK    create_user_id   pembuat (dasar 'milik owner')                      │
+  │   ├───────────────────────────────────────────────────────────────────────────┤
+  │   │ 1 NIK boleh punya beberapa baris: 1 per owner kontak                      │
+  │   └───────────────────────────────────────────────────────────────────────────┘
+  │     │
+  │     └─▶ 1:1  m_customer_reserve.customer_id
+  │              = t_customer_reserve_answer.customer_id
+  │         ┌───────────────────────────────────────────────────────────────────────────┐
+  │         │ t_customer_reserve_answer  [C/R/U/D]                                      │
+  │         ├───────────────────────────────────────────────────────────────────────────┤
+  │         │ PK FK customer_id  1 customer = 1 baris                                   │
+  │         │       01_1 .. 12   1 kolom per jawaban kuesioner                          │
+  │         └───────────────────────────────────────────────────────────────────────────┘
+  │
+  ├─▶ 1:N  t_reserve_order.reserve_order_id
+  │        = t_reserve_order_tts.reserve_order_id
+  │   ┌───────────────────────────────────────────────────────────────────────────┐
+  │   │ t_reserve_order_tts  [C/R/U/D]                                            │
+  │   ├───────────────────────────────────────────────────────────────────────────┤
+  │   │ PK    reserve_order_tts_id       1 baris = 1 pembayaran                   │
+  │   │ FK    reserve_order_id                                                    │
+  │   │       tts_number                 No. TTS otomatis (counter)               │
+  │   │       tts_number_manual          No. TTS manual (opsional)                │
+  │   │ FK    payment_type_id            Reserve, RB, SP, Top up ..               │
+  │   │       tts_amount_rp              total pembayaran ini                     │
+  │   │       received_from              nama customer di kertas TTS              │
+  │   │       tts_date, setle_bank_date                                           │
+  │   │       note                       catatan TTS                              │
+  │   │       is_approved                1 = disetujui Kasir                      │
+  │   │ FK    approved_user_id           + approved_datetime                      │
+  │   │ FK    rejectted_user_id          + rejected_datetime                      │
+  │   │ FK    status_reserve_id          snapshot saat dibuat                     │
+  │   │ FK    sales_team_id              + sales_*_id                             │
+  │   ├───────────────────────────────────────────────────────────────────────────┤
+  │   │ Status: approved_datetime &amp; rejected_datetime kosong = menunggu           │
+  │   └───────────────────────────────────────────────────────────────────────────┘
+  │     │
+  │     └─▶ 1:N  t_reserve_order_tts.reserve_order_tts_id
+  │              = t_reserve_order_tts_item.reserve_order_tts_id
+  │         ┌───────────────────────────────────────────────────────────────────────────┐
+  │         │ t_reserve_order_tts_item  [C/R/U/D]                                       │
+  │         ├───────────────────────────────────────────────────────────────────────────┤
+  │         │ PK    reserve_order_tts_detail_id                                         │
+  │         │ FK    reserve_order_tts_id                                                │
+  │         │       payment_method               Tunai | Transfer | Kartu Kredit | Giro │
+  │         │       amount                       nominal metode ini                     │
+  │         │ FK    e_sl_bank_customer_id        → pd_common.m_bank                     │
+  │         │       bank_name                                                           │
+  │         │       reference_number             No. VA / No. Ref / rek. setor          │
+  │         │       reference_date               tgl bukti / tgl setor                  │
+  │         │       status_setor_tunai           1 = Tunai sudah disetor                │
+  │         └───────────────────────────────────────────────────────────────────────────┘
+  │
+  ├─▶ 1:N  t_reserve_order.reserve_order_id
+  │        = d_contact_attachment.reserve_order_id
+  │   ┌───────────────────────────────────────────────────────────────────────────┐
+  │   │ d_contact_attachment  [C/R/U/D]                                           │
+  │   ├───────────────────────────────────────────────────────────────────────────┤
+  │   │ PK    contact_attachment_id                                               │
+  │   │ FK    reserve_order_id                                                    │
+  │   │ FK    reserve_order_tts_id   terisi = bukti bayar TTS itu                 │
+  │   │ FK    attachment_type_id     1 KTP · 6 NPWP · 15 Bukti Transfer           │
+  │   │       drive_file_id          file di Google Drive                         │
+  │   │       attachment_path        link file                                    │
+  │   │       verification_status    pending | approved | rejected                │
+  │   │ FK    verified_by            + verified_at, verification_note             │
+  │   ├───────────────────────────────────────────────────────────────────────────┤
+  │   │ Dipakai juga modul Contacts. Dokumen customer (KTP, NPWP, KK..)           │
+  │   │ tampil di semua RO customer yang sama                                     │
+  │   └───────────────────────────────────────────────────────────────────────────┘
+  │
+  ├─▶ 1:N  t_reserve_order.reserve_order_id
+  │        = t_reserve_order_activity_message.reserve_order_id
+  │   ┌───────────────────────────────────────────────────────────────────────────┐
+  │   │ t_reserve_order_activity_message  [C/R/D]                                 │
+  │   ├───────────────────────────────────────────────────────────────────────────┤
+  │   │ PK    reserve_order_activity_message_id                                   │
+  │   │ FK    reserve_order_id                                                    │
+  │   │       message                            pesan / log otomatis             │
+  │   │       attachment_path                    lampiran pesan (opsional)        │
+  │   │ FK    status_reserve_id                  snapshot status saat ditulis     │
+  │   │ FK    create_user_id                     + create_datetime                │
+  │   ├───────────────────────────────────────────────────────────────────────────┤
+  │   │ Tab Messages (mobile) / Pesan (web). Isi timeline per tahap               │
+  │   └───────────────────────────────────────────────────────────────────────────┘
+  │
+  └─▶ 1:N  t_reserve_order.reserve_order_id
+           = t_sync_gsheet.reserve_order_id
+      ┌───────────────────────────────────────────────────────────────────────────┐
+      │ t_sync_gsheet  [C/R/U]                                                    │
+      ├───────────────────────────────────────────────────────────────────────────┤
+      │ PK    id                                                                  │
+      │ FK    reserve_order_id                                                    │
+      │ FK    sheet_id             → pd_common.m_google_sheet_test                │
+      │       row_number           baris order di sheet RB / DSR                  │
+      │       is_sync_googlesheet  + sync_datetime                                │
+      └───────────────────────────────────────────────────────────────────────────┘</pre>
+          </figure>
+          <figure class="db-dg">
+            <div class="db-dg-bar"><div><b>5.2 Status, kavling &amp; kontak</b><small>Yang ikut berubah saat RO di-approve atau statusnya diubah</small></div><button class="db-copy" type="button" data-db-copy="dbD2">Salin teks</button></div>
+            <pre class="db-diagram" id="dbD2">┌──────────────────────────────────────────────────────────────────────┐
+│ t_reserve_order  [C/R/U/D]                                           │
+├──────────────────────────────────────────────────────────────────────┤
+│ PK    reserve_order_id                                               │
+│ FK    status_reserve_id                                              │
+│ FK    property_id, product_id  + company_id → kunci m_sellable_unit  │
+│ FK    contact_id                                                     │
+│ FK    lost_reason_id                                                 │
+└──────────────────────────────────────────────────────────────────────┘
+  │
+  ├─▶ N:1  t_reserve_order.status_reserve_id
+  │        = m_reserve_status.status_reserve_id
+  │   ┌──────────────────────────────────────────────────────────────────────┐
+  │   │ m_reserve_status  [C/R/U/D]  (pd_common)                             │
+  │   ├──────────────────────────────────────────────────────────────────────┤
+  │   │ PK    status_reserve_id        1 RBB · 2 Reserve · 4 Reserve Batal   │
+  │   │                                5 Waitinglist · 6 SP · 7 RBA          │
+  │   │                                8 SP Batal                            │
+  │   │       status_reserve_name                                            │
+  │   │       is_active                muncul di dropdown                    │
+  │   │ FK    property_unit_status_id  status kavling saat RO di status ini  │
+  │   ├──────────────────────────────────────────────────────────────────────┤
+  │   │ Diubah lewat menu Master Status Reserve                              │
+  │   └──────────────────────────────────────────────────────────────────────┘
+  │     │
+  │     └─▶ N:1  m_reserve_status.property_unit_status_id
+  │              = m_property_unit_status.status_id
+  │         ┌──────────────────────────────────────────────────────────────────────┐
+  │         │ m_property_unit_status  [R]  (pd_common)                             │
+  │         ├──────────────────────────────────────────────────────────────────────┤
+  │         │ PK    status_id    2 Sellable · 3 Ordered · 9 Reserve                │
+  │         │       status_name  10 RBB · 11 RBA                                   │
+  │         └──────────────────────────────────────────────────────────────────────┘
+  │
+  ├─▶ N:1  t_reserve_order.(property_id, product_id, company_id)
+  │        = m_sellable_unit.(property_id, product_id, company_id)
+  │   ┌──────────────────────────────────────────────────────────────────────┐
+  │   │ m_sellable_unit  [R/U]  (existing)                                   │
+  │   ├──────────────────────────────────────────────────────────────────────┤
+  │   │ PK    township_id, company_id  kunci komposit                        │
+  │   │ PK    product_id, property_id                                        │
+  │   │ FK    status_id                dibaca siteplan                       │
+  │   │       is_sellable                                                    │
+  │   │ FK    update_user_id           + update_datetime                     │
+  │   ├──────────────────────────────────────────────────────────────────────┤
+  │   │ Hanya ditimpa kalau masih 2 Sellable atau masih milik RO ini         │
+  │   └──────────────────────────────────────────────────────────────────────┘
+  │
+  ├─▶ N:1  t_reserve_order.contact_id
+  │        = m_contacts.contact_id
+  │   ┌──────────────────────────────────────────────────────────────────────┐
+  │   │ m_contacts  [R/U]  (existing)                                        │
+  │   ├──────────────────────────────────────────────────────────────────────┤
+  │   │ PK    contact_id                                                     │
+  │   │ FK    owner_id                   penerima push notif RO              │
+  │   │ FK    status_prospect_id         30 Reserve · 31 RB · 32 RBA · 50 SP │
+  │   │       last_reserve_date          diisi kalau masih kosong            │
+  │   │       last_reserve_booking_date  + last_sp_date                      │
+  │   ├──────────────────────────────────────────────────────────────────────┤
+  │   │ Status prospek hanya NAIK, tidak pernah turun                        │
+  │   └──────────────────────────────────────────────────────────────────────┘
+  │     │
+  │     └─▶ 1:N  m_contacts.contact_id
+  │              = t_deals.contact_id
+  │         ┌──────────────────────────────────────────────────────────────────────┐
+  │         │ t_deals  [R/U]  (existing)                                           │
+  │         ├──────────────────────────────────────────────────────────────────────┤
+  │         │ PK    deal_id                                                        │
+  │         │ FK    contact_id                                                     │
+  │         │       status_prospect_id  ikut naik (deal aktif)                     │
+  │         └──────────────────────────────────────────────────────────────────────┘
+  │           │
+  │           └─▶ 1:N  t_deals.deal_id
+  │                    = t_deal_history.deal_id
+  │               ┌──────────────────────────────────────────────────────────────────────┐
+  │               │ t_deal_history  [C]  (existing)                                      │
+  │               ├──────────────────────────────────────────────────────────────────────┤
+  │               │ FK    deal_id                                                        │
+  │               │       new_status_prospect_id  + previous_status_prospect_id          │
+  │               │       source                  reserve_order(_skip)                   │
+  │               │       event_date              tanggal tahap                          │
+  │               └──────────────────────────────────────────────────────────────────────┘
+  │
+  └─▶ N:1  t_reserve_order.lost_reason_id
+           = m_lost_reason.lost_reason_id
+      ┌──────────────────────────────────────────────────────────────────────┐
+      │ m_lost_reason  [R]  (pd_common)                                      │
+      ├──────────────────────────────────────────────────────────────────────┤
+      │ PK    lost_reason_id                                                 │
+      │       lost_reason_name  pilihan Alasan Batal                         │
+      └──────────────────────────────────────────────────────────────────────┘</pre>
+          </figure>
+        </section>
+
+        <!-- ===================== 6. FITUR & EFEK KE DB ===================== -->
+        <section id="db-pakai">
+          <h2><span class="db-num">6</span>Fitur &amp; efek ke DB</h2>
+          <p>Setiap baris = satu fitur. Kolom tengah menjelaskan hasilnya untuk pengguna; kolom kanan menjelaskan tabel yang dibaca (<b>R</b>) atau ditulis (<b>C</b>/<b>U</b>/<b>D</b>) saat fitur itu dijalankan. Pilih nama tabel untuk menyorot fitur yang memakainya.</p>
+          <div class="db-filter" role="group" aria-label="Sorot fitur per tabel"><button type="button" class="db-f" data-db-f="" aria-pressed="true">Semua tabel</button><button type="button" class="db-f" data-db-f="t_reserve_order" aria-pressed="false">t_reserve_order</button><button type="button" class="db-f" data-db-f="t_reserve_order_tts" aria-pressed="false">t_reserve_order_tts</button><button type="button" class="db-f" data-db-f="t_reserve_order_tts_item" aria-pressed="false">t_reserve_order_tts_item</button><button type="button" class="db-f" data-db-f="d_contact_attachment" aria-pressed="false">d_contact_attachment</button><button type="button" class="db-f" data-db-f="t_reserve_order_activity_message" aria-pressed="false">t_reserve_order_activity_message</button><button type="button" class="db-f" data-db-f="m_customer_reserve" aria-pressed="false">m_customer_reserve</button><button type="button" class="db-f" data-db-f="t_customer_reserve_answer" aria-pressed="false">t_customer_reserve_answer</button><button type="button" class="db-f" data-db-f="t_sync_gsheet" aria-pressed="false">t_sync_gsheet</button><button type="button" class="db-f" data-db-f="m_sellable_unit" aria-pressed="false">m_sellable_unit</button><button type="button" class="db-f" data-db-f="m_contacts" aria-pressed="false">m_contacts</button><button type="button" class="db-f" data-db-f="t_deals" aria-pressed="false">t_deals</button><button type="button" class="db-f" data-db-f="t_deal_history" aria-pressed="false">t_deal_history</button><button type="button" class="db-f" data-db-f="m_reserve_status" aria-pressed="false">m_reserve_status</button><button type="button" class="db-f" data-db-f="t_global_notifications" aria-pressed="false">t_global_notifications</button><button type="button" class="db-f" data-db-f="app_m_setting" aria-pressed="false">app_m_setting</button></div>
+
+          <h3>App Mobile (Sales)</h3><p class="db-note">Menu Reserve Order di app. Semua aksi ubah ditolak (422) kalau RO sudah Akad.</p>
+          <div class="db-tw"><table class="db-use"><thead><tr><th>Layar</th><th>Fitur &amp; hasil</th><th>Tabel yang dipakai</th></tr></thead><tbody>
+            <tr data-t="t_reserve_order m_customer_reserve m_reserve_status t_reserve_order_tts m_contacts"><td>List</td><td><b>Buka list, cari &amp; filter</b><span class="db-res">Filter status, sales channel, owner, SE–GM, project. Hanya RO dalam scope Own / Team / Any user.</span></td><td><ul class="db-ops"><li data-t="t_reserve_order"><span class="db-op db-op-r">R</span><code>t_reserve_order</code><small><code>owner_id</code> sesuai scope, status, unit</small></li><li data-t="m_customer_reserve"><span class="db-op db-op-r">R</span><code>m_customer_reserve</code><small>nama customer</small></li><li data-t="m_reserve_status"><span class="db-op db-op-r">R</span><code>m_reserve_status</code><small>label status</small></li><li data-t="t_reserve_order_tts"><span class="db-op db-op-r">R</span><code>t_reserve_order_tts</code><small>filter sales team</small></li><li data-t="m_contacts"><span class="db-op db-op-r">R</span><code>m_contacts</code><small>filter sales channel</small></li></ul></td></tr>
+            <tr data-t="m_customer_reserve t_reserve_order d_contact_attachment"><td>Buat · Customer</td><td><b>Ketik No. KTP (cek KTP)</b><span class="db-res">NIK sudah ada di owner kontak yang sama → data customer, cara bayar, KTP &amp; NPWP lama terisi otomatis. NIK milik owner lain tidak terlihat.</span></td><td><ul class="db-ops"><li data-t="m_customer_reserve"><span class="db-op db-op-r">R</span><code>m_customer_reserve</code><small><code>cust_ktp</code> = NIK, milik owner kontak</small></li><li data-t="t_reserve_order"><span class="db-op db-op-r">R</span><code>t_reserve_order</code><small>order lama customer (cara bayar, sales)</small></li><li data-t="d_contact_attachment"><span class="db-op db-op-r">R</span><code>d_contact_attachment</code><small>KTP / NPWP terakhir, dipakai ulang tanpa upload</small></li></ul></td></tr>
+            <tr data-t="m_sellable_unit"><td>Buat · Unit</td><td><b>Pilih unit dari deal kontak, isi pembayaran per unit</b><span class="db-res">Jenis bayar, metode, nominal, Tanggal Transaksi. Kavling yang tidak Sellable tampil "Not Available". Bisa juga tanpa kavling (Waitinglist).</span></td><td><ul class="db-ops"><li><span class="db-op db-op-r">R</span><code>t_deals</code><small>deal kontak di project terpilih</small></li><li data-t="m_sellable_unit"><span class="db-op db-op-r">R</span><code>m_sellable_unit</code><small><code>status_id</code> 2 = Available</small></li><li><span class="db-op db-op-r">R</span><code>m_payment_types</code><small>+ <code>m_cara_bayar</code>: pilihan dropdown</small></li></ul></td></tr>
+            <tr data-t="m_customer_reserve t_reserve_order t_reserve_order_tts app_m_setting t_reserve_order_tts_item d_contact_attachment t_reserve_order_activity_message m_contacts t_global_notifications"><td>Buat · Review</td><td><b>Simpan Reserve Order</b><span class="db-res">1 unit = 1 RO + 1 TTS. Status Reserve, menunggu Kasir. Bel notif ke Kasir. Nama beda untuk NIK yang sama → ditolak.</span></td><td><ul class="db-ops"><li data-t="m_customer_reserve"><span class="db-op db-op-c">C</span><code>m_customer_reserve</code><small>hanya kalau NIK belum ada di owner ini</small></li><li data-t="t_reserve_order"><span class="db-op db-op-c">C</span><code>t_reserve_order</code><small>status 2 Reserve, approval kosong, <code>reserve_date</code> = Tanggal Transaksi</small></li><li data-t="t_reserve_order_tts"><span class="db-op db-op-c">C</span><code>t_reserve_order_tts</code><small>No. TTS otomatis</small></li><li data-t="app_m_setting"><span class="db-op db-op-u">U</span><code>app_m_setting</code><small><code>TTS_NUMBER_COUNTER</code> naik</small></li><li data-t="t_reserve_order_tts_item"><span class="db-op db-op-c">C</span><code>t_reserve_order_tts_item</code><small>1 baris per metode bayar</small></li><li data-t="d_contact_attachment"><span class="db-op db-op-c">C</span><code>d_contact_attachment</code><small>KTP, NPWP, bukti non-tunai: <code>pending</code>, file ke Google Drive</small></li><li data-t="t_reserve_order_activity_message"><span class="db-op db-op-c">C</span><code>t_reserve_order_activity_message</code><small>"Reserve Order dibuat untuk unit …"</small></li><li data-t="m_contacts"><span class="db-op db-op-u">U</span><code>m_contacts</code><small><code>last_reserve_date</code> kalau masih kosong</small></li><li data-t="t_global_notifications"><span class="db-op db-op-c">C</span><code>t_global_notifications</code><small>bel Kasir</small></li></ul></td></tr>
+            <tr data-t="t_reserve_order t_reserve_order_tts t_reserve_order_tts_item d_contact_attachment t_reserve_order_activity_message m_customer_reserve"><td>Detail</td><td><b>Buka detail (Timeline, Customer, Attachment, Messages)</b><span class="db-res">Tombol Top Up / Edit / Hapus aktif atau nonaktif + alasannya dikirim server (<code>can_topup</code>, <code>can_edit</code>, <code>can_delete</code>, <code>*_locked_reason</code>).</span></td><td><ul class="db-ops"><li data-t="t_reserve_order"><span class="db-op db-op-r">R</span><code>t_reserve_order</code><small>status, tahap timeline, flag approval</small></li><li data-t="t_reserve_order_tts"><span class="db-op db-op-r">R</span><code>t_reserve_order_tts</code><small>daftar TTS, total terbayar</small></li><li data-t="t_reserve_order_tts_item"><span class="db-op db-op-r">R</span><code>t_reserve_order_tts_item</code><small>rincian bayar</small></li><li data-t="d_contact_attachment"><span class="db-op db-op-r">R</span><code>d_contact_attachment</code><small>dokumen + daftar dokumen wajib per pekerjaan</small></li><li data-t="t_reserve_order_activity_message"><span class="db-op db-op-r">R</span><code>t_reserve_order_activity_message</code><small>pesan &amp; catatan per tahap</small></li><li data-t="m_customer_reserve"><span class="db-op db-op-r">R</span><code>m_customer_reserve</code><small>tab Customer</small></li></ul></td></tr>
+            <tr data-t="t_reserve_order_tts t_reserve_order_tts_item d_contact_attachment t_reserve_order m_contacts t_reserve_order_activity_message t_global_notifications app_m_setting"><td>Detail</td><td><b>+ Top Up Pembayaran</b><span class="db-res">TTS baru menunggu Kasir. <b>Status RO tidak berubah.</b> Ditolak kalau status RO sudah SP atau sudah Akad (tombol tampil nonaktif + alasan); tombol juga nonaktif kalau RO Batal (<code>lost_date</code> terisi). Bel notif ke Kasir. Kalau RO sedang Ditolak (Kasir atau Sales Admin), top up sekaligus mengajukan ulang RO: flag tolak dikosongkan sama seperti Perbaiki Data Customer.</span></td><td><ul class="db-ops"><li data-t="t_reserve_order_tts"><span class="db-op db-op-c">C</span><code>t_reserve_order_tts</code><small>jenis bayar pilihan sales</small></li><li data-t="app_m_setting"><span class="db-op db-op-u">U</span><code>app_m_setting</code><small>counter No. TTS</small></li><li data-t="t_reserve_order_tts_item"><span class="db-op db-op-c">C</span><code>t_reserve_order_tts_item</code></li><li data-t="d_contact_attachment"><span class="db-op db-op-c">C</span><code>d_contact_attachment</code><small>bukti non-tunai, <code>pending</code></small></li><li data-t="t_reserve_order"><span class="db-op db-op-u">U</span><code>t_reserve_order</code><small><code>amount_rp</code> dihitung ulang; <code>reserve_booking_date</code> kalau RB / Top up RB</small></li><li data-t="m_contacts"><span class="db-op db-op-u">U</span><code>m_contacts</code><small><code>last_reserve_booking_date</code> / <code>last_sp_date</code> kalau kosong</small></li><li data-t="t_reserve_order_activity_message"><span class="db-op db-op-c">C</span><code>t_reserve_order_activity_message</code><small>"Top Up … Rp … diajukan."</small></li><li data-t="t_global_notifications"><span class="db-op db-op-c">C</span><code>t_global_notifications</code><small>bel Kasir</small></li></ul></td></tr>
+            <tr data-t="m_customer_reserve t_reserve_order_tts d_contact_attachment t_reserve_order t_reserve_order_activity_message t_global_notifications"><td>Detail</td><td><b>Perbaiki / Ubah Data Customer</b><span class="db-res">Kalau RO sedang Ditolak (Kasir atau Sales Admin), flag tolak dikosongkan dan RO masuk antrean lagi: ditolak Kasir → tab Kasir, ditolak SA → tab Sales Admin (karena <code>kasir_approve_datetime</code> tetap terisi). Bel notif ke Sales Admin kalau RO sudah lolos Kasir.</span></td><td><ul class="db-ops"><li data-t="m_customer_reserve"><span class="db-op db-op-u">U</span><code>m_customer_reserve</code><small>kolom yang dikirim</small></li><li data-t="t_reserve_order_tts"><span class="db-op db-op-u">U</span><code>t_reserve_order_tts</code><small><code>received_from</code> semua TTS, kalau nama berubah</small></li><li data-t="d_contact_attachment"><span class="db-op db-op-c">C</span><code>d_contact_attachment</code><small>KTP / NPWP baru (yang lama tidak dihapus)</small></li><li data-t="t_reserve_order"><span class="db-op db-op-u">U</span><code>t_reserve_order</code><small>salin nama &amp; HP, cara bayar; kalau Ditolak: <code>is_kasir_approved</code>, <code>is_sa_approved</code>, <code>*_rejected_*</code> = NULL</small></li><li data-t="t_reserve_order_activity_message"><span class="db-op db-op-c">C</span><code>t_reserve_order_activity_message</code><small>"Data customer diperbaiki, … diajukan ulang"</small></li><li data-t="t_global_notifications"><span class="db-op db-op-c">C</span><code>t_global_notifications</code><small>bel Sales Admin</small></li></ul></td></tr>
+            <tr data-t="t_customer_reserve_answer t_global_notifications"><td>Detail</td><td><b>Kuesioner</b><span class="db-res">Jawaban disimpan per customer, jadi berlaku untuk semua RO customer itu.</span></td><td><ul class="db-ops"><li><span class="db-op db-op-r">R</span><code>t_customer_reserve_questioner</code><small>teks pertanyaan (revisi terbaru)</small></li><li data-t="t_customer_reserve_answer"><span class="db-op db-op-u">C/U</span><code>t_customer_reserve_answer</code><small>1 baris per customer, 1 kolom per jawaban</small></li><li data-t="t_global_notifications"><span class="db-op db-op-c">C</span><code>t_global_notifications</code><small>bel Sales Admin</small></li></ul></td></tr>
+            <tr data-t="t_reserve_order t_reserve_order_activity_message t_global_notifications"><td>Detail</td><td><b>Edit Unit / Cara Bayar / Catatan</b><span class="db-res">Hanya data RO yang berubah; customer, TTS, dan status kavling tidak disentuh. Kalau kavling lama jadi kosong padahal ada antrean Waitinglist → bel Sales Admin.</span></td><td><ul class="db-ops"><li data-t="t_reserve_order"><span class="db-op db-op-u">U</span><code>t_reserve_order</code><small><code>property_id</code>, <code>product_id</code>, <code>company_id</code>, <code>property_name</code>, <code>cara_bayar_id</code>, <code>reserve_note</code></small></li><li data-t="t_reserve_order_activity_message"><span class="db-op db-op-c">C</span><code>t_reserve_order_activity_message</code><small>"Data reserve order diperbarui …"</small></li><li data-t="t_global_notifications"><span class="db-op db-op-c">C</span><code>t_global_notifications</code><small>bel Sales Admin</small></li></ul></td></tr>
+            <tr data-t="t_reserve_order_activity_message t_global_notifications"><td>Detail</td><td><b>Kirim pesan (tab Messages)</b><span class="db-res">Teks dan / atau lampiran. Bel notif ke Kasir &amp; Sales Admin; push ke owner kontak kalau penulisnya bukan owner.</span></td><td><ul class="db-ops"><li data-t="t_reserve_order_activity_message"><span class="db-op db-op-c">C</span><code>t_reserve_order_activity_message</code><small>isi pesan; lampiran ke Google Drive</small></li><li data-t="t_global_notifications"><span class="db-op db-op-c">C</span><code>t_global_notifications</code><small>bel admin + riwayat push</small></li></ul></td></tr>
+            <tr data-t="d_contact_attachment"><td>Detail</td><td><b>Upload dokumen (tab Attachment)</b><span class="db-res">Bukti Transfer otomatis diikat ke TTS terakhir dan menunggu verifikasi Kasir. Dokumen customer tidak bisa diganti / dihapus kalau salah satu RO customer sudah Akad.</span></td><td><ul class="db-ops"><li data-t="d_contact_attachment"><span class="db-op db-op-c">C</span><code>d_contact_attachment</code><small><code>pending</code>; <code>reserve_order_tts_id</code> = TTS terakhir untuk Bukti Transfer</small></li></ul></td></tr>
+            <tr data-t="t_reserve_order_tts_item t_reserve_order_tts t_reserve_order_activity_message d_contact_attachment t_reserve_order"><td>Detail</td><td><b>Hapus Reserve Order</b><span class="db-res">Hapus permanen. Ditolak kalau RO sudah lolos Kasir atau sudah Akad. Customer tidak ikut terhapus.</span></td><td><ul class="db-ops"><li data-t="t_reserve_order_tts_item"><span class="db-op db-op-d">D</span><code>t_reserve_order_tts_item</code></li><li data-t="t_reserve_order_tts"><span class="db-op db-op-d">D</span><code>t_reserve_order_tts</code></li><li data-t="t_reserve_order_activity_message"><span class="db-op db-op-d">D</span><code>t_reserve_order_activity_message</code></li><li data-t="d_contact_attachment"><span class="db-op db-op-d">D</span><code>d_contact_attachment</code><small>+ file di Google Drive</small></li><li data-t="t_reserve_order"><span class="db-op db-op-d">D</span><code>t_reserve_order</code></li></ul></td></tr>
+          </tbody></table></div>
+
+          <h3>Admin Web · Kasir</h3><p class="db-note">Menu Sales Pipeline → Reserve Order, butuh fitur <code>VerifyKasir</code>. Tab: Kasir (antrean), Approved Kasir, Rejected Kasir, Setor Tunai.</p>
+          <div class="db-tw"><table class="db-use"><thead><tr><th>Layar</th><th>Fitur &amp; hasil</th><th>Tabel yang dipakai</th></tr></thead><tbody>
+            <tr data-t="t_reserve_order t_reserve_order_tts"><td>Tab Kasir</td><td><b>Buka antrean</b><span class="db-res">RO yang belum diputuskan Kasir, ditambah RO yang punya TTS baru (top up) yang menunggu.</span></td><td><ul class="db-ops"><li data-t="t_reserve_order"><span class="db-op db-op-r">R</span><code>t_reserve_order</code><small><code>kasir_approve_datetime</code> &amp; <code>kasir_rejected_datetime</code> kosong</small></li><li data-t="t_reserve_order_tts"><span class="db-op db-op-r">R</span><code>t_reserve_order_tts</code><small>jumlah TTS menunggu</small></li></ul></td></tr>
+            <tr data-t="m_customer_reserve t_reserve_order t_reserve_order_tts t_reserve_order_tts_item d_contact_attachment t_reserve_order_activity_message"><td>Buat RO</td><td><b>Buat Reserve Order dari web</b><span class="db-res">Sama dengan buat dari mobile. Kalau dibuat user ber-<code>VerifyKasir</code>, TTS-nya langsung di-approve (efeknya sama dengan Approve di bawah).</span></td><td><ul class="db-ops"><li data-t="m_customer_reserve"><span class="db-op db-op-c">C</span><code>m_customer_reserve</code><small>kalau NIK baru</small></li><li data-t="t_reserve_order"><span class="db-op db-op-c">C</span><code>t_reserve_order</code></li><li data-t="t_reserve_order_tts"><span class="db-op db-op-c">C</span><code>t_reserve_order_tts</code></li><li data-t="t_reserve_order_tts_item"><span class="db-op db-op-c">C</span><code>t_reserve_order_tts_item</code></li><li data-t="d_contact_attachment"><span class="db-op db-op-c">C</span><code>d_contact_attachment</code></li><li data-t="t_reserve_order_activity_message"><span class="db-op db-op-c">C</span><code>t_reserve_order_activity_message</code></li></ul></td></tr>
+            <tr data-t="d_contact_attachment"><td>Dokumen</td><td><b>Verifikasi dokumen (KTP Pemohon / Bukti Transfer)</b><span class="db-res">Hanya status dokumen yang berubah. Bukti Transfer yang ditolak mengunci Approve pembayaran TTS-nya.</span></td><td><ul class="db-ops"><li data-t="d_contact_attachment"><span class="db-op db-op-u">U</span><code>d_contact_attachment</code><small><code>verification_status</code>, <code>verification_note</code>, <code>verified_by</code>, <code>verified_at</code></small></li></ul></td></tr>
+            <tr data-t="t_reserve_order_tts t_reserve_order_tts_item t_reserve_order t_reserve_order_activity_message t_sync_gsheet"><td>Pembayaran</td><td><b>Simpan form TTS</b><span class="db-res">Koreksi kertas TTS (penerima, jenis bayar, nominal, tanggal, No. TTS manual, metode). Kalau TTS sudah approved, baris sheet RB ikut ditulis ulang. Tunai yang sudah disetor tidak boleh diubah.</span></td><td><ul class="db-ops"><li data-t="t_reserve_order_tts"><span class="db-op db-op-u">U</span><code>t_reserve_order_tts</code></li><li data-t="t_reserve_order_tts_item"><span class="db-op db-op-u">C/U/D</span><code>t_reserve_order_tts_item</code><small>metode dicentang / dihapus</small></li><li data-t="t_reserve_order"><span class="db-op db-op-u">U</span><code>t_reserve_order</code><small><code>amount_rp</code>, <code>reserve_booking_date</code>, <code>reserve_note</code></small></li><li data-t="t_reserve_order_activity_message"><span class="db-op db-op-c">C</span><code>t_reserve_order_activity_message</code><small>kalau catatan berubah</small></li><li data-t="t_sync_gsheet"><span class="db-op db-op-u">U</span><code>t_sync_gsheet</code><small>sheet RB</small></li></ul></td></tr>
+            <tr data-t="t_reserve_order_tts d_contact_attachment t_reserve_order m_sellable_unit m_contacts t_deals t_deal_history t_reserve_order_activity_message t_sync_gsheet t_global_notifications"><td>Pembayaran</td><td><b>Approve pembayaran TTS</b><span class="db-res">TTS disetujui. <b>Approve pertama di RO = RO lolos Kasir:</b> kavling dikunci (atau RO otomatis Waitinglist kalau kavlingnya sudah dipegang RO lain), status prospek kontak naik, RO masuk antrean Sales Admin, ditulis ke sheet RB + DSR, push "Reserve Order Disetujui". Approve berikutnya (top up) hanya menyetujui pembayarannya + push "Top Up Disetujui". Ditolak kalau form TTS belum lengkap atau ada bukti transfer yang ditolak.</span></td><td><ul class="db-ops"><li data-t="t_reserve_order_tts"><span class="db-op db-op-u">U</span><code>t_reserve_order_tts</code><small><code>is_approved</code> = 1, <code>approved_datetime</code>, <code>approved_user_id</code></small></li><li data-t="d_contact_attachment"><span class="db-op db-op-u">U</span><code>d_contact_attachment</code><small>bukti TTS &amp; KTP yang masih <code>pending</code> ikut <code>approved</code></small></li><li data-t="t_reserve_order"><span class="db-op db-op-u">U</span><code>t_reserve_order</code><small><code>amount_rp</code>; <code>reserve_note</code> = catatan TTS. Approve pertama: <code>is_kasir_approved</code> = 1, <code>approved_kasir_id</code>, <code>kasir_approve_datetime</code> (+ <code>status_reserve_id</code> = Waitinglist kalau kavling bentrok)</small></li><li data-t="m_sellable_unit"><span class="db-op db-op-u">U</span><code>m_sellable_unit</code><small>approve pertama: Sellable → status sesuai status reserve (mis. 9 Reserve)</small></li><li data-t="m_contacts"><span class="db-op db-op-u">U</span><code>m_contacts</code><small><code>status_prospect_id</code> naik (Reserve → 30)</small></li><li data-t="t_deals"><span class="db-op db-op-u">U</span><code>t_deals</code><small>status deal aktif ikut naik</small></li><li data-t="t_deal_history"><span class="db-op db-op-c">C</span><code>t_deal_history</code><small><code>source</code> = <code>reserve_order</code></small></li><li data-t="t_reserve_order_activity_message"><span class="db-op db-op-c">C</span><code>t_reserve_order_activity_message</code><small>"Pembayaran TTS … disetujui Kasir." + catatan kavling &amp; prospek</small></li><li data-t="t_sync_gsheet"><span class="db-op db-op-u">C/U</span><code>t_sync_gsheet</code><small>sheet RB; DSR saat approve pertama</small></li><li data-t="t_global_notifications"><span class="db-op db-op-c">C</span><code>t_global_notifications</code><small>push owner kontak + bel Sales Admin</small></li></ul></td></tr>
+            <tr data-t="t_reserve_order_tts t_reserve_order t_reserve_order_activity_message t_sync_gsheet"><td>Pembayaran</td><td><b>Reject pembayaran TTS (alasan wajib)</b><span class="db-res">TTS ditolak. Kalau RO belum pernah lolos Kasir dan tidak punya TTS approved lain → RO ikut Ditolak Kasir (mobile: "Ditolak", sales bisa Perbaiki Data). Reject top up tidak menolak RO. TTS yang sudah approved tidak bisa di-reject. Tidak ada push notif.</span></td><td><ul class="db-ops"><li data-t="t_reserve_order_tts"><span class="db-op db-op-u">U</span><code>t_reserve_order_tts</code><small><code>is_approved</code> = 0, <code>rejected_datetime</code>, <code>rejectted_user_id</code></small></li><li data-t="t_reserve_order"><span class="db-op db-op-u">U</span><code>t_reserve_order</code><small><code>amount_rp</code>; kondisi di atas: <code>is_kasir_approved</code> = 0, <code>kasir_rejected_datetime</code>, <code>kasir_rejected_reason</code></small></li><li data-t="t_reserve_order_activity_message"><span class="db-op db-op-c">C</span><code>t_reserve_order_activity_message</code><small>"… ditolak Kasir. Alasan: …" (TTS tidak punya kolom alasan)</small></li><li data-t="t_sync_gsheet"><span class="db-op db-op-u">U</span><code>t_sync_gsheet</code><small>slot TTS ini hilang dari baris RB</small></li></ul></td></tr>
+            <tr data-t="t_reserve_order_tts t_reserve_order_tts_item d_contact_attachment t_reserve_order t_reserve_order_activity_message t_sync_gsheet"><td>Tab TTS</td><td><b>Create TTS / Top Up dari web</b><span class="db-res">Sama dengan top up mobile + field kertas TTS. Dibuat user ber-<code>VerifyKasir</code> → langsung approved (dan lolos Kasir kalau belum). Ditolak kalau RO sudah SP.</span></td><td><ul class="db-ops"><li data-t="t_reserve_order_tts"><span class="db-op db-op-c">C</span><code>t_reserve_order_tts</code></li><li data-t="t_reserve_order_tts_item"><span class="db-op db-op-c">C</span><code>t_reserve_order_tts_item</code></li><li data-t="d_contact_attachment"><span class="db-op db-op-c">C</span><code>d_contact_attachment</code><small>bukti non-tunai wajib</small></li><li data-t="t_reserve_order"><span class="db-op db-op-u">U</span><code>t_reserve_order</code><small><code>amount_rp</code></small></li><li data-t="t_reserve_order_activity_message"><span class="db-op db-op-c">C</span><code>t_reserve_order_activity_message</code></li><li data-t="t_sync_gsheet"><span class="db-op db-op-u">C/U</span><code>t_sync_gsheet</code><small>kalau auto-approve</small></li></ul></td></tr>
+            <tr data-t="t_reserve_order_tts_item d_contact_attachment t_reserve_order_tts t_reserve_order t_reserve_order_activity_message t_sync_gsheet"><td>Tab TTS / Pembayaran</td><td><b>Hapus TTS</b><span class="db-res">Centang di tab TTS: hanya TTS yang belum approved dan Tunai-nya belum disetor. Ikon 🗑 di halaman Pembayaran (Kasir): boleh TTS yang sudah approved, slot TTS di sheet RB ikut dikosongkan.</span></td><td><ul class="db-ops"><li data-t="t_reserve_order_tts_item"><span class="db-op db-op-d">D</span><code>t_reserve_order_tts_item</code></li><li data-t="d_contact_attachment"><span class="db-op db-op-d">D</span><code>d_contact_attachment</code><small>bukti TTS + file di Drive</small></li><li data-t="t_reserve_order_tts"><span class="db-op db-op-d">D</span><code>t_reserve_order_tts</code></li><li data-t="t_reserve_order"><span class="db-op db-op-u">U</span><code>t_reserve_order</code><small><code>amount_rp</code>, <code>reserve_booking_date</code> dihitung ulang</small></li><li data-t="t_reserve_order_activity_message"><span class="db-op db-op-c">C</span><code>t_reserve_order_activity_message</code><small>"TTS … dihapus."</small></li><li data-t="t_sync_gsheet"><span class="db-op db-op-r">R</span><code>t_sync_gsheet</code><small>ikon 🗑: cari baris RB lalu kosongkan slotnya</small></li></ul></td></tr>
+            <tr data-t="t_reserve_order_tts_item t_reserve_order_tts t_reserve_order_activity_message d_contact_attachment t_reserve_order"><td>Dokumen</td><td><b>Hapus Reserve Order</b><span class="db-res">Hanya sebelum RO lolos Kasir (setelah itu tombol nonaktif). Memakai fungsi hapus yang sama dengan mobile.</span></td><td><ul class="db-ops"><li data-t="t_reserve_order_tts_item"><span class="db-op db-op-d">D</span><code>t_reserve_order_tts_item</code></li><li data-t="t_reserve_order_tts"><span class="db-op db-op-d">D</span><code>t_reserve_order_tts</code></li><li data-t="t_reserve_order_activity_message"><span class="db-op db-op-d">D</span><code>t_reserve_order_activity_message</code></li><li data-t="d_contact_attachment"><span class="db-op db-op-d">D</span><code>d_contact_attachment</code></li><li data-t="t_reserve_order"><span class="db-op db-op-d">D</span><code>t_reserve_order</code></li></ul></td></tr>
+            <tr data-t="t_reserve_order_tts_item t_reserve_order_activity_message t_sync_gsheet"><td>Tab Setor Tunai</td><td><b>Tandai sudah disetor / Batalkan setor</b><span class="db-res">1 baris = 1 pembayaran Tunai. Info setoran disimpan di baris Tunai itu sendiri (tanpa tabel baru) lalu ikut tertulis di sheet RB.</span></td><td><ul class="db-ops"><li data-t="t_reserve_order_tts_item"><span class="db-op db-op-u">U</span><code>t_reserve_order_tts_item</code><small><code>status_setor_tunai</code>, <code>bank_name</code>, <code>reference_number</code> (rekening), <code>reference_date</code> (tgl setor)</small></li><li data-t="t_reserve_order_activity_message"><span class="db-op db-op-c">C</span><code>t_reserve_order_activity_message</code><small>"Tunai TTS … disetor ke …"</small></li><li data-t="t_sync_gsheet"><span class="db-op db-op-u">U</span><code>t_sync_gsheet</code><small>sheet RB</small></li></ul></td></tr>
+          </tbody></table></div>
+
+          <h3>Admin Web · Sales Admin</h3><p class="db-note">Butuh fitur <code>VerifySA</code>. Tab: Sales Admin (antrean), Approved Admin, Rejected Admin. Hanya berisi RO yang sudah lolos Kasir.</p>
+          <div class="db-tw"><table class="db-use"><thead><tr><th>Layar</th><th>Fitur &amp; hasil</th><th>Tabel yang dipakai</th></tr></thead><tbody>
+            <tr data-t="t_reserve_order t_reserve_order_tts"><td>Tab Sales Admin</td><td><b>Buka antrean / buka RO</b><span class="db-res">RO yang sudah lolos Kasir dan belum diputuskan, ditambah RO yang punya top up RB / SP baru yang belum dilihat. RO di kavling yang punya antrean Waitinglist dikumpulkan paling atas.</span></td><td><ul class="db-ops"><li data-t="t_reserve_order"><span class="db-op db-op-r">R</span><code>t_reserve_order</code><small><code>kasir_approve_datetime</code> terisi, <code>sa_*</code> kosong</small></li><li data-t="t_reserve_order_tts"><span class="db-op db-op-r">R</span><code>t_reserve_order_tts</code><small>top up approved setelah <code>sa_seen_datetime</code></small></li><li data-t="t_reserve_order"><span class="db-op db-op-u">U</span><code>t_reserve_order</code><small>buka RO: <code>sa_seen_datetime</code>, <code>sa_seen_user_id</code></small></li></ul></td></tr>
+            <tr data-t="t_reserve_order t_reserve_order_tts m_sellable_unit m_contacts t_deals t_deal_history t_reserve_order_activity_message t_sync_gsheet t_global_notifications m_reserve_status"><td>Verifikasi SA</td><td><b>Approve &amp; Sync DSR</b><span class="db-res">Status reserve diganti (+ tanggal, alasan batal, poin, catatan, kavling). Kavling ikut dikunci / dilepas, status prospek kontak naik, ditulis ke sheet DSR. Status yang menempati kavling ditolak (422) kalau kavling itu masih dipegang RO lain. Push "Status Berubah" kalau statusnya berubah.</span></td><td><ul class="db-ops"><li data-t="m_reserve_status"><span class="db-op db-op-r">R</span><code>m_reserve_status</code><small>status aktif + pemetaan status kavling</small></li><li data-t="t_reserve_order"><span class="db-op db-op-u">U</span><code>t_reserve_order</code><small><code>status_reserve_id</code>, tanggal tahap, <code>lost_reason_id</code>, <code>unit_point</code>, <code>reserve_note</code>, <code>is_sa_approved</code> = 1, <code>approved_sa_id</code>, <code>sa_approve_datetime</code>; ganti kavling: <code>property_id</code>, <code>product_id</code>, <code>company_id</code></small></li><li data-t="t_reserve_order_tts"><span class="db-op db-op-u">U</span><code>t_reserve_order_tts</code><small><code>property_name</code> kalau kavling diganti</small></li><li data-t="m_sellable_unit"><span class="db-op db-op-u">U</span><code>m_sellable_unit</code><small>kavling lama → Sellable; kavling RO → status baru</small></li><li data-t="m_contacts"><span class="db-op db-op-u">U</span><code>m_contacts</code><small>status prospek naik (RB 31, RBA 32, SP 50)</small></li><li data-t="t_deals"><span class="db-op db-op-u">U</span><code>t_deals</code></li><li data-t="t_deal_history"><span class="db-op db-op-c">C</span><code>t_deal_history</code></li><li data-t="t_reserve_order_activity_message"><span class="db-op db-op-c">C</span><code>t_reserve_order_activity_message</code><small>"Reserve order disetujui Sales Admin. Status reserve: …"</small></li><li data-t="t_sync_gsheet"><span class="db-op db-op-u">U</span><code>t_sync_gsheet</code><small>sheet DSR</small></li><li data-t="t_global_notifications"><span class="db-op db-op-c">C</span><code>t_global_notifications</code><small>push owner kontak; bel SA + push antrean #1 kalau kavling dilepas</small></li></ul></td></tr>
+            <tr data-t="t_reserve_order m_sellable_unit m_contacts t_reserve_order_activity_message t_sync_gsheet"><td>Verifikasi SA</td><td><b>Simpan Perubahan</b><span class="db-res">Koreksi data setelah RO diputuskan. Efek sama dengan Approve, tapi flag &amp; waktu approve / reject SA tidak disentuh. Setelah SA approve, Approve / Reject ulang ditolak; koreksi hanya lewat Simpan.</span></td><td><ul class="db-ops"><li data-t="t_reserve_order"><span class="db-op db-op-u">U</span><code>t_reserve_order</code><small>status, tanggal, poin, catatan, kavling</small></li><li data-t="m_sellable_unit"><span class="db-op db-op-u">U</span><code>m_sellable_unit</code><small>kalau status / kavling berubah</small></li><li data-t="m_contacts"><span class="db-op db-op-u">U</span><code>m_contacts</code><small>status prospek naik</small></li><li data-t="t_reserve_order_activity_message"><span class="db-op db-op-c">C</span><code>t_reserve_order_activity_message</code></li><li data-t="t_sync_gsheet"><span class="db-op db-op-u">U</span><code>t_sync_gsheet</code><small>sheet DSR</small></li></ul></td></tr>
+            <tr data-t="t_reserve_order t_reserve_order_tts m_sellable_unit t_reserve_order_activity_message t_global_notifications"><td>Verifikasi SA</td><td><b>Reject (alasan wajib)</b><span class="db-res">RO Ditolak Sales Admin. Isian form (status, tanggal, alasan batal, poin, catatan, kavling) tetap disimpan sama seperti Approve; bedanya status prospek tidak naik dan tidak sync DSR. Hasil Kasir tidak dibatalkan: <code>is_kasir_approved</code> tetap 1 dan TTS tetap approved. RO pindah ke tab Rejected Admin; di mobile tampil "Ditolak" + alasan. Ditolak (422) kalau RO sudah di-approve SA. Kondisi data lengkap: <a href="#db-tolak-sa">7.4</a>.</span></td><td><ul class="db-ops"><li data-t="t_reserve_order"><span class="db-op db-op-u">U</span><code>t_reserve_order</code><small><code>is_sa_approved</code> = 0, <code>sa_rejected_datetime</code>, <code>sa_rejected_reason</code>; <code>approved_sa_id</code> &amp; <code>sa_approve_datetime</code> = NULL; isian form: <code>status_reserve_id</code>, tanggal tahap, <code>lost_reason_id</code>, <code>unit_point</code>, <code>reserve_note</code>; ganti kavling: <code>property_id</code>, <code>product_id</code>, <code>company_id</code></small></li><li data-t="t_reserve_order_tts"><span class="db-op db-op-u">U</span><code>t_reserve_order_tts</code><small><code>property_name</code> kalau kavling diganti</small></li><li data-t="m_sellable_unit"><span class="db-op db-op-u">U</span><code>m_sellable_unit</code><small>kalau status / kavling berubah (Batal = Sellable)</small></li><li data-t="t_reserve_order_activity_message"><span class="db-op db-op-c">C</span><code>t_reserve_order_activity_message</code><small>"Reserve order ditolak Sales Admin. Status reserve: … Alasan: …"</small></li><li data-t="t_global_notifications"><span class="db-op db-op-c">C</span><code>t_global_notifications</code><small>hanya push Status Berubah kalau status berubah, dan bel SA + push antrean #1 kalau kavling dilepas. Tidak ada notif "Ditolak".</small></li></ul></td></tr>
+          </tbody></table></div>
+
+          <h3>Admin Web · Menu pendamping</h3><p class="db-note">Menu terpisah di modul Reserve Order, masing-masing punya permission sendiri.</p>
+          <div class="db-tw"><table class="db-use"><thead><tr><th>Menu</th><th>Fitur &amp; hasil</th><th>Tabel yang dipakai</th></tr></thead><tbody>
+            <tr data-t="m_customer_reserve t_customer_reserve_answer t_reserve_order"><td>Master Customer</td><td><b>Lihat, edit, hapus customer</b><span class="db-res">Hapus ditolak kalau customer masih dipakai RO.</span></td><td><ul class="db-ops"><li data-t="m_customer_reserve"><span class="db-op db-op-u">R/U/D</span><code>m_customer_reserve</code></li><li data-t="t_customer_reserve_answer"><span class="db-op db-op-u">R/U/D</span><code>t_customer_reserve_answer</code><small>ikut terhapus</small></li><li data-t="t_reserve_order"><span class="db-op db-op-r">R</span><code>t_reserve_order</code><small>jumlah order, cek masih dipakai</small></li></ul></td></tr>
+            <tr data-t="m_reserve_status"><td>Master Status</td><td><b>Tambah / ubah / hapus status reserve</b><span class="db-res">Termasuk pemetaan ke status kavling. Hapus ditolak kalau status masih dipakai RO, TTS, atau riwayat pesan.</span></td><td><ul class="db-ops"><li data-t="m_reserve_status"><span class="db-op db-op-u">C/U/D</span><code>m_reserve_status</code><small><code>property_unit_status_id</code>, <code>is_active</code></small></li></ul></td></tr>
+            <tr data-t="t_reserve_order_tts t_reserve_order_tts_item d_contact_attachment t_reserve_order"><td>Tanda Terima Sementara</td><td><b>Daftar semua TTS, hapus</b><span class="db-res">Lintas RO. Aturan hapus sama dengan hapus TTS (yang approved / Tunai sudah disetor ditolak).</span></td><td><ul class="db-ops"><li data-t="t_reserve_order_tts"><span class="db-op db-op-d">R/D</span><code>t_reserve_order_tts</code></li><li data-t="t_reserve_order_tts_item"><span class="db-op db-op-d">D</span><code>t_reserve_order_tts_item</code></li><li data-t="d_contact_attachment"><span class="db-op db-op-d">D</span><code>d_contact_attachment</code></li><li data-t="t_reserve_order"><span class="db-op db-op-u">U</span><code>t_reserve_order</code><small><code>amount_rp</code>, <code>reserve_booking_date</code></small></li></ul></td></tr>
+            <tr data-t="t_reserve_order_tts t_reserve_order_tts_item app_m_setting"><td>Cetak TTS</td><td><b>Print TTS</b><span class="db-res">Kertas TTS dengan tanda tangan Kasir &amp; logo project.</span></td><td><ul class="db-ops"><li data-t="t_reserve_order_tts"><span class="db-op db-op-r">R</span><code>t_reserve_order_tts</code></li><li data-t="t_reserve_order_tts_item"><span class="db-op db-op-r">R</span><code>t_reserve_order_tts_item</code></li><li data-t="app_m_setting"><span class="db-op db-op-r">R</span><code>app_m_setting</code><small><code>TTD_KASIR</code>, <code>SALESKIT_URL</code></small></li></ul></td></tr>
+            <tr data-t="m_sellable_unit"><td>Map Siteplan</td><td><b>Lihat peta kavling</b><span class="db-res">Warna kavling = hasil kunci RO.</span></td><td><ul class="db-ops"><li data-t="m_sellable_unit"><span class="db-op db-op-r">R</span><code>m_sellable_unit</code><small>lewat modul Property</small></li></ul></td></tr>
+          </tbody></table></div>
+
+          <h3>Sistem</h3><p class="db-note">Berjalan otomatis di backend, tanpa klik. Gagal kirim notif / sync sheet tidak membatalkan keputusan yang sudah tersimpan.</p>
+          <div class="db-tw"><table class="db-use"><thead><tr><th>Proses</th><th>Kapan &amp; hasil</th><th>Tabel yang dipakai</th></tr></thead><tbody>
+            <tr data-t="m_contacts t_global_notifications"><td>Push ke sales</td><td><b>Ke owner kontak RO</b><span class="db-res">Reserve Order Disetujui (lolos Kasir) · Top Up Disetujui · Status Berubah (oleh SA) · Pesan Baru (pesan manual) · Kavling Tersedia (antrean #1 Waitinglist). Tap → buka detail RO.</span></td><td><ul class="db-ops"><li data-t="m_contacts"><span class="db-op db-op-r">R</span><code>m_contacts</code><small><code>owner_id</code> = penerima (bukan <code>t_reserve_order.owner_id</code>)</small></li><li><span class="db-op db-op-r">R</span><code>app_user_devices</code><small>token FCM</small></li><li data-t="t_global_notifications"><span class="db-op db-op-c">C</span><code>t_global_notifications</code><small>riwayat di halaman Notifikasi app</small></li></ul></td></tr>
+            <tr data-t="t_global_notifications"><td>Bel admin</td><td><b>Ke Kasir / Sales Admin di panel web</b><span class="db-res">RO baru &amp; top up diajukan → Kasir. Lolos Kasir, top up approved, data diubah sales, kavling dilepas → Sales Admin. Pesan baru → keduanya. SA tidak dikabari sebelum RO lolos Kasir.</span></td><td><ul class="db-ops"><li data-t="t_global_notifications"><span class="db-op db-op-c">C</span><code>t_global_notifications</code><small><code>target_type</code> = admin, 1 baris per penerima</small></li><li><span class="db-op db-op-r">R</span><code>app_user_devices</code><small>token Web Push</small></li></ul></td></tr>
+            <tr data-t="t_sync_gsheet"><td>Google Sheet</td><td><b>RB (Kasir) &amp; DSR (Sales Admin)</b><span class="db-res">RB: 1 RO = 1 baris, slot pembayaran = TTS approved saja. DSR: baris = baris RB − 1, diisi saat lolos Kasir lalu tiap Approve / Simpan SA.</span></td><td><ul class="db-ops"><li><span class="db-op db-op-r">R</span><code>m_google_sheet_test</code><small>config sheet per company &amp; tahun</small></li><li data-t="t_sync_gsheet"><span class="db-op db-op-u">C/U</span><code>t_sync_gsheet</code><small><code>row_number</code>, <code>sync_datetime</code></small></li></ul></td></tr>
+            <tr data-t="t_reserve_order t_reserve_order_tts m_sellable_unit m_contacts t_sync_gsheet"><td>API pihak luar (PD)</td><td><b><code>PUT /api/customer-reserve/{customerId}/reserve-orders/{id}/status</code></b><span class="db-res">Verifikasi SA + auto approve Kasir sekaligus (logika sama dengan web). Satu-satunya jalur yang mengisi tahap lanjut: Collect Data, Proses Bank, SPK, Akad.</span></td><td><ul class="db-ops"><li data-t="t_reserve_order"><span class="db-op db-op-u">U</span><code>t_reserve_order</code><small>status, tanggal tahap, <code>akad_date</code>, <code>reserve_number</code></small></li><li data-t="t_reserve_order_tts"><span class="db-op db-op-u">U</span><code>t_reserve_order_tts</code><small>TTS yang belum diputuskan → approved</small></li><li data-t="m_sellable_unit"><span class="db-op db-op-u">U</span><code>m_sellable_unit</code></li><li data-t="m_contacts"><span class="db-op db-op-u">U</span><code>m_contacts</code></li><li data-t="t_sync_gsheet"><span class="db-op db-op-u">U</span><code>t_sync_gsheet</code><small>RB lalu DSR</small></li></ul></td></tr>
+            <tr data-t="app_m_setting"><td>No. TTS</td><td><b>Nomor otomatis per TTS</b><span class="db-res">Counter dikunci selama transaksi, jadi 2 TTS bersamaan tidak dapat nomor sama. Reset tahunan sesuai <code>TTS_NUMBER_RESET_DATE</code>.</span></td><td><ul class="db-ops"><li data-t="app_m_setting"><span class="db-op db-op-u">U</span><code>app_m_setting</code><small><code>TTS_NUMBER_COUNTER</code></small></li></ul></td></tr>
+          </tbody></table></div>
+        </section>
+
+        <!-- ===================== 7. ALUR STATUS ===================== -->
+        <section id="db-alur-status">
+          <h2><span class="db-num">7</span>Alur status</h2>
+          <p>RO punya tiga "status" yang berbeda: <b>status verifikasi</b> (sudah diperiksa Kasir / Sales Admin atau belum), <b>status reserve</b> (Reserve, RBB, SP, Batal), dan <b>status tiap TTS</b>.</p>
+
+          <h3>7.1 Status verifikasi RO <code>t_reserve_order</code></h3>
+          <div class="db-tw">
+            <table>
+              <thead><tr><th>Dari</th><th>Aksi</th><th>Ke</th><th>Oleh</th></tr></thead>
+              <tbody>
+                <tr><td class="db-new">dibuat baru</td><td>Simpan Reserve Order</td><td><span class="db-st db-st-review">menunggu Kasir</span></td><td>Sales / Admin</td></tr>
+                <tr><td><span class="db-st db-st-review">menunggu Kasir</span></td><td>Approve TTS pertama</td><td><span class="db-st db-st-scheduled">lolos Kasir</span></td><td>Kasir</td></tr>
+                <tr><td><span class="db-st db-st-review">menunggu Kasir</span></td><td>Reject TTS (tak ada TTS approved lain)</td><td><span class="db-st db-st-rejected">ditolak Kasir</span></td><td>Kasir</td></tr>
+                <tr><td><span class="db-st db-st-rejected">ditolak Kasir</span></td><td>Perbaiki Data Customer / Top Up / Ganti Unit</td><td><span class="db-st db-st-review">menunggu Kasir</span></td><td>Sales</td></tr>
+                <tr><td><span class="db-st db-st-rejected">ditolak Kasir</span></td><td>Approve TTS itu lagi</td><td><span class="db-st db-st-scheduled">lolos Kasir</span></td><td>Kasir</td></tr>
+                <tr><td><span class="db-st db-st-scheduled">lolos Kasir</span></td><td>Approve &amp; Sync DSR</td><td><span class="db-st db-st-published">disetujui SA</span></td><td>Sales Admin</td></tr>
+                <tr><td><span class="db-st db-st-scheduled">lolos Kasir</span></td><td>Reject (alasan wajib)</td><td><span class="db-st db-st-rejected">ditolak SA</span></td><td>Sales Admin</td></tr>
+                <tr><td><span class="db-st db-st-rejected">ditolak SA</span></td><td>Perbaiki Data Customer / Top Up (Ganti Unit tidak tersedia)</td><td><span class="db-st db-st-scheduled">lolos Kasir</span> (antre SA lagi; top up juga antre Kasir)</td><td>Sales</td></tr>
+                <tr><td><span class="db-st db-st-rejected">ditolak SA</span></td><td>Approve &amp; Sync DSR, tanpa menunggu perbaikan</td><td><span class="db-st db-st-published">disetujui SA</span></td><td>Sales Admin</td></tr>
+                <tr><td><span class="db-st db-st-rejected">ditolak SA</span></td><td>Reject ulang (alasan baru)</td><td><span class="db-st db-st-rejected">ditolak SA</span>, alasan &amp; waktu ditimpa</td><td>Sales Admin</td></tr>
+                <tr><td><span class="db-st db-st-published">disetujui SA</span></td><td>Top up RB / SP di-approve Kasir</td><td>muncul lagi di antrean SA sampai dibuka</td><td>Kasir</td></tr>
+                <tr><td><span class="db-st db-st-review">menunggu Kasir</span> <span class="db-st db-st-rejected">ditolak Kasir</span></td><td>Hapus Reserve Order</td><td>hapus permanen</td><td>Sales / Admin</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p class="db-note">Kolom yang menentukan: <code>kasir_approve_datetime</code> / <code>kasir_rejected_datetime</code> dan <code>sa_approve_datetime</code> / <code>sa_rejected_datetime</code>. <code>is_kasir_approved</code> &amp; <code>is_sa_approved</code>: NULL = belum diputuskan, 0 = ditolak, 1 = disetujui. Di mobile, RO yang ditolak tampil "Ditolak" + alasannya; RO dengan <code>lost_date</code> tampil "Batal".</p>
+
+          <h3>7.2 Status reserve <code>t_reserve_order.status_reserve_id</code></h3>
+          <div class="db-tw">
+            <table>
+              <thead><tr><th>Status</th><th>Siapa yang memasang</th><th>Kavling (<code>m_sellable_unit.status_id</code>)</th><th>Prospek kontak</th><th>Tanggal yang diisi</th></tr></thead>
+              <tbody>
+                <tr><td><span class="db-st db-st-review">2 Reserve</span></td><td>Otomatis saat RO dibuat</td><td>9 Reserve, saat lolos Kasir</td><td>30</td><td><code>reserve_date</code> = Tanggal Transaksi</td></tr>
+                <tr><td><span class="db-st db-st-draft">5 Waitinglist</span></td><td>Otomatis saat lolos Kasir kalau kavling sudah dipegang RO lain, atau Sales Admin</td><td>tidak mengunci kavling (antre)</td><td>tetap</td><td><code>reserve_date</code></td></tr>
+                <tr><td><span class="db-st db-st-scheduled">1 RBB</span></td><td>Sales Admin</td><td>10 RBB</td><td>31</td><td><code>reserve_booking_date</code> (dari TTS RB)</td></tr>
+                <tr><td><span class="db-st db-st-scheduled">7 RBA</span></td><td>Sales Admin</td><td>11 RBA</td><td>32</td><td><code>reserve_booking_date</code></td></tr>
+                <tr><td><span class="db-st db-st-published">6 SP</span></td><td>Sales Admin</td><td>3 Ordered</td><td>50</td><td><code>sp_date</code> (input SA, boleh kosong)</td></tr>
+                <tr><td><span class="db-st db-st-rejected">4 Reserve Batal</span></td><td>Sales Admin, alasan batal wajib</td><td>2 Sellable (dilepas)</td><td>tidak turun</td><td><code>lost_date</code> + <code>lost_reason_id</code></td></tr>
+                <tr><td><span class="db-st db-st-rejected">8 SP Batal</span></td><td>Sales Admin, alasan batal wajib</td><td>2 Sellable (dilepas)</td><td>tidak turun</td><td><code>lost_date</code> + <code>lost_reason_id</code></td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p class="db-note">Top up dan Approve Kasir <b>tidak</b> menaikkan status reserve (kecuali otomatis Waitinglist). Status kavling diambil dari <code>m_reserve_status.property_unit_status_id</code>, jadi bisa diubah di Master Status; angka di atas = isi master saat ini. Tahap Collect Data, Proses Bank, SPK, dan Akad hanya diisi API pihak luar (PD).</p>
+
+          <h3>7.3 Status TTS <code>t_reserve_order_tts</code></h3>
+          <div class="db-tw">
+            <table>
+              <thead><tr><th>Dari</th><th>Aksi</th><th>Ke</th><th>Oleh</th></tr></thead>
+              <tbody>
+                <tr><td class="db-new">dibuat baru</td><td>Buat RO / Top Up / Create TTS</td><td><span class="db-st db-st-review">menunggu</span></td><td>Sales / Admin</td></tr>
+                <tr><td class="db-new">dibuat baru</td><td>Buat RO / Create TTS oleh user ber-<code>VerifyKasir</code></td><td><span class="db-st db-st-published">disetujui</span></td><td>Kasir (otomatis)</td></tr>
+                <tr><td><span class="db-st db-st-review">menunggu</span></td><td>Approve</td><td><span class="db-st db-st-published">disetujui</span></td><td>Kasir</td></tr>
+                <tr><td><span class="db-st db-st-review">menunggu</span></td><td>Reject (alasan wajib)</td><td><span class="db-st db-st-rejected">ditolak</span></td><td>Kasir</td></tr>
+                <tr><td><span class="db-st db-st-rejected">ditolak</span></td><td>Approve</td><td><span class="db-st db-st-published">disetujui</span></td><td>Kasir</td></tr>
+                <tr><td><span class="db-st db-st-published">disetujui</span></td><td>Reject</td><td>tidak bisa (sudah tertulis di sheet RB)</td><td>—</td></tr>
+                <tr><td><span class="db-st db-st-review">menunggu</span> <span class="db-st db-st-rejected">ditolak</span></td><td>Hapus (centang tab TTS)</td><td>hapus permanen</td><td>Admin (Modify)</td></tr>
+                <tr><td><span class="db-st db-st-published">disetujui</span></td><td>Hapus lewat ikon 🗑</td><td>hapus permanen + slot RB dikosongkan</td><td>Kasir</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p class="db-note">Menunggu = <code>approved_datetime</code> dan <code>rejected_datetime</code> kosong. Dokumen (<code>d_contact_attachment.verification_status</code>): <code>pending</code> → <code>approved</code> / <code>rejected</code> lewat Verifikasi Dokumen, atau otomatis <code>approved</code> saat TTS-nya di-approve.</p>
+
+          <h3 id="db-tolak-sa">7.4 Kondisi data saat Ditolak Sales Admin</h3>
+          <p class="db-note">Reject SA hanya bisa terjadi setelah RO lolos Kasir, jadi kavling sudah dikunci, prospek sudah naik ke Reserve, dan baris RB + DSR sudah tertulis. Reject <b>tidak membatalkan</b> satu pun dari itu; yang berubah hanya flag SA dan isian form SA. Kolom kanan = kondisi setelah sales mengajukan ulang lewat Perbaiki Data Customer atau Top Up.</p>
+          <div class="db-tw">
+            <table>
+              <thead><tr><th>Data</th><th>Setelah Reject SA</th><th>Setelah sales ajukan ulang</th></tr></thead>
+              <tbody>
+                <tr><td><code>is_sa_approved</code></td><td>0</td><td>NULL</td></tr>
+                <tr><td><code>sa_rejected_datetime</code><br/><code>sa_rejected_reason</code></td><td>waktu Reject + alasan dari SA (wajib, maks. 255)</td><td>NULL</td></tr>
+                <tr><td><code>approved_sa_id</code><br/><code>sa_approve_datetime</code></td><td>NULL (dikosongkan)</td><td>tetap NULL</td></tr>
+                <tr><td><code>is_kasir_approved</code></td><td>tetap 1</td><td>NULL (lihat <a href="#db-pertanyaan">pertanyaan #1</a>)</td></tr>
+                <tr><td><code>kasir_approve_datetime</code><br/><code>approved_kasir_id</code></td><td>tetap</td><td>tetap; inilah yang membuat RO kembali ke antrean SA, bukan Kasir</td></tr>
+                <tr><td><code>status_reserve_id</code>, tanggal tahap, <code>lost_reason_id</code>, <code>unit_point</code>, <code>reserve_note</code></td><td>sesuai form saat Reject (status Batal tetap wajib alasan batal)</td><td>tidak berubah</td></tr>
+                <tr><td><code>property_id</code>, <code>product_id</code>, <code>company_id</code></td><td>berubah hanya kalau SA mengganti kavling di form</td><td>tidak berubah (Ganti Unit dari mobile ditolak setelah lolos Kasir)</td></tr>
+                <tr><td><code>t_reserve_order_tts</code> + item, <code>amount_rp</code></td><td>tidak disentuh; TTS approved tetap approved</td><td>Top Up: TTS baru menunggu Kasir</td></tr>
+                <tr><td><code>d_contact_attachment</code></td><td>tidak disentuh</td><td>Perbaiki Data: KTP / NPWP baru ditambah</td></tr>
+                <tr><td><code>m_sellable_unit</code></td><td>ikut status form: Reserve, RBB, RBA, SP = kavling tetap dipegang RO ini; Batal = Sellable</td><td>tidak berubah</td></tr>
+                <tr><td><code>m_contacts</code>, <code>t_deals</code>, <code>t_deal_history</code></td><td>tidak disentuh (prospek tidak turun, tidak naik)</td><td>tidak berubah; naik lagi saat SA Approve</td></tr>
+                <tr><td><code>t_sync_gsheet</code></td><td>RB &amp; DSR tidak ditulis; baris DSR dari saat lolos Kasir tetap berisi data lama. Kalau kavling diganti, kolom Blok / No di RB ikut ditulis ulang.</td><td>tidak berubah; DSR ditulis lagi saat SA Approve</td></tr>
+                <tr><td><code>t_reserve_order_activity_message</code></td><td>"Reserve order ditolak Sales Admin." + status reserve + catatan kavling + "Alasan: …"</td><td>"Data customer diperbaiki, …" atau "Top up diajukan, reserve order diajukan ulang untuk direview."</td></tr>
+                <tr><td><code>t_global_notifications</code></td><td>tidak ada notif "Ditolak". Push Status Berubah hanya kalau status ikut diganti.</td><td>Perbaiki Data: bel Sales Admin. Top Up: bel Kasir.</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="db-tw">
+            <table>
+              <thead><tr><th>Tempat</th><th>Yang terlihat saat RO Ditolak SA</th></tr></thead>
+              <tbody>
+                <tr><td>Admin Web, grid</td><td>Pindah dari tab Sales Admin ke tab <b>Rejected Admin</b> (<code>kasir_approve_datetime</code> + <code>sa_rejected_datetime</code> terisi). Kolom Approval SA: badge Ditolak + alasan. Setelah diajukan ulang: kembali ke tab Sales Admin dengan badge "Diajukan ulang · {perbaikan}".</td></tr>
+                <tr><td>Admin Web, Verifikasi SA</td><td>Banner "Ditolak sebelumnya: «alasan»". Tombol Verifikasi tetap aktif: SA bisa Approve atau Reject ulang tanpa menunggu sales.</td></tr>
+                <tr><td>Mobile, list &amp; detail</td><td><code>status_label</code> "Ditolak", <code>is_rejected</code> = true, <code>reject_stage</code> "L4 Reserve", <code>reject_reason</code> = <code>sa_rejected_reason</code> (didahulukan dari alasan Kasir). Label Ditolak menang atas Batal kalau SA Reject dengan status Batal. Filter <code>rejected=true</code> ikut memuatnya.</td></tr>
+                <tr><td>Mobile, menu Perbaiki Reserve Order</td><td>Top Up (nonaktif kalau SP, Batal, atau Akad) dan Perbaiki Data Customer. Ganti Unit tidak muncul (<code>can_change_unit</code> = false) dan Hapus RO nonaktif, karena RO sudah lolos Kasir.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- ===================== 8. ATURAN BISNIS ===================== -->
+        <section id="db-aturan">
+          <h2><span class="db-num">8</span>Aturan bisnis</h2>
+          <ul class="db-rules">
+            <li><b>Hak akses mobile</b> dari centang form "Reserve Order" (software Mobile). Tanpa centang = tidak ada akses. Team = hirarki <code>t_sales_roles</code> (sales) atau group / team / project (non-sales). RO tanpa <code>owner_id</code> hanya terlihat scope Any. Superadmin selalu lolos.</li>
+            <li><b>Customer per owner:</b> NIK yang sama milik owner kontak yang sama dipakai ulang; nama berbeda → 422. NIK yang sama di owner lain → dibuatkan baris <code>m_customer_reserve</code> baru (tidak ada UNIQUE pada NIK).</li>
+            <li><b>Status reserve</b> hanya diubah Sales Admin atau API PD. Top up dan Approve Kasir tidak mengubahnya, kecuali RO otomatis jadi Waitinglist saat lolos Kasir karena kavlingnya sudah dipegang RO lain.</li>
+            <li><b>Approve TTS pertama = Verifikasi Kasir</b> untuk RO itu: kunci kavling, naikkan status prospek, masuk antrean Sales Admin, tulis sheet RB + DSR. Tidak ada tombol Verifikasi Kasir terpisah.</li>
+            <li><b>Syarat Approve TTS:</b> form TTS lengkap (penerima, jenis bayar, kavling, tanggal, minimal 1 metode dengan nominal &gt; 0) dan tidak ada bukti transfer yang <code>rejected</code>. Bukti yang masih <code>pending</code> ikut di-approve. TTS Tunai tanpa bukti boleh.</li>
+            <li><b>Total dibayar</b> (<code>t_reserve_order.amount_rp</code>) = jumlah TTS yang approved; kalau belum ada yang approved = jumlah semua TTS. Dihitung ulang setiap TTS dibuat, disimpan, di-approve / reject, atau dihapus.</li>
+            <li><b>1 kavling = 1 penempat.</b> Status Reserve, RBB, RBA, SP "menempati" kavling; Waitinglist antre; Batal melepas. Kavling hanya ditimpa kalau statusnya masih Sellable atau masih milik status lama RO itu, jadi RO lain tidak pernah merebut kavling.</li>
+            <li><b>Status prospek kontak hanya naik</b> (Reserve 30 → RB 31 → RBA 32 → SP 50), dan hanya untuk RO yang sudah lolos Kasir (<code>is_kasir_approved</code> = 1). Batal tidak menurunkannya.</li>
+            <li><b>Kunci SP:</b> RO berstatus SP tidak bisa top up (mobile) maupun Create TTS (web).</li>
+            <li><b>Kunci Akad:</b> <code>akad_date</code> terisi → semua aksi ubah dari mobile ditolak (top up, data customer, kuesioner, unit, dokumen, pesan, hapus). Admin Web tidak dikunci. Dokumen customer terkunci di semua RO customer itu kalau salah satu RO-nya sudah Akad.</li>
+            <li><b>Hapus RO</b> hanya sebelum lolos Kasir. Setelah itu RO dibatalkan lewat status Batal oleh Sales Admin. Customer tidak ikut terhapus.</li>
+            <li><b>Sales Admin:</b> setelah Approve, Approve / Reject ulang ditolak (422) dan koreksi hanya lewat Simpan Perubahan. RO yang Ditolak SA masih bisa di-Approve atau di-Reject ulang oleh SA tanpa menunggu perbaikan sales. Reject tidak membatalkan hasil Kasir (kavling, prospek, TTS, sheet RB / DSR tetap). Status Batal wajib Alasan Batal (<code>m_lost_reason</code> aktif). Tanggal SP &amp; Batal boleh diinput SA; tanggal Reserve, Waitinglist, RB read-only.</li>
+            <li><b>Tunai yang sudah disetor</b> tidak bisa diubah nominalnya, di-uncheck, atau dihapus TTS-nya sebelum setorannya dibatalkan di tab Setor Tunai.</li>
+            <li><b>Google Sheet &amp; notifikasi</b> dijalankan setelah keputusan tersimpan. Gagal sync hanya dilaporkan (ulang lewat tombol Sync); gagal notif hanya di-log.</li>
+          </ul>
+        </section>
+
+        <!-- ===================== 9. KONVENSI KOLOM ===================== -->
+        <section id="db-konvensi">
+          <h2><span class="db-num">9</span>Konvensi kolom</h2>
+          <ul class="db-rules">
+            <li>Tiga database: tanpa prefix = <code>paradiseconnect</code>; <code>pd_common.*</code> = <code>paradisecoid_pd_common</code> (<code>db_pd_common()</code>); <code>progressgroup.township</code> = nama township &amp; logo.</li>
+            <li>Ejaan kolom di DB memang begini, jangan "dibetulkan" di query: <code>rejectted_user_id</code>, <code>setle_bank_date</code>, <code>t_reserve_order.updated_dateime</code>, <code>t_sync_gsheet.craeted_datetime</code>.</li>
+            <li>Kolom GM beda nama: <code>t_reserve_order.general_manager_id</code> vs <code>t_reserve_order_tts.sales_general_manager_id</code>.</li>
+            <li><code>m_property_lot</code> &amp; <code>m_product</code> berkunci <code>id + company_id</code>; <code>m_sellable_unit</code> berkunci <code>township_id + company_id + product_id + property_id</code>. Join hanya lewat id bisa menggandakan baris.</li>
+            <li>ID tetap yang dipakai kode: <code>attachment_type_id</code> 1 KTP, 6 NPWP, 15 Bukti Transfer; <code>payment_type_id</code> 1 Reserve, 3 RB, 4 Top up RB, 5 SP, 6 Top up SP, 8 Angsuran, 9 Uang Pemesanan; unit 2 = Sellable.</li>
+            <li>File dokumen &amp; lampiran pesan disimpan di Google Drive; DB hanya menyimpan <code>drive_file_id</code> + link.</li>
+            <li>Teks log otomatis sengaja tanpa karakter di luar latin1 (mis. panah <code>→</code>), karena kolom <code>message</code> di sebagian DB masih latin1 dan insert-nya bisa gagal.</li>
+          </ul>
+        </section>
+
+        <!-- ===================== 10. CATATAN & PERTANYAAN ===================== -->
+        <section id="db-pertanyaan">
+          <h2><span class="db-num">10</span>Catatan &amp; pertanyaan terbuka</h2>
+          <ol class="db-qs">
+            <li><div><b>Perbaiki data setelah ditolak SA:</b> <code>updateCustomer()</code> mengosongkan <code>is_kasir_approved</code> (jadi NULL), tapi <code>kasir_approve_datetime</code> tetap. RO kembali ke antrean SA, tapi <code>applyReserveOrderStatus()</code> butuh <code>is_kasir_approved</code> = 1, jadi status prospek kontak tidak akan naik saat SA approve berikutnya. Perlu dicek: sebaiknya hanya flag peran yang menolak yang di-reset.</div></li>
+            <li><div><b>Reject tidak dinotif:</b> Reject Kasir maupun Sales Admin tidak mengirim push ke sales; sales baru tahu saat membuka app. Perlu notif "Ditolak"?</div></li>
+            <li><div><b>Edit Unit dari mobile</b> hanya mengubah <code>t_reserve_order</code>; status kavling lama / baru tidak disesuaikan sampai Kasir / Sales Admin memprosesnya. Apakah memang diinginkan?</div></li>
+            <li><div><b>Tanpa transaksi penuh:</b> Approve / Reject Kasir dan Verifikasi SA berjalan per langkah. Error di tengah (mis. saat kunci kavling) menyisakan langkah sebelumnya yang sudah tersimpan.</div></li>
+            <li><div><b>RO Ditolak SA tetap memegang kavling:</b> kalau statusnya Reserve / RBB / RBA / SP, kavling tetap terkunci dan antrean Waitinglist di kavling itu tertahan sampai SA meng-Approve atau mem-Batal-kan RO tersebut. Apakah memang diinginkan?</div></li>
+            <li><div><b>Reject + status Batal</b> diizinkan: kavling dilepas dan <code>lost_date</code> terisi, tapi mobile tetap menampilkan "Ditolak" dan sales masih bisa Perbaiki Data, sehingga RO Batal masuk antrean SA lagi. Perlu dibatasi?</div></li>
+            <li><div><b>Top up sebagai perbaikan setelah Ditolak SA</b> langsung mengembalikan RO ke antrean SA, padahal top up-nya belum di-approve Kasir. SA bisa memutuskan sebelum pembayarannya terverifikasi.</div></li>
+            <li><div><b>"RB Batal"</b> sudah disiapkan di kode (tanggal &amp; alasan batal) tapi belum ada di master <code>m_reserve_status</code>.</div></li>
+            <li><div><b>Dokumen backend lama perlu diperbarui:</b> <code>reserve-order-web-db-flow.md</code> §3 / §5b masih menulis Kasir menaikkan status Reserve / RBB dari jenis pembayaran (<code>applyKasirPaymentStatus()</code>), tab "Selesai", dan kolom <code>last_*_date</code> di <code>t_reserve_order</code>. Di kode sekarang ketiganya sudah tidak ada.</div></li>
+          </ol>
+        </section>
+      </div>
+    </div>
+  </article>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js"></script>
+<script>
+/* warna diagram ERD ASCII */
+document.querySelectorAll('.db-diagram').forEach(pre=>{pre.innerHTML=pre.innerHTML
+  .replace(/(│ )([a-z][a-z_]+)(?=  )/g,'$1<span class="d-tn">$2</span>')
+  .replace(/\[[CRUD](?:\/[CRUD])*\]/g,'<span class="d-tag">$&</span>')
+  .replace(/\b(PK|FK)\b/g,'<span class="d-key">$1</span>')
+  .replace(/\((existing|pd_common)\)/g,'<span class="d-ex">$&</span>')
+  .replace(/(▶ )(1:N|N:1|1:1)/g,'$1<span class="d-card">$2</span>')
+  .replace(/[─│┌┐└┘├┤▶]+/g,'<span class="d-ln">$&</span>')});
+document.getElementById('dbMode').addEventListener('click',e=>{
+  /* ERD ringkas: klik nama tabel = lompat ke "Fitur & efek ke DB" dengan filter tabel itu */
+  const g=e.target.closest('[data-db-goto]');
+  if(g){const fb=document.querySelector('.db-f[data-db-f="'+g.dataset.dbGoto+'"]');if(fb)fb.click();document.getElementById('db-pakai').scrollIntoView({behavior:'smooth'});return}
+  /* zoom flowchart: lebar SVG = lebar asli x skala, sisanya digulir di dalam kotaknya */
+  const zb=e.target.closest('[data-db-zoom]');
+  if(zb){const fig=zb.closest('.db-dg'),box=fig.querySelector('.db-mermaid'),svg=box.querySelector('svg');if(!svg)return;
+    const nat=svg.viewBox.baseVal.width,fit=Math.min(1,(box.clientWidth-32)/nat),k=zb.dataset.dbZoom;
+    const z=k==='fit'?fit:Math.min(3,Math.max(.3,(+fig.dataset.z||fit)*(k==='in'?1.25:.8)));
+    fig.dataset.z=z;svg.style.maxWidth='none';svg.style.width=Math.round(nat*z)+'px';
+    fig.querySelector('[data-db-zoom-label]').textContent=Math.round(z*100)+'%';return}
+  /* sorot baris yang memakai tabel terpilih */
+  const f=e.target.closest('[data-db-f]');
+  if(f){const t=f.dataset.dbF;
+    document.querySelectorAll('.db-f').forEach(x=>x.setAttribute('aria-pressed',x===f));
+    document.querySelectorAll('.db-use tbody tr').forEach(tr=>tr.classList.toggle('db-dim',!!t&&!tr.dataset.t.split(' ').includes(t)));
+    document.querySelectorAll('.db-ops li').forEach(li=>li.classList.toggle('db-hit',!!t&&li.dataset.t===t));
+    return}
+  const b=e.target.closest('[data-db-copy]');if(!b)return;
+  const pre=document.getElementById(b.dataset.dbCopy),reset=()=>setTimeout(()=>b.textContent='Salin teks',1800);
+  const selectText=()=>{const r=document.createRange();r.selectNodeContents(pre);const s=getSelection();s.removeAllRanges();s.addRange(r);b.textContent='Teks terpilih, tekan Ctrl+C';reset()};
+  try{navigator.clipboard.writeText(pre.innerText).then(()=>{b.textContent='Tersalin';reset()},selectText)}catch{selectText()}
+});
+/* diagram Mermaid: tunggu font siap karena Mermaid mengukur lebar teks saat menggambar */
+if(window.mermaid){
+  mermaid.initialize({startOnLoad:false,theme:'base',fontFamily:'"Nunito Sans",system-ui,sans-serif',flowchart:{curve:'basis'},
+    themeVariables:{primaryColor:'#e8f1fd',primaryBorderColor:'#1f6fd1',primaryTextColor:'#1d2433',lineColor:'#6b7a90',secondaryColor:'#fcf0d9',tertiaryColor:'#f6f8fb',fontSize:'14px'}});
+  (document.fonts?document.fonts.ready:Promise.resolve()).then(()=>mermaid.run({nodes:document.querySelectorAll('#dbMode .db-mermaid')})).then(()=>document.querySelectorAll('#dbMode [data-db-zoom="fit"]').forEach(b=>b.click())).catch(console.error);
+}
+/* daftar isi: tandai bagian yang sedang dibaca */
+const dbToc=[...document.querySelectorAll('.db-toc a')];
+const dbIO=new IntersectionObserver(es=>es.forEach(en=>{if(en.isIntersecting)dbToc.forEach(a=>a.classList.toggle('db-on',a.getAttribute('href')==='#'+en.target.id))}),{rootMargin:'-20% 0px -70% 0px'});
+document.querySelectorAll('.db-main section').forEach(s=>dbIO.observe(s));
+</script>
+</body>
+</html>

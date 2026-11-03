@@ -1,8 +1,8 @@
 import 'package:equatable/equatable.dart';
 
 /// Kuesioner customer reserve order (`questionnaire` di detail) — form & isinya sama dgn form
-/// Edit Customer Reserve web (`CustomerReserveQuestionnaire` di backend). Disimpan lewat
-/// `POST /reserve-order/questionnaire/{id}` dgn body `questioner[<name>]`.
+/// Edit Customer Reserve web (`CustomerReserveQuestionnaire` di backend). Diisi di halaman Edit Data
+/// Customer & disimpan bersama data customer: `POST /reserve-order/update/{id}` dgn `questioner[<name>]`.
 class ReserveQuestionnaireEntity extends Equatable {
   final List<ReserveQuestionEntity> questions;
 
@@ -75,7 +75,8 @@ class ReserveQuestionEntity extends Equatable {
 
 /// Satu isian. [type]: `text` / `int` (isian; [toggle] = label centang di depannya, isian aktif
 /// selama dicentang), `check` (centang, nilai '1'), `radio` / `pick` (pilih satu dari [options];
-/// radio ber-[moreLabel] punya pilihan "Lebih dari 3" bernilai 'more' + angka di [moreValue]).
+/// radio ber-[moreLabel] punya pilihan "Lebih dari 3" bernilai 'more' + angka di [moreValue]),
+/// `select` (dropdown dari [options] — daftar master `option_lists` di API, mis. Wilayah Area).
 class ReserveQuestionInputEntity extends Equatable {
   final String name;
   final String type;

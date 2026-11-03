@@ -6,11 +6,14 @@ import 'package:progress_group/features/reserve-order/data/datasources/reserve_o
 import 'package:progress_group/features/reserve-order/domain/entities/cara_bayar_entity.dart';
 import 'package:progress_group/features/reserve-order/domain/entities/create_reserve_order_params.dart';
 import 'package:progress_group/features/reserve-order/domain/entities/create_reserve_order_result_entity.dart';
+import 'package:progress_group/features/reserve-order/domain/entities/customer_options_entity.dart';
+import 'package:progress_group/features/reserve-order/domain/entities/change_reserve_order_unit_params.dart';
 import 'package:progress_group/features/reserve-order/domain/entities/edit_reserve_order_params.dart';
 import 'package:progress_group/features/reserve-order/domain/entities/payment_type_entity.dart';
 import 'package:progress_group/features/reserve-order/domain/entities/reserve_order_detail_entity.dart';
 import 'package:progress_group/features/reserve-order/domain/entities/reserve_order_list_item_entity.dart';
 import 'package:progress_group/features/reserve-order/domain/entities/reserve_status_entity.dart';
+import 'package:progress_group/features/reserve-order/domain/entities/resubmit_reserve_order_params.dart';
 import 'package:progress_group/features/reserve-order/domain/entities/select_unit_entity.dart';
 import 'package:progress_group/features/reserve-order/domain/entities/topup_reserve_order_params.dart';
 import 'package:progress_group/features/reserve-order/domain/entities/update_reserve_order_customer_params.dart';
@@ -45,6 +48,16 @@ class ReserveOrderRepositoryImpl implements ReserveOrderRepository {
   Future<Either<String, List<String>>> getWorkCategory() async {
     try {
       final result = await remoteDataSource.getWorkCategory();
+      return Right(result);
+    } catch (e) {
+      return Left(cleanErrorMessage(e));
+    }
+  }
+
+  @override
+  Future<Either<String, CustomerOptionsEntity>> getCustomerOptions() async {
+    try {
+      final result = await remoteDataSource.getCustomerOptions();
       return Right(result);
     } catch (e) {
       return Left(cleanErrorMessage(e));
@@ -218,16 +231,33 @@ class ReserveOrderRepositoryImpl implements ReserveOrderRepository {
   }
 
   @override
-  Future<Either<String, ReserveOrderDetailEntity>> updateQuestionnaire(
+  Future<Either<String, ReserveOrderDetailEntity>> changeReserveOrderUnit(
     int reserveOrderId,
-    Map<String, String?> answers,
+    ChangeReserveOrderUnitParams params,
   ) async {
     try {
-      final result = await remoteDataSource.updateQuestionnaire(
+      final result = await remoteDataSource.changeReserveOrderUnit(
         reserveOrderId,
-        answers,
+        params,
       );
       return Right(result);
+    } catch (e) {
+      return Left(cleanErrorMessage(e));
+    }
+  }
+
+  @override
+  Future<Either<String, ({ReserveOrderDetailEntity detail, String? message})>>
+  resubmitReserveOrder(
+    int reserveOrderId,
+    ResubmitReserveOrderParams params,
+  ) async {
+    try {
+      final result = await remoteDataSource.resubmitReserveOrder(
+        reserveOrderId,
+        params,
+      );
+      return Right((detail: result.detail, message: result.message));
     } catch (e) {
       return Left(cleanErrorMessage(e));
     }

@@ -13,10 +13,8 @@ import 'package:progress_group/features/reserve-order/presentation/state/reserve
 
 /// Halaman "Edit Reserve Order" (menu ⋮ di Detail) — `POST /reserve-order/edit/{id}`.
 ///
-/// Catatan: field yang bisa diedit lewat endpoint-nya sebenarnya juga mencakup unit/property
-/// (property_id/product_id/company_id), tapi memilih ulang unit butuh alur "Pilih Unit" penuh
-/// (township_id + GetSelectUnitUseCase) seperti di wizard Create yang belum tersedia dari
-/// konteks Detail — jadi form ini baru mengekspos Cara Bayar & Catatan.
+/// Hanya Cara Bayar & Catatan — unit diganti lewat halaman Ganti Unit
+/// (`POST /reserve-order/unit/{id}`, [ChangeUnitReserveOrderPage]) yang divalidasi server.
 class EditReserveOrderPage extends StatefulWidget {
   final int reserveOrderId;
   final String? initialNote;

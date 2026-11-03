@@ -4,13 +4,16 @@ import 'package:dio/dio.dart';
 import 'package:progress_group/core/utils/helpers/error_message.dart';
 import 'package:progress_group/features/reserve-order/data/models/cara_bayar_model.dart';
 import 'package:progress_group/features/reserve-order/data/models/create_reserve_order_result_model.dart';
+import 'package:progress_group/features/reserve-order/data/models/customer_options_model.dart';
 import 'package:progress_group/features/reserve-order/data/models/payment_type_model.dart';
 import 'package:progress_group/features/reserve-order/data/models/reserve_order_detail_model.dart';
 import 'package:progress_group/features/reserve-order/data/models/reserve_order_list_item_model.dart';
 import 'package:progress_group/features/reserve-order/data/models/reserve_status_model.dart';
 import 'package:progress_group/features/reserve-order/data/models/select_unit_model.dart';
+import 'package:progress_group/features/reserve-order/domain/entities/change_reserve_order_unit_params.dart';
 import 'package:progress_group/features/reserve-order/domain/entities/create_reserve_order_params.dart';
 import 'package:progress_group/features/reserve-order/domain/entities/edit_reserve_order_params.dart';
+import 'package:progress_group/features/reserve-order/domain/entities/resubmit_reserve_order_params.dart';
 import 'package:progress_group/features/reserve-order/domain/entities/topup_reserve_order_params.dart';
 import 'package:progress_group/features/reserve-order/domain/entities/update_reserve_order_customer_params.dart';
 
@@ -18,6 +21,7 @@ abstract class ReserveOrderRemoteDataSource {
   Future<List<ReserveStatusModel>> getReserveStatuses();
   Future<List<CaraBayarModel>> getCaraBayar();
   Future<List<String>> getWorkCategory();
+  Future<CustomerOptionsModel> getCustomerOptions();
   Future<List<PaymentTypeModel>> getPaymentTypes();
   Future<List<SelectUnitModel>> getSelectUnit({
     required int contactId,
@@ -64,10 +68,12 @@ abstract class ReserveOrderRemoteDataSource {
     int reserveOrderId,
     EditReserveOrderParams params,
   );
-  Future<ReserveOrderDetailModel> updateQuestionnaire(
+  Future<ReserveOrderDetailModel> changeReserveOrderUnit(
     int reserveOrderId,
-    Map<String, String?> answers,
+    ChangeReserveOrderUnitParams params,
   );
+  Future<({ReserveOrderDetailModel detail, String? message})>
+  resubmitReserveOrder(int reserveOrderId, ResubmitReserveOrderParams params);
   Future<void> deleteReserveOrder(int reserveOrderId);
   Future<Map<String, dynamic>> ocrKtp(Uint8List imageBytes, {String? filename});
   Future<Map<String, dynamic>> checkKtp(String custKtp, {String? custName, int? contactId});
@@ -127,6 +133,26 @@ class ReserveOrderRemoteDataSourceImpl implements ReserveOrderRemoteDataSource {
       );
     } on DioException catch (e) {
       throw Exception(getErrorMessage(e, 'Failed to load work category'));
+    }
+  }
+
+
+  @override
+  Future<CustomerOptionsModel> getCustomerOptions() async {
+    try {
+      final response = await dio.get('/reserve-order/customer-options');
+
+      if (response.data['status'] == true) {
+        return CustomerOptionsModel.fromJson(
+          Map<String, dynamic>.from(response.data['data'] as Map),
+        );
+      }
+
+      throw Exception(
+        response.data['message'] ?? 'Failed to load customer options',
+      );
+    } on DioException catch (e) {
+      throw Exception(getErrorMessage(e, 'Failed to load customer options'));
     }
   }
 
@@ -294,6 +320,11 @@ class ReserveOrderRemoteDataSourceImpl implements ReserveOrderRemoteDataSource {
             ? (value ? '1' : '0')
             : value.toString();
       });
+      // Jawaban kosong dikirim '' (bukan dilewati) — server tetap menerima `questioner` & ikut
+      // mengosongkan jawaban yang dihapus user.
+      params.questioner?.forEach((name, value) {
+        data['questioner[$name]'] = value ?? '';
+      });
 
       void addDocument(String slot, CreateReserveOrderFile? doc) {
         if (doc == null || doc.isEmpty) return;
@@ -455,14 +486,6 @@ class ReserveOrderRemoteDataSourceImpl implements ReserveOrderRemoteDataSource {
         if (params.reserveNote != null) 'reserve_note': params.reserveNote,
         if (params.caraBayarId != null)
           'cara_bayar_id': params.caraBayarId.toString(),
-        if (params.propertyId != null)
-          'property_id': params.propertyId.toString(),
-        if (params.productId != null)
-          'product_id': params.productId.toString(),
-        if (params.companyId != null)
-          'company_id': params.companyId.toString(),
-        if ((params.propertyName ?? '').isNotEmpty)
-          'property_name': params.propertyName,
       };
 
       final response = await dio.post(
@@ -484,17 +507,21 @@ class ReserveOrderRemoteDataSourceImpl implements ReserveOrderRemoteDataSource {
     }
   }
 
-  /// Kuesioner customer — [answers] = `questioner[<name>]` (lihat `ReserveQuestionInputEntity`),
-  /// dikirim JSON (bukan FormData) supaya nilai kosong tetap terkirim sbg null.
   @override
-  Future<ReserveOrderDetailModel> updateQuestionnaire(
+  Future<ReserveOrderDetailModel> changeReserveOrderUnit(
     int reserveOrderId,
-    Map<String, String?> answers,
+    ChangeReserveOrderUnitParams params,
   ) async {
     try {
       final response = await dio.post(
-        '/reserve-order/questionnaire/$reserveOrderId',
-        data: {'questioner': answers},
+        '/reserve-order/unit/$reserveOrderId',
+        data: {
+          if (params.propertyId != null) 'property_id': params.propertyId,
+          if (params.unitMode != null) 'unit_mode': params.unitMode,
+          'product_id': params.productId,
+          'township_id': params.townshipId,
+          'company_id': params.companyId,
+        },
       );
 
       if (response.data['status'] == true) {
@@ -503,14 +530,127 @@ class ReserveOrderRemoteDataSourceImpl implements ReserveOrderRemoteDataSource {
         );
       }
 
-      throw Exception(
-        response.data['message'] ?? 'Failed to save questionnaire',
-      );
+      throw Exception(response.data['message'] ?? 'Gagal mengganti unit');
     } on DioException catch (e) {
-      throw Exception(getErrorMessage(e, 'Failed to save questionnaire'));
+      throw Exception(getErrorMessage(e, 'Gagal mengganti unit'));
     }
   }
 
+  /// Pengajuan Ulang order Ditolak — sekali kirim: customer, dokumen, unit & TTS (lihat
+  /// [ResubmitReserveOrderParams]). Balik detail terbaru + `message` server utk snackbar.
+  @override
+  Future<({ReserveOrderDetailModel detail, String? message})>
+  resubmitReserveOrder(
+    int reserveOrderId,
+    ResubmitReserveOrderParams params,
+  ) async {
+    try {
+      final data = <String, dynamic>{};
+      String ymd(DateTime d) => d.toIso8601String().split('T').first;
+
+      params.customer.forEach((key, value) {
+        if (value == null) return;
+        data['customer[$key]'] = value is bool
+            ? (value ? '1' : '0')
+            : value.toString();
+      });
+      if (params.reserveNote != null) data['reserve_note'] = params.reserveNote;
+      if (params.reserveDate != null) {
+        data['reserve_date'] = ymd(params.reserveDate!);
+      }
+
+      void addDocument(String slot, CreateReserveOrderFile? doc) {
+        if (doc == null || doc.isEmpty) return;
+        if (doc.existingAttachmentId != null) {
+          data['documents[$slot][existing_attachment_id]'] =
+              doc.existingAttachmentId.toString();
+        } else if (doc.bytes != null) {
+          data['documents[$slot]'] = MultipartFile.fromBytes(
+            doc.bytes!,
+            filename: doc.fileName ?? '$slot.jpg',
+          );
+        }
+      }
+
+      addDocument('ktp', params.ktp);
+      addDocument('npwp', params.npwp);
+
+      final unit = params.unit;
+      if (unit != null) {
+        if (unit.propertyId != null) {
+          data['unit[property_id]'] = unit.propertyId.toString();
+        } else if (unit.unitMode != null) {
+          data['unit[unit_mode]'] = unit.unitMode;
+        }
+        data['unit[product_id]'] = unit.productId.toString();
+        data['unit[township_id]'] = unit.townshipId.toString();
+        data['unit[company_id]'] = unit.companyId.toString();
+      }
+
+      final tts = params.tts;
+      if (tts != null) {
+        data['tts[reserve_order_tts_id]'] = tts.reserveOrderTtsId.toString();
+        if (tts.paymentTypeId != null) {
+          data['tts[payment_type_id]'] = tts.paymentTypeId.toString();
+        }
+        for (var i = 0; i < tts.payments.length; i++) {
+          final pay = tts.payments[i];
+          final key = 'tts[payments][$i]';
+          data['$key[payment_method]'] = pay.paymentMethod;
+          data['$key[amount]'] = pay.amount.toString();
+          if (pay.bankId != null) data['$key[bank_id]'] = pay.bankId.toString();
+          if ((pay.bankName ?? '').isNotEmpty) {
+            data['$key[bank_name]'] = pay.bankName;
+          }
+          if ((pay.cardNetwork ?? '').isNotEmpty) {
+            data['$key[card_network]'] = pay.cardNetwork;
+          }
+          if ((pay.referenceNumber ?? '').isNotEmpty) {
+            data['$key[reference_number]'] = pay.referenceNumber;
+          }
+          if (pay.referenceDate != null) {
+            data['$key[reference_date]'] = ymd(pay.referenceDate!);
+          }
+          if (pay.proofBytes != null) {
+            data['$key[proof]'] = MultipartFile.fromBytes(
+              pay.proofBytes!,
+              filename: pay.proofFileName ?? 'proof_$i.jpg',
+            );
+          }
+        }
+        // Key berindeks (bukan `[]`) supaya urutannya pasti — PHP membacanya sbg array yang sama.
+        for (var i = 0; i < tts.deleteProofIds.length; i++) {
+          data['tts[delete_proof_ids][$i]'] = tts.deleteProofIds[i].toString();
+        }
+      }
+
+      final response = await dio.post(
+        '/reserve-order/resubmit/$reserveOrderId',
+        data: FormData.fromMap(data),
+      );
+
+      // Kontrak menulis `success`, helper ApiResponse backend memakai `status` — terima keduanya.
+      if (response.data['status'] == true || response.data['success'] == true) {
+        return (
+          detail: ReserveOrderDetailModel.fromJson(
+            response.data['data'] as Map<String, dynamic>,
+          ),
+          message: response.data['message'] as String?,
+        );
+      }
+
+      throw Exception(
+        response.data['message'] ?? 'Gagal mengajukan ulang reserve order',
+      );
+    } on DioException catch (e) {
+      throw Exception(
+        getErrorMessage(e, 'Gagal mengajukan ulang reserve order'),
+      );
+    }
+  }
+
+  /// Kuesioner customer — [answers] = `questioner[<name>]` (lihat `ReserveQuestionInputEntity`),
+  /// dikirim JSON (bukan FormData) supaya nilai kosong tetap terkirim sbg null.
   @override
   Future<void> deleteReserveOrder(int reserveOrderId) async {
     try {

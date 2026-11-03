@@ -9,8 +9,18 @@ class UpdateReserveOrderCustomerParams extends Equatable {
   final CreateReserveOrderFile? ktp;
   final CreateReserveOrderFile? npwp;
 
-  const UpdateReserveOrderCustomerParams({this.customer, this.ktp, this.npwp});
+  /// Jawaban kuesioner `questioner[<name>]` (null = jawaban kosong), disimpan di request yang sama
+  /// — halaman Edit Data Customer memuat kuesioner, jadi 1x Save. null = kuesioner tidak dikirim
+  /// (jawaban lama tidak disentuh).
+  final Map<String, String?>? questioner;
+
+  const UpdateReserveOrderCustomerParams({
+    this.customer,
+    this.ktp,
+    this.npwp,
+    this.questioner,
+  });
 
   @override
-  List<Object?> get props => [customer, ktp, npwp];
+  List<Object?> get props => [customer, ktp, npwp, questioner];
 }

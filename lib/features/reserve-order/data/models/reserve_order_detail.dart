@@ -105,11 +105,28 @@ class ReserveOrderDetail {
   final String? productName;
   final String? projectName;
   final String? townshipName;
+
+  /// `township_id` project unit — Ganti Unit dikunci di project ini.
+  final int? townshipId;
   final int? price;
   final bool canTopup;
 
-  /// Terisi kalau order sudah SP → tombol top up tampil disable + alasan ini.
+  /// Ganti Unit boleh — selama belum di-approve Kasir (`can_change_unit`).
+  final bool canChangeUnit;
+
+  /// Terisi kalau order sudah SP / Akad → tombol top up tampil disable + alasan ini.
   final String? topupLockedReason;
+
+  /// Terisi kalau order sudah Akad/PPJB → semua edit dikunci (banner di header + aksi disembunyikan).
+  final String? editLockedReason;
+  bool get editLocked => editLockedReason != null;
+
+  /// Terisi kalau salah satu RO customer ini sudah Akad → dokumen customer (`locked`) tidak bisa
+  /// diganti/dihapus; tambah dokumen tetap boleh.
+  final String? docLockedReason;
+
+  /// Terisi kalau order sudah Akad / sudah diverifikasi Kasir → menu Delete tampil disable.
+  final String? deleteLockedReason;
 
   /// `can_edit` / `can_delete` dari backend (scope Own/Team/Any) — atur tampil tombol aksi.
   final bool canEdit;
@@ -118,6 +135,9 @@ class ReserveOrderDetail {
   final String? rejectStage;
   final String? rejectReason;
   final bool rejectFixIsCustomerData;
+
+  /// Tombol "Pengajuan Ulang" tampil — `can_resubmit`, fallback `rejected && canEdit` (backend lama).
+  final bool canResubmit;
   final List<ReserveOrderTimelineStep> timeline;
   ReserveOrderCustomerData customer;
 
@@ -158,15 +178,21 @@ class ReserveOrderDetail {
     this.productName,
     this.projectName,
     this.townshipName,
+    this.townshipId,
     this.price,
     required this.canTopup,
+    this.canChangeUnit = false,
     this.topupLockedReason,
+    this.editLockedReason,
+    this.docLockedReason,
+    this.deleteLockedReason,
     this.canEdit = true,
     this.canDelete = true,
     required this.rejected,
     this.rejectStage,
     this.rejectReason,
     this.rejectFixIsCustomerData = false,
+    this.canResubmit = false,
     required this.timeline,
     required this.customer,
     this.questionnaire,
@@ -182,10 +208,9 @@ class ReserveOrderDetail {
     this.caraBayarName,
   });
 
-  /// Backend cuma expose satu `is_rejected` gabungan (SA ATAU Kasir) tanpa membedakan sumbernya,
-  /// dan cuma `update` (Perbaiki Data Customer) yang mereset flag penolakan di kedua sisi — jadi
-  /// untuk kasus Ditolak apa pun, "Perbaiki Data Customer" adalah satu-satunya aksi yang benar2
-  /// mengeluarkan order dari status Ditolak.
+  /// `is_rejected` gabungan (SA ATAU Kasir; sumbernya di `reject_source`). Order Ditolak keluar dari
+  /// status itu lewat tombol "Pengajuan Ulang" — wizard Create mode pengajuan ulang, sekali kirim ke
+  /// `POST /reserve-order/resubmit/{id}`.
   factory ReserveOrderDetail.fromEntity(ReserveOrderDetailEntity e) {
     final initials = e.customerName.trim().isEmpty
         ? '-'
@@ -232,14 +257,20 @@ class ReserveOrderDetail {
       productName: e.productName,
       projectName: e.unitSub,
       townshipName: e.townshipName,
+      townshipId: e.townshipId,
       canTopup: e.canTopup,
+      canChangeUnit: e.canChangeUnit,
       topupLockedReason: e.topupLockedReason,
+      editLockedReason: e.editLockedReason,
+      docLockedReason: e.docLockedReason,
+      deleteLockedReason: e.deleteLockedReason,
       canEdit: e.canEdit,
       canDelete: e.canDelete,
       rejected: e.isRejected,
       rejectStage: e.rejectStage,
       rejectReason: e.rejectReason,
       rejectFixIsCustomerData: e.isRejected,
+      canResubmit: e.canResubmit ?? (e.isRejected && e.canEdit),
       timeline: e.timeline
           .map(
             (s) => ReserveOrderTimelineStep(

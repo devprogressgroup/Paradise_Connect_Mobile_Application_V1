@@ -2,6 +2,7 @@
 
 
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:progress_group/core/services/demo_account_service.dart';
 import 'package:progress_group/core/utils/helpers/error_message.dart';
 import 'package:progress_group/core/utils/helpers/permissions_helper.dart';
 import 'package:progress_group/core/utils/helpers/impersonation_manager.dart';
@@ -74,9 +75,13 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   Future<void> _onLogin(LoginEvent event, Emitter<AuthState> emit,) async {
     emit(AuthLoading());
     try {
+      await DemoAccountService.routeForLogin(event.username);
       final (user, message) = await loginUseCase(event.username, event.password, rememberMe: event.rememberMe,);
       emit(LoginSuccess(message));
     } catch (e) {
+      // Login gagal jangan sampai meninggalkan sesi demo — request pra-login berikutnya
+      // (lupa password, aktivasi) harus tetap ke production.
+      await DemoAccountService.endSession();
       emit(AuthFailure(cleanErrorMessage(e)));
     }
   }
@@ -176,13 +181,16 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
 
   Future<void> _onLogout(LogoutEvent event, Emitter<AuthState> emit) async {
     try {
+      // logoutUseCase dulu (masih ke server sesi ini), baru keluar dari sesi demo.
       await logoutUseCase();
       PermissionsHelper.clear();
       await ImpersonationManager.stop();
+      await DemoAccountService.endSession();
       emit(AuthLoggedOut());
     } catch (e) {
       PermissionsHelper.clear();
       await ImpersonationManager.stop();
+      await DemoAccountService.endSession();
       emit(AuthLoggedOut());
     }
   }
