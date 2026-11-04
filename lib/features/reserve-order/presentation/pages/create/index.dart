@@ -86,10 +86,10 @@ class CreateReserveOrderPage extends StatefulWidget {
   /// customer reserve yang sudah ada.
   final Map<String, dynamic>? initialCustomer;
 
-  /// true = dibuka dari Save form Update Status (status grup reserve). Status prospek kontak
-  /// belum berubah — baru berubah setelah Reserve Order di-approve Kasir — jadi setelah submit
-  /// berhasil ditampilkan popup pemberitahuan.
-  final bool notifyPendingProspectStatus;
+  /// Isi awal "Tanggal Reserve" tiap unit & "Catatan" — dari form Update Status (grup reserve)
+  /// sebelum masuk wizard. Tanggal di masa depan diabaikan (Tanggal Reserve tidak boleh ke depan).
+  final DateTime? initialReserveDate;
+  final String? initialReserveNote;
 
   /// Mode "Pengajuan Ulang" order Ditolak (tombol di Detail RO, lihat
   /// `navigateToResubmitReserveOrder`) — wizard diisi dari detail ini, project dikunci, hanya 1
@@ -124,7 +124,8 @@ class CreateReserveOrderPage extends StatefulWidget {
     this.salesTeamId,
     this.salesTeamName,
     this.initialCustomer,
-    this.notifyPendingProspectStatus = false,
+    this.initialReserveDate,
+    this.initialReserveNote,
     this.resubmitOrder,
   });
 
@@ -221,6 +222,8 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
     if (widget.initialCustomer != null) {
       _applyInitialCustomer(widget.initialCustomer!);
     }
+    final note = widget.initialReserveNote?.trim() ?? '';
+    if (note.isNotEmpty) _catatanCtrl.text = note;
     _existingKtpUrl = widget.existingKtpAttachmentUrl;
     _existingNpwpUrl = widget.existingNpwpAttachmentUrl;
     _existingKtpAttachmentId = widget.existingKtpAttachmentId;
@@ -371,6 +374,16 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
       return 'Unit reserve order ini belum punya project — hubungi Kasir untuk memilih unit.';
     }
     return null;
+  }
+
+  /// [CreateReserveOrderPage.initialReserveDate] sebagai tanggal saja — null kalau kosong atau ke
+  /// depan (field Tanggal Reserve tidak menerima tanggal setelah hari ini).
+  DateTime? get _initialReserveDay {
+    final d = widget.initialReserveDate;
+    if (d == null) return null;
+    final day = DateTime(d.year, d.month, d.day);
+    final now = DateTime.now();
+    return day.isAfter(DateTime(now.year, now.month, now.day)) ? null : day;
   }
 
   /// Judul AppBar tiap step — mode Pengajuan Ulang selalu "Pengajuan Ulang Reserve Order".
@@ -1424,65 +1437,6 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
     );
   }
 
-  /// Popup setelah submit berhasil bila wizard dibuka dari Save form Update Status: status
-  /// prospek kontak belum berubah, baru berubah setelah Reserve Order diverifikasi Kasir.
-  void _showPendingStatusDialog() {
-    const bodyStyle = TextStyle(fontSize: 13, height: 1.45, color: Color(blackColor));
-    const bold = TextStyle(fontWeight: FontWeight.w700);
-
-    showDialog<void>(
-      context: context,
-      barrierDismissible: false,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: Color(whiteColor),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        titlePadding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
-        contentPadding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
-        actionsPadding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
-        title: Row(
-          children: [
-            Icon(Icons.hourglass_top_rounded, color: Color(primaryColor), size: 26),
-            const SizedBox(width: 10),
-            const Expanded(
-              child: Text(
-                'Menunggu verifikasi',
-                style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
-              ),
-            ),
-          ],
-        ),
-        content: const Text.rich(
-          TextSpan(
-            style: bodyStyle,
-            children: [
-              TextSpan(text: 'Reserve Order berhasil dikirim. Status prospek kontak '),
-              TextSpan(text: 'belum berubah', style: bold),
-              TextSpan(
-                text: ' — status akan berubah setelah Reserve Order ini diverifikasi Kasir, '
-                    'mengikuti status Reserve Order-nya.',
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              onPressed: () => Navigator.pop(ctx),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Color(primaryColor),
-                foregroundColor: Color(whiteColor),
-                minimumSize: const Size(double.infinity, 44),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(11)),
-              ),
-              child: const Text('Mengerti', style: TextStyle(fontWeight: FontWeight.w700)),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _customer() {
     return Scaffold(
       backgroundColor: Color(whiteColor),
@@ -2448,7 +2402,9 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
     final next = <_UnitPaymentDraft>[];
     for (final u in _selectedUnits) {
       final prev = existing.remove(u.id);
-      next.add(prev ?? _UnitPaymentDraft(unit: u));
+      next.add(
+        prev ?? (_UnitPaymentDraft(unit: u)..transactionDate = _initialReserveDay),
+      );
     }
     for (final leftover in existing.values) {
       leftover.dispose();
@@ -3364,7 +3320,6 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
             _createResult = state.result;
             _step = 5;
           });
-          if (widget.notifyPendingProspectStatus) _showPendingStatusDialog();
         }
       },
       builder: (context, state) {

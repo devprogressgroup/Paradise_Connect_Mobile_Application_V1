@@ -130,6 +130,10 @@ class _ContactAddPageState extends State<ContactAddPage> {
   final Map<String, DateTime> _skipDates = {};
   bool _skipAck = false;
 
+  // Tanggal Reserve (tanggal saja) di form Reserved yang lanjut ke wizard Reserve Order — tidak
+  // disimpan ke kontak, hanya diteruskan ke "Tanggal Reserve" per unit di wizard RO.
+  DateTime? _reserveDate;
+
   // Sales Channel kontak Walk-In — dari `is_walk_in` detail kontak (API), BUKAN dari pilihan
   // Sales Channel di form. Walk-In: kartu lompat tahap & notice verifikasi Kasir tidak
   // ditampilkan, dan lompatan tahap dianggap disengaja (skip_ack dikirim otomatis).
@@ -1297,8 +1301,8 @@ class _ContactAddPageState extends State<ContactAddPage> {
         SizedBox(height: 12),
         if (!_willDeferToReserveOrder())
           _fieldDate()
-        else if (!_isWalkIn)
-          _fieldReserveOrderNotice(),
+        else
+          _fieldReserveDate(),
         _fieldSkippedStages(),
         SizedBox(height: 12),
         _fieldProject(),
@@ -1427,44 +1431,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
       widget.args.dataContact?.contactId != null;
 
   // Pengganti field "Tanggal ..." untuk status grup reserve: tanggalnya ikut verifikasi Kasir.
-  Widget _fieldReserveOrderNotice() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(
-        color: Color(whiteColor),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Color(grey7Color)),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(Icons.info_outline, color: Color(primaryColor), size: 18),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  "Status menunggu verifikasi Kasir",
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                    color: Color(blackColor),
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  "Save akan membuka form Reserve Order (Tanggal Reserve diisi di sana). Status prospek berubah setelah Reserve Order diverifikasi Kasir.",
-                  style: TextStyle(fontSize: 11, color: Color(grey2Color)),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+  
 
   // Field lain sudah tersimpan (status ditahan) → langsung lanjut ke wizard Create Reserve Order,
   // menggantikan halaman ini (Back dari wizard kembali ke Contact Detail). Detail & attachment
@@ -1497,7 +1464,8 @@ class _ContactAddPageState extends State<ContactAddPage> {
       contact: detail,
       attachments: attachmentState is AttachmentLoaded ? attachmentState.data : const [],
       replace: true,
-      notifyPendingProspectStatus: true,
+      reserveDate: _reserveDate,
+      reserveNote: descTC.text.trim(),
     );
   }
 
@@ -1966,23 +1934,19 @@ class _ContactAddPageState extends State<ContactAddPage> {
                             Text.rich(
                               TextSpan(
                                 children: [
-                                  const TextSpan(text: "Konsumen langsung ke "),
+                                  const TextSpan(text: "Ya, konsumen ini memang langsung ke tahap "),
                                   TextSpan(text: target, style: const TextStyle(fontWeight: FontWeight.bold)),
-                                  const TextSpan(text: ", lewati "),
+                                  const TextSpan(text: ". Tahap "),
                                   TextSpan(
-                                    text: remaining.map((s) => s.label).join(', '),
+                                    text: _joinIndo(remaining.map((s) => s.label).toList()),
                                     style: const TextStyle(fontWeight: FontWeight.bold),
                                   ),
-                                  const TextSpan(text: " tanpa tanggal."),
+                                  const TextSpan(text: " dilewati, jadi tanggalnya dibiarkan kosong."),
                                 ],
                               ),
                               style: TextStyle(fontSize: 12, color: Color(blackColor)),
                             ),
-                            const SizedBox(height: 2),
-                            Text(
-                              "Dianggap disengaja & tidak muncul di bel Prospect Admin.",
-                              style: TextStyle(fontSize: 11, color: Color(grey2Color)),
-                            ),
+                           
                           ],
                         ),
                       ),
@@ -1995,6 +1959,76 @@ class _ContactAddPageState extends State<ContactAddPage> {
         ),
       ),
     );
+  }
+
+  // Field "Tanggal Reserve" (form Reserved yang lanjut ke wizard RO) — tanggal saja, tidak boleh
+  // ke depan, rentang sama dengan field Tanggal Reserve di wizard RO supaya nilainya valid di sana.
+  Widget _fieldReserveDate() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          "Tanggal Reserve",
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.bold,
+            color: Color(grey2Color),
+          ),
+        ),
+        SizedBox(height: 6),
+        GestureDetector(
+          onTap: _pickReserveDate,
+          child: Container(
+            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Color(grey7Color)),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  _reserveDate != null
+                      ? DateFormat('dd/MM/yyyy').format(_reserveDate!)
+                      : 'Pilih tanggal',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: _reserveDate != null ? FontWeight.bold : FontWeight.normal,
+                    color: _reserveDate != null ? Color(blackColor) : Color(grey2Color),
+                  ),
+                ),
+                Icon(
+                  Icons.calendar_today,
+                  color: Color(primaryColor),
+                  size: 16,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Future<void> _pickReserveDate() async {
+    AnalyticsService.logEvent('contact_add_pick_reserve_date');
+    final now = AppTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _reserveDate ?? today,
+      firstDate: DateTime(now.year - 1),
+      lastDate: today,
+      helpText: 'Tanggal Reserve',
+    );
+    if (picked == null || !mounted) return;
+    setState(() => _reserveDate = picked);
+  }
+
+  // Gabung daftar jadi kalimat natural: "A", "A dan B", "A, B dan C".
+  String _joinIndo(List<String> items) {
+    if (items.length <= 1) return items.join();
+    return '${items.sublist(0, items.length - 1).join(', ')} dan ${items.last}';
   }
 
   // Desain sama dengan _fieldDate (Tanggal Reserved): label di atas, kotak tanggal di bawah.

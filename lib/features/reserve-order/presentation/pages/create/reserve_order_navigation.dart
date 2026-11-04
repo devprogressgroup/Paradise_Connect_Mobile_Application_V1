@@ -32,6 +32,8 @@ ContactAttachment? _matchAttachment(
 /// kalau [attachments] diisi, attachment KTP/NPWP yang sudah ada supaya tidak perlu upload ulang.
 /// [initialCustomer] (data `customer` dari detail Reserve Order sebelumnya) menimpa data contact
 /// supaya field seperti tempat/tanggal lahir, pekerjaan, dan cara bayar ikut terisi.
+/// [reserveDate] & [reserveNote] (dari form Update Status grup reserve) mengisi awal "Tanggal
+/// Reserve" tiap unit dan "Catatan" di wizard.
 ///
 /// Dipakai dari dua entry point: tombol "Reserve Order" di Log Activity Contact Detail, dan
 /// halaman pilih Contact (`SelectContactForReserveOrderPage`) saat masuk lewat FAB list Reserve
@@ -43,7 +45,8 @@ void navigateToCreateReserveOrder(
   List<ContactAttachment> attachments = const [],
   Map<String, dynamic>? initialCustomer,
   bool replace = false,
-  bool notifyPendingProspectStatus = false,
+  DateTime? reserveDate,
+  String? reserveNote,
 }) {
   // Gate fitur 'Create' form "Reserve Order" (software Mobile). Server juga menolak (403).
   if (!PermissionsHelper.canCreateReserveOrder) {
@@ -91,7 +94,8 @@ void navigateToCreateReserveOrder(
       salesTeamId: contact.salesTeamId,
       salesTeamName: contact.salesTeamName,
       initialCustomer: initialCustomer,
-      notifyPendingProspectStatus: notifyPendingProspectStatus,
+      initialReserveDate: reserveDate,
+      initialReserveNote: reserveNote,
     ),
   );
 
