@@ -32,6 +32,10 @@ class ReserveOrderListCubit extends Cubit<ReserveOrderListState> {
   List<int> _salesTeamIds = const [];
   String? _project;
 
+  /// `unique_customer=1` — satu baris per customer (RO terbaru tiap customer_id). WAJIB ikut di
+  /// refresh & loadMore juga, kalau tidak halaman berikutnya dobel lagi.
+  bool _uniqueCustomer = false;
+
   Future<void> fetch({
     String? search,
     List<int>? statusReserveIds,
@@ -46,6 +50,7 @@ class ReserveOrderListCubit extends Cubit<ReserveOrderListState> {
     List<int>? generalManagerIds,
     List<int>? salesTeamIds,
     String? project,
+    bool uniqueCustomer = false,
   }) async {
     _search = search;
     _statusIds = statusReserveIds ?? const [];
@@ -60,6 +65,7 @@ class ReserveOrderListCubit extends Cubit<ReserveOrderListState> {
     _generalManagerIds = generalManagerIds ?? const [];
     _salesTeamIds = salesTeamIds ?? const [];
     _project = project;
+    _uniqueCustomer = uniqueCustomer;
 
     emit(state.copyWith(status: ReserveOrderListStatus.loading));
 
@@ -77,6 +83,7 @@ class ReserveOrderListCubit extends Cubit<ReserveOrderListState> {
       generalManagerIds: _generalManagerIds.isEmpty ? null : _generalManagerIds,
       salesTeamIds: _salesTeamIds.isEmpty ? null : _salesTeamIds,
       project: _project,
+      uniqueCustomer: _uniqueCustomer,
       page: 1,
     );
 
@@ -114,6 +121,7 @@ class ReserveOrderListCubit extends Cubit<ReserveOrderListState> {
         generalManagerIds: _generalManagerIds,
         salesTeamIds: _salesTeamIds,
         project: _project,
+        uniqueCustomer: _uniqueCustomer,
       );
 
   Future<void> loadMore() async {
@@ -137,6 +145,7 @@ class ReserveOrderListCubit extends Cubit<ReserveOrderListState> {
       generalManagerIds: _generalManagerIds.isEmpty ? null : _generalManagerIds,
       salesTeamIds: _salesTeamIds.isEmpty ? null : _salesTeamIds,
       project: _project,
+      uniqueCustomer: _uniqueCustomer,
       page: state.currentPage + 1,
     );
 

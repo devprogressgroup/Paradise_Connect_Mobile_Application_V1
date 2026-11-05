@@ -104,6 +104,8 @@ import 'package:progress_group/features/reserve-order/domain/usecases/topup_rese
 import 'package:progress_group/features/reserve-order/domain/usecases/update_reserve_order_customer_usecase.dart';
 import 'package:progress_group/features/reserve-order/domain/usecases/ocr_ktp_usecase.dart';
 import 'package:progress_group/features/reserve-order/domain/usecases/check_ktp_usecase.dart';
+import 'package:progress_group/features/reserve-order/domain/usecases/get_property_virtual_account_usecase.dart';
+import 'package:progress_group/features/reserve-order/presentation/state/virtual_account/reserve_virtual_account_cubit.dart';
 import 'package:progress_group/features/reserve-order/presentation/state/cara_bayar/cara_bayar_bloc.dart';
 import 'package:progress_group/features/reserve-order/presentation/state/create_reserve_order/create_reserve_order_cubit.dart';
 import 'package:progress_group/features/reserve-order/presentation/state/payment_type/payment_type_bloc.dart';
@@ -509,6 +511,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     final createReserveOrderUseCase = CreateReserveOrderUseCase(reserveOrderRepository);
     final ocrKtpUseCase = OcrKtpUseCase(reserveOrderRepository);
     final checkKtpUseCase = CheckKtpUseCase(reserveOrderRepository);
+    final getPropertyVirtualAccountUseCase = GetPropertyVirtualAccountUseCase(reserveOrderRepository);
     final getReserveOrderListUseCase = GetReserveOrderListUseCase(reserveOrderRepository,);
     final getReserveOrderDetailUseCase = GetReserveOrderDetailUseCase(reserveOrderRepository,);
     final updateReserveOrderCustomerUseCase = UpdateReserveOrderCustomerUseCase(reserveOrderRepository,);
@@ -767,6 +770,13 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
               BlocProvider(
                 create: (_) =>
                     CreateReserveOrderCubit(createReserveOrderUseCase, ocrKtpUseCase, checkKtpUseCase),
+              ),
+              // VA unit (GET /property/virtual-account) — dipakai juga detail unit Site Plan.
+              RepositoryProvider.value(value: getPropertyVirtualAccountUseCase),
+              BlocProvider(
+                create: (_) => ReserveVirtualAccountCubit(
+                  getPropertyVirtualAccountUseCase: getPropertyVirtualAccountUseCase,
+                ),
               ),
               BlocProvider(
                 create: (_) => ReserveOrderListCubit(

@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:progress_group/core/constants/colors.dart';
+import 'package:progress_group/features/reserve-order/domain/usecases/get_property_virtual_account_usecase.dart';
 import '../../../../core/utils/helpers/error_message.dart';
 import '../../../../core/utils/widget/shimmer_loading.dart';
 import '../../../../core/utils/widget/unit_status_badge.dart';
 import '../../domain/entities/unit_detail.dart';
 import '../state/siteplan_bloc.dart';
+import 'unit_virtual_account_section.dart';
 
 /// Detail satu unit (informasi, spesifikasi, harga & simulasi pembayaran) — beda dari
 /// [SitePlanBlank] (yang menampilkan payload unit hasil decrypt dari WebView siteplan, sudah
@@ -23,6 +25,7 @@ Future<void> showUnitDetailSheet(
   required int companyId,
   required int productId,
   required int propertyId,
+  int? townshipId,
 }) {
   return showModalBottomSheet(
     context: context,
@@ -38,6 +41,7 @@ Future<void> showUnitDetailSheet(
         companyId: companyId,
         productId: productId,
         propertyId: propertyId,
+        townshipId: townshipId,
         scrollController: scrollController,
       ),
     ),
@@ -49,6 +53,10 @@ class UnitDetailPage extends StatefulWidget {
   final int companyId;
   final int productId;
   final int propertyId;
+
+  /// Township unit — untuk `GET /property/virtual-account`. null = section Virtual Account
+  /// disembunyikan (township tidak bisa ditentukan).
+  final int? townshipId;
   final ScrollController? scrollController;
 
   const UnitDetailPage({
@@ -57,6 +65,7 @@ class UnitDetailPage extends StatefulWidget {
     this.companyId = 0,
     this.productId = 0,
     this.propertyId = 0,
+    this.townshipId,
     this.scrollController,
   });
 
@@ -74,10 +83,28 @@ class _UnitDetailPageState extends State<UnitDetailPage> {
   bool _spesifikasiExpanded = true;
   bool _hargaExpanded = true;
 
+  /// `GET /property/virtual-account` — null kalau township/company/property tidak lengkap
+  /// (company_id wajib, tanpa itu backend bisa 422 AMBIGUOUS_UNIT).
+  Future<VirtualAccountResult>? _virtualAccountFuture;
+
   @override
   void initState() {
     super.initState();
+    // Paralel dengan harga — VA (query DB lokal) tidak perlu menunggu vendor harga.
+    _loadVirtualAccount();
     _load();
+  }
+
+  void _loadVirtualAccount() {
+    final townshipId = widget.townshipId ?? 0;
+    if (townshipId <= 0 || widget.companyId <= 0 || widget.propertyId <= 0) return;
+    setState(() {
+      _virtualAccountFuture = context.read<GetPropertyVirtualAccountUseCase>()(
+        townshipId: townshipId,
+        companyId: widget.companyId,
+        propertyId: widget.propertyId,
+      );
+    });
   }
 
   Future<void> _load() async {
@@ -177,6 +204,11 @@ class _UnitDetailPageState extends State<UnitDetailPage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     // _buildInformasiUnit(unit),
+                    if (_virtualAccountFuture != null)
+                      UnitVirtualAccountSection(
+                        future: _virtualAccountFuture!,
+                        onRetry: _loadVirtualAccount,
+                      ),
                     _buildSpesifikasiUnit(unit),
                     _buildHargaSimulasi(unit),
                   ],

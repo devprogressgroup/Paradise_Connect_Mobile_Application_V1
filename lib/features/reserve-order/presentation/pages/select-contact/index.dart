@@ -107,6 +107,8 @@ class _SelectContactForReserveOrderPageState extends State<SelectContactForReser
     _reserveListCubit.fetch(
       search: _reserveSearch.isEmpty ? null : _reserveSearch,
       sort: 'terbaru',
+      // Satu baris per customer (RO terbarunya) — bukan sekali per RO.
+      uniqueCustomer: true,
     );
   }
 

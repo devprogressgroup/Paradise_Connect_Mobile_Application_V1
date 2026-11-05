@@ -35,6 +35,7 @@ import 'package:progress_group/features/contact/presentation/state/attachment/up
 import 'package:progress_group/features/contact/presentation/state/attachment/upload_attachment_state.dart';
 import 'package:progress_group/features/contact/domain/entities/attachment/upload_attachment_params.dart';
 import 'package:progress_group/features/contact/presentation/state/contact/contact_state.dart';
+import 'package:progress_group/features/contact/domain/entities/lost_reason/lost_reason_entity.dart';
 import 'package:progress_group/features/contact/presentation/state/lost_reason/lost_reason_block.dart';
 import 'package:progress_group/features/contact/presentation/state/lost_reason/lost_reason_event.dart';
 import 'package:progress_group/features/contact/presentation/state/lost_reason/lost_reason_state.dart';
@@ -788,12 +789,59 @@ class _ContactAddPageState extends State<ContactAddPage> {
 
     final contact = widget.args.dataContact;
 
+    // Tanggal Reserve wajib (diteruskan ke "Tanggal Reserve" wizard RO yang juga wajib).
+    if (_willDeferToReserveOrder() && _reserveDate == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Tanggal Reserve wajib diisi.')),
+      );
+      return;
+    }
+
     // Lompat tahap: tahap yang tetap kosong wajib dikonfirmasi (aturan sama dengan form web).
     if (!_isWalkIn && _remainingSkipStages().isNotEmpty && !_skipAck) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Centang konfirmasi lompat tahap, atau isi tanggal tahap yang dilewati.')),
       );
       return;
+    }
+
+    final group = _currentStatusGroup();
+
+    if (!_validateJumlahDatang()) return;
+
+    // Form Lost tidak punya field Project & Produk/Unit.
+    if (group != 'lost' && !_validateProjectUnit()) return;
+
+    // Name SP wajib di form yang menampilkannya (SP & Reserved).
+    if ((group == 'sp' || group == 'reserve') && nameSPTC.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Name SP wajib diisi.')),
+      );
+      return;
+    }
+
+    // "Berapa kali appt" (form Appt) wajib ada nilainya — 0 tetap sah dan ikut dikirim.
+    if (group == 'appt' && volumeTC.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Berapa kali appt wajib diisi.')),
+      );
+      return;
+    }
+
+    // Form Lost: Lost Reason (default data pertama) & Lost Reason Note wajib.
+    final lostReason = group == 'lost'
+        ? _effectiveLostReason(context.read<LostReasonBloc>().state)
+        : null;
+    if (group == 'lost') {
+      final message = lostReason == null
+          ? 'Lost Reason wajib dipilih.'
+          : lostReasonNoteTC.text.trim().isEmpty
+              ? 'Lost Reason Note wajib diisi.'
+              : null;
+      if (message != null) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+        return;
+      }
     }
 
     final editParams = widget.args.createContactParams;
@@ -803,8 +851,6 @@ class _ContactAddPageState extends State<ContactAddPage> {
     final defer = _willDeferToReserveOrder();
     _deferredToReserveOrder = defer;
 
-
-    final group = _currentStatusGroup();
     final d = defer ? const <String, String?>{} : _buildMilestoneDates(group, contact);
     final firstApptDate    = d['firstApptDate'];
     final lastApptDate     = d['lastApptDate'];
@@ -859,7 +905,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
       units: _unitsTouched ? _selectedUnits.map((u) => u.toApiJson()).toList() : null,
       volumePlan: volumeTC.text.isNotEmpty ? volumeTC.text : null,
       visitCount: _parseVisitCount(jmlDatang),
-      lostReasonId: selectedLostReasonId,
+      lostReasonId: group == 'lost' ? lostReason?.lostReasonId : selectedLostReasonId,
       nameSP: nameSPTC.text.isNotEmpty ? nameSPTC.text : null,
       lostReasonNote: lostReasonNoteTC.text.isNotEmpty ? lostReasonNoteTC.text : null,
 
@@ -914,6 +960,28 @@ class _ContactAddPageState extends State<ContactAddPage> {
     SalesbookSyncService.syncContact(contact.contactId!);
   }
 
+  // "Berapa kali datang" (status form Visit) wajib ada nilainya — 0 tetap sah dan ikut dikirim.
+  bool _validateJumlahDatang() {
+    if (!_currentIsVisitFormStatus() || jmlDatang.trim().isNotEmpty) return true;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Berapa kali datang wajib diisi.')),
+    );
+    return false;
+  }
+
+  // Project & Produk/Unit wajib di form Update Status / Visit (kecuali form Lost).
+  bool _validateProjectUnit() {
+    String? message;
+    if ((selectedProject ?? '').trim().isEmpty) {
+      message = 'Project wajib dipilih.';
+    } else if (_selectedUnits.isEmpty) {
+      message = 'Produk/Unit wajib dipilih.';
+    }
+    if (message == null) return true;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+    return false;
+  }
+
   Future<void> _submitVisit(BuildContext context) async {
     if (selectedStatusId == null) {
       ScaffoldMessenger.of(
@@ -921,6 +989,9 @@ class _ContactAddPageState extends State<ContactAddPage> {
       ).showSnackBar(SnackBar(content: Text('Status wajib dipilih')));
       return;
     }
+
+    if (!_validateJumlahDatang()) return;
+    if (!_validateProjectUnit()) return;
 
     final contact = widget.args.dataContact;
     final editParams = widget.args.createContactParams;
@@ -1362,14 +1433,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          "Name SP",
-          style: TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.bold,
-            color: Color(grey2Color),
-          ),
-        ),
+        _requiredLabel("Name SP"),
         SizedBox(height: 6),
         TextField(
           maxLines: 1,
@@ -1433,8 +1497,8 @@ class _ContactAddPageState extends State<ContactAddPage> {
   // Pengganti field "Tanggal ..." untuk status grup reserve: tanggalnya ikut verifikasi Kasir.
   
 
-  // Field lain sudah tersimpan (status ditahan) → langsung lanjut ke wizard Create Reserve Order,
-  // menggantikan halaman ini (Back dari wizard kembali ke Contact Detail). Detail & attachment
+  // Field lain sudah tersimpan (status ditahan) → tutup halaman ini lalu langsung buka wizard Create
+  // Reserve Order (Back dari wizard kembali ke Contact Detail). Detail & attachment
   // dimuat ulang dulu supaya wizard terisi data terbaru — pola sama dengan halaman pilih Contact RO.
   Future<void> _openReserveOrderAfterUpdate(int contactId) async {
     setState(() => _openingReserveOrder = true);
@@ -1458,14 +1522,22 @@ class _ContactAddPageState extends State<ContactAddPage> {
     await attachmentCubit.fetch(contactId, detail.dealId);
     if (!mounted) return;
     final attachmentState = attachmentCubit.state;
+    final reserveDate = _reserveDate;
+    final reserveNote = descTC.text.trim();
 
+    // Halaman ini rute go_router ('addContact') — JANGAN diganti dengan Navigator.pushReplacement:
+    // go_router tidak tahu halamannya sudah dibuang, sehingga saat wizard memanggil
+    // context.pushNamed (mis. "Pilih Project") halaman Update Status ini dibangun ulang dan muncul
+    // di atas wizard. Tutup dulu lewat go_router, lalu buka wizard di Navigator yang sama
+    // (Back dari wizard tetap kembali ke Contact Detail).
+    final navigator = Navigator.of(context);
+    context.pop(0);
     navigateToCreateReserveOrder(
-      context,
+      navigator.context,
       contact: detail,
       attachments: attachmentState is AttachmentLoaded ? attachmentState.data : const [],
-      replace: true,
-      reserveDate: _reserveDate,
-      reserveNote: descTC.text.trim(),
+      reserveDate: reserveDate,
+      reserveNote: reserveNote,
     );
   }
 
@@ -1573,14 +1645,9 @@ class _ContactAddPageState extends State<ContactAddPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
+        _requiredLabel(
           _currentStatusGroup() == 'appt' ? "Berapa kali appt" :
           _currentStatusGroup() == 'reserve' ? "Reserved Volume" : "Volume",
-          style: TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.bold,
-            color: Color(grey2Color),
-          ),
         ),
         SizedBox(height: 6),
         GestureDetector(
@@ -1686,14 +1753,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          "Lost Reaseon Note",
-          style: TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.bold,
-            color: Color(grey2Color),
-          ),
-        ),
+        _requiredLabel("Lost Reason Note"),
         SizedBox(height: 6),
         TextField(
           maxLines: 4,
@@ -1703,7 +1763,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
           onTapOutside: (event) => lostReasonNoteFN.unfocus(),
           textInputAction: TextInputAction.newline,
           decoration: InputDecoration(
-            hintText: "Lost Reaseon Note....",
+            hintText: "Lost Reason Note...",
             hintStyle: TextStyle(color: Color(grey2Color), fontSize: 14),
             contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             border: OutlineInputBorder(
@@ -1776,14 +1836,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          "Tanggal ${displayStatus(selectedStatusName)}",
-          style: TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.bold,
-            color: Color(grey2Color),
-          ),
-        ),
+        _requiredLabel("Tanggal ${displayStatus(selectedStatusName)}"),
         SizedBox(height: 6),
         GestureDetector(
           onTap: () => pickDateTime(context),
@@ -1961,20 +2014,30 @@ class _ContactAddPageState extends State<ContactAddPage> {
     );
   }
 
+  // Label field wajib: teks + tanda * merah (field opsional tetap pakai label biasa tanpa *).
+  Widget _requiredLabel(String text) {
+    return Text.rich(
+      TextSpan(
+        children: [
+          TextSpan(text: text),
+          const TextSpan(text: ' *', style: TextStyle(color: Color(redColor))),
+        ],
+      ),
+      style: TextStyle(
+        fontSize: 12,
+        fontWeight: FontWeight.bold,
+        color: Color(grey2Color),
+      ),
+    );
+  }
+
   // Field "Tanggal Reserve" (form Reserved yang lanjut ke wizard RO) — tanggal saja, tidak boleh
   // ke depan, rentang sama dengan field Tanggal Reserve di wizard RO supaya nilainya valid di sana.
   Widget _fieldReserveDate() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          "Tanggal Reserve",
-          style: TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.bold,
-            color: Color(grey2Color),
-          ),
-        ),
+        _requiredLabel("Tanggal Reserve"),
         SizedBox(height: 6),
         GestureDetector(
           onTap: _pickReserveDate,
@@ -2037,16 +2100,9 @@ class _ContactAddPageState extends State<ContactAddPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text.rich(
-          TextSpan(
-            children: [
-              TextSpan(text: "Tanggal ${stage.label}"),
-              const TextSpan(
-                text: " (opsional)",
-                style: TextStyle(fontWeight: FontWeight.normal),
-              ),
-            ],
-          ),
+        // Tanpa tanda * = opsional (field wajib ditandai * lewat _requiredLabel).
+        Text(
+          "Tanggal ${stage.label}",
           style: TextStyle(
             fontSize: 12,
             fontWeight: FontWeight.bold,
@@ -2100,14 +2156,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          "Status Prospect",
-          style: TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.bold,
-            color: Color(grey2Color),
-          ),
-        ),
+        _requiredLabel("Status Prospect"),
         SizedBox(height: 6),
         GestureDetector(
           onTap: () async {
@@ -2203,18 +2252,22 @@ class _ContactAddPageState extends State<ContactAddPage> {
     );
   }
 
+  // Lost Reason yang dipakai form Lost: pilihan sales, atau data pertama kalau belum ada pilihan.
+  // Sengaja tidak mengubah selectedLostReasonId — field itu ikut terkirim di semua status, jadi
+  // default ini hanya berlaku saat statusnya Lost (lihat _submitUpdateStatus).
+  LostReasonEntity? _effectiveLostReason(LostReasonState state) {
+    if (state.status != LostReasonStatus.loaded || state.reasons.isEmpty) return null;
+    for (final r in state.reasons) {
+      if (r.lostReasonId == selectedLostReasonId) return r;
+    }
+    return state.reasons.first;
+  }
+
   Widget _fieldLostReason() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          "Lost Reason",
-          style: TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.bold,
-            color: Color(grey2Color),
-          ),
-        ),
+        _requiredLabel("Lost Reason"),
         const SizedBox(height: 6),
         GestureDetector(
           onTap: () async {
@@ -2236,7 +2289,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
                 extra: ContactDropdownArgs(
                   title: 'Pilih Lost Reason',
                   items: items,
-                  selectedId: selectedLostReasonId,
+                  selectedId: _effectiveLostReason(state)?.lostReasonId,
                 ),
               );
 
@@ -2272,16 +2325,21 @@ class _ContactAddPageState extends State<ContactAddPage> {
             child: Row(
               children: [
                 Expanded(
-                  child: Text(
-                    selectedLostReasonName ?? '',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: selectedLostReasonName == null
-                          ? Color(grey2Color)
-                          : Color(blackColor),
-                    ),
+                  child: BlocBuilder<LostReasonBloc, LostReasonState>(
+                    builder: (context, state) {
+                      final reason = _effectiveLostReason(state);
+                      return Text(
+                        reason?.lostReasonName ?? 'Pilih Lost Reason',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: reason == null
+                              ? Color(grey2Color)
+                              : Color(blackColor),
+                        ),
+                      );
+                    },
                   ),
                 ),
                 const Icon(Icons.arrow_drop_down, size: 28),
@@ -2359,10 +2417,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          "Produk/Unit",
-          style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(grey2Color)),
-        ),
+        _requiredLabel("Produk/Unit"),
         SizedBox(height: 6),
         GestureDetector(
           onTap: _openUnitPicker,
@@ -2407,14 +2462,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          "Project",
-          style: TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.bold,
-            color: Color(grey2Color),
-          ),
-        ),
+        _requiredLabel("Project"),
         SizedBox(height: 6),
         GestureDetector(
           onTap: () async {
@@ -2494,14 +2542,7 @@ class _ContactAddPageState extends State<ContactAddPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          "Berapa kali datang",
-          style: TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.bold,
-            color: Color(grey2Color),
-          ),
-        ),
+        _requiredLabel("Berapa kali datang"),
         SizedBox(height: 6),
         GestureDetector(
           onTap: () async {

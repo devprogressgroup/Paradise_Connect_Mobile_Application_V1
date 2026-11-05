@@ -39,6 +39,7 @@ import 'package:progress_group/features/reserve-order/presentation/state/select_
 import 'package:progress_group/features/reserve-order/presentation/state/work_category/work_category_bloc.dart';
 import 'package:progress_group/features/reserve-order/presentation/state/work_category/work_category_event.dart';
 import 'package:progress_group/features/reserve-order/presentation/state/work_category/work_category_state.dart';
+import 'package:progress_group/features/reserve-order/presentation/state/virtual_account/reserve_virtual_account_cubit.dart';
 import 'package:progress_group/features/reserve-order/data/models/reserve_order_customer_data.dart';
 import 'package:progress_group/features/reserve-order/domain/entities/customer_options_entity.dart';
 import 'package:progress_group/features/reserve-order/presentation/state/customer_options/customer_options_bloc.dart';
@@ -46,6 +47,7 @@ import 'package:progress_group/features/reserve-order/presentation/state/custome
 import 'package:progress_group/features/reserve-order/presentation/state/customer_options/customer_options_state.dart';
 import 'package:progress_group/features/reserve-order/presentation/widgets/option_picker_sheet.dart';
 import 'package:progress_group/features/reserve-order/presentation/widgets/reference_date_field.dart';
+import 'package:progress_group/features/reserve-order/presentation/widgets/review_virtual_account_line.dart';
 import 'package:progress_group/features/saleskit/presentation/state/township/township_bloc.dart';
 import 'package:progress_group/features/saleskit/presentation/state/township/township_event.dart';
 import 'package:progress_group/features/saleskit/presentation/state/township/township_state.dart';
@@ -244,6 +246,8 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
     context.read<WorkCategoryBloc>().add(const FetchWorkCategoryEvent());
     context.read<CustomerOptionsBloc>().add(const FetchCustomerOptionsEvent());
     context.read<PaymentTypeBloc>().add(const FetchPaymentTypesEvent());
+    // Sesi create baru — cache VA (baris "Virtual Account" di Review) dikosongkan.
+    context.read<ReserveVirtualAccountCubit>().reset();
   }
 
   @override
@@ -3301,6 +3305,19 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
   bool get _hasKtp =>
       _ktpFile != null || (_existingKtpUrl != null && _existingKtpUrl!.isNotEmpty);
 
+  /// Unit untuk baris "Virtual Account" — `company_id`/`property_id` SAMA dengan `units[i]` yang
+  /// dikirim di [_submitReserveOrder]; township = project terpilih.
+  List<VirtualAccountLookup> _virtualAccountLookups() => [
+    for (final d in _unitDrafts)
+      VirtualAccountLookup(
+        unitKey: d.unit.id,
+        unitName: d.unit.name,
+        townshipId: _selectedProjectId ?? d.unit.townshipId,
+        companyId: d.unit.companyId,
+        propertyId: d.unit.propertyId,
+      ),
+  ];
+
   Widget _review() {
     final grandTotal = _unitDrafts.fold<double>(0, (s, d) => s + d.total);
     final hasTransfer = _unitDrafts.any(
@@ -3407,6 +3424,10 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
                           _reviewLine(
                             'Jumlah Unit',
                             '${_unitDrafts.length} unit',
+                          ),
+                        if (!_isResubmit)
+                          ReviewVirtualAccountLine(
+                            units: _virtualAccountLookups(),
                           ),
                         _reviewLine(
                           _isResubmit ? 'Total Pembayaran' : 'Total Semua Unit',
@@ -3688,6 +3709,7 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
 
   void _resetForm() {
     context.read<CreateReserveOrderCubit>().reset();
+    context.read<ReserveVirtualAccountCubit>().reset();
     _namaCtrl.clear();
     _ktpCtrl.clear();
     _tempatLahirCtrl.clear();

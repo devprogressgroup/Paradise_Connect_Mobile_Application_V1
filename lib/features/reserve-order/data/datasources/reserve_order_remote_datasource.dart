@@ -6,6 +6,7 @@ import 'package:progress_group/features/reserve-order/data/models/cara_bayar_mod
 import 'package:progress_group/features/reserve-order/data/models/create_reserve_order_result_model.dart';
 import 'package:progress_group/features/reserve-order/data/models/customer_options_model.dart';
 import 'package:progress_group/features/reserve-order/data/models/payment_type_model.dart';
+import 'package:progress_group/features/reserve-order/data/models/property_virtual_account_model.dart';
 import 'package:progress_group/features/reserve-order/data/models/reserve_order_detail_model.dart';
 import 'package:progress_group/features/reserve-order/data/models/reserve_order_list_item_model.dart';
 import 'package:progress_group/features/reserve-order/data/models/reserve_status_model.dart';
@@ -44,6 +45,7 @@ abstract class ReserveOrderRemoteDataSource {
     List<int>? generalManagerIds,
     List<int>? salesTeamIds,
     String? project,
+    bool uniqueCustomer = false,
     int page,
     int perPage,
   });
@@ -77,6 +79,25 @@ abstract class ReserveOrderRemoteDataSource {
   Future<void> deleteReserveOrder(int reserveOrderId);
   Future<Map<String, dynamic>> ocrKtp(Uint8List imageBytes, {String? filename});
   Future<Map<String, dynamic>> checkKtp(String custKtp, {String? custName, int? contactId});
+
+  /// Lempar [VirtualAccountException] (membawa `error_code`) kalau gagal.
+  Future<PropertyVirtualAccountModel> getPropertyVirtualAccount({
+    required int townshipId,
+    required int companyId,
+    required int propertyId,
+  });
+}
+
+/// Gagal `GET /property/virtual-account` — [errorCode] = `error_code` body (`VA_NOT_FOUND`,
+/// `UNIT_NOT_FOUND`, `VALIDATION`, `AMBIGUOUS_UNIT`), null kalau gagal jaringan/timeout.
+class VirtualAccountException implements Exception {
+  final String message;
+  final String? errorCode;
+
+  const VirtualAccountException(this.message, {this.errorCode});
+
+  @override
+  String toString() => message;
 }
 
 class ReserveOrderRemoteDataSourceImpl implements ReserveOrderRemoteDataSource {
@@ -235,6 +256,7 @@ class ReserveOrderRemoteDataSourceImpl implements ReserveOrderRemoteDataSource {
     List<int>? generalManagerIds,
     List<int>? salesTeamIds,
     String? project,
+    bool uniqueCustomer = false,
     int page = 1,
     int perPage = 15,
   }) async {
@@ -264,6 +286,8 @@ class ReserveOrderRemoteDataSourceImpl implements ReserveOrderRemoteDataSource {
           if (salesTeamIds != null && salesTeamIds.isNotEmpty)
             'sales_team_id': salesTeamIds.join(','),
           if ((project ?? '').isNotEmpty) 'project': project,
+          // Satu baris per customer (RO terbaru tiap customer_id di antara yang lolos filter).
+          if (uniqueCustomer) 'unique_customer': 1,
           'page': page,
           'per_page': perPage,
         },
@@ -713,6 +737,48 @@ class ReserveOrderRemoteDataSourceImpl implements ReserveOrderRemoteDataSource {
       throw Exception(response.data['message'] ?? 'Failed to check KTP');
     } on DioException catch (e) {
       throw Exception(getErrorMessage(e, 'Failed to check KTP'));
+    }
+  }
+
+  /// `GET /property/virtual-account` — VA unit (dipakai baris "Virtual Account" di Review Create
+  /// Reserve Order). `company_id` WAJIB: satu township bisa punya >1 company dgn `property_id` sama
+  /// (tanpa itu backend balas 422 `AMBIGUOUS_UNIT`).
+  @override
+  Future<PropertyVirtualAccountModel> getPropertyVirtualAccount({
+    required int townshipId,
+    required int companyId,
+    required int propertyId,
+  }) async {
+    const fallback = 'Gagal memuat Virtual Account';
+    String? errorCodeOf(dynamic body) =>
+        body is Map ? body['error_code']?.toString() : null;
+
+    try {
+      final response = await dio.get(
+        '/property/virtual-account',
+        queryParameters: {
+          'township_id': townshipId,
+          'company_id': companyId,
+          'property_id': propertyId,
+        },
+      );
+
+      final body = response.data;
+      if (body is Map && body['status'] == true && body['data'] is Map) {
+        return PropertyVirtualAccountModel.fromJson(
+          Map<String, dynamic>.from(body['data'] as Map),
+        );
+      }
+
+      throw VirtualAccountException(
+        (body is Map ? body['message']?.toString() : null) ?? fallback,
+        errorCode: errorCodeOf(body),
+      );
+    } on DioException catch (e) {
+      throw VirtualAccountException(
+        getErrorMessage(e, fallback),
+        errorCode: errorCodeOf(e.response?.data),
+      );
     }
   }
 

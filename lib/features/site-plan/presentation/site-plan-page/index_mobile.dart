@@ -196,7 +196,17 @@ class _SitePlanPageState extends State<SitePlanPage> with RouteAware {
       companyId: companyId,
       productId: productId,
       propertyId: propertyId,
+      townshipId: toInt(params['township_id']) ?? _townshipIdFor(siteplanId, companyId),
     ).whenComplete(() => _isUnitDetailSheetOpen = false);
+  }
+
+  /// Township siteplan yang unitnya diklik (relay pin tidak membawa township_id) — dari
+  /// `/property/siteplan-settings`; fallback site yang sedang dibuka.
+  int? _townshipIdFor(int siteplanId, int companyId) {
+    for (final s in _sites) {
+      if (s.siteplanId == siteplanId && s.companyId == companyId) return s.townshipId;
+    }
+    return _selectedSite?.townshipId;
   }
 
   void _initFromSites(List<ProjectSite> sites) {
