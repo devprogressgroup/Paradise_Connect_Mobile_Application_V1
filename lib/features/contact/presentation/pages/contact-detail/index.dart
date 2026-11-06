@@ -32,6 +32,7 @@ import 'package:progress_group/features/contact/presentation/state/prospect_stat
 import 'package:progress_group/features/contact/presentation/state/prospect_status/prospect_status_state.dart';
 import 'package:progress_group/features/contact/presentation/state/whatsapp_activity/whatsapp_unread_summary_bloc.dart';
 import 'package:progress_group/features/contact/presentation/state/whatsapp_activity/whatsapp_unread_summary_state.dart';
+import 'package:progress_group/features/reserve-order/domain/reserve_order_eligibility.dart';
 import 'package:progress_group/features/reserve-order/presentation/pages/create/reserve_order_navigation.dart';
 import 'package:progress_group/features/inbox/data/arguments/inbox_detail_args.dart';
 import 'package:progress_group/features/inbox/domain/entities/inbox_contact_entity.dart';
@@ -643,20 +644,36 @@ class _ContactDetailPageState extends State<ContactDetailPage>
         widget.args.dataContact;
     if (contact == null || contact.contactId == null) return;
 
-    // Hanya contact dgn status prospek grup 'reserve' (10A/10B/30/31/32) yang boleh dibuatkan
-    // Reserve Order — sama dengan daftar contact di `SelectContactForReserveOrderPage`.
-    final reserveStatuses = await _loadReserveStatuses();
+    // Hanya contact dgn status prospek grup 'reserve' (10A/10B/30/31/32) ATAU status_value di atasnya
+    // (mis. 50 - SP) yang boleh dibuatkan Reserve Order — lihat [reserveEligibleStatuses], sama dengan
+    // daftar contact di `SelectContactForReserveOrderPage`.
+    final eligibleStatuses = await _loadReserveStatuses();
     if (!mounted) return;
-    if (reserveStatuses == null) {
-      showSnackbar(context, 'Gagal memuat status prospek. Silakan coba lagi.', isError: true);
-      return;
-    }
-    if (!reserveStatuses.any((s) => s.statusProspectId == contact.statusProspectId)) {
-      final names = reserveStatuses.map((s) => s.statusProspectName).join(', ');
+    if (eligibleStatuses == null) {
       showSnackbar(
         context,
-        'Contact belum bisa Reserve Order. Status prospek minimal harus salah satu dari: $names.',
+        'Data status belum termuat. Periksa koneksi internet, lalu coba lagi.',
         isError: true,
+      );
+      return;
+    }
+    if (!eligibleStatuses.any((s) => s.statusProspectId == contact.statusProspectId)) {
+      // Bahasa sehari-hari utk sales: sebut status sekarang + langkah yg harus dilakukan (menu
+      // "Update Status Prospect" ada tepat di atas tombol Reserve Order di sheet ini).
+      final currentStatus = context
+          .read<ProspectStatusBloc>()
+          .state
+          .statuses
+          .where((s) => s.statusProspectId == contact.statusProspectId)
+          .map((s) => s.statusProspectName)
+          .firstOrNull;
+      showSnackbar(
+        context,
+        'Contact ini belum bisa dibuatkan Reserve Order'
+        '${currentStatus != null ? ' karena statusnya masih "$currentStatus"' : ''}. '
+        'Ubah dulu statusnya menjadi Reserve", lalu coba lagi.',
+        isError: true,
+        duration: const Duration(seconds: 7),
       );
       return;
     }
@@ -673,8 +690,9 @@ class _ContactDetailPageState extends State<ContactDetailPage>
     );
   }
 
-  /// Status prospek grup 'reserve' dari [ProspectStatusBloc] global — di-fetch dulu kalau belum
-  /// loaded (mis. Contact Detail dibuka bukan dari halaman Contact). null = gagal dimuat.
+  /// Status prospek yang boleh Reserve Order ([reserveEligibleStatuses]) dari [ProspectStatusBloc]
+  /// global — di-fetch dulu kalau belum loaded (mis. Contact Detail dibuka bukan dari halaman
+  /// Contact). null = gagal dimuat.
   Future<List<ProspectStatusEntity>?> _loadReserveStatuses() async {
     final bloc = context.read<ProspectStatusBloc>();
     var state = bloc.state;
@@ -687,7 +705,7 @@ class _ContactDetailPageState extends State<ContactDetailPage>
       );
     }
     if (state.status != ProspectStatusEnum.loaded) return null;
-    return state.statuses.where((s) => s.group == 'reserve').toList();
+    return reserveEligibleStatuses(state.statuses);
   }
 
   Widget _buildTabBar() {
