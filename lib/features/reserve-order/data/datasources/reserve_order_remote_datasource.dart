@@ -45,6 +45,8 @@ abstract class ReserveOrderRemoteDataSource {
     List<int>? generalManagerIds,
     List<int>? salesTeamIds,
     String? project,
+    List<int>? milestoneIds,
+    List<int>? approvalIds,
     bool uniqueCustomer = false,
     int page,
     int perPage,
@@ -256,6 +258,8 @@ class ReserveOrderRemoteDataSourceImpl implements ReserveOrderRemoteDataSource {
     List<int>? generalManagerIds,
     List<int>? salesTeamIds,
     String? project,
+    List<int>? milestoneIds,
+    List<int>? approvalIds,
     bool uniqueCustomer = false,
     int page = 1,
     int perPage = 15,
@@ -286,6 +290,11 @@ class ReserveOrderRemoteDataSourceImpl implements ReserveOrderRemoteDataSource {
           if (salesTeamIds != null && salesTeamIds.isNotEmpty)
             'sales_team_id': salesTeamIds.join(','),
           if ((project ?? '').isNotEmpty) 'project': project,
+          // Filter "Progres Akad" (tahap setelah SP) & "Persetujuan" — pilihannya dari `filter_options` response list.
+          if (milestoneIds != null && milestoneIds.isNotEmpty)
+            'milestone_id': milestoneIds.join(','),
+          if (approvalIds != null && approvalIds.isNotEmpty)
+            'approval': approvalIds.join(','),
           // Satu baris per customer (RO terbaru tiap customer_id di antara yang lolos filter).
           if (uniqueCustomer) 'unique_customer': 1,
           'page': page,

@@ -11,6 +11,11 @@ class ReserveOrderListState extends Equatable {
   final int total;
   final String? errorMessage;
 
+  /// Pilihan filter "Progres Akad" & "Persetujuan" dari server (`filter_options`, halaman 1) — disimpan
+  /// supaya sheet Filter tetap punya pilihan walau fetch berikutnya gagal / halaman lanjutan tidak membawanya.
+  final List<ReserveOrderFilterOptionEntity> progressOptions;
+  final List<ReserveOrderFilterOptionEntity> approvalOptions;
+
   const ReserveOrderListState({
     this.status = ReserveOrderListStatus.initial,
     this.items = const [],
@@ -18,6 +23,8 @@ class ReserveOrderListState extends Equatable {
     this.lastPage = 1,
     this.total = 0,
     this.errorMessage,
+    this.progressOptions = const [],
+    this.approvalOptions = const [],
   });
 
   bool get hasMore => currentPage < lastPage;
@@ -29,6 +36,8 @@ class ReserveOrderListState extends Equatable {
     int? lastPage,
     int? total,
     String? errorMessage,
+    List<ReserveOrderFilterOptionEntity>? progressOptions,
+    List<ReserveOrderFilterOptionEntity>? approvalOptions,
   }) {
     return ReserveOrderListState(
       status: status ?? this.status,
@@ -37,6 +46,8 @@ class ReserveOrderListState extends Equatable {
       lastPage: lastPage ?? this.lastPage,
       total: total ?? this.total,
       errorMessage: errorMessage,
+      progressOptions: progressOptions ?? this.progressOptions,
+      approvalOptions: approvalOptions ?? this.approvalOptions,
     );
   }
 
@@ -48,5 +59,7 @@ class ReserveOrderListState extends Equatable {
     lastPage,
     total,
     errorMessage,
+    progressOptions,
+    approvalOptions,
   ];
 }

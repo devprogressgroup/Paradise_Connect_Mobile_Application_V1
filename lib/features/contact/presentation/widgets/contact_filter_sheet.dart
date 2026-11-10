@@ -139,6 +139,7 @@ class _ContactFilterSheetState extends State<ContactFilterSheet> {
   }
 
   ContactFilterResult _buildResult() => ContactFilterResult(
+    checks: {for (final e in _stagedChecks.entries) e.key: {...e.value}},
     statusIds: _stagedChecks['status'] ?? const {},
     channelIds: _stagedChecks['channel'] ?? const {},
     channelDetailIds: _stagedChecks['channelDetail'] ?? const {},
@@ -320,6 +321,10 @@ class _ContactFilterSheetState extends State<ContactFilterSheet> {
     switch (key) {
       case 'status':
         return Icons.flag_rounded;
+      case 'progressAkad':
+        return Icons.trending_up_rounded;
+      case 'approval':
+        return Icons.fact_check_rounded;
       case 'channel':
         return Icons.hub_rounded;
       case 'channelDetail':

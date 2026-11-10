@@ -62,7 +62,13 @@ class ContactFilterResult {
   final DateRangeValue? lostDate;
   final String? project;
 
+  /// SEMUA pilihan checkbox per `key` grup (ContactCheckGroup / PaginatedCheckGroup) — termasuk grup tambahan
+  /// di luar field tetap di atas (mis. "Progres Akad" & "Persetujuan" list Reserve Order). Field tetap di atas
+  /// tetap diisi seperti biasa, jadi pemakai lama (Contacts) tidak berubah.
+  final Map<String, Set<int>> checks;
+
   const ContactFilterResult({
+    this.checks = const {},
     required this.statusIds,
     required this.channelIds,
     required this.channelDetailIds,

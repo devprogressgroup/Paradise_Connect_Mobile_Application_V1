@@ -14,6 +14,13 @@ class ReserveOrderListItem {
   final int amount;
   final String category;
   final String dateLabel;
+
+  /// Milestone terakhir yg aktif (mis. "Siap Akad") — badge di bawah status; null = tidak ada.
+  final String? milestoneLabel;
+
+  /// Status approval server: `approved` / `pending` / `rejected`; [saApproval] null = belum giliran SA.
+  final String? kasirApproval;
+  final String? saApproval;
   final DateTime createdAt;
 
   const ReserveOrderListItem({
@@ -27,6 +34,9 @@ class ReserveOrderListItem {
     required this.amount,
     required this.category,
     required this.dateLabel,
+    this.milestoneLabel,
+    this.kasirApproval,
+    this.saApproval,
     required this.createdAt,
   });
 
@@ -34,11 +44,11 @@ class ReserveOrderListItem {
     return ReserveOrderListItem(
       reserveOrderId: e.reserveOrderId,
       customerName: e.customerName,
-      status: e.isRejected
-          ? 'Ditolak'
-          : (e.statusReserveName ?? e.statusLabel ?? '-'),
+      // Badge = status reserve TERAKHIR dari server apa adanya (mis. "Reserve"), TIDAK diganti "Ditolak" —
+      // penolakan Kasir/SA sudah tampil di baris approval ("Kasir ❌", [kasirApproval]/[saApproval]).
+      status: e.statusReserveName ?? e.statusLabel ?? '-',
       statusColor: reserveOrderStatusColor(
-        isRejected: e.isRejected,
+        isRejected: false,
         statusReserveId: e.statusReserveId,
       ),
       unitName: e.unitName ?? '-',
@@ -47,6 +57,11 @@ class ReserveOrderListItem {
       amount: e.amount.round(),
       category: e.category ?? '-',
       dateLabel: e.dateLabel ?? '-',
+      milestoneLabel: (e.currentMilestoneLabel?.trim().isNotEmpty ?? false)
+          ? e.currentMilestoneLabel!.trim()
+          : null,
+      kasirApproval: e.kasirApproval,
+      saApproval: e.saApproval,
       createdAt: e.createdAt,
     );
   }

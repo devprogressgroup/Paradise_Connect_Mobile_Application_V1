@@ -1,32 +1,37 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:progress_group/core/constants/colors.dart';
+import 'package:progress_group/core/utils/widget/custom_snackbar.dart';
 import 'package:progress_group/features/reserve-order/domain/entities/property_virtual_account_entity.dart';
 import 'package:progress_group/features/reserve-order/presentation/state/virtual_account/reserve_virtual_account_cubit.dart';
 import 'package:progress_group/features/reserve-order/presentation/state/virtual_account/reserve_virtual_account_state.dart';
+import 'package:progress_group/features/reserve-order/presentation/widgets/virtual_account_copy_button.dart';
 
-/// Baris "Virtual Account" di kartu ringkasan Review Create Reserve Order — style sama dengan
-/// baris ringkasan lain (label abu-abu kiri, nilai tebal rata kanan).
+/// Pemuat VA untuk SELURUH Review Create Reserve Order — dipasang 1x membungkus isi Review.
 ///
-/// VA dimuat saat baris ini tampil (masuk Review) dan dibatalkan saat hilang (keluar Review) —
-/// lihat [ReserveVirtualAccountCubit]. Hanya tampilan: gagal memuat tidak memblokir submit.
-class ReviewVirtualAccountLine extends StatefulWidget {
+/// VA SEMUA unit dimuat saat Review tampil dan dibatalkan saat Review ditinggalkan — lihat
+/// [ReserveVirtualAccountCubit]. Sengaja dipisah dari [ReviewVirtualAccountLine]:
+/// [ReserveVirtualAccountCubit.load] menaikkan generation & mengganti seluruh state, jadi kalau
+/// tiap kartu unit memanggil `load()` sendiri, kartu berikutnya membatalkan hasil kartu
+/// sebelumnya (tertahan di "Memuat…").
+class ReviewVirtualAccountLoader extends StatefulWidget {
   final List<VirtualAccountLookup> units;
+  final Widget child;
 
-  const ReviewVirtualAccountLine({super.key, required this.units});
+  const ReviewVirtualAccountLoader({
+    super.key,
+    required this.units,
+    required this.child,
+  });
 
   @override
-  State<ReviewVirtualAccountLine> createState() =>
-      _ReviewVirtualAccountLineState();
+  State<ReviewVirtualAccountLoader> createState() =>
+      _ReviewVirtualAccountLoaderState();
 }
 
-class _ReviewVirtualAccountLineState extends State<ReviewVirtualAccountLine> {
+class _ReviewVirtualAccountLoaderState
+    extends State<ReviewVirtualAccountLoader> {
   late final ReserveVirtualAccountCubit _cubit;
-
-  static const _monoStyle = TextStyle(
-    fontFamily: 'monospace',
-    fontFamilyFallback: ['Menlo', 'Courier New', 'Courier'],
-  );
 
   @override
   void initState() {
@@ -36,7 +41,7 @@ class _ReviewVirtualAccountLineState extends State<ReviewVirtualAccountLine> {
   }
 
   @override
-  void didUpdateWidget(covariant ReviewVirtualAccountLine oldWidget) {
+  void didUpdateWidget(covariant ReviewVirtualAccountLoader oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (_signature(oldWidget.units) != _signature(widget.units)) {
       _cubit.load(widget.units);
@@ -51,6 +56,26 @@ class _ReviewVirtualAccountLineState extends State<ReviewVirtualAccountLine> {
 
   String _signature(List<VirtualAccountLookup> units) =>
       units.map((u) => u.signature).join(',');
+
+  @override
+  Widget build(BuildContext context) => widget.child;
+}
+
+/// Baris "Virtual Account" di kartu unit Review Create Reserve Order — style sama dengan baris
+/// review lain (label abu-abu kiri, nilai tebal rata kanan, garis bawah).
+///
+/// Hanya MEMBACA status VA unit [unitKey] dari [ReserveVirtualAccountCubit]; pemuatan dilakukan
+/// [ReviewVirtualAccountLoader]. Hanya tampilan: gagal memuat tidak memblokir submit.
+class ReviewVirtualAccountLine extends StatelessWidget {
+  /// `VirtualAccountLookup.unitKey` unit ini (= `ReserveUnitOption.id`).
+  final String unitKey;
+
+  const ReviewVirtualAccountLine({super.key, required this.unitKey});
+
+  static const _monoStyle = TextStyle(
+    fontFamily: 'monospace',
+    fontFamilyFallback: ['Menlo', 'Courier New', 'Courier'],
+  );
 
   @override
   Widget build(BuildContext context) {
@@ -73,19 +98,12 @@ class _ReviewVirtualAccountLineState extends State<ReviewVirtualAccountLine> {
                   ReserveVirtualAccountCubit,
                   ReserveVirtualAccountState
                 >(
-                  builder: (context, state) {
-                    final showUnitName = widget.units.length > 1;
-                    return Column(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        for (var i = 0; i < widget.units.length; i++) ...[
-                          if (i > 0) const SizedBox(height: 8),
-                          if (showUnitName) _unitName(widget.units[i].unitName),
-                          ..._values(state.units[widget.units[i].unitKey]),
-                        ],
-                      ],
-                    );
-                  },
+                  buildWhen: (prev, next) =>
+                      prev.units[unitKey] != next.units[unitKey],
+                  builder: (context, state) => Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: _values(context, state.units[unitKey]),
+                  ),
                 ),
           ),
         ],
@@ -93,16 +111,7 @@ class _ReviewVirtualAccountLineState extends State<ReviewVirtualAccountLine> {
     );
   }
 
-  Widget _unitName(String name) => Padding(
-    padding: const EdgeInsets.only(bottom: 2),
-    child: Text(
-      name,
-      textAlign: TextAlign.right,
-      style: TextStyle(fontSize: 10.5, color: Color(grey4Color)),
-    ),
-  );
-
-  List<Widget> _values(UnitVirtualAccountState? unit) {
+  List<Widget> _values(BuildContext context, UnitVirtualAccountState? unit) {
     switch (unit?.status) {
       case null:
       case UnitVirtualAccountStatus.loading:
@@ -117,7 +126,10 @@ class _ReviewVirtualAccountLineState extends State<ReviewVirtualAccountLine> {
         if (unit!.accounts.isEmpty) {
           return [_status('Belum ada Virtual Account', Color(grey4Color))];
         }
-        return [for (final va in unit.accounts) _account(va)];
+        return [
+          for (final (i, va) in unit.accounts.indexed)
+            _account(context, va, isFirst: i == 0),
+        ];
     }
   }
 
@@ -127,22 +139,64 @@ class _ReviewVirtualAccountLineState extends State<ReviewVirtualAccountLine> {
     style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: color),
   );
 
-  /// `{bank_name} · {virtual_account_full}` — nomor pakai font monospace.
-  Widget _account(VirtualAccountEntity va) => Padding(
-    padding: const EdgeInsets.only(bottom: 2),
-    child: RichText(
-      textAlign: TextAlign.right,
-      text: TextSpan(
-        style: TextStyle(
-          fontSize: 12,
-          fontWeight: FontWeight.w700,
-          color: Color(blackColor),
+  /// Satu blok per VA, rata kanan: nama bank (kecil, abu-abu) di atas, `virtual_account_full`
+  /// (monospace, tebal) di bawahnya; tombol salin di kanan blok.
+  Widget _account(
+    BuildContext context,
+    VirtualAccountEntity va, {
+    required bool isFirst,
+  }) => Padding(
+    padding: EdgeInsets.only(top: isFirst ? 0 : 6),
+    child: Row(
+      mainAxisAlignment: MainAxisAlignment.end,
+      children: [
+        Flexible(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (va.bankName.isNotEmpty)
+                Text(
+                  va.bankName,
+                  textAlign: TextAlign.right,
+                  style: TextStyle(fontSize: 11, color: Color(grey4Color)),
+                ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  const SizedBox(width: 4),
+                  VirtualAccountCopyButton(
+                    number: va.virtualAccountFull,
+                    onCopied: () => _showCopied(context, va),
+                  ),
+                  Text(
+                    va.virtualAccountFull,
+                    textAlign: TextAlign.right,
+                    style: _monoStyle.copyWith(
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w700,
+                      color: Color(blackColor),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
-        children: [
-          if (va.bankName.isNotEmpty) TextSpan(text: '${va.bankName} · '),
-          TextSpan(text: va.virtualAccountFull, style: _monoStyle),
-        ],
-      ),
+       
+      ],
     ),
   );
+
+  /// SnackBar konfirmasi — aman di sini karena Review adalah halaman biasa (bukan bottom sheet).
+  void _showCopied(BuildContext context, VirtualAccountEntity va) {
+    if (!context.mounted) return;
+    final bank = va.bankName.isEmpty ? '' : ' ${va.bankName}';
+    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+    showSnackbar(
+      context,
+      'Nomor VA$bank disalin: ${va.virtualAccountFull}',
+      duration: const Duration(seconds: 2),
+    );
+  }
 }

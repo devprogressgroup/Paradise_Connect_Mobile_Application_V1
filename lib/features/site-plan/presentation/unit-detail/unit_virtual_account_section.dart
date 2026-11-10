@@ -2,6 +2,7 @@ import 'package:dartz/dartz.dart';
 import 'package:flutter/material.dart';
 import 'package:progress_group/core/constants/colors.dart';
 import 'package:progress_group/features/reserve-order/domain/entities/property_virtual_account_entity.dart';
+import 'package:progress_group/features/reserve-order/presentation/widgets/virtual_account_copy_button.dart';
 
 typedef VirtualAccountResult =
     Either<VirtualAccountFailure, PropertyVirtualAccountEntity>;
@@ -105,11 +106,11 @@ class UnitVirtualAccountSection extends StatelessWidget {
     ],
   );
 
-  /// Nama bank kiri, `virtual_account_full` kanan (monospace) — gaya sama dgn baris angsuran.
+  /// Nama bank kiri, `virtual_account_full` kanan (monospace) + tombol salin — gaya sama dgn
+  /// baris angsuran.
   Widget _row(VirtualAccountEntity va) => Padding(
     padding: const EdgeInsets.only(bottom: 6),
     child: Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Expanded(
           child: Text(
@@ -122,6 +123,9 @@ class UnitVirtualAccountSection extends StatelessWidget {
           va.virtualAccountFull,
           style: _monoStyle.copyWith(fontSize: 13, fontWeight: FontWeight.w700),
         ),
+        const SizedBox(width: 2),
+        // Di dalam modal bottom sheet → umpan balik cukup dari tombol (ikon ✓), tanpa SnackBar.
+        VirtualAccountCopyButton(number: va.virtualAccountFull, size: 16),
       ],
     ),
   );

@@ -285,6 +285,7 @@ class ReserveOrderDetailModel extends ReserveOrderDetailEntity {
     super.canChangeUnit,
     super.topupLockedReason,
     super.editLockedReason,
+    super.caraBayarLockedReason,
     super.docLockedReason,
     super.deleteLockedReason,
     super.canEdit,
@@ -334,6 +335,7 @@ class ReserveOrderDetailModel extends ReserveOrderDetailEntity {
       canChangeUnit: json['can_change_unit'] == true,
       topupLockedReason: json['topup_locked_reason'] as String?,
       editLockedReason: json['edit_locked_reason'] as String?,
+      caraBayarLockedReason: json['cara_bayar_locked_reason'] as String?,
       docLockedReason: json['doc_locked_reason'] as String?,
       deleteLockedReason: json['delete_locked_reason'] as String?,
       // Default true bila backend lama belum kirim flag — server tetap menolak (403) bila tak berhak.

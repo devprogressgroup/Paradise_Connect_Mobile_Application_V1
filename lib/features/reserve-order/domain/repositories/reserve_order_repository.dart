@@ -44,6 +44,8 @@ abstract class ReserveOrderRepository {
     List<int>? generalManagerIds,
     List<int>? salesTeamIds,
     String? project,
+    List<int>? milestoneIds,
+    List<int>? approvalIds,
     bool uniqueCustomer = false,
     int page,
     int perPage,

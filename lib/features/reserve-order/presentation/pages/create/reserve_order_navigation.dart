@@ -64,13 +64,14 @@ void navigateToCreateReserveOrder(
   final npwp = _matchAttachment(attachments, 'npwp');
 
   // Name SP (t_deals.name_sp deal terakhir, diisi di form Update Status) didahulukan utk "Nama
-  // Lengkap (sesuai KTP)" — kosong → nama contact seperti biasa.
+  // Lengkap (sesuai KTP)" — kosong / placeholder "-" → nama contact (Full Name) seperti biasa.
   final nameSp = contact.nameSP?.trim() ?? '';
+  final nameSpValid = nameSp.isNotEmpty && nameSp != '-';
 
   final route = MaterialPageRoute<void>(
     builder: (_) => CreateReserveOrderPage(
       contactId: contactId,
-      contactName: nameSp.isNotEmpty ? nameSp : contact.fullName,
+      contactName: nameSpValid ? nameSp : contact.fullName,
       contactPhone: contact.whatsappNumber ?? contact.primaryPhone,
       contactKtpNumber: contact.noKtp,
       contactAddress: contact.ktpAddress,

@@ -435,6 +435,11 @@ class ReserveOrderDetailEntity extends Equatable {
   /// `can_edit`/`can_delete` ikut false dari backend, upload/hapus dokumen juga disembunyikan).
   final String? editLockedReason;
 
+  /// `cara_bayar_locked_reason` — terisi kalau order sudah SP: HANYA Cara Pembayaran yang dikunci
+  /// (baris tab Customer & field form Edit Data Pembeli tampil terkunci + alasan ini); data pembeli
+  /// lain tetap bisa diedit. Ditolak juga di server (422) kalau tetap dikirim berubah.
+  final String? caraBayarLockedReason;
+
   /// `doc_locked_reason` — terisi kalau salah satu RO customer ini sudah Akad: dokumen customer
   /// (`attachments[].locked`) tidak bisa diganti/dihapus, tambah dokumen tetap boleh (RO belum Akad).
   final String? docLockedReason;
@@ -496,6 +501,7 @@ class ReserveOrderDetailEntity extends Equatable {
     this.canChangeUnit = false,
     this.topupLockedReason,
     this.editLockedReason,
+    this.caraBayarLockedReason,
     this.docLockedReason,
     this.deleteLockedReason,
     this.canEdit = true,
@@ -544,6 +550,7 @@ class ReserveOrderDetailEntity extends Equatable {
     canChangeUnit,
     topupLockedReason,
     editLockedReason,
+    caraBayarLockedReason,
     docLockedReason,
     deleteLockedReason,
     canEdit,

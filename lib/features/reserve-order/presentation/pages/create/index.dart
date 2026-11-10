@@ -2065,7 +2065,7 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
         expanded,
         product.displayName,
         product.spec ?? '',
-        product.totalAvailable,
+        _visibleProductAvailable(state, product),
         () => cubit.toggleProduct(product),
       ),
       if (expanded) ...[
@@ -2126,6 +2126,24 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
     ];
   }
 
+  // Angka "N tersedia" ikut hasil search. Saat search aktif, hitung dari kavling Available yang
+  // benar-benar tampil (sudah difilter search di BE). Kalau kavling belum dimuat, pakai total server.
+  int _visibleProductAvailable(UnitPickerState state, UnitProduct product) {
+    if (state.search.isEmpty) return product.totalAvailable;
+    final lots = state.lotsByProduct[UnitPickerCubit.productKey(product)];
+    if (lots == null) return product.totalAvailable;
+    return lots.where((l) => (l.displayStatusName ?? 'Available') == 'Available').length;
+  }
+
+  int _visibleClusterAvailable(UnitPickerState state, UnitCluster cluster) {
+    if (state.search.isEmpty) return cluster.totalAvailable;
+    var total = 0;
+    for (final p in cluster.products) {
+      total += _visibleProductAvailable(state, p);
+    }
+    return total;
+  }
+
   List<Widget> _otherClusterTiles(
     UnitPickerCubit cubit,
     UnitPickerState state,
@@ -2139,7 +2157,7 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
         child: _otherClusterHeaderTile(
           expanded,
           cluster.projectName,
-          cluster.totalAvailable,
+          _visibleClusterAvailable(state, cluster),
           () => cubit.toggleCluster(cluster.projectId),
         ),
       ),
@@ -3283,6 +3301,9 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
           if (_isResubmit && d.unit.id != _currentUnit?.id)
             _reviewLine('Ganti dari', _currentUnit?.name ?? '-'),
           _reviewLine('Cara Bayar', modes.isEmpty ? '-' : modes),
+          // VA milik unit → tampil di kartu unitnya sendiri. Datanya dimuat 1x untuk semua unit
+          // oleh ReviewVirtualAccountLoader (lihat _withVirtualAccountLoader).
+          if (!_isResubmit) ReviewVirtualAccountLine(unitKey: d.unit.id),
           BlocBuilder<PaymentTypeBloc, PaymentTypeState>(
             builder: (context, state) =>
                 _reviewLine('Jenis Pembayaran', _paymentTypeLabel(d, state)),
@@ -3304,6 +3325,15 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
 
   bool get _hasKtp =>
       _ktpFile != null || (_existingKtpUrl != null && _existingKtpUrl!.isNotEmpty);
+
+  /// VA SEMUA unit dimuat 1x untuk seluruh Review; kartu unit hanya membaca hasilnya
+  /// ([ReviewVirtualAccountLine]). Pengajuan Ulang tidak menampilkan VA → tanpa pemuat.
+  Widget _withVirtualAccountLoader(Widget child) => _isResubmit
+      ? child
+      : ReviewVirtualAccountLoader(
+          units: _virtualAccountLookups(),
+          child: child,
+        );
 
   /// Unit untuk baris "Virtual Account" — `company_id`/`property_id` SAMA dengan `units[i]` yang
   /// dikirim di [_submitReserveOrder]; township = project terpilih.
@@ -3357,7 +3387,7 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
           ),
           _stepIndicator(4),
           Expanded(
-            child: SingleChildScrollView(
+            child: _withVirtualAccountLoader(SingleChildScrollView(
               padding: const EdgeInsets.all(16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -3425,10 +3455,6 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
                             'Jumlah Unit',
                             '${_unitDrafts.length} unit',
                           ),
-                        if (!_isResubmit)
-                          ReviewVirtualAccountLine(
-                            units: _virtualAccountLookups(),
-                          ),
                         _reviewLine(
                           _isResubmit ? 'Total Pembayaran' : 'Total Semua Unit',
                           '${_formatRupiah(grandTotal)} ✓',
@@ -3448,7 +3474,7 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
                   for (final d in _unitDrafts) _reviewUnitCard(d),
                 ],
               ),
-            ),
+            )),
           ),
           _footer(
             submitting

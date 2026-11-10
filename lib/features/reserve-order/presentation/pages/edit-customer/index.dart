@@ -67,6 +67,10 @@ class _EditCustomerReserveOrderPageState
   String? _caraBayarName;
   late final TextEditingController _caraBayarLainnyaCtrl;
 
+  /// `cara_bayar_locked_reason` detail — terisi kalau order sudah SP: Cara Pembayaran tampil terkunci
+  /// (tidak bisa dipilih) & TIDAK ikut terkirim saat Save; field lain tetap bisa diedit.
+  String? _caraBayarLockedReason;
+
   /// Isian kuesioner (null = detail tidak punya kuesioner) — ikut terkirim saat Save.
   ReserveQuestionnaireController? _questionnaire;
 
@@ -80,6 +84,9 @@ class _EditCustomerReserveOrderPageState
     if (questionnaire != null) {
       _questionnaire = ReserveQuestionnaireController(questionnaire);
     }
+    _caraBayarLockedReason = detail?.reserveOrderId == widget.reserveOrderId
+        ? detail?.caraBayarLockedReason
+        : null;
     _values = Map<String, dynamic>.of(widget.customer.raw);
     _highlightedKey = widget.highlightKey;
     _caraBayarId = (_values['cara_bayar_id'] as num?)?.toInt();
@@ -586,6 +593,7 @@ class _EditCustomerReserveOrderPageState
   /// bukan pilihan teks tetap, karena yang dikirim balik ke backend adalah `cara_bayar_id`
   /// (kolom t_reserve_order), bukan namanya.
   Widget _caraBayarField(ReserveCustomerFieldSpec f) {
+    final lockedReason = _caraBayarLockedReason;
     return BlocBuilder<CaraBayarBloc, CaraBayarState>(
       builder: (context, state) => Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -594,17 +602,24 @@ class _EditCustomerReserveOrderPageState
             fieldKey: f.key,
             label: f.label,
             value: _caraBayarName,
-            onTap: () => _pickCaraBayar(state.items),
+            // Sudah SP → tidak bisa dipilih; tap = tampilkan alasannya.
+            onTap: lockedReason != null
+                ? () => showSnackbar(context, lockedReason)
+                : () => _pickCaraBayar(state.items),
+            lockedReason: lockedReason,
           ),
           if (_caraBayarName == 'Lainnya')
             _fieldFrame(
               'cara_bayar_lainnya',
               TextField(
                 controller: _caraBayarLainnyaCtrl,
-                style: const TextStyle(
+                readOnly: lockedReason != null,
+                style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w700,
-                  color: Color(blackColor),
+                  color: Color(
+                    lockedReason != null ? grey4Color : blackColor,
+                  ),
                 ),
                 decoration: InputDecoration(
                   isDense: true,
@@ -697,12 +712,16 @@ class _EditCustomerReserveOrderPageState
   /// Field "pilihan" underline (tanggal/opsi/ya-tidak) — gaya `ContactFormPage._buildFieldDown`:
   /// label kecil di atas nilai kalau sudah terisi, atau label besar sebagai placeholder kalau
   /// masih kosong, + panah dropdown di kanan.
+  /// [lockedReason] terisi = field terkunci: nilai abu-abu, ikon gembok (bukan panah) + alasan di
+  /// bawahnya.
   Widget _buildPickerField({
     required String fieldKey,
     required String label,
     required String? value,
     required VoidCallback onTap,
+    String? lockedReason,
   }) {
+    final locked = lockedReason != null;
     final highlighted = fieldKey == _highlightedKey;
     final labelColor = highlighted
         ? const Color(primaryColor)
@@ -742,19 +761,40 @@ class _EditCustomerReserveOrderPageState
                           style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w700,
-                            color: highlighted
+                            color: locked
+                                ? const Color(grey4Color)
+                                : highlighted
                                 ? const Color(primaryColor)
                                 : const Color(blackColor),
                           ),
                         ),
+                  if (lockedReason != null) ...[
+                    const SizedBox(height: 3),
+                    Text(
+                      lockedReason,
+                      style: const TextStyle(
+                        fontSize: 10.5,
+                        color: Color(grey4Color),
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),
-            const Icon(
-              Icons.arrow_drop_down,
-              size: 28,
-              color: Color(grey4Color),
-            ),
+            locked
+                ? const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 6),
+                    child: Icon(
+                      Icons.lock_outline,
+                      size: 16,
+                      color: Color(grey4Color),
+                    ),
+                  )
+                : const Icon(
+                    Icons.arrow_drop_down,
+                    size: 28,
+                    color: Color(grey4Color),
+                  ),
           ],
         ),
       ),
@@ -823,6 +863,15 @@ class _EditCustomerReserveOrderPageState
     raw['cara_bayar_id'] = _caraBayarId;
     final caraBayarLainnya = _caraBayarLainnyaCtrl.text.trim();
     raw['cara_bayar_lainnya'] = caraBayarLainnya.isEmpty ? null : caraBayarLainnya;
+    // Sudah SP → Cara Pembayaran dikunci: tidak dikirim sama sekali (server juga menolak kalau berubah).
+    if (_caraBayarLockedReason != null) {
+      raw
+        ..remove('cara_bayar_id')
+        ..remove('cara_bayar_lainnya');
+    }
+    // Cara Bayar Realisasi hanya untuk tampil di Detail (tidak bisa diedit dari app) → jangan
+    // ikut dikirim. Server juga mengabaikannya; ini sekadar kerapian payload.
+    raw.remove('cara_bayar_realisasi');
     return raw;
   }
 }
