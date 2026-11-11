@@ -96,6 +96,9 @@ class _SelectContactForReserveOrderPageState extends State<SelectContactForReser
       getReserveOrderListUseCase: context
           .read<ReserveOrderListCubit>()
           .getReserveOrderListUseCase,
+      getReserveOrderFilterSalesUseCase: context
+          .read<ReserveOrderListCubit>()
+          .getReserveOrderFilterSalesUseCase,
     );
     context.read<InfoSourceBloc>().add(const FetchInfoSourcesEvent(type: 1));
     _scrollController.addListener(_onScroll);

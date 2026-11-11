@@ -1,4 +1,7 @@
+import 'package:dartz/dartz.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:progress_group/features/reserve-order/domain/entities/reserve_order_filter_sales_entity.dart';
+import 'package:progress_group/features/reserve-order/domain/usecases/get_reserve_order_filter_sales_usecase.dart';
 import 'package:progress_group/features/reserve-order/domain/usecases/get_reserve_order_list_usecase.dart';
 import 'reserve_order_list_state.dart';
 
@@ -14,9 +17,17 @@ import 'reserve_order_list_state.dart';
 /// LAMA, jadi query ke server tetap ke-filter walau UI sudah kelihatan "0 filter aktif".
 class ReserveOrderListCubit extends Cubit<ReserveOrderListState> {
   final GetReserveOrderListUseCase getReserveOrderListUseCase;
+  final GetReserveOrderFilterSalesUseCase getReserveOrderFilterSalesUseCase;
 
-  ReserveOrderListCubit({required this.getReserveOrderListUseCase})
-    : super(const ReserveOrderListState());
+  ReserveOrderListCubit({
+    required this.getReserveOrderListUseCase,
+    required this.getReserveOrderFilterSalesUseCase,
+  }) : super(const ReserveOrderListState());
+
+  /// Pilihan dropdown Sales filter (`GET /reserve-order/filter-sales`). Dipanggil page, hasilnya di-cache
+  /// di page; tidak ikut state list karena tidak mempengaruhi query list.
+  Future<Either<String, ReserveOrderFilterSalesEntity>> fetchFilterSales() =>
+      getReserveOrderFilterSalesUseCase();
 
   String? _search;
   List<int> _statusIds = const [];

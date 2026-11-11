@@ -10,6 +10,7 @@ import 'package:progress_group/features/reserve-order/domain/entities/edit_reser
 import 'package:progress_group/features/reserve-order/domain/entities/payment_type_entity.dart';
 import 'package:progress_group/features/reserve-order/domain/entities/property_virtual_account_entity.dart';
 import 'package:progress_group/features/reserve-order/domain/entities/reserve_order_detail_entity.dart';
+import 'package:progress_group/features/reserve-order/domain/entities/reserve_order_filter_sales_entity.dart';
 import 'package:progress_group/features/reserve-order/domain/entities/reserve_order_list_item_entity.dart';
 import 'package:progress_group/features/reserve-order/domain/entities/reserve_status_entity.dart';
 import 'package:progress_group/features/reserve-order/domain/entities/resubmit_reserve_order_params.dart';
@@ -30,6 +31,7 @@ abstract class ReserveOrderRepository {
   Future<Either<String, CreateReserveOrderResultEntity>> createReserveOrder(
     CreateReserveOrderParams params,
   );
+  Future<Either<String, ReserveOrderFilterSalesEntity>> getFilterSales();
   Future<Either<String, ReserveOrderListResultEntity>> getReserveOrderList({
     String? search,
     List<int>? statusReserveIds,

@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:dartz/dartz.dart' show Either, Left, Right;
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:progress_group/core/utils/helpers/permissions_helper.dart';
@@ -11,6 +12,7 @@ import 'package:progress_group/core/utils/widget/custom_filter_button.dart';
 import 'package:progress_group/core/utils/widget/custom_search_field.dart';
 import 'package:progress_group/features/contact/data/arguments/contact_dropdown_args.dart';
 import 'package:progress_group/features/contact/data/models/dropdown/contact_filter_result.dart';
+import 'package:progress_group/features/contact/domain/entities/dropdown_option.dart';
 import 'package:progress_group/features/contact/domain/entities/info_source/info_source.dart';
 import 'package:progress_group/features/contact/presentation/state/info_source/info_source_bloc.dart';
 import 'package:progress_group/features/contact/presentation/state/info_source/info_source_event.dart';
@@ -18,6 +20,7 @@ import 'package:progress_group/features/contact/presentation/state/info_source/i
 import 'package:progress_group/features/contact/presentation/state/sales_hierarchy/sales_hierarchy_service.dart';
 import 'package:progress_group/features/contact/presentation/widgets/contact_filter_sheet.dart';
 import 'package:progress_group/features/reserve-order/data/models/reserve_order_list_item.dart';
+import 'package:progress_group/features/reserve-order/domain/entities/reserve_order_filter_sales_entity.dart';
 import 'package:progress_group/features/reserve-order/domain/entities/reserve_order_list_item_entity.dart';
 import 'package:progress_group/features/reserve-order/presentation/state/reserve_order_list/reserve_order_list_cubit.dart';
 import 'package:progress_group/features/reserve-order/presentation/state/reserve_order_list/reserve_order_list_state.dart';
@@ -77,6 +80,10 @@ class _ReserveOrderListPageState extends State<ReserveOrderListPage> {
   /// Filter "Progres Akad" (tahap setelah SP) & "Persetujuan" — pilihannya dari server (`filter_options`).
   Set<int> _progressIds = {};
   Set<int> _approvalIds = {};
+
+  /// Cache pilihan dropdown Sales (`GET /reserve-order/filter-sales`) — 1 request untuk semua dropdown Sales.
+  /// Di-null-kan lagi kalau gagal, jadi buka filter/Coba lagi berikutnya request ulang.
+  Future<Either<String, ReserveOrderFilterSalesEntity>>? _salesFuture;
 
   @override
   void initState() {
@@ -513,8 +520,49 @@ class _ReserveOrderListPageState extends State<ReserveOrderListPage> {
         .timeout(const Duration(seconds: 6), onTimeout: () => current);
   }
 
+  Future<Either<String, ReserveOrderFilterSalesEntity>> _ensureSales() {
+    return _salesFuture ??= _requestSales();
+  }
+
+  Future<Either<String, ReserveOrderFilterSalesEntity>> _requestSales() async {
+    final cubit = context.read<ReserveOrderListCubit>();
+    final result = await cubit.fetchFilterSales();
+    if (result.isLeft()) _salesFuture = null;
+    return result;
+  }
+
+  /// Grup dropdown Sales dari cache `filter-sales`. Datanya sudah lengkap (tidak paginasi), jadi search
+  /// dikerjakan lokal dan satu halaman saja.
+  PaginatedCheckGroup _salesGroup({
+    required String key,
+    required String label,
+    required List<DropdownOption> Function(ReserveOrderFilterSalesEntity) pick,
+  }) {
+    return PaginatedCheckGroup(
+      key: key,
+      label: label,
+      section: 'Sales',
+      retryable: true,
+      fetchPage: ({required int page, int perPage = 20, String? search}) async {
+        final result = await _ensureSales();
+        return result.fold<Either<String, ({List<DropdownOption> data, int lastPage, int total})>>(
+          (_) => const Left('Gagal memuat pilihan'),
+          (data) {
+            final all = pick(data);
+            final q = (search ?? '').trim().toLowerCase();
+            final filtered = q.isEmpty
+                ? all
+                : all.where((o) => o.name.toLowerCase().contains(q)).toList();
+            return Right((data: filtered, lastPage: 1, total: filtered.length));
+          },
+        );
+      },
+    );
+  }
+
   Future<void> _openFilterSheet() async {
     AnalyticsService.logEvent('reserve_order_list_filter');
+    _ensureSales(); // mulai ambil pilihan Sales sekarang; accordion Sales menunggu hasilnya
     final statusBloc = context.read<ReserveStatusBloc>();
     final sourceBloc = context.read<InfoSourceBloc>();
 
@@ -602,42 +650,12 @@ class _ReserveOrderListPageState extends State<ReserveOrderListPage> {
         section: 'Data Reserve',
         fetchPage: hierarchyService.channelDetail,
       ),
-      PaginatedCheckGroup(
-        key: 'owner',
-        label: 'Owner',
-        section: 'Sales',
-        fetchPage: hierarchyService.owners,
-      ),
-      PaginatedCheckGroup(
-        key: 'executive',
-        label: 'Sales Executive',
-        section: 'Sales',
-        fetchPage: hierarchyService.executives,
-      ),
-      PaginatedCheckGroup(
-        key: 'supervisor',
-        label: 'Sales Supervisor',
-        section: 'Sales',
-        fetchPage: hierarchyService.supervisors,
-      ),
-      PaginatedCheckGroup(
-        key: 'manager',
-        label: 'Sales Manager',
-        section: 'Sales',
-        fetchPage: hierarchyService.managers,
-      ),
-      PaginatedCheckGroup(
-        key: 'gm',
-        label: 'General Manager',
-        section: 'Sales',
-        fetchPage: hierarchyService.generalManagers,
-      ),
-      PaginatedCheckGroup(
-        key: 'team',
-        label: 'Sales Team',
-        section: 'Sales',
-        fetchPage: hierarchyService.teams,
-      ),
+      _salesGroup(key: 'owner', label: 'Owner', pick: (d) => d.owner),
+      _salesGroup(key: 'executive', label: 'Sales Executive', pick: (d) => d.salesExecutive),
+      _salesGroup(key: 'supervisor', label: 'Sales Supervisor', pick: (d) => d.salesSupervisor),
+      _salesGroup(key: 'manager', label: 'Sales Manager', pick: (d) => d.salesManager),
+      _salesGroup(key: 'gm', label: 'General Manager', pick: (d) => d.generalManager),
+      _salesGroup(key: 'team', label: 'Sales Team', pick: (d) => d.salesTeam),
     ];
 
     final initialChecks = <String, Set<int>>{

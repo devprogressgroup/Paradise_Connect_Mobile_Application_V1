@@ -8,6 +8,7 @@ import 'package:progress_group/features/reserve-order/data/models/customer_optio
 import 'package:progress_group/features/reserve-order/data/models/payment_type_model.dart';
 import 'package:progress_group/features/reserve-order/data/models/property_virtual_account_model.dart';
 import 'package:progress_group/features/reserve-order/data/models/reserve_order_detail_model.dart';
+import 'package:progress_group/features/reserve-order/data/models/reserve_order_filter_sales_model.dart';
 import 'package:progress_group/features/reserve-order/data/models/reserve_order_list_item_model.dart';
 import 'package:progress_group/features/reserve-order/data/models/reserve_status_model.dart';
 import 'package:progress_group/features/reserve-order/data/models/select_unit_model.dart';
@@ -21,6 +22,7 @@ import 'package:progress_group/features/reserve-order/domain/entities/update_res
 abstract class ReserveOrderRemoteDataSource {
   Future<List<ReserveStatusModel>> getReserveStatuses();
   Future<List<CaraBayarModel>> getCaraBayar();
+  Future<ReserveOrderFilterSalesModel> getFilterSales();
   Future<List<String>> getWorkCategory();
   Future<CustomerOptionsModel> getCustomerOptions();
   Future<List<PaymentTypeModel>> getPaymentTypes();
@@ -122,6 +124,24 @@ class ReserveOrderRemoteDataSourceImpl implements ReserveOrderRemoteDataSource {
       );
     } on DioException catch (e) {
       throw Exception(getErrorMessage(e, 'Failed to load reserve statuses'));
+    }
+  }
+
+  @override
+  Future<ReserveOrderFilterSalesModel> getFilterSales() async {
+    try {
+      final response = await dio.get('/reserve-order/filter-sales');
+
+      // Backend (ApiResponse::successResponse) memakai key `status`, bukan `success`.
+      if (response.data['status'] == true) {
+        return ReserveOrderFilterSalesModel.fromJson(
+          response.data['data'] as Map<String, dynamic>,
+        );
+      }
+
+      throw Exception(response.data['message'] ?? 'Gagal memuat pilihan');
+    } on DioException catch (e) {
+      throw Exception(getErrorMessage(e, 'Gagal memuat pilihan'));
     }
   }
 

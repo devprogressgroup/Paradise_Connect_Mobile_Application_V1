@@ -282,6 +282,22 @@ textarea:focus,input[type=text]:focus{border-color:var(--primary);outline:none}
 .empty{display:flex;flex-direction:column;align-items:center;gap:4px;text-align:center;padding:30px 16px;color:var(--grey2);font-size:12.5px}
 .empty b{color:var(--black);font-size:14px}
 
+/* ===== Activity (profil sales: statistik + grid kiriman) ===== */
+.kprof{display:flex;flex-direction:column;align-items:center;gap:2px;padding:22px 16px 16px;background:var(--white)}
+.kprof b{font-size:17px;margin-top:10px}.kprof>small{color:var(--grey2);font-size:12.5px}
+.kstats{display:flex;gap:32px;margin-top:16px;text-align:center}
+.kstats b{display:block;font-size:18px;margin-top:0}.kstats small{color:var(--grey2);font-size:12px}
+.kgrid{display:grid;grid-template-columns:1fr 1fr;gap:2px;margin-top:2px}
+.ktile{position:relative;aspect-ratio:1/1;overflow:hidden;background:#dfe5ee;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;text-align:center}
+.ktile .kimg{position:absolute;inset:0;display:block}
+.ktile .kimg .art{width:100%;height:100%}
+.ktile.st{background:linear-gradient(160deg,#9aa3b0,#5b6472)}
+.ktile.st.rej{background:linear-gradient(160deg,#ef7272,#c62828)}
+.ktile b{position:relative;font-size:15px;text-shadow:0 1px 3px rgba(0,0,0,.35)}
+.ktile small{position:relative;font-size:12px;text-shadow:0 1px 3px rgba(0,0,0,.35)}
+.kpin{position:absolute;left:8px;top:8px;z-index:1;background:rgba(255,255,255,.95);color:var(--primary);font-size:10.5px;font-weight:800;padding:3px 8px;border-radius:99px;display:flex;align-items:center;gap:4px}
+.klike{position:absolute;left:8px;bottom:8px;z-index:1;color:#fff;font-size:12.5px;font-weight:800;display:flex;align-items:center;gap:4px;text-shadow:0 1px 3px rgba(0,0,0,.5)}
+
 /* ===== komentar (bottom sheet) ===== */
 .sheet{position:absolute;inset:0;z-index:35}
 .sheet-bd{position:absolute;inset:0;background:rgba(10,22,41,.35);opacity:0;transition:opacity .2s}
@@ -720,7 +736,7 @@ button.db-t:hover{box-shadow:0 0 0 3px var(--db-acc-soft)}
     <!-- Sidebar -->
     <div class="scrim" id="scrim"></div>
     <aside class="drawer" id="drawer" aria-label="Sidebar">
-      <button class="prof" data-soon="Profile">
+      <button class="prof" data-kiriman-open>
         <span class="avatar"><i data-ic="person" data-s="36"></i></span>
         <span><b>Budi Santoso</b><small>Sales Executive · PAR1</small></span>
       </button>
@@ -822,6 +838,13 @@ button.db-t:hover{box-shadow:0 0 0 3px var(--db-acc-soft)}
       <div class="status"><span data-clock="hm">9:41</span><span>●●● 100%</span></div>
       <header class="hdr sub"><button class="hb" data-close aria-label="Kembali"><i data-ic="back" data-s="27"></i></button><h1>Draft &amp; Terjadwal</h1></header>
       <div class="form" id="draftList"></div>
+    </section>
+
+    <!-- Activity: profil sales + grid kirimannya -->
+    <section class="screen" id="sKiriman">
+      <div class="status"><span data-clock="hm">9:41</span><span>●●● 100%</span></div>
+      <header class="hdr sub"><button class="hb" data-close aria-label="Kembali"><i data-ic="back" data-s="27"></i></button><h1>Activity</h1></header>
+      <div class="form" id="kBody" style="padding:0 0 20px;gap:0"></div>
     </section>
 
     <!-- Komentar (bottom sheet) -->
@@ -1599,6 +1622,7 @@ function go(v){
   phone.classList.remove('drawer-open');
 }
 phone.addEventListener('click',e=>{
+  if(e.target.closest('[data-kiriman-open]')){phone.classList.remove('drawer-open');openScreen('sKiriman');return}
   const g=e.target.closest('[data-go]');if(g){go(g.dataset.go);return}
   const s=e.target.closest('[data-soon]');if(s){phone.classList.remove('drawer-open');toast(`Halaman ${s.dataset.soon} tetap seperti sekarang (tidak termasuk prototype ini)`);return}
   if(e.target.closest('[data-drawer]'))phone.classList.add('drawer-open');
@@ -1833,6 +1857,20 @@ const posts=[
  P_({status:'review',a:LN,pillar:'sales',project:'PAR2',at:clock-80*MIN,via:'mobile',
    text:'Booth kami di pameran BSD hari ini, yuk mampir & bawa calon buyer!',media:[{k:'booth',o:{}}]})
 ];
+
+/* kiriman Budi (untuk layar Activity): 3 tayang, 2 draf, 1 ditolak */
+posts.push(
+ P_({a:ME,pillar:'produk',project:'PAR1',via:'mobile',at:clock-5*HOUR,likes:64,dislikes:0,pinAt:clock-HOUR,pinUntil:clock+2*DAY,
+   text:'Cluster Aurora tipe 78/120, rumah impian keluarga kecil 🏡 Yuk survei langsung ke lokasi!',media:[{k:'house',o:{label:'Tipe 78/120'}}]}),
+ P_({a:ME,pillar:'produk',project:'PAR1',via:'mobile',at:clock-30*HOUR,likes:28,
+   text:'Sore hari di Cluster Aurora, suasananya adem banget. Calon buyer langsung betah 😊',media:[{k:'house',o:{tone:'dusk',label:'Tipe 60/90'}}]}),
+ P_({status:'draft',a:ME,pillar:'sales',project:'PAR1',via:'mobile',at:clock-HOUR,
+   text:'Recap site visit akhir pekan: 4 keluarga datang, 2 minta simulasi KPR.',media:[]}),
+ P_({status:'draft',a:ME,pillar:'sales',project:'PAR1',via:'mobile',at:clock-3*HOUR,
+   text:'Testimoni keluarga Pak Hartono setelah serah terima kunci.',media:[{k:'award',o:{big:'SERAH TERIMA',name:'Keluarga Hartono',sub:'PAR1 · Oktober 2026'}}]}),
+ P_({status:'rejected',a:ME,pillar:'sales',project:'PAR1',via:'mobile',at:clock-10*HOUR,reason:'Foto kurang jelas, mohon unggah ulang dengan pencahayaan lebih baik.',
+   text:'Unit contoh BB12-38 siap survei hari ini!',media:[{k:'house',o:{label:'BB12-38'}}]})
+);
 
 /* util waktu */
 const hhmm=t=>{const d=new Date(t);return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0')};
@@ -2081,6 +2119,7 @@ function openScreen(id){
   if(id==='sLink')return openLinkForm();
   if(id==='sShare')drawForm('share');
   if(id==='sDrafts')renderDrafts();
+  if(id==='sKiriman')renderKiriman();
   document.getElementById(id).classList.add('open');
 }
 const closeScreen=id=>document.getElementById(id).classList.remove('open');
@@ -2153,11 +2192,33 @@ $('#sDrafts').addEventListener('click',e=>{
 });
 document.querySelectorAll('.screen:not([data-form]) [data-close]').forEach(b=>b.addEventListener('click',()=>b.closest('.screen').classList.remove('open')));
 
+/* ---------- MOBILE: Activity (profil sales) ---------- */
+function renderKiriman(){
+  const mine=posts.filter(p=>p.a===ME);
+  const pub=mine.filter(p=>p.status==='published').sort((a,b)=>b.at-a.at);
+  const drafts=mine.filter(p=>p.status==='draft'),rej=mine.filter(p=>p.status==='rejected');
+  const likes=pub.reduce((n,p)=>n+p.likes+(p.my===1?1:0),0),cmts=pub.reduce((n,p)=>n+countC(p),0);
+  const tiles=[];
+  if(drafts.length)tiles.push(`<button class="ktile st" data-kst="draft">${ic('draft',30)}<b>Draf</b><small>${drafts.length} kiriman</small></button>`);
+  if(rej.length)tiles.push(`<button class="ktile st rej" data-kst="rejected">${ic('block',30)}<b>Ditolak</b><small>${rej.length} kiriman</small></button>`);
+  pub.forEach(p=>{const th=thumbOf(p);
+    tiles.push(`<button class="ktile" data-kid="${p.id}"><span class="kimg">${th?art(th):''}</span>${isPinned(p)?`<span class="kpin">${ic('pin',12)}Disematkan</span>`:''}<span class="klike">${ic('heart',13)}${p.likes+(p.my===1?1:0)}</span></button>`)});
+  $('#kBody').innerHTML=`<div class="kprof"><span class="pav" style="width:86px;height:86px;font-size:26px;background:#6D5DD3">BS</span><b>Budi Santoso</b><small>Sales · PAR1</small>
+    <div class="kstats"><div><b>${pub.length}</b><small>Kiriman</small></div><div><b>${fmt(likes)}</b><small>Suka</small></div><div><b>${cmts}</b><small>Komentar</small></div></div></div>
+    <div class="kgrid">${tiles.join('')}</div>`;
+}
+$('#kBody').addEventListener('click',e=>{
+  const st=e.target.closest('[data-kst]');
+  if(st){if(st.dataset.kst==='draft'){openScreen('sDrafts');return}const r=posts.find(p=>p.a===ME&&p.status==='rejected');toast(`Alasan ditolak: ${r.reason}`);return}
+  const k=e.target.closest('[data-kid]');
+  if(k){closeScreen('sKiriman');go('home');const el=document.querySelector(`#stream [data-id="${k.dataset.kid}"]`);if(el)el.scrollIntoView({block:'center',behavior:'smooth'})}
+});
+
 /* menu FAB */
 $('#fab').onclick=()=>{const m=$('#menu');m.hidden=!m.hidden;$('#fab').setAttribute('aria-expanded',!m.hidden)};
 $('#menu').onclick=e=>{const b=e.target.closest('[data-open]');if(b){$('#menu').hidden=true;$('#fab').setAttribute('aria-expanded','false');openScreen(b.dataset.open)}};
 
-onChange(()=>{renderFeed();if($('#sDrafts').classList.contains('open'))renderDrafts();if(cPost)renderComments()});
+onChange(()=>{renderFeed();if($('#sDrafts').classList.contains('open'))renderDrafts();if(cPost)renderComments();if($('#sKiriman').classList.contains('open'))renderKiriman()});
 renderFeed();
 
 /* ---------- REPORT: isi dashboard lama ---------- */
@@ -2278,7 +2339,7 @@ function aList(){
   <div class="arow th"><span>Konten</span><span>Status</span><span>Jadwal / Waktu</span><span>Interaksi</span><span style="text-align:right">Aksi</span></div>
   ${rows.length?rows.map(p=>`<div class="arow" data-id="${p.id}"><div class="c-main">${athumb(p)}<div><b>${plain(p)}</b><span class="meta">${TYPE[p.type]} · ${p.project==='Semua'?'Semua project':p.project} · oleh ${p.a.name}${p.via==='mobile'?' (via App)':''}</span></div></div>
     <div class="c-stat">${sbadge(p)}${isPinned(p)?`<span class="abadge pin">${ic('pin',12)}Disematkan</span>${p.pinUntil?`<small class="amuted">s.d. ${when(p.pinUntil)}</small>`:''}`:''}</div><div class="c-time">${time(p)}</div>
-    <div class="c-eng">${p.status==='published'?`${ic('heart',14)}${p.likes+(p.my===1?1:0)} &nbsp;${ic('comment',14)}${countC(p)}${p.set.comment?'':'<span class="off">komentar off</span>'}`:'—'}</div>
+    <div class="c-eng">${p.status==='published'?`${ic('heart',14)}${p.likes+(p.my===1?1:0)} &nbsp;${ic('dislike',14)}${p.dislikes+(p.my===-1?1:0)} &nbsp;${ic('comment',14)}${countC(p)}${p.set.comment?'':'<span class="off">komentar off</span>'}`:'—'}</div>
     <div class="c-act">${act(p)}</div></div>`).join(''):`<div class="aempty">Tidak ada konten di kategori ini.</div>`}</div>`;
 }
 

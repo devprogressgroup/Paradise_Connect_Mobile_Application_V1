@@ -14,11 +14,15 @@ class PaginatedCheckGroup {
   final String label;
   final String section;
   final PaginatedFetch fetchPage;
+  /// Tampilkan tombol "Coba lagi" saat gagal memuat (dipakai filter Sales Reserve Order). Default off
+  /// supaya grup lain (Kontak) tampilannya tidak berubah.
+  final bool retryable;
   const PaginatedCheckGroup({
     required this.key,
     required this.label,
     required this.section,
     required this.fetchPage,
+    this.retryable = false,
   });
 }
 
