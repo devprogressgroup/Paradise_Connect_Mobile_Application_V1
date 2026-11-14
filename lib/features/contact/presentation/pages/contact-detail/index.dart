@@ -626,7 +626,7 @@ class _ContactDetailPageState extends State<ContactDetailPage>
             ContactOptionsSheet.buildIconLink(
               context,
               null,
-              "Reserve Order",
+              "Transaction",
               _navigateToReserveOrder,
               color: Color(primaryColor),
 
