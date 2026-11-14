@@ -269,6 +269,18 @@ class ReserveOrderSalesModel extends ReserveOrderSalesEntity {
   }
 }
 
+/// Alasan kunci KTP & pekerjaan. Kalau server kirim `ktp_locked_reason`, itu yang dipakai. Kalau tidak,
+/// RO yang sudah di-approve Kasir (`can_change_unit` false, aturan yang sama dgn unit) juga dikunci —
+/// tidak harus SP.
+String? _ktpLockedReasonOf(Map<String, dynamic> json) {
+  final server = json['ktp_locked_reason'] as String?;
+  if (server != null && server.trim().isNotEmpty) return server;
+  if (json.containsKey('can_change_unit') && json['can_change_unit'] != true) {
+    return 'Reserve order sudah di-approve Kasir — data KTP dan pekerjaan tidak bisa diubah lagi.';
+  }
+  return null;
+}
+
 class ReserveOrderDetailModel extends ReserveOrderDetailEntity {
   const ReserveOrderDetailModel({
     required super.reserveOrderId,
@@ -286,6 +298,7 @@ class ReserveOrderDetailModel extends ReserveOrderDetailEntity {
     super.topupLockedReason,
     super.editLockedReason,
     super.caraBayarLockedReason,
+    super.ktpLockedReason,
     super.docLockedReason,
     super.deleteLockedReason,
     super.canEdit,
@@ -336,6 +349,7 @@ class ReserveOrderDetailModel extends ReserveOrderDetailEntity {
       topupLockedReason: json['topup_locked_reason'] as String?,
       editLockedReason: json['edit_locked_reason'] as String?,
       caraBayarLockedReason: json['cara_bayar_locked_reason'] as String?,
+      ktpLockedReason: _ktpLockedReasonOf(json),
       docLockedReason: json['doc_locked_reason'] as String?,
       deleteLockedReason: json['delete_locked_reason'] as String?,
       // Default true bila backend lama belum kirim flag — server tetap menolak (403) bila tak berhak.

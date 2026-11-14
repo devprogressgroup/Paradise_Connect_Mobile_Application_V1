@@ -689,9 +689,7 @@ class _ChangeUnitViewState extends State<_ChangeUnitView> {
     final choice = _selected;
     if (choice == null) {
       setState(() => _tab = 'replacement');
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Pilih unit pengganti terlebih dahulu.')),
-      );
+      showSnackbar(context, 'Pilih unit pengganti terlebih dahulu.', isError: true);
       return;
     }
 

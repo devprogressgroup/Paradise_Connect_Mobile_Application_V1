@@ -64,7 +64,8 @@ class ReserveOrderDetailCubit extends Cubit<ReserveOrderDetailState> {
     );
   }
 
-  Future<String?> updateCustomer(
+  /// null = sukses. Gagal → [ReserveOrderCustomerFailure] (membawa `lockedFields` utk form).
+  Future<ReserveOrderCustomerFailure?> updateCustomer(
     int reserveOrderId,
     UpdateReserveOrderCustomerParams params,
   ) async {
@@ -76,14 +77,14 @@ class ReserveOrderDetailCubit extends Cubit<ReserveOrderDetailState> {
     );
 
     return result.fold(
-      (message) {
+      (failure) {
         emit(
           state.copyWith(
             status: ReserveOrderDetailStatus.loaded,
-            errorMessage: message,
+            errorMessage: failure.message,
           ),
         );
-        return message;
+        return failure;
       },
       (data) {
         emit(

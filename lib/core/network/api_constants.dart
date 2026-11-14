@@ -32,14 +32,12 @@ class ApiConstants {
       storageUrl: 'https://api.connect.paradise.id/storage',
       serverUrl: 'https://api.connect.paradise.id',
     ),
-
     AppEnvironment.development: _EnvConfig(
       label: 'Development IP',
       baseUrl: 'http://192.168.8.32:1100/api',
       storageUrl: 'http://192.168.8.32:1100/storage',
       serverUrl: 'http://192.168.8.32:1100',
     ),
-
     AppEnvironment.development2: _EnvConfig(
       label: 'Development 2',
       baseUrl: 'http://172.20.10.13:1100/api',
@@ -120,10 +118,8 @@ class ApiConstants {
   );
 
   static AppEnvironment get currentEnv => _currentEnv;
-  static String get envLabel =>
-      (_configs[_currentEnv] ?? _configs[AppEnvironment.production]!).label;
-  static String labelFor(AppEnvironment env) =>
-      (_configs[env] ?? _configs[AppEnvironment.production]!).label;
+  static String get envLabel => (_configs[_currentEnv] ?? _configs[AppEnvironment.production]!).label;
+  static String labelFor(AppEnvironment env) => (_configs[env] ?? _configs[AppEnvironment.production]!).label;
   static Set<AppEnvironment> get availableEnvironments => _configs.keys.toSet();
   static String baseUrlFor(AppEnvironment env) => _configs[env]?.baseUrl ?? '';
 
@@ -199,17 +195,12 @@ class ApiConstants {
   static String get appDownloadUrl => _appDownloadUrl;
   static String get saleskitUrl => _saleskitUrl;
   static String get loginHelpMessage => _loginHelpMessage;
-  static String get prospectStatusDefaultRangePreset =>
-      _prospectStatusDefaultRangePreset;
-  static String get prospectStatusApptRangePreset =>
-      _prospectStatusApptRangePreset;
-  static String get prospectStatusVisitRangePreset =>
-      _prospectStatusVisitRangePreset;
-  static String get prospectStatusReserveRangePreset =>
-      _prospectStatusReserveRangePreset;
+  static String get prospectStatusDefaultRangePreset =>_prospectStatusDefaultRangePreset;
+  static String get prospectStatusApptRangePreset =>_prospectStatusApptRangePreset;
+  static String get prospectStatusVisitRangePreset =>_prospectStatusVisitRangePreset;
+  static String get prospectStatusReserveRangePreset =>_prospectStatusReserveRangePreset;
   static String get prospectStatusSpRangePreset => _prospectStatusSpRangePreset;
-  static String get prospectStatusLostRangePreset =>
-      _prospectStatusLostRangePreset;
+  static String get prospectStatusLostRangePreset =>_prospectStatusLostRangePreset;
 
   // Cache /settings per environment supaya main() tidak perlu nunggu network sebelum runApp():
   // nilai terakhir langsung dipakai dari prefs, lalu fetch terbaru jalan di background.

@@ -125,6 +125,9 @@ class ReserveOrderDetail {
   /// bisa diedit).
   final String? caraBayarLockedReason;
 
+  /// Terisi kalau order sudah SP → field KTP & pekerjaan (kKtpLockedCustomerFields) terkunci.
+  final String? ktpLockedReason;
+
   /// Terisi kalau salah satu RO customer ini sudah Akad → dokumen customer (`locked`) tidak bisa
   /// diganti/dihapus; tambah dokumen tetap boleh.
   final String? docLockedReason;
@@ -189,6 +192,7 @@ class ReserveOrderDetail {
     this.topupLockedReason,
     this.editLockedReason,
     this.caraBayarLockedReason,
+    this.ktpLockedReason,
     this.docLockedReason,
     this.deleteLockedReason,
     this.canEdit = true,
@@ -268,6 +272,7 @@ class ReserveOrderDetail {
       topupLockedReason: e.topupLockedReason,
       editLockedReason: e.editLockedReason,
       caraBayarLockedReason: e.caraBayarLockedReason,
+      ktpLockedReason: e.ktpLockedReason,
       docLockedReason: e.docLockedReason,
       deleteLockedReason: e.deleteLockedReason,
       canEdit: e.canEdit,

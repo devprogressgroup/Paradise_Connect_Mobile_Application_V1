@@ -5,6 +5,7 @@ import 'package:progress_group/core/utils/helpers/error_message.dart';
 import 'package:progress_group/features/reserve-order/data/models/cara_bayar_model.dart';
 import 'package:progress_group/features/reserve-order/data/models/create_reserve_order_result_model.dart';
 import 'package:progress_group/features/reserve-order/data/models/customer_options_model.dart';
+import 'package:progress_group/features/reserve-order/data/models/reserve_order_customer_data.dart';
 import 'package:progress_group/features/reserve-order/data/models/payment_type_model.dart';
 import 'package:progress_group/features/reserve-order/data/models/property_virtual_account_model.dart';
 import 'package:progress_group/features/reserve-order/data/models/reserve_order_detail_model.dart';
@@ -91,6 +92,50 @@ abstract class ReserveOrderRemoteDataSource {
     required int propertyId,
   });
 }
+
+/// Gagal "Perbaiki Data Customer" yang membawa `error_code` body (mis. `KTP_LOCKED`) — [lockedFields]
+/// = `data.locked_fields` (key `customer[...]` yang ditolak). Dilempar hanya kalau body punya error_code.
+class ReserveOrderCustomerUpdateException implements Exception {
+  final String message;
+  final String? errorCode;
+  final List<String> lockedFields;
+
+  const ReserveOrderCustomerUpdateException(
+    this.message, {
+    this.errorCode,
+    this.lockedFields = const [],
+  });
+
+  @override
+  String toString() => message;
+}
+
+/// Nilai field sebagaimana dikirim ke server (bool → '1'/'0', sama dgn `customer[...]` di bawah).
+String? _wireValue(dynamic value) {
+  if (value == null) return null;
+  if (value is bool) return value ? '1' : '0';
+  return value.toString().trim();
+}
+
+/// RO sudah SP ([locked] = `ktp_locked_reason` terisi): buang field KTP/pekerjaan terkunci yang
+/// nilainya SAMA dgn data awal — kalau ikut terkirim, server menolak (`KTP_LOCKED`) walau yang
+/// diubah hanya NPWP. Field kosong (null) tetap dilewati seperti biasa.
+Map<String, dynamic> _withoutUnchangedLockedFields(
+  Map<String, dynamic> customer, {
+  required bool locked,
+  Map<String, dynamic>? original,
+}) {
+  if (!locked || original == null) return customer;
+  final out = Map<String, dynamic>.of(customer);
+  for (final key in kKtpLockedCustomerFields) {
+    if (!out.containsKey(key)) continue;
+    if (_wireValue(out[key]) == _wireValue(original[key])) out.remove(key);
+  }
+  return out;
+}
+
+List<String> _stringList(dynamic value) =>
+    value is List ? value.map((e) => e.toString()).toList() : const [];
 
 /// Gagal `GET /property/virtual-account` — [errorCode] = `error_code` body (`VA_NOT_FOUND`,
 /// `UNIT_NOT_FOUND`, `VALIDATION`, `AMBIGUOUS_UNIT`), null kalau gagal jaringan/timeout.
@@ -367,7 +412,14 @@ class ReserveOrderRemoteDataSourceImpl implements ReserveOrderRemoteDataSource {
     try {
       final data = <String, dynamic>{};
 
-      params.customer?.forEach((key, value) {
+      final customer = params.customer == null
+          ? null
+          : _withoutUnchangedLockedFields(
+              params.customer!,
+              locked: params.ktpLocked,
+              original: params.originalCustomer,
+            );
+      customer?.forEach((key, value) {
         if (value == null) return;
         data['customer[$key]'] = value is bool
             ? (value ? '1' : '0')
@@ -410,6 +462,18 @@ class ReserveOrderRemoteDataSourceImpl implements ReserveOrderRemoteDataSource {
         response.data['message'] ?? 'Failed to update reserve order',
       );
     } on DioException catch (e) {
+      final body = e.response?.data;
+      // 422 `error_code` (mis. KTP_LOCKED): bawa `data.locked_fields` ke UI, jangan cuma pesannya.
+      if (body is Map && body['error_code'] != null) {
+        final payload = body['data'];
+        throw ReserveOrderCustomerUpdateException(
+          getErrorMessage(e, 'Failed to update reserve order'),
+          errorCode: body['error_code'].toString(),
+          lockedFields: _stringList(
+            payload is Map ? payload['locked_fields'] : null,
+          ),
+        );
+      }
       throw Exception(getErrorMessage(e, 'Failed to update reserve order'));
     }
   }
@@ -601,7 +665,12 @@ class ReserveOrderRemoteDataSourceImpl implements ReserveOrderRemoteDataSource {
       final data = <String, dynamic>{};
       String ymd(DateTime d) => d.toIso8601String().split('T').first;
 
-      params.customer.forEach((key, value) {
+      final customer = _withoutUnchangedLockedFields(
+        params.customer,
+        locked: params.ktpLocked,
+        original: params.originalCustomer,
+      );
+      customer.forEach((key, value) {
         if (value == null) return;
         data['customer[$key]'] = value is bool
             ? (value ? '1' : '0')

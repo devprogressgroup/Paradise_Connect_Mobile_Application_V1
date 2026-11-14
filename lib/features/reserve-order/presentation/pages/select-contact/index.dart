@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:progress_group/core/utils/widget/custom_snackbar.dart';
 import 'package:progress_group/core/constants/colors.dart';
 import 'package:progress_group/core/services/analytics_service.dart';
 import 'package:progress_group/core/utils/helpers/initial_name_helper.dart';
@@ -446,20 +447,14 @@ class _SelectContactForReserveOrderPageState extends State<SelectContactForReser
       if (!mounted) return;
 
       final detail = result.fold((message) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(message)));
+        showSnackbar(context, message, isError: true);
         return null;
       }, (d) => d);
       if (detail == null) return;
 
       final contactId = detail.contactId;
       if (contactId == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Reserve Order ini tidak terhubung ke contact.'),
-          ),
-        );
+        showSnackbar(context, 'Reserve Order ini tidak terhubung ke contact.', isError: true);
         return;
       }
 
@@ -512,11 +507,7 @@ class _SelectContactForReserveOrderPageState extends State<SelectContactForReser
 
     final detail = state.contactDetail;
     if (state.status != ContactStatus.detailLoaded || detail == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(state.errorMessage ?? 'Gagal memuat detail contact.'),
-        ),
-      );
+      showSnackbar(context, state.errorMessage ?? 'Gagal memuat detail contact.', isError: true);
       return;
     }
 

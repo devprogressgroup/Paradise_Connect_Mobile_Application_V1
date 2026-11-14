@@ -21,6 +21,20 @@ class ReserveOrderCustomerData {
   String? get salesChannelDetail => _text('sales_channel_detail');
 }
 
+/// Field KTP & pekerjaan yang dikunci kalau order sudah SP (`ktp_locked_reason`) — key di
+/// `customer[...]`. NPWP (`cust_npwp`) TIDAK termasuk: tetap bisa diedit.
+const Set<String> kKtpLockedCustomerFields = {
+  'cust_name',
+  'cust_ktp',
+  'cust_birth_place',
+  'cust_birth_date',
+  'cust_gender_is_male',
+  'cust_address1',
+  'cust_marital_status',
+  'work_category',
+  'cust_occupation',
+};
+
 /// [option] = dropdown yang opsinya dari API (GET /reserve-order/customer-options, lihat
 /// [CustomerOptionsEntity]) — tidak ada daftar opsi tetap di app.
 enum ReserveCustomerFieldKind { text, date, boolChoice, option }

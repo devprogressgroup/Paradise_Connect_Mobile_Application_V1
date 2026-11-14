@@ -55,7 +55,9 @@ abstract class ReserveOrderRepository {
   Future<Either<String, ReserveOrderDetailEntity>> getReserveOrderDetail(
     int reserveOrderId,
   );
-  Future<Either<String, ReserveOrderDetailEntity>> updateReserveOrderCustomer(
+  /// Left membawa `locked_fields` (`KTP_LOCKED`) supaya field yang ditolak bisa ditandai di form.
+  Future<Either<ReserveOrderCustomerFailure, ReserveOrderDetailEntity>>
+  updateReserveOrderCustomer(
     int reserveOrderId,
     UpdateReserveOrderCustomerParams params,
   );

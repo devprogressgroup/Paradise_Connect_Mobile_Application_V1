@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import 'package:progress_group/core/utils/widget/custom_snackbar.dart';
 import 'package:progress_group/core/constants/colors.dart';
 import 'package:progress_group/core/utils/helpers/number_helper.dart';
 import 'package:progress_group/core/utils/widget/custom_button.dart';
@@ -1132,9 +1133,7 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
     if (!mounted) return;
 
     if (result.bytes == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Isi foto KTP tidak ditemukan.')),
-      );
+      showSnackbar(context, 'Isi foto KTP tidak ditemukan.', isError: true);
       return;
     }
 
@@ -1159,9 +1158,7 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
 
     if (!mounted) return;
     if (error != null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(error.toString().replaceAll('Exception: ', ''))),
-      );
+      showSnackbar(context, error.toString().replaceAll('Exception: ', ''), isError: true);
       return;
     }
 
@@ -1194,11 +1191,7 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
         }
       });
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Data KTP berhasil dibaca. Mohon periksa kembali.'),
-        ),
-      );
+      showSnackbar(context, 'Data KTP berhasil dibaca. Mohon periksa kembali.');
       // Hasil scan langsung dicek juga — sales gak perlu tahu ada langkah "cek NIK".
       if (_ktpCtrl.text.trim().length == 16) _checkKtp();
     }
@@ -1281,11 +1274,7 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
         _ktpOwnerConflict = null;
         _checkedKtpKey = '$ktp|${ownerName.toLowerCase()}';
       });
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Data customer sudah diisi otomatis. Cek lagi ya sebelum lanjut.'),
-        ),
-      );
+      showSnackbar(context, 'Data customer sudah diisi otomatis. Cek lagi ya sebelum lanjut.');
       return true;
     }
 
@@ -1656,9 +1645,7 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
 
     if (!requiredOk) {
       setState(() => _showCustomerValidation = true);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Lengkapi dahulu data yang wajib diisi.')),
-      );
+      showSnackbar(context, 'Lengkapi dahulu data yang wajib diisi.', isError: true);
       return;
     }
     // Cek ulang No. KTP (nama bisa sudah diganti sejak dicek) — kalau masih bentrok, dialog
@@ -1672,22 +1659,14 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
 
   void _toggleUnit(ReserveUnitOption u) {
     if (!u.available) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Unit ini belum tersedia. Silakan hubungi admin untuk membuka unit ini.',
-          ),
-        ),
-      );
+      showSnackbar(context, 'Unit ini belum tersedia. Silakan hubungi admin untuk membuka unit ini.', isError: true);
       return;
     }
     // Pengajuan Ulang: RO = 1 unit → pilih satu (radio), atau terkunci kalau unit tak bisa diganti.
     if (_isResubmit) {
       final lockReason = _unitLockReason;
       if (lockReason != null) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(lockReason)));
+        showSnackbar(context, lockReason, isLocked: true);
         return;
       }
       setState(() => _selectedUnits = [u]);
@@ -1709,9 +1688,7 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
     final townshipState = context.read<TownshipBloc>().state;
     if (townshipState is! TownshipLoaded) {
       context.read<TownshipBloc>().add(GetTownshipsEvent());
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Memuat data project...')));
+      showSnackbar(context, 'Memuat data project...');
       return;
     }
 
@@ -2250,13 +2227,7 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
                       required: true,
                       isError: _showUnitValidation && project == null,
                       onTap: _isResubmit
-                          ? () => ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text(
-                                  'Project tidak bisa diganti saat pengajuan ulang.',
-                                ),
-                              ),
-                            )
+                          ? () => showSnackbar(context, 'Project tidak bisa diganti saat pengajuan ulang.', isError: true)
                           : _openProjectPicker,
                     ),
                     const SizedBox(height: 14),
@@ -2284,9 +2255,7 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
                             () {
                               // Sudah di-approve Kasir → unit tidak bisa diganti dari sini.
                               if (lockReason != null) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(content: Text(lockReason)),
-                                );
+                                showSnackbar(context, lockReason, isLocked: true);
                                 return;
                               }
                               setState(() => _unitTab = 'other');
@@ -2405,11 +2374,7 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
   void _submitUnit() {
     if (_selectedUnits.isEmpty) {
       setState(() => _showUnitValidation = true);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Pilih minimal 1 unit / kavling terlebih dahulu.'),
-        ),
-      );
+      showSnackbar(context, 'Pilih minimal 1 unit / kavling terlebih dahulu.', isError: true);
       return;
     }
     // Pengajuan Ulang: 1 draft (TTS order ini) — unit diganti, isian pembayaran tetap.
@@ -2475,13 +2440,7 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
   }
 
   void _showDepositedNotice() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text(
-          'Tunai ini sudah disetor ke bank — tidak bisa dihapus atau diubah nominalnya.',
-        ),
-      ),
-    );
+    showSnackbar(context, 'Tunai ini sudah disetor ke bank — tidak bisa dihapus atau diubah nominalnya.', isError: true);
   }
 
   /// Info bank/kartu pembayaran TTS lama (tidak bisa diganti di app — belum ada daftar bank).
@@ -3195,10 +3154,7 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
     );
     if (!hasKtp || missingPaymentType || missingTransactionDate || missingProof || missingReferenceDate) {
       setState(() => _showDocumentValidation = true);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            !hasKtp
+      showSnackbar(context, !hasKtp
                 ? 'KTP Pemohon wajib diupload.'
                 : missingPaymentType
                 ? 'Jenis Pembayaran wajib dipilih untuk semua unit.'
@@ -3210,10 +3166,7 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
                       : 'Bukti Non Tunai wajib diupload untuk semua pembayaran Non Tunai.')
                 : (_isResubmit
                       ? 'Tgl Transfer / Tgl Transaksi wajib diisi untuk pembayaran Non Tunai.'
-                      : 'Tanggal Bukti Transfer wajib diisi untuk semua pembayaran Non Tunai.'),
-          ),
-        ),
-      );
+                      : 'Tanggal Bukti Transfer wajib diisi untuk semua pembayaran Non Tunai.'), isError: true);
       return;
     }
     setState(() => _step = 4);
@@ -3359,9 +3312,7 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
     return BlocConsumer<CreateReserveOrderCubit, CreateReserveOrderState>(
       listener: (context, state) {
         if (state is CreateReserveOrderError) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text(state.message)));
+          showSnackbar(context, state.message, isError: true);
         } else if (state is CreateReserveOrderSuccess) {
           setState(() {
             _createResult = state.result;
@@ -3569,13 +3520,7 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
         _step = 3;
         _showDocumentValidation = true;
       });
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Dokumen KTP Pemohon belum ada — silakan upload ulang.',
-          ),
-        ),
-      );
+      showSnackbar(context, 'Dokumen KTP Pemohon belum ada — silakan upload ulang.', isError: true);
       return;
     }
 
@@ -3584,6 +3529,9 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
     final tts = _resubmitTts;
     final params = ResubmitReserveOrderParams(
       customer: _customerPayload(),
+      // Order sudah SP → field KTP/pekerjaan terkunci yang tidak berubah tidak ikut dikirim.
+      originalCustomer: order.customer,
+      ktpLocked: (order.ktpLockedReason ?? '').trim().isNotEmpty,
       reserveNote: _catatanCtrl.text.trim(),
       reserveDate: draft.transactionDate,
       // Tidak dikirim = dokumen lama tetap dipakai.
@@ -3620,13 +3568,7 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
     setState(() => _resubmitting = false);
 
     if (!result.ok) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            result.message ?? 'Gagal mengajukan ulang reserve order.',
-          ),
-        ),
-      );
+      showSnackbar(context, result.message ?? 'Gagal mengajukan ulang reserve order.', isError: true);
       return;
     }
     // Badge "Ditolak" di list ikut hilang tanpa perlu tarik-refresh.
@@ -3644,13 +3586,7 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
         _step = 3;
         _showDocumentValidation = true;
       });
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Dokumen KTP Pemohon belum ada — silakan upload ulang.',
-          ),
-        ),
-      );
+      showSnackbar(context, 'Dokumen KTP Pemohon belum ada — silakan upload ulang.', isError: true);
       return;
     }
 

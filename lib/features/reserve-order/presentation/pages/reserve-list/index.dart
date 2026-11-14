@@ -235,7 +235,7 @@ class _ReserveOrderListPageState extends State<ReserveOrderListPage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
-            'Reserve Order',
+            'Transaction',
             style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.bold,
@@ -464,7 +464,7 @@ class _ReserveOrderListPageState extends State<ReserveOrderListPage> {
       child: Align(
         alignment: Alignment.centerLeft,
         child: Text(
-          'Total: ${NumberHelper.thousands(state.total)} reserve order',
+          'Total: ${NumberHelper.thousands(state.total)} transaction',
           style: const TextStyle(
             fontSize: 13,
             color: Color(grey5Color),

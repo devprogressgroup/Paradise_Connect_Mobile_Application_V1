@@ -177,7 +177,8 @@ class ReserveOrderRepositoryImpl implements ReserveOrderRepository {
   }
 
   @override
-  Future<Either<String, ReserveOrderDetailEntity>> updateReserveOrderCustomer(
+  Future<Either<ReserveOrderCustomerFailure, ReserveOrderDetailEntity>>
+  updateReserveOrderCustomer(
     int reserveOrderId,
     UpdateReserveOrderCustomerParams params,
   ) async {
@@ -187,8 +188,16 @@ class ReserveOrderRepositoryImpl implements ReserveOrderRepository {
         params,
       );
       return Right(result);
+    } on ReserveOrderCustomerUpdateException catch (e) {
+      return Left(
+        ReserveOrderCustomerFailure(
+          e.message,
+          errorCode: e.errorCode,
+          lockedFields: e.lockedFields,
+        ),
+      );
     } catch (e) {
-      return Left(cleanErrorMessage(e));
+      return Left(ReserveOrderCustomerFailure(cleanErrorMessage(e)));
     }
   }
 
