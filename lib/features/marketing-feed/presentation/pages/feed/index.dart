@@ -18,8 +18,7 @@ import 'package:progress_group/features/marketing-feed/presentation/state/market
 import 'package:progress_group/features/marketing-feed/presentation/state/marketing_feed/marketing_feed_state.dart';
 import 'package:progress_group/features/marketing-feed/presentation/widgets/feed_comment_sheet.dart';
 import 'package:progress_group/features/marketing-feed/presentation/widgets/feed_post_card.dart';
-import 'package:progress_group/features/marketing-feed/presentation/widgets/progress_funnel_card.dart';
-import 'package:progress_group/features/marketing-feed/presentation/widgets/wall_of_fame_card.dart';
+import 'package:progress_group/features/marketing-feed/presentation/widgets/fame_programs_section.dart';
 import 'package:share_plus/share_plus.dart';
 
 /// Home = Marketing Feed: ajakan bagikan momen, Progress Kamu, Wall of Fame, lalu aliran feed.
@@ -89,6 +88,12 @@ class _MarketingFeedPageState extends State<MarketingFeedPage> {
 
   void _onFabTap() {
     AnalyticsService.logEvent('marketing_feed_fab');
+    // Sales: tombol + langsung membuka Bagikan Momen (sesuai prototype).
+    // Moderator: tampilkan menu Post / Poll / Link / Momen.
+    if (!PermissionsHelper.canModerateMarketingFeed) {
+      _open('marketingFeedShare');
+      return;
+    }
     setState(() => _menuOpen = !_menuOpen);
   }
 
@@ -176,67 +181,41 @@ class _MarketingFeedPageState extends State<MarketingFeedPage> {
     );
   }
 
+  Widget _buildPostCard(FeedPostEntity post) {
+    return FeedPostCard(
+      key: ValueKey(post.id),
+      post: post,
+      onReact: (reaction) => _react(post, reaction),
+      onComment: () => _openComments(post),
+      onShare: () => _share(post),
+      onVote: (indexes) {
+        AnalyticsService.logEvent('marketing_feed_vote');
+        return context.read<MarketingFeedCubit>().vote(post.id, indexes);
+      },
+    );
+  }
+
+  /// Urutan Home 100% dari server (state.homeOrder). Tidak ada pengurutan ulang di klien.
   Widget _buildList(MarketingFeedState state) {
-    final posts = state.posts;
+    final postById = {for (final p in [...state.pinnedPosts, ...state.posts]) p.id: p};
+    final fameById = {
+      for (final prog in state.famePrograms)
+        for (final cat in prog.categories)
+          for (final e in cat.entries) e.id: e
+    };
+
     final children = <Widget>[
-  
-      ProgressFunnelCard(
-        funnel: state.funnel,
-        onOpenReport: () {
-          AnalyticsService.logEvent('marketing_feed_open_report');
-          context.go('/report');
-        },
-      ),
-      WallOfFameCard(levels: state.wallOfFame),
-      if (state.pinnedPosts.isNotEmpty) ...[
-        const Padding(
-          padding: EdgeInsets.only(top: 4, bottom: 2),
-          child: Row(
-            children: [
-              Icon(Icons.push_pin, size: 16, color: Color(primaryColor)),
-              SizedBox(width: 6),
-              Text(
-                'Disematkan',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: Color(primaryColor),
-                ),
-              ),
-            ],
-          ),
-        ),
-        for (final post in state.pinnedPosts)
-          FeedPostCard(
-            key: ValueKey('pinned_${post.id}'),
-            post: post,
-            onReact: (reaction) => _react(post, reaction),
-            onComment: () => _openComments(post),
-            onShare: () => _share(post),
-            onVote: (indexes) {
-              AnalyticsService.logEvent('marketing_feed_vote');
-              return context.read<MarketingFeedCubit>().vote(post.id, indexes);
-            },
-          ),
-      ],
       const Padding(
         padding: EdgeInsets.only(top: 4),
-        child: Text('Feed Terbaru', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+        child: Text('Kiriman Terbaru', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
       ),
-      if (posts.isEmpty && state.pinnedPosts.isEmpty) _buildFeedStatus(state),
-      for (final post in posts)
-        FeedPostCard(
-          key: ValueKey(post.id),
-          post: post,
-          onReact: (reaction) => _react(post, reaction),
-          onComment: () => _openComments(post),
-          onShare: () => _share(post),
-          onVote: (indexes) {
-            AnalyticsService.logEvent('marketing_feed_vote');
-            return context.read<MarketingFeedCubit>().vote(post.id, indexes);
-          },
-        ),
-      if (state.hasMore && posts.isNotEmpty)
+      if (state.homeOrder.isEmpty) _buildFeedStatus(state),
+      for (final ref in state.homeOrder)
+        if (ref.type == 'post' && postById[ref.id] != null)
+          _buildPostCard(postById[ref.id]!)
+        else if (ref.type == 'fame' && fameById[ref.id] != null)
+          FameEntryTile(key: ValueKey('fame_${ref.id}'), entry: fameById[ref.id]!),
+      if (state.hasMore && state.posts.isNotEmpty)
         const Padding(
           padding: EdgeInsets.symmetric(vertical: 8),
           child: Center(
@@ -244,7 +223,6 @@ class _MarketingFeedPageState extends State<MarketingFeedPage> {
           ),
         ),
     ];
-
     return ListView.separated(
       controller: _scrollController,
       // Wajib supaya tarik-refresh tetap jalan walau isinya belum bisa di-scroll.
@@ -316,14 +294,13 @@ class _MarketingFeedPageState extends State<MarketingFeedPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              _menuItem(Icons.photo_camera_outlined, 'Bagikan Momen', 'Sales', 'marketingFeedShare'),
-              _menuItem(Icons.history_rounded, 'Kiriman Saya', 'Sales', 'marketingFeedMySubmissions'),
-              // Menu moderator: feature "Modify" form "Marketing Feed" (dicek juga di route & backend).
+              // Menu ini hanya untuk moderator (sales langsung ke Bagikan Momen).
+              // Kiriman Saya dan Draf & Terjadwal ada di sidebar.
               if (PermissionsHelper.canModerateMarketingFeed) ...[
+                _menuItem(Icons.photo_camera_outlined, 'Bagikan Momen', 'Sales', 'marketingFeedShare'),
                 _menuItem(Icons.article_outlined, 'Post Baru', 'Moderator', 'marketingFeedPostForm'),
                 _menuItem(Icons.poll_outlined, 'Poll Baru', 'Moderator', 'marketingFeedPollForm'),
                 _menuItem(Icons.link, 'Link YouTube / Website', 'Moderator', 'marketingFeedLinkForm'),
-                _menuItem(Icons.drafts_outlined, 'Draft & Terjadwal', 'Moderator', 'marketingFeedDrafts'),
               ],
             ],
           ),

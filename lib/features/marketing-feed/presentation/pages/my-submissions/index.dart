@@ -25,6 +25,15 @@ class _FeedMySubmissionsPageState extends State<FeedMySubmissionsPage> {
   bool _hasMore = false;
   int _currentPage = 1;
   String? _errorMessage;
+  // Tab seperti prototype: Draf, Ditinjau (menunggu Tim Marketing), Tayang, Ditolak.
+  String _status = 'draft';
+  static const _tabs = [
+    ('draft', 'Draf'),
+    ('scheduled', 'Terjadwal'),
+    ('review', 'Ditinjau'),
+    ('published', 'Tayang'),
+    ('rejected', 'Ditolak'),
+  ];
 
   @override
   void initState() {
@@ -54,7 +63,7 @@ class _FeedMySubmissionsPageState extends State<FeedMySubmissionsPage> {
       _errorMessage = null;
     });
 
-    final result = await context.read<MarketingFeedCubit>().getMySubmissions();
+    final result = await context.read<MarketingFeedCubit>().getMySubmissions(status: _status);
 
     if (!mounted) return;
 
@@ -74,7 +83,7 @@ class _FeedMySubmissionsPageState extends State<FeedMySubmissionsPage> {
 
   Future<void> _loadMore() async {
     setState(() => _isLoadingMore = true);
-    final result = await context.read<MarketingFeedCubit>().getMySubmissions(page: _currentPage + 1);
+    final result = await context.read<MarketingFeedCubit>().getMySubmissions(page: _currentPage + 1, status: _status);
 
     if (!mounted) return;
 
@@ -87,6 +96,21 @@ class _FeedMySubmissionsPageState extends State<FeedMySubmissionsPage> {
         _hasMore = page.hasMore;
       }),
     );
+  }
+
+  Future<void> _togglePin(FeedPostEntity post) async {
+    final pinned = !post.profilePinned;
+    final error = await context.read<MarketingFeedCubit>().setProfilePin(post.id, pinned: pinned);
+    if (!mounted) return;
+    if (error != null) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error)));
+      return;
+    }
+    setState(() {
+      _items = [
+        for (final p in _items) p.id == post.id ? p.copyWith(profilePinned: pinned) : p,
+      ];
+    });
   }
 
   void _openDetail(FeedPostEntity post) {
@@ -103,9 +127,46 @@ class _FeedMySubmissionsPageState extends State<FeedMySubmissionsPage> {
         child: Column(
           children: [
             customHeader(context, 'Kiriman Saya', isBack: true),
+            _buildTabs(),
             Expanded(child: _buildBody()),
           ],
         ),
+      ),
+    );
+  }
+
+  void _selectTab(String status) {
+    if (status == _status) return;
+    setState(() {
+      _status = status;
+      _items = [];
+      _currentPage = 1;
+      _hasMore = false;
+    });
+    _fetch();
+  }
+
+  Widget _buildTabs() {
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      child: Row(
+        children: [
+          for (final (value, label) in _tabs)
+            Padding(
+              padding: const EdgeInsets.only(right: 8, top: 8, bottom: 8),
+              child: ChoiceChip(
+                label: Text(label),
+                selected: _status == value,
+                selectedColor: const Color(primaryColor).withValues(alpha: 0.15),
+                labelStyle: TextStyle(
+                  fontWeight: FontWeight.w700,
+                  color: _status == value ? const Color(primaryColor) : const Color(grey5Color),
+                ),
+                onSelected: (_) => _selectTab(value),
+              ),
+            ),
+        ],
       ),
     );
   }
@@ -274,6 +335,17 @@ class _FeedMySubmissionsPageState extends State<FeedMySubmissionsPage> {
                       ),
                     ),
                   ],
+                ),
+              ),
+            ],
+            if (post.status == FeedPostStatus.published) ...[
+              const SizedBox(height: 6),
+              Align(
+                alignment: Alignment.centerRight,
+                child: TextButton.icon(
+                  onPressed: () => _togglePin(post),
+                  icon: Icon(post.profilePinned ? Icons.push_pin : Icons.push_pin_outlined, size: 16),
+                  label: Text(post.profilePinned ? 'Lepas sematan' : 'Sematkan di profil'),
                 ),
               ),
             ],

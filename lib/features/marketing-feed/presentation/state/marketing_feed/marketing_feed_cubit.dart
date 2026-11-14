@@ -5,6 +5,8 @@ import 'package:progress_group/features/marketing-feed/domain/entities/feed_post
 import 'package:progress_group/features/marketing-feed/domain/usecases/get_feed_post_usecase.dart';
 import 'package:progress_group/features/marketing-feed/domain/usecases/get_feed_posts_usecase.dart';
 import 'package:progress_group/features/marketing-feed/domain/usecases/get_my_submissions_usecase.dart';
+import 'package:progress_group/features/marketing-feed/domain/usecases/set_profile_pin_usecase.dart';
+import 'package:progress_group/features/marketing-feed/domain/usecases/get_fame_programs_usecase.dart';
 import 'package:progress_group/features/marketing-feed/domain/usecases/get_personal_funnel_usecase.dart';
 import 'package:progress_group/features/marketing-feed/domain/usecases/get_wall_of_fame_usecase.dart';
 import 'package:progress_group/features/marketing-feed/domain/usecases/react_feed_post_usecase.dart';
@@ -21,6 +23,8 @@ class MarketingFeedCubit extends Cubit<MarketingFeedState> {
   final ReactFeedPostUseCase reactFeedPostUseCase;
   final VoteFeedPollUseCase voteFeedPollUseCase;
   final GetMySubmissionsUseCase getMySubmissionsUseCase;
+  final SetProfilePinUseCase setProfilePinUseCase;
+  final GetFameProgramsUseCase getFameProgramsUseCase;
 
   MarketingFeedCubit({
     required this.getFeedPostsUseCase,
@@ -30,6 +34,8 @@ class MarketingFeedCubit extends Cubit<MarketingFeedState> {
     required this.reactFeedPostUseCase,
     required this.voteFeedPollUseCase,
     required this.getMySubmissionsUseCase,
+    required this.setProfilePinUseCase,
+    required this.getFameProgramsUseCase,
   }) : super(const MarketingFeedState());
 
   Future<void> fetch() async {
@@ -38,24 +44,29 @@ class MarketingFeedCubit extends Cubit<MarketingFeedState> {
     final postsFuture = getFeedPostsUseCase(page: 1);
     final funnelFuture = getPersonalFunnelUseCase();
     final fameFuture = getWallOfFameUseCase();
+    final famePrgFuture = getFameProgramsUseCase();
 
     final postsResult = await postsFuture;
     final funnel = (await funnelFuture).fold((_) => state.funnel, (data) => data);
     final fame = (await fameFuture).fold((_) => state.wallOfFame, (data) => data);
+    final famePrograms = (await famePrgFuture).fold((_) => state.famePrograms, (data) => data);
 
     postsResult.fold(
       (message) => emit(state.copyWith(
         status: MarketingFeedStatus.error,
         funnel: funnel,
         wallOfFame: fame,
+        famePrograms: famePrograms,
         errorMessage: message,
       )),
       (data) => emit(MarketingFeedState(
         status: MarketingFeedStatus.loaded,
         pinnedPosts: data.pinned,
         posts: data.items,
+        homeOrder: data.home,
         funnel: funnel,
         wallOfFame: fame,
+        famePrograms: famePrograms,
         currentPage: data.currentPage,
         lastPage: data.lastPage,
         hasMore: data.hasMore,
@@ -74,6 +85,7 @@ class MarketingFeedCubit extends Cubit<MarketingFeedState> {
       (data) => emit(state.copyWith(
         status: MarketingFeedStatus.loaded,
         posts: [...state.posts, ...data.items],
+        homeOrder: [...state.homeOrder, ...data.home],
         currentPage: data.currentPage,
         lastPage: data.lastPage,
         hasMore: data.hasMore,
@@ -95,8 +107,14 @@ class MarketingFeedCubit extends Cubit<MarketingFeedState> {
   }
 
   /// Kiriman "Bagikan Momen" milik user (semua status review).
-  Future<Either<String, FeedPageEntity>> getMySubmissions({int page = 1}) =>
-      getMySubmissionsUseCase(page: page);
+  /// Sematkan / lepas di profil. Balik null jika berhasil, atau pesan error.
+  Future<String?> setProfilePin(int postId, {required bool pinned}) async {
+    final result = await setProfilePinUseCase(postId, pinned: pinned);
+    return result.fold((error) => error, (_) => null);
+  }
+
+  Future<Either<String, FeedPageEntity>> getMySubmissions({int page = 1, String? status}) =>
+      getMySubmissionsUseCase(page: page, status: status);
 
   /// Kirim reaksi untuk post yang dipegang halaman lain (detail) — optimistic update & rollback
   /// diurus pemanggil; salinan di feed disamakan dengan angka server.

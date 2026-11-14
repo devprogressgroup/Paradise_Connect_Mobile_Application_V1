@@ -1,6 +1,7 @@
 import 'dart:typed_data';
 
 import 'package:equatable/equatable.dart';
+import 'home_ref_entity.dart';
 import 'package:progress_group/features/marketing-feed/domain/entities/feed_author_entity.dart';
 import 'package:progress_group/features/marketing-feed/domain/entities/feed_comment_entity.dart';
 
@@ -184,6 +185,8 @@ class FeedPostEntity extends Equatable {
   final FeedCommentEntity? latestComment;
   final String? rejectReason;
   final bool isPinned;
+  /// Sematan di profil sales (maks. 3). Hanya untuk kiriman sendiri.
+  final bool profilePinned;
   final bool isMine;
   final bool fromAdminWeb;
 
@@ -209,6 +212,7 @@ class FeedPostEntity extends Equatable {
     this.latestComment,
     this.rejectReason,
     this.isPinned = false,
+    this.profilePinned = false,
     this.isMine = false,
     this.fromAdminWeb = false,
   });
@@ -225,6 +229,7 @@ class FeedPostEntity extends Equatable {
     int? commentCount,
     FeedPollEntity? poll,
     bool? isPinned,
+    bool? profilePinned,
   }) {
     return FeedPostEntity(
       id: id,
@@ -248,6 +253,7 @@ class FeedPostEntity extends Equatable {
       latestComment: latestComment,
       rejectReason: rejectReason,
       isPinned: isPinned ?? this.isPinned,
+      profilePinned: profilePinned ?? this.profilePinned,
       isMine: isMine,
       fromAdminWeb: fromAdminWeb,
     );
@@ -276,6 +282,7 @@ class FeedPostEntity extends Equatable {
     latestComment,
     rejectReason,
     isPinned,
+    profilePinned,
     isMine,
     fromAdminWeb,
   ];
@@ -283,6 +290,8 @@ class FeedPostEntity extends Equatable {
 
 /// Wrapper paginasi feed.
 class FeedPageEntity extends Equatable {
+  /// Urutan Home final dari server (kiriman + Wall of Fame). Klien hanya menampilkan urutan ini.
+  final List<HomeRefEntity> home;
   final List<FeedPostEntity> pinned;
   final List<FeedPostEntity> items;
   final int currentPage;
@@ -291,6 +300,7 @@ class FeedPageEntity extends Equatable {
   final bool hasMore;
 
   const FeedPageEntity({
+    this.home = const [],
     this.pinned = const [],
     required this.items,
     this.currentPage = 1,
@@ -303,5 +313,5 @@ class FeedPageEntity extends Equatable {
   int get lastPage => perPage > 0 ? ((total + perPage - 1) ~/ perPage) : 1;
 
   @override
-  List<Object?> get props => [pinned, items, currentPage, perPage, total, hasMore];
+  List<Object?> get props => [home, pinned, items, currentPage, perPage, total, hasMore];
 }

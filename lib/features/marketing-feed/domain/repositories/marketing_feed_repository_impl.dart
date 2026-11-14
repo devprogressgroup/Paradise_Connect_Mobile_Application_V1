@@ -3,6 +3,7 @@ import 'package:progress_group/core/network/marketing_feed_exception.dart';
 import 'package:progress_group/core/utils/helpers/error_message.dart';
 import 'package:progress_group/features/marketing-feed/data/datasources/marketing_feed_remote_datasource.dart';
 import 'package:progress_group/features/marketing-feed/domain/entities/feed_comment_entity.dart';
+import 'package:progress_group/features/marketing-feed/domain/entities/fame_program_entity.dart';
 import 'package:progress_group/features/marketing-feed/domain/entities/feed_post_entity.dart';
 import 'package:progress_group/features/marketing-feed/domain/entities/personal_funnel_entity.dart';
 import 'package:progress_group/features/marketing-feed/domain/entities/save_feed_post_params.dart';
@@ -71,8 +72,17 @@ class MarketingFeedRepositoryImpl implements MarketingFeedRepository {
   }
 
   @override
-  Future<Either<String, FeedPageEntity>> getMySubmissions({int page = 1, int perPage = 10}) =>
-      _guard(() => remoteDataSource.getMySubmissions(page: page, perPage: perPage));
+  @override
+  Future<Either<String, List<FameProgramEntity>>> getFamePrograms() =>
+      _guard(() => remoteDataSource.getFamePrograms());
+
+  @override
+  Future<Either<String, void>> setProfilePin(int postId, {required bool pinned}) =>
+      _guard(() => remoteDataSource.setProfilePin(postId, pinned: pinned));
+
+  @override
+  Future<Either<String, FeedPageEntity>> getMySubmissions({int page = 1, int perPage = 10, String? status}) =>
+      _guard(() => remoteDataSource.getMySubmissions(page: page, perPage: perPage, status: status));
 
   @override
   Future<Either<String, List<FeedPostEntity>>> getModeratorPosts() =>

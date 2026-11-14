@@ -212,6 +212,8 @@ import 'features/marketing-feed/domain/usecases/get_feed_drafts_usecase.dart';
 import 'features/marketing-feed/domain/usecases/get_feed_post_usecase.dart';
 import 'features/marketing-feed/domain/usecases/get_feed_posts_usecase.dart';
 import 'features/marketing-feed/domain/usecases/get_my_submissions_usecase.dart';
+import 'features/marketing-feed/domain/usecases/set_profile_pin_usecase.dart';
+import 'features/marketing-feed/domain/usecases/get_fame_programs_usecase.dart';
 import 'features/marketing-feed/domain/usecases/get_personal_funnel_usecase.dart';
 import 'features/marketing-feed/domain/usecases/get_wall_of_fame_usecase.dart';
 import 'features/marketing-feed/domain/usecases/publish_feed_post_now_usecase.dart';
@@ -583,6 +585,8 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     final toggleFeedCommentLikeUseCase = ToggleFeedCommentLikeUseCase(marketingFeedRepository);
     final shareFeedMomentUseCase = ShareFeedMomentUseCase(marketingFeedRepository);
     final getMySubmissionsUseCase = GetMySubmissionsUseCase(marketingFeedRepository);
+    final setProfilePinUseCase = SetProfilePinUseCase(marketingFeedRepository);
+    final getFameProgramsUseCase = GetFameProgramsUseCase(marketingFeedRepository);
     final saveFeedPostUseCase = SaveFeedPostUseCase(marketingFeedRepository);
     final getFeedDraftsUseCase = GetFeedDraftsUseCase(marketingFeedRepository);
     final publishFeedPostNowUseCase = PublishFeedPostNowUseCase(marketingFeedRepository);
@@ -903,6 +907,8 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
                   reactFeedPostUseCase: reactFeedPostUseCase,
                   voteFeedPollUseCase: voteFeedPollUseCase,
                   getMySubmissionsUseCase: getMySubmissionsUseCase,
+                  setProfilePinUseCase: setProfilePinUseCase,
+                  getFameProgramsUseCase: getFameProgramsUseCase,
                 ),
               ),
               BlocProvider(

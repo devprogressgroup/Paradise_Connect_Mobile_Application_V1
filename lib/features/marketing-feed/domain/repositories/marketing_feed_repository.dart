@@ -2,6 +2,7 @@ import 'package:dartz/dartz.dart';
 import 'package:progress_group/core/network/marketing_feed_exception.dart';
 import 'package:progress_group/features/marketing-feed/data/datasources/marketing_feed_remote_datasource.dart';
 import 'package:progress_group/features/marketing-feed/domain/entities/feed_comment_entity.dart';
+import 'package:progress_group/features/marketing-feed/domain/entities/fame_program_entity.dart';
 import 'package:progress_group/features/marketing-feed/domain/entities/feed_post_entity.dart';
 import 'package:progress_group/features/marketing-feed/domain/entities/personal_funnel_entity.dart';
 import 'package:progress_group/features/marketing-feed/domain/entities/save_feed_post_params.dart';
@@ -18,7 +19,11 @@ abstract class MarketingFeedRepository {
   Future<Either<String, FeedCommentEntity>> addComment(int postId, String text, {int? parentId});
   Future<Either<String, CommentLikeResult>> toggleCommentLike(int commentId, {required bool currentlyLiked});
   Future<Either<MarketingFeedException, FeedPostEntity>> shareMoment(ShareFeedMomentParams params);
-  Future<Either<String, FeedPageEntity>> getMySubmissions({int page, int perPage});
+  Future<Either<String, FeedPageEntity>> getMySubmissions({int page, int perPage, String? status});
+
+  Future<Either<String, void>> setProfilePin(int postId, {required bool pinned});
+
+  Future<Either<String, List<FameProgramEntity>>> getFamePrograms();
 
   // Moderator
   Future<Either<String, List<FeedPostEntity>>> getModeratorPosts();

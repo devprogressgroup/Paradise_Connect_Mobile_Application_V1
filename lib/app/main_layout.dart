@@ -471,6 +471,10 @@ class _MainLayoutState extends State<MainLayout> {
                 ),
                 SizedBox(height: 10),
                 _buildDrawerItem(context, icNavHome, 'Home', path: '/', index: 0),
+                // Marketing Feed (sesuai prototype): Feeds = Kiriman Saya milik sendiri
+                if (PermissionsHelper.canModerateMarketingFeed)
+                _buildDrawerItem(context, '', 'Feeds', path: '/marketing-feed/my-submissions', index: 12, iconData: Icons.history_rounded),
+                 
                 _buildDrawerItem(context, icSidebarDashboard, 'Report', path: '/report', index: 11),
                 if (PermissionsHelper.canAccessContacts)
                   _buildDrawerItem(context, icSidebarContacts, 'Contacts', path: '/contact', index: 1),

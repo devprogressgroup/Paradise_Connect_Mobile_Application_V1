@@ -20,11 +20,15 @@ Marketing Feed adalah feed konten di Home aplikasi sales. Moderator (Tim Marketi
 | `t_feed_reaction` | baru | Like / dislike post |
 | `t_feed_comment` | baru | Komentar dan balasan (1 tingkat) |
 | `t_feed_comment_like` | baru | Like komentar |
-| `t_feed_fame` | baru | Peringkat Wall of Fame per bulan per level |
-| `d_feed_fame_media` | baru | Foto/video khusus juara #1 Wall of Fame (kolom sama dengan `d_feed_post_media`) |
+| `t_feed_fame_program` | baru | Program / periode Wall of Fame (nama dan periode bebas) |
+| `t_feed_fame` | baru | Juara per program dan kategori (kategori bebas, peringkat boleh seri), status draft / terjadwal / tayang |
+| `d_feed_fame_media` | baru | Foto/video khusus juara Wall of Fame (kolom sama dengan `d_feed_post_media`) |
+| `t_feed_fame_perm` | baru | Cakupan izin edit Wall of Fame per user (semua, per program, atau per tim) |
+| `t_feed_fame_log` | baru | Jejak perubahan Wall of Fame (siapa, kapan, apa) |
+| `t_feed_setting` | baru | Pengaturan Algoritma (urutan kiriman di Home), per global / per sales. Terpisah dari Wall of Fame |
 | `app_m_user` | existing | Penulis, pemberi reaksi, pemilih poll, pemberi komentar, juara |
 | `m_project` | existing | Target project konten |
-| `m_sales_person_position` | existing (pd_common) | Level Wall of Fame (GM/SM/SPV/SE) |
+| `m_sales_person_position` | existing (pd_common) | Tidak lagi dipakai Wall of Fame (level sekarang teks bebas) |
 | `t_global_notifications` | existing | Riwayat notifikasi saat post tayang / kiriman direview |
 | `m_contacts`, `m_prospect_status` | existing | Sumber hitungan "Progress Kamu" (tanpa tabel baru) |
 
@@ -47,9 +51,15 @@ m_project*  ──1:N──┴── t_feed_post  (+ sematan: pinned_at, pin_use
 
 Wall of Fame
 ────────────
-m_sales_person_position* ──1:N──┐
-app_m_user*              ──1:N──┴── t_feed_fame
-                                    └──1:N── d_feed_fame_media  (foto/video juara #1)
+t_feed_fame_program ──1:N── t_feed_fame  (kategori bebas, ranking, status tayang)
+                              └──1:N── d_feed_fame_media  (foto/video juara)
+app_m_user*  ──1:N── t_feed_fame  (sales yang tampil)
+app_m_user*  ──1:N── t_feed_fame_perm  (izin edit: semua / per program / per tim)
+t_feed_fame  ──1:N── t_feed_fame_log  (jejak perubahan)
+
+Algoritma (terpisah dari Wall of Fame)
+──────────────────────────────────────
+t_feed_setting  (global / per sales; urutan kiriman di Home)
 
 Progress Kamu
 ─────────────
@@ -231,7 +241,7 @@ Untuk tahu tabel mana yang terpakai saat sesuatu diklik di prototype, lihat §6.
   │   │ PK    feed_post_media_id                                                    │
   │   │ FK    feed_post_id                                                          │
   │   │       media_type          image | video                                     │
-  │   │       file_path           path/key di storage (storage menyusul)            │
+  │   │       file_path           object key di MinIO Raptor            │
   │   │       file_name           nama file asli saat upload                        │
   │   │       mime_type           JPG / PNG / MP4                                   │
   │   │       size_bytes          maks 20 MB                                        │
@@ -372,68 +382,102 @@ Untuk tahu tabel mana yang terpakai saat sesuatu diklik di prototype, lihat §6.
       └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
-### 5.2 Wall of Fame
+### 5.2 Wall of Fame (dinamis, diisi manual oleh user yang punya izin)
 
 ```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│ t_feed_fame  [C/R/U]  (Wall of Fame)                                        │
-├─────────────────────────────────────────────────────────────────────────────┤
-│ PK    feed_fame_id                                                          │
-│       period                    tanggal 1 tiap bulan                        │
-│ FK    sales_person_position_id  level GM / SM / SPV / SE                    │
-│       ranking                   1 = juara, 2-3 = peringkat berikut          │
-│ FK    user_id                                                               │
-│       info                      teks jabatan · project                      │
-│       highlight                 mis. "Naik 4 peringkat"                     │
-│       score                     nilai dasar peringkat                       │
-│ FK    create_user_id            → app_m_user                                │
-│       created_at                                                            │
-│       updated_at                                                            │
-├─────────────────────────────────────────────────────────────────────────────┤
-│ UNIQUE uq_t_feed_fame (period, sales_person_position_id, ranking)           │
-└─────────────────────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ t_feed_fame_program  [C/R/U/D]  (program atau periode, bebas)                │
+├──────────────────────────────────────────────────────────────────────────────┤
+│ PK    feed_fame_program_id                                                   │
+│       nama_program              teks bebas, mis. "Top Salebration Oktober"    │
+│       periode_label             teks bebas, mis. "Oktober 2026"               │
+│       periode_mulai             tanggal (opsional)                            │
+│       periode_selesai           tanggal (opsional)                            │
+│ FK    create_user_id            → app_m_user                                  │
+│       created_at / updated_at / deleted_at                                    │
+└──────────────────────────────────────────────────────────────────────────────┘
   │
-  ├─▶ 1:N  t_feed_fame.feed_fame_id
-  │        = d_feed_fame_media.feed_fame_id
-  │   ┌─────────────────────────────────────────────────────────────────────────────┐
-  │   │ d_feed_fame_media  [C/R/D]                                                  │
-  │   ├─────────────────────────────────────────────────────────────────────────────┤
-  │   │ PK    feed_fame_media_id                                                    │
-  │   │ FK    feed_fame_id                                                          │
-  │   │       media_type          image | video                                     │
-  │   │       file_path           path/key di storage (storage menyusul)            │
-  │   │       file_name           nama file asli saat upload                        │
-  │   │       mime_type           JPG / PNG / MP4                                   │
-  │   │       size_bytes          maks 20 MB                                        │
-  │   │       label               teks pengganti kalau gagal dimuat                 │
-  │   │       sort_order          urutan (sekarang selalu 1)                        │
-  │   ├─────────────────────────────────────────────────────────────────────────────┤
-  │   │ sama dgn d_feed_post_media; sekarang maks 1 file, juara #1                  │
-  │   └─────────────────────────────────────────────────────────────────────────────┘
+  └─▶ 1:N  t_feed_fame.feed_fame_program_id
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ t_feed_fame  [C/R/U/D]  (juara per kategori)                                 │
+├──────────────────────────────────────────────────────────────────────────────┤
+│ PK    feed_fame_id                                                           │
+│ FK    feed_fame_program_id      → t_feed_fame_program                        │
+│       kategori                  teks bebas, mis. "TOP SE". Tidak ada daftar  │
+│                                 kategori tetap                               │
+│       ranking                   1 = juara. Boleh seri (lebih dari 1 baris)   │
+│ FK    user_id                   → app_m_user (sales yang tampil)             │
+│       posisi_label              teks bebas, mis. "SE PAR1" (opsional)        │
+│       caption                   kalimat singkat di kartu                     │
+│       status                    draft | scheduled | published                │
+│       publish_at                jadwal tayang (wajib kalau scheduled)        │
+│       published_at              waktu benar-benar tayang                     │
+│ FK    create_user_id / update_user_id → app_m_user                           │
+│       created_at / updated_at / deleted_at                                   │
+├──────────────────────────────────────────────────────────────────────────────┤
+│ INDEX idx_t_feed_fame_tayang (status, publish_at)                            │
+│ INDEX idx_t_feed_fame_kategori (feed_fame_program_id, kategori, ranking)     │
+└──────────────────────────────────────────────────────────────────────────────┘
   │
-  ├─▶ N:1  t_feed_fame.sales_person_position_id
-  │        = m_sales_person_position.sales_person_position_id
-  │   ┌─────────────────────────────────────────────────────────────────────────────┐
-  │   │ m_sales_person_position  [R]  (pd_common)                                   │
-  │   ├─────────────────────────────────────────────────────────────────────────────┤
-  │   │ PK    sales_person_position_id                                              │
-  │   │       position_code             GM / SM / SPV / SE                          │
-  │   │       position_name                                                         │
-  │   │       priority                  urutan level di Wall of Fame                │
-  │   └─────────────────────────────────────────────────────────────────────────────┘
+  ├─▶ 1:N  t_feed_fame.feed_fame_id = d_feed_fame_media.feed_fame_id
+  │   ┌──────────────────────────────────────────────────────────────────────────┐
+  │   │ d_feed_fame_media  [C/R/D]  (kolom sama dgn d_feed_post_media, maks 1)   │
+  │   └──────────────────────────────────────────────────────────────────────────┘
   │
-  └─▶ N:1  t_feed_fame.user_id
-           = app_m_user.user_id
-      ┌─────────────────────────────────────────────────────────────────────────────┐
-      │ app_m_user  [R]  (existing)                                                 │
-      ├─────────────────────────────────────────────────────────────────────────────┤
-      │ PK    user_id                                                               │
-      │       full_name                                                             │
-      │       photo      foto juara (kalau belum ada media khusus)                  │
-      └─────────────────────────────────────────────────────────────────────────────┘
+  └─▶ N:1  t_feed_fame.user_id = app_m_user.user_id
+           (foto profil dipakai kalau tidak ada media khusus)
+
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ t_feed_fame_perm  [C/R/D]  (cakupan izin edit Wall of Fame)                  │
+├──────────────────────────────────────────────────────────────────────────────┤
+│ PK    feed_fame_perm_id                                                      │
+│ FK    user_id                   → app_m_user                                 │
+│       permission_code           marketing-feed.fame.edit (pakai izin yang    │
+│                                 sudah ada bila tersedia)                     │
+│       scope_type                all | program | tim                          │
+│       scope_value               id program atau kode tim. Kosong = all       │
+│       valid_from / valid_until  masa berlaku (opsional)                      │
+│ FK    granted_by                → app_m_user                                 │
+│       created_at                                                             │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ t_feed_fame_log  [C]  (jejak perubahan)                                      │
+├──────────────────────────────────────────────────────────────────────────────┤
+│ PK    feed_fame_log_id                                                       │
+│ FK    feed_fame_id (boleh NULL) → t_feed_fame                                │
+│       action                    create | update | draft | schedule | publish |│
+│                                 delete | media_upload | media_delete         │
+│       payload                   JSON ringkas perubahan                       │
+│ FK    user_id                   → app_m_user                                 │
+│       created_at                                                             │
+└──────────────────────────────────────────────────────────────────────────────┘
 ```
 
-### 5.3 Progress Kamu (tanpa tabel baru)
+### 5.3 Algoritma: pengaturan urutan kiriman di Home
+
+Halaman ini terpisah dari Wall of Fame (menu Algoritma di Admin Web). Logika feed dihitung saat feed diambil, jadi tidak perlu tabel skor.
+
+```
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ t_feed_setting  [C/R/U]  (pengaturan algoritma)                              │
+├──────────────────────────────────────────────────────────────────────────────┤
+│ PK    feed_setting_id                                                        │
+│       setting_key               feed                          │
+│       scope_type                global | tim | user                          │
+│       scope_value              '' untuk global, kode tim, atau user_id       │
+│       config                    JSON, lihat contoh di bawah                  │
+│ FK    update_user_id            → app_m_user                                 │
+│       created_at / updated_at                                                │
+├──────────────────────────────────────────────────────────────────────────────┤
+│ UNIQUE uq_t_feed_setting (setting_key, scope_type, scope_value)              │
+└──────────────────────────────────────────────────────────────────────────────┘
+```
+
+- **Prioritas:** pengaturan per sales menimpa pengaturan global.
+- **Config `feed`** (contoh): `{"mode":"otomatis","bobot":{"rel":3,"minat":2,"engage":2,"baru":2,"proyek":1}}`. Mode: `otomatis` | `terbaru` | `acak`. Sinyal dihitung dari `t_feed_reaction` dan `t_feed_comment` milik user yang melihat, bukan dari data user lain.
+
+### 5.4 Progress Kamu (tanpa tabel baru)
 
 Funnel pribadi (Leads → Appt → Visit → Reserve → SP) dihitung langsung dari data prospek milik sales yang login.
 
@@ -564,7 +608,7 @@ Sematan (pin) bukan status. Kolomnya terpisah (`pinned_at`) dan hanya berlaku se
 - **Vote poll** final, tidak bisa diubah. Untuk poll pilihan tunggal (`is_multiple = 0`), maksimal 1 baris per (`feed_post_id`, `user_id`).
 - **Reaksi:** 1 baris per user per post. Ganti like ↔ dislike = update; batal = delete.
 - **Counter** (`like_count`, `dislike_count`, `comment_count`, `vote_count`, `total_voters`, `like_count` komentar) diupdate dalam transaksi yang sama dengan insert/delete interaksinya.
-- **Media:** maksimal 10 file per post (JPG/PNG/MP4, maks 20 MB per file). Poll dan link maks. 1 file (gambar pertanyaan / thumbnail). Lokasi penyimpanan file belum ditentukan (bukan Google Drive, menyusul); `file_path` menyimpan path/key file di storage itu. Apa pun storage-nya, URL video harus mendukung header `Range` karena pemutar video iOS butuh byte-range.
+- **Media:** maksimal 10 file per post (JPG/PNG/MP4, maks 20 MB per file). Poll dan link maks. 1 file (gambar pertanyaan / thumbnail). Storage media adalah **MinIO Raptor** (bukan Google Drive). `file_path` menyimpan object key di MinIO Raptor. Apa pun storage-nya, URL video harus mendukung header `Range` karena pemutar video iOS butuh byte-range.
 - **Media Wall of Fame:** foto JPG/PNG atau video MP4 khusus juara #1, disimpan di `d_feed_fame_media`. Kolomnya sama persis dengan `d_feed_post_media`, jadi upload dan validasinya (maks. 20 MB) memakai kode yang sama. Sekarang maks. 1 file per juara; kalau nanti mau carousel, cukup naikkan batasnya tanpa ubah tabel. Belum ada media = kartu memakai foto profil (`app_m_user.photo`), lalu inisial kalau foto profil juga kosong. Video diputar otomatis tanpa suara dan berulang. Kalau job bulanan menghitung ulang peringkat dan juara #1 berganti orang, baris medianya dihapus.
 - **Moderator** ditentukan lewat permission yang sudah ada (mis. `marketing-feed.moderate`), bukan kolom baru.
 
@@ -584,4 +628,4 @@ Sematan (pin) bukan status. Kolomnya terpisah (`pinned_at`) dan hanya berlaku se
 5. **Platform link:** Flutter saat ini hanya mengenal `youtube`/`web`, sedangkan prototype punya `blog`. Enum backend dan app perlu disamakan.
 6. **Progress Kamu:** pemetaan `m_prospect_status` ke 5 tahap funnel, dan periode hitungnya (kontak dibuat bulan ini, atau status berubah bulan ini), perlu dikonfirmasi.
 7. **Sematan per project:** sekarang sematan mengikuti target post (`project_id`), dan batas 3 dihitung global. Kalau post "Semua project" perlu disematkan di satu project saja, atau batasnya per project, kolom pin dipindah ke tabel `t_feed_pin (feed_post_id, project_id, pinned_at, pin_user_id, pin_until)`.
-8. **Storage media:** foto/video feed dan Wall of Fame tidak disimpan di Google Drive. Storage penggantinya (dan cara membentuk URL dari `file_path`) masih menyusul.
+8. **Storage media:** foto/video feed dan Wall of Fame disimpan di **MinIO Raptor**, bukan Google Drive.

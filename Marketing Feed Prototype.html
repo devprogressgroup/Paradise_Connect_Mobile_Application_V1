@@ -270,6 +270,8 @@ textarea:focus,input[type=text]:focus{border-color:var(--primary);outline:none}
 /* ===== buat konten: tombol + langsung ke Momen; moderator punya tab Post / Poll / Link di bawah header ===== */
 .cbar{background:var(--white);padding:0 16px 10px}
 .seg.ctabs{grid-template-columns:repeat(4,1fr)}
+.seg.ktabs{grid-template-columns:repeat(4,1fr)}
+.seg.ktabs button{padding:9px 4px;gap:4px;white-space:nowrap;font-size:12px}
 .ctabs button{gap:4px;padding:8px 2px;font-size:12.5px}
 .screen.instant{transition:none}
 /* link: platform terdeteksi otomatis dari URL (app & Admin Web) */
@@ -433,6 +435,88 @@ textarea:focus,input[type=text]:focus{border-color:var(--primary);outline:none}
 .afm-hd{display:flex;justify-content:space-between;align-items:center;gap:8px}
 .afm .hero{height:122px;font-family:"Nunito Sans",system-ui,sans-serif}
 .afm-act{display:flex;gap:6px;flex-wrap:wrap}
+.fprog{display:flex;flex-direction:column;gap:2px;font-size:14px;font-weight:800;margin-top:4px}
+.fprog small{font-size:11.5px;font-weight:600;color:var(--grey2)}
+.fame-admin{display:flex;flex-direction:column;gap:14px}
+.frow{display:flex;flex-direction:column;gap:8px}
+.frow+.frow{border-top:1px solid var(--abd);padding-top:12px}
+.frow-main{display:flex;flex-direction:column;gap:2px;font-size:13px}
+.frow-side{display:flex;gap:6px;flex-wrap:wrap}
+.ffm{display:flex;flex-direction:column;gap:12px}
+.ffg{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px}
+.ffg label{display:flex;flex-direction:column;gap:4px;font-size:12px;font-weight:600;color:var(--amut)}
+.ffg input,.ffg select{border:1px solid #dee2e6;border-radius:8px;padding:7px 10px;font:inherit;font-size:13px;font-weight:400;color:var(--atx);background:#fff}
+.ffg .wide{grid-column:1/-1}
+.urow{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:6px 0}
+.urow select,.ffg select{border:1px solid #dee2e6;border-radius:8px;padding:6px 8px;font:inherit;font-size:13px;background:#fff;color:var(--atx)}
+.ftable{overflow-x:auto}
+.ftable table{width:100%;border-collapse:collapse;font-size:13px}
+.ftable th,.ftable td{text-align:left;padding:7px 8px;border-bottom:1px solid var(--abd);white-space:nowrap}
+.lbl{display:block;font-size:14px;font-weight:700;margin:0 0 4px}
+.stepHd{display:flex;gap:12px;align-items:flex-start}
+.stepHd h3{margin:0 0 2px;font-size:16px}
+.stepN{width:28px;height:28px;border-radius:50%;background:var(--primary);color:#fff;display:grid;place-items:center;font-weight:800;flex:none}
+.stepN.sm{width:22px;height:22px;font-size:12px}
+.hint{font-size:12.5px;color:var(--amut);margin:2px 0 8px;line-height:1.5}
+.pick-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:8px}
+.pick{display:flex;gap:10px;align-items:flex-start;border:1px solid #dee2e6;border-radius:10px;padding:10px 12px;cursor:pointer;background:#fff}
+.pick input{margin-top:3px;flex:none}
+.pick span{display:flex;flex-direction:column;gap:2px;font-size:13px}
+.pick small{color:var(--amut);font-size:12px;line-height:1.4}
+.pick:has(input:checked){border-color:var(--primary);background:rgba(59,130,246,.07)}
+.wrow{display:grid;grid-template-columns:1fr 220px;gap:12px;align-items:center;padding:10px 0;border-top:1px solid var(--abd)}
+.wrow small{display:block;color:var(--amut);font-size:12px;line-height:1.4}
+.wslide{display:flex;flex-direction:column;gap:2px}
+.wslide input{width:100%}
+.wslide output{font-size:12.5px;font-weight:600}
+.sumbox{background:rgba(59,130,246,.08);border-radius:10px;padding:10px 12px;font-size:13px}
+.rule-step{display:flex;gap:8px;align-items:center;flex-wrap:wrap;background:#f8fafc;border-radius:8px;padding:8px}
+.stack{display:flex;flex-direction:column;gap:8px;margin:6px 0 8px}
+.btn-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.chip{background:#fff7ed;border:1px solid #fed7aa;color:#9a3412;border-radius:99px;padding:4px 6px 4px 12px;font-size:13px;display:inline-flex;gap:6px;align-items:center}
+.chipx{border:0;background:none;color:#9a3412;text-decoration:underline;font-size:12px;cursor:pointer}
+.narrow{max-width:260px;width:100%;border:1px solid #dee2e6;border-radius:8px;padding:8px 10px;font:inherit;font-size:13px;background:#fff;color:var(--atx)}
+select{font:inherit}
+@media (max-width:640px){.wrow{grid-template-columns:1fr}}
+.fcard{padding:14px 14px 16px}
+.fhd{display:flex;gap:10px;align-items:center;margin-bottom:10px}
+.fhd b{font-size:14px}
+.fhd small{display:block;color:var(--grey2);font-size:12px}
+.fic{width:36px;height:36px;border-radius:50%;background:#FFF3E0;display:grid;place-items:center;color:var(--orange);flex:none}
+/* kontrol algoritma: tinggi, jarak, dan gaya seragam */
+#feedBox{gap:16px}
+#feedBox>div{display:flex;flex-direction:column;gap:6px}
+#feedBox select{height:40px;padding:0 12px;border:1px solid #cfd8e3;border-radius:10px;background:#fff;font:inherit;font-size:14px;color:var(--atx);min-width:200px;max-width:100%;box-sizing:border-box}
+#feedBox select:focus{outline:0;border-color:#86b7fe;box-shadow:0 0 0 3px rgba(59,130,246,.15)}
+#feedBox .hint{margin:0}
+.sales-top{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap}
+.search{height:40px;width:240px;max-width:100%;padding:0 12px;border:1px solid #cfd8e3;border-radius:10px;font:inherit;font-size:14px;background:#fff;box-sizing:border-box}
+.sfilter{display:flex;gap:8px;flex-wrap:wrap}
+.sfchip{height:32px;padding:0 12px;border:1px solid #cfd8e3;border-radius:99px;background:#fff;font:inherit;font-size:13px;font-weight:600;color:var(--amut);cursor:pointer}
+.sfchip span{font-weight:700;margin-left:4px}
+.sfchip.on{background:var(--primary);border-color:var(--primary);color:#fff}
+.tagKhusus{display:inline-block;font-size:11.5px;font-weight:700;color:#1d4ed8;background:#dbeafe;border-radius:99px;padding:2px 9px}
+.tagIkut{display:inline-block;font-size:11.5px;font-weight:600;color:var(--amut);background:#f1f5f9;border-radius:99px;padding:2px 9px}
+.row-on td{background:#eff6ff}
+.savebar{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;border-top:1px solid var(--abd);padding-top:14px}
+.dirty{color:#b45309;font-weight:600;font-size:13px}
+.clean{color:var(--amut);font-size:13px}
+.savebar button:disabled,.acts button:disabled{opacity:.4;cursor:not-allowed}
+.fhead{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+#feedBox,#feedBox h3,#feedBox .fhead,#feedBox .fhead>div{text-align:left}
+#feedBox .fhead{display:flex;justify-content:flex-start;align-items:flex-start;width:100%}
+#feedBox .fhead>div:first-child{flex:1 1 auto;min-width:0;text-align:left}
+#feedBox .fhead h3{text-align:left;width:100%}
+.savebar-bawah{display:flex;justify-content:flex-start;align-items:center;align-self:flex-start;width:auto;text-align:left;border-top:0;padding-top:4px}
+.savebar-bawah .btn-row{display:flex;justify-content:flex-start;gap:8px}
+.pinrow{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:6px 0}
+.pick-overlay{position:fixed;inset:0;background:rgba(15,23,42,.45);display:grid;place-items:center;z-index:60;padding:16px}
+.pick-modal{background:#fff;border-radius:14px;padding:18px;width:min(420px,100%);display:flex;flex-direction:column;gap:12px;box-shadow:0 20px 50px rgba(15,23,42,.25)}
+.pick-head{display:flex;justify-content:space-between;align-items:center}
+.pick-list{display:flex;flex-direction:column;gap:6px;max-height:360px;overflow:auto}
+.pick-item{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--abd);border-radius:10px;background:#fff;font:inherit;font-size:14px;cursor:pointer;text-align:left}
+.pick-item:hover{background:#f8fafc}
+.ftable th{font-size:12px;color:var(--amut)}
 /* stats */
 .astats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin-bottom:18px}
 .astat{display:flex;align-items:center;gap:12px;background:#fff;border:1px solid var(--abd);border-radius:12px;padding:14px 16px;text-align:left}
@@ -722,18 +806,10 @@ button.db-t:hover{box-shadow:0 0 0 3px var(--db-acc-soft)}
         </header>
 
         <main class="scroll" id="feed">
-          <div class="blk">
+          <div class="blk" style="display:none">
             <div class="sec"><h2>Progress Kamu</h2><button class="lnk" data-go="report">Lihat Report</button></div>
             <div class="hint">Funnel pribadi Oktober 2026, update tiap hari</div>
             <section class="card"><div class="bars" id="bars"></div></section>
-          </div>
-
-          <div class="blk">
-            <div class="sec"><h2><i data-ic="trophy" data-c="var(--orange)" data-s="20"></i>Wall of Fame</h2></div>
-            <div class="hint">Siapa paling semangat bulan ini? Giliran kamu berikutnya!</div>
-            <section class="card">
-              <div class="fame-all" id="fameAll"></div>
-            </section>
           </div>
 
           <div class="sec" style="margin-top:4px"><h2>Kiriman Terbaru</h2></div>
@@ -953,6 +1029,7 @@ button.db-t:hover{box-shadow:0 0 0 3px var(--db-acc-soft)}
             <button data-av="calendar">Kalender Jadwal</button>
             <button data-av="review">Persetujuan Kiriman Sales<span class="acnt" id="revCnt"></span></button>
             <button data-av="fame">Wall of Fame</button>
+            <button data-av="algo">Algoritma</button>
           </div>
         </div>
       </nav>
@@ -978,7 +1055,7 @@ button.db-t:hover{box-shadow:0 0 0 3px var(--db-acc-soft)}
     <header class="db-top">
       <p class="db-eyebrow">Paradise Connect · Rancangan skema database</p>
       <h1>ERD Marketing Feed</h1>
-      <p class="db-lede">Tabel untuk feed konten di Home aplikasi sales: post, poll, link (YouTube, sosmed, website), komentar, review kiriman sales, dan Wall of Fame. 11 tabel baru, 6 tabel existing.</p>
+      <p class="db-lede">Tabel untuk feed konten di Home aplikasi sales: post, poll, link (YouTube, sosmed, website), komentar, review kiriman sales, dan Wall of Fame. 15 tabel baru, 6 tabel existing.</p>
       <dl class="db-meta">
         <div><dt>Tanggal</dt><dd>23 Oktober 2026</dd></div>
         <div><dt>Status</dt><dd><span class="db-st db-st-review">usulan</span></dd></div>
@@ -1022,11 +1099,15 @@ button.db-t:hover{box-shadow:0 0 0 3px var(--db-acc-soft)}
                 <tr><td><code>t_feed_reaction</code></td><td><span class="db-chip db-chip-new">baru</span></td><td>Like / dislike post</td></tr>
                 <tr><td><code>t_feed_comment</code></td><td><span class="db-chip db-chip-new">baru</span></td><td>Komentar dan balasan (1 tingkat)</td></tr>
                 <tr><td><code>t_feed_comment_like</code></td><td><span class="db-chip db-chip-new">baru</span></td><td>Like komentar</td></tr>
-                <tr><td><code>t_feed_fame</code></td><td><span class="db-chip db-chip-new">baru</span></td><td>Peringkat Wall of Fame per bulan per level</td></tr>
+                <tr><td><code>t_feed_fame_program</code></td><td><span class="db-chip db-chip-new">baru</span></td><td>Program / periode Wall of Fame (nama dan periode bebas)</td></tr>
+                <tr><td><code>t_feed_fame</code></td><td><span class="db-chip db-chip-new">baru</span></td><td>Juara per program dan kategori (kategori bebas, peringkat boleh seri), status draf / terjadwal / tayang</td></tr>
+                <tr><td><code>t_feed_fame_perm</code></td><td><span class="db-chip db-chip-new">baru</span></td><td>Cakupan izin edit Wall of Fame per user (semua, per program, atau per tim)</td></tr>
+                <tr><td><code>t_feed_fame_log</code></td><td><span class="db-chip db-chip-new">baru</span></td><td>Jejak perubahan Wall of Fame (siapa, kapan, apa)</td></tr>
+                <tr><td><code>t_feed_setting</code></td><td><span class="db-chip db-chip-new">baru</span></td><td>Pengaturan Algoritma (urutan kiriman di Home): global dan per sales, mode, bobot custom, dan pin kiriman atau Wall of Fame. Terpisah dari Wall of Fame</td></tr>
                 <tr><td><code>d_feed_fame_media</code></td><td><span class="db-chip db-chip-new">baru</span></td><td>Foto/video khusus juara #1 Wall of Fame (kolom sama dengan <code>d_feed_post_media</code>)</td></tr>
                 <tr><td><code>app_m_user</code></td><td><span class="db-chip db-chip-ex">existing</span></td><td>Penulis, pemberi reaksi, pemilih poll, pemberi komentar, juara</td></tr>
                 <tr><td><code>m_project</code></td><td><span class="db-chip db-chip-ex">existing</span></td><td>Target project konten</td></tr>
-                <tr><td><code>m_sales_person_position</code></td><td><span class="db-chip db-chip-pd">pd_common</span></td><td>Level Wall of Fame (GM/SM/SPV/SE)</td></tr>
+                <tr><td><code>m_sales_person_position</code></td><td><span class="db-chip db-chip-pd">pd_common</span></td><td>Tidak lagi dipakai Wall of Fame (level sekarang teks bebas)</td></tr>
                 <tr><td><code>t_global_notifications</code></td><td><span class="db-chip db-chip-ex">existing</span></td><td>Riwayat notifikasi saat post tayang / kiriman direview</td></tr>
                 <tr><td><code>m_contacts</code></td><td><span class="db-chip db-chip-ex">existing</span></td><td>Sumber hitungan "Progress Kamu" (tanpa tabel baru)</td></tr>
                 <tr><td><code>m_prospect_status</code></td><td><span class="db-chip db-chip-pd">pd_common</span></td><td>Pemetaan status prospek ke tahap funnel</td></tr>
@@ -1057,9 +1138,17 @@ button.db-t:hover{box-shadow:0 0 0 3px var(--db-acc-soft)}
           <div class="db-ov">
             <p class="db-ov-title">Wall of Fame</p>
             <div class="db-ov-row">
-              <ul class="db-ov-par"><li><button type="button" class="db-t db-t-ex" data-db-goto="m_sales_person_position" title="Lihat di mana m_sales_person_position dipakai">m_sales_person_position</button><span class="db-rel"><i></i><b>1:N</b><i></i></span></li><li><button type="button" class="db-t db-t-ex" data-db-goto="app_m_user" title="Lihat di mana app_m_user dipakai">app_m_user</button><span class="db-rel"><i></i><b>1:N</b><i></i></span></li></ul>
+              <ul class="db-ov-par"><li><button type="button" class="db-t db-t-new" data-db-goto="t_feed_fame_program" title="Lihat di mana t_feed_fame_program dipakai">t_feed_fame_program</button><span class="db-rel"><i></i><b>1:N</b><i></i></span></li><li><button type="button" class="db-t db-t-ex" data-db-goto="app_m_user" title="Lihat di mana app_m_user dipakai">app_m_user</button><span class="db-rel"><i></i><b>1:N</b><i></i></span></li></ul>
               <div class="db-ov-hub"><button type="button" class="db-t db-t-new db-t-hub" data-db-goto="t_feed_fame" title="Lihat di mana t_feed_fame dipakai">t_feed_fame</button></div>
-              <ul class="db-ov-br"><li><span class="db-rel"><i></i><b>1:N</b><i></i></span><button type="button" class="db-t db-t-new" data-db-goto="d_feed_fame_media" title="Lihat di mana d_feed_fame_media dipakai">d_feed_fame_media</button><small>foto/video juara #1</small></li></ul>
+              <ul class="db-ov-br"><li><span class="db-rel"><i></i><b>1:N</b><i></i></span><button type="button" class="db-t db-t-new" data-db-goto="d_feed_fame_media" title="Lihat di mana d_feed_fame_media dipakai">d_feed_fame_media</button><small>foto/video juara</small></li><li><span class="db-rel"><i></i><b>1:N</b><i></i></span><button type="button" class="db-t db-t-new" data-db-goto="t_feed_fame_log" title="Lihat di mana t_feed_fame_log dipakai">t_feed_fame_log</button><small>jejak perubahan</small></li></ul>
+              <ul class="db-ov-br"><li><span class="db-rel"><i></i><b>1:N</b><i></i></span><button type="button" class="db-t db-t-new" data-db-goto="t_feed_fame_perm" title="Lihat di mana t_feed_fame_perm dipakai">t_feed_fame_perm</button><small>izin edit per user (semua / program / tim)</small></li></ul>
+            </div>
+          </div>
+          <div class="db-ov">
+            <p class="db-ov-title">Algoritma (terpisah dari Wall of Fame)</p>
+            <div class="db-ov-row db-ov-nobr">
+              <div class="db-ov-hub"><button type="button" class="db-t db-t-new" data-db-goto="t_feed_setting" title="Lihat di mana t_feed_setting dipakai">t_feed_setting</button></div>
+              <ul class="db-ov-br"><li><small>satu baris per tingkat: global, atau per sales. Mode, bobot custom, dan pin ada di config</small></li></ul>
             </div>
           </div>
           <div class="db-ov">
@@ -1116,7 +1205,8 @@ button.db-t:hover{box-shadow:0 0 0 3px var(--db-acc-soft)}
             <pre class="db-mermaid">flowchart TD
     H(["Sales buka Home"])
     H --&gt; R1[("t_feed_post, d_feed_post_media&lt;br/&gt;d_feed_poll, d_feed_poll_option&lt;br/&gt;d_feed_link, app_m_user")]
-    H --&gt; R2[("t_feed_fame, d_feed_fame_media&lt;br/&gt;Wall of Fame")]
+    H --&gt; R2[("t_feed_fame_program, t_feed_fame, d_feed_fame_media&lt;br/&gt;Wall of Fame")]
+    AL[("t_feed_setting&lt;br/&gt;Algoritma: mode, bobot custom, pin")]
     H --&gt; R3[("m_contacts, m_prospect_status&lt;br/&gt;Progress Kamu")]
     H --&gt; X{"Aksi di kartu post"}
     X --&gt;|"Suka / tidak suka"| TR[("t_feed_reaction")]
@@ -1235,7 +1325,7 @@ button.db-t:hover{box-shadow:0 0 0 3px var(--db-acc-soft)}
   │   │ PK    feed_post_media_id                                                    │
   │   │ FK    feed_post_id                                                          │
   │   │       media_type          image | video                                     │
-  │   │       file_path           path/key di storage (storage menyusul)            │
+  │   │       file_path           object key di MinIO Raptor            │
   │   │       file_name           nama file asli saat upload                        │
   │   │       mime_type           JPG / PNG / MP4                                   │
   │   │       size_bytes          maks 20 MB                                        │
@@ -1377,66 +1467,99 @@ button.db-t:hover{box-shadow:0 0 0 3px var(--db-acc-soft)}
       └─────────────────────────────────────────────────────────────────────────────┘</pre>
           </figure>
           <figure class="db-dg">
-            <div class="db-dg-bar"><div><b>5.2 Wall of Fame</b><small>Peringkat bulanan per level + media juara #1</small></div><button class="db-copy" type="button" data-db-copy="dbD2">Salin teks</button></div>
-            <pre class="db-diagram" id="dbD2">┌─────────────────────────────────────────────────────────────────────────────┐
-│ t_feed_fame  [C/R/U]  (Wall of Fame)                                        │
-├─────────────────────────────────────────────────────────────────────────────┤
-│ PK    feed_fame_id                                                          │
-│       period                    tanggal 1 tiap bulan                        │
-│ FK    sales_person_position_id  level GM / SM / SPV / SE                    │
-│       ranking                   1 = juara, 2-3 = peringkat berikut          │
-│ FK    user_id                                                               │
-│       info                      teks jabatan · project                      │
-│       highlight                 mis. "Naik 4 peringkat"                     │
-│       score                     nilai dasar peringkat                       │
-│ FK    create_user_id            → app_m_user                                │
-│       created_at                                                            │
-│       updated_at                                                            │
-├─────────────────────────────────────────────────────────────────────────────┤
-│ UNIQUE uq_t_feed_fame (period, sales_person_position_id, ranking)           │
-└─────────────────────────────────────────────────────────────────────────────┘
+            <div class="db-dg-bar"><div><b>5.2 Wall of Fame</b><small>Program, juara per kategori, status tayang, izin edit, dan jejak perubahan</small></div><button class="db-copy" type="button" data-db-copy="dbD2">Salin teks</button></div>
+            <pre class="db-diagram" id="dbD2">┌──────────────────────────────────────────────────────────────────────────────┐
+│ t_feed_fame_program  [C/R/U/D]  (program atau periode, bebas)                │
+├──────────────────────────────────────────────────────────────────────────────┤
+│ PK    feed_fame_program_id                                                   │
+│       nama_program              teks bebas, mis. "Top Salebration Oktober"    │
+│       periode_label             teks bebas, mis. "Oktober 2026"               │
+│       periode_mulai             tanggal (opsional)                            │
+│       periode_selesai           tanggal (opsional)                            │
+│ FK    create_user_id            → app_m_user                                  │
+│       created_at / updated_at / deleted_at                                    │
+└──────────────────────────────────────────────────────────────────────────────┘
   │
-  ├─▶ 1:N  t_feed_fame.feed_fame_id
-  │        = d_feed_fame_media.feed_fame_id
-  │   ┌─────────────────────────────────────────────────────────────────────────────┐
-  │   │ d_feed_fame_media  [C/R/D]                                                  │
-  │   ├─────────────────────────────────────────────────────────────────────────────┤
-  │   │ PK    feed_fame_media_id                                                    │
-  │   │ FK    feed_fame_id                                                          │
-  │   │       media_type          image | video                                     │
-  │   │       file_path           path/key di storage (storage menyusul)            │
-  │   │       file_name           nama file asli saat upload                        │
-  │   │       mime_type           JPG / PNG / MP4                                   │
-  │   │       size_bytes          maks 20 MB                                        │
-  │   │       label               teks pengganti kalau gagal dimuat                 │
-  │   │       sort_order          urutan (sekarang selalu 1)                        │
-  │   ├─────────────────────────────────────────────────────────────────────────────┤
-  │   │ sama dgn d_feed_post_media; sekarang maks 1 file, juara #1                  │
-  │   └─────────────────────────────────────────────────────────────────────────────┘
+  └─▶ 1:N  t_feed_fame.feed_fame_program_id
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ t_feed_fame  [C/R/U/D]  (juara per kategori)                                 │
+├──────────────────────────────────────────────────────────────────────────────┤
+│ PK    feed_fame_id                                                           │
+│ FK    feed_fame_program_id      → t_feed_fame_program                        │
+│       kategori                  teks bebas, mis. "TOP SE". Tidak ada daftar  │
+│                                 kategori tetap                               │
+│       ranking                   1 = juara. Boleh seri (lebih dari 1 baris)   │
+│ FK    user_id                   → app_m_user (sales yang tampil)             │
+│       posisi_label              teks bebas, mis. "SE PAR1" (opsional)        │
+│       caption                   kalimat singkat di kartu                     │
+│       status                    draft | scheduled | published                │
+│       publish_at                jadwal tayang (wajib kalau scheduled)        │
+│       published_at              waktu benar-benar tayang                     │
+│ FK    create_user_id / update_user_id → app_m_user                           │
+│       created_at / updated_at / deleted_at                                   │
+├──────────────────────────────────────────────────────────────────────────────┤
+│ INDEX idx_t_feed_fame_tayang (status, publish_at)                            │
+│ INDEX idx_t_feed_fame_kategori (feed_fame_program_id, kategori, ranking)     │
+└──────────────────────────────────────────────────────────────────────────────┘
   │
-  ├─▶ N:1  t_feed_fame.sales_person_position_id
-  │        = m_sales_person_position.sales_person_position_id
-  │   ┌─────────────────────────────────────────────────────────────────────────────┐
-  │   │ m_sales_person_position  [R]  (pd_common)                                   │
-  │   ├─────────────────────────────────────────────────────────────────────────────┤
-  │   │ PK    sales_person_position_id                                              │
-  │   │       position_code             GM / SM / SPV / SE                          │
-  │   │       position_name                                                         │
-  │   │       priority                  urutan level di Wall of Fame                │
-  │   └─────────────────────────────────────────────────────────────────────────────┘
+  ├─▶ 1:N  t_feed_fame.feed_fame_id = d_feed_fame_media.feed_fame_id
+  │   ┌──────────────────────────────────────────────────────────────────────────┐
+  │   │ d_feed_fame_media  [C/R/D]  (kolom sama dgn d_feed_post_media, maks 1)   │
+  │   └──────────────────────────────────────────────────────────────────────────┘
   │
-  └─▶ N:1  t_feed_fame.user_id
-           = app_m_user.user_id
-      ┌─────────────────────────────────────────────────────────────────────────────┐
-      │ app_m_user  [R]  (existing)                                                 │
-      ├─────────────────────────────────────────────────────────────────────────────┤
-      │ PK    user_id                                                               │
-      │       full_name                                                             │
-      │       photo      foto juara (kalau belum ada media khusus)                  │
-      └─────────────────────────────────────────────────────────────────────────────┘</pre>
+  └─▶ N:1  t_feed_fame.user_id = app_m_user.user_id
+           (foto profil dipakai kalau tidak ada media khusus)
+
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ t_feed_fame_perm  [C/R/D]  (cakupan izin edit Wall of Fame)                  │
+├──────────────────────────────────────────────────────────────────────────────┤
+│ PK    feed_fame_perm_id                                                      │
+│ FK    user_id                   → app_m_user                                 │
+│       permission_code           marketing-feed.fame.edit (pakai izin yang    │
+│                                 sudah ada bila tersedia)                     │
+│       scope_type                all | program | tim                          │
+│       scope_value               id program atau kode tim. Kosong = all       │
+│       valid_from / valid_until  masa berlaku (opsional)                      │
+│ FK    granted_by                → app_m_user                                 │
+│       created_at                                                             │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ t_feed_fame_log  [C]  (jejak perubahan)                                      │
+├──────────────────────────────────────────────────────────────────────────────┤
+│ PK    feed_fame_log_id                                                       │
+│ FK    feed_fame_id (boleh NULL) → t_feed_fame                                │
+│       action                    create | update | draft | schedule | publish |│
+│                                 delete | media_upload | media_delete         │
+│       payload                   JSON ringkas perubahan                       │
+│ FK    user_id                   → app_m_user                                 │
+│       created_at                                                             │
+└──────────────────────────────────────────────────────────────────────────────┘</pre>
           </figure>
           <figure class="db-dg">
-            <div class="db-dg-bar"><div><b>5.3 Progress Kamu</b><small>Funnel Leads → Appt → Visit → Reserve → SP, dihitung dari data prospek milik sales yang login</small></div><button class="db-copy" type="button" data-db-copy="dbD3">Salin teks</button></div>
+            <div class="db-dg-bar"><div><b>5.3 Algoritma</b><small>Global dan per sales: mode, bobot custom, dan pin. Halaman Algoritma, terpisah dari Wall of Fame</small></div><button class="db-copy" type="button" data-db-copy="dbAlgo">Salin teks</button></div>
+            <pre class="db-diagram" id="dbAlgo">┌──────────────────────────────────────────────────────────────────────────────┐
+│ t_feed_setting  [C/R/U/D]  (pengaturan algoritma Home)                       │
+├──────────────────────────────────────────────────────────────────────────────┤
+│ PK    feed_setting_id                                                        │
+│       setting_key               feed (urutan kiriman di Home)                │
+│       scope_type                global | user                               │
+│       scope_value               kosong untuk global, user_id untuk per sales │
+│       config                    JSON, lihat contoh di bawah                  │
+│ FK    update_user_id            → app_m_user                                 │
+│       created_at / updated_at                                                │
+├──────────────────────────────────────────────────────────────────────────────┤
+│ UNIQUE uq_t_feed_setting (setting_key, scope_type, scope_value)              │
+└──────────────────────────────────────────────────────────────────────────────┘
+  config global : {"mode":"otomatis","bobot":{"rel":3,"minat":2,"engage":2,"baru":2,"proyek":1},"pinPost":[],"pinFame":[]}
+  config per sales : {"mode":"custom","bobot":{"baru":5},"pinPost":[12],"pinFame":[3]}
+  mode : otomatis (Pintar) | terbaru | acak | custom
+  bobot : hanya dipakai saat mode custom. Kunci yang kosong ikut global
+  pin : kiriman (maks. 3) dan Wall of Fame (maks. 3). Per sales menimpa global jika terisi
+  Simpan : upsert baris sesuai tingkat. Hapus (per sales) : hapus baris user, kembali ikut global</pre>
+          </figure>
+          <figure class="db-dg">
+            <div class="db-dg-bar"><div><b>5.4 Progress Kamu</b><small>Funnel Leads → Appt → Visit → Reserve → SP, dihitung dari data prospek milik sales yang login</small></div><button class="db-copy" type="button" data-db-copy="dbD3">Salin teks</button></div>
             <pre class="db-diagram" id="dbD3">┌─────────────────────────────────────────────────────────────────────────────┐
 │ m_contacts  [R]  (existing)                                                 │
 ├─────────────────────────────────────────────────────────────────────────────┤
@@ -1464,14 +1587,15 @@ button.db-t:hover{box-shadow:0 0 0 3px var(--db-acc-soft)}
         <section id="db-pakai">
           <h2><span class="db-num">6</span>Dipakai di mana</h2>
           <p>Setiap baris adalah satu klik atau tampilan di tab App Mobile dan Admin Web, beserta tabel yang dibaca (<b>R</b>) atau ditulis (<b>C</b>/<b>U</b>/<b>D</b>) backend saat itu terjadi. Pilih nama tabel untuk menyorot aksi yang memakainya.</p>
-          <div class="db-filter" role="group" aria-label="Sorot aksi per tabel"><button type="button" class="db-f" data-db-f="" aria-pressed="true">Semua tabel</button><button type="button" class="db-f" data-db-f="t_feed_post" aria-pressed="false">t_feed_post</button><button type="button" class="db-f" data-db-f="d_feed_post_media" aria-pressed="false">d_feed_post_media</button><button type="button" class="db-f" data-db-f="d_feed_poll" aria-pressed="false">d_feed_poll</button><button type="button" class="db-f" data-db-f="d_feed_poll_option" aria-pressed="false">d_feed_poll_option</button><button type="button" class="db-f" data-db-f="t_feed_poll_vote" aria-pressed="false">t_feed_poll_vote</button><button type="button" class="db-f" data-db-f="d_feed_link" aria-pressed="false">d_feed_link</button><button type="button" class="db-f" data-db-f="t_feed_reaction" aria-pressed="false">t_feed_reaction</button><button type="button" class="db-f" data-db-f="t_feed_comment" aria-pressed="false">t_feed_comment</button><button type="button" class="db-f" data-db-f="t_feed_comment_like" aria-pressed="false">t_feed_comment_like</button><button type="button" class="db-f" data-db-f="t_feed_fame" aria-pressed="false">t_feed_fame</button><button type="button" class="db-f" data-db-f="d_feed_fame_media" aria-pressed="false">d_feed_fame_media</button><button type="button" class="db-f" data-db-f="app_m_user" aria-pressed="false">app_m_user</button><button type="button" class="db-f" data-db-f="m_project" aria-pressed="false">m_project</button><button type="button" class="db-f" data-db-f="m_sales_person_position" aria-pressed="false">m_sales_person_position</button><button type="button" class="db-f" data-db-f="t_global_notifications" aria-pressed="false">t_global_notifications</button><button type="button" class="db-f" data-db-f="m_contacts" aria-pressed="false">m_contacts</button><button type="button" class="db-f" data-db-f="m_prospect_status" aria-pressed="false">m_prospect_status</button></div>
+          <div class="db-filter" role="group" aria-label="Sorot aksi per tabel"><button type="button" class="db-f" data-db-f="" aria-pressed="true">Semua tabel</button><button type="button" class="db-f" data-db-f="t_feed_post" aria-pressed="false">t_feed_post</button><button type="button" class="db-f" data-db-f="d_feed_post_media" aria-pressed="false">d_feed_post_media</button><button type="button" class="db-f" data-db-f="d_feed_poll" aria-pressed="false">d_feed_poll</button><button type="button" class="db-f" data-db-f="d_feed_poll_option" aria-pressed="false">d_feed_poll_option</button><button type="button" class="db-f" data-db-f="t_feed_poll_vote" aria-pressed="false">t_feed_poll_vote</button><button type="button" class="db-f" data-db-f="d_feed_link" aria-pressed="false">d_feed_link</button><button type="button" class="db-f" data-db-f="t_feed_reaction" aria-pressed="false">t_feed_reaction</button><button type="button" class="db-f" data-db-f="t_feed_comment" aria-pressed="false">t_feed_comment</button><button type="button" class="db-f" data-db-f="t_feed_comment_like" aria-pressed="false">t_feed_comment_like</button><button type="button" class="db-f" data-db-f="t_feed_fame_program" aria-pressed="false">t_feed_fame_program</button><button type="button" class="db-f" data-db-f="t_feed_fame" aria-pressed="false">t_feed_fame</button><button type="button" class="db-f" data-db-f="t_feed_fame_perm" aria-pressed="false">t_feed_fame_perm</button><button type="button" class="db-f" data-db-f="t_feed_fame_log" aria-pressed="false">t_feed_fame_log</button><button type="button" class="db-f" data-db-f="t_feed_setting" aria-pressed="false">t_feed_setting</button><button type="button" class="db-f" data-db-f="d_feed_fame_media" aria-pressed="false">d_feed_fame_media</button><button type="button" class="db-f" data-db-f="app_m_user" aria-pressed="false">app_m_user</button><button type="button" class="db-f" data-db-f="m_project" aria-pressed="false">m_project</button><button type="button" class="db-f" data-db-f="m_sales_person_position" aria-pressed="false">m_sales_person_position</button><button type="button" class="db-f" data-db-f="t_global_notifications" aria-pressed="false">t_global_notifications</button><button type="button" class="db-f" data-db-f="m_contacts" aria-pressed="false">m_contacts</button><button type="button" class="db-f" data-db-f="m_prospect_status" aria-pressed="false">m_prospect_status</button></div>
           <h3>App Mobile</h3><p class="db-note">Yang dilihat dan diklik sales (dan moderator lewat tombol +).</p>
           <div class="db-tw"><table class="db-use"><thead><tr><th>Layar</th><th>Klik / tampilan</th><th>Tabel yang dipakai</th></tr></thead><tbody>
             <tr data-t="t_feed_post d_feed_post_media d_feed_poll d_feed_poll_option t_feed_poll_vote d_feed_link t_feed_reaction t_feed_comment app_m_user"><td>Home</td><td>Buka app, kartu feed tampil</td><td><ul class="db-ops"><li data-t="t_feed_post"><span class="db-op db-op-r">R</span><code>t_feed_post</code><small>post published yang sesuai project user</small></li><li data-t="d_feed_post_media"><span class="db-op db-op-r">R</span><code>d_feed_post_media</code><small>foto/video carousel, gambar poll, thumbnail link</small></li><li data-t="d_feed_poll"><span class="db-op db-op-r">R</span><code>d_feed_poll</code><small>detail poll</small></li><li data-t="d_feed_poll_option"><span class="db-op db-op-r">R</span><code>d_feed_poll_option</code><small>opsi dan jumlah suara</small></li><li data-t="t_feed_poll_vote"><span class="db-op db-op-r">R</span><code>t_feed_poll_vote</code><small>jawaban saya (sudah vote atau belum)</small></li><li data-t="d_feed_link"><span class="db-op db-op-r">R</span><code>d_feed_link</code><small>kartu link</small></li><li data-t="t_feed_reaction"><span class="db-op db-op-r">R</span><code>t_feed_reaction</code><small>reaksi saya (like/dislike)</small></li><li data-t="t_feed_comment"><span class="db-op db-op-r">R</span><code>t_feed_comment</code><small>komentar terakhir di bawah post</small></li><li data-t="app_m_user"><span class="db-op db-op-r">R</span><code>app_m_user</code><small>nama dan foto penulis</small></li></ul></td></tr>
             <tr data-t="t_feed_post"><td>Home</td><td>Kiriman sendiri "Menunggu tinjauan" / "Ditolak" di atas feed</td><td><ul class="db-ops"><li data-t="t_feed_post"><span class="db-op db-op-r">R</span><code>t_feed_post</code><small>create_user_id = saya, status review/rejected, reject_reason</small></li></ul></td></tr>
             <tr data-t="t_feed_post"><td>Home</td><td>Kartu berlabel "Disematkan" di urutan paling atas</td><td><ul class="db-ops"><li data-t="t_feed_post"><span class="db-op db-op-r">R</span><code>t_feed_post</code><small>pinned_at terisi dan pin_until belum lewat, urut pinned_at DESC, maks. 3</small></li></ul></td></tr>
             <tr data-t="m_contacts m_prospect_status"><td>Home</td><td>Kartu "Progress Kamu"</td><td><ul class="db-ops"><li data-t="m_contacts"><span class="db-op db-op-r">R</span><code>m_contacts</code><small>kontak milik saya</small></li><li data-t="m_prospect_status"><span class="db-op db-op-r">R</span><code>m_prospect_status</code><small>dipetakan ke Leads → SP</small></li></ul></td></tr>
-            <tr data-t="t_feed_fame d_feed_fame_media m_sales_person_position app_m_user"><td>Home</td><td>Wall of Fame</td><td><ul class="db-ops"><li data-t="t_feed_fame"><span class="db-op db-op-r">R</span><code>t_feed_fame</code><small>peringkat bulan ini</small></li><li data-t="d_feed_fame_media"><span class="db-op db-op-r">R</span><code>d_feed_fame_media</code><small>foto/video kartu juara #1</small></li><li data-t="m_sales_person_position"><span class="db-op db-op-r">R</span><code>m_sales_person_position</code><small>label TOP GM/SM/SPV/SE</small></li><li data-t="app_m_user"><span class="db-op db-op-r">R</span><code>app_m_user</code><small>nama dan foto juara</small></li></ul></td></tr>
+            <tr data-t="t_feed_fame t_feed_fame_program d_feed_fame_media app_m_user"><td>Home</td><td>Wall of Fame</td><td><ul class="db-ops"><li data-t="t_feed_fame_program"><span class="db-op db-op-r">R</span><code>t_feed_fame_program</code><small>program dan periode yang aktif</small></li><li data-t="t_feed_fame"><span class="db-op db-op-r">R</span><code>t_feed_fame</code><small>status tayang, dikelompokkan per kategori dan ranking</small></li><li data-t="d_feed_fame_media"><span class="db-op db-op-r">R</span><code>d_feed_fame_media</code><small>foto/video kartu juara</small></li><li data-t="app_m_user"><span class="db-op db-op-r">R</span><code>app_m_user</code><small>nama dan foto juara</small></li></ul></td></tr>
+            <tr data-t="t_feed_setting t_feed_reaction t_feed_comment t_feed_post"><td>Home (feed)</td><td>Urutan kiriman untuk saya</td><td><ul class="db-ops"><li data-t="t_feed_setting"><span class="db-op db-op-r">R</span><code>t_feed_setting</code><small>logika feed: global, lalu tim, lalu user</small></li><li data-t="t_feed_reaction"><span class="db-op db-op-r">R</span><code>t_feed_reaction</code><small>sinyal: like / dislike saya dan pembuatnya</small></li><li data-t="t_feed_comment"><span class="db-op db-op-r">R</span><code>t_feed_comment</code><small>sinyal: komentar saya di kiriman pembuat</small></li><li data-t="t_feed_post"><span class="db-op db-op-r">R</span><code>t_feed_post</code><small>kiriman tayang, skor dihitung saat dibuka</small></li></ul></td></tr>
             <tr data-t="t_feed_reaction t_feed_post"><td>Kartu post</td><td>Tap Suka / Tidak suka</td><td><ul class="db-ops"><li data-t="t_feed_reaction"><span class="db-op db-op-c">C/U/D</span><code>t_feed_reaction</code><small>reaksi baru = C, ganti = U, batal = D</small></li><li data-t="t_feed_post"><span class="db-op db-op-u">U</span><code>t_feed_post</code><small>like_count, dislike_count</small></li></ul></td></tr>
             <tr data-t="t_feed_poll_vote d_feed_poll_option d_feed_poll"><td>Kartu poll</td><td>Pilih jawaban, lalu Kirim Jawaban</td><td><ul class="db-ops"><li data-t="t_feed_poll_vote"><span class="db-op db-op-c">C</span><code>t_feed_poll_vote</code><small>1 baris per opsi yang dipilih</small></li><li data-t="d_feed_poll_option"><span class="db-op db-op-u">U</span><code>d_feed_poll_option</code><small>vote_count</small></li><li data-t="d_feed_poll"><span class="db-op db-op-u">U</span><code>d_feed_poll</code><small>total_voters</small></li></ul></td></tr>
             <tr data-t=""><td>Kartu post</td><td>Tap Bagikan</td><td><ul class="db-ops"><li><span class="db-op db-op-none">–</span><small>cuma menyalin link, tidak menyentuh database</small></li></ul></td></tr>
@@ -1514,14 +1638,18 @@ button.db-t:hover{box-shadow:0 0 0 3px var(--db-acc-soft)}
             <tr data-t="t_feed_post t_global_notifications"><td>Review Kiriman Sales</td><td>Setujui &amp; tayangkan</td><td><ul class="db-ops"><li data-t="t_feed_post"><span class="db-op db-op-u">U</span><code>t_feed_post</code><small>status published, review_user_id, review_date</small></li><li data-t="t_global_notifications"><span class="db-op db-op-c">C</span><code>t_global_notifications</code><small>notif ke pengirim dan sales</small></li></ul></td></tr>
             <tr data-t="t_feed_post"><td>Review Kiriman Sales</td><td>Setujui &amp; jadwalkan</td><td><ul class="db-ops"><li data-t="t_feed_post"><span class="db-op db-op-u">U</span><code>t_feed_post</code><small>status scheduled, publish_at, review_user_id</small></li></ul></td></tr>
             <tr data-t="t_feed_post t_global_notifications"><td>Review Kiriman Sales</td><td>Tolak</td><td><ul class="db-ops"><li data-t="t_feed_post"><span class="db-op db-op-u">U</span><code>t_feed_post</code><small>status rejected, reject_reason, review_user_id</small></li><li data-t="t_global_notifications"><span class="db-op db-op-c">C</span><code>t_global_notifications</code><small>notif ke pengirim</small></li></ul></td></tr>
-            <tr data-t="t_feed_fame d_feed_fame_media m_sales_person_position app_m_user"><td>Wall of Fame</td><td>Buka halaman: juara #1 tiap level bulan ini</td><td><ul class="db-ops"><li data-t="t_feed_fame"><span class="db-op db-op-r">R</span><code>t_feed_fame</code><small>period bulan ini, ranking = 1</small></li><li data-t="d_feed_fame_media"><span class="db-op db-op-r">R</span><code>d_feed_fame_media</code><small>media yang sudah ada</small></li><li data-t="m_sales_person_position"><span class="db-op db-op-r">R</span><code>m_sales_person_position</code><small>label TOP GM/SM/SPV/SE</small></li><li data-t="app_m_user"><span class="db-op db-op-r">R</span><code>app_m_user</code><small>nama dan foto profil</small></li></ul></td></tr>
+            <tr data-t="t_feed_fame_program t_feed_fame d_feed_fame_media t_feed_fame_perm app_m_user"><td>Wall of Fame</td><td>Buka halaman: daftar program, juara per kategori</td><td><ul class="db-ops"><li data-t="t_feed_fame_program"><span class="db-op db-op-r">R</span><code>t_feed_fame_program</code><small>semua program</small></li><li data-t="t_feed_fame"><span class="db-op db-op-r">R</span><code>t_feed_fame</code><small>semua entri, termasuk draf dan terjadwal</small></li><li data-t="d_feed_fame_media"><span class="db-op db-op-r">R</span><code>d_feed_fame_media</code><small>media yang sudah ada</small></li><li data-t="t_feed_fame_perm"><span class="db-op db-op-r">R</span><code>t_feed_fame_perm</code><small>cek apakah user boleh mengubah</small></li><li data-t="app_m_user"><span class="db-op db-op-r">R</span><code>app_m_user</code><small>nama dan foto sales</small></li></ul></td></tr>
+            <tr data-t="t_feed_fame_program t_feed_fame t_feed_fame_log"><td>Wall of Fame</td><td>Tambah / ubah juara: simpan draf, jadwalkan, atau tayangkan</td><td><ul class="db-ops"><li data-t="t_feed_fame_program"><span class="db-op db-op-c">C</span><code>t_feed_fame_program</code><small>hanya kalau nama program belum ada</small></li><li data-t="t_feed_fame"><span class="db-op db-op-c">C/U</span><code>t_feed_fame</code><small>status draft / scheduled (publish_at) / published</small></li><li data-t="t_feed_fame_log"><span class="db-op db-op-c">C</span><code>t_feed_fame_log</code><small>create / update / schedule / publish</small></li></ul></td></tr>
+            <tr data-t="d_feed_fame_media t_feed_fame_log"><td>Wall of Fame</td><td>Unggah foto / video, Pakai foto contoh, Hapus media</td><td><ul class="db-ops"><li data-t="d_feed_fame_media"><span class="db-op db-op-c">C/D</span><code>d_feed_fame_media</code><small>upload = insert; ganti = hapus lalu insert; hapus = delete</small></li><li data-t="t_feed_fame_log"><span class="db-op db-op-c">C</span><code>t_feed_fame_log</code><small>media_upload / media_delete</small></li></ul></td></tr>
+            <tr data-t="t_feed_fame t_feed_fame_log"><td>Wall of Fame</td><td>Hapus juara</td><td><ul class="db-ops"><li data-t="t_feed_fame"><span class="db-op db-op-d">D</span><code>t_feed_fame</code><small>hapus = isi deleted_at; media ikut dihapus</small></li><li data-t="t_feed_fame_log"><span class="db-op db-op-c">C</span><code>t_feed_fame_log</code><small>delete</small></li></ul></td></tr>
+            <tr data-t="t_feed_setting"><td>Algoritma</td><td>Simpan atau hapus pengaturan Global dan per sales (mode, bobot custom, pin)</td><td><ul class="db-ops"><li data-t="t_feed_setting"><span class="db-op db-op-r">R</span><code>t_feed_setting</code><small>baca pengaturan yang berlaku</small></li><li data-t="t_feed_setting"><span class="db-op db-op-u">U</span><code>t_feed_setting</code><small>ubah mode, bobot, aturan, sematan, batas; kosong = ikut tingkat di atasnya</small></li></ul></td></tr>
             <tr data-t="d_feed_fame_media"><td>Wall of Fame</td><td>Unggah foto / video, Pakai foto contoh, Hapus media</td><td><ul class="db-ops"><li data-t="d_feed_fame_media"><span class="db-op db-op-c">C/D</span><code>d_feed_fame_media</code><small>upload = insert; ganti = hapus baris lama lalu insert; hapus = delete</small></li></ul></td></tr>
           </tbody></table></div>
           <h3>Sistem</h3><p class="db-note">Berjalan otomatis di backend, tanpa klik.</p>
           <div class="db-tw"><table class="db-use"><thead><tr><th>Layar</th><th>Klik / tampilan</th><th>Tabel yang dipakai</th></tr></thead><tbody>
             <tr data-t="t_feed_post t_global_notifications"><td>Scheduler (tiap menit)</td><td>Di prototype: jam contoh dan tombol "Loncat ke jadwal tayang berikutnya"</td><td><ul class="db-ops"><li data-t="t_feed_post"><span class="db-op db-op-u">U</span><code>t_feed_post</code><small>scheduled → published</small></li><li data-t="t_global_notifications"><span class="db-op db-op-c">C</span><code>t_global_notifications</code><small>notif ke sales</small></li></ul></td></tr>
             <tr data-t="t_feed_post"><td>Scheduler (tiap menit)</td><td>Lepas sematan yang sudah lewat <code>pin_until</code></td><td><ul class="db-ops"><li data-t="t_feed_post"><span class="db-op db-op-u">U</span><code>t_feed_post</code><small>pinned_at, pin_user_id, pin_until = NULL</small></li></ul></td></tr>
-            <tr data-t="t_feed_fame d_feed_fame_media"><td>Job bulanan</td><td>Wall of Fame, kalau dihitung otomatis</td><td><ul class="db-ops"><li data-t="t_feed_fame"><span class="db-op db-op-c">C/U</span><code>t_feed_fame</code><small>lihat pertanyaan terbuka no. 1</small></li><li data-t="d_feed_fame_media"><span class="db-op db-op-d">D</span><code>d_feed_fame_media</code><small>kalau juara #1 berganti orang</small></li></ul></td></tr>
+            <tr data-t="t_feed_fame t_feed_fame_log"><td>Penjadwal (tiap menit)</td><td>Juara terjadwal yang jamnya sudah lewat</td><td><ul class="db-ops"><li data-t="t_feed_fame"><span class="db-op db-op-u">U</span><code>t_feed_fame</code><small>scheduled → published, isi published_at</small></li><li data-t="t_feed_fame_log"><span class="db-op db-op-c">C</span><code>t_feed_fame_log</code><small>action publish (oleh sistem)</small></li></ul></td></tr>
           </tbody></table></div>
         </section>
 
@@ -1573,10 +1701,15 @@ button.db-t:hover{box-shadow:0 0 0 3px var(--db-acc-soft)}
             <li><b>Vote poll</b> final, tidak bisa diubah. Untuk poll pilihan tunggal (<code>is_multiple = 0</code>), maksimal 1 baris per (<code>feed_post_id</code>, <code>user_id</code>).</li>
             <li><b>Reaksi:</b> 1 baris per user per post. Ganti like ↔ dislike = update; batal = delete.</li>
             <li><b>Counter</b> (<code>like_count</code>, <code>dislike_count</code>, <code>comment_count</code>, <code>vote_count</code>, <code>total_voters</code>, <code>like_count</code> komentar) diupdate dalam transaksi yang sama dengan insert/delete interaksinya.</li>
-            <li><b>Media:</b> maksimal 10 file per post (JPG/PNG/MP4, maks 20 MB per file). Poll dan link maks. 1 file (gambar pertanyaan / thumbnail). Lokasi penyimpanan file belum ditentukan (bukan Google Drive, menyusul); <code>file_path</code> menyimpan path/key file di storage itu. Apa pun storage-nya, URL video harus mendukung header <code>Range</code> karena pemutar video iOS butuh byte-range.</li>
-            <li><b>Media Wall of Fame:</b> foto JPG/PNG atau video MP4 khusus juara #1, disimpan di <code>d_feed_fame_media</code>. Kolomnya sama persis dengan <code>d_feed_post_media</code>, jadi upload dan validasinya (maks. 20 MB) memakai kode yang sama. Sekarang maks. 1 file per juara; kalau nanti mau carousel, cukup naikkan batasnya tanpa ubah tabel. Belum ada media = kartu memakai foto profil (<code>app_m_user.photo</code>), lalu inisial kalau foto profil juga kosong. Video diputar otomatis tanpa suara dan berulang. Kalau job bulanan menghitung ulang peringkat dan juara #1 berganti orang, baris medianya dihapus.</li>
+            <li><b>Media:</b> maksimal 10 file per post (JPG/PNG/MP4, maks 20 MB per file). Poll dan link maks. 1 file (gambar pertanyaan / thumbnail). Storage media adalah <b>MinIO Raptor</b> (bukan Google Drive). <code>file_path</code> menyimpan object key di MinIO Raptor. Apa pun storage-nya, URL video harus mendukung header <code>Range</code> karena pemutar video iOS butuh byte-range.</li>
+            <li><b>Media Wall of Fame:</b> foto JPG/PNG atau video MP4 khusus juara #1, disimpan di <code>d_feed_fame_media</code>. Kolomnya sama persis dengan <code>d_feed_post_media</code>, jadi upload dan validasinya (maks. 20 MB) memakai kode yang sama. Sekarang maks. 1 file per juara; kalau nanti mau carousel, cukup naikkan batasnya tanpa ubah tabel. Belum ada media = kartu memakai foto profil (<code>app_m_user.photo</code>), lalu inisial kalau foto profil juga kosong. Video diputar otomatis tanpa suara dan berulang. Kalau juara dihapus dari Wall of Fame, baris medianya ikut dihapus.</li>
             <li><b>Link:</b> moderator cukup menempel URL (tanpa memilih platform). <code>d_feed_link.platform</code> diisi otomatis dari domain URL: youtube.com / youtu.be → <code>youtube</code>, instagram.com → <code>instagram</code>, tiktok.com → <code>tiktok</code>, facebook.com / fb.watch → <code>facebook</code>, linkedin.com → <code>linkedin</code>, x.com / twitter.com → <code>x</code>, domain lain → <code>web</code>. Backend menghitung ulang saat simpan. Judul, deskripsi, thumbnail, dan nama akun diusulkan dari metadata link (Open Graph / oEmbed) dan tetap bisa diubah.</li>
             <li><b>Moderator</b> ditentukan lewat permission yang sudah ada (mis. <code>marketing-feed.moderate</code>), bukan kolom baru.</li>
+            <li><b>Wall of Fame (manual):</b> data juara diisi manual oleh user yang punya izin. Tidak ada daftar kategori atau level yang tetap. Nama program, kategori, dan peringkat boleh diisi bebas dan bisa berubah kapan saja. Status <code>draft</code> tidak tampil, <code>scheduled</code> otomatis menjadi <code>published</code> saat <code>publish_at</code> lewat (penjadwal yang sama dengan feed), dan <code>published</code> tampil di app.</li>
+            <li><b>Izin edit Wall of Fame:</b> satu izin <code>marketing-feed.fame.edit</code>, diberikan lewat <code>t_feed_fame_perm</code>. <code>scope_type</code> kosong = semua program, atau dibatasi <code>program</code> / <code>tim</code>. Tidak ada tahap persetujuan kedua: yang punya izin bisa menyimpan draf, menjadwalkan, atau menayangkan. Setiap perubahan dicatat di <code>t_feed_fame_log</code>.</li>
+            <li><b>Algoritma (halaman terpisah):</b> urutan kiriman di Home disimpan di <code>t_feed_setting</code>, tidak bercampur dengan Wall of Fame. Prioritas: pengaturan per sales menimpa pengaturan Global. Yang kosong ikut Global.</li>
+            <li><b>Logika feed:</b> urutan kiriman dihitung dari hubungan dengan pembuat (like, dislike, komentar), minat topik, banyaknya interaksi, kesegaran (turun pelan per hari), dan kesesuaian proyek. Skor dihitung saat feed dibuka dan tidak disimpan. Mode: <code>otomatis</code> (Pintar), <code>terbaru</code>, <code>acak</code> (tetap per hari), atau <code>custom</code>. Hanya <code>custom</code> yang memakai bobot dari penggeser; mode lain memakai bobot standar. Kiriman yang disematkan selalu di atas.</li>
+            <li><b>Pin Home:</b> pin kiriman (maks. 3, harus <code>published</code>) dan pin Wall of Fame (maks. 3, harus tayang) disimpan di <code>t_feed_setting.config</code>. Pin Global tampil untuk semua sales. Pin per sales dipakai untuk sales itu dan menimpa Global jika terisi. Urutan di Home: kiriman pin Global, lalu Wall of Fame (yang dipin dulu), lalu sematan, lalu feed.</li>
           </ul>
         </section>
 
@@ -1585,7 +1718,7 @@ button.db-t:hover{box-shadow:0 0 0 3px var(--db-acc-soft)}
           <ul class="db-rules">
             <li>Kolom audit mengikuti tabel existing (<code>m_contacts</code>): <code>create_user_id</code>, <code>update_user_id</code>, <code>created_at</code>, <code>updated_at</code>, dan <code>deleted_at</code> untuk tabel yang memakai soft delete (<code>t_feed_post</code>, <code>t_feed_comment</code>).</li>
             <li>Nama index: <code>idx_&lt;tabel&gt;_&lt;tujuan&gt;</code>. Nama unique: <code>uq_&lt;tabel&gt;</code>. Nama FK mengikuti Laravel: <code>&lt;tabel&gt;_&lt;kolom&gt;_foreign</code>.</li>
-            <li>Query CREATE TABLE semua tabel baru ada di <code>docs/marketing-feed-schema.sql</code> (sudah diuji di MySQL 8.4).</li>
+            <li>Query CREATE TABLE semua tabel baru akan ditulis di <code>docs/marketing-feed-schema.sql</code>. File itu belum dibuat, jadi belum ada yang diuji.</li>
             <li>Kolom bernama <code>ranking</code>, bukan <code>rank</code>, karena <code>RANK</code> adalah reserved word di MySQL 8.</li>
           </ul>
         </section>
@@ -1593,7 +1726,9 @@ button.db-t:hover{box-shadow:0 0 0 3px var(--db-acc-soft)}
         <section id="db-pertanyaan">
           <h2><span class="db-num">10</span>Pertanyaan terbuka</h2>
           <ol class="db-qs">
-            <li><div><b>Wall of Fame:</b> dihitung otomatis dari data SP (job bulanan) atau diisi manual oleh admin? Teks highlight di prototype terlihat ditulis manual. <code>t_feed_fame</code> bisa dipakai untuk dua-duanya.</div></li>
+            <li><div><b>Wall of Fame:</b> sudah diputuskan diisi manual oleh user yang punya izin, tanpa penghitungan otomatis dari data SP. Yang masih terbuka: apakah juara yang tampil harus selalu sama dengan juara yang dibayar? Kalau tidak, perlu kolom catatan selisih.</div></li>
+            <li><div><b>Pengaturan algoritma per user:</b> urutan personal untuk tampilan pribadi sudah didukung. Daftar publik (ranking, Wall of Fame) sebaiknya tetap global. Perlu dikonfirmasi.</div></li>
+            <li><div><b>Performa sinyal feed:</b> di backend, sinyal dihitung dari <code>t_feed_reaction</code> dan <code>t_feed_comment</code>. Kalau datanya besar, perlu tabel cache skor. Belum diputuskan.</div></li>
             <li><div><b>Target project:</b> cukup satu project atau semua? Kalau butuh beberapa project sekaligus, <code>project_id</code> diganti tabel pivot <code>d_feed_post_project</code>.</div></li>
             <li><div><b>Edit opsi poll setelah ada suara:</b> prototype mempertahankan suara selama jumlah opsinya sama. Ini berisiko kalau teks opsinya diganti. Usulan: opsi dikunci begitu ada suara.</div></li>
             <li><div><b><code>pillar</code>:</b> ada di data prototype tapi tidak ada UI untuk memilihnya. Dipakai untuk laporan atau dibuang?</div></li>
@@ -1601,7 +1736,7 @@ button.db-t:hover{box-shadow:0 0 0 3px var(--db-acc-soft)}
             <li><div><b>Progress Kamu:</b> pemetaan <code>m_prospect_status</code> ke 5 tahap funnel, dan periode hitungnya (kontak dibuat bulan ini, atau status berubah bulan ini), perlu dikonfirmasi.</div></li>
             <li><div><b>Sematan per project:</b> sekarang sematan mengikuti target post (<code>project_id</code>), dan batas 3 dihitung global. Kalau post "Semua project" perlu disematkan di satu project saja, atau batasnya per project, kolom pin dipindah ke tabel <code>t_feed_pin (feed_post_id, project_id, pinned_at, pin_user_id, pin_until)</code>.</div></li>
             <li><div><b>Umur draft sales:</b> disimpan sampai dihapus sendiri seperti TikTok, atau dihapus otomatis setelah sekian hari (mis. 30 hari) supaya media di storage tidak menumpuk?</div></li>
-            <li><div><b>Storage media:</b> foto/video feed dan Wall of Fame tidak disimpan di Google Drive. Storage penggantinya (dan cara membentuk URL dari <code>file_path</code>) masih menyusul.</div></li>
+            <li><div><b>Storage media:</b> foto/video feed dan Wall of Fame disimpan di <b>MinIO Raptor</b>, bukan Google Drive. URL media dibentuk lewat endpoint media (atau signed URL), bukan dari <code>file_path</code> langsung.</div></li>
           </ol>
         </section>
       </div>
@@ -2027,6 +2162,9 @@ function tick(){
   const due=posts.filter(p=>p.status==='scheduled'&&p.at<=clock),ended=posts.filter(p=>p.pinUntil&&p.pinUntil<=clock);
   due.forEach(p=>{p.status='published'});ended.forEach(unpin);
   if(due.length||ended.length)changed();
+  const fdue=fameEntries.filter(e=>e.status==='scheduled'&&e.at<=clock);
+  fdue.forEach(e=>{e.status='published'});
+  if(fdue.length)renderFame();
   due.forEach(p=>notify(`Kiriman terjadwal sudah tayang: “${plain(p).slice(0,38)}…”`));
   ended.forEach(p=>atoast(`Sematan sudah berakhir: “${plain(p).slice(0,38)}…”`));
   document.querySelectorAll('[data-clock]').forEach(e=>e.textContent=e.dataset.clock==='hm'?hhmm(clock):`${DFMT.format(new Date(clock))} 2026 · ${new Date(clock).toTimeString().slice(0,8)}`);
@@ -2042,33 +2180,62 @@ function jumpNext(){
 const funnel=[["Leads",12],["Appt",8],["Visit",5],["Reserve",2],["SP",1]];
 $('#bars').innerHTML=funnel.map(([l,v])=>`<div class="bar">${v}<i style="height:${Math.max(6,v/12*64)}px"></i><span>${l}</span></div>`).join('');
 
-/* ---------- HOME: wall of fame ---------- */
-const fame={
- "TOP GM":{h:["HW","Hendra Wijaya · GM PAR1 & PAR2","Belum terkalahkan 3 bulan beruntun!"],r:[["RP","Ratna Puspita · PRC","Comeback kuat bulan ini 💪","#FF9800"],["AS","Agus Salim · PAR2","Konsisten terus di 3 besar","#4CAF50"]]},
- "TOP SM":{h:["DK","Dewi Kartika · SM PAR1","14 SP tim dalam sebulan"],r:[["FR","Fajar Ramadhan · PRC","Naik 4 peringkat","#6D5DD3"],["LN","Lina Nur · PAR2","Tingkat berhasil 38%","#FF9800"]]},
- "TOP SPV":{h:["YS","Yoga Saputra · SPV PAR2","Tim paling cepat menindaklanjuti"],r:[["MI","Mega Indah · PAR1","9 SP tim","#4CAF50"],["RA","Rudi Akbar · PRC","Kunjungan terbanyak","#F44336"]]},
- "TOP SE":{h:["RK","Rina Kartika · SE PAR1","8 unit SP bulan ini, #1 di PAR1"],r:[["BS","Budi Santoso · PAR1","6 SP, janji temu terbanyak","#6D5DD3"],["TW","Tari Wulan · PAR2","SP pertama bulan ini 🎉","#FF9800"]]}
-};
-/* foto dummy juara #1 (Unsplash, sama dengan data dummy di app); inisial tampil kalau foto gagal dimuat */
-const PHOTO={'TOP GM':'1507003211169-0a1dd7228f2d','TOP SM':'1494790108377-be9c29b29330','TOP SPV':'1500648767791-00dcc994a43e','TOP SE':'1438761681033-6461ffad8d80'};
-/* foto / video khusus juara #1 (d_feed_fame_media), diatur di Admin Web › Wall of Fame;
-   level tanpa media memakai foto profil. Contoh: TOP SE sudah punya foto khusus. */
-const fameSample=k=>({k:'award',o:{big:'JUARA #1',name:fame[k].h[1].split(' · ')[0],sub:`${k} · Oktober 2026`},cap:'Foto juara'});
-const fameMedia={'TOP SE':fameSample('TOP SE')};
-function heroHTML(k){
-  const f=fame[k],m=fameMedia[k];
-  const vis=!m?`<div class="hport"><span>${f.h[0]}</span><img src="https://images.unsplash.com/photo-${PHOTO[k]}?w=240&h=240&fit=crop&crop=faces&q=70" alt="" onerror="this.remove()"></div>`
+/* ---------- HOME: wall of fame (dinamis, diisi dari Admin Web › Wall of Fame) ----------
+   Program, kategori, dan peringkat bebas: tidak ada level yang ditulis tetap di kode.
+   Hanya entri berstatus tayang (dan jamnya sudah lewat) yang tampil di app. */
+const FAME_CAN_EDIT=true; // contoh: user ini punya izin marketing-feed.fame.edit (tanpa scope = semua program)
+const fEsc=s=>String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+const FAME_COLORS=['#FF9800','#4CAF50','#6D5DD3','#F44336'];
+const FSTAT={draft:{l:'Draf',c:'mut'},scheduled:{l:'Terjadwal',c:'info'},published:{l:'Tayang',c:'ok'}};
+let fameSeq=20,fameEdit=null;
+/* data contoh (dummy). Foto `photo` = id Unsplash, inisial tampil kalau foto gagal dimuat */
+const fameProgs=[{id:'fp1',nama:'Top Salebration Oktober 2026',periode:'Oktober 2026'}];
+const fameEntries=[
+ {id:1,prog:'fp1',kategori:'TOP GM',rank:1,nama:'Hendra Wijaya',sub:'GM PAR1 & PAR2',caption:'Belum terkalahkan 3 bulan beruntun!',av:'HW',status:'published',at:0,media:null},
+ {id:2,prog:'fp1',kategori:'TOP GM',rank:2,nama:'Ratna Puspita',sub:'PRC',caption:'Comeback kuat bulan ini 💪',av:'RP',status:'published',at:0,media:null},
+ {id:3,prog:'fp1',kategori:'TOP GM',rank:3,nama:'Agus Salim',sub:'PAR2',caption:'Konsisten terus di 3 besar',av:'AS',status:'published',at:0,media:null},
+ {id:4,prog:'fp1',kategori:'TOP SM',rank:1,nama:'Dewi Kartika',sub:'SM PAR1',caption:'14 SP tim dalam sebulan',av:'DK',status:'published',at:0,media:null},
+ {id:5,prog:'fp1',kategori:'TOP SM',rank:2,nama:'Fajar Ramadhan',sub:'PRC',caption:'Naik 4 peringkat',av:'FR',status:'published',at:0,media:null},
+ {id:6,prog:'fp1',kategori:'TOP SM',rank:3,nama:'Lina Nur',sub:'PAR2',caption:'Tingkat berhasil 38%',av:'LN',status:'published',at:0,media:null},
+ {id:7,prog:'fp1',kategori:'TOP SPV',rank:1,nama:'Yoga Saputra',sub:'SPV PAR2',caption:'Tim paling cepat menindaklanjuti',av:'YS',status:'published',at:0,media:null},
+ {id:8,prog:'fp1',kategori:'TOP SPV',rank:2,nama:'Mega Indah',sub:'PAR1',caption:'9 SP tim',av:'MI',status:'published',at:0,media:null},
+ {id:9,prog:'fp1',kategori:'TOP SPV',rank:3,nama:'Rudi Akbar',sub:'PRC',caption:'Kunjungan terbanyak',av:'RA',status:'published',at:0,media:null},
+ {id:10,prog:'fp1',kategori:'TOP SE',rank:1,nama:'Rina Kartika',sub:'SE PAR1',caption:'8 unit SP bulan ini, #1 di PAR1',av:'RK',status:'published',at:0,media:{k:'award',o:{big:'JUARA #1',name:'Rina Kartika',sub:'TOP SE · Oktober 2026'},cap:'Foto juara'}},
+ {id:11,prog:'fp1',kategori:'TOP SE',rank:2,nama:'Budi Santoso',sub:'PAR1',caption:'6 SP, janji temu terbanyak',av:'BS',status:'published',at:0,media:null},
+ {id:12,prog:'fp1',kategori:'TOP SE',rank:3,nama:'Tari Wulan',sub:'PAR2',caption:'SP pertama bulan ini 🎉',av:'TW',status:'published',at:0,media:null}
+];
+const fameVisible=()=>fameEntries.filter(e=>e.status==='published'&&e.at<=clock);
+/* hero = peringkat 1 tiap kategori (foto/video khusus, atau foto profil / inisial) */
+function fameHero(e){
+  const m=e.media;
+  const vis=!m?`<div class="hport"><span>${fEsc(e.av)}</span>${e.foto?`<img src="${fEsc(e.foto)}" alt="${fEsc(e.nama)}" onerror="this.remove()">`:''}</div>`
     :m.kind==='video'?`<video class="hmedia" src="${m.url}" autoplay muted loop playsinline></video><span class="hvid">${ic('play',14)}</span>`
     :art(m,'hmedia','xMidYMin');
-  return `<div class="hero ${m?'has-media':''}">${vis}<span class="badge">${ic('trophy',13)}#1 Bulan Ini</span><b>${f.h[1]}</b><small>${f.h[2]}</small></div>`;
+  return `<div class="hero ${m?'has-media':''}">${vis}<span class="badge">${ic('trophy',13)}Juara #${e.rank}</span><b>${fEsc(e.nama)} · ${fEsc(e.sub)}</b><small>${fEsc(e.caption)}</small></div>`;
 }
-/* semua level ditampilkan berurutan, tanpa tombol tab */
-const renderFame=()=>$('#fameAll').innerHTML=Object.entries(fame).map(([k,f])=>`<div class="flevel">
-  <div class="flv">${k}</div>
-  ${heroHTML(k)}
-  ${f.r.map((r,i)=>`<div class="rank"><div class="av" style="background:${r[3]}">${r[0]}<span class="medal m${i+2}">${i+2}</span></div><div style="flex:1"><b>${r[1]}</b><div class="small">${r[2]}</div></div><span class="small" style="font-weight:800">#${i+2}</span></div>`).join('')}
-</div>`).join('');
-renderFame();
+/* urutan: program (urut daftar), lalu kategori (urut kemunculan), lalu peringkat */
+function fameGroups(){
+  const ents=fameVisible();
+  return fameProgs.map(p=>{
+    const mine=ents.filter(e=>e.prog===p.id);
+    const cats=[...new Set(mine.map(e=>e.kategori))];
+    return {p,cats:cats.map(k=>({k,list:mine.filter(e=>e.kategori===k).sort((a,b)=>a.rank-b.rank)}))};
+  }).filter(g=>g.cats.length);
+}
+/* satu kartu per orang: setiap juara punya kartunya sendiri (foto atau inisial dirinya) */
+function fameCardHTML(p,k,e){
+  const judul=p.periode&&!p.nama.includes(p.periode)?p.nama+' · '+p.periode:p.nama;
+  const isi=e.rank===1
+    ? fameHero(e)
+    : `<div class="rank"><div class="av" style="background:${FAME_COLORS[(e.rank-2)%FAME_COLORS.length]}">${fEsc(e.av)}<span class="medal m${e.rank}">${e.rank}</span></div><div style="flex:1"><b>${fEsc(e.nama)} · ${fEsc(e.sub)}</b><div class="small">${fEsc(e.caption)}</div></div><span class="small" style="font-weight:800">#${e.rank}</span></div>`;
+  return `<article class="card fcard"><div class="fhd"><span class="fic">${ic('trophy',18)}</span><div><b>${fEsc(k)}</b><small>${fEsc(judul)}</small></div></div>${isi}</article>`;
+}
+const fameCards=()=>{
+  const pinned=pinsUntuk(ME.name).pinFame;
+  const semua=fameGroups().flatMap(({p,cats})=>cats.flatMap(({k,list})=>list.map(e=>({id:e.id,html:fameCardHTML(p,k,e)}))));
+  return [...pinned.map(id=>semua.find(i=>i.id===id)).filter(Boolean),...semua.filter(i=>!pinned.includes(i.id))].map(i=>i.html);
+};
+const renderFame=()=>renderFeed();
 
 /* ---------- MOBILE: kartu feed (dipakai juga untuk preview di Admin Web) ---------- */
 function headHTML(p){
@@ -2110,11 +2277,69 @@ function cardHTML(p,pv=false){
 }
 
 /* ---------- MOBILE: feed ---------- */
+/* --- Helper acak (dipakai urutan daftar dan logika feed) --- */
+const hashSeed=str=>{let h=2166136261;for(const c of String(str)){h^=c.charCodeAt(0);h=Math.imul(h,16777619)}return h>>>0};
+const rng=seed=>{let a=seed>>>0;return()=>{a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}};
+const shuffle=(arr,rand)=>{const a=[...arr];for(let i=a.length-1;i>0;i--){const j=Math.floor(rand()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
+
+/* --- Logika feed ala Instagram: urutan personal, bisa diatur global / per tim / per pengguna ---
+   Sinyal: hubungan dengan pembuat, minat topik, banyak interaksi, kiriman terbaru, sesuai proyek.
+   Pengaturan: user menimpa tim, tim menimpa global. Hanya sinyal milik viewer yang dihitung. */
+const MY_TIM='PAR1',MY_PROJECT='PAR1';
+const FEED_W={rel:'Hubungan dengan pembuat',minat:'Minat topik',engage:'Banyak interaksi',baru:'Kiriman terbaru',proyek:'Sesuai proyek saya'};
+const FEED_MODE={otomatis:'Otomatis (berdasarkan minat)',terbaru:'Terbaru dulu',acak:'Acak (tetap per hari)'};
+const feedCfg={
+  global:{mode:'otomatis',w:{rel:3,minat:2,engage:2,baru:2,proyek:1},pinPost:[],pinFame:[]},
+  user:{}   // contoh: {'Budi Santoso':{w:{baru:4}}}
+};
+const GLOBAL_PIN_MAX=3;
+const FEED_DEFAULT_W={rel:3,minat:2,engage:2,baru:2,proyek:1};
+const pinsUntuk=name=>{
+  const u=(name&&feedCfg.user[name])||{},g=feedCfg.global;
+  return {pinPost:(u.pinPost&&u.pinPost.length)?u.pinPost:(g.pinPost||[]),pinFame:(u.pinFame&&u.pinFame.length)?u.pinFame:(g.pinFame||[])};
+};
+function feedSetting(user){
+  const g=feedCfg.global,u=(user&&feedCfg.user[user])||{};
+  return {mode:u.mode||g.mode,w:{...g.w,...(u.w||{})}};
+}
+function feedSignals(viewer){
+  const rel={},minat={},add=(o,k,n)=>{o[k]=(o[k]||0)+n};
+  posts.forEach(p=>{
+    if(p.status!=='published'||p.a===viewer)return;
+    if(p.my===1){add(rel,p.a.name,2);add(minat,p.pillar,1)}
+    if(p.my===-1)add(rel,p.a.name,-1);
+    p.comments.forEach(c=>{if(c.a===viewer&&!c.hidden)add(rel,p.a.name,3)});
+  });
+  return {rel,minat};
+}
+function feedScore(p,sig,w){
+  const days=Math.max(0,(clock-p.at)/DAY);
+  const parts={
+    rel:w.rel*Math.max(-1,Math.min(1,(sig.rel[p.a.name]||0)/6)),
+    minat:w.minat*Math.min(1,(sig.minat[p.pillar]||0)/5),
+    engage:w.engage*Math.min(1,Math.log10(1+likesOf(p)+2*countC(p))/2),
+    baru:w.baru*Math.exp(-days/3),
+    proyek:w.proyek*((p.project===MY_PROJECT||p.project==='Semua')?1:0)
+  };
+  return {total:Object.values(parts).reduce((a,b)=>a+b,0),parts};
+}
+function feedOrder(list,viewer=ME,setting){
+  const s=setting||feedSetting(viewer.name);
+  if(s.mode==='terbaru')return [...list].sort((a,b)=>b.at-a.at);
+  if(s.mode==='acak')return shuffle([...list].sort((a,b)=>a.id-b.id),rng(hashSeed(viewer.name+'|'+toDateInput(clock))));
+  const sig=feedSignals(viewer);
+  return list.map(p=>({p,sc:feedScore(p,sig,s.mode==='custom'?s.w:FEED_DEFAULT_W).total})).sort((a,b)=>b.sc-a.sc||b.p.at-a.p.at).map(x=>x.p);
+}
+
 function renderFeed(){
   const mine=posts.filter(p=>p.a===ME&&(p.status==='review'||p.status==='rejected')).sort((a,b)=>b.at-a.at);
-  /* yang disematkan di atas (terbaru disematkan dulu), sisanya urut waktu tayang */
-  const pub=posts.filter(p=>p.status==='published').sort((a,b)=>isPinned(b)-isPinned(a)||(isPinned(a)?b.pinAt-a.pinAt:b.at-a.at));
-  $('#stream').innerHTML=[...mine,...pub].map(p=>cardHTML(p)).join('');
+  const pub=posts.filter(p=>p.status==='published');
+  const pinGlobal=pinsUntuk(ME.name).pinPost.map(id=>pub.find(p=>p.id===id)).filter(Boolean);
+  const sisa=pub.filter(p=>!pinGlobal.includes(p));
+  /* urutan: kiriman yang dipin global, Wall of Fame (yang dipin dulu), sematan, lalu feed sesuai logika */
+  const pins=sisa.filter(isPinned).sort((a,b)=>b.pinAt-a.pinAt);
+  const rest=feedOrder(sisa.filter(p=>!isPinned(p)));
+  $('#stream').innerHTML=pinGlobal.map(p=>cardHTML(p)).join('')+fameCards().join('')+[...mine,...pins,...rest].map(p=>cardHTML(p)).join('');
 }
 const notify=m=>{toast(m);atoast(m)};
 const scrollFeedTop=()=>$('#feed').scrollTo({top:$('#stream').previousElementSibling.offsetTop-16,behavior:'smooth'});
@@ -2664,7 +2889,7 @@ const sbadge=p=>`<span class="abadge ${SB[p.status][1]}">${SB[p.status][0]}</spa
 const athumb=p=>{const t=thumbOf(p);return `<div class="athumb">${t?art(t):ic(p.type==='poll'?'poll':'article',20)}</div>`};
 const pav=a=>`<span class="pav" style="background:${a.color}">${a.ini}</span>`;
 let av='list',aFilter='all',aQuery='',calTab='scheduled',revOpen={};
-const CRUMB={list:'Konten',calendar:'Kalender Jadwal',review:'Persetujuan Kiriman Sales',fame:'Wall of Fame',editor:'Konten / Editor'};
+const CRUMB={list:'Konten',calendar:'Kalender Jadwal',review:'Persetujuan Kiriman Sales',fame:'Wall of Fame',algo:'Algoritma',editor:'Konten / Editor'};
 
 function setAV(v,arg){
   av=v;awin.classList.remove('nav-open');$('#mfGroup').classList.add('open');$('[data-mftoggle]').setAttribute('aria-expanded','true');
@@ -2677,7 +2902,7 @@ function setAV(v,arg){
 function renderAdmin(){
   $('#revCnt').textContent=posts.filter(p=>p.status==='review').length||'';
   if(awin.hidden||av==='editor')return;
-  ({list:aList,calendar:aCal,review:aReview,fame:aFame})[av]();
+  ({list:aList,calendar:aCal,review:aReview,fame:aFame,algo:aAlgo})[av]();
 }
 
 /* --- daftar konten --- */
@@ -2728,20 +2953,238 @@ function aReview(){
   </div>`}).join('')}</div>`:`<div class="acard aempty">${ic('done',36,'var(--aok)')}<p><b>Semua kiriman sudah dicek.</b><br>Kiriman baru dari aplikasi akan muncul di sini.</p></div>`}`;
 }
 
-/* --- Wall of Fame: foto / video khusus juara #1 (d_feed_fame_media) --- */
-function aFame(){
-  aBody.innerHTML=`<div class="ahead"><div><h1>Wall of Fame</h1><p>Juara #1 tiap level bulan Oktober 2026. Unggah foto atau video khusus supaya kartu juara di app lebih meriah. Kalau kosong, kartu memakai foto profil sales.</p></div></div>
-  <div class="anote" style="margin:0 0 16px">${ic('info',16)}<span>Foto (JPG/PNG) atau video (MP4), maksimal 20 MB. Video diputar otomatis di app tanpa suara, berulang terus.</span></div>
-  <div class="afm-grid">${Object.keys(fame).map(k=>{const m=fameMedia[k];return `<section class="acard pad afm" data-lv="${k}">
-    <div class="afm-hd"><span class="flv">${k}</span><span class="abadge ${m?'ok':'mut'}">${!m?'Foto profil':m.kind==='video'?'Video khusus':'Foto khusus'}</span></div>
-    ${heroHTML(k)}
-    <div class="afm-act"><button class="abtn sm" data-fa="up">${ic('upload',15)}Unggah foto/video</button><button class="abtn sm" data-fa="sample">${ic('image',15)}Pakai foto contoh</button>${m?'<button class="abtn sm link bad" data-fa="rm">Hapus foto/video</button>':''}</div>
-  </section>`}).join('')}</div>`;
+/* teks yang ramah untuk sales: tidak memakai istilah teknis */
+const FEED_TEXT={
+  otomatis:['Pintar','Urut dari yang paling relevan untuk kamu. Disarankan.'],
+  terbaru:['Terbaru dulu','Kiriman paling baru selalu di atas.'],
+  acak:['Acak','Urutannya diacak, tapi tetap sama sepanjang hari.'],
+  custom:['Custom','Atur sendiri seberapa penting tiap hal.']
+};
+const FEED_SIG={
+  rel:['Hubungan dengan pembuat','Kiriman dari orang yang sering kamu sukai atau komentari.'],
+  minat:['Topik yang kamu suka','Kiriman dengan jenis topik yang sering kamu sukai.'],
+  engage:['Ramai diinteraksi','Kiriman yang banyak disukai dan dikomentari.'],
+  baru:['Kiriman baru','Kiriman yang baru diunggah lebih diutamakan.'],
+  proyek:['Proyek kamu','Kiriman untuk proyek yang sama dengan kamu.']
+};
+const SKALA=v=>v===0?'Tidak dipakai':v<=1.5?'Sedikit':v<=3.5?'Sedang':'Kuat';
+/* --- panel admin: logika feed per tingkat --- */
+/* tab: 'global' = untuk semua sales, 'sales' = per sales. Perubahan disimpan dulu lewat tombol Simpan. */
+let algoTab='global',algoWho=null,salesQuery='',salesFilter='all';
+let pickOpen=false,pickQuery='';
+let algoDraft={mode:'',w:{}},algoDraftKey=null;
+const salesNames=()=>[...new Set(posts.filter(p=>p.a!==MOD).map(p=>p.a.name))];
+const algoScope=()=>algoTab==='global'?'global':algoWho;
+const algoSavedRaw=key=>{
+  if(key==='global'||!key){const g=feedCfg.global;return {mode:g.mode,w:{...g.w},pinPost:[...(g.pinPost||[])],pinFame:[...(g.pinFame||[])]}}
+  const u=feedCfg.user[key]||{};return {mode:u.mode||'',w:{...(u.w||{})},pinPost:[...(u.pinPost||[])],pinFame:[...(u.pinFame||[])]};
+};
+const algoNorm=x=>({mode:x.mode||'',w:Object.keys(x.w||{}).sort().reduce((o,k)=>(o[k]=x.w[k],o),{}),pinPost:[...(x.pinPost||[])],pinFame:[...(x.pinFame||[])]});
+const algoIsDirty=key=>JSON.stringify(algoNorm(algoDraft))!==JSON.stringify(algoNorm(algoSavedRaw(key)));
+const algoEffective=()=>{const g=feedCfg.global;return {mode:algoDraft.mode||g.mode,w:{...g.w,...algoDraft.w}}};
+function algoEditInit(force){
+  const key=algoScope();
+  if(!force&&algoDraftKey===key)return;
+  if(algoDraftKey!==null&&algoIsDirty(algoDraftKey))atoast('Perubahan yang belum disimpan dibuang');
+  algoDraftKey=key;
+  algoDraft=algoSavedRaw(key==='global'?null:key);
 }
-function setFameMedia(k,m){
-  if(m)fameMedia[k]=m;else delete fameMedia[k];
+function feedHTML(){
+  const g=algoScope()==='global', who=g?null:algoWho;
+  const d=algoDraft, eff=algoEffective(), dirty=algoIsDirty(g?'global':who);
+  const khusus=!g&&Object.keys(feedCfg.user[who]||{}).length>0;
+  const card=(name,v,isi,on,attr)=>`<label class="pick"><input type="radio" name="${name}" value="${v}" ${attr} ${on?'checked':''}><span><b>${isi[0]}</b><small>${isi[1]}</small></span></label>`;
+  const modeCards=(g?'':card('fmode','',['Ikuti pengaturan semua sales','Tidak diubah di sini.'],!d.mode,'data-g="mode"'))+
+    ['otomatis','terbaru','acak','custom'].map(v=>card('fmode',v,FEED_TEXT[v],d.mode===v,'data-g="mode"')).join('');
+  const bobot=Object.keys(FEED_SIG).map(k=>{
+    const explicit=d.w[k]!==undefined,val=eff.w[k];
+    return `<div class="wrow"><div><b>${FEED_SIG[k][0]}</b><small>${FEED_SIG[k][1]}</small></div>
+      <div class="wslide"><input type="range" min="0" max="5" step="0.5" value="${val}" data-g="w" data-k="${k}" aria-label="${FEED_SIG[k][0]}"><output>${SKALA(val)}${!explicit&&!g?' (ikut semua sales)':''}</output></div></div>`;
+  }).join('');
+  const viewer=g?ME:{name:who};
+  const pinKiriman=algoDraft.pinPost.map(id=>posts.find(x=>x.id===id)).filter(Boolean);
+  const top=[...pinKiriman,...feedOrder(posts.filter(p=>p.status==='published'&&!isPinned(p)&&!pinKiriman.includes(p)),viewer,eff)].slice(0,5);
+  const pinBagian=`<div class="acard pad"><b class="lbl">Pin di paling atas Home</b>
+      <p class="hint">Tampil paling atas di Home. ${g?'Berlaku untuk semua sales.':'Khusus untuk sales ini. Kalau kosong, memakai pin Global.'}</p>
+      <div class="pinrow"><b class="small">Kiriman (maks. ${GLOBAL_PIN_MAX})</b>
+        ${algoDraft.pinPost.map(id=>{const p=posts.find(x=>x.id===id);return `<span class="chip">${fEsc(p?plain(p).slice(0,40):'(kiriman dihapus)')}<button class="chipx" data-gdel="pinpost:${id}">Lepas</button></span>`}).join('')}
+        ${algoDraft.pinPost.length<GLOBAL_PIN_MAX?`<select data-g="pinpost" aria-label="Pin kiriman"><option value="">+ Pilih kiriman</option>${posts.filter(p=>p.status==='published'&&!algoDraft.pinPost.includes(p.id)).map(p=>`<option value="${p.id}">${fEsc(plain(p).slice(0,50))}</option>`).join('')}</select>`:''}</div>
+      <div class="pinrow"><b class="small">Wall of Fame (maks. ${GLOBAL_PIN_MAX})</b>
+        ${algoDraft.pinFame.map(id=>{const e=fameEntries.find(x=>x.id===id);return `<span class="chip">${fEsc(e?e.nama:'(juara dihapus)')}<button class="chipx" data-gdel="pinfame:${id}">Lepas</button></span>`}).join('')}
+        ${algoDraft.pinFame.length<GLOBAL_PIN_MAX?`<select data-g="pinfame" aria-label="Pin Wall of Fame"><option value="">+ Pilih juara</option>${fameEntries.filter(e=>e.status==='published'&&!algoDraft.pinFame.includes(e.id)).map(e=>`<option value="${e.id}">${fEsc(e.nama)} · ${fEsc(e.kategori)}</option>`).join('')}</select>`:''}</div></div>`;
+  const liat=top.map((p,i)=>`<tr><td>${i+1}</td><td>${fEsc(plain(p).slice(0,60))}</td><td>${fEsc(p.a.name)}</td><td>${ago(p.at)}</td></tr>`).join('');
+  const judul=g?'Pengaturan Global':`Pengaturan untuk ${fEsc(who)}`;
+  const status=dirty?'<span class="dirty">● Ada perubahan yang belum disimpan</span>':'<span class="clean">Semua perubahan sudah tersimpan</span>';
+  return `<section class="ffm" id="feedBox">
+    <div class="fhead acard pad">
+      <div><h3 style="margin:0;font-size:16px">${judul}${khusus?' <span class="tagKhusus">Khusus</span>':''}</h3>${status}</div>
+    </div>
+    <div class="acard pad"><b class="lbl">Cara mengurutkan</b>${g?'<p class="hint">Berlaku untuk semua sales yang tidak punya pengaturan sendiri.</p>':'<p class="hint">Pilih "Ikuti pengaturan semua sales" untuk memakai pengaturan umum.</p>'}<div class="pick-grid">${modeCards}</div></div>
+    ${eff.mode==='custom'?`<div class="acard pad"><b class="lbl">Seberapa penting tiap hal?</b><p class="hint">Geser ke kanan untuk membuat hal itu lebih berpengaruh. Geser sampai "Tidak dipakai" untuk mematikannya.</p>${bobot}</div>`:''}
+    ${pinBagian}
+    <div class="sumbox">Yang berlaku di Home sekarang: <b>${FEED_TEXT[feedSetting(g?null:who).mode][0]}</b>.</div>
+    <div class="acard pad"><b class="lbl">Contoh 5 kiriman teratas ${g?'(untuk akun kamu)':'untuk '+fEsc(who)}</b>
+      ${g?'':'<p class="hint">Contoh ini hanya memakai riwayat akun kamu, jadi untuk sales lain tampilannya mengikuti pengaturan saja.</p>'}
+      <div class="ftable"><table><thead><tr><th>No</th><th>Kiriman</th><th>Dari</th><th>Diunggah</th></tr></thead><tbody>${liat}</tbody></table></div></div>
+    <div class="savebar savebar-bawah">
+      <div class="btn-row">
+        <button class="abtn sm" data-g="cancel" ${dirty?'':'disabled'}>Batal</button>
+        <button class="abtn ok" data-g="save" ${dirty?'':'disabled'}>Simpan</button>
+      </div>
+    </div>
+  </section>`;
+}
+function feedChange(el){
+  const k=el.dataset.g;
+  if(k==='pinpost'&&el.value){if(!algoDraft.pinPost.includes(Number(el.value))&&algoDraft.pinPost.length<GLOBAL_PIN_MAX)algoDraft.pinPost.push(Number(el.value))}
+  else if(k==='pinfame'&&el.value){if(!algoDraft.pinFame.includes(Number(el.value))&&algoDraft.pinFame.length<GLOBAL_PIN_MAX)algoDraft.pinFame.push(Number(el.value))}
+  else if(k==='mode')algoDraft.mode=el.value;
+  else if(k==='w')algoDraft.w[el.dataset.k]=Math.max(0,Math.min(5,Number(el.value)));
+  aAlgo();
+}
+function algoSave(){
+  const key=algoDraftKey;
+  if(key==='global'){
+    feedCfg.global={mode:algoDraft.mode||feedCfg.global.mode,w:{...feedCfg.global.w,...algoDraft.w},pinPost:[...algoDraft.pinPost],pinFame:[...algoDraft.pinFame]};
+  }else{
+    const m=algoDraft.mode,w=algoDraft.w,pp=algoDraft.pinPost,pf=algoDraft.pinFame;
+    const ada=Object.keys(w).length>0||pp.length>0||pf.length>0;
+    if(!m&&!ada)delete feedCfg.user[key];
+    else feedCfg.user[key]={...(m?{mode:m}:{}),...(Object.keys(w).length?{w:{...w}}:{}),...(pp.length?{pinPost:[...pp]}:{}),...(pf.length?{pinFame:[...pf]}:{})};
+  }
+  renderFeed();
+  atoast(key==='global'?'Tersimpan. Berlaku untuk semua sales yang ikut pengaturan umum':'Tersimpan. Pengaturan khusus untuk '+key+' sudah berlaku');
+  algoEditInit(true);aAlgo();
+}
+function algoCancel(){algoEditInit(true);aAlgo()}
+/* aksi di tabel: langsung tersimpan */
+function algoIkuti(name){
+  delete feedCfg.user[name];
+  renderFeed();algoEditInit(true);
+  atoast(name+' sekarang mengikuti pengaturan semua sales');aAlgo();
+}
+function algoHapus(name){
+  if(!window.confirm('Hapus pengaturan khusus untuk '+name+'?'))return;
+  delete feedCfg.user[name];
+  renderFeed();algoEditInit(true);
+  atoast('Pengaturan khusus untuk '+name+' dihapus');aAlgo();
+}
+function feedReset(){
+  if(algoScope()==='global'){algoDraft={mode:'otomatis',w:{rel:3,minat:2,engage:2,baru:2,proyek:1},pinPost:[],pinFame:[]};atoast('Dikembalikan ke standar. Klik Simpan untuk menerapkan')}
+  else{algoDraft={mode:'',w:{},pinPost:[],pinFame:[]};atoast('Mengikuti pengaturan semua sales. Klik Simpan untuk menerapkan')}
+  aAlgo();
+}
+
+/* --- Wall of Fame (admin): program, kategori, dan peringkat diisi manual dan bebas diubah --- */
+const fameStatusName=s=>FSTAT[s]?.l||s;
+const fameRow=(e,ro)=>`<div class="frow" data-fid="${e.id}">
+  <div class="frow-main"><span class="flv">${fEsc(e.kategori)} · #${e.rank}</span><div><b>${fEsc(e.nama)}</b> <span class="small">${fEsc(e.sub)}</span></div><div class="small">${fEsc(e.caption)||'<i>tanpa caption</i>'}</div></div>
+  <div class="frow-side"><span class="abadge ${FSTAT[e.status].c}">${fameStatusName(e.status)}${e.status==='scheduled'?' · '+when(e.at):''}</span>${e.media?`<span class="abadge ok">${e.media.kind==='video'?'Video':'Foto'} khusus</span>`:'<span class="abadge mut">Foto profil</span>'}</div>
+  ${ro?'':`<div class="afm-act">
+    <button class="abtn sm" data-fe="edit">${ic('edit',15)}Ubah</button>
+    <button class="abtn sm" data-fe="up">${ic('upload',15)}Unggah foto/video</button>
+    <button class="abtn sm" data-fe="sample">${ic('image',15)}Pakai foto contoh</button>
+    ${e.media?'<button class="abtn sm link bad" data-fe="rmmedia">Hapus media</button>':''}
+    <select class="abtn sm" data-fstat aria-label="Status tayang">${Object.keys(FSTAT).map(k=>`<option value="${k}" ${e.status===k?'selected':''}>${FSTAT[k].l}</option>`).join('')}</select>
+    <button class="abtn sm link bad" data-fe="del">Hapus</button></div>`}
+</div>`;
+function fameForm(){
+  const e=fameEdit?fameEntries.find(x=>x.id===fameEdit):null,p=e?fameProgs.find(x=>x.id===e.prog):null;
+  const v=(x,d='')=>fEsc(x??d),mode=e?e.status:'draft',dt=e&&e.status==='scheduled'?e.at:clock+3600000;
+  return `<section class="acard pad ffm" id="fameForm"><h3 style="margin:0;font-size:15px">${e?'Ubah entri':'Tambah entri baru'}</h3>
+  <p class="small" style="margin:0">Isi nama program, kategori, dan peringkat. Nama program yang sudah ada akan dipakai ulang; kalau belum ada, otomatis dibuat baru.</p>
+  <div class="ffg">
+    <label>Program<input type="text" id="ffProg" list="ffProgs" value="${v(p?.nama)}" placeholder="Pilih atau ketik program baru"></label>
+    <label>Periode<input type="text" id="ffPeriode" value="${v(p?.periode)}" placeholder="mis. Oktober 2026"></label>
+    <label>Kategori<input type="text" id="ffKat" list="ffKats" value="${v(e?.kategori)}" placeholder="mis. TOP SE"></label>
+    <label>Peringkat<input type="number" id="ffRank" min="1" value="${v(e?.rank,'1')}"></label>
+    <label>Nama sales<input type="text" id="ffNama" value="${v(e?.nama)}"></label>
+    <label>Jabatan / tim<input type="text" id="ffSub" value="${v(e?.sub)}" placeholder="mis. SE PAR1"></label>
+    <label class="wide">Caption<input type="text" id="ffCap" value="${v(e?.caption)}" placeholder="Kalimat singkat untuk kartu juara"></label>
+    <label>Tayang<select id="ffMode"><option value="draft" ${mode==='draft'?'selected':''}>Simpan sebagai draf</option><option value="later" ${mode==='scheduled'?'selected':''}>Jadwalkan</option><option value="now" ${mode==='published'?'selected':''}>Tayangkan sekarang</option></select></label>
+    <label>Tanggal tayang<input type="date" id="ffDate" value="${toDateInput(dt)}"></label>
+    <label>Jam tayang<input type="time" id="ffTime" value="${hhmm(dt)}"></label>
+  </div>
+  <datalist id="ffProgs">${fameProgs.map(x=>`<option value="${v(x.nama)}"></option>`).join('')}</datalist>
+  <datalist id="ffKats">${[...new Set(fameEntries.map(x=>x.kategori))].map(x=>`<option value="${v(x)}"></option>`).join('')}</datalist>
+  <div class="acts2"><button class="abtn ok" data-fe="save">${ic('done',15)}${e?'Simpan perubahan':'Simpan entri'}</button>${e?'<button class="abtn sm" data-fe="cancel">Batal</button>':''}</div>
+  </section>`;
+}
+function aFame(){
+  const ro=!FAME_CAN_EDIT;
+  const list=fameProgs.map(p=>{const ents=fameEntries.filter(e=>e.prog===p.id).sort((a,b)=>a.kategori.localeCompare(b.kategori)||a.rank-b.rank);
+    return `<section class="acard pad afm"><div class="afm-hd"><b>${fEsc(p.nama)}</b><span class="small">${fEsc(p.periode)}</span></div>
+    ${ents.length?ents.map(e=>fameRow(e,ro)).join(''):'<p class="small">Belum ada entri di program ini.</p>'}</section>`}).join('');
+  aBody.innerHTML=`<div class="ahead"><div><h1>Wall of Fame</h1><p>Atur juara per program dan kategori. Tidak ada aturan kategori yang tertanam di aplikasi, jadi kalau memo atau reward berubah, cukup ubah di sini.</p></div></div>
+  ${ro?`<div class="anote" style="margin:0 0 16px">${ic('info',16)}<span>Kamu hanya bisa melihat. Untuk mengubah, minta izin <b>marketing-feed.fame.edit</b> ke admin.</span></div>`:`<div class="anote" style="margin:0 0 16px">${ic('info',16)}<span>Foto (JPG/PNG) atau video (MP4), maksimal 20 MB. Video diputar otomatis di app tanpa suara. Kalau tidak ada foto khusus, kartu memakai foto profil sales.</span></div>`}
+  ${ro?'':fameForm()}
+  <div class="fame-admin">${list||'<p class="small">Belum ada program.</p>'}</div>`;
+}
+/* --- Halaman Algoritma: urutan kiriman di Home --- */
+/* tabel: hanya sales yang punya urutan sendiri. Tambah lewat popup pilih sales */
+function ringkasanSales(){
+  const khusus=salesNames().filter(n=>Object.keys(feedCfg.user[n]||{}).length>0);
+  const baris=khusus.map(n=>`<tr class="${n===algoWho?'row-on':''}"><td><b>${fEsc(n)}</b></td><td>${FEED_TEXT[feedSetting(n).mode][0]}</td><td><span class="tagKhusus">Khusus</span></td><td class="acts"><button class="abtn sm" data-atab-who="${fEsc(n)}">Edit</button> <button class="abtn sm link bad" data-hapus-who="${fEsc(n)}">Hapus</button></td></tr>`).join('');
+  return `<section class="acard pad ffm">
+    <div class="sales-top"><div><b class="lbl">Sales dengan urutan sendiri</b><p class="hint">Sales di sini tidak ikut pengaturan Global. Sales yang tidak ada di daftar ini mengikuti Global.</p></div>
+      <button class="abtn ok" data-pick-open>+ Tambah sales</button></div>
+    <div class="ftable"><table><thead><tr><th>Sales</th><th>Urutan yang berlaku</th><th>Pengaturan</th><th></th></tr></thead>
+      <tbody>${baris||'<tr><td colspan="4" class="small">Belum ada sales dengan urutan sendiri.</td></tr>'}</tbody></table></div>
+  </section>`;
+}
+/* popup pilih sales: bisa dicari, sales yang sudah khusus ditandai */
+function pickerHTML(){
+  if(!pickOpen)return '';
+  const q=pickQuery.trim().toLowerCase();
+  const daftar=salesNames().filter(n=>!q||n.toLowerCase().includes(q));
+  const isi=daftar.map(n=>{const k=Object.keys(feedCfg.user[n]||{}).length>0;return `<button class="pick-item" data-pick-who="${fEsc(n)}"><span>${fEsc(n)}</span>${k?'<span class="tagKhusus">Khusus</span>':'<span class="small">Ikut Global</span>'}</button>`}).join('');
+  return `<div class="pick-overlay" id="pickOverlay"><div class="pick-modal" role="dialog" aria-label="Pilih sales">
+    <div class="pick-head"><b>Pilih sales</b><button class="abtn sm" data-pick-close aria-label="Tutup">Tutup</button></div>
+    <input id="pickQ" class="search" type="search" value="${fEsc(pickQuery)}" placeholder="Cari nama sales..." aria-label="Cari sales">
+    <div class="pick-list">${isi||'<p class="small">Tidak ada sales yang cocok.</p>'}</div>
+  </div></div>`;
+}
+function aAlgo(){
+  if(algoWho&&!salesNames().includes(algoWho))algoWho=null;
+  algoEditInit();
+  const tabs=[['global','Global'],['sales','Per sales']];
+  const isi=algoTab==='sales'&&!algoWho?'':feedHTML();
+  aBody.innerHTML=`<div class="ahead"><div><h1>Algoritma</h1><p>Atur urutan kiriman di Home. Pengaturan per sales lebih utama daripada pengaturan Global. Perubahan baru berlaku setelah disimpan.</p></div></div>
+  <div class="atabs" role="tablist">${tabs.map(([k,l])=>`<button role="tab" data-atab="${k}" aria-selected="${algoTab===k}">${l}</button>`).join('')}</div>
+  ${algoTab==='sales'?ringkasanSales():''}
+  ${isi}
+  ${pickerHTML()}`;
+}
+
+
+function fameSave(){
+  const g=id=>$('#'+id).value.trim();
+  const pn=g('ffProg'),kat=g('ffKat'),nama=g('ffNama'),rank=parseInt(g('ffRank'),10);
+  if(!pn||!kat||!nama||!(rank>=1))return atoast('Isi program, kategori, peringkat (minimal 1), dan nama sales dulu');
+  let p=fameProgs.find(x=>x.nama.toLowerCase()===pn.toLowerCase());
+  if(!p){p={id:'fp'+(fameSeq++),nama:pn};fameProgs.push(p)}
+  p.periode=g('ffPeriode')||p.periode||'-';
+  const mode=$('#ffMode').value;let status='draft',at=0;
+  if(mode==='now'){status='published';at=clock}
+  if(mode==='later'){const d=$('#ffDate').value,t=$('#ffTime').value;if(!d||!t)return atoast('Isi tanggal dan jam tayang dulu');at=new Date(`${d}T${t}`).getTime();if(at<=clock)return atoast('Jam tayang harus setelah jam sekarang');status='scheduled'}
+  const initials=n=>n.split(/\s+/).slice(0,2).map(w=>w[0]).join('').toUpperCase();
+  const data={prog:p.id,kategori:kat,rank,nama,sub:g('ffSub'),caption:g('ffCap'),av:initials(nama),status,at};
+  if(fameEdit)Object.assign(fameEntries.find(x=>x.id===fameEdit),data);
+  else fameEntries.push({id:fameSeq++,media:null,...data});
+  fameEdit=null;renderFame();aFame();
+  atoast(status==='published'?'Tayang sekarang, langsung terlihat di app':status==='scheduled'?'Dijadwalkan, akan tayang otomatis di jam yang dipilih':'Disimpan sebagai draf, belum terlihat di app');
+}
+function fameStatus(e,s){
+  e.status=s;
+  if(s==='published')e.at=clock;
+  if(s==='scheduled')e.at=e.at>clock?e.at:clock+3600000;
   renderFame();aFame();
-  atoast(m?`Media juara ${k} disimpan, langsung tampil di app`:`Media ${k} dihapus, kartu kembali memakai foto profil`);
+  atoast(s==='published'?'Tayang sekarang':s==='scheduled'?'Dijadwalkan (jam default 1 jam dari sekarang, bisa diubah lewat Ubah)':'Dikembalikan ke draf, tidak tampil di app');
+}
+function fameSetMedia(id,m){
+  const e=fameEntries.find(x=>x.id===id);e.media=m||null;
+  renderFame();aFame();
+  atoast(m?'Foto/video disimpan, langsung terlihat di app':'Foto/video dihapus, kartu kembali memakai foto profil');
 }
 
 /* --- event admin (delegasi) --- */
@@ -2755,8 +3198,29 @@ awin.addEventListener('click',e=>{
   if(t.closest('[data-new]')){setAV('editor');return}
   const f=t.closest('[data-filter]');if(f){aFilter=aFilter===f.dataset.filter&&f.classList.contains('astat')?'all':f.dataset.filter;aList();return}
   const ct=t.closest('[data-ctab]');if(ct){calTab=ct.dataset.ctab;aCal();return}
-  const fa=t.closest('[data-fa]');if(fa){const k=fa.closest('[data-lv]').dataset.lv,a=fa.dataset.fa;
-    if(a==='up')pick(m=>setFameMedia(k,m),false);else setFameMedia(k,a==='sample'?fameSample(k):null);return}
+  if(t.closest('button[data-g="reset"]')){feedReset();return}
+  const atb=t.closest('[data-atab]');if(atb){algoTab=atb.dataset.atab;aAlgo();return}
+  const po=t.closest('[data-pick-open]');if(po){pickOpen=true;pickQuery='';aAlgo();return}
+  const pc=t.closest('[data-pick-close]');if(pc||t.id==='pickOverlay'){pickOpen=false;aAlgo();return}
+  const pw=t.closest('[data-pick-who]');if(pw){algoTab='sales';algoWho=pw.dataset.pickWho;pickOpen=false;aAlgo();return}
+  const aw=t.closest('[data-atab-who]');if(aw){algoTab='sales';algoWho=aw.dataset.atabWho;aAlgo();return}
+  const sf=t.closest('[data-sfilter]');if(sf){salesFilter=sf.dataset.sfilter;aAlgo();return}
+  const gd=t.closest('[data-gdel]');if(gd){const [tipe,id]=gd.dataset.gdel.split(':');const n=Number(id);if(tipe==='pinpost')algoDraft.pinPost=algoDraft.pinPost.filter(x=>x!==n);else algoDraft.pinFame=algoDraft.pinFame.filter(x=>x!==n);aAlgo();return}
+  const ik=t.closest('[data-ikuti-who]');if(ik){algoIkuti(ik.dataset.ikutiWho);return}
+  const hp=t.closest('[data-hapus-who]');if(hp){algoHapus(hp.dataset.hapusWho);return}
+  const sv=t.closest('button[data-g="save"]');if(sv){algoSave();return}
+  const cn=t.closest('button[data-g="cancel"]');if(cn){algoCancel();return}
+  const fe=t.closest('[data-fe]');if(fe){
+    const row=fe.closest('[data-fid]'),id=row?Number(row.dataset.fid):null,e=id!=null?fameEntries.find(x=>x.id===id):null,a=fe.dataset.fe;
+    if(a==='save')return fameSave();
+    if(a==='cancel'){fameEdit=null;aFame();return}
+    if(!FAME_CAN_EDIT||!e)return;
+    if(a==='edit'){fameEdit=id;aFame();$('#fameForm')?.scrollIntoView({behavior:'smooth',block:'start'});return}
+    if(a==='del'){fameEntries.splice(fameEntries.indexOf(e),1);if(fameEdit===id)fameEdit=null;renderFame();aFame();atoast('Entri dihapus');return}
+    if(a==='up')return pick(m=>fameSetMedia(id,m),false);
+    if(a==='sample')return fameSetMedia(id,{k:'award',o:{big:'JUARA #'+e.rank,name:e.nama,sub:e.kategori},cap:'Foto juara'});
+    if(a==='rmmedia')return fameSetMedia(id,null);
+    return;}
   const host=t.closest('[data-id]'),p=host&&byId(host.dataset.id);
   const a=t.closest('[data-a]');
   if(a&&p){switch(a.dataset.a){
@@ -2781,6 +3245,14 @@ awin.addEventListener('click',e=>{
   const rs=t.closest('[data-rset]');if(rs&&p){p.set.comment=p.set.comment?0:1;p.set.reply=p.set.comment;rs.setAttribute('aria-checked',!!p.set.comment);return}
 
 });
+awin.addEventListener('change',e=>{
+  if(e.target.matches('[data-g]')){feedChange(e.target);return}
+  if(!e.target.matches('[data-fstat]'))return;
+  const row=e.target.closest('[data-fid]'),ent=fameEntries.find(x=>x.id===Number(row.dataset.fid));
+  if(ent&&FAME_CAN_EDIT)fameStatus(ent,e.target.value);
+});
+awin.addEventListener('input',e=>{if(e.target.id==='salesQ'){salesQuery=e.target.value;aAlgo();const q=$('#salesQ');q.focus();q.setSelectionRange(q.value.length,q.value.length)}});
+awin.addEventListener('input',e=>{if(e.target.id==='pickQ'){pickQuery=e.target.value;aAlgo();const q=$('#pickQ');q.focus();q.setSelectionRange(q.value.length,q.value.length)}});
 awin.addEventListener('input',e=>{if(e.target.id==='aq'){aQuery=e.target.value.toLowerCase();const pos=e.target.selectionStart;aList();const q=$('#aq');q.focus();q.setSelectionRange(pos,pos)}});
 
 /* --- ganti mode prototype --- */

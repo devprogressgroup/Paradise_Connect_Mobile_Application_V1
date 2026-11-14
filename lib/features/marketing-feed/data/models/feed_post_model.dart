@@ -3,6 +3,7 @@ import 'package:progress_group/core/utils/helpers/date_helper.dart';
 import 'package:progress_group/features/marketing-feed/data/models/feed_author_model.dart';
 import 'package:progress_group/features/marketing-feed/data/models/feed_comment_model.dart';
 import 'package:progress_group/features/marketing-feed/domain/entities/feed_post_entity.dart';
+import 'package:progress_group/features/marketing-feed/domain/entities/home_ref_entity.dart';
 
 class FeedTownshipModel extends FeedTownshipEntity {
   const FeedTownshipModel({required super.id, required super.code});
@@ -205,6 +206,7 @@ class FeedPostModel extends FeedPostEntity {
     super.latestComment,
     super.rejectReason,
     super.isPinned,
+    super.profilePinned,
     super.isMine,
     super.fromAdminWeb,
   });
@@ -283,6 +285,7 @@ class FeedPostModel extends FeedPostEntity {
       commentCount: commentCount,
       latestComment: latestComment == null ? null : FeedCommentModel.fromJson(latestComment),
       rejectReason: json['reject_reason'] as String?,
+      profilePinned: json['profile_pinned'] == true,
       isPinned: isPinned,
       isMine: isMine,
       fromAdminWeb: json['source'] == 'admin',
@@ -292,6 +295,7 @@ class FeedPostModel extends FeedPostEntity {
 
 class FeedPageModel extends FeedPageEntity {
   const FeedPageModel({
+    super.home,
     super.pinned,
     required super.items,
     super.currentPage,
@@ -307,12 +311,16 @@ class FeedPageModel extends FeedPageEntity {
     final items = (json['items'] as List<dynamic>? ?? json['data'] as List<dynamic>? ?? const [])
         .map((e) => FeedPostModel.fromJson(e as Map<String, dynamic>))
         .toList();
+    final home = (json['home'] as List<dynamic>? ?? const [])
+        .map((e) => HomeRefEntity(type: (e['type'] ?? 'post') as String, id: (e['id'] as num).toInt()))
+        .toList();
     final currentPage = json['current_page'] as int? ?? 1;
     final perPage = json['per_page'] as int? ?? 10;
     final total = json['total'] as int? ?? items.length;
     final hasMore = json['has_more'] as bool? ?? (json['last_page'] != null ? currentPage < (json['last_page'] as int) : false);
 
     return FeedPageModel(
+      home: home,
       pinned: pinned,
       items: items,
       currentPage: currentPage,

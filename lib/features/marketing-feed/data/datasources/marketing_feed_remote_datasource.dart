@@ -9,6 +9,8 @@ import 'package:progress_group/features/marketing-feed/data/models/personal_funn
 import 'package:progress_group/features/marketing-feed/data/models/wall_of_fame_model.dart';
 import 'package:progress_group/features/marketing-feed/domain/entities/feed_comment_entity.dart';
 import 'package:progress_group/features/marketing-feed/domain/entities/feed_post_entity.dart';
+import 'package:progress_group/features/marketing-feed/domain/entities/fame_program_entity.dart';
+import 'package:progress_group/features/marketing-feed/data/models/fame_program_model.dart';
 import 'package:progress_group/features/marketing-feed/domain/entities/personal_funnel_entity.dart';
 import 'package:progress_group/features/marketing-feed/domain/entities/save_feed_post_params.dart';
 
@@ -63,7 +65,7 @@ abstract class MarketingFeedRemoteDataSource {
   Future<FeedPostModel> shareMoment(ShareFeedMomentParams params);
 
   /// GET /api/marketing-feed/my-submissions?page=&per_page=
-  Future<FeedPageModel> getMySubmissions({int page = 1, int perPage = 10});
+  Future<FeedPageModel> getMySubmissions({int page = 1, int perPage = 10, String? status});
 
   /// Moderator — GET /api/marketing-feed/moderator/posts: terjadwal & draft.
   Future<List<FeedPostModel>> getModeratorPosts();
@@ -73,6 +75,12 @@ abstract class MarketingFeedRemoteDataSource {
 
   /// Moderator — POST /api/marketing-feed/moderator/posts/{id}/action {action: now|unsched|del}.
   Future<void> moderatorAction(int postId, String action);
+
+  /// Sematkan / lepas kiriman di profil sales (maks. 3). PUT atau DELETE /marketing-feed/me/posts/{id}/profile-pin.
+  Future<void> setProfilePin(int postId, {required bool pinned});
+
+  /// Wall of Fame baru: GET /marketing-feed/wall-of-fame/programs.
+  Future<List<FameProgramEntity>> getFamePrograms();
 }
 
 /// File baru dari picker → MultipartFile. Di web filePath berupa blob URL dan dart:io tidak tersedia,
@@ -311,11 +319,11 @@ class MarketingFeedRemoteDataSourceImpl implements MarketingFeedRemoteDataSource
   }
 
   @override
-  Future<FeedPageModel> getMySubmissions({int page = 1, int perPage = 10}) async {
+  Future<FeedPageModel> getMySubmissions({int page = 1, int perPage = 10, String? status}) async {
     try {
       final response = await dio.get(
         '/marketing-feed/my-submissions',
-        queryParameters: {'page': page, 'per_page': perPage},
+        queryParameters: {'page': page, 'per_page': perPage, if (status != null) 'status': status},
       );
       final body = response.data;
       if (body is Map && body['status'] == true && body['data'] != null) {
@@ -418,6 +426,34 @@ class MarketingFeedRemoteDataSourceImpl implements MarketingFeedRemoteDataSource
   }
 
   @override
+  @override
+  Future<List<FameProgramEntity>> getFamePrograms() async {
+    try {
+      final response = await dio.get('/marketing-feed/wall-of-fame/programs');
+      final body = response.data;
+      if (body is Map && body['status'] == true && body['data'] is Map) {
+        final items = (body['data'] as Map)['items'] as List? ?? const [];
+        return parseFamePrograms(items);
+      }
+      throw parseMarketingFeedException(body, 'Gagal mengambil Wall of Fame.');
+    } catch (e) {
+      throw parseMarketingFeedException(e, 'Gagal mengambil Wall of Fame.');
+    }
+  }
+
+  @override
+  Future<void> setProfilePin(int postId, {required bool pinned}) async {
+    try {
+      final path = '/marketing-feed/me/posts/$postId/profile-pin';
+      final response = pinned ? await dio.put(path) : await dio.delete(path);
+      final body = response.data;
+      if (body is Map && body['status'] == true) return;
+      throw parseMarketingFeedException(body, 'Gagal mengubah sematan profil.');
+    } catch (e) {
+      throw parseMarketingFeedException(e, 'Gagal mengubah sematan profil.');
+    }
+  }
+
   Future<void> moderatorAction(int postId, String action) async {
     try {
       final response = await dio.post('/marketing-feed/moderator/posts/$postId/action', data: {'action': action});
