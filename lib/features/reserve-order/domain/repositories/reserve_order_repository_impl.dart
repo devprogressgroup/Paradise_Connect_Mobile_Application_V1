@@ -10,7 +10,9 @@ import 'package:progress_group/features/reserve-order/domain/entities/customer_o
 import 'package:progress_group/features/reserve-order/domain/entities/change_reserve_order_unit_params.dart';
 import 'package:progress_group/features/reserve-order/domain/entities/edit_reserve_order_params.dart';
 import 'package:progress_group/features/reserve-order/domain/entities/payment_type_entity.dart';
+import 'package:progress_group/features/reserve-order/domain/entities/property_virtual_account_entity.dart';
 import 'package:progress_group/features/reserve-order/domain/entities/reserve_order_detail_entity.dart';
+import 'package:progress_group/features/reserve-order/domain/entities/reserve_order_filter_sales_entity.dart';
 import 'package:progress_group/features/reserve-order/domain/entities/reserve_order_list_item_entity.dart';
 import 'package:progress_group/features/reserve-order/domain/entities/reserve_status_entity.dart';
 import 'package:progress_group/features/reserve-order/domain/entities/resubmit_reserve_order_params.dart';
@@ -103,6 +105,16 @@ class ReserveOrderRepositoryImpl implements ReserveOrderRepository {
   }
 
   @override
+  Future<Either<String, ReserveOrderFilterSalesEntity>> getFilterSales() async {
+    try {
+      final result = await remoteDataSource.getFilterSales();
+      return Right(result);
+    } catch (e) {
+      return Left(cleanErrorMessage(e));
+    }
+  }
+
+  @override
   Future<Either<String, ReserveOrderListResultEntity>> getReserveOrderList({
     String? search,
     List<int>? statusReserveIds,
@@ -117,6 +129,9 @@ class ReserveOrderRepositoryImpl implements ReserveOrderRepository {
     List<int>? generalManagerIds,
     List<int>? salesTeamIds,
     String? project,
+    List<int>? milestoneIds,
+    List<int>? approvalIds,
+    bool uniqueCustomer = false,
     int page = 1,
     int perPage = 15,
   }) async {
@@ -135,6 +150,9 @@ class ReserveOrderRepositoryImpl implements ReserveOrderRepository {
         generalManagerIds: generalManagerIds,
         salesTeamIds: salesTeamIds,
         project: project,
+        milestoneIds: milestoneIds,
+        approvalIds: approvalIds,
+        uniqueCustomer: uniqueCustomer,
         page: page,
         perPage: perPage,
       );
@@ -159,7 +177,8 @@ class ReserveOrderRepositoryImpl implements ReserveOrderRepository {
   }
 
   @override
-  Future<Either<String, ReserveOrderDetailEntity>> updateReserveOrderCustomer(
+  Future<Either<ReserveOrderCustomerFailure, ReserveOrderDetailEntity>>
+  updateReserveOrderCustomer(
     int reserveOrderId,
     UpdateReserveOrderCustomerParams params,
   ) async {
@@ -169,8 +188,16 @@ class ReserveOrderRepositoryImpl implements ReserveOrderRepository {
         params,
       );
       return Right(result);
+    } on ReserveOrderCustomerUpdateException catch (e) {
+      return Left(
+        ReserveOrderCustomerFailure(
+          e.message,
+          errorCode: e.errorCode,
+          lockedFields: e.lockedFields,
+        ),
+      );
     } catch (e) {
-      return Left(cleanErrorMessage(e));
+      return Left(ReserveOrderCustomerFailure(cleanErrorMessage(e)));
     }
   }
 
@@ -300,6 +327,27 @@ class ReserveOrderRepositoryImpl implements ReserveOrderRepository {
       return Right(result);
     } catch (e) {
       return Left(cleanErrorMessage(e));
+    }
+  }
+
+  @override
+  Future<Either<VirtualAccountFailure, PropertyVirtualAccountEntity>>
+  getPropertyVirtualAccount({
+    required int townshipId,
+    required int companyId,
+    required int propertyId,
+  }) async {
+    try {
+      final result = await remoteDataSource.getPropertyVirtualAccount(
+        townshipId: townshipId,
+        companyId: companyId,
+        propertyId: propertyId,
+      );
+      return Right(result);
+    } on VirtualAccountException catch (e) {
+      return Left(VirtualAccountFailure(e.message, errorCode: e.errorCode));
+    } catch (e) {
+      return Left(VirtualAccountFailure(cleanErrorMessage(e)));
     }
   }
 }

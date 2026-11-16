@@ -204,11 +204,7 @@ class _MarketingFeedPageState extends State<MarketingFeedPage> {
           for (final e in cat.entries) e.id: e
     };
 
-    final children = <Widget>[
-      const Padding(
-        padding: EdgeInsets.only(top: 4),
-        child: Text('Kiriman Terbaru', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-      ),
+    final children = <Widget>[ 
       if (state.homeOrder.isEmpty) _buildFeedStatus(state),
       for (final ref in state.homeOrder)
         if (ref.type == 'post' && postById[ref.id] != null)
@@ -295,12 +291,13 @@ class _MarketingFeedPageState extends State<MarketingFeedPage> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               // Menu ini hanya untuk moderator (sales langsung ke Bagikan Momen).
+              // Label, urutan, dan keterangan mengikuti prototype (tab Momen / Postingan / Polling / Link).
               // Kiriman Saya dan Draf & Terjadwal ada di sidebar.
               if (PermissionsHelper.canModerateMarketingFeed) ...[
-                _menuItem(Icons.photo_camera_outlined, 'Bagikan Momen', 'Sales', 'marketingFeedShare'),
-                _menuItem(Icons.article_outlined, 'Post Baru', 'Moderator', 'marketingFeedPostForm'),
-                _menuItem(Icons.poll_outlined, 'Poll Baru', 'Moderator', 'marketingFeedPollForm'),
-                _menuItem(Icons.link, 'Link YouTube / Website', 'Moderator', 'marketingFeedLinkForm'),
+                _menuItem(Icons.photo_camera_outlined, 'Momen', 'Kiriman dari sales', 'marketingFeedShare'),
+                _menuItem(Icons.article_outlined, 'Postingan', 'Foto atau video dengan keterangan', 'marketingFeedPostForm'),
+                _menuItem(Icons.poll_outlined, 'Polling', 'Pertanyaan dengan pilihan jawaban', 'marketingFeedPollForm'),
+                _menuItem(Icons.link, 'Link', 'YouTube, Instagram, website, dll.', 'marketingFeedLinkForm'),
               ],
             ],
           ),

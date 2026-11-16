@@ -21,6 +21,11 @@ class ResubmitReserveOrderParams extends Equatable {
   /// `tts[...]` — null kalau TTS tidak diedit (order tanpa TTS / TTS sudah disetujui Kasir).
   final ResubmitReserveOrderTtsParams? tts;
 
+  /// Data awal customer (`resubmit` prefill) & flag kunci KTP — sama dgn [UpdateReserveOrderCustomerParams]:
+  /// kalau [ktpLocked], field KTP/pekerjaan terkunci yang nilainya sama dgn [originalCustomer] tidak dikirim.
+  final Map<String, dynamic>? originalCustomer;
+  final bool ktpLocked;
+
   const ResubmitReserveOrderParams({
     required this.customer,
     this.reserveNote,
@@ -29,6 +34,8 @@ class ResubmitReserveOrderParams extends Equatable {
     this.npwp,
     this.unit,
     this.tts,
+    this.originalCustomer,
+    this.ktpLocked = false,
   });
 
   @override
@@ -40,6 +47,8 @@ class ResubmitReserveOrderParams extends Equatable {
     npwp,
     unit,
     tts,
+    originalCustomer,
+    ktpLocked,
   ];
 }
 

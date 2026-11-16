@@ -806,7 +806,7 @@ button.db-t:hover{box-shadow:0 0 0 3px var(--db-acc-soft)}
         </header>
 
         <main class="scroll" id="feed">
-          <div class="blk" style="display:none">
+          <div class="blk">
             <div class="sec"><h2>Progress Kamu</h2><button class="lnk" data-go="report">Lihat Report</button></div>
             <div class="hint">Funnel pribadi Oktober 2026, update tiap hari</div>
             <section class="card"><div class="bars" id="bars"></div></section>
@@ -1103,7 +1103,8 @@ button.db-t:hover{box-shadow:0 0 0 3px var(--db-acc-soft)}
                 <tr><td><code>t_feed_fame</code></td><td><span class="db-chip db-chip-new">baru</span></td><td>Juara per program dan kategori (kategori bebas, peringkat boleh seri), status draf / terjadwal / tayang</td></tr>
                 <tr><td><code>t_feed_fame_perm</code></td><td><span class="db-chip db-chip-new">baru</span></td><td>Cakupan izin edit Wall of Fame per user (semua, per program, atau per tim)</td></tr>
                 <tr><td><code>t_feed_fame_log</code></td><td><span class="db-chip db-chip-new">baru</span></td><td>Jejak perubahan Wall of Fame (siapa, kapan, apa)</td></tr>
-                <tr><td><code>t_feed_setting</code></td><td><span class="db-chip db-chip-new">baru</span></td><td>Pengaturan Algoritma (urutan kiriman di Home): global dan per sales, mode, bobot custom, dan pin kiriman atau Wall of Fame. Terpisah dari Wall of Fame</td></tr>
+                <tr><td><code>t_feed_setting</code></td><td><span class="db-chip db-chip-new">baru</span></td><td>Pengaturan Algoritma Home, 1 baris per tingkat (Global atau per sales). Kolom mode dan bobot w_* (NULL = ikut Global)</td></tr>
+                <tr><td><code>t_feed_home_pin</code></td><td><span class="db-chip db-chip-new">baru</span></td><td>Pin di paling atas Home: kiriman (maks. 3) dan Wall of Fame (maks. 3), per Global atau per sales. FK nyata ke t_feed_post dan t_feed_fame</td></tr>
                 <tr><td><code>d_feed_fame_media</code></td><td><span class="db-chip db-chip-new">baru</span></td><td>Foto/video khusus juara #1 Wall of Fame (kolom sama dengan <code>d_feed_post_media</code>)</td></tr>
                 <tr><td><code>app_m_user</code></td><td><span class="db-chip db-chip-ex">existing</span></td><td>Penulis, pemberi reaksi, pemilih poll, pemberi komentar, juara</td></tr>
                 <tr><td><code>m_project</code></td><td><span class="db-chip db-chip-ex">existing</span></td><td>Target project konten</td></tr>
@@ -1147,8 +1148,8 @@ button.db-t:hover{box-shadow:0 0 0 3px var(--db-acc-soft)}
           <div class="db-ov">
             <p class="db-ov-title">Algoritma (terpisah dari Wall of Fame)</p>
             <div class="db-ov-row db-ov-nobr">
-              <div class="db-ov-hub"><button type="button" class="db-t db-t-new" data-db-goto="t_feed_setting" title="Lihat di mana t_feed_setting dipakai">t_feed_setting</button></div>
-              <ul class="db-ov-br"><li><small>satu baris per tingkat: global, atau per sales. Mode, bobot custom, dan pin ada di config</small></li></ul>
+              <div class="db-ov-hub"><button type="button" class="db-t db-t-new db-t-hub" data-db-goto="t_feed_setting" title="Lihat di mana t_feed_setting dipakai">t_feed_setting</button></div>
+              <ul class="db-ov-br"><li><button type="button" class="db-t db-t-new" data-db-goto="t_feed_home_pin" title="Lihat di mana t_feed_home_pin dipakai">t_feed_home_pin</button><small>pin kiriman dan Wall of Fame, maks. 3 per jenis</small></li></ul>
             </div>
           </div>
           <div class="db-ov">
@@ -1165,6 +1166,7 @@ button.db-t:hover{box-shadow:0 0 0 3px var(--db-acc-soft)}
             <li><code>A ──1:N── B</code> artinya 1 baris A punya banyak baris B, dan B menyimpan id A sebagai FK. <code>1:1</code> artinya 1 baris A punya paling banyak 1 baris B.</li>
             <li>Garis putus-putus = hubungan tanpa FK. Di sini hanya notifikasi, yang menunjuk post lewat <code>link_url</code>.</li>
             <li><code>app_m_user</code> juga dirujuk lewat <code>user_id</code> oleh <code>t_feed_poll_vote</code>, <code>t_feed_reaction</code>, <code>t_feed_comment</code>, dan <code>t_feed_comment_like</code>, serta lewat <code>pin_user_id</code> dan <code>review_user_id</code> oleh <code>t_feed_post</code>. Garisnya tidak digambar supaya diagram tetap sederhana; kolomnya ada di ERD detail.</li>
+            <li><code>t_feed_setting</code> berisi satu baris per tingkat (Global, atau per sales). Mode dan bobot berupa kolom biasa, bukan JSON.</li>
           </ul>
         </section>
 
@@ -1176,26 +1178,29 @@ button.db-t:hover{box-shadow:0 0 0 3px var(--db-acc-soft)}
             <pre class="db-mermaid">flowchart TD
     A["Moderator buat post / poll / link&lt;br/&gt;Admin Web atau tombol + di app"]
     M["Sales kirim momen&lt;br/&gt;tombol + › Momen"]
-    DT[("d_feed_post_media&lt;br/&gt;d_feed_poll, d_feed_poll_option&lt;br/&gt;d_feed_link")]
-    A --&gt; DT
-    M --&gt; DT
-    A --&gt; B{"Kapan tayang?"}
-    M --&gt;|"Kirim untuk ditinjau"| RV[("t_feed_post&lt;br/&gt;status = review")]
-    M --&gt;|"Simpan draft"| SD[("t_feed_post&lt;br/&gt;status = draft, pribadi sales")]
-    SD --&gt;|"Kirim untuk ditinjau"| RV
-    B --&gt;|"Simpan draft"| D[("t_feed_post&lt;br/&gt;status = draft")]
-    B --&gt;|"Jadwalkan"| S[("t_feed_post&lt;br/&gt;status = scheduled")]
-    B --&gt;|"Sekarang"| P[("t_feed_post&lt;br/&gt;status = published")]
-    D --&gt;|"Tayangkan"| P
-    D --&gt;|"Jadwalkan"| S
-    S --&gt;|"Batalkan jadwal"| D
-    S --&gt;|"Scheduler: waktu tiba"| P
-    P --&gt;|"Tarik ke draft"| D
-    RV --&gt; Q{"Moderator review"}
-    Q --&gt;|"Setujui &amp; tayangkan"| P
-    Q --&gt;|"Setujui &amp; jadwalkan"| S
-    Q --&gt;|"Tolak + alasan"| RJ[("t_feed_post&lt;br/&gt;status = rejected")]
-    RJ --&gt;|"Sales perbaiki &amp; kirim ulang"| RV
+    DT[("d_feed_post_media, d_feed_poll,&lt;br/&gt;d_feed_poll_option, d_feed_link")]
+    A -.-&gt;|"isi konten"| DT
+    M -.-&gt;|"isi konten"| DT
+    DR[("t_feed_post&lt;br/&gt;status = draft")]
+    SC[("t_feed_post&lt;br/&gt;status = scheduled")]
+    RV[("t_feed_post&lt;br/&gt;status = review")]
+    P[("t_feed_post&lt;br/&gt;status = published")]
+    RJ[("t_feed_post&lt;br/&gt;status = rejected")]
+    A --&gt;|"Sekarang"| P
+    A --&gt;|"Jadwalkan"| SC
+    A --&gt;|"Simpan draft"| DR
+    M --&gt;|"Simpan draft (pribadi sales)"| DR
+    M --&gt;|"Kirim untuk ditinjau"| RV
+    DR --&gt;|"Tayangkan"| P
+    DR --&gt;|"Jadwalkan"| SC
+    DR --&gt;|"Kirim untuk ditinjau"| RV
+    SC --&gt;|"Batalkan jadwal"| DR
+    SC --&gt;|"Waktu tiba (scheduler)"| P
+    P --&gt;|"Tarik ke draft"| DR
+    RV --&gt;|"Setujui &amp; tayangkan"| P
+    RV --&gt;|"Setujui &amp; jadwalkan"| SC
+    RV --&gt;|"Tolak + alasan"| RJ
+    RJ --&gt;|"Perbaiki &amp; kirim ulang"| RV
     P --&gt; N[("t_global_notifications")]
     RJ --&gt; N
     P --&gt; F(["Tampil di feed Home sales"])</pre>
@@ -1204,19 +1209,20 @@ button.db-t:hover{box-shadow:0 0 0 3px var(--db-acc-soft)}
             <div class="db-dg-bar"><div><b>3.2 Alur interaksi di feed</b><small>Yang terjadi saat sales membuka Home dan menyentuh kartu post</small></div><div class="db-zoom" role="group" aria-label="Zoom diagram"><button type="button" data-db-zoom="out" aria-label="Perkecil">−</button><span data-db-zoom-label>Pas</span><button type="button" data-db-zoom="in" aria-label="Perbesar">+</button><button type="button" data-db-zoom="fit">Pas layar</button></div></div>
             <pre class="db-mermaid">flowchart TD
     H(["Sales buka Home"])
-    H --&gt; R1[("t_feed_post, d_feed_post_media&lt;br/&gt;d_feed_poll, d_feed_poll_option&lt;br/&gt;d_feed_link, app_m_user")]
-    H --&gt; R2[("t_feed_fame_program, t_feed_fame, d_feed_fame_media&lt;br/&gt;Wall of Fame")]
-    AL[("t_feed_setting&lt;br/&gt;Algoritma: mode, bobot custom, pin")]
-    H --&gt; R3[("m_contacts, m_prospect_status&lt;br/&gt;Progress Kamu")]
-    H --&gt; X{"Aksi di kartu post"}
-    X --&gt;|"Suka / tidak suka"| TR[("t_feed_reaction")]
-    X --&gt;|"Kirim jawaban poll"| TV[("t_feed_poll_vote")]
-    X --&gt;|"Komentar / balas"| TC[("t_feed_comment")]
-    X --&gt;|"Bagikan"| SH["Salin link&lt;br/&gt;tanpa tabel"]
+    H --&gt; R1[("Feed: t_feed_post, d_feed_post_media,&lt;br/&gt;d_feed_poll, d_feed_poll_option, d_feed_link")]
+    H --&gt; R2[("Wall of Fame: t_feed_fame_program,&lt;br/&gt;t_feed_fame, d_feed_fame_media")]
+    H --&gt; R3[("Progress Kamu: m_contacts,&lt;br/&gt;m_prospect_status")]
+    AL[("t_feed_setting<br/>t_feed_home_pin")] -.-&gt;|"mengatur urutan dan pin"| R1
+    H --&gt; K(["Sales sentuh kartu post"])
+    K --&gt;|"Suka / tidak suka"| TR[("t_feed_reaction")]
+    K --&gt;|"Kirim jawaban poll"| TV[("t_feed_poll_vote")]
+    K --&gt;|"Komentar / balas"| TC[("t_feed_comment")]
+    K --&gt;|"Bagikan"| SH(["Salin link, tanpa tabel"])
     TC --&gt;|"Suka komentar"| TCL[("t_feed_comment_like")]
-    TR -.-&gt;|"like_count, dislike_count"| C1[("t_feed_post&lt;br/&gt;counter")]
-    TC -.-&gt;|"comment_count"| C1
-    TV -.-&gt;|"vote_count, total_voters"| C2[("d_feed_poll_option&lt;br/&gt;d_feed_poll")]</pre>
+    CNT[("Counter diperbarui:&lt;br/&gt;t_feed_post, d_feed_poll_option")]
+    TR -.-&gt; CNT
+    TC -.-&gt; CNT
+    TV -.-&gt; CNT</pre>
           </figure>
         </section>
 
@@ -1325,7 +1331,7 @@ button.db-t:hover{box-shadow:0 0 0 3px var(--db-acc-soft)}
   │   │ PK    feed_post_media_id                                                    │
   │   │ FK    feed_post_id                                                          │
   │   │       media_type          image | video                                     │
-  │   │       file_path           object key di MinIO Raptor            │
+  │   │       file_path           path/key di storage (storage menyusul)            │
   │   │       file_name           nama file asli saat upload                        │
   │   │       mime_type           JPG / PNG / MP4                                   │
   │   │       size_bytes          maks 20 MB                                        │
@@ -1539,24 +1545,52 @@ button.db-t:hover{box-shadow:0 0 0 3px var(--db-acc-soft)}
           <figure class="db-dg">
             <div class="db-dg-bar"><div><b>5.3 Algoritma</b><small>Global dan per sales: mode, bobot custom, dan pin. Halaman Algoritma, terpisah dari Wall of Fame</small></div><button class="db-copy" type="button" data-db-copy="dbAlgo">Salin teks</button></div>
             <pre class="db-diagram" id="dbAlgo">┌──────────────────────────────────────────────────────────────────────────────┐
-│ t_feed_setting  [C/R/U/D]  (pengaturan algoritma Home)                       │
+│ t_feed_setting  [C/R/U/D]  (pengaturan algoritma Home, 1 baris per tingkat)  │
 ├──────────────────────────────────────────────────────────────────────────────┤
 │ PK    feed_setting_id                                                        │
-│       setting_key               feed (urutan kiriman di Home)                │
-│       scope_type                global | user                               │
-│       scope_value               kosong untuk global, user_id untuk per sales │
-│       config                    JSON, lihat contoh di bawah                  │
-│ FK    update_user_id            → app_m_user                                 │
-│       created_at / updated_at                                                │
+│ UNIQUE uq_t_feed_setting (setting_key, scope_user_id)                        │
 ├──────────────────────────────────────────────────────────────────────────────┤
-│ UNIQUE uq_t_feed_setting (setting_key, scope_type, scope_value)              │
+│ setting_key     feed (urutan kiriman di Home)                                │
+│ scope_user_id   0 = global, user_id = pengaturan per sales                   │
+│ mode            otomatis | terbaru | acak | custom; NULL = ikut global       │
+│ w_rel           bobot 0 sampai 5, langkah 0,5; NULL = ikut global            │
+│ w_minat         (sama seperti w_rel)                                         │
+│ w_engage        (sama seperti w_rel)                                         │
+│ w_baru          (sama seperti w_rel)                                         │
+│ w_proyek        (sama seperti w_rel)                                         │
+├──────────────────────────────────────────────────────────────────────────────┤
+│ FK    update_user_id   → app_m_user                                          │
+│ created_at / updated_at                                                      │
 └──────────────────────────────────────────────────────────────────────────────┘
-  config global : {"mode":"otomatis","bobot":{"rel":3,"minat":2,"engage":2,"baru":2,"proyek":1},"pinPost":[],"pinFame":[]}
-  config per sales : {"mode":"custom","bobot":{"baru":5},"pinPost":[12],"pinFame":[3]}
-  mode : otomatis (Pintar) | terbaru | acak | custom
-  bobot : hanya dipakai saat mode custom. Kunci yang kosong ikut global
-  pin : kiriman (maks. 3) dan Wall of Fame (maks. 3). Per sales menimpa global jika terisi
-  Simpan : upsert baris sesuai tingkat. Hapus (per sales) : hapus baris user, kembali ikut global</pre>
+
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ t_feed_home_pin  [C/R/U/D]  (pin di paling atas Home)                        │
+├──────────────────────────────────────────────────────────────────────────────┤
+│ PK    feed_home_pin_id                                                       │
+│ UNIQUE uq_pin_urutan (scope_user_id, pin_type, sort_order)                   │
+│ UNIQUE uq_pin_post   (scope_user_id, feed_post_id)                           │
+│ UNIQUE uq_pin_fame   (scope_user_id, feed_fame_id)                           │
+├──────────────────────────────────────────────────────────────────────────────┤
+│ scope_user_id   0 = global, user_id = pin per sales                          │
+│ pin_type        post | fame                                                  │
+│ sort_order      1 sampai 3, urutan tampil di Home                            │
+│ FK    feed_post_id   → t_feed_post, diisi kalau pin_type = post              │
+│ FK    feed_fame_id   → t_feed_fame, diisi kalau pin_type = fame              │
+│ FK    update_user_id → app_m_user                                            │
+│ created_at                                                                   │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+Contoh baris (dibaca langsung dari tabel):
+  t_feed_setting   : scope_user_id 0, mode acak, w_rel 3, w_minat 2, w_engage 2, w_baru 2, w_proyek 1
+  t_feed_setting   : scope_user_id 30, mode custom, w_baru 5, sisanya NULL (ikut Global)
+  t_feed_home_pin  : scope_user_id 0, pin_type post, feed_post_id 12, sort_order 1
+
+Aturan:
+  - Per sales menimpa Global per kolom. Kolom NULL ikut Global.
+  - w_* hanya dipakai saat mode = custom.
+  - Pin per sales untuk satu pin_type menimpa pin Global jenis itu jika ada barisnya.
+  - Maks. 3 pin per pin_type per tingkat, dijaga oleh sort_order 1 sampai 3 dan validasi aplikasi.
+  - Hapus pengaturan per sales = hapus baris user di kedua tabel.</pre>
           </figure>
           <figure class="db-dg">
             <div class="db-dg-bar"><div><b>5.4 Progress Kamu</b><small>Funnel Leads → Appt → Visit → Reserve → SP, dihitung dari data prospek milik sales yang login</small></div><button class="db-copy" type="button" data-db-copy="dbD3">Salin teks</button></div>
@@ -1587,7 +1621,7 @@ button.db-t:hover{box-shadow:0 0 0 3px var(--db-acc-soft)}
         <section id="db-pakai">
           <h2><span class="db-num">6</span>Dipakai di mana</h2>
           <p>Setiap baris adalah satu klik atau tampilan di tab App Mobile dan Admin Web, beserta tabel yang dibaca (<b>R</b>) atau ditulis (<b>C</b>/<b>U</b>/<b>D</b>) backend saat itu terjadi. Pilih nama tabel untuk menyorot aksi yang memakainya.</p>
-          <div class="db-filter" role="group" aria-label="Sorot aksi per tabel"><button type="button" class="db-f" data-db-f="" aria-pressed="true">Semua tabel</button><button type="button" class="db-f" data-db-f="t_feed_post" aria-pressed="false">t_feed_post</button><button type="button" class="db-f" data-db-f="d_feed_post_media" aria-pressed="false">d_feed_post_media</button><button type="button" class="db-f" data-db-f="d_feed_poll" aria-pressed="false">d_feed_poll</button><button type="button" class="db-f" data-db-f="d_feed_poll_option" aria-pressed="false">d_feed_poll_option</button><button type="button" class="db-f" data-db-f="t_feed_poll_vote" aria-pressed="false">t_feed_poll_vote</button><button type="button" class="db-f" data-db-f="d_feed_link" aria-pressed="false">d_feed_link</button><button type="button" class="db-f" data-db-f="t_feed_reaction" aria-pressed="false">t_feed_reaction</button><button type="button" class="db-f" data-db-f="t_feed_comment" aria-pressed="false">t_feed_comment</button><button type="button" class="db-f" data-db-f="t_feed_comment_like" aria-pressed="false">t_feed_comment_like</button><button type="button" class="db-f" data-db-f="t_feed_fame_program" aria-pressed="false">t_feed_fame_program</button><button type="button" class="db-f" data-db-f="t_feed_fame" aria-pressed="false">t_feed_fame</button><button type="button" class="db-f" data-db-f="t_feed_fame_perm" aria-pressed="false">t_feed_fame_perm</button><button type="button" class="db-f" data-db-f="t_feed_fame_log" aria-pressed="false">t_feed_fame_log</button><button type="button" class="db-f" data-db-f="t_feed_setting" aria-pressed="false">t_feed_setting</button><button type="button" class="db-f" data-db-f="d_feed_fame_media" aria-pressed="false">d_feed_fame_media</button><button type="button" class="db-f" data-db-f="app_m_user" aria-pressed="false">app_m_user</button><button type="button" class="db-f" data-db-f="m_project" aria-pressed="false">m_project</button><button type="button" class="db-f" data-db-f="m_sales_person_position" aria-pressed="false">m_sales_person_position</button><button type="button" class="db-f" data-db-f="t_global_notifications" aria-pressed="false">t_global_notifications</button><button type="button" class="db-f" data-db-f="m_contacts" aria-pressed="false">m_contacts</button><button type="button" class="db-f" data-db-f="m_prospect_status" aria-pressed="false">m_prospect_status</button></div>
+          <div class="db-filter" role="group" aria-label="Sorot aksi per tabel"><button type="button" class="db-f" data-db-f="" aria-pressed="true">Semua tabel</button><button type="button" class="db-f" data-db-f="t_feed_post" aria-pressed="false">t_feed_post</button><button type="button" class="db-f" data-db-f="d_feed_post_media" aria-pressed="false">d_feed_post_media</button><button type="button" class="db-f" data-db-f="d_feed_poll" aria-pressed="false">d_feed_poll</button><button type="button" class="db-f" data-db-f="d_feed_poll_option" aria-pressed="false">d_feed_poll_option</button><button type="button" class="db-f" data-db-f="t_feed_poll_vote" aria-pressed="false">t_feed_poll_vote</button><button type="button" class="db-f" data-db-f="d_feed_link" aria-pressed="false">d_feed_link</button><button type="button" class="db-f" data-db-f="t_feed_reaction" aria-pressed="false">t_feed_reaction</button><button type="button" class="db-f" data-db-f="t_feed_comment" aria-pressed="false">t_feed_comment</button><button type="button" class="db-f" data-db-f="t_feed_comment_like" aria-pressed="false">t_feed_comment_like</button><button type="button" class="db-f" data-db-f="t_feed_fame_program" aria-pressed="false">t_feed_fame_program</button><button type="button" class="db-f" data-db-f="t_feed_fame" aria-pressed="false">t_feed_fame</button><button type="button" class="db-f" data-db-f="t_feed_fame_perm" aria-pressed="false">t_feed_fame_perm</button><button type="button" class="db-f" data-db-f="t_feed_fame_log" aria-pressed="false">t_feed_fame_log</button><button type="button" class="db-f" data-db-f="t_feed_setting" aria-pressed="false">t_feed_setting</button><button type="button" class="db-f" data-db-f="t_feed_home_pin" aria-pressed="false">t_feed_home_pin</button><button type="button" class="db-f" data-db-f="d_feed_fame_media" aria-pressed="false">d_feed_fame_media</button><button type="button" class="db-f" data-db-f="app_m_user" aria-pressed="false">app_m_user</button><button type="button" class="db-f" data-db-f="m_project" aria-pressed="false">m_project</button><button type="button" class="db-f" data-db-f="m_sales_person_position" aria-pressed="false">m_sales_person_position</button><button type="button" class="db-f" data-db-f="t_global_notifications" aria-pressed="false">t_global_notifications</button><button type="button" class="db-f" data-db-f="m_contacts" aria-pressed="false">m_contacts</button><button type="button" class="db-f" data-db-f="m_prospect_status" aria-pressed="false">m_prospect_status</button></div>
           <h3>App Mobile</h3><p class="db-note">Yang dilihat dan diklik sales (dan moderator lewat tombol +).</p>
           <div class="db-tw"><table class="db-use"><thead><tr><th>Layar</th><th>Klik / tampilan</th><th>Tabel yang dipakai</th></tr></thead><tbody>
             <tr data-t="t_feed_post d_feed_post_media d_feed_poll d_feed_poll_option t_feed_poll_vote d_feed_link t_feed_reaction t_feed_comment app_m_user"><td>Home</td><td>Buka app, kartu feed tampil</td><td><ul class="db-ops"><li data-t="t_feed_post"><span class="db-op db-op-r">R</span><code>t_feed_post</code><small>post published yang sesuai project user</small></li><li data-t="d_feed_post_media"><span class="db-op db-op-r">R</span><code>d_feed_post_media</code><small>foto/video carousel, gambar poll, thumbnail link</small></li><li data-t="d_feed_poll"><span class="db-op db-op-r">R</span><code>d_feed_poll</code><small>detail poll</small></li><li data-t="d_feed_poll_option"><span class="db-op db-op-r">R</span><code>d_feed_poll_option</code><small>opsi dan jumlah suara</small></li><li data-t="t_feed_poll_vote"><span class="db-op db-op-r">R</span><code>t_feed_poll_vote</code><small>jawaban saya (sudah vote atau belum)</small></li><li data-t="d_feed_link"><span class="db-op db-op-r">R</span><code>d_feed_link</code><small>kartu link</small></li><li data-t="t_feed_reaction"><span class="db-op db-op-r">R</span><code>t_feed_reaction</code><small>reaksi saya (like/dislike)</small></li><li data-t="t_feed_comment"><span class="db-op db-op-r">R</span><code>t_feed_comment</code><small>komentar terakhir di bawah post</small></li><li data-t="app_m_user"><span class="db-op db-op-r">R</span><code>app_m_user</code><small>nama dan foto penulis</small></li></ul></td></tr>
@@ -1595,7 +1629,7 @@ button.db-t:hover{box-shadow:0 0 0 3px var(--db-acc-soft)}
             <tr data-t="t_feed_post"><td>Home</td><td>Kartu berlabel "Disematkan" di urutan paling atas</td><td><ul class="db-ops"><li data-t="t_feed_post"><span class="db-op db-op-r">R</span><code>t_feed_post</code><small>pinned_at terisi dan pin_until belum lewat, urut pinned_at DESC, maks. 3</small></li></ul></td></tr>
             <tr data-t="m_contacts m_prospect_status"><td>Home</td><td>Kartu "Progress Kamu"</td><td><ul class="db-ops"><li data-t="m_contacts"><span class="db-op db-op-r">R</span><code>m_contacts</code><small>kontak milik saya</small></li><li data-t="m_prospect_status"><span class="db-op db-op-r">R</span><code>m_prospect_status</code><small>dipetakan ke Leads → SP</small></li></ul></td></tr>
             <tr data-t="t_feed_fame t_feed_fame_program d_feed_fame_media app_m_user"><td>Home</td><td>Wall of Fame</td><td><ul class="db-ops"><li data-t="t_feed_fame_program"><span class="db-op db-op-r">R</span><code>t_feed_fame_program</code><small>program dan periode yang aktif</small></li><li data-t="t_feed_fame"><span class="db-op db-op-r">R</span><code>t_feed_fame</code><small>status tayang, dikelompokkan per kategori dan ranking</small></li><li data-t="d_feed_fame_media"><span class="db-op db-op-r">R</span><code>d_feed_fame_media</code><small>foto/video kartu juara</small></li><li data-t="app_m_user"><span class="db-op db-op-r">R</span><code>app_m_user</code><small>nama dan foto juara</small></li></ul></td></tr>
-            <tr data-t="t_feed_setting t_feed_reaction t_feed_comment t_feed_post"><td>Home (feed)</td><td>Urutan kiriman untuk saya</td><td><ul class="db-ops"><li data-t="t_feed_setting"><span class="db-op db-op-r">R</span><code>t_feed_setting</code><small>logika feed: global, lalu tim, lalu user</small></li><li data-t="t_feed_reaction"><span class="db-op db-op-r">R</span><code>t_feed_reaction</code><small>sinyal: like / dislike saya dan pembuatnya</small></li><li data-t="t_feed_comment"><span class="db-op db-op-r">R</span><code>t_feed_comment</code><small>sinyal: komentar saya di kiriman pembuat</small></li><li data-t="t_feed_post"><span class="db-op db-op-r">R</span><code>t_feed_post</code><small>kiriman tayang, skor dihitung saat dibuka</small></li></ul></td></tr>
+            <tr data-t="t_feed_setting t_feed_home_pin t_feed_reaction t_feed_comment t_feed_post"><td>Home (feed)</td><td>Urutan kiriman untuk saya</td><td><ul class="db-ops"><li data-t="t_feed_setting"><span class="db-op db-op-r">R</span><code>t_feed_setting</code><small>mode dan bobot: baris per sales, kolom kosong ambil dari Global</small></li><li data-t="t_feed_home_pin"><span class="db-op db-op-r">R</span><code>t_feed_home_pin</code><small>pin Global dan per sales, urut sort_order</small></li><li data-t="t_feed_reaction"><span class="db-op db-op-r">R</span><code>t_feed_reaction</code><small>sinyal: like / dislike saya dan pembuatnya</small></li><li data-t="t_feed_comment"><span class="db-op db-op-r">R</span><code>t_feed_comment</code><small>sinyal: komentar saya di kiriman pembuat</small></li><li data-t="t_feed_post"><span class="db-op db-op-r">R</span><code>t_feed_post</code><small>kiriman tayang, skor dihitung saat dibuka</small></li></ul></td></tr>
             <tr data-t="t_feed_reaction t_feed_post"><td>Kartu post</td><td>Tap Suka / Tidak suka</td><td><ul class="db-ops"><li data-t="t_feed_reaction"><span class="db-op db-op-c">C/U/D</span><code>t_feed_reaction</code><small>reaksi baru = C, ganti = U, batal = D</small></li><li data-t="t_feed_post"><span class="db-op db-op-u">U</span><code>t_feed_post</code><small>like_count, dislike_count</small></li></ul></td></tr>
             <tr data-t="t_feed_poll_vote d_feed_poll_option d_feed_poll"><td>Kartu poll</td><td>Pilih jawaban, lalu Kirim Jawaban</td><td><ul class="db-ops"><li data-t="t_feed_poll_vote"><span class="db-op db-op-c">C</span><code>t_feed_poll_vote</code><small>1 baris per opsi yang dipilih</small></li><li data-t="d_feed_poll_option"><span class="db-op db-op-u">U</span><code>d_feed_poll_option</code><small>vote_count</small></li><li data-t="d_feed_poll"><span class="db-op db-op-u">U</span><code>d_feed_poll</code><small>total_voters</small></li></ul></td></tr>
             <tr data-t=""><td>Kartu post</td><td>Tap Bagikan</td><td><ul class="db-ops"><li><span class="db-op db-op-none">–</span><small>cuma menyalin link, tidak menyentuh database</small></li></ul></td></tr>
@@ -1642,7 +1676,9 @@ button.db-t:hover{box-shadow:0 0 0 3px var(--db-acc-soft)}
             <tr data-t="t_feed_fame_program t_feed_fame t_feed_fame_log"><td>Wall of Fame</td><td>Tambah / ubah juara: simpan draf, jadwalkan, atau tayangkan</td><td><ul class="db-ops"><li data-t="t_feed_fame_program"><span class="db-op db-op-c">C</span><code>t_feed_fame_program</code><small>hanya kalau nama program belum ada</small></li><li data-t="t_feed_fame"><span class="db-op db-op-c">C/U</span><code>t_feed_fame</code><small>status draft / scheduled (publish_at) / published</small></li><li data-t="t_feed_fame_log"><span class="db-op db-op-c">C</span><code>t_feed_fame_log</code><small>create / update / schedule / publish</small></li></ul></td></tr>
             <tr data-t="d_feed_fame_media t_feed_fame_log"><td>Wall of Fame</td><td>Unggah foto / video, Pakai foto contoh, Hapus media</td><td><ul class="db-ops"><li data-t="d_feed_fame_media"><span class="db-op db-op-c">C/D</span><code>d_feed_fame_media</code><small>upload = insert; ganti = hapus lalu insert; hapus = delete</small></li><li data-t="t_feed_fame_log"><span class="db-op db-op-c">C</span><code>t_feed_fame_log</code><small>media_upload / media_delete</small></li></ul></td></tr>
             <tr data-t="t_feed_fame t_feed_fame_log"><td>Wall of Fame</td><td>Hapus juara</td><td><ul class="db-ops"><li data-t="t_feed_fame"><span class="db-op db-op-d">D</span><code>t_feed_fame</code><small>hapus = isi deleted_at; media ikut dihapus</small></li><li data-t="t_feed_fame_log"><span class="db-op db-op-c">C</span><code>t_feed_fame_log</code><small>delete</small></li></ul></td></tr>
-            <tr data-t="t_feed_setting"><td>Algoritma</td><td>Simpan atau hapus pengaturan Global dan per sales (mode, bobot custom, pin)</td><td><ul class="db-ops"><li data-t="t_feed_setting"><span class="db-op db-op-r">R</span><code>t_feed_setting</code><small>baca pengaturan yang berlaku</small></li><li data-t="t_feed_setting"><span class="db-op db-op-u">U</span><code>t_feed_setting</code><small>ubah mode, bobot, aturan, sematan, batas; kosong = ikut tingkat di atasnya</small></li></ul></td></tr>
+            <tr data-t="t_feed_setting t_feed_home_pin"><td>Algoritma</td><td>Buka halaman, tab Global / Per sales</td><td><ul class="db-ops"><li data-t="t_feed_setting"><span class="db-op db-op-r">R</span><code>t_feed_setting</code><small>baris Global dan baris sales itu</small></li><li data-t="t_feed_home_pin"><span class="db-op db-op-r">R</span><code>t_feed_home_pin</code><small>daftar pin yang sudah ada</small></li></ul></td></tr>
+            <tr data-t="t_feed_setting t_feed_home_pin"><td>Algoritma</td><td>Simpan (Global atau per sales)</td><td><ul class="db-ops"><li data-t="t_feed_setting"><span class="db-op db-op-u">U</span><code>t_feed_setting</code><small>upsert satu baris tingkat itu; kolom yang kosong disimpan NULL (ikut Global)</small></li><li data-t="t_feed_home_pin"><span class="db-op db-op-d">D</span><code>t_feed_home_pin</code><small>hapus pin lama tingkat itu, lalu</small></li><li data-t="t_feed_home_pin"><span class="db-op db-op-c">C</span><code>t_feed_home_pin</code><small>insert pin baru (sort_order 1 sampai 3)</small></li></ul></td></tr>
+            <tr data-t="t_feed_setting t_feed_home_pin"><td>Algoritma</td><td>Hapus pengaturan per sales</td><td><ul class="db-ops"><li data-t="t_feed_setting"><span class="db-op db-op-d">D</span><code>t_feed_setting</code><small>baris user itu; sales kembali ikut Global</small></li><li data-t="t_feed_home_pin"><span class="db-op db-op-d">D</span><code>t_feed_home_pin</code><small>pin milik user itu</small></li></ul></td></tr>
             <tr data-t="d_feed_fame_media"><td>Wall of Fame</td><td>Unggah foto / video, Pakai foto contoh, Hapus media</td><td><ul class="db-ops"><li data-t="d_feed_fame_media"><span class="db-op db-op-c">C/D</span><code>d_feed_fame_media</code><small>upload = insert; ganti = hapus baris lama lalu insert; hapus = delete</small></li></ul></td></tr>
           </tbody></table></div>
           <h3>Sistem</h3><p class="db-note">Berjalan otomatis di backend, tanpa klik.</p>
@@ -1701,15 +1737,15 @@ button.db-t:hover{box-shadow:0 0 0 3px var(--db-acc-soft)}
             <li><b>Vote poll</b> final, tidak bisa diubah. Untuk poll pilihan tunggal (<code>is_multiple = 0</code>), maksimal 1 baris per (<code>feed_post_id</code>, <code>user_id</code>).</li>
             <li><b>Reaksi:</b> 1 baris per user per post. Ganti like ↔ dislike = update; batal = delete.</li>
             <li><b>Counter</b> (<code>like_count</code>, <code>dislike_count</code>, <code>comment_count</code>, <code>vote_count</code>, <code>total_voters</code>, <code>like_count</code> komentar) diupdate dalam transaksi yang sama dengan insert/delete interaksinya.</li>
-            <li><b>Media:</b> maksimal 10 file per post (JPG/PNG/MP4, maks 20 MB per file). Poll dan link maks. 1 file (gambar pertanyaan / thumbnail). Storage media adalah <b>MinIO Raptor</b> (bukan Google Drive). <code>file_path</code> menyimpan object key di MinIO Raptor. Apa pun storage-nya, URL video harus mendukung header <code>Range</code> karena pemutar video iOS butuh byte-range.</li>
+            <li><b>Media:</b> maksimal 10 file per post (JPG/PNG/MP4, maks 20 MB per file). Poll dan link maks. 1 file (gambar pertanyaan / thumbnail). Lokasi penyimpanan file belum ditentukan (bukan Google Drive, menyusul); <code>file_path</code> menyimpan path/key file di storage itu. Apa pun storage-nya, URL video harus mendukung header <code>Range</code> karena pemutar video iOS butuh byte-range.</li>
             <li><b>Media Wall of Fame:</b> foto JPG/PNG atau video MP4 khusus juara #1, disimpan di <code>d_feed_fame_media</code>. Kolomnya sama persis dengan <code>d_feed_post_media</code>, jadi upload dan validasinya (maks. 20 MB) memakai kode yang sama. Sekarang maks. 1 file per juara; kalau nanti mau carousel, cukup naikkan batasnya tanpa ubah tabel. Belum ada media = kartu memakai foto profil (<code>app_m_user.photo</code>), lalu inisial kalau foto profil juga kosong. Video diputar otomatis tanpa suara dan berulang. Kalau juara dihapus dari Wall of Fame, baris medianya ikut dihapus.</li>
             <li><b>Link:</b> moderator cukup menempel URL (tanpa memilih platform). <code>d_feed_link.platform</code> diisi otomatis dari domain URL: youtube.com / youtu.be → <code>youtube</code>, instagram.com → <code>instagram</code>, tiktok.com → <code>tiktok</code>, facebook.com / fb.watch → <code>facebook</code>, linkedin.com → <code>linkedin</code>, x.com / twitter.com → <code>x</code>, domain lain → <code>web</code>. Backend menghitung ulang saat simpan. Judul, deskripsi, thumbnail, dan nama akun diusulkan dari metadata link (Open Graph / oEmbed) dan tetap bisa diubah.</li>
             <li><b>Moderator</b> ditentukan lewat permission yang sudah ada (mis. <code>marketing-feed.moderate</code>), bukan kolom baru.</li>
             <li><b>Wall of Fame (manual):</b> data juara diisi manual oleh user yang punya izin. Tidak ada daftar kategori atau level yang tetap. Nama program, kategori, dan peringkat boleh diisi bebas dan bisa berubah kapan saja. Status <code>draft</code> tidak tampil, <code>scheduled</code> otomatis menjadi <code>published</code> saat <code>publish_at</code> lewat (penjadwal yang sama dengan feed), dan <code>published</code> tampil di app.</li>
             <li><b>Izin edit Wall of Fame:</b> satu izin <code>marketing-feed.fame.edit</code>, diberikan lewat <code>t_feed_fame_perm</code>. <code>scope_type</code> kosong = semua program, atau dibatasi <code>program</code> / <code>tim</code>. Tidak ada tahap persetujuan kedua: yang punya izin bisa menyimpan draf, menjadwalkan, atau menayangkan. Setiap perubahan dicatat di <code>t_feed_fame_log</code>.</li>
-            <li><b>Algoritma (halaman terpisah):</b> urutan kiriman di Home disimpan di <code>t_feed_setting</code>, tidak bercampur dengan Wall of Fame. Prioritas: pengaturan per sales menimpa pengaturan Global. Yang kosong ikut Global.</li>
+            <li><b>Algoritma (halaman terpisah):</b> mode dan bobot disimpan di <code>t_feed_setting</code> (satu baris per tingkat, kolom <code>mode</code> dan <code>w_*</code>), tidak bercampur dengan Wall of Fame. Prioritas: pengaturan per sales menimpa Global per kolom. Kolom yang kosong (NULL) ikut Global.</li>
             <li><b>Logika feed:</b> urutan kiriman dihitung dari hubungan dengan pembuat (like, dislike, komentar), minat topik, banyaknya interaksi, kesegaran (turun pelan per hari), dan kesesuaian proyek. Skor dihitung saat feed dibuka dan tidak disimpan. Mode: <code>otomatis</code> (Pintar), <code>terbaru</code>, <code>acak</code> (tetap per hari), atau <code>custom</code>. Hanya <code>custom</code> yang memakai bobot dari penggeser; mode lain memakai bobot standar. Kiriman yang disematkan selalu di atas.</li>
-            <li><b>Pin Home:</b> pin kiriman (maks. 3, harus <code>published</code>) dan pin Wall of Fame (maks. 3, harus tayang) disimpan di <code>t_feed_setting.config</code>. Pin Global tampil untuk semua sales. Pin per sales dipakai untuk sales itu dan menimpa Global jika terisi. Urutan di Home: kiriman pin Global, lalu Wall of Fame (yang dipin dulu), lalu sematan, lalu feed.</li>
+            <li><b>Pin Home:</b> pin kiriman (maks. 3, harus <code>published</code>) dan pin Wall of Fame (maks. 3, harus tayang) disimpan di <code>t_feed_home_pin</code>, dengan <code>scope_user_id</code> = 0 untuk Global. Pin Global tampil untuk semua sales. Pin per sales menimpa pin Global untuk jenis yang sama jika ada barisnya. Urutan di Home: kiriman pin Global, lalu Wall of Fame (yang dipin dulu), lalu sematan, lalu feed.</li>
           </ul>
         </section>
 
@@ -1736,7 +1772,7 @@ button.db-t:hover{box-shadow:0 0 0 3px var(--db-acc-soft)}
             <li><div><b>Progress Kamu:</b> pemetaan <code>m_prospect_status</code> ke 5 tahap funnel, dan periode hitungnya (kontak dibuat bulan ini, atau status berubah bulan ini), perlu dikonfirmasi.</div></li>
             <li><div><b>Sematan per project:</b> sekarang sematan mengikuti target post (<code>project_id</code>), dan batas 3 dihitung global. Kalau post "Semua project" perlu disematkan di satu project saja, atau batasnya per project, kolom pin dipindah ke tabel <code>t_feed_pin (feed_post_id, project_id, pinned_at, pin_user_id, pin_until)</code>.</div></li>
             <li><div><b>Umur draft sales:</b> disimpan sampai dihapus sendiri seperti TikTok, atau dihapus otomatis setelah sekian hari (mis. 30 hari) supaya media di storage tidak menumpuk?</div></li>
-            <li><div><b>Storage media:</b> foto/video feed dan Wall of Fame disimpan di <b>MinIO Raptor</b>, bukan Google Drive. URL media dibentuk lewat endpoint media (atau signed URL), bukan dari <code>file_path</code> langsung.</div></li>
+            <li><div><b>Storage media:</b> foto/video feed dan Wall of Fame tidak disimpan di Google Drive. Storage penggantinya (dan cara membentuk URL dari <code>file_path</code>) masih menyusul.</div></li>
           </ol>
         </section>
       </div>
@@ -2191,10 +2227,10 @@ let fameSeq=20,fameEdit=null;
 /* data contoh (dummy). Foto `photo` = id Unsplash, inisial tampil kalau foto gagal dimuat */
 const fameProgs=[{id:'fp1',nama:'Top Salebration Oktober 2026',periode:'Oktober 2026'}];
 const fameEntries=[
- {id:1,prog:'fp1',kategori:'TOP GM',rank:1,nama:'Hendra Wijaya',sub:'GM PAR1 & PAR2',caption:'Belum terkalahkan 3 bulan beruntun!',av:'HW',status:'published',at:0,media:null},
+ {id:1,prog:'fp1',kategori:'TOP GM',rank:1,nama:'Hendraaasasasasas Wijaya',sub:'GM PAR1 & PAR2',caption:'Belum terkalahkan 3 bulan beruntun!',av:'HW',status:'published',at:0,media:{kind:'video',url:'C:/Users/ISD/Videos/Screen Recordings/Screen Recording 2026-11-16 112253.mp4'}},
  {id:2,prog:'fp1',kategori:'TOP GM',rank:2,nama:'Ratna Puspita',sub:'PRC',caption:'Comeback kuat bulan ini 💪',av:'RP',status:'published',at:0,media:null},
  {id:3,prog:'fp1',kategori:'TOP GM',rank:3,nama:'Agus Salim',sub:'PAR2',caption:'Konsisten terus di 3 besar',av:'AS',status:'published',at:0,media:null},
- {id:4,prog:'fp1',kategori:'TOP SM',rank:1,nama:'Dewi Kartika',sub:'SM PAR1',caption:'14 SP tim dalam sebulan',av:'DK',status:'published',at:0,media:null},
+ {id:4,prog:'fp1',kategori:'TOP SM',rank:1,nama:'Dewi Kartika',sub:'SM PAR1',caption:'14 SP tim dalam sebulan',av:'DK',status:'published',at:0,media:{k:'award',o:{big:'JUARA #1',name:'Dewi Kartika',sub:'TOP SM · Oktober 2026'},cap:'Foto juara'}},
  {id:5,prog:'fp1',kategori:'TOP SM',rank:2,nama:'Fajar Ramadhan',sub:'PRC',caption:'Naik 4 peringkat',av:'FR',status:'published',at:0,media:null},
  {id:6,prog:'fp1',kategori:'TOP SM',rank:3,nama:'Lina Nur',sub:'PAR2',caption:'Tingkat berhasil 38%',av:'LN',status:'published',at:0,media:null},
  {id:7,prog:'fp1',kategori:'TOP SPV',rank:1,nama:'Yoga Saputra',sub:'SPV PAR2',caption:'Tim paling cepat menindaklanjuti',av:'YS',status:'published',at:0,media:null},

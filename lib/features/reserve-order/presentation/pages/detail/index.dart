@@ -817,6 +817,12 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage>
     final raw = order.customer.raw;
     // Label dropdown (nama Wilayah Area, rentang Penghasilan, …) dari GET /reserve-order/customer-options.
     final options = context.watch<CustomerOptionsBloc>().state.options;
+    // Sudah SP → field KTP & pekerjaan terkunci (gembok, tap = tampilkan alasannya), sama seperti Cara Bayar.
+    String? ktpLockOf(String key) =>
+        order.ktpLockedReason != null &&
+            kKtpLockedCustomerFields.contains(key)
+        ? order.ktpLockedReason
+        : null;
     return SingleChildScrollView(
       physics: const AlwaysScrollableScrollPhysics(),
       child: Column(
@@ -826,18 +832,50 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage>
               hint: section.titleFor(raw),
               child: Column(
                 children: [
-                  for (var i = 0; i < section.fields.length; i++)
-                    _customerRow(
-                      section.fields[i].label,
-                      displayValueFor(section.fields[i], raw, options: options),
-                      onTap: order.canEdit
-                          ? () => _openEditCustomer(
-                              order,
-                              highlightKey: section.fields[i].key,
-                            )
-                          : null,
-                      showDivider: i != section.fields.length - 1,
-                    ),
+                  for (var i = 0; i < section.fields.length; i++) ...[
+                    if (section.fields[i].key == 'cara_bayar_name' &&
+                        order.caraBayarLockedReason != null)
+                      // Sudah SP → Cara Pembayaran dikunci (gembok); tap = tampilkan alasannya.
+                      _customerRow(
+                        section.fields[i].label,
+                        displayValueFor(section.fields[i], raw, options: options),
+                        onTap: () =>
+                            showSnackbar(context, order.caraBayarLockedReason!, isError: true),
+                        locked: true,
+                        // Selalu ada divider: di bawahnya menyusul baris "Cara Bayar Realisasi".
+                        showDivider: true,
+                      )
+                    else
+                      _customerRow(
+                        section.fields[i].label,
+                        displayValueFor(section.fields[i], raw, options: options),
+                        onTap: ktpLockOf(section.fields[i].key) != null
+                            ? () => showSnackbar(
+                                context,
+                                ktpLockOf(section.fields[i].key)!,
+                                isError: true,
+                              )
+                            : order.canEdit
+                            ? () => _openEditCustomer(
+                                order,
+                                highlightKey: section.fields[i].key,
+                              )
+                            : null,
+                        locked: ktpLockOf(section.fields[i].key) != null,
+                        showDivider: section.fields[i].key == 'cara_bayar_name' ||
+                            i != section.fields.length - 1,
+                      ),
+                    // Cara Bayar Realisasi — hanya tampil (diisi dari web/backend), tidak bisa
+                    // diedit dari app. Sengaja TIDAK ada di reserveCustomerFieldSections supaya
+                    // tidak muncul sebagai isian di form Edit Data Pembeli.
+                    if (section.fields[i].key == 'cara_bayar_name')
+                      _customerRow(
+                        'Cara Bayar Realisasi',
+                        raw['cara_bayar_realisasi']?.toString().trim(),
+                        showTrailing: false,
+                        showDivider: i != section.fields.length - 1,
+                      ),
+                  ],
                 ],
               ),
             ),
@@ -894,11 +932,15 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage>
     );
   }
 
+  /// [locked] = field terkunci (mis. Cara Pembayaran setelah SP) → ikon gembok, bukan '›'.
+  /// [showTrailing] = false → tanpa ikon '›'/gembok (baris hanya-tampil, mis. Cara Bayar Realisasi).
   Widget _customerRow(
     String label,
     String? value, {
     VoidCallback? onTap,
     bool showDivider = true,
+    bool locked = false,
+    bool showTrailing = true,
   }) {
     return InkWell(
       onTap: onTap,
@@ -935,14 +977,19 @@ class _ReserveOrderDetailPageState extends State<ReserveOrderDetailPage>
                 ],
               ),
             ),
-            const Text(
-              '›',
-              style: TextStyle(
-                fontSize: 18,
-                color: Color(grey4Color),
-                fontWeight: FontWeight.w700,
+            if (!showTrailing)
+              const SizedBox.shrink()
+            else if (locked)
+              const Icon(Icons.lock_outline, size: 16, color: Color(grey4Color))
+            else
+              const Text(
+                '›',
+                style: TextStyle(
+                  fontSize: 18,
+                  color: Color(grey4Color),
+                  fontWeight: FontWeight.w700,
+                ),
               ),
-            ),
           ],
         ),
       ),

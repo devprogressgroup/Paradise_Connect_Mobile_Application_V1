@@ -58,6 +58,11 @@ class SitePlanRepositoryImpl implements SitePlanRepository {
                   '',
               unitName: cluster['siteplan_name'] as String? ?? '',
               url: url,
+              townshipId: int.tryParse(
+                '${cluster['township_id'] ?? township['township_id']}',
+              ),
+              siteplanId: int.tryParse(siteplanId),
+              companyId: int.tryParse(companyId),
             ),
           );
         }

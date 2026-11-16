@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:progress_group/core/utils/widget/custom_snackbar.dart';
 import 'package:progress_group/core/constants/colors.dart';
 import 'package:progress_group/core/services/analytics_service.dart';
 import 'package:progress_group/core/utils/helpers/initial_name_helper.dart';
@@ -29,6 +30,7 @@ import 'package:progress_group/features/contact/presentation/state/prospect_stat
 import 'package:progress_group/features/contact/presentation/state/sales_hierarchy/sales_hierarchy_service.dart';
 import 'package:progress_group/features/contact/presentation/widgets/contact_filter_sheet.dart';
 import 'package:progress_group/features/reserve-order/data/models/reserve_order_list_item.dart';
+import 'package:progress_group/features/reserve-order/domain/reserve_order_eligibility.dart';
 import 'package:progress_group/features/reserve-order/presentation/state/reserve_order_detail/reserve_order_detail_cubit.dart';
 import 'package:progress_group/features/reserve-order/presentation/state/reserve_order_list/reserve_order_list_cubit.dart';
 import 'package:progress_group/features/reserve-order/presentation/state/reserve_order_list/reserve_order_list_state.dart';
@@ -95,6 +97,9 @@ class _SelectContactForReserveOrderPageState extends State<SelectContactForReser
       getReserveOrderListUseCase: context
           .read<ReserveOrderListCubit>()
           .getReserveOrderListUseCase,
+      getReserveOrderFilterSalesUseCase: context
+          .read<ReserveOrderListCubit>()
+          .getReserveOrderFilterSalesUseCase,
     );
     context.read<InfoSourceBloc>().add(const FetchInfoSourcesEvent(type: 1));
     _scrollController.addListener(_onScroll);
@@ -107,6 +112,8 @@ class _SelectContactForReserveOrderPageState extends State<SelectContactForReser
     _reserveListCubit.fetch(
       search: _reserveSearch.isEmpty ? null : _reserveSearch,
       sort: 'terbaru',
+      // Satu baris per customer (RO terbarunya) — bukan sekali per RO.
+      uniqueCustomer: true,
     );
   }
 
@@ -142,9 +149,9 @@ class _SelectContactForReserveOrderPageState extends State<SelectContactForReser
         : await prospectStatusBloc.stream.firstWhere(ready);
     if (!mounted) return;
 
+    // Grup reserve + status_value di atasnya (mis. 50 - SP) — lihat [reserveEligibleStatuses].
     _eligibleStatusIds = state.status == ProspectStatusEnum.loaded
-        ? state.statuses
-              .where((s) => s.group == 'reserve')
+        ? reserveEligibleStatuses(state.statuses)
               .map((s) => s.statusProspectId)
               .toList()
         : null;
@@ -265,8 +272,7 @@ class _SelectContactForReserveOrderPageState extends State<SelectContactForReser
     if (!mounted) return;
     setState(() => _openingFilterSheet = false);
 
-    final statusItems = statusBloc.state.statuses
-        .where((s) => s.group == 'reserve')
+    final statusItems = reserveEligibleStatuses(statusBloc.state.statuses)
         .map((s) => OwnerDropdownItem(id: s.statusProspectId, name: s.statusProspectName))
         .toList();
     final channelItems = (sourceBloc.state.sourcesMap[1] ?? const <InfoSource>[])
@@ -441,20 +447,14 @@ class _SelectContactForReserveOrderPageState extends State<SelectContactForReser
       if (!mounted) return;
 
       final detail = result.fold((message) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(message)));
+        showSnackbar(context, message, isError: true);
         return null;
       }, (d) => d);
       if (detail == null) return;
 
       final contactId = detail.contactId;
       if (contactId == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Reserve Order ini tidak terhubung ke contact.'),
-          ),
-        );
+        showSnackbar(context, 'Reserve Order ini tidak terhubung ke contact.', isError: true);
         return;
       }
 
@@ -507,11 +507,7 @@ class _SelectContactForReserveOrderPageState extends State<SelectContactForReser
 
     final detail = state.contactDetail;
     if (state.status != ContactStatus.detailLoaded || detail == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(state.errorMessage ?? 'Gagal memuat detail contact.'),
-        ),
-      );
+      showSnackbar(context, state.errorMessage ?? 'Gagal memuat detail contact.', isError: true);
       return;
     }
 
@@ -921,11 +917,9 @@ class _SelectContactForReserveOrderPageState extends State<SelectContactForReser
     final chips = <MapEntry<String, VoidCallback>>[];
 
     if (_statusIds.isNotEmpty) {
-      final statuses = context
-          .watch<ProspectStatusBloc>()
-          .state
-          .statuses
-          .where((s) => s.group == 'reserve');
+      final statuses = reserveEligibleStatuses(
+        context.watch<ProspectStatusBloc>().state.statuses,
+      );
       String label = 'Status';
       if (_statusIds.length == 1) {
         final st = statuses

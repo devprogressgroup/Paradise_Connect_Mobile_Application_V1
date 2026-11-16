@@ -139,6 +139,7 @@ class _ContactFilterSheetState extends State<ContactFilterSheet> {
   }
 
   ContactFilterResult _buildResult() => ContactFilterResult(
+    checks: {for (final e in _stagedChecks.entries) e.key: {...e.value}},
     statusIds: _stagedChecks['status'] ?? const {},
     channelIds: _stagedChecks['channel'] ?? const {},
     channelDetailIds: _stagedChecks['channelDetail'] ?? const {},
@@ -320,6 +321,10 @@ class _ContactFilterSheetState extends State<ContactFilterSheet> {
     switch (key) {
       case 'status':
         return Icons.flag_rounded;
+      case 'progressAkad':
+        return Icons.trending_up_rounded;
+      case 'approval':
+        return Icons.fact_check_rounded;
       case 'channel':
         return Icons.hub_rounded;
       case 'channelDetail':
@@ -949,6 +954,18 @@ class _PaginatedGroupBodyState extends State<_PaginatedGroupBody> {
                 Icon(Icons.error_outline_rounded, size: 22, color: Color(grey7Color)),
                 const SizedBox(height: 6),
                 Text(_error!, textAlign: TextAlign.center, style: TextStyle(color: Color(grey5Color), fontSize: 12)),
+                if (widget.group.retryable) ...[
+                  const SizedBox(height: 6),
+                  TextButton.icon(
+                    onPressed: () => _loadPage(1),
+                    style: TextButton.styleFrom(
+                      foregroundColor: Color(primaryColor),
+                      visualDensity: VisualDensity.compact,
+                    ),
+                    icon: const Icon(Icons.refresh_rounded, size: 16),
+                    label: const Text('Coba lagi', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+                  ),
+                ],
               ],
             ),
           )

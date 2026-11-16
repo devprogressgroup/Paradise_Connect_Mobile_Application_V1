@@ -10,6 +10,7 @@ import 'package:progress_group/features/marketing-feed/data/models/wall_of_fame_
 import 'package:progress_group/features/marketing-feed/domain/entities/feed_comment_entity.dart';
 import 'package:progress_group/features/marketing-feed/domain/entities/feed_post_entity.dart';
 import 'package:progress_group/features/marketing-feed/domain/entities/fame_program_entity.dart';
+import 'package:progress_group/features/marketing-feed/domain/entities/wall_of_fame_entity.dart';
 import 'package:progress_group/features/marketing-feed/data/models/fame_program_model.dart';
 import 'package:progress_group/features/marketing-feed/domain/entities/personal_funnel_entity.dart';
 import 'package:progress_group/features/marketing-feed/domain/entities/save_feed_post_params.dart';
@@ -426,7 +427,6 @@ class MarketingFeedRemoteDataSourceImpl implements MarketingFeedRemoteDataSource
   }
 
   @override
-  @override
   Future<List<FameProgramEntity>> getFamePrograms() async {
     try {
       final response = await dio.get('/marketing-feed/wall-of-fame/programs');
@@ -435,10 +435,51 @@ class MarketingFeedRemoteDataSourceImpl implements MarketingFeedRemoteDataSource
         final items = (body['data'] as Map)['items'] as List? ?? const [];
         return parseFamePrograms(items);
       }
-      throw parseMarketingFeedException(body, 'Gagal mengambil Wall of Fame.');
-    } catch (e) {
-      throw parseMarketingFeedException(e, 'Gagal mengambil Wall of Fame.');
+    } catch (_) {
+      // Endpoint programs belum ada di backend (404). Lanjut ke fallback di bawah.
     }
+    // Fallback: pakai /marketing-feed/wall-of-fame yang sudah tersedia, dipetakan jadi satu program.
+    final levels = await getWallOfFame();
+    return _programsFromLevels(levels);
+  }
+
+  /// Satu program "Wall of Fame" berisi kategori per level (TOP GM/SM/SPV/SE).
+  /// Juara #1 = ranking 1, peringkat lain di [WallOfFameLevelEntity.runnersUp] = ranking 2 dst.
+  List<FameProgramEntity> _programsFromLevels(List<WallOfFameLevelEntity> levels) {
+    if (levels.isEmpty) return const [];
+
+    FameEntryEntity toEntry(WallOfFameEntryEntity e, String level, int ranking, int id) {
+      final media = e.media;
+      return FameEntryEntity(
+        id: e.id ?? id,
+        programId: 0,
+        programName: 'Wall of Fame',
+        kategori: level,
+        ranking: ranking,
+        posisiLabel: e.info,
+        caption: e.highlight,
+        name: e.name,
+        initials: e.initials ?? '',
+        photoUrl: e.photoUrl,
+        mediaType: media == null || media.url == null ? null : (media.isVideo ? 'video' : 'image'),
+        mediaUrl: media?.url,
+      );
+    }
+
+    final categories = <FameCategoryEntity>[];
+    for (var i = 0; i < levels.length; i++) {
+      final level = levels[i];
+      final entries = <FameEntryEntity>[
+        toEntry(level.champion, level.level, 1, i * 100),
+        for (var j = 0; j < level.runnersUp.length; j++)
+          toEntry(level.runnersUp[j], level.level, j + 2, i * 100 + j + 1),
+      ];
+      categories.add(FameCategoryEntity(kategori: level.level, entries: entries));
+    }
+
+    return [
+      FameProgramEntity(id: 0, namaProgram: 'Wall of Fame', categories: categories),
+    ];
   }
 
   @override

@@ -8,7 +8,9 @@ import 'package:progress_group/features/reserve-order/domain/entities/customer_o
 import 'package:progress_group/features/reserve-order/domain/entities/change_reserve_order_unit_params.dart';
 import 'package:progress_group/features/reserve-order/domain/entities/edit_reserve_order_params.dart';
 import 'package:progress_group/features/reserve-order/domain/entities/payment_type_entity.dart';
+import 'package:progress_group/features/reserve-order/domain/entities/property_virtual_account_entity.dart';
 import 'package:progress_group/features/reserve-order/domain/entities/reserve_order_detail_entity.dart';
+import 'package:progress_group/features/reserve-order/domain/entities/reserve_order_filter_sales_entity.dart';
 import 'package:progress_group/features/reserve-order/domain/entities/reserve_order_list_item_entity.dart';
 import 'package:progress_group/features/reserve-order/domain/entities/reserve_status_entity.dart';
 import 'package:progress_group/features/reserve-order/domain/entities/resubmit_reserve_order_params.dart';
@@ -29,6 +31,7 @@ abstract class ReserveOrderRepository {
   Future<Either<String, CreateReserveOrderResultEntity>> createReserveOrder(
     CreateReserveOrderParams params,
   );
+  Future<Either<String, ReserveOrderFilterSalesEntity>> getFilterSales();
   Future<Either<String, ReserveOrderListResultEntity>> getReserveOrderList({
     String? search,
     List<int>? statusReserveIds,
@@ -43,13 +46,18 @@ abstract class ReserveOrderRepository {
     List<int>? generalManagerIds,
     List<int>? salesTeamIds,
     String? project,
+    List<int>? milestoneIds,
+    List<int>? approvalIds,
+    bool uniqueCustomer = false,
     int page,
     int perPage,
   });
   Future<Either<String, ReserveOrderDetailEntity>> getReserveOrderDetail(
     int reserveOrderId,
   );
-  Future<Either<String, ReserveOrderDetailEntity>> updateReserveOrderCustomer(
+  /// Left membawa `locked_fields` (`KTP_LOCKED`) supaya field yang ditolak bisa ditandai di form.
+  Future<Either<ReserveOrderCustomerFailure, ReserveOrderDetailEntity>>
+  updateReserveOrderCustomer(
     int reserveOrderId,
     UpdateReserveOrderCustomerParams params,
   );
@@ -84,5 +92,13 @@ abstract class ReserveOrderRepository {
     String custKtp, {
     String? custName,
     int? contactId,
+  });
+
+  /// Left membawa `error_code` (bukan cuma pesan) supaya `VA_NOT_FOUND` bisa dibedakan dari error lain.
+  Future<Either<VirtualAccountFailure, PropertyVirtualAccountEntity>>
+  getPropertyVirtualAccount({
+    required int townshipId,
+    required int companyId,
+    required int propertyId,
   });
 }

@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import 'package:progress_group/core/utils/widget/custom_snackbar.dart';
 import 'package:progress_group/core/constants/colors.dart';
 import 'package:progress_group/core/utils/helpers/number_helper.dart';
 import 'package:progress_group/core/utils/widget/custom_button.dart';
@@ -39,6 +40,7 @@ import 'package:progress_group/features/reserve-order/presentation/state/select_
 import 'package:progress_group/features/reserve-order/presentation/state/work_category/work_category_bloc.dart';
 import 'package:progress_group/features/reserve-order/presentation/state/work_category/work_category_event.dart';
 import 'package:progress_group/features/reserve-order/presentation/state/work_category/work_category_state.dart';
+import 'package:progress_group/features/reserve-order/presentation/state/virtual_account/reserve_virtual_account_cubit.dart';
 import 'package:progress_group/features/reserve-order/data/models/reserve_order_customer_data.dart';
 import 'package:progress_group/features/reserve-order/domain/entities/customer_options_entity.dart';
 import 'package:progress_group/features/reserve-order/presentation/state/customer_options/customer_options_bloc.dart';
@@ -46,6 +48,7 @@ import 'package:progress_group/features/reserve-order/presentation/state/custome
 import 'package:progress_group/features/reserve-order/presentation/state/customer_options/customer_options_state.dart';
 import 'package:progress_group/features/reserve-order/presentation/widgets/option_picker_sheet.dart';
 import 'package:progress_group/features/reserve-order/presentation/widgets/reference_date_field.dart';
+import 'package:progress_group/features/reserve-order/presentation/widgets/review_virtual_account_line.dart';
 import 'package:progress_group/features/saleskit/presentation/state/township/township_bloc.dart';
 import 'package:progress_group/features/saleskit/presentation/state/township/township_event.dart';
 import 'package:progress_group/features/saleskit/presentation/state/township/township_state.dart';
@@ -244,6 +247,8 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
     context.read<WorkCategoryBloc>().add(const FetchWorkCategoryEvent());
     context.read<CustomerOptionsBloc>().add(const FetchCustomerOptionsEvent());
     context.read<PaymentTypeBloc>().add(const FetchPaymentTypesEvent());
+    // Sesi create baru — cache VA (baris "Virtual Account" di Review) dikosongkan.
+    context.read<ReserveVirtualAccountCubit>().reset();
   }
 
   @override
@@ -1128,9 +1133,7 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
     if (!mounted) return;
 
     if (result.bytes == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Isi foto KTP tidak ditemukan.')),
-      );
+      showSnackbar(context, 'Isi foto KTP tidak ditemukan.', isError: true);
       return;
     }
 
@@ -1155,9 +1158,7 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
 
     if (!mounted) return;
     if (error != null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(error.toString().replaceAll('Exception: ', ''))),
-      );
+      showSnackbar(context, error.toString().replaceAll('Exception: ', ''), isError: true);
       return;
     }
 
@@ -1190,11 +1191,7 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
         }
       });
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Data KTP berhasil dibaca. Mohon periksa kembali.'),
-        ),
-      );
+      showSnackbar(context, 'Data KTP berhasil dibaca. Mohon periksa kembali.');
       // Hasil scan langsung dicek juga — sales gak perlu tahu ada langkah "cek NIK".
       if (_ktpCtrl.text.trim().length == 16) _checkKtp();
     }
@@ -1277,11 +1274,7 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
         _ktpOwnerConflict = null;
         _checkedKtpKey = '$ktp|${ownerName.toLowerCase()}';
       });
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Data customer sudah diisi otomatis. Cek lagi ya sebelum lanjut.'),
-        ),
-      );
+      showSnackbar(context, 'Data customer sudah diisi otomatis. Cek lagi ya sebelum lanjut.');
       return true;
     }
 
@@ -1652,9 +1645,7 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
 
     if (!requiredOk) {
       setState(() => _showCustomerValidation = true);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Lengkapi dahulu data yang wajib diisi.')),
-      );
+      showSnackbar(context, 'Lengkapi dahulu data yang wajib diisi.', isError: true);
       return;
     }
     // Cek ulang No. KTP (nama bisa sudah diganti sejak dicek) — kalau masih bentrok, dialog
@@ -1668,22 +1659,14 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
 
   void _toggleUnit(ReserveUnitOption u) {
     if (!u.available) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Unit ini belum tersedia. Silakan hubungi admin untuk membuka unit ini.',
-          ),
-        ),
-      );
+      showSnackbar(context, 'Unit ini belum tersedia. Silakan hubungi admin untuk membuka unit ini.', isError: true);
       return;
     }
     // Pengajuan Ulang: RO = 1 unit → pilih satu (radio), atau terkunci kalau unit tak bisa diganti.
     if (_isResubmit) {
       final lockReason = _unitLockReason;
       if (lockReason != null) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(lockReason)));
+        showSnackbar(context, lockReason, isLocked: true);
         return;
       }
       setState(() => _selectedUnits = [u]);
@@ -1705,9 +1688,7 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
     final townshipState = context.read<TownshipBloc>().state;
     if (townshipState is! TownshipLoaded) {
       context.read<TownshipBloc>().add(GetTownshipsEvent());
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Memuat data project...')));
+      showSnackbar(context, 'Memuat data project...');
       return;
     }
 
@@ -2061,7 +2042,7 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
         expanded,
         product.displayName,
         product.spec ?? '',
-        product.totalAvailable,
+        _visibleProductAvailable(state, product),
         () => cubit.toggleProduct(product),
       ),
       if (expanded) ...[
@@ -2122,6 +2103,24 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
     ];
   }
 
+  // Angka "N tersedia" ikut hasil search. Saat search aktif, hitung dari kavling Available yang
+  // benar-benar tampil (sudah difilter search di BE). Kalau kavling belum dimuat, pakai total server.
+  int _visibleProductAvailable(UnitPickerState state, UnitProduct product) {
+    if (state.search.isEmpty) return product.totalAvailable;
+    final lots = state.lotsByProduct[UnitPickerCubit.productKey(product)];
+    if (lots == null) return product.totalAvailable;
+    return lots.where((l) => (l.displayStatusName ?? 'Available') == 'Available').length;
+  }
+
+  int _visibleClusterAvailable(UnitPickerState state, UnitCluster cluster) {
+    if (state.search.isEmpty) return cluster.totalAvailable;
+    var total = 0;
+    for (final p in cluster.products) {
+      total += _visibleProductAvailable(state, p);
+    }
+    return total;
+  }
+
   List<Widget> _otherClusterTiles(
     UnitPickerCubit cubit,
     UnitPickerState state,
@@ -2135,7 +2134,7 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
         child: _otherClusterHeaderTile(
           expanded,
           cluster.projectName,
-          cluster.totalAvailable,
+          _visibleClusterAvailable(state, cluster),
           () => cubit.toggleCluster(cluster.projectId),
         ),
       ),
@@ -2228,13 +2227,7 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
                       required: true,
                       isError: _showUnitValidation && project == null,
                       onTap: _isResubmit
-                          ? () => ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text(
-                                  'Project tidak bisa diganti saat pengajuan ulang.',
-                                ),
-                              ),
-                            )
+                          ? () => showSnackbar(context, 'Project tidak bisa diganti saat pengajuan ulang.', isError: true)
                           : _openProjectPicker,
                     ),
                     const SizedBox(height: 14),
@@ -2262,9 +2255,7 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
                             () {
                               // Sudah di-approve Kasir → unit tidak bisa diganti dari sini.
                               if (lockReason != null) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(content: Text(lockReason)),
-                                );
+                                showSnackbar(context, lockReason, isLocked: true);
                                 return;
                               }
                               setState(() => _unitTab = 'other');
@@ -2383,11 +2374,7 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
   void _submitUnit() {
     if (_selectedUnits.isEmpty) {
       setState(() => _showUnitValidation = true);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Pilih minimal 1 unit / kavling terlebih dahulu.'),
-        ),
-      );
+      showSnackbar(context, 'Pilih minimal 1 unit / kavling terlebih dahulu.', isError: true);
       return;
     }
     // Pengajuan Ulang: 1 draft (TTS order ini) — unit diganti, isian pembayaran tetap.
@@ -2453,13 +2440,7 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
   }
 
   void _showDepositedNotice() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text(
-          'Tunai ini sudah disetor ke bank — tidak bisa dihapus atau diubah nominalnya.',
-        ),
-      ),
-    );
+    showSnackbar(context, 'Tunai ini sudah disetor ke bank — tidak bisa dihapus atau diubah nominalnya.', isError: true);
   }
 
   /// Info bank/kartu pembayaran TTS lama (tidak bisa diganti di app — belum ada daftar bank).
@@ -3173,10 +3154,7 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
     );
     if (!hasKtp || missingPaymentType || missingTransactionDate || missingProof || missingReferenceDate) {
       setState(() => _showDocumentValidation = true);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            !hasKtp
+      showSnackbar(context, !hasKtp
                 ? 'KTP Pemohon wajib diupload.'
                 : missingPaymentType
                 ? 'Jenis Pembayaran wajib dipilih untuk semua unit.'
@@ -3188,10 +3166,7 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
                       : 'Bukti Non Tunai wajib diupload untuk semua pembayaran Non Tunai.')
                 : (_isResubmit
                       ? 'Tgl Transfer / Tgl Transaksi wajib diisi untuk pembayaran Non Tunai.'
-                      : 'Tanggal Bukti Transfer wajib diisi untuk semua pembayaran Non Tunai.'),
-          ),
-        ),
-      );
+                      : 'Tanggal Bukti Transfer wajib diisi untuk semua pembayaran Non Tunai.'), isError: true);
       return;
     }
     setState(() => _step = 4);
@@ -3279,6 +3254,9 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
           if (_isResubmit && d.unit.id != _currentUnit?.id)
             _reviewLine('Ganti dari', _currentUnit?.name ?? '-'),
           _reviewLine('Cara Bayar', modes.isEmpty ? '-' : modes),
+          // VA milik unit → tampil di kartu unitnya sendiri. Datanya dimuat 1x untuk semua unit
+          // oleh ReviewVirtualAccountLoader (lihat _withVirtualAccountLoader).
+          if (!_isResubmit) ReviewVirtualAccountLine(unitKey: d.unit.id),
           BlocBuilder<PaymentTypeBloc, PaymentTypeState>(
             builder: (context, state) =>
                 _reviewLine('Jenis Pembayaran', _paymentTypeLabel(d, state)),
@@ -3301,6 +3279,28 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
   bool get _hasKtp =>
       _ktpFile != null || (_existingKtpUrl != null && _existingKtpUrl!.isNotEmpty);
 
+  /// VA SEMUA unit dimuat 1x untuk seluruh Review; kartu unit hanya membaca hasilnya
+  /// ([ReviewVirtualAccountLine]). Pengajuan Ulang tidak menampilkan VA → tanpa pemuat.
+  Widget _withVirtualAccountLoader(Widget child) => _isResubmit
+      ? child
+      : ReviewVirtualAccountLoader(
+          units: _virtualAccountLookups(),
+          child: child,
+        );
+
+  /// Unit untuk baris "Virtual Account" — `company_id`/`property_id` SAMA dengan `units[i]` yang
+  /// dikirim di [_submitReserveOrder]; township = project terpilih.
+  List<VirtualAccountLookup> _virtualAccountLookups() => [
+    for (final d in _unitDrafts)
+      VirtualAccountLookup(
+        unitKey: d.unit.id,
+        unitName: d.unit.name,
+        townshipId: _selectedProjectId ?? d.unit.townshipId,
+        companyId: d.unit.companyId,
+        propertyId: d.unit.propertyId,
+      ),
+  ];
+
   Widget _review() {
     final grandTotal = _unitDrafts.fold<double>(0, (s, d) => s + d.total);
     final hasTransfer = _unitDrafts.any(
@@ -3312,9 +3312,7 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
     return BlocConsumer<CreateReserveOrderCubit, CreateReserveOrderState>(
       listener: (context, state) {
         if (state is CreateReserveOrderError) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text(state.message)));
+          showSnackbar(context, state.message, isError: true);
         } else if (state is CreateReserveOrderSuccess) {
           setState(() {
             _createResult = state.result;
@@ -3340,7 +3338,7 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
           ),
           _stepIndicator(4),
           Expanded(
-            child: SingleChildScrollView(
+            child: _withVirtualAccountLoader(SingleChildScrollView(
               padding: const EdgeInsets.all(16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -3427,7 +3425,7 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
                   for (final d in _unitDrafts) _reviewUnitCard(d),
                 ],
               ),
-            ),
+            )),
           ),
           _footer(
             submitting
@@ -3522,13 +3520,7 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
         _step = 3;
         _showDocumentValidation = true;
       });
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Dokumen KTP Pemohon belum ada — silakan upload ulang.',
-          ),
-        ),
-      );
+      showSnackbar(context, 'Dokumen KTP Pemohon belum ada — silakan upload ulang.', isError: true);
       return;
     }
 
@@ -3537,6 +3529,9 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
     final tts = _resubmitTts;
     final params = ResubmitReserveOrderParams(
       customer: _customerPayload(),
+      // Order sudah SP → field KTP/pekerjaan terkunci yang tidak berubah tidak ikut dikirim.
+      originalCustomer: order.customer,
+      ktpLocked: (order.ktpLockedReason ?? '').trim().isNotEmpty,
       reserveNote: _catatanCtrl.text.trim(),
       reserveDate: draft.transactionDate,
       // Tidak dikirim = dokumen lama tetap dipakai.
@@ -3573,13 +3568,7 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
     setState(() => _resubmitting = false);
 
     if (!result.ok) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            result.message ?? 'Gagal mengajukan ulang reserve order.',
-          ),
-        ),
-      );
+      showSnackbar(context, result.message ?? 'Gagal mengajukan ulang reserve order.', isError: true);
       return;
     }
     // Badge "Ditolak" di list ikut hilang tanpa perlu tarik-refresh.
@@ -3597,13 +3586,7 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
         _step = 3;
         _showDocumentValidation = true;
       });
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Dokumen KTP Pemohon belum ada — silakan upload ulang.',
-          ),
-        ),
-      );
+      showSnackbar(context, 'Dokumen KTP Pemohon belum ada — silakan upload ulang.', isError: true);
       return;
     }
 
@@ -3688,6 +3671,7 @@ class _CreateReserveOrderPageState extends State<CreateReserveOrderPage> {
 
   void _resetForm() {
     context.read<CreateReserveOrderCubit>().reset();
+    context.read<ReserveVirtualAccountCubit>().reset();
     _namaCtrl.clear();
     _ktpCtrl.clear();
     _tempatLahirCtrl.clear();

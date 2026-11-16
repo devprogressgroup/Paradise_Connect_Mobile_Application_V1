@@ -8,7 +8,7 @@ class UpdateReserveOrderCustomerUseCase {
 
   UpdateReserveOrderCustomerUseCase(this.repository);
 
-  Future<Either<String, ReserveOrderDetailEntity>> call(
+  Future<Either<ReserveOrderCustomerFailure, ReserveOrderDetailEntity>> call(
     int reserveOrderId,
     UpdateReserveOrderCustomerParams params,
   ) async {

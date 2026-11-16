@@ -96,7 +96,9 @@ class WallOfFameCard extends StatelessWidget {
                   color: const Color(whiteColor).withValues(alpha: 0.25),
                 ),
                 child: ClipOval(
-                  child: _buildChampionMedia(entry),
+                  child: OnScreenBuilder(
+                    builder: (context, visible) => _buildChampionMedia(entry, visible),
+                  ),
                 ),
               ),
             ),
@@ -164,21 +166,36 @@ class WallOfFameCard extends StatelessWidget {
     );
   }
 
-  /// Fallback: media (video auto-loop mute / image) -> photo_url -> initials
-  Widget _buildChampionMedia(WallOfFameEntryEntity entry) {
+  /// Urutan fallback: media video (diputar tanpa suara, berulang) -> media gambar -> photo_url -> inisial.
+  /// [visible] false (kartu keluar layar) membuat video di-pause.
+  Widget _buildChampionMedia(WallOfFameEntryEntity entry, bool visible) {
+    final photoOrInitials = _buildPhotoOrInitials(entry);
     final media = entry.media;
-    if (media != null && media.url != null && media.url!.isNotEmpty) {
-      if (media.isVideo) {
-        return FeedMediaView(media: media, autoPlayVideo: true);
-      }
-      return Image.network(
-        media.url!,
-        headers: AuthTokenCache.getAuthHeadersFor(media.url),
-        fit: BoxFit.cover,
-        errorBuilder: (_, __, ___) => _buildPhotoOrInitials(entry),
+    final url = media?.url;
+    if (media == null || url == null || url.isEmpty) return photoOrInitials;
+
+    if (media.isVideo) {
+      return FeedVideoPlayer(
+        url: url,
+        autoPlay: true,
+        loop: true,
+        muted: true,
+        active: visible,
+        hideControls: true,
+        placeholder: photoOrInitials,
+        fallback: photoOrInitials,
       );
     }
-    return _buildPhotoOrInitials(entry);
+
+    return Image.network(
+      url,
+      headers: AuthTokenCache.getAuthHeadersFor(url),
+      fit: BoxFit.cover,
+      width: double.infinity,
+      height: double.infinity,
+      loadingBuilder: (_, child, progress) => progress == null ? child : photoOrInitials,
+      errorBuilder: (_, __, ___) => photoOrInitials,
+    );
   }
 
   Widget _buildPhotoOrInitials(WallOfFameEntryEntity entry) {

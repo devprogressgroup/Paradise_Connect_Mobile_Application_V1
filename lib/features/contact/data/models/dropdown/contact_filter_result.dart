@@ -14,11 +14,15 @@ class PaginatedCheckGroup {
   final String label;
   final String section;
   final PaginatedFetch fetchPage;
+  /// Tampilkan tombol "Coba lagi" saat gagal memuat (dipakai filter Sales Reserve Order). Default off
+  /// supaya grup lain (Kontak) tampilannya tidak berubah.
+  final bool retryable;
   const PaginatedCheckGroup({
     required this.key,
     required this.label,
     required this.section,
     required this.fetchPage,
+    this.retryable = false,
   });
 }
 
@@ -62,7 +66,13 @@ class ContactFilterResult {
   final DateRangeValue? lostDate;
   final String? project;
 
+  /// SEMUA pilihan checkbox per `key` grup (ContactCheckGroup / PaginatedCheckGroup) — termasuk grup tambahan
+  /// di luar field tetap di atas (mis. "Progres Akad" & "Persetujuan" list Reserve Order). Field tetap di atas
+  /// tetap diisi seperti biasa, jadi pemakai lama (Contacts) tidak berubah.
+  final Map<String, Set<int>> checks;
+
   const ContactFilterResult({
+    this.checks = const {},
     required this.statusIds,
     required this.channelIds,
     required this.channelDetailIds,

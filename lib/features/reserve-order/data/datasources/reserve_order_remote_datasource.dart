@@ -5,8 +5,11 @@ import 'package:progress_group/core/utils/helpers/error_message.dart';
 import 'package:progress_group/features/reserve-order/data/models/cara_bayar_model.dart';
 import 'package:progress_group/features/reserve-order/data/models/create_reserve_order_result_model.dart';
 import 'package:progress_group/features/reserve-order/data/models/customer_options_model.dart';
+import 'package:progress_group/features/reserve-order/data/models/reserve_order_customer_data.dart';
 import 'package:progress_group/features/reserve-order/data/models/payment_type_model.dart';
+import 'package:progress_group/features/reserve-order/data/models/property_virtual_account_model.dart';
 import 'package:progress_group/features/reserve-order/data/models/reserve_order_detail_model.dart';
+import 'package:progress_group/features/reserve-order/data/models/reserve_order_filter_sales_model.dart';
 import 'package:progress_group/features/reserve-order/data/models/reserve_order_list_item_model.dart';
 import 'package:progress_group/features/reserve-order/data/models/reserve_status_model.dart';
 import 'package:progress_group/features/reserve-order/data/models/select_unit_model.dart';
@@ -20,6 +23,7 @@ import 'package:progress_group/features/reserve-order/domain/entities/update_res
 abstract class ReserveOrderRemoteDataSource {
   Future<List<ReserveStatusModel>> getReserveStatuses();
   Future<List<CaraBayarModel>> getCaraBayar();
+  Future<ReserveOrderFilterSalesModel> getFilterSales();
   Future<List<String>> getWorkCategory();
   Future<CustomerOptionsModel> getCustomerOptions();
   Future<List<PaymentTypeModel>> getPaymentTypes();
@@ -44,6 +48,9 @@ abstract class ReserveOrderRemoteDataSource {
     List<int>? generalManagerIds,
     List<int>? salesTeamIds,
     String? project,
+    List<int>? milestoneIds,
+    List<int>? approvalIds,
+    bool uniqueCustomer = false,
     int page,
     int perPage,
   });
@@ -77,6 +84,69 @@ abstract class ReserveOrderRemoteDataSource {
   Future<void> deleteReserveOrder(int reserveOrderId);
   Future<Map<String, dynamic>> ocrKtp(Uint8List imageBytes, {String? filename});
   Future<Map<String, dynamic>> checkKtp(String custKtp, {String? custName, int? contactId});
+
+  /// Lempar [VirtualAccountException] (membawa `error_code`) kalau gagal.
+  Future<PropertyVirtualAccountModel> getPropertyVirtualAccount({
+    required int townshipId,
+    required int companyId,
+    required int propertyId,
+  });
+}
+
+/// Gagal "Perbaiki Data Customer" yang membawa `error_code` body (mis. `KTP_LOCKED`) — [lockedFields]
+/// = `data.locked_fields` (key `customer[...]` yang ditolak). Dilempar hanya kalau body punya error_code.
+class ReserveOrderCustomerUpdateException implements Exception {
+  final String message;
+  final String? errorCode;
+  final List<String> lockedFields;
+
+  const ReserveOrderCustomerUpdateException(
+    this.message, {
+    this.errorCode,
+    this.lockedFields = const [],
+  });
+
+  @override
+  String toString() => message;
+}
+
+/// Nilai field sebagaimana dikirim ke server (bool → '1'/'0', sama dgn `customer[...]` di bawah).
+String? _wireValue(dynamic value) {
+  if (value == null) return null;
+  if (value is bool) return value ? '1' : '0';
+  return value.toString().trim();
+}
+
+/// RO sudah SP ([locked] = `ktp_locked_reason` terisi): buang field KTP/pekerjaan terkunci yang
+/// nilainya SAMA dgn data awal — kalau ikut terkirim, server menolak (`KTP_LOCKED`) walau yang
+/// diubah hanya NPWP. Field kosong (null) tetap dilewati seperti biasa.
+Map<String, dynamic> _withoutUnchangedLockedFields(
+  Map<String, dynamic> customer, {
+  required bool locked,
+  Map<String, dynamic>? original,
+}) {
+  if (!locked || original == null) return customer;
+  final out = Map<String, dynamic>.of(customer);
+  for (final key in kKtpLockedCustomerFields) {
+    if (!out.containsKey(key)) continue;
+    if (_wireValue(out[key]) == _wireValue(original[key])) out.remove(key);
+  }
+  return out;
+}
+
+List<String> _stringList(dynamic value) =>
+    value is List ? value.map((e) => e.toString()).toList() : const [];
+
+/// Gagal `GET /property/virtual-account` — [errorCode] = `error_code` body (`VA_NOT_FOUND`,
+/// `UNIT_NOT_FOUND`, `VALIDATION`, `AMBIGUOUS_UNIT`), null kalau gagal jaringan/timeout.
+class VirtualAccountException implements Exception {
+  final String message;
+  final String? errorCode;
+
+  const VirtualAccountException(this.message, {this.errorCode});
+
+  @override
+  String toString() => message;
 }
 
 class ReserveOrderRemoteDataSourceImpl implements ReserveOrderRemoteDataSource {
@@ -99,6 +169,24 @@ class ReserveOrderRemoteDataSourceImpl implements ReserveOrderRemoteDataSource {
       );
     } on DioException catch (e) {
       throw Exception(getErrorMessage(e, 'Failed to load reserve statuses'));
+    }
+  }
+
+  @override
+  Future<ReserveOrderFilterSalesModel> getFilterSales() async {
+    try {
+      final response = await dio.get('/reserve-order/filter-sales');
+
+      // Backend (ApiResponse::successResponse) memakai key `status`, bukan `success`.
+      if (response.data['status'] == true) {
+        return ReserveOrderFilterSalesModel.fromJson(
+          response.data['data'] as Map<String, dynamic>,
+        );
+      }
+
+      throw Exception(response.data['message'] ?? 'Gagal memuat pilihan');
+    } on DioException catch (e) {
+      throw Exception(getErrorMessage(e, 'Gagal memuat pilihan'));
     }
   }
 
@@ -235,6 +323,9 @@ class ReserveOrderRemoteDataSourceImpl implements ReserveOrderRemoteDataSource {
     List<int>? generalManagerIds,
     List<int>? salesTeamIds,
     String? project,
+    List<int>? milestoneIds,
+    List<int>? approvalIds,
+    bool uniqueCustomer = false,
     int page = 1,
     int perPage = 15,
   }) async {
@@ -264,6 +355,13 @@ class ReserveOrderRemoteDataSourceImpl implements ReserveOrderRemoteDataSource {
           if (salesTeamIds != null && salesTeamIds.isNotEmpty)
             'sales_team_id': salesTeamIds.join(','),
           if ((project ?? '').isNotEmpty) 'project': project,
+          // Filter "Progres Akad" (tahap setelah SP) & "Persetujuan" — pilihannya dari `filter_options` response list.
+          if (milestoneIds != null && milestoneIds.isNotEmpty)
+            'milestone_id': milestoneIds.join(','),
+          if (approvalIds != null && approvalIds.isNotEmpty)
+            'approval': approvalIds.join(','),
+          // Satu baris per customer (RO terbaru tiap customer_id di antara yang lolos filter).
+          if (uniqueCustomer) 'unique_customer': 1,
           'page': page,
           'per_page': perPage,
         },
@@ -314,7 +412,14 @@ class ReserveOrderRemoteDataSourceImpl implements ReserveOrderRemoteDataSource {
     try {
       final data = <String, dynamic>{};
 
-      params.customer?.forEach((key, value) {
+      final customer = params.customer == null
+          ? null
+          : _withoutUnchangedLockedFields(
+              params.customer!,
+              locked: params.ktpLocked,
+              original: params.originalCustomer,
+            );
+      customer?.forEach((key, value) {
         if (value == null) return;
         data['customer[$key]'] = value is bool
             ? (value ? '1' : '0')
@@ -357,6 +462,18 @@ class ReserveOrderRemoteDataSourceImpl implements ReserveOrderRemoteDataSource {
         response.data['message'] ?? 'Failed to update reserve order',
       );
     } on DioException catch (e) {
+      final body = e.response?.data;
+      // 422 `error_code` (mis. KTP_LOCKED): bawa `data.locked_fields` ke UI, jangan cuma pesannya.
+      if (body is Map && body['error_code'] != null) {
+        final payload = body['data'];
+        throw ReserveOrderCustomerUpdateException(
+          getErrorMessage(e, 'Failed to update reserve order'),
+          errorCode: body['error_code'].toString(),
+          lockedFields: _stringList(
+            payload is Map ? payload['locked_fields'] : null,
+          ),
+        );
+      }
       throw Exception(getErrorMessage(e, 'Failed to update reserve order'));
     }
   }
@@ -548,7 +665,12 @@ class ReserveOrderRemoteDataSourceImpl implements ReserveOrderRemoteDataSource {
       final data = <String, dynamic>{};
       String ymd(DateTime d) => d.toIso8601String().split('T').first;
 
-      params.customer.forEach((key, value) {
+      final customer = _withoutUnchangedLockedFields(
+        params.customer,
+        locked: params.ktpLocked,
+        original: params.originalCustomer,
+      );
+      customer.forEach((key, value) {
         if (value == null) return;
         data['customer[$key]'] = value is bool
             ? (value ? '1' : '0')
@@ -713,6 +835,48 @@ class ReserveOrderRemoteDataSourceImpl implements ReserveOrderRemoteDataSource {
       throw Exception(response.data['message'] ?? 'Failed to check KTP');
     } on DioException catch (e) {
       throw Exception(getErrorMessage(e, 'Failed to check KTP'));
+    }
+  }
+
+  /// `GET /property/virtual-account` — VA unit (dipakai baris "Virtual Account" di Review Create
+  /// Reserve Order). `company_id` WAJIB: satu township bisa punya >1 company dgn `property_id` sama
+  /// (tanpa itu backend balas 422 `AMBIGUOUS_UNIT`).
+  @override
+  Future<PropertyVirtualAccountModel> getPropertyVirtualAccount({
+    required int townshipId,
+    required int companyId,
+    required int propertyId,
+  }) async {
+    const fallback = 'Gagal memuat Virtual Account';
+    String? errorCodeOf(dynamic body) =>
+        body is Map ? body['error_code']?.toString() : null;
+
+    try {
+      final response = await dio.get(
+        '/property/virtual-account',
+        queryParameters: {
+          'township_id': townshipId,
+          'company_id': companyId,
+          'property_id': propertyId,
+        },
+      );
+
+      final body = response.data;
+      if (body is Map && body['status'] == true && body['data'] is Map) {
+        return PropertyVirtualAccountModel.fromJson(
+          Map<String, dynamic>.from(body['data'] as Map),
+        );
+      }
+
+      throw VirtualAccountException(
+        (body is Map ? body['message']?.toString() : null) ?? fallback,
+        errorCode: errorCodeOf(body),
+      );
+    } on DioException catch (e) {
+      throw VirtualAccountException(
+        getErrorMessage(e, fallback),
+        errorCode: errorCodeOf(e.response?.data),
+      );
     }
   }
 

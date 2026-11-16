@@ -67,6 +67,19 @@ class _EditCustomerReserveOrderPageState
   String? _caraBayarName;
   late final TextEditingController _caraBayarLainnyaCtrl;
 
+  /// `cara_bayar_locked_reason` detail — terisi kalau order sudah SP: Cara Pembayaran tampil terkunci
+  /// (tidak bisa dipilih) & TIDAK ikut terkirim saat Save; field lain tetap bisa diedit.
+  String? _caraBayarLockedReason;
+
+  /// `ktp_locked_reason` detail — terisi kalau order sudah SP: field KTP & pekerjaan
+  /// ([kKtpLockedCustomerFields]) tampil terkunci (gembok, tidak bisa diubah). Alasannya tampil
+  /// sekali sebagai banner di Data Pembeli. NPWP & field lain tetap bisa diedit.
+  String? _ktpLockedReason;
+
+  /// Key field yang DITOLAK server saat Save (`KTP_LOCKED` -> `data.locked_fields`) — ditandai merah
+  /// supaya user tahu field mana yang berubah. Dikosongkan setiap kali Save ulang.
+  Set<String> _rejectedFields = {};
+
   /// Isian kuesioner (null = detail tidak punya kuesioner) — ikut terkirim saat Save.
   ReserveQuestionnaireController? _questionnaire;
 
@@ -80,6 +93,13 @@ class _EditCustomerReserveOrderPageState
     if (questionnaire != null) {
       _questionnaire = ReserveQuestionnaireController(questionnaire);
     }
+    _caraBayarLockedReason = detail?.reserveOrderId == widget.reserveOrderId
+        ? detail?.caraBayarLockedReason
+        : null;
+    final ktpReason = detail?.reserveOrderId == widget.reserveOrderId
+        ? detail?.ktpLockedReason
+        : null;
+    _ktpLockedReason = (ktpReason ?? '').trim().isEmpty ? null : ktpReason;
     _values = Map<String, dynamic>.of(widget.customer.raw);
     _highlightedKey = widget.highlightKey;
     _caraBayarId = (_values['cara_bayar_id'] as num?)?.toInt();
@@ -149,6 +169,7 @@ class _EditCustomerReserveOrderPageState
     ),
   }) {
     final highlighted = key == _highlightedKey;
+    final rejected = _rejectedFields.contains(key);
     return Container(
       key: key == widget.highlightKey ? _keyFor(key) : null,
       padding: padding,
@@ -159,8 +180,10 @@ class _EditCustomerReserveOrderPageState
             : const Color(whiteColor),
         border: Border(
           bottom: BorderSide(
-            width: highlighted ? 2 : 1,
-            color: highlighted
+            width: highlighted || rejected ? 2 : 1,
+            color: rejected
+                ? const Color(redColor)
+                : highlighted
                 ? const Color(primaryColor)
                 : const Color(grey9Color),
           ),
@@ -169,6 +192,12 @@ class _EditCustomerReserveOrderPageState
       child: child,
     );
   }
+
+  /// Alasan kunci KTP untuk field [key] — null kalau field itu tidak terkunci.
+  String? _ktpLockFor(String key) =>
+      _ktpLockedReason != null && kKtpLockedCustomerFields.contains(key)
+      ? _ktpLockedReason
+      : null;
 
   @override
   Widget build(BuildContext context) {
@@ -314,6 +343,17 @@ class _EditCustomerReserveOrderPageState
   /// Field teks underline + label mengambang, gaya `ContactFormPage._buildField` — border cuma di
   /// bawah, label jadi hint saat kosong lalu mengambang ke atas begitu diisi/difokus.
   Widget _textField(ReserveCustomerFieldSpec f) {
+    final ktpLock = _ktpLockFor(f.key);
+    if (ktpLock != null) {
+      return _buildPickerField(
+        fieldKey: f.key,
+        label: f.label,
+        value: _c(f.key).text.trim(),
+        onTap: () {},
+        lockedReason: ktpLock,
+        showLockReason: false,
+      );
+    }
     final highlighted = f.key == _highlightedKey;
     final labelColor = highlighted
         ? const Color(primaryColor)
@@ -374,6 +414,8 @@ class _EditCustomerReserveOrderPageState
       fieldKey: f.key,
       label: f.label,
       value: current,
+      lockedReason: _ktpLockFor(f.key),
+      showLockReason: false,
       onTap: () => showOptionPickerSheet(
         context: context,
         title: f.label,
@@ -475,6 +517,8 @@ class _EditCustomerReserveOrderPageState
       value: value == null
           ? null
           : DateFormat('dd MMMM yyyy', 'id_ID').format(value),
+      lockedReason: _ktpLockFor(f.key),
+      showLockReason: false,
       onTap: () async {
         final now = DateTime.now();
         final picked = await showDatePicker(
@@ -499,6 +543,7 @@ class _EditCustomerReserveOrderPageState
   ) {
     final match = options.match(f.key, _values[f.key]);
     final isOther = _isOther(f.key, options);
+    final ktpLock = _ktpLockFor(f.key);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -508,6 +553,8 @@ class _EditCustomerReserveOrderPageState
           value: isOther
               ? options.other
               : match?.label ?? displayValueFor(f, _values, options: options),
+          lockedReason: ktpLock,
+          showLockReason: false,
           onTap: () => showOptionPickerSheet(
             context: context,
             title: f.label,
@@ -516,7 +563,7 @@ class _EditCustomerReserveOrderPageState
             onPicked: (o) => setState(() => _values[f.key] = o.value),
           ),
         ),
-        if (isOther) _otherField(f, options),
+        if (isOther) _otherField(f, options, readOnly: ktpLock != null),
       ],
     );
   }
@@ -532,7 +579,11 @@ class _EditCustomerReserveOrderPageState
   }
 
   /// Isian bebas pilihan "Lainnya" — awalnya isian lama (nilai tersimpan di luar daftar opsi).
-  Widget _otherField(ReserveCustomerFieldSpec f, CustomerOptionsEntity options) {
+  Widget _otherField(
+    ReserveCustomerFieldSpec f,
+    CustomerOptionsEntity options, {
+    bool readOnly = false,
+  }) {
     final controller = _otherTc.putIfAbsent(f.key, () {
       final match = options.match(f.key, _values[f.key]);
       return TextEditingController(
@@ -543,6 +594,7 @@ class _EditCustomerReserveOrderPageState
       '${f.key}_lainnya',
       TextField(
         controller: controller,
+        readOnly: readOnly,
         style: const TextStyle(
           fontSize: 12,
           fontWeight: FontWeight.w700,
@@ -586,6 +638,7 @@ class _EditCustomerReserveOrderPageState
   /// bukan pilihan teks tetap, karena yang dikirim balik ke backend adalah `cara_bayar_id`
   /// (kolom t_reserve_order), bukan namanya.
   Widget _caraBayarField(ReserveCustomerFieldSpec f) {
+    final lockedReason = _caraBayarLockedReason;
     return BlocBuilder<CaraBayarBloc, CaraBayarState>(
       builder: (context, state) => Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -594,17 +647,24 @@ class _EditCustomerReserveOrderPageState
             fieldKey: f.key,
             label: f.label,
             value: _caraBayarName,
-            onTap: () => _pickCaraBayar(state.items),
+            // Sudah SP → tidak bisa dipilih; tap = tampilkan alasannya.
+            onTap: lockedReason != null
+                ? () => showSnackbar(context, lockedReason, isError: true)
+                : () => _pickCaraBayar(state.items),
+            lockedReason: lockedReason,
           ),
           if (_caraBayarName == 'Lainnya')
             _fieldFrame(
               'cara_bayar_lainnya',
               TextField(
                 controller: _caraBayarLainnyaCtrl,
-                style: const TextStyle(
+                readOnly: lockedReason != null,
+                style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w700,
-                  color: Color(blackColor),
+                  color: Color(
+                    lockedReason != null ? grey4Color : blackColor,
+                  ),
                 ),
                 decoration: InputDecoration(
                   isDense: true,
@@ -697,12 +757,17 @@ class _EditCustomerReserveOrderPageState
   /// Field "pilihan" underline (tanggal/opsi/ya-tidak) — gaya `ContactFormPage._buildFieldDown`:
   /// label kecil di atas nilai kalau sudah terisi, atau label besar sebagai placeholder kalau
   /// masih kosong, + panah dropdown di kanan.
+  /// [lockedReason] terisi = field terkunci: nilai abu-abu, ikon gembok (bukan panah) + alasan di
+  /// bawahnya.
   Widget _buildPickerField({
     required String fieldKey,
     required String label,
     required String? value,
     required VoidCallback onTap,
+    String? lockedReason,
+    bool showLockReason = true,
   }) {
+    final locked = lockedReason != null;
     final highlighted = fieldKey == _highlightedKey;
     final labelColor = highlighted
         ? const Color(primaryColor)
@@ -711,7 +776,10 @@ class _EditCustomerReserveOrderPageState
     return _fieldFrame(
       fieldKey,
       InkWell(
-        onTap: onTap,
+        // Terkunci -> tap cuma menampilkan alasannya (tidak membuka pilihan).
+        onTap: lockedReason == null
+            ? onTap
+            : () => showSnackbar(context, lockedReason, isError: true),
         child: Row(
           children: [
             Expanded(
@@ -742,19 +810,40 @@ class _EditCustomerReserveOrderPageState
                           style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w700,
-                            color: highlighted
+                            color: locked
+                                ? const Color(grey4Color)
+                                : highlighted
                                 ? const Color(primaryColor)
                                 : const Color(blackColor),
                           ),
                         ),
+                  if (lockedReason != null && showLockReason) ...[
+                    const SizedBox(height: 3),
+                    Text(
+                      lockedReason,
+                      style: const TextStyle(
+                        fontSize: 10.5,
+                        color: Color(grey4Color),
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),
-            const Icon(
-              Icons.arrow_drop_down,
-              size: 28,
-              color: Color(grey4Color),
-            ),
+            locked
+                ? const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 6),
+                    child: Icon(
+                      Icons.lock_outline,
+                      size: 16,
+                      color: Color(grey4Color),
+                    ),
+                  )
+                : const Icon(
+                    Icons.arrow_drop_down,
+                    size: 28,
+                    color: Color(grey4Color),
+                  ),
           ],
         ),
       ),
@@ -765,28 +854,35 @@ class _EditCustomerReserveOrderPageState
 
   Future<void> _onSubmit() async {
     if (_c('cust_name').text.trim().isEmpty) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Nama lengkap wajib diisi')));
+      showSnackbar(context, 'Nama lengkap wajib diisi', isError: true);
       return;
     }
 
-    setState(() => _submitting = true);
+    setState(() {
+      _submitting = true;
+      _rejectedFields = {};
+    });
 
     FocusScope.of(context).unfocus();
-    final error = await context.read<ReserveOrderDetailCubit>().updateCustomer(
+    final failure = await context.read<ReserveOrderDetailCubit>().updateCustomer(
       widget.reserveOrderId,
       UpdateReserveOrderCustomerParams(
         customer: _buildRaw(),
         questioner: _questionnaire?.answers(),
+        originalCustomer: widget.customer.raw,
+        ktpLocked: _ktpLockedReason != null,
       ),
     );
 
     if (!mounted) return;
     setState(() => _submitting = false);
 
-    if (error != null) {
-      showSnackbar(context, error, isError: true);
+    if (failure != null) {
+      // Form TIDAK ditutup: user bisa memperbaiki atau membatalkan. Field yang ditolak ditandai merah.
+      if (failure.isKtpLocked) {
+        setState(() => _rejectedFields = failure.lockedFields.toSet());
+      }
+      showSnackbar(context, failure.message, isError: true);
       return;
     }
 
@@ -823,6 +919,15 @@ class _EditCustomerReserveOrderPageState
     raw['cara_bayar_id'] = _caraBayarId;
     final caraBayarLainnya = _caraBayarLainnyaCtrl.text.trim();
     raw['cara_bayar_lainnya'] = caraBayarLainnya.isEmpty ? null : caraBayarLainnya;
+    // Sudah SP → Cara Pembayaran dikunci: tidak dikirim sama sekali (server juga menolak kalau berubah).
+    if (_caraBayarLockedReason != null) {
+      raw
+        ..remove('cara_bayar_id')
+        ..remove('cara_bayar_lainnya');
+    }
+    // Cara Bayar Realisasi hanya untuk tampil di Detail (tidak bisa diedit dari app) → jangan
+    // ikut dikirim. Server juga mengabaikannya; ini sekadar kerapian payload.
+    raw.remove('cara_bayar_realisasi');
     return raw;
   }
 }
