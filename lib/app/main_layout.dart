@@ -484,7 +484,7 @@ class _MainLayoutState extends State<MainLayout> {
                 if (PermissionsHelper.canAccessAttendance)
                   _buildDrawerItem(context, icNavAttendance, 'Attendance', path: '/attandance', index: 6),
                 if (PermissionsHelper.canAccessReserveOrder)
-                  _buildDrawerItem(context, '', 'Transaction', path: '/reserve-order', index: 10, iconData: Icons.local_offer),
+                  _buildDrawerItem(context, '', 'Transactions', path: '/reserve-order', index: 10, iconData: Icons.local_offer),
                 const Spacer(),
 
                 const Spacer(),
