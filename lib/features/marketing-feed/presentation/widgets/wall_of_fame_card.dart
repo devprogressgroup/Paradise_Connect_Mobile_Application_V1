@@ -97,7 +97,8 @@ class WallOfFameCard extends StatelessWidget {
                 ),
                 child: ClipOval(
                   child: OnScreenBuilder(
-                    builder: (context, visible) => _buildChampionMedia(entry, visible),
+                    builder: (context, visible) =>
+                        _buildChampionMedia(entry, visible),
                   ),
                 ),
               ),
@@ -193,7 +194,8 @@ class WallOfFameCard extends StatelessWidget {
       fit: BoxFit.cover,
       width: double.infinity,
       height: double.infinity,
-      loadingBuilder: (_, child, progress) => progress == null ? child : photoOrInitials,
+      loadingBuilder: (_, child, progress) =>
+          progress == null ? child : photoOrInitials,
       errorBuilder: (_, __, ___) => photoOrInitials,
     );
   }
@@ -236,7 +238,10 @@ class WallOfFameCard extends StatelessWidget {
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     color: Color(rank == 2 ? greyShade500 : feedBronzeColor),
-                    border: Border.all(color: const Color(whiteColor), width: 2),
+                    border: Border.all(
+                      color: const Color(whiteColor),
+                      width: 2,
+                    ),
                   ),
                   child: Text(
                     '$rank',
@@ -257,12 +262,18 @@ class WallOfFameCard extends StatelessWidget {
               children: [
                 Text(
                   _title(entry),
-                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
                 if (entry.highlight != null && entry.highlight!.isNotEmpty)
                   Text(
                     entry.highlight!,
-                    style: const TextStyle(fontSize: 12, color: Color(grey2Color)),
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: Color(grey2Color),
+                    ),
                   ),
               ],
             ),

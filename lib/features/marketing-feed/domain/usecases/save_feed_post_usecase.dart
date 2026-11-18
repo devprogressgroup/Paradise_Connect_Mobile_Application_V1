@@ -10,7 +10,9 @@ class SaveFeedPostUseCase {
 
   SaveFeedPostUseCase(this.repository);
 
-  Future<Either<MarketingFeedException, FeedPostEntity>> call(SaveFeedPostParams params) async {
+  Future<Either<MarketingFeedException, FeedPostEntity>> call(
+    SaveFeedPostParams params,
+  ) async {
     return await repository.savePost(params);
   }
 }

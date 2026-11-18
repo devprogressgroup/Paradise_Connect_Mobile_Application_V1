@@ -26,9 +26,13 @@ class FeedCommentModel extends FeedCommentEntity {
     return FeedCommentModel(
       id: json['id'] as int,
       parentId: json['parent_id'] as int?,
-      author: FeedAuthorModel.fromJson(json['author'] as Map<String, dynamic>? ?? const {}),
+      author: FeedAuthorModel.fromJson(
+        json['author'] as Map<String, dynamic>? ?? const {},
+      ),
       text: text,
-      createdAt: DateHelper.parseServerTime(json['created_at'] as String?) ?? AppTime.now(),
+      createdAt:
+          DateHelper.parseServerTime(json['created_at'] as String?) ??
+          AppTime.now(),
       likeCount: (json['like_count'] as num?)?.toInt() ?? 0,
       isLiked: isLiked,
       isMine: json['is_mine'] == true,
@@ -39,7 +43,10 @@ class FeedCommentModel extends FeedCommentEntity {
   static FeedCommentPageEntity pageFromJson(Map<String, dynamic> json) {
     return FeedCommentPageEntity(
       items: (json['items'] as List<dynamic>? ?? const [])
-          .map((e) => FeedCommentModel.fromJson(Map<String, dynamic>.from(e as Map)))
+          .map(
+            (e) =>
+                FeedCommentModel.fromJson(Map<String, dynamic>.from(e as Map)),
+          )
           .toList(),
       currentPage: (json['current_page'] as num?)?.toInt() ?? 1,
       hasMore: json['has_more'] == true,

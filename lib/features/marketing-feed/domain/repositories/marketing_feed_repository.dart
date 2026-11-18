@@ -1,3 +1,4 @@
+import 'package:progress_group/features/marketing-feed/domain/entities/my_profile_entity.dart';
 import 'package:dartz/dartz.dart';
 import 'package:progress_group/core/network/marketing_feed_exception.dart';
 import 'package:progress_group/features/marketing-feed/data/datasources/marketing_feed_remote_datasource.dart';
@@ -13,20 +14,49 @@ abstract class MarketingFeedRepository {
   Future<Either<String, FeedPostEntity>> getFeedPost(int postId);
   Future<Either<String, List<WallOfFameLevelEntity>>> getWallOfFame();
   Future<Either<String, PersonalFunnelEntity>> getPersonalFunnel();
-  Future<Either<String, PostReactionResult>> reactToPost(int postId, FeedReaction reaction);
-  Future<Either<String, FeedPollEntity>> votePoll(int postId, List<int> optionIndexes);
-  Future<Either<String, FeedCommentPageEntity>> getComments(int postId, {int page, int perPage});
-  Future<Either<String, FeedCommentEntity>> addComment(int postId, String text, {int? parentId});
-  Future<Either<String, CommentLikeResult>> toggleCommentLike(int commentId, {required bool currentlyLiked});
-  Future<Either<MarketingFeedException, FeedPostEntity>> shareMoment(ShareFeedMomentParams params);
-  Future<Either<String, FeedPageEntity>> getMySubmissions({int page, int perPage, String? status});
+  Future<Either<String, PostReactionResult>> reactToPost(
+    int postId,
+    FeedReaction reaction,
+  );
+  Future<Either<String, FeedPollEntity>> votePoll(
+    int postId,
+    List<int> optionIndexes,
+  );
+  Future<Either<String, FeedCommentPageEntity>> getComments(
+    int postId, {
+    int page,
+    int perPage,
+  });
+  Future<Either<String, FeedCommentEntity>> addComment(
+    int postId,
+    String text, {
+    int? parentId,
+  });
+  Future<Either<String, CommentLikeResult>> toggleCommentLike(
+    int commentId, {
+    required bool currentlyLiked,
+  });
+  Future<Either<MarketingFeedException, FeedPostEntity>> shareMoment(
+    ShareFeedMomentParams params,
+  );
+  Future<Either<String, FeedPageEntity>> getMySubmissions({
+    int page,
+    int perPage,
+    String? status,
+  });
+  Future<Either<String, MyProfileEntity>> getMyProfile({int? userId});
 
-  Future<Either<String, void>> setProfilePin(int postId, {required bool pinned});
+  Future<Either<String, void>> setProfilePin(
+    int postId, {
+    required bool pinned,
+  });
 
   Future<Either<String, List<FameProgramEntity>>> getFamePrograms();
 
   // Moderator
   Future<Either<String, List<FeedPostEntity>>> getModeratorPosts();
-  Future<Either<MarketingFeedException, FeedPostEntity>> savePost(SaveFeedPostParams params);
+  Future<Either<MarketingFeedException, FeedPostEntity>> savePost(
+    SaveFeedPostParams params,
+  );
   Future<Either<String, void>> moderatorAction(int postId, String action);
 }

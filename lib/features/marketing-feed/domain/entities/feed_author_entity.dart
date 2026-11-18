@@ -21,8 +21,17 @@ class FeedAuthorEntity extends Equatable {
     this.isOfficial = false,
   });
 
-  bool get isModerator => isOfficial || (badge?.toLowerCase().contains('moderator') ?? false);
+  bool get isModerator =>
+      isOfficial || (badge?.toLowerCase().contains('moderator') ?? false);
 
   @override
-  List<Object?> get props => [id, name, initials, badge, subtitle, photoUrl, isOfficial];
+  List<Object?> get props => [
+    id,
+    name,
+    initials,
+    badge,
+    subtitle,
+    photoUrl,
+    isOfficial,
+  ];
 }

@@ -8,7 +8,10 @@ class ReactFeedPostUseCase {
 
   ReactFeedPostUseCase(this.repository);
 
-  Future<Either<String, PostReactionResult>> call(int postId, FeedReaction reaction) async {
+  Future<Either<String, PostReactionResult>> call(
+    int postId,
+    FeedReaction reaction,
+  ) async {
     return await repository.reactToPost(postId, reaction);
   }
 }

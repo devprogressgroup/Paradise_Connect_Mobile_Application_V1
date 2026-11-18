@@ -212,6 +212,8 @@ import 'features/marketing-feed/domain/usecases/add_feed_comment_usecase.dart';
 import 'features/marketing-feed/domain/usecases/delete_feed_post_usecase.dart';
 import 'features/marketing-feed/domain/usecases/get_feed_comments_usecase.dart';
 import 'features/marketing-feed/domain/usecases/get_feed_drafts_usecase.dart';
+import 'features/marketing-feed/domain/usecases/get_my_profile_usecase.dart';
+import 'features/marketing-feed/presentation/state/my_profile/my_profile_cubit.dart';
 import 'features/marketing-feed/domain/usecases/get_feed_post_usecase.dart';
 import 'features/marketing-feed/domain/usecases/get_feed_posts_usecase.dart';
 import 'features/marketing-feed/domain/usecases/get_my_submissions_usecase.dart';
@@ -285,9 +287,12 @@ void main() async {
   // cuma bump settingsVersion kalau isinya memang berubah.
   try {
     final dio = DioClient(AuthLocalDataSourceImpl(prefs)).dio;
-    SettingsRemoteDataSource(dio).getSettings().then((settings) {
-      if (settings.isNotEmpty) ApiConstants.applySettings(settings);
-    }).catchError((_) {});
+    SettingsRemoteDataSource(dio)
+        .getSettings()
+        .then((settings) {
+          if (settings.isNotEmpty) ApiConstants.applySettings(settings);
+        })
+        .catchError((_) {});
     AnalyticsService.refreshEnabledEvents(dio).catchError((_) {});
   } catch (_) {}
 
@@ -462,15 +467,21 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     final logoutUseCase = LogoutUseCase(repository);
     final getProfileUseCase = GetProfileUseCase(repository);
     final getPermissionsUseCase = GetPermissionsUseCase(repository);
-    final getImpersonatableUsersUseCase = GetImpersonatableUsersUseCase(repository);
+    final getImpersonatableUsersUseCase = GetImpersonatableUsersUseCase(
+      repository,
+    );
     final impersonateUseCase = ImpersonateUseCase(repository);
     final stopImpersonationUseCase = StopImpersonationUseCase(repository);
 
-    final inboxRemoteDataSource = InboxContactRemoteDataSourceImpl(dioClient.dio);
-  
+    final inboxRemoteDataSource = InboxContactRemoteDataSourceImpl(
+      dioClient.dio,
+    );
+
     final inboxRepository = InboxContactRepositoryImpl(inboxRemoteDataSource);
     final getInboxContactsUsecase = GetInboxContactsUsecase(inboxRepository);
-    final getWhatsappDevicesUsecase = GetWhatsappDevicesUsecase(inboxRepository,);
+    final getWhatsappDevicesUsecase = GetWhatsappDevicesUsecase(
+      inboxRepository,
+    );
     final getQrSessionUsecase = GetQrSessionUsecase(inboxRepository);
     final requestPairCodeUsecase = RequestPairCodeUsecase(inboxRepository);
     final messageRemoteDataSource = MessageRemoteDataSourceImpl(dioClient.dio);
@@ -480,122 +491,249 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     final reportRemoteDataSource = ReportRemoteDataSourceImpl(dioClient.dio);
     final reportRepository = ReportRepositoryImpl(reportRemoteDataSource);
     final getVolumeReportUseCase = GetVolumeReportUseCase(reportRepository);
-    final getProspectStatusSummaryUseCase = GetProspectStatusSummaryUseCase(reportRepository,);
-    final getSalesChannelsSummaryUseCase = GetSalesChannelsSummaryUseCase(reportRepository,);
+    final getProspectStatusSummaryUseCase = GetProspectStatusSummaryUseCase(
+      reportRepository,
+    );
+    final getSalesChannelsSummaryUseCase = GetSalesChannelsSummaryUseCase(
+      reportRepository,
+    );
 
     final contactRemoteDataSource = ContactRemoteDataSourceImpl(dioClient.dio);
     final contactRepository = ContactRepositoryImpl(contactRemoteDataSource);
 
-    final pipelineRemoteDataSource = PipelineRemoteDataSourceImpl(dioClient.dio,);
-    final globalNotificationRemoteDataSource =GlobalNotificationRemoteDataSourceImpl(dioClient.dio);
+    final pipelineRemoteDataSource = PipelineRemoteDataSourceImpl(
+      dioClient.dio,
+    );
+    final globalNotificationRemoteDataSource =
+        GlobalNotificationRemoteDataSourceImpl(dioClient.dio);
     final getContactsUseCase = GetContactsUseCase(contactRepository);
     final getContactDetailUseCase = GetContactDetailUseCase(contactRepository);
-    final getAllContactsForDuplicateCheckUseCase =GetAllContactsForDuplicateCheckUseCase(contactRepository);
-    final checkDuplicateContactUseCase = CheckDuplicateContactUseCase(contactRepository,);
-    final getProspectStatusesUseCase = GetProspectStatusesUseCase(contactRepository,);
-    final getContactFormProspectStatusesUseCase =GetContactFormProspectStatusesUseCase(contactRepository);
+    final getAllContactsForDuplicateCheckUseCase =
+        GetAllContactsForDuplicateCheckUseCase(contactRepository);
+    final checkDuplicateContactUseCase = CheckDuplicateContactUseCase(
+      contactRepository,
+    );
+    final getProspectStatusesUseCase = GetProspectStatusesUseCase(
+      contactRepository,
+    );
+    final getContactFormProspectStatusesUseCase =
+        GetContactFormProspectStatusesUseCase(contactRepository);
     final getActivitiesUseCase = GetActivitiesUseCase(contactRepository);
     final createActivityUseCase = CreateActivityUseCase(contactRepository);
     final postStatusFollowUseCase = PostStatusFollowUseCase(contactRepository);
     final createContactUseCase = CreateContactUseCase(contactRepository);
     final updateContactUseCase = UpdateContactUseCase(contactRepository);
     final deleteContactUseCase = DeleteContactUseCase(contactRepository);
-    final getContactPropertiesUseCase = GetContactPropertiesUseCase(contactRepository,);
-    final getAttachmentTypesUseCase = GetAttachmentTypesUseCase(contactRepository,);
+    final getContactPropertiesUseCase = GetContactPropertiesUseCase(
+      contactRepository,
+    );
+    final getAttachmentTypesUseCase = GetAttachmentTypesUseCase(
+      contactRepository,
+    );
     final uploadAttachmentUseCase = UploadAttachmentUseCase(contactRepository);
     final getAttachmentsUseCase = GetAttachments(contactRepository);
     final deleteAttachmentUseCase = DeleteAttachmentUseCase(contactRepository);
     final updateAttachmentUseCase = UpdateAttachmentUseCase(contactRepository);
-    final createActivityVisitUseCase = CreateActivityVisitUseCase(contactRepository,);
-    final getActivityProspectStatusUseCase = GetActivityProspectStatusUseCase(contactRepository,);
-    final getWhatsappActivityUseCase = GetWhatsappUnreadSummaryUseCase(contactRepository,);
+    final createActivityVisitUseCase = CreateActivityVisitUseCase(
+      contactRepository,
+    );
+    final getActivityProspectStatusUseCase = GetActivityProspectStatusUseCase(
+      contactRepository,
+    );
+    final getWhatsappActivityUseCase = GetWhatsappUnreadSummaryUseCase(
+      contactRepository,
+    );
     final getInfoSourcesUseCase = GetInfoSourcesUseCase(contactRepository);
-    final getSalesChannelDetailsUseCase = GetSalesChannelDetailsUseCase(contactRepository,);
+    final getSalesChannelDetailsUseCase = GetSalesChannelDetailsUseCase(
+      contactRepository,
+    );
     final getSalesOwnersUseCase = GetSalesOwnersUseCase(contactRepository);
-    final getSalesExecutivesUseCase = GetSalesExecutivesUseCase(contactRepository,);
-    final getSalesSupervisorsUseCase = GetSalesSupervisorsUseCase(contactRepository,);
+    final getSalesExecutivesUseCase = GetSalesExecutivesUseCase(
+      contactRepository,
+    );
+    final getSalesSupervisorsUseCase = GetSalesSupervisorsUseCase(
+      contactRepository,
+    );
     final getSalesManagersUseCase = GetSalesManagersUseCase(contactRepository);
-    final getSalesGeneralManagersUseCase = GetSalesGeneralManagersUseCase(contactRepository,);
-    final getSalesTeamsPaginatedUseCase = GetSalesTeamsPaginatedUseCase(contactRepository,);
+    final getSalesGeneralManagersUseCase = GetSalesGeneralManagersUseCase(
+      contactRepository,
+    );
+    final getSalesTeamsPaginatedUseCase = GetSalesTeamsPaginatedUseCase(
+      contactRepository,
+    );
     final getLostReasonsUseCase = GetLostReasonsUseCase(contactRepository);
     final getProductTypesUseCase = GetProductTypesUseCase(contactRepository);
     final getPropertyUnitsUseCase = GetPropertyUnitsUseCase(contactRepository);
-    final getPropertyCommercialUnitsUseCase = GetPropertyCommercialUnitsUseCase(contactRepository,);
+    final getPropertyCommercialUnitsUseCase = GetPropertyCommercialUnitsUseCase(
+      contactRepository,
+    );
     final getUnitHierarchyUseCase = GetUnitHierarchyUseCase(contactRepository);
     final getUnitLotsUseCase = GetUnitLotsUseCase(contactRepository);
 
-    final reserveOrderRemoteDataSource = ReserveOrderRemoteDataSourceImpl(dioClient.dio,);
-    final reserveOrderRepository = ReserveOrderRepositoryImpl(reserveOrderRemoteDataSource,);
-    final getReserveStatusesUseCase = GetReserveStatusesUseCase(reserveOrderRepository,);
+    final reserveOrderRemoteDataSource = ReserveOrderRemoteDataSourceImpl(
+      dioClient.dio,
+    );
+    final reserveOrderRepository = ReserveOrderRepositoryImpl(
+      reserveOrderRemoteDataSource,
+    );
+    final getReserveStatusesUseCase = GetReserveStatusesUseCase(
+      reserveOrderRepository,
+    );
     final getCaraBayarUseCase = GetCaraBayarUseCase(reserveOrderRepository);
-    final getWorkCategoryUseCase = GetWorkCategoryUseCase(reserveOrderRepository,);
-    final getCustomerOptionsUseCase = GetCustomerOptionsUseCase(reserveOrderRepository);
+    final getWorkCategoryUseCase = GetWorkCategoryUseCase(
+      reserveOrderRepository,
+    );
+    final getCustomerOptionsUseCase = GetCustomerOptionsUseCase(
+      reserveOrderRepository,
+    );
     final getSelectUnitUseCase = GetSelectUnitUseCase(reserveOrderRepository);
-    final getPaymentTypesUseCase = GetPaymentTypesUseCase(reserveOrderRepository,);
-    final createReserveOrderUseCase = CreateReserveOrderUseCase(reserveOrderRepository);
+    final getPaymentTypesUseCase = GetPaymentTypesUseCase(
+      reserveOrderRepository,
+    );
+    final createReserveOrderUseCase = CreateReserveOrderUseCase(
+      reserveOrderRepository,
+    );
     final ocrKtpUseCase = OcrKtpUseCase(reserveOrderRepository);
     final checkKtpUseCase = CheckKtpUseCase(reserveOrderRepository);
-    final getPropertyVirtualAccountUseCase = GetPropertyVirtualAccountUseCase(reserveOrderRepository);
-    final getReserveOrderListUseCase = GetReserveOrderListUseCase(reserveOrderRepository,);
-    final getReserveOrderFilterSalesUseCase = GetReserveOrderFilterSalesUseCase(reserveOrderRepository);
-    final getReserveOrderDetailUseCase = GetReserveOrderDetailUseCase(reserveOrderRepository,);
-    final updateReserveOrderCustomerUseCase = UpdateReserveOrderCustomerUseCase(reserveOrderRepository,);
-    final topupReserveOrderUseCase = TopupReserveOrderUseCase(reserveOrderRepository);
-    final sendReserveOrderMessageUseCase = SendReserveOrderMessageUseCase(reserveOrderRepository,);
-    final editReserveOrderUseCase = EditReserveOrderUseCase(reserveOrderRepository);
-    final changeReserveOrderUnitUseCase = ChangeReserveOrderUnitUseCase(reserveOrderRepository);
-    final resubmitReserveOrderUseCase = ResubmitReserveOrderUseCase(reserveOrderRepository);
-    final deleteReserveOrderUseCase = DeleteReserveOrderUseCase(reserveOrderRepository);
+    final getPropertyVirtualAccountUseCase = GetPropertyVirtualAccountUseCase(
+      reserveOrderRepository,
+    );
+    final getReserveOrderListUseCase = GetReserveOrderListUseCase(
+      reserveOrderRepository,
+    );
+    final getReserveOrderFilterSalesUseCase = GetReserveOrderFilterSalesUseCase(
+      reserveOrderRepository,
+    );
+    final getReserveOrderDetailUseCase = GetReserveOrderDetailUseCase(
+      reserveOrderRepository,
+    );
+    final updateReserveOrderCustomerUseCase = UpdateReserveOrderCustomerUseCase(
+      reserveOrderRepository,
+    );
+    final topupReserveOrderUseCase = TopupReserveOrderUseCase(
+      reserveOrderRepository,
+    );
+    final sendReserveOrderMessageUseCase = SendReserveOrderMessageUseCase(
+      reserveOrderRepository,
+    );
+    final editReserveOrderUseCase = EditReserveOrderUseCase(
+      reserveOrderRepository,
+    );
+    final changeReserveOrderUnitUseCase = ChangeReserveOrderUnitUseCase(
+      reserveOrderRepository,
+    );
+    final resubmitReserveOrderUseCase = ResubmitReserveOrderUseCase(
+      reserveOrderRepository,
+    );
+    final deleteReserveOrderUseCase = DeleteReserveOrderUseCase(
+      reserveOrderRepository,
+    );
 
-    final siteplanRemoteDataSource = SiteplanRemoteDataSourceImpl(dioClient.dio,);
-    final siteplanRepository = SitePlanRepositoryImpl(siteplanRemoteDataSource,localDataSource,);
+    final siteplanRemoteDataSource = SiteplanRemoteDataSourceImpl(
+      dioClient.dio,
+    );
+    final siteplanRepository = SitePlanRepositoryImpl(
+      siteplanRemoteDataSource,
+      localDataSource,
+    );
 
     final landingPageRemoteDataSource = LandingPageRemoteDataSourceImpl();
-    final landingPageRepository = LandingPageRepositoryImpl(landingPageRemoteDataSource,);
-    final getLandingPageUrlUseCase = GetLandingPageUrlUseCase(landingPageRepository,);
+    final landingPageRepository = LandingPageRepositoryImpl(
+      landingPageRemoteDataSource,
+    );
+    final getLandingPageUrlUseCase = GetLandingPageUrlUseCase(
+      landingPageRepository,
+    );
 
-    final salesKitRemoteDataSource = SalesKitRemoteDataSourceImpl(dioClient.dio,);
+    final salesKitRemoteDataSource = SalesKitRemoteDataSourceImpl(
+      dioClient.dio,
+    );
     final salesKitRepository = SalesKitRepositoryImpl(salesKitRemoteDataSource);
     final getTownshipsUseCase = GetTownshipsUseCase(salesKitRepository);
-    final getTownshipsSalesKitUseCase = GetTownshipsSalesKitUseCase(salesKitRepository,);
+    final getTownshipsSalesKitUseCase = GetTownshipsSalesKitUseCase(
+      salesKitRepository,
+    );
     final getClustersUseCase = GetClustersUseCase(salesKitRepository);
     final getCommercialsUseCase = GetCommercialsUseCase(salesKitRepository);
     final getClusterMediaUseCase = GetClusterMediaUseCase(salesKitRepository);
     final shareCaptionUseCase = ShareCaptionUseCase(salesKitRepository);
 
-    final attendanceRemoteDataSource = AttendanceRemoteDataSourceImpl(dioClient.dio,);
-    final attendanceRepository = AttendanceRepositoryImpl(attendanceRemoteDataSource,);
+    final attendanceRemoteDataSource = AttendanceRemoteDataSourceImpl(
+      dioClient.dio,
+    );
+    final attendanceRepository = AttendanceRepositoryImpl(
+      attendanceRemoteDataSource,
+    );
     final getAttendanceUseCase = GetAttendanceUseCase(attendanceRepository);
-    final getTodayAttendanceUseCase = GetTodayAttendanceUseCase(attendanceRepository,);
+    final getTodayAttendanceUseCase = GetTodayAttendanceUseCase(
+      attendanceRepository,
+    );
     final getLocationsUseCase = GetLocationsUseCase(attendanceRepository);
-    final getOfficeLocationsUseCase = GetOfficeLocationsUseCase(attendanceRepository,);
-    final getAllOfficeLocationsUseCase = GetAllOfficeLocationsUseCase(attendanceRepository,);
-    final submitAttendanceUseCase = SubmitAttendanceUseCase(attendanceRepository,);
-    final submitAttendanceActivityUseCase = SubmitAttendanceActivityUseCase(attendanceRepository,);
-    final getAttendanceActivityUseCase = GetAttendanceActivityUseCase(attendanceRepository,);
+    final getOfficeLocationsUseCase = GetOfficeLocationsUseCase(
+      attendanceRepository,
+    );
+    final getAllOfficeLocationsUseCase = GetAllOfficeLocationsUseCase(
+      attendanceRepository,
+    );
+    final submitAttendanceUseCase = SubmitAttendanceUseCase(
+      attendanceRepository,
+    );
+    final submitAttendanceActivityUseCase = SubmitAttendanceActivityUseCase(
+      attendanceRepository,
+    );
+    final getAttendanceActivityUseCase = GetAttendanceActivityUseCase(
+      attendanceRepository,
+    );
     final validasiCheckInUseCase = ValidasiCheckInUseCase(attendanceRepository);
-    final getAttendanceApprovalTodayUseCase = GetAttendanceApprovalTodayUseCase(attendanceRepository,);
-    final postAttendanceApprovalUseCase = PostAttendanceApprovalUseCase(attendanceRepository,);
+    final getAttendanceApprovalTodayUseCase = GetAttendanceApprovalTodayUseCase(
+      attendanceRepository,
+    );
+    final postAttendanceApprovalUseCase = PostAttendanceApprovalUseCase(
+      attendanceRepository,
+    );
 
-    final marketingFeedRemoteDataSource = MarketingFeedRemoteDataSourceImpl(dioClient.dio);
-    final marketingFeedRepository = MarketingFeedRepositoryImpl(marketingFeedRemoteDataSource);
+    final marketingFeedRemoteDataSource = MarketingFeedRemoteDataSourceImpl(
+      dioClient.dio,
+    );
+    final marketingFeedRepository = MarketingFeedRepositoryImpl(
+      marketingFeedRemoteDataSource,
+    );
     final getFeedPostsUseCase = GetFeedPostsUseCase(marketingFeedRepository);
     final getFeedPostUseCase = GetFeedPostUseCase(marketingFeedRepository);
-    final getPersonalFunnelUseCase = GetPersonalFunnelUseCase(marketingFeedRepository);
+    final getPersonalFunnelUseCase = GetPersonalFunnelUseCase(
+      marketingFeedRepository,
+    );
     final getWallOfFameUseCase = GetWallOfFameUseCase(marketingFeedRepository);
     final reactFeedPostUseCase = ReactFeedPostUseCase(marketingFeedRepository);
     final voteFeedPollUseCase = VoteFeedPollUseCase(marketingFeedRepository);
-    final getFeedCommentsUseCase = GetFeedCommentsUseCase(marketingFeedRepository);
-    final addFeedCommentUseCase = AddFeedCommentUseCase(marketingFeedRepository);
-    final toggleFeedCommentLikeUseCase = ToggleFeedCommentLikeUseCase(marketingFeedRepository);
-    final shareFeedMomentUseCase = ShareFeedMomentUseCase(marketingFeedRepository);
-    final getMySubmissionsUseCase = GetMySubmissionsUseCase(marketingFeedRepository);
+    final getFeedCommentsUseCase = GetFeedCommentsUseCase(
+      marketingFeedRepository,
+    );
+    final addFeedCommentUseCase = AddFeedCommentUseCase(
+      marketingFeedRepository,
+    );
+    final toggleFeedCommentLikeUseCase = ToggleFeedCommentLikeUseCase(
+      marketingFeedRepository,
+    );
+    final shareFeedMomentUseCase = ShareFeedMomentUseCase(
+      marketingFeedRepository,
+    );
+    final getMySubmissionsUseCase = GetMySubmissionsUseCase(
+      marketingFeedRepository,
+    );
     final setProfilePinUseCase = SetProfilePinUseCase(marketingFeedRepository);
-    final getFameProgramsUseCase = GetFameProgramsUseCase(marketingFeedRepository);
+    final getFameProgramsUseCase = GetFameProgramsUseCase(
+      marketingFeedRepository,
+    );
     final saveFeedPostUseCase = SaveFeedPostUseCase(marketingFeedRepository);
     final getFeedDraftsUseCase = GetFeedDraftsUseCase(marketingFeedRepository);
-    final publishFeedPostNowUseCase = PublishFeedPostNowUseCase(marketingFeedRepository);
-    final deleteFeedPostUseCase = DeleteFeedPostUseCase(marketingFeedRepository);
+    final publishFeedPostNowUseCase = PublishFeedPostNowUseCase(
+      marketingFeedRepository,
+    );
+    final deleteFeedPostUseCase = DeleteFeedPostUseCase(
+      marketingFeedRepository,
+    );
+    final getMyProfileUseCase = GetMyProfileUseCase(marketingFeedRepository);
 
     return MaterialApp.router(
       debugShowCheckedModeBanner: false,
@@ -743,7 +881,8 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
                   getLocationsUseCase: getLocationsUseCase,
                   getOfficeLocationsUseCase: getOfficeLocationsUseCase,
                   submitAttendanceUseCase: submitAttendanceUseCase,
-                  submitAttendanceActivityUseCase:submitAttendanceActivityUseCase,
+                  submitAttendanceActivityUseCase:
+                      submitAttendanceActivityUseCase,
                 ),
               ),
               BlocProvider(
@@ -813,28 +952,35 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
                 ),
               ),
               BlocProvider(
-                create: (_) =>
-                    CreateReserveOrderCubit(createReserveOrderUseCase, ocrKtpUseCase, checkKtpUseCase),
+                create: (_) => CreateReserveOrderCubit(
+                  createReserveOrderUseCase,
+                  ocrKtpUseCase,
+                  checkKtpUseCase,
+                ),
               ),
               // VA unit (GET /property/virtual-account) — dipakai juga detail unit Site Plan.
               RepositoryProvider.value(value: getPropertyVirtualAccountUseCase),
               BlocProvider(
                 create: (_) => ReserveVirtualAccountCubit(
-                  getPropertyVirtualAccountUseCase: getPropertyVirtualAccountUseCase,
+                  getPropertyVirtualAccountUseCase:
+                      getPropertyVirtualAccountUseCase,
                 ),
               ),
               BlocProvider(
                 create: (_) => ReserveOrderListCubit(
                   getReserveOrderListUseCase: getReserveOrderListUseCase,
-                  getReserveOrderFilterSalesUseCase: getReserveOrderFilterSalesUseCase,
+                  getReserveOrderFilterSalesUseCase:
+                      getReserveOrderFilterSalesUseCase,
                 ),
               ),
               BlocProvider(
                 create: (_) => ReserveOrderDetailCubit(
                   getReserveOrderDetailUseCase: getReserveOrderDetailUseCase,
-                  updateReserveOrderCustomerUseCase:updateReserveOrderCustomerUseCase,
+                  updateReserveOrderCustomerUseCase:
+                      updateReserveOrderCustomerUseCase,
                   topupReserveOrderUseCase: topupReserveOrderUseCase,
-                  sendReserveOrderMessageUseCase:sendReserveOrderMessageUseCase,
+                  sendReserveOrderMessageUseCase:
+                      sendReserveOrderMessageUseCase,
                   editReserveOrderUseCase: editReserveOrderUseCase,
                   changeReserveOrderUnitUseCase: changeReserveOrderUnitUseCase,
                   resubmitReserveOrderUseCase: resubmitReserveOrderUseCase,
@@ -848,7 +994,8 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
                   getSalesExecutivesUseCase: getSalesExecutivesUseCase,
                   getSalesSupervisorsUseCase: getSalesSupervisorsUseCase,
                   getSalesManagersUseCase: getSalesManagersUseCase,
-                  getSalesGeneralManagersUseCase: getSalesGeneralManagersUseCase,
+                  getSalesGeneralManagersUseCase:
+                      getSalesGeneralManagersUseCase,
                   getSalesTeamsPaginatedUseCase: getSalesTeamsPaginatedUseCase,
                   getSalesChannelDetailsUseCase: getSalesChannelDetailsUseCase,
                 ),
@@ -943,6 +1090,10 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
                   publishFeedPostNowUseCase: publishFeedPostNowUseCase,
                   deleteFeedPostUseCase: deleteFeedPostUseCase,
                 ),
+              ),
+              BlocProvider(
+                create: (_) =>
+                    MyProfileCubit(getMyProfileUseCase: getMyProfileUseCase),
               ),
             ],
             child: MultiBlocListener(

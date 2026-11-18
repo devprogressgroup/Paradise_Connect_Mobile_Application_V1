@@ -49,7 +49,17 @@ class FeedMediaEntity extends Equatable {
   });
 
   @override
-  List<Object?> get props => [id, url, label, isVideo, width, height, bytes, fileName, filePath];
+  List<Object?> get props => [
+    id,
+    url,
+    label,
+    isVideo,
+    width,
+    height,
+    bytes,
+    fileName,
+    filePath,
+  ];
 }
 
 /// Pengaturan interaksi per post yang diatur moderator. [allowReply] tidak berlaku kalau
@@ -86,7 +96,13 @@ class FeedInteractionSettings extends Equatable {
   }
 
   @override
-  List<Object?> get props => [allowLike, allowDislike, allowComment, allowReply, allowShare];
+  List<Object?> get props => [
+    allowLike,
+    allowDislike,
+    allowComment,
+    allowReply,
+    allowShare,
+  ];
 }
 
 class FeedPollOptionEntity extends Equatable {
@@ -131,7 +147,14 @@ class FeedPollEntity extends Equatable {
   }
 
   @override
-  List<Object?> get props => [options, totalVoters, isMultiple, image, myVotes, hasVoted];
+  List<Object?> get props => [
+    options,
+    totalVoters,
+    isMultiple,
+    image,
+    myVotes,
+    hasVoted,
+  ];
 }
 
 class FeedLinkEntity extends Equatable {
@@ -185,6 +208,7 @@ class FeedPostEntity extends Equatable {
   final FeedCommentEntity? latestComment;
   final String? rejectReason;
   final bool isPinned;
+
   /// Sematan di profil sales (maks. 3). Hanya untuk kiriman sendiri.
   final bool profilePinned;
   final bool isMine;
@@ -217,10 +241,13 @@ class FeedPostEntity extends Equatable {
     this.fromAdminWeb = false,
   });
 
-  String get plainText => type == FeedPostType.link ? (link?.title ?? '') : text.replaceAll('**', '');
+  String get plainText => type == FeedPostType.link
+      ? (link?.title ?? '')
+      : text.replaceAll('**', '');
 
   /// Untuk link YouTube tanpa upload manual, backend sudah mengisi [media] dengan thumbnail YouTube.
-  FeedMediaEntity? get thumbnail => media.isNotEmpty ? media.first : poll?.image;
+  FeedMediaEntity? get thumbnail =>
+      media.isNotEmpty ? media.first : poll?.image;
 
   FeedPostEntity copyWith({
     int? likeCount,
@@ -313,5 +340,13 @@ class FeedPageEntity extends Equatable {
   int get lastPage => perPage > 0 ? ((total + perPage - 1) ~/ perPage) : 1;
 
   @override
-  List<Object?> get props => [home, pinned, items, currentPage, perPage, total, hasMore];
+  List<Object?> get props => [
+    home,
+    pinned,
+    items,
+    currentPage,
+    perPage,
+    total,
+    hasMore,
+  ];
 }

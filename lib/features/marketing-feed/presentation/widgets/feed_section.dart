@@ -21,7 +21,11 @@ class FeedCard extends StatelessWidget {
   final Widget child;
   final EdgeInsetsGeometry padding;
 
-  const FeedCard({super.key, required this.child, this.padding = const EdgeInsets.all(14)});
+  const FeedCard({
+    super.key,
+    required this.child,
+    this.padding = const EdgeInsets.all(14),
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -63,21 +67,34 @@ class FeedSectionHeader extends StatelessWidget {
               const SizedBox(width: 6),
             ],
             Expanded(
-              child: Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+              child: Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             ),
             if (actionLabel != null)
               GestureDetector(
                 onTap: onAction,
                 child: Text(
                   actionLabel!,
-                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(primaryColor)),
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    color: Color(primaryColor),
+                  ),
                 ),
               ),
           ],
         ),
         if (hint != null) ...[
           const SizedBox(height: 2),
-          Text(hint!, style: const TextStyle(fontSize: 12, color: Color(grey5Color))),
+          Text(
+            hint!,
+            style: const TextStyle(fontSize: 12, color: Color(grey5Color)),
+          ),
         ],
       ],
     );
@@ -110,7 +127,11 @@ class FeedNotice extends StatelessWidget {
           Expanded(
             child: Text(
               text,
-              style: const TextStyle(fontSize: 12.5, height: 1.45, color: Color(roNoticeInfoTextColor)),
+              style: const TextStyle(
+                fontSize: 12.5,
+                height: 1.45,
+                color: Color(roNoticeInfoTextColor),
+              ),
             ),
           ),
         ],
@@ -125,7 +146,12 @@ class FeedEmptyState extends StatelessWidget {
   final String title;
   final String message;
 
-  const FeedEmptyState({super.key, required this.icon, required this.title, required this.message});
+  const FeedEmptyState({
+    super.key,
+    required this.icon,
+    required this.title,
+    required this.message,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -136,7 +162,10 @@ class FeedEmptyState extends StatelessWidget {
         children: [
           Icon(icon, size: 36, color: const Color(grey10Color)),
           const SizedBox(height: 4),
-          Text(title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+          Text(
+            title,
+            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+          ),
           const SizedBox(height: 4),
           Text(
             message,

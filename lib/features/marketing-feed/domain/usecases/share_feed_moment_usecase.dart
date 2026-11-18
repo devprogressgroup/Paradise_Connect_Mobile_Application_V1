@@ -9,7 +9,9 @@ class ShareFeedMomentUseCase {
 
   ShareFeedMomentUseCase(this.repository);
 
-  Future<Either<MarketingFeedException, FeedPostEntity>> call(ShareFeedMomentParams params) async {
+  Future<Either<MarketingFeedException, FeedPostEntity>> call(
+    ShareFeedMomentParams params,
+  ) async {
     return await repository.shareMoment(params);
   }
 }

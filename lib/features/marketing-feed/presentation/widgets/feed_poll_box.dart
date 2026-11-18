@@ -59,7 +59,10 @@ class _FeedPollBoxState extends State<FeedPollBox> {
         if (image != null) ...[
           ClipRRect(
             borderRadius: BorderRadius.circular(10),
-            child: AspectRatio(aspectRatio: 16 / 10, child: FeedMediaView(media: image)),
+            child: AspectRatio(
+              aspectRatio: 16 / 10,
+              child: FeedMediaView(media: image),
+            ),
           ),
           const SizedBox(height: 10),
         ],
@@ -70,7 +73,9 @@ class _FeedPollBoxState extends State<FeedPollBox> {
         if (!voted) ...[
           const SizedBox(height: 4),
           ElevatedButton(
-            onPressed: _selected.isEmpty || _sending || widget.onVote == null ? null : _submit,
+            onPressed: _selected.isEmpty || _sending || widget.onVote == null
+                ? null
+                : _submit,
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(primaryColor),
               foregroundColor: const Color(whiteColor),
@@ -82,16 +87,25 @@ class _FeedPollBoxState extends State<FeedPollBox> {
                 ? const SizedBox(
                     width: 18,
                     height: 18,
-                    child: CircularProgressIndicator(strokeWidth: 2, color: Color(whiteColor)),
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Color(whiteColor),
+                    ),
                   )
-                : const Text('Kirim Jawaban', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+                : const Text(
+                    'Kirim Jawaban',
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                  ),
           ),
         ],
         const SizedBox(height: 8),
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text('${poll.totalVoters} sudah menjawab', style: const TextStyle(fontSize: 12, color: Color(grey2Color))),
+            Text(
+              '${poll.totalVoters} sudah menjawab',
+              style: const TextStyle(fontSize: 12, color: Color(grey2Color)),
+            ),
             Text(
               poll.isMultiple ? 'Multi-jawaban' : 'Pilih satu',
               style: const TextStyle(fontSize: 12, color: Color(grey2Color)),
@@ -104,7 +118,9 @@ class _FeedPollBoxState extends State<FeedPollBox> {
 
   Widget _buildOption(FeedPollOptionEntity option, bool voted) {
     final poll = widget.poll;
-    final selected = voted ? poll.myVotes.contains(option.index) : _selected.contains(option.index);
+    final selected = voted
+        ? poll.myVotes.contains(option.index)
+        : _selected.contains(option.index);
     final percent = option.percent;
     return InkWell(
       onTap: () => _toggle(option.index),
@@ -112,10 +128,14 @@ class _FeedPollBoxState extends State<FeedPollBox> {
       child: Container(
         clipBehavior: Clip.antiAlias,
         decoration: BoxDecoration(
-          color: !voted && selected ? const Color(roSelectedBgColor) : const Color(whiteColor),
+          color: !voted && selected
+              ? const Color(roSelectedBgColor)
+              : const Color(whiteColor),
           borderRadius: BorderRadius.circular(10),
           border: Border.all(
-            color: selected ? const Color(primaryColor) : const Color(grey10Color),
+            color: selected
+                ? const Color(primaryColor)
+                : const Color(grey10Color),
           ),
         ),
         child: Stack(
@@ -137,13 +157,20 @@ class _FeedPollBoxState extends State<FeedPollBox> {
                   Expanded(
                     child: Text(
                       option.label,
-                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ),
                   if (voted)
                     Text(
                       '$percent%',
-                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: Color(primaryColor)),
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w800,
+                        color: Color(primaryColor),
+                      ),
                     ),
                 ],
               ),
@@ -164,21 +191,26 @@ class _FeedPollBoxState extends State<FeedPollBox> {
         borderRadius: multi ? BorderRadius.circular(4) : null,
         color: selected ? const Color(primaryColor) : null,
         border: Border.all(
-          color: selected ? const Color(primaryColor) : const Color(greyShade300),
+          color: selected
+              ? const Color(primaryColor)
+              : const Color(greyShade300),
           width: 2,
         ),
       ),
       child: !selected
           ? null
           : multi
-              ? const Icon(Icons.check, size: 12, color: Color(whiteColor))
-              : Center(
-                  child: Container(
-                    width: 6,
-                    height: 6,
-                    decoration: const BoxDecoration(color: Color(whiteColor), shape: BoxShape.circle),
-                  ),
+          ? const Icon(Icons.check, size: 12, color: Color(whiteColor))
+          : Center(
+              child: Container(
+                width: 6,
+                height: 6,
+                decoration: const BoxDecoration(
+                  color: Color(whiteColor),
+                  shape: BoxShape.circle,
                 ),
+              ),
+            ),
     );
   }
 }

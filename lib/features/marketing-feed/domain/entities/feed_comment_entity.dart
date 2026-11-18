@@ -45,7 +45,17 @@ class FeedCommentEntity extends Equatable {
   }
 
   @override
-  List<Object?> get props => [id, parentId, author, text, createdAt, likeCount, isLiked, isMine, replies];
+  List<Object?> get props => [
+    id,
+    parentId,
+    author,
+    text,
+    createdAt,
+    likeCount,
+    isLiked,
+    isMine,
+    replies,
+  ];
 }
 
 /// Satu halaman komentar utama (tiap komentar sudah membawa semua balasannya).

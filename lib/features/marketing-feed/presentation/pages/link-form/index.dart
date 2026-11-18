@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:progress_group/core/constants/colors.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:progress_group/core/services/analytics_service.dart';
 import 'package:progress_group/core/utils/helpers/app_time.dart';
@@ -23,6 +24,26 @@ class FeedLinkFormPage extends StatefulWidget {
   State<FeedLinkFormPage> createState() => _FeedLinkFormPageState();
 }
 
+/// Platform dari URL (sama dengan backend MarketingFeedService::detectPlatform). Tidak dipilih manual.
+String detectLinkPlatform(String url) {
+  final u = url.toLowerCase();
+  if (RegExp(r'(^|[/.])(youtube\.com|youtu\.be)(/|$)').hasMatch(u))
+    return 'youtube';
+  if (RegExp(r'(^|[/.])instagram\.com(/|$)').hasMatch(u)) return 'instagram';
+  if (RegExp(r'(^|[/.])(facebook\.com|fb\.watch|fb\.me)(/|$)').hasMatch(u))
+    return 'facebook';
+  if (RegExp(r'(^|[/.])tiktok\.com(/|$)').hasMatch(u)) return 'tiktok';
+  return 'web';
+}
+
+String linkPlatformLabel(String platform) => switch (platform) {
+  'youtube' => 'YouTube',
+  'instagram' => 'Instagram',
+  'facebook' => 'Facebook',
+  'tiktok' => 'TikTok',
+  _ => 'Website / Artikel',
+};
+
 class _FeedLinkFormPageState extends State<FeedLinkFormPage> {
   late final TextEditingController _urlController;
   late final TextEditingController _channelController;
@@ -40,8 +61,9 @@ class _FeedLinkFormPageState extends State<FeedLinkFormPage> {
     AnalyticsService.logScreenView('marketing_feed_link_form');
     final post = widget.post;
     final link = post?.link;
-    _platform = link?.platform == 'web' ? 'web' : 'youtube';
     _urlController = TextEditingController(text: link?.url ?? '');
+    _platform = detectLinkPlatform(_urlController.text);
+    _urlController.addListener(_onUrlChanged);
     _channelController = TextEditingController(text: link?.channel ?? '');
     _titleController = TextEditingController(text: link?.title ?? '');
     _descController = TextEditingController(text: link?.description ?? '');
@@ -49,10 +71,17 @@ class _FeedLinkFormPageState extends State<FeedLinkFormPage> {
     final uploaded = post?.media.where((m) => m.id != null);
     _thumbnail = (uploaded?.isNotEmpty ?? false) ? uploaded!.first : null;
     // Default prototype: link tanpa dislike & komentar.
-    _settings = post?.settings ??
-        const FeedInteractionSettings(allowDislike: false, allowComment: false, allowReply: false);
+    _settings =
+        post?.settings ??
+        const FeedInteractionSettings(
+          allowDislike: false,
+          allowComment: false,
+          allowReply: false,
+        );
     _townshipId = post?.township?.id;
-    _scheduledAt = post?.status == FeedPostStatus.scheduled ? post!.publishAt : null;
+    _scheduledAt = post?.status == FeedPostStatus.scheduled
+        ? post!.publishAt
+        : null;
   }
 
   @override
@@ -65,12 +94,16 @@ class _FeedLinkFormPageState extends State<FeedLinkFormPage> {
   }
 
   void _showMessage(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   bool _isValidUrl(String url) {
     final uri = Uri.tryParse(url);
-    return uri != null && (uri.scheme == 'http' || uri.scheme == 'https') && uri.host.isNotEmpty;
+    return uri != null &&
+        (uri.scheme == 'http' || uri.scheme == 'https') &&
+        uri.host.isNotEmpty;
   }
 
   void _save(bool asDraft) {
@@ -78,8 +111,12 @@ class _FeedLinkFormPageState extends State<FeedLinkFormPage> {
     final title = _titleController.text.trim();
     // Draft boleh belum lengkap; yang tayang/terjadwal wajib URL valid + judul (dicek ulang di backend).
     if (!asDraft) {
-      if (url.isEmpty || title.isEmpty) return _showMessage('Isi URL dan judul link dulu.');
-      if (!_isValidUrl(url)) return _showMessage('URL link tidak valid (harus diawali http:// atau https://).');
+      if (url.isEmpty || title.isEmpty)
+        return _showMessage('Isi URL dan judul link dulu.');
+      if (!_isValidUrl(url))
+        return _showMessage(
+          'URL link tidak valid (harus diawali http:// atau https://).',
+        );
     } else if (url.isEmpty && title.isEmpty) {
       return _showMessage('Isi URL atau judul link dulu.');
     }
@@ -88,24 +125,30 @@ class _FeedLinkFormPageState extends State<FeedLinkFormPage> {
     final mediaError = validateFeedMediaFiles(media);
     if (mediaError != null) return _showMessage(mediaError);
     final scheduledAt = _scheduledAt;
-    if (!asDraft && scheduledAt != null && !scheduledAt.isAfter(AppTime.now())) {
+    if (!asDraft &&
+        scheduledAt != null &&
+        !scheduledAt.isAfter(AppTime.now())) {
       return _showMessage('Pilih waktu tayang yang akan datang.');
     }
-    AnalyticsService.logEvent(asDraft ? 'marketing_feed_link_draft' : 'marketing_feed_link_submit');
-    context.read<FeedComposeCubit>().savePost(SaveFeedPostParams(
-      postId: widget.post?.id,
-      type: FeedPostType.link,
-      media: media,
-      linkPlatform: _platform,
-      linkUrl: url,
-      linkChannel: _channelController.text.trim(),
-      linkTitle: title,
-      linkDescription: _descController.text.trim(),
-      townshipId: _townshipId,
-      settings: _settings,
-      scheduledAt: scheduledAt,
-      asDraft: asDraft,
-    ));
+    AnalyticsService.logEvent(
+      asDraft ? 'marketing_feed_link_draft' : 'marketing_feed_link_submit',
+    );
+    context.read<FeedComposeCubit>().savePost(
+      SaveFeedPostParams(
+        postId: widget.post?.id,
+        type: FeedPostType.link,
+        media: media,
+        linkPlatform: _platform,
+        linkUrl: url,
+        linkChannel: _channelController.text.trim(),
+        linkTitle: title,
+        linkDescription: _descController.text.trim(),
+        townshipId: _townshipId,
+        settings: _settings,
+        scheduledAt: scheduledAt,
+        asDraft: asDraft,
+      ),
+    );
   }
 
   /// Preview memakai kartu link di feed apa adanya (tanpa footer karena belum tayang).
@@ -117,12 +160,17 @@ class _FeedLinkFormPageState extends State<FeedLinkFormPage> {
       id: 0,
       type: FeedPostType.link,
       status: FeedPostStatus.draft,
-      author: const FeedAuthorEntity(name: 'Progress Group Marketing', isOfficial: true),
+      author: const FeedAuthorEntity(
+        name: 'Progress Group Marketing',
+        isOfficial: true,
+      ),
       link: FeedLinkEntity(
         url: _urlController.text.trim(),
         platform: _platform,
         channel: channel.isEmpty ? null : channel,
-        title: _titleController.text.trim().isEmpty ? '(judul link)' : _titleController.text.trim(),
+        title: _titleController.text.trim().isEmpty
+            ? '(judul link)'
+            : _titleController.text.trim(),
         description: desc.isEmpty ? null : desc,
       ),
       media: [if (thumbnail != null) thumbnail],
@@ -130,7 +178,14 @@ class _FeedLinkFormPageState extends State<FeedLinkFormPage> {
     );
   }
 
-  Widget _field(String label, TextEditingController controller, {String? hint, int maxLines = 1, int? maxLength, TextInputType? keyboardType}) {
+  Widget _field(
+    String label,
+    TextEditingController controller, {
+    String? hint,
+    int maxLines = 1,
+    int? maxLength,
+    TextInputType? keyboardType,
+  }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -140,7 +195,9 @@ class _FeedLinkFormPageState extends State<FeedLinkFormPage> {
           controller: controller,
           maxLines: maxLines,
           maxLength: maxLength,
-          buildCounter: (_, {required currentLength, required isFocused, maxLength}) => null,
+          buildCounter:
+              (_, {required currentLength, required isFocused, maxLength}) =>
+                  null,
           keyboardType: keyboardType,
           autocorrect: keyboardType != TextInputType.url,
           style: const TextStyle(fontSize: 13.5),
@@ -150,6 +207,12 @@ class _FeedLinkFormPageState extends State<FeedLinkFormPage> {
         const SizedBox(height: 12),
       ],
     );
+  }
+
+  /// Platform mengikuti URL yang diketik.
+  void _onUrlChanged() {
+    final p = detectLinkPlatform(_urlController.text);
+    if (p != _platform) setState(() => _platform = p);
   }
 
   @override
@@ -166,13 +229,17 @@ class _FeedLinkFormPageState extends State<FeedLinkFormPage> {
         ],
         const FeedFormLabel('Platform'),
         const SizedBox(height: 8),
-        FeedSegmentedControl<String>(
-          selected: _platform,
-          onChanged: (p) => setState(() => _platform = p),
-          options: const [
-            (value: 'youtube', label: 'YouTube', icon: Icons.play_arrow_rounded),
-            (value: 'web', label: 'Website', icon: Icons.language),
-          ],
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          decoration: BoxDecoration(
+            color: const Color(grey10Color),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Text(
+            '${linkPlatformLabel(_platform)} (otomatis dari URL)',
+            style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w600),
+          ),
         ),
         const SizedBox(height: 12),
         _field(
@@ -185,12 +252,29 @@ class _FeedLinkFormPageState extends State<FeedLinkFormPage> {
         _field(
           'Nama channel / situs',
           _channelController,
-          hint: youtube ? 'Mis. Progress Group Official' : 'Mis. paradise.co.id',
+          hint: youtube
+              ? 'Mis. Progress Group Official'
+              : 'Mis. paradise.co.id',
           maxLength: 150,
         ),
-        _field('Judul', _titleController, hint: 'Judul yang tampil di kartu feed', maxLength: 200),
-        _field('Deskripsi singkat', _descController, hint: 'Opsional', maxLines: 2, maxLength: 500),
-        FeedFormLabel(youtube ? 'Thumbnail (opsional, default thumbnail YouTube)' : 'Thumbnail (opsional)'),
+        _field(
+          'Judul',
+          _titleController,
+          hint: 'Judul yang tampil di kartu feed',
+          maxLength: 200,
+        ),
+        _field(
+          'Deskripsi singkat',
+          _descController,
+          hint: 'Opsional',
+          maxLines: 2,
+          maxLength: 500,
+        ),
+        FeedFormLabel(
+          youtube
+              ? 'Thumbnail (opsional, default thumbnail YouTube)'
+              : 'Thumbnail (opsional)',
+        ),
         const SizedBox(height: 8),
         FeedSingleImagePicker(
           image: _thumbnail,
@@ -204,15 +288,24 @@ class _FeedLinkFormPageState extends State<FeedLinkFormPage> {
         const SizedBox(height: 12),
         const FeedFormLabel('Target Township'),
         const SizedBox(height: 8),
-        FeedTownshipField(townshipId: _townshipId, onChanged: (id) => setState(() => _townshipId = id)),
+        FeedTownshipField(
+          townshipId: _townshipId,
+          onChanged: (id) => setState(() => _townshipId = id),
+        ),
         const SizedBox(height: 12),
         const FeedFormLabel('Pengaturan Interaksi'),
         const SizedBox(height: 8),
-        FeedInteractionSettingsCard(settings: _settings, onChanged: (s) => setState(() => _settings = s)),
+        FeedInteractionSettingsCard(
+          settings: _settings,
+          onChanged: (s) => setState(() => _settings = s),
+        ),
         const SizedBox(height: 12),
         const FeedFormLabel('Waktu Tayang'),
         const SizedBox(height: 8),
-        FeedScheduleField(scheduledAt: _scheduledAt, onChanged: (at) => setState(() => _scheduledAt = at)),
+        FeedScheduleField(
+          scheduledAt: _scheduledAt,
+          onChanged: (at) => setState(() => _scheduledAt = at),
+        ),
       ],
     );
   }

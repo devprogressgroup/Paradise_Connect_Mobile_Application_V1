@@ -17,14 +17,21 @@ class FeedComposeCubit extends Cubit<FeedComposeState> {
     required this.saveFeedPostUseCase,
   }) : super(const FeedComposeInitial());
 
-  Future<void> shareMoment(ShareFeedMomentParams params) =>
-      _submit((onProgress) => shareFeedMomentUseCase(params.copyWith(onProgress: onProgress)));
+  Future<void> shareMoment(ShareFeedMomentParams params) => _submit(
+    (onProgress) =>
+        shareFeedMomentUseCase(params.copyWith(onProgress: onProgress)),
+  );
 
-  Future<void> savePost(SaveFeedPostParams params) =>
-      _submit((onProgress) => saveFeedPostUseCase(params.copyWith(onProgress: onProgress)));
+  Future<void> savePost(SaveFeedPostParams params) => _submit(
+    (onProgress) =>
+        saveFeedPostUseCase(params.copyWith(onProgress: onProgress)),
+  );
 
   Future<void> _submit(
-    Future<Either<MarketingFeedException, FeedPostEntity>> Function(void Function(int sent, int total) onProgress) call,
+    Future<Either<MarketingFeedException, FeedPostEntity>> Function(
+      void Function(int sent, int total) onProgress,
+    )
+    call,
   ) async {
     emit(const FeedComposeSubmitting(progress: 0));
     var lastPercent = 0;
@@ -38,12 +45,14 @@ class FeedComposeCubit extends Cubit<FeedComposeState> {
     });
     if (isClosed) return;
     result.fold(
-      (e) => emit(FeedComposeError(
-        e.message,
-        errorCode: e.errorCode,
-        raptor: e.raptor,
-        hint: e.hint,
-      )),
+      (e) => emit(
+        FeedComposeError(
+          e.message,
+          errorCode: e.errorCode,
+          raptor: e.raptor,
+          hint: e.hint,
+        ),
+      ),
       (post) => emit(FeedComposeSuccess(post)),
     );
   }

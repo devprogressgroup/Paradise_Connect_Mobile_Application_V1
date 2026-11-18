@@ -7,7 +7,10 @@ class GetFeedPostsUseCase {
 
   GetFeedPostsUseCase(this.repository);
 
-  Future<Either<String, FeedPageEntity>> call({int page = 1, int perPage = 10}) async {
+  Future<Either<String, FeedPageEntity>> call({
+    int page = 1,
+    int perPage = 10,
+  }) async {
     return await repository.getFeedPosts(page: page, perPage: perPage);
   }
 }

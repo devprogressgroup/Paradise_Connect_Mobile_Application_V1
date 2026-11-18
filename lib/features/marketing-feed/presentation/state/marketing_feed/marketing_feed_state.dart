@@ -11,6 +11,7 @@ class MarketingFeedState extends Equatable {
   final MarketingFeedStatus status;
   final List<FeedPostEntity> pinnedPosts;
   final List<FeedPostEntity> posts;
+
   /// Urutan Home dari server (kiriman + Wall of Fame), dipakai apa adanya.
   final List<HomeRefEntity> homeOrder;
   final PersonalFunnelEntity? funnel;

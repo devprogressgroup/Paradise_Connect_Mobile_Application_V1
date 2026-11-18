@@ -1,3 +1,4 @@
+import 'package:progress_group/features/marketing-feed/domain/entities/my_profile_entity.dart';
 import 'package:dartz/dartz.dart';
 import 'package:progress_group/core/network/marketing_feed_exception.dart';
 import 'package:progress_group/core/utils/helpers/error_message.dart';
@@ -27,7 +28,10 @@ class MarketingFeedRepositoryImpl implements MarketingFeedRepository {
   }
 
   @override
-  Future<Either<String, FeedPageEntity>> getFeedPosts({int page = 1, int perPage = 10}) =>
+  Future<Either<String, FeedPageEntity>> getFeedPosts({
+    int page = 1,
+    int perPage = 10,
+  }) =>
       _guard(() => remoteDataSource.getFeedPosts(page: page, perPage: perPage));
 
   @override
@@ -43,27 +47,50 @@ class MarketingFeedRepositoryImpl implements MarketingFeedRepository {
       _guard(() => remoteDataSource.getPersonalFunnel());
 
   @override
-  Future<Either<String, PostReactionResult>> reactToPost(int postId, FeedReaction reaction) =>
-      _guard(() => remoteDataSource.reactToPost(postId, reaction));
+  Future<Either<String, PostReactionResult>> reactToPost(
+    int postId,
+    FeedReaction reaction,
+  ) => _guard(() => remoteDataSource.reactToPost(postId, reaction));
 
   @override
-  Future<Either<String, FeedPollEntity>> votePoll(int postId, List<int> optionIndexes) =>
-      _guard(() => remoteDataSource.votePoll(postId, optionIndexes));
+  Future<Either<String, FeedPollEntity>> votePoll(
+    int postId,
+    List<int> optionIndexes,
+  ) => _guard(() => remoteDataSource.votePoll(postId, optionIndexes));
 
   @override
-  Future<Either<String, FeedCommentPageEntity>> getComments(int postId, {int page = 1, int perPage = 10}) =>
-      _guard(() => remoteDataSource.getComments(postId, page: page, perPage: perPage));
+  Future<Either<String, FeedCommentPageEntity>> getComments(
+    int postId, {
+    int page = 1,
+    int perPage = 10,
+  }) => _guard(
+    () => remoteDataSource.getComments(postId, page: page, perPage: perPage),
+  );
 
   @override
-  Future<Either<String, FeedCommentEntity>> addComment(int postId, String text, {int? parentId}) =>
-      _guard(() => remoteDataSource.addComment(postId, text, parentId: parentId));
+  Future<Either<String, FeedCommentEntity>> addComment(
+    int postId,
+    String text, {
+    int? parentId,
+  }) => _guard(
+    () => remoteDataSource.addComment(postId, text, parentId: parentId),
+  );
 
   @override
-  Future<Either<String, CommentLikeResult>> toggleCommentLike(int commentId, {required bool currentlyLiked}) =>
-      _guard(() => remoteDataSource.toggleCommentLike(commentId, currentlyLiked: currentlyLiked));
+  Future<Either<String, CommentLikeResult>> toggleCommentLike(
+    int commentId, {
+    required bool currentlyLiked,
+  }) => _guard(
+    () => remoteDataSource.toggleCommentLike(
+      commentId,
+      currentlyLiked: currentlyLiked,
+    ),
+  );
 
   @override
-  Future<Either<MarketingFeedException, FeedPostEntity>> shareMoment(ShareFeedMomentParams params) async {
+  Future<Either<MarketingFeedException, FeedPostEntity>> shareMoment(
+    ShareFeedMomentParams params,
+  ) async {
     try {
       return Right(await remoteDataSource.shareMoment(params));
     } catch (e) {
@@ -77,12 +104,26 @@ class MarketingFeedRepositoryImpl implements MarketingFeedRepository {
       _guard(() => remoteDataSource.getFamePrograms());
 
   @override
-  Future<Either<String, void>> setProfilePin(int postId, {required bool pinned}) =>
-      _guard(() => remoteDataSource.setProfilePin(postId, pinned: pinned));
+  Future<Either<String, void>> setProfilePin(
+    int postId, {
+    required bool pinned,
+  }) => _guard(() => remoteDataSource.setProfilePin(postId, pinned: pinned));
 
   @override
-  Future<Either<String, FeedPageEntity>> getMySubmissions({int page = 1, int perPage = 10, String? status}) =>
-      _guard(() => remoteDataSource.getMySubmissions(page: page, perPage: perPage, status: status));
+  Future<Either<String, FeedPageEntity>> getMySubmissions({
+    int page = 1,
+    int perPage = 10,
+    String? status,
+  }) => _guard(
+    () => remoteDataSource.getMySubmissions(
+      page: page,
+      perPage: perPage,
+      status: status,
+    ),
+  );
+  @override
+  Future<Either<String, MyProfileEntity>> getMyProfile({int? userId}) =>
+      _guard(() => remoteDataSource.getMyProfile(userId: userId));
 
   @override
   Future<Either<String, List<FeedPostEntity>>> getModeratorPosts() =>
@@ -90,7 +131,9 @@ class MarketingFeedRepositoryImpl implements MarketingFeedRepository {
 
   /// Sama dengan [shareMoment]: error dibiarkan utuh (kode STORAGE_ERROR, pesan Raptor) untuk dialog upload.
   @override
-  Future<Either<MarketingFeedException, FeedPostEntity>> savePost(SaveFeedPostParams params) async {
+  Future<Either<MarketingFeedException, FeedPostEntity>> savePost(
+    SaveFeedPostParams params,
+  ) async {
     try {
       return Right(await remoteDataSource.savePost(params));
     } catch (e) {

@@ -28,7 +28,8 @@ class FeedModeratorFormScaffold extends StatefulWidget {
   });
 
   @override
-  State<FeedModeratorFormScaffold> createState() => _FeedModeratorFormScaffoldState();
+  State<FeedModeratorFormScaffold> createState() =>
+      _FeedModeratorFormScaffoldState();
 }
 
 class _FeedModeratorFormScaffoldState extends State<FeedModeratorFormScaffold> {
@@ -53,8 +54,10 @@ class _FeedModeratorFormScaffoldState extends State<FeedModeratorFormScaffold> {
     };
     return switch (post.status) {
       FeedPostStatus.review => 'Kiriman terkirim dan menunggu review moderator',
-      FeedPostStatus.published => '$label dipublikasikan, notifikasi dikirim ke sales',
-      FeedPostStatus.scheduled => 'Dijadwalkan tayang ${DateHelper.relativeDayTime(post.publishAt)}',
+      FeedPostStatus.published =>
+        '$label dipublikasikan, notifikasi dikirim ke sales',
+      FeedPostStatus.scheduled =>
+        'Dijadwalkan tayang ${DateHelper.relativeDayTime(post.publishAt)}',
       _ => 'Disimpan sebagai draft',
     };
   }
@@ -64,7 +67,9 @@ class _FeedModeratorFormScaffoldState extends State<FeedModeratorFormScaffold> {
     return BlocConsumer<FeedComposeCubit, FeedComposeState>(
       listener: (context, state) {
         if (state is FeedComposeSuccess) {
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(_successMessage(state.post))));
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text(_successMessage(state.post))));
           context.pop(true);
         } else if (state is FeedComposeError) {
           if (state.isStorageError) {
@@ -76,7 +81,9 @@ class _FeedModeratorFormScaffoldState extends State<FeedModeratorFormScaffold> {
               onRetry: () => _save(_lastAsDraft),
             );
           } else {
-            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(state.message)));
+            ScaffoldMessenger.of(
+              context,
+            ).showSnackBar(SnackBar(content: Text(state.message)));
           }
         }
       },
@@ -91,7 +98,10 @@ class _FeedModeratorFormScaffoldState extends State<FeedModeratorFormScaffold> {
                 Expanded(
                   child: AbsorbPointer(
                     absorbing: submitting,
-                    child: ListView(padding: const EdgeInsets.all(16), children: widget.children),
+                    child: ListView(
+                      padding: const EdgeInsets.all(16),
+                      children: widget.children,
+                    ),
                   ),
                 ),
                 if (progress != null) FeedUploadProgressBar(progress: progress),

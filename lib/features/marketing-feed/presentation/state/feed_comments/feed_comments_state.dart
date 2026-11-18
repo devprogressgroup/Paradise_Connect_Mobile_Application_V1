@@ -44,5 +44,13 @@ class FeedCommentsState extends Equatable {
   }
 
   @override
-  List<Object?> get props => [status, postId, comments, isSending, currentPage, hasMore, errorMessage];
+  List<Object?> get props => [
+    status,
+    postId,
+    comments,
+    isSending,
+    currentPage,
+    hasMore,
+    errorMessage,
+  ];
 }

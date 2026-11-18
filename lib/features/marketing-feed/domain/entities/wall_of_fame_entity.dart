@@ -23,7 +23,15 @@ class WallOfFameEntryEntity extends Equatable {
   });
 
   @override
-  List<Object?> get props => [id, name, initials, info, highlight, photoUrl, media];
+  List<Object?> get props => [
+    id,
+    name,
+    initials,
+    info,
+    highlight,
+    photoUrl,
+    media,
+  ];
 }
 
 /// Satu level Wall of Fame (TOP GM/SM/SPV/SE): juara #1 + peringkat berikutnya.

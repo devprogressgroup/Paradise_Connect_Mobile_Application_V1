@@ -46,7 +46,8 @@ class _FeedCommentSheetState extends State<FeedCommentSheet> {
   }
 
   void _onScroll() {
-    if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 200) {
+    if (_scrollController.position.pixels >=
+        _scrollController.position.maxScrollExtent - 200) {
       context.read<FeedCommentsCubit>().loadMore();
     }
   }
@@ -54,7 +55,9 @@ class _FeedCommentSheetState extends State<FeedCommentSheet> {
   Future<void> _toggleLike(int commentId) async {
     final error = await context.read<FeedCommentsCubit>().toggleLike(commentId);
     if (error != null && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error)));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(error)));
     }
   }
 
@@ -70,10 +73,15 @@ class _FeedCommentSheetState extends State<FeedCommentSheet> {
     final text = _controller.text.trim();
     if (text.isEmpty) return;
     final parentId = _replyTo?.id;
-    final error = await context.read<FeedCommentsCubit>().send(text, parentId: parentId);
+    final error = await context.read<FeedCommentsCubit>().send(
+      text,
+      parentId: parentId,
+    );
     if (!mounted) return;
     if (error != null) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error)));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(error)));
       return;
     }
     _controller.clear();
@@ -130,7 +138,10 @@ class _FeedCommentSheetState extends State<FeedCommentSheet> {
                               // Balasan halaman berikutnya belum termuat, jadi pakai angka dari post.
                               ? 'Komentar (${state.hasMore ? widget.post.commentCount : state.totalCount})'
                               : 'Komentar',
-                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
                       IconButton(
@@ -145,15 +156,25 @@ class _FeedCommentSheetState extends State<FeedCommentSheet> {
                   Container(
                     width: double.infinity,
                     color: const Color(roNoticeInfoBgColor),
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 8,
+                    ),
                     child: const Row(
                       children: [
-                        Icon(Icons.info, size: 16, color: Color(roNoticeInfoTextColor)),
+                        Icon(
+                          Icons.info,
+                          size: 16,
+                          color: Color(roNoticeInfoTextColor),
+                        ),
                         SizedBox(width: 6),
                         Expanded(
                           child: Text(
                             'Balasan komentar dinonaktifkan moderator untuk post ini.',
-                            style: TextStyle(fontSize: 12, color: Color(roNoticeInfoTextColor)),
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Color(roNoticeInfoTextColor),
+                            ),
                           ),
                         ),
                       ],
@@ -183,7 +204,8 @@ class _FeedCommentSheetState extends State<FeedCommentSheet> {
   }
 
   Widget _buildList(FeedCommentsState state) {
-    if (state.status == FeedCommentsStatus.loading || state.status == FeedCommentsStatus.initial) {
+    if (state.status == FeedCommentsStatus.loading ||
+        state.status == FeedCommentsStatus.initial) {
       return const Center(child: CircularProgressIndicator());
     }
     if (state.status == FeedCommentsStatus.error) {
@@ -197,7 +219,8 @@ class _FeedCommentSheetState extends State<FeedCommentSheet> {
               style: const TextStyle(fontSize: 12, color: Color(grey4Color)),
             ),
             TextButton(
-              onPressed: () => context.read<FeedCommentsCubit>().load(widget.post.id),
+              onPressed: () =>
+                  context.read<FeedCommentsCubit>().load(widget.post.id),
               child: const Text('Coba lagi'),
             ),
           ],
@@ -221,7 +244,11 @@ class _FeedCommentSheetState extends State<FeedCommentSheet> {
       itemBuilder: (_, i) {
         if (i >= state.comments.length) {
           return const Center(
-            child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)),
+            child: SizedBox(
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            ),
           );
         }
         return _buildComment(state.comments[i], isReply: false);
@@ -250,9 +277,14 @@ class _FeedCommentSheetState extends State<FeedCommentSheet> {
               children: [
                 Container(
                   width: double.infinity,
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
                   decoration: BoxDecoration(
-                    color: Color(author.isModerator ? blueShade50Color : grey11Color),
+                    color: Color(
+                      author.isModerator ? blueShade50Color : grey11Color,
+                    ),
                     borderRadius: const BorderRadius.only(
                       topLeft: Radius.circular(4),
                       topRight: Radius.circular(14),
@@ -269,28 +301,41 @@ class _FeedCommentSheetState extends State<FeedCommentSheet> {
                           Flexible(
                             child: Text(
                               author.name,
-                              style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.bold),
+                              style: const TextStyle(
+                                fontSize: 12.5,
+                                fontWeight: FontWeight.bold,
+                              ),
                               overflow: TextOverflow.ellipsis,
                             ),
                           ),
                           if (author.isOfficial) ...[
                             const SizedBox(width: 6),
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 5,
+                                vertical: 1,
+                              ),
                               decoration: BoxDecoration(
                                 color: const Color(primaryColor),
                                 borderRadius: BorderRadius.circular(4),
                               ),
                               child: const Text(
                                 'Resmi',
-                                style: TextStyle(fontSize: 9, fontWeight: FontWeight.w800, color: Color(whiteColor)),
+                                style: TextStyle(
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.w800,
+                                  color: Color(whiteColor),
+                                ),
                               ),
                             ),
                           ],
                         ],
                       ),
                       const SizedBox(height: 2),
-                      Text(comment.text, style: const TextStyle(fontSize: 13, height: 1.45)),
+                      Text(
+                        comment.text,
+                        style: const TextStyle(fontSize: 13, height: 1.45),
+                      ),
                     ],
                   ),
                 ),
@@ -298,7 +343,10 @@ class _FeedCommentSheetState extends State<FeedCommentSheet> {
                   padding: const EdgeInsets.only(left: 4, top: 4),
                   child: Row(
                     children: [
-                      Text(DateHelper.timeAgo(comment.createdAt), style: _metaStyle),
+                      Text(
+                        DateHelper.timeAgo(comment.createdAt),
+                        style: _metaStyle,
+                      ),
                       const SizedBox(width: 14),
                       GestureDetector(
                         onTap: () => _toggleLike(comment.id),
@@ -306,7 +354,9 @@ class _FeedCommentSheetState extends State<FeedCommentSheet> {
                           '${comment.isLiked ? 'Disukai' : 'Suka'}${comment.likeCount > 0 ? ' · ${comment.likeCount}' : ''}',
                           style: _metaStyle.copyWith(
                             fontWeight: FontWeight.w800,
-                            color: comment.isLiked ? const Color(redAccentColor) : null,
+                            color: comment.isLiked
+                                ? const Color(redAccentColor)
+                                : null,
                           ),
                         ),
                       ),
@@ -314,7 +364,12 @@ class _FeedCommentSheetState extends State<FeedCommentSheet> {
                         const SizedBox(width: 14),
                         GestureDetector(
                           onTap: () => _startReply(comment),
-                          child: Text('Balas', style: _metaStyle.copyWith(fontWeight: FontWeight.w800)),
+                          child: Text(
+                            'Balas',
+                            style: _metaStyle.copyWith(
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
                         ),
                       ],
                     ],
@@ -325,10 +380,15 @@ class _FeedCommentSheetState extends State<FeedCommentSheet> {
                     margin: const EdgeInsets.only(top: 2),
                     padding: const EdgeInsets.only(left: 10),
                     decoration: const BoxDecoration(
-                      border: Border(left: BorderSide(color: Color(grey10Color), width: 2)),
+                      border: Border(
+                        left: BorderSide(color: Color(grey10Color), width: 2),
+                      ),
                     ),
                     child: Column(
-                      children: [for (final r in comment.replies) _buildComment(r, isReply: true)],
+                      children: [
+                        for (final r in comment.replies)
+                          _buildComment(r, isReply: true),
+                      ],
                     ),
                   ),
               ],
@@ -339,7 +399,11 @@ class _FeedCommentSheetState extends State<FeedCommentSheet> {
     );
   }
 
-  static const _metaStyle = TextStyle(fontSize: 11.5, fontWeight: FontWeight.w600, color: Color(grey2Color));
+  static const _metaStyle = TextStyle(
+    fontSize: 11.5,
+    fontWeight: FontWeight.w600,
+    color: Color(grey2Color),
+  );
 
   Widget _buildReplyingBar() {
     return Container(
@@ -353,7 +417,10 @@ class _FeedCommentSheetState extends State<FeedCommentSheet> {
                 style: const TextStyle(fontSize: 12, color: Color(grey2Color)),
                 children: [
                   const TextSpan(text: 'Membalas '),
-                  TextSpan(text: _replyTo!.author.name, style: const TextStyle(fontWeight: FontWeight.bold)),
+                  TextSpan(
+                    text: _replyTo!.author.name,
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
                 ],
               ),
             ),
@@ -373,11 +440,15 @@ class _FeedCommentSheetState extends State<FeedCommentSheet> {
     final myName = profile is ProfileLoaded ? profile.profile.fullName : 'Kamu';
     final myPhoto = profile is ProfileLoaded ? profile.profile.photoUrl : null;
     final firstName = myName.trim().split(RegExp(r'\s+')).first;
-    final loaded = state.status == FeedCommentsStatus.loaded || state.status == FeedCommentsStatus.loadingMore;
+    final loaded =
+        state.status == FeedCommentsStatus.loaded ||
+        state.status == FeedCommentsStatus.loadingMore;
 
     return Container(
       padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
-      decoration: const BoxDecoration(border: Border(top: BorderSide(color: Color(grey10Color)))),
+      decoration: const BoxDecoration(
+        border: Border(top: BorderSide(color: Color(grey10Color))),
+      ),
       child: SafeArea(
         top: false,
         child: Row(
@@ -390,15 +461,29 @@ class _FeedCommentSheetState extends State<FeedCommentSheet> {
                 focusNode: _focus,
                 enabled: loaded,
                 maxLength: 1000,
-                buildCounter: (_, {required currentLength, required isFocused, maxLength}) => null,
+                buildCounter:
+                    (
+                      _, {
+                      required currentLength,
+                      required isFocused,
+                      maxLength,
+                    }) => null,
                 textInputAction: TextInputAction.send,
                 onSubmitted: (_) => _send(),
                 style: const TextStyle(fontSize: 13),
                 decoration: InputDecoration(
                   isDense: true,
-                  hintText: _replyTo != null ? 'Balas ${_replyTo!.author.name}…' : 'Tulis komentar sebagai $firstName…',
-                  hintStyle: const TextStyle(fontSize: 13, color: Color(grey4Color)),
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  hintText: _replyTo != null
+                      ? 'Balas ${_replyTo!.author.name}…'
+                      : 'Tulis komentar sebagai $firstName…',
+                  hintStyle: const TextStyle(
+                    fontSize: 13,
+                    color: Color(grey4Color),
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 10,
+                  ),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(99),
                     borderSide: const BorderSide(color: Color(greyShade300)),
@@ -427,9 +512,16 @@ class _FeedCommentSheetState extends State<FeedCommentSheet> {
                   child: state.isSending
                       ? const Padding(
                           padding: EdgeInsets.all(10),
-                          child: CircularProgressIndicator(strokeWidth: 2, color: Color(whiteColor)),
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Color(whiteColor),
+                          ),
                         )
-                      : const Icon(Icons.send, size: 18, color: Color(whiteColor)),
+                      : const Icon(
+                          Icons.send,
+                          size: 18,
+                          color: Color(whiteColor),
+                        ),
                 ),
               ),
             ),

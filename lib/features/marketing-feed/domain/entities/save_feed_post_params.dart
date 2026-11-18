@@ -28,7 +28,9 @@ class ShareFeedMomentParams {
     this.onProgress,
   });
 
-  ShareFeedMomentParams copyWith({void Function(int sent, int total)? onProgress}) {
+  ShareFeedMomentParams copyWith({
+    void Function(int sent, int total)? onProgress,
+  }) {
     return ShareFeedMomentParams(
       text: text,
       media: media,
@@ -93,7 +95,9 @@ class SaveFeedPostParams {
     this.onProgress,
   });
 
-  SaveFeedPostParams copyWith({void Function(int sent, int total)? onProgress}) {
+  SaveFeedPostParams copyWith({
+    void Function(int sent, int total)? onProgress,
+  }) {
     return SaveFeedPostParams(
       postId: postId,
       type: type,

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:progress_group/core/constants/colors.dart';
 import 'package:progress_group/core/network/auth_token_cache.dart';
@@ -309,8 +311,6 @@ class FeedMediaCarousel extends StatefulWidget {
 }
 
 class _FeedMediaCarouselState extends State<FeedMediaCarousel> {
-  int _page = 0;
-
   double _getAspectRatio(FeedMediaEntity m) {
     if (m.width != null && m.height != null && m.height! > 0) {
       return (m.width! / m.height!).clamp(0.65, 1.8);
@@ -331,14 +331,110 @@ class _FeedMediaCarouselState extends State<FeedMediaCarousel> {
       );
     }
 
+    // Lebih dari satu media: geser otomatis, hanya saat kartu terlihat di layar.
+    return OnScreenBuilder(
+      builder: (context, visible) =>
+          _FeedMediaSlides(media: media, visible: visible),
+    );
+  }
+}
+
+/// Galeri multi-media yang bergeser otomatis setiap [_FeedMediaSlidesState._interval].
+/// Timer berhenti saat kartu keluar layar atau sedang disentuh/digeser pengguna.
+class _FeedMediaSlides extends StatefulWidget {
+  final List<FeedMediaEntity> media;
+  final bool visible;
+
+  const _FeedMediaSlides({required this.media, required this.visible});
+
+  @override
+  State<_FeedMediaSlides> createState() => _FeedMediaSlidesState();
+}
+
+class _FeedMediaSlidesState extends State<_FeedMediaSlides> {
+  static const _interval = Duration(seconds: 4);
+  static const _animation = Duration(milliseconds: 500);
+
+  final _pageController = PageController();
+  Timer? _timer;
+  int _page = 0;
+  bool _userDragging = false;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.visible) _startTimer();
+  }
+
+  @override
+  void didUpdateWidget(covariant _FeedMediaSlides oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.visible != widget.visible) {
+      widget.visible ? _startTimer() : _stopTimer();
+    }
+  }
+
+  @override
+  void dispose() {
+    _stopTimer();
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  void _startTimer() {
+    _timer?.cancel();
+    if (widget.media.length < 2) return;
+    _timer = Timer.periodic(_interval, (_) => _next());
+  }
+
+  void _stopTimer() {
+    _timer?.cancel();
+    _timer = null;
+  }
+
+  void _next() {
+    if (_userDragging || !_pageController.hasClients) return;
+    final count = widget.media.length;
+    final next = (_page + 1) % count;
+    // Dari slide terakhir kembali ke awal langsung (tidak menggeser ulang semua slide).
+    if (next == 0) {
+      _pageController.jumpToPage(0);
+    } else {
+      _pageController.animateToPage(
+        next,
+        duration: _animation,
+        curve: Curves.easeInOut,
+      );
+    }
+  }
+
+  bool _onScroll(ScrollNotification notification) {
+    if (notification is ScrollStartNotification &&
+        notification.dragDetails != null) {
+      _userDragging = true;
+      _stopTimer();
+    } else if (notification is ScrollEndNotification) {
+      _userDragging = false;
+      if (widget.visible) _startTimer();
+    }
+    return false;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final media = widget.media;
     return AspectRatio(
       aspectRatio: 1,
       child: Stack(
         children: [
-          PageView.builder(
-            itemCount: media.length,
-            onPageChanged: (i) => setState(() => _page = i),
-            itemBuilder: (_, i) => FeedMediaView(media: media[i]),
+          NotificationListener<ScrollNotification>(
+            onNotification: _onScroll,
+            child: PageView.builder(
+              controller: _pageController,
+              itemCount: media.length,
+              onPageChanged: (i) => setState(() => _page = i),
+              itemBuilder: (_, i) => FeedMediaView(media: media[i]),
+            ),
           ),
           Positioned(
             top: 10,

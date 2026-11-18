@@ -48,9 +48,13 @@ class WallOfFameLevelModel extends WallOfFameLevelEntity {
     if (json.containsKey('champion')) {
       return WallOfFameLevelModel(
         level: json['level'] as String? ?? '',
-        champion: WallOfFameEntryModel.fromJson(json['champion'] as Map<String, dynamic>? ?? const {}),
+        champion: WallOfFameEntryModel.fromJson(
+          json['champion'] as Map<String, dynamic>? ?? const {},
+        ),
         runnersUp: (json['runners_up'] as List<dynamic>? ?? const [])
-            .map((e) => WallOfFameEntryModel.fromJson(e as Map<String, dynamic>))
+            .map(
+              (e) => WallOfFameEntryModel.fromJson(e as Map<String, dynamic>),
+            )
             .toList(),
       );
     }

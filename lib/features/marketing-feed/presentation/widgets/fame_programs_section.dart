@@ -109,7 +109,8 @@ class _FameEntryTileState extends State<FameEntryTile> {
     final period = entry.periodeLabel?.trim() ?? '';
     if (period.isEmpty) return prefix;
     final thisMonth = DateFormat('MMMM yyyy', 'id_ID').format(AppTime.now());
-    if (period.toLowerCase() == thisMonth.toLowerCase()) return '$prefix BULAN INI';
+    if (period.toLowerCase() == thisMonth.toLowerCase())
+      return '$prefix BULAN INI';
     return '$prefix - ${period.toUpperCase()}';
   }
 
@@ -218,9 +219,10 @@ class _FameEntryTileState extends State<FameEntryTile> {
 
   /// Nama juara di pojok bawah media, dengan latar gelap di bawah supaya teks terbaca.
   Widget _buildTitleOverlay() {
-    final sub = [entry.posisiLabel, entry.kategori]
-        .where((s) => s != null && s.isNotEmpty)
-        .join(' · ');
+    final sub = [
+      entry.posisiLabel,
+      entry.kategori,
+    ].where((s) => s != null && s.isNotEmpty).join(' · ');
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.fromLTRB(12, 28, 12, 12),
@@ -289,12 +291,16 @@ class _FameEntryTileState extends State<FameEntryTile> {
   /// Grid keterangan juara: dua kolom, Program memakai lebar penuh. Baris kosong tidak ditampilkan.
   Widget _buildInfoGrid() {
     final cells = <_InfoCell>[
-      if (!_hasMedia) _InfoCell('Juara', entry.name, fullWidth: true, bold: true),
-      _InfoCell('Peringkat', '#${entry.ranking}', valueColor: const Color(orangeAccentColor)),
+      if (!_hasMedia)
+        _InfoCell('Juara', entry.name, fullWidth: true, bold: true),
+      _InfoCell(
+        'Peringkat',
+        '#${entry.ranking}',
+        valueColor: const Color(orangeAccentColor),
+      ),
       if (entry.periodeLabel != null && entry.periodeLabel!.isNotEmpty)
         _InfoCell('Periode', entry.periodeLabel!),
-      if (entry.programName.isNotEmpty)
-        _InfoCell('Program', entry.programName),
+      if (entry.programName.isNotEmpty) _InfoCell('Program', entry.programName),
       if (entry.posisiLabel != null && entry.posisiLabel!.isNotEmpty)
         _InfoCell('Jabatan', entry.posisiLabel!),
     ];
@@ -303,7 +309,8 @@ class _FameEntryTileState extends State<FameEntryTile> {
     var i = 0;
     while (i < cells.length) {
       final first = cells[i];
-      final second = !first.fullWidth && i + 1 < cells.length && !cells[i + 1].fullWidth
+      final second =
+          !first.fullWidth && i + 1 < cells.length && !cells[i + 1].fullWidth
           ? cells[i + 1]
           : null;
       rows.add(
@@ -313,7 +320,11 @@ class _FameEntryTileState extends State<FameEntryTile> {
             children: [
               Expanded(child: _buildCell(first)),
               if (second != null) ...[
-                const VerticalDivider(width: 1, thickness: 1, color: Color(grey10Color)),
+                const VerticalDivider(
+                  width: 1,
+                  thickness: 1,
+                  color: Color(grey10Color),
+                ),
                 Expanded(child: _buildCell(second)),
               ],
             ],
@@ -325,7 +336,10 @@ class _FameEntryTileState extends State<FameEntryTile> {
 
     final children = <Widget>[];
     for (var r = 0; r < rows.length; r++) {
-      if (r > 0) children.add(const Divider(height: 1, thickness: 1, color: Color(grey10Color)));
+      if (r > 0)
+        children.add(
+          const Divider(height: 1, thickness: 1, color: Color(grey10Color)),
+        );
       children.add(rows[r]);
     }
 

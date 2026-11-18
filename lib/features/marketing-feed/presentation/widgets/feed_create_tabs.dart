@@ -16,16 +16,26 @@ class FeedCreateTabs extends StatelessWidget {
   const FeedCreateTabs({super.key, required this.current});
 
   static const _items = <(FeedCreateTab, IconData, String, String)>[
-    (FeedCreateTab.postingan, Icons.article_outlined, 'Postingan', 'marketingFeedPostForm'),
-    (FeedCreateTab.polling, Icons.poll_outlined, 'Polling', 'marketingFeedPollForm'),
+    (
+      FeedCreateTab.postingan,
+      Icons.article_outlined,
+      'Postingan',
+      'marketingFeedPostForm',
+    ),
+    (
+      FeedCreateTab.polling,
+      Icons.poll_outlined,
+      'Polling',
+      'marketingFeedPollForm',
+    ),
     (FeedCreateTab.link, Icons.link, 'Link', 'marketingFeedLinkForm'),
   ];
 
   static bool _allowed(FeedCreateTab tab) => switch (tab) {
-        FeedCreateTab.postingan => PermissionsHelper.canCreateMarketingPost,
-        FeedCreateTab.polling => PermissionsHelper.canCreateMarketingPoll,
-        FeedCreateTab.link => PermissionsHelper.canCreateMarketingLink,
-      };
+    FeedCreateTab.postingan => PermissionsHelper.canCreateMarketingPost,
+    FeedCreateTab.polling => PermissionsHelper.canCreateMarketingPoll,
+    FeedCreateTab.link => PermissionsHelper.canCreateMarketingLink,
+  };
 
   /// Baris tab hanya tampil kalau user boleh membuat lebih dari satu jenis konten. Kalau hanya Postingan, tidak ada tab.
   static bool get showRow => _items.where((e) => _allowed(e.$1)).length > 1;
@@ -67,11 +77,18 @@ class _TabButton extends StatelessWidget {
   final bool selected;
   final VoidCallback onTap;
 
-  const _TabButton({required this.icon, required this.label, required this.selected, required this.onTap});
+  const _TabButton({
+    required this.icon,
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final color = selected ? const Color(primaryColor) : const Color(grey2Color);
+    final color = selected
+        ? const Color(primaryColor)
+        : const Color(grey2Color);
     return InkWell(
       borderRadius: BorderRadius.circular(9),
       onTap: onTap,
@@ -81,7 +98,13 @@ class _TabButton extends StatelessWidget {
           color: selected ? const Color(whiteColor) : Colors.transparent,
           borderRadius: BorderRadius.circular(9),
           boxShadow: selected
-              ? [BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 3, offset: const Offset(0, 1))]
+              ? [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.08),
+                    blurRadius: 3,
+                    offset: const Offset(0, 1),
+                  ),
+                ]
               : null,
         ),
         child: Row(
@@ -93,7 +116,11 @@ class _TabButton extends StatelessWidget {
               child: Text(
                 label,
                 overflow: TextOverflow.ellipsis,
-                style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700, color: color),
+                style: TextStyle(
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w700,
+                  color: color,
+                ),
               ),
             ),
           ],

@@ -7,7 +7,15 @@ class GetMySubmissionsUseCase {
 
   GetMySubmissionsUseCase(this.repository);
 
-  Future<Either<String, FeedPageEntity>> call({int page = 1, int perPage = 10, String? status}) async {
-    return await repository.getMySubmissions(page: page, perPage: perPage, status: status);
+  Future<Either<String, FeedPageEntity>> call({
+    int page = 1,
+    int perPage = 10,
+    String? status,
+  }) async {
+    return await repository.getMySubmissions(
+      page: page,
+      perPage: perPage,
+      status: status,
+    );
   }
 }

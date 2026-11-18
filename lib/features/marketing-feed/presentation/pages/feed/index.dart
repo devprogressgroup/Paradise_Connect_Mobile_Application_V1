@@ -30,8 +30,12 @@ class MarketingFeedPage extends StatefulWidget {
   State<MarketingFeedPage> createState() => _MarketingFeedPageState();
 }
 
+/// Jarak scroll (px) setelah tombol "kembali ke atas" mulai muncul.
+const double _kShowToTopOffset = 400;
+
 class _MarketingFeedPageState extends State<MarketingFeedPage> {
   final _scrollController = ScrollController();
+  bool _showToTop = false;
 
   @override
   void initState() {
@@ -54,14 +58,25 @@ class _MarketingFeedPageState extends State<MarketingFeedPage> {
     if (profileState is! ProfileLoaded && profileState is! ProfileLoading) {
       context.read<ProfileBloc>().add(GetProfileEvent());
     }
-    final isSales = profileState is! ProfileLoaded || profileState.profile.salesPersonId != null;
-    if (isSales && context.read<NotifActivityBloc>().state.status != ActivityStatus.loaded) {
-      context.read<NotifActivityBloc>().add(const FetchActivitiesEvent(isRefresh: true));
+    final isSales =
+        profileState is! ProfileLoaded ||
+        profileState.profile.salesPersonId != null;
+    if (isSales &&
+        context.read<NotifActivityBloc>().state.status !=
+            ActivityStatus.loaded) {
+      context.read<NotifActivityBloc>().add(
+        const FetchActivitiesEvent(isRefresh: true),
+      );
     }
   }
 
   void _onScroll() {
-    if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 300) {
+    final showToTop = _scrollController.position.pixels > _kShowToTopOffset;
+    if (showToTop != _showToTop) {
+      setState(() => _showToTop = showToTop);
+    }
+    if (_scrollController.position.pixels >=
+        _scrollController.position.maxScrollExtent - 300) {
       final state = context.read<MarketingFeedCubit>().state;
       if (state.status == MarketingFeedStatus.loaded) {
         context.read<MarketingFeedCubit>().loadMore();
@@ -79,7 +94,11 @@ class _MarketingFeedPageState extends State<MarketingFeedPage> {
     if (!mounted) return;
     await _refresh();
     if (_scrollController.hasClients) {
-      _scrollController.animateTo(0, duration: const Duration(milliseconds: 300), curve: Curves.easeOut);
+      _scrollController.animateTo(
+        0,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOut,
+      );
     }
   }
 
@@ -92,9 +111,14 @@ class _MarketingFeedPageState extends State<MarketingFeedPage> {
 
   Future<void> _react(FeedPostEntity post, FeedReaction reaction) async {
     AnalyticsService.logEvent('marketing_feed_${reaction.name}');
-    final error = await context.read<MarketingFeedCubit>().react(post.id, reaction);
+    final error = await context.read<MarketingFeedCubit>().react(
+      post.id,
+      reaction,
+    );
     if (error != null && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error)));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(error)));
     }
   }
 
@@ -130,6 +154,12 @@ class _MarketingFeedPageState extends State<MarketingFeedPage> {
                   ),
                 ),
                 Positioned(right: 16, bottom: 16, child: _buildFab()),
+                Positioned(
+                  bottom: 16,
+                  left: 0,
+                  right: 0,
+                  child: _buildScrollToTop(),
+                ),
               ],
             ),
           ),
@@ -143,7 +173,9 @@ class _MarketingFeedPageState extends State<MarketingFeedPage> {
       builder: (context, notifState) {
         return BlocBuilder<WhatsappActivityBloc, WhatsappActivityState>(
           builder: (context, whatsappState) {
-            final hasUnseenNotif = notifState.activities.any((a) => !notifState.seenActivityIds.contains(a.activityId));
+            final hasUnseenNotif = notifState.activities.any(
+              (a) => !notifState.seenActivityIds.contains(a.activityId),
+            );
             final showBadge = hasUnseenNotif || whatsappState.data.isNotEmpty;
             return customHeader(
               context,
@@ -158,6 +190,11 @@ class _MarketingFeedPageState extends State<MarketingFeedPage> {
               iconLeftOnTap: () {
                 AnalyticsService.logEvent('marketing_feed_open_notifications');
                 context.pushNamed('notif');
+              },
+              iconTrailing: Icons.contact_page_outlined,
+              iconTrailingOnTap: () {
+                AnalyticsService.logEvent('marketing_feed_open_profile');
+                context.go('/marketing-feed/profile');
               },
             );
           },
@@ -182,14 +219,16 @@ class _MarketingFeedPageState extends State<MarketingFeedPage> {
 
   /// Urutan Home 100% dari server (state.homeOrder). Tidak ada pengurutan ulang di klien.
   Widget _buildList(MarketingFeedState state) {
-    final postById = {for (final p in [...state.pinnedPosts, ...state.posts]) p.id: p};
+    final postById = {
+      for (final p in [...state.pinnedPosts, ...state.posts]) p.id: p,
+    };
     final fameById = {
       for (final prog in state.famePrograms)
         for (final cat in prog.categories)
-          for (final e in cat.entries) e.id: e
+          for (final e in cat.entries) e.id: e,
     };
 
-    final children = <Widget>[ 
+    final children = <Widget>[
       // Progress Kamu: di paling atas Home (sesuai prototype), di atas kiriman dan Wall of Fame.
       ProgressFunnelCard(
         funnel: state.funnel,
@@ -200,12 +239,19 @@ class _MarketingFeedPageState extends State<MarketingFeedPage> {
         if (ref.type == 'post' && postById[ref.id] != null)
           _buildPostCard(postById[ref.id]!)
         else if (ref.type == 'fame' && fameById[ref.id] != null)
-          FameEntryTile(key: ValueKey('fame_${ref.id}'), entry: fameById[ref.id]!),
+          FameEntryTile(
+            key: ValueKey('fame_${ref.id}'),
+            entry: fameById[ref.id]!,
+          ),
       if (state.hasMore && state.posts.isNotEmpty)
         const Padding(
           padding: EdgeInsets.symmetric(vertical: 8),
           child: Center(
-            child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)),
+            child: SizedBox(
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            ),
           ),
         ),
     ];
@@ -249,7 +295,61 @@ class _MarketingFeedPageState extends State<MarketingFeedPage> {
     );
   }
 
-  
+  /// Tombol di tengah bawah; muncul setelah scroll cukup jauh, tap = kembali ke atas.
+  Widget _buildScrollToTop() {
+    return Center(
+      child: IgnorePointer(
+        ignoring: !_showToTop,
+        child: AnimatedOpacity(
+          opacity: _showToTop ? 1 : 0,
+          duration: const Duration(milliseconds: 200),
+          child: AnimatedSlide(
+            offset: _showToTop ? Offset.zero : const Offset(0, 0.5),
+            duration: const Duration(milliseconds: 200),
+            child: Material(
+              color: const Color(primaryColor),
+              elevation: 4,
+              shape: const StadiumBorder(),
+              child: InkWell(
+                customBorder: const StadiumBorder(),
+                onTap: () {
+                  AnalyticsService.logEvent('marketing_feed_scroll_to_top');
+                  _scrollController.animateTo(
+                    0,
+                    duration: const Duration(milliseconds: 400),
+                    curve: Curves.easeOut,
+                  );
+                },
+                child: const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.arrow_upward_rounded,
+                        size: 18,
+                        color: Color(whiteColor),
+                      ),
+                      SizedBox(width: 6),
+                      Text(
+                        'Ke atas',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: Color(whiteColor),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildFab() {
     return SizedBox(
       width: 56,
@@ -263,7 +363,4 @@ class _MarketingFeedPageState extends State<MarketingFeedPage> {
       ),
     );
   }
-
-  
-
 }

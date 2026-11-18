@@ -7,6 +7,7 @@ import 'package:progress_group/core/utils/helpers/date_helper.dart';
 import 'package:progress_group/core/utils/widget/custom_header.dart';
 import 'package:progress_group/features/marketing-feed/domain/entities/feed_post_entity.dart';
 import 'package:progress_group/features/marketing-feed/presentation/state/marketing_feed/marketing_feed_cubit.dart';
+import 'package:progress_group/features/marketing-feed/presentation/widgets/feed_link_default_thumb.dart';
 import 'package:progress_group/features/marketing-feed/presentation/widgets/feed_media_view.dart';
 import 'package:progress_group/features/marketing-feed/presentation/widgets/feed_section.dart';
 
@@ -50,7 +51,8 @@ class _FeedMySubmissionsPageState extends State<FeedMySubmissionsPage> {
   }
 
   void _onScroll() {
-    if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 250) {
+    if (_scrollController.position.pixels >=
+        _scrollController.position.maxScrollExtent - 250) {
       if (!_isLoading && !_isLoadingMore && _hasMore) {
         _loadMore();
       }
@@ -63,7 +65,9 @@ class _FeedMySubmissionsPageState extends State<FeedMySubmissionsPage> {
       _errorMessage = null;
     });
 
-    final result = await context.read<MarketingFeedCubit>().getMySubmissions(status: _status);
+    final result = await context.read<MarketingFeedCubit>().getMySubmissions(
+      status: _status,
+    );
 
     if (!mounted) return;
 
@@ -83,7 +87,10 @@ class _FeedMySubmissionsPageState extends State<FeedMySubmissionsPage> {
 
   Future<void> _loadMore() async {
     setState(() => _isLoadingMore = true);
-    final result = await context.read<MarketingFeedCubit>().getMySubmissions(page: _currentPage + 1, status: _status);
+    final result = await context.read<MarketingFeedCubit>().getMySubmissions(
+      page: _currentPage + 1,
+      status: _status,
+    );
 
     if (!mounted) return;
 
@@ -100,15 +107,21 @@ class _FeedMySubmissionsPageState extends State<FeedMySubmissionsPage> {
 
   Future<void> _togglePin(FeedPostEntity post) async {
     final pinned = !post.profilePinned;
-    final error = await context.read<MarketingFeedCubit>().setProfilePin(post.id, pinned: pinned);
+    final error = await context.read<MarketingFeedCubit>().setProfilePin(
+      post.id,
+      pinned: pinned,
+    );
     if (!mounted) return;
     if (error != null) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error)));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(error)));
       return;
     }
     setState(() {
       _items = [
-        for (final p in _items) p.id == post.id ? p.copyWith(profilePinned: pinned) : p,
+        for (final p in _items)
+          p.id == post.id ? p.copyWith(profilePinned: pinned) : p,
       ];
     });
   }
@@ -158,10 +171,14 @@ class _FeedMySubmissionsPageState extends State<FeedMySubmissionsPage> {
               child: ChoiceChip(
                 label: Text(label),
                 selected: _status == value,
-                selectedColor: const Color(primaryColor).withValues(alpha: 0.15),
+                selectedColor: const Color(
+                  primaryColor,
+                ).withValues(alpha: 0.15),
                 labelStyle: TextStyle(
                   fontWeight: FontWeight.w700,
-                  color: _status == value ? const Color(primaryColor) : const Color(grey5Color),
+                  color: _status == value
+                      ? const Color(primaryColor)
+                      : const Color(grey5Color),
                 ),
                 onSelected: (_) => _selectTab(value),
               ),
@@ -189,10 +206,7 @@ class _FeedMySubmissionsPageState extends State<FeedMySubmissionsPage> {
                 style: const TextStyle(fontSize: 13, color: Color(grey2Color)),
               ),
               const SizedBox(height: 12),
-              ElevatedButton(
-                onPressed: _fetch,
-                child: const Text('Coba Lagi'),
-              ),
+              ElevatedButton(onPressed: _fetch, child: const Text('Coba Lagi')),
             ],
           ),
         ),
@@ -210,7 +224,8 @@ class _FeedMySubmissionsPageState extends State<FeedMySubmissionsPage> {
             FeedEmptyState(
               icon: Icons.history_edu_outlined,
               title: 'Belum ada kiriman',
-              message: 'Bagikan momen closing atau kunjungan serumu lewat tombol Bagikan Momen!',
+              message:
+                  'Bagikan momen closing atau kunjungan serumu lewat tombol Bagikan Momen!',
             ),
           ],
         ),
@@ -269,6 +284,8 @@ class _FeedMySubmissionsPageState extends State<FeedMySubmissionsPage> {
                     height: 68,
                     child: thumb != null
                         ? FeedMediaView(media: thumb, compact: true)
+                        : post.link != null
+                        ? FeedLinkDefaultThumb(platform: post.link!.platform, compact: true)
                         : ColoredBox(
                             color: const Color(grey10Color),
                             child: Icon(
@@ -289,27 +306,40 @@ class _FeedMySubmissionsPageState extends State<FeedMySubmissionsPage> {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           _buildStatusBadge(post),
-                          const Icon(Icons.chevron_right, size: 18, color: Color(grey4Color)),
+                          const Icon(
+                            Icons.chevron_right,
+                            size: 18,
+                            color: Color(grey4Color),
+                          ),
                         ],
                       ),
                       const SizedBox(height: 6),
                       Text(
-                        post.text.isNotEmpty ? post.plainText : 'Momen tanpa cerita teks',
+                        post.text.isNotEmpty
+                            ? post.plainText
+                            : 'Momen tanpa cerita teks',
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.bold),
+                        style: const TextStyle(
+                          fontSize: 13.5,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                       const SizedBox(height: 4),
                       Text(
                         timeStr,
-                        style: const TextStyle(fontSize: 11.5, color: Color(grey2Color)),
+                        style: const TextStyle(
+                          fontSize: 11.5,
+                          color: Color(grey2Color),
+                        ),
                       ),
                     ],
                   ),
                 ),
               ],
             ),
-            if (post.status == FeedPostStatus.rejected && post.rejectReason != null) ...[
+            if (post.status == FeedPostStatus.rejected &&
+                post.rejectReason != null) ...[
               const SizedBox(height: 10),
               Container(
                 width: double.infinity,
@@ -317,12 +347,18 @@ class _FeedMySubmissionsPageState extends State<FeedMySubmissionsPage> {
                 decoration: BoxDecoration(
                   color: const Color(redAccentColor).withValues(alpha: 0.08),
                   borderRadius: BorderRadius.circular(6),
-                  border: Border.all(color: const Color(redAccentColor).withValues(alpha: 0.3)),
+                  border: Border.all(
+                    color: const Color(redAccentColor).withValues(alpha: 0.3),
+                  ),
                 ),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Icon(Icons.info_outline, size: 14, color: Color(redAccentColor)),
+                    const Icon(
+                      Icons.info_outline,
+                      size: 14,
+                      color: Color(redAccentColor),
+                    ),
                     const SizedBox(width: 6),
                     Expanded(
                       child: Text(
@@ -344,8 +380,15 @@ class _FeedMySubmissionsPageState extends State<FeedMySubmissionsPage> {
                 alignment: Alignment.centerRight,
                 child: TextButton.icon(
                   onPressed: () => _togglePin(post),
-                  icon: Icon(post.profilePinned ? Icons.push_pin : Icons.push_pin_outlined, size: 16),
-                  label: Text(post.profilePinned ? 'Lepas sematan' : 'Sematkan di profil'),
+                  icon: Icon(
+                    post.profilePinned
+                        ? Icons.push_pin
+                        : Icons.push_pin_outlined,
+                    size: 16,
+                  ),
+                  label: Text(
+                    post.profilePinned ? 'Lepas sematan' : 'Sematkan di profil',
+                  ),
                 ),
               ),
             ],
@@ -367,7 +410,8 @@ class _FeedMySubmissionsPageState extends State<FeedMySubmissionsPage> {
         textColor = const Color(orangeAccentColor);
         break;
       case FeedPostStatus.scheduled:
-        label = 'Disetujui, tayang ${DateHelper.relativeDayTime(post.publishAt)}';
+        label =
+            'Disetujui, tayang ${DateHelper.relativeDayTime(post.publishAt)}';
         bgColor = const Color(blueShade50Color);
         textColor = const Color(primaryColor);
         break;

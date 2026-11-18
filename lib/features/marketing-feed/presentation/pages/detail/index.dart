@@ -52,7 +52,8 @@ class _FeedPostDetailPageState extends State<FeedPostDetailPage> {
 
     result.fold(
       (message) {
-        if (message.toLowerCase().contains('tidak ditemukan') || message.toLowerCase().contains('not found')) {
+        if (message.toLowerCase().contains('tidak ditemukan') ||
+            message.toLowerCase().contains('not found')) {
           _handleNotFound(message);
         } else {
           setState(() {
@@ -78,7 +79,9 @@ class _FeedPostDetailPageState extends State<FeedPostDetailPage> {
       _post = null;
     });
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message.isNotEmpty ? message : 'Post tidak ditemukan.')),
+      SnackBar(
+        content: Text(message.isNotEmpty ? message : 'Post tidak ditemukan.'),
+      ),
     );
     if (context.canPop()) {
       context.pop();
@@ -103,14 +106,19 @@ class _FeedPostDetailPageState extends State<FeedPostDetailPage> {
       );
     });
 
-    final result = await context.read<MarketingFeedCubit>().sendReaction(post.id, next);
+    final result = await context.read<MarketingFeedCubit>().sendReaction(
+      post.id,
+      next,
+    );
 
     if (!mounted) return;
 
     result.fold(
       (error) {
         setState(() => _post = post);
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error)));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(error)));
       },
       (res) {
         setState(() {
@@ -128,19 +136,19 @@ class _FeedPostDetailPageState extends State<FeedPostDetailPage> {
     final post = _post;
     if (post == null) return 'Post tidak ditemukan.';
 
-    final result = await context.read<MarketingFeedCubit>().submitVote(post.id, optionIndexes);
-
-    return result.fold(
-      (error) => error,
-      (newPoll) {
-        if (mounted) {
-          setState(() {
-            _post = _post?.copyWith(poll: newPoll);
-          });
-        }
-        return null;
-      },
+    final result = await context.read<MarketingFeedCubit>().submitVote(
+      post.id,
+      optionIndexes,
     );
+
+    return result.fold((error) => error, (newPoll) {
+      if (mounted) {
+        setState(() {
+          _post = _post?.copyWith(poll: newPoll);
+        });
+      }
+      return null;
+    });
   }
 
   Future<void> _openComments() async {

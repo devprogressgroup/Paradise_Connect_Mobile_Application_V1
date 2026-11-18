@@ -8,6 +8,7 @@ import 'package:progress_group/core/utils/widget/custom_header.dart';
 import 'package:progress_group/features/marketing-feed/domain/entities/feed_post_entity.dart';
 import 'package:progress_group/features/marketing-feed/presentation/state/feed_drafts/feed_drafts_cubit.dart';
 import 'package:progress_group/features/marketing-feed/presentation/state/feed_drafts/feed_drafts_state.dart';
+import 'package:progress_group/features/marketing-feed/presentation/widgets/feed_link_default_thumb.dart';
 import 'package:progress_group/features/marketing-feed/presentation/widgets/feed_media_view.dart';
 import 'package:progress_group/features/marketing-feed/presentation/widgets/feed_section.dart';
 
@@ -31,7 +32,9 @@ class _FeedDraftsPageState extends State<FeedDraftsPage> {
   }
 
   void _showMessage(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   Future<void> _edit(FeedPostEntity post) async {
@@ -63,12 +66,20 @@ class _FeedDraftsPageState extends State<FeedDraftsPage> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: Text(scheduled ? 'Hapus konten terjadwal?' : 'Hapus draft?'),
-        content: Text('"${post.plainText}" akan dihapus${scheduled ? ' dan tidak jadi tayang' : ''}.'),
+        content: Text(
+          '"${post.plainText}" akan dihapus${scheduled ? ' dan tidak jadi tayang' : ''}.',
+        ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Batal')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Batal'),
+          ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Hapus', style: TextStyle(color: Color(redAccentColor))),
+            child: const Text(
+              'Hapus',
+              style: TextStyle(color: Color(redAccentColor)),
+            ),
           ),
         ],
       ),
@@ -76,7 +87,10 @@ class _FeedDraftsPageState extends State<FeedDraftsPage> {
     if (confirmed != true || !mounted) return;
     AnalyticsService.logEvent('marketing_feed_draft_delete');
     final error = await context.read<FeedDraftsCubit>().delete(post.id);
-    if (mounted) _showMessage(error ?? (scheduled ? 'Konten terjadwal dihapus' : 'Draft dihapus'));
+    if (mounted)
+      _showMessage(
+        error ?? (scheduled ? 'Konten terjadwal dihapus' : 'Draft dihapus'),
+      );
   }
 
   @override
@@ -90,7 +104,12 @@ class _FeedDraftsPageState extends State<FeedDraftsPage> {
         body: SafeArea(
           child: Column(
             children: [
-              customHeader(context, 'Draft & Terjadwal', isBack: true, onBack: () => context.pop(_published)),
+              customHeader(
+                context,
+                'Draft & Terjadwal',
+                isBack: true,
+                onBack: () => context.pop(_published),
+              ),
               Expanded(
                 child: BlocBuilder<FeedDraftsCubit, FeedDraftsState>(
                   builder: (context, state) {
@@ -122,7 +141,10 @@ class _FeedDraftsPageState extends State<FeedDraftsPage> {
     if (state.status == FeedDraftsStatus.loading && state.items.isEmpty ||
         state.status == FeedDraftsStatus.initial) {
       return const [
-        Padding(padding: EdgeInsets.symmetric(vertical: 24), child: Center(child: CircularProgressIndicator())),
+        Padding(
+          padding: EdgeInsets.symmetric(vertical: 24),
+          child: Center(child: CircularProgressIndicator()),
+        ),
       ];
     }
     if (state.status == FeedDraftsStatus.error && state.items.isEmpty) {
@@ -132,7 +154,10 @@ class _FeedDraftsPageState extends State<FeedDraftsPage> {
           textAlign: TextAlign.center,
           style: const TextStyle(fontSize: 12, color: Color(grey4Color)),
         ),
-        TextButton(onPressed: () => context.read<FeedDraftsCubit>().fetch(), child: const Text('Coba lagi')),
+        TextButton(
+          onPressed: () => context.read<FeedDraftsCubit>().fetch(),
+          child: const Text('Coba lagi'),
+        ),
       ];
     }
     if (state.items.isEmpty) {
@@ -140,13 +165,17 @@ class _FeedDraftsPageState extends State<FeedDraftsPage> {
         FeedEmptyState(
           icon: Icons.drafts_outlined,
           title: 'Belum ada draft',
-          message: 'Simpan konten sebagai draft atau jadwalkan dari form Post, Poll, atau Link Baru.',
+          message:
+              'Simpan konten sebagai draft atau jadwalkan dari form Post, Poll, atau Link Baru.',
         ),
       ];
     }
     return [
       for (final post in state.items)
-        Padding(padding: const EdgeInsets.only(bottom: 10), child: _buildRow(post)),
+        Padding(
+          padding: const EdgeInsets.only(bottom: 10),
+          child: _buildRow(post),
+        ),
     ];
   }
 
@@ -167,16 +196,15 @@ class _FeedDraftsPageState extends State<FeedDraftsPage> {
               height: 64,
               child: thumb != null
                   ? FeedMediaView(media: thumb, compact: true)
+                  : post.link != null
+                  ? FeedLinkDefaultThumb(platform: post.link!.platform, compact: true)
                   : ColoredBox(
                       color: const Color(grey10Color),
-                      child: Icon(
-                        switch (post.type) {
-                          FeedPostType.poll => Icons.poll_outlined,
-                          FeedPostType.link => Icons.link,
-                          FeedPostType.post => Icons.article_outlined,
-                        },
-                        color: const Color(grey4Color),
-                      ),
+                      child: Icon(switch (post.type) {
+                        FeedPostType.poll => Icons.poll_outlined,
+                        FeedPostType.link => Icons.link,
+                        FeedPostType.post => Icons.article_outlined,
+                      }, color: const Color(grey4Color)),
                     ),
             ),
           ),
@@ -186,7 +214,10 @@ class _FeedDraftsPageState extends State<FeedDraftsPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 2,
+                  ),
                   decoration: BoxDecoration(
                     color: Color(scheduled ? blueShade50Color : grey10Color),
                     borderRadius: BorderRadius.circular(99),
@@ -202,23 +233,35 @@ class _FeedDraftsPageState extends State<FeedDraftsPage> {
                 ),
                 const SizedBox(height: 3),
                 Text(
-                  post.plainText.isEmpty ? '(tanpa ${post.type == FeedPostType.link ? 'judul' : 'caption'})' : post.plainText,
+                  post.plainText.isEmpty
+                      ? '(tanpa ${post.type == FeedPostType.link ? 'judul' : 'caption'})'
+                      : post.plainText,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
                 const SizedBox(height: 3),
                 Row(
                   children: [
                     if (scheduled) ...[
-                      const Icon(Icons.schedule, size: 13, color: Color(grey2Color)),
+                      const Icon(
+                        Icons.schedule,
+                        size: 13,
+                        color: Color(grey2Color),
+                      ),
                       const SizedBox(width: 3),
                     ],
                     Expanded(
                       child: Text(
                         '${scheduled ? DateHelper.relativeDayTime(post.publishAt) : 'Diubah ${DateHelper.timeAgo(post.publishAt).toLowerCase()}'}'
                         ' · $township · dari ${post.fromAdminWeb ? 'Admin Web' : 'App'}',
-                        style: const TextStyle(fontSize: 11.5, color: Color(grey2Color)),
+                        style: const TextStyle(
+                          fontSize: 11.5,
+                          color: Color(grey2Color),
+                        ),
                       ),
                     ),
                   ],
@@ -228,7 +271,12 @@ class _FeedDraftsPageState extends State<FeedDraftsPage> {
                   children: [
                     _action(Icons.edit_outlined, 'Edit', () => _edit(post)),
                     _action(Icons.send, 'Tayangkan', () => _publishNow(post)),
-                    _action(Icons.delete_outline, 'Hapus', () => _delete(post), color: const Color(redAccentColor)),
+                    _action(
+                      Icons.delete_outline,
+                      'Hapus',
+                      () => _delete(post),
+                      color: const Color(redAccentColor),
+                    ),
                   ],
                 ),
               ],
@@ -239,7 +287,12 @@ class _FeedDraftsPageState extends State<FeedDraftsPage> {
     );
   }
 
-  Widget _action(IconData icon, String label, VoidCallback onTap, {Color color = const Color(primaryColor)}) {
+  Widget _action(
+    IconData icon,
+    String label,
+    VoidCallback onTap, {
+    Color color = const Color(primaryColor),
+  }) {
     return Padding(
       padding: const EdgeInsets.only(right: 14),
       child: InkWell(
@@ -252,7 +305,14 @@ class _FeedDraftsPageState extends State<FeedDraftsPage> {
             children: [
               Icon(icon, size: 15, color: color),
               const SizedBox(width: 4),
-              Text(label, style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: color)),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  color: color,
+                ),
+              ),
             ],
           ),
         ),

@@ -47,49 +47,70 @@ class MarketingFeedCubit extends Cubit<MarketingFeedState> {
     final famePrgFuture = getFameProgramsUseCase();
 
     final postsResult = await postsFuture;
-    final funnel = (await funnelFuture).fold((_) => state.funnel, (data) => data);
-    final fame = (await fameFuture).fold((_) => state.wallOfFame, (data) => data);
-    final famePrograms = (await famePrgFuture).fold((_) => state.famePrograms, (data) => data);
+    final funnel = (await funnelFuture).fold(
+      (_) => state.funnel,
+      (data) => data,
+    );
+    final fame = (await fameFuture).fold(
+      (_) => state.wallOfFame,
+      (data) => data,
+    );
+    final famePrograms = (await famePrgFuture).fold(
+      (_) => state.famePrograms,
+      (data) => data,
+    );
 
     postsResult.fold(
-      (message) => emit(state.copyWith(
-        status: MarketingFeedStatus.error,
-        funnel: funnel,
-        wallOfFame: fame,
-        famePrograms: famePrograms,
-        errorMessage: message,
-      )),
-      (data) => emit(MarketingFeedState(
-        status: MarketingFeedStatus.loaded,
-        pinnedPosts: data.pinned,
-        posts: data.items,
-        homeOrder: data.home,
-        funnel: funnel,
-        wallOfFame: fame,
-        famePrograms: famePrograms,
-        currentPage: data.currentPage,
-        lastPage: data.lastPage,
-        hasMore: data.hasMore,
-      )),
+      (message) => emit(
+        state.copyWith(
+          status: MarketingFeedStatus.error,
+          funnel: funnel,
+          wallOfFame: fame,
+          famePrograms: famePrograms,
+          errorMessage: message,
+        ),
+      ),
+      (data) => emit(
+        MarketingFeedState(
+          status: MarketingFeedStatus.loaded,
+          pinnedPosts: data.pinned,
+          posts: data.items,
+          homeOrder: data.home,
+          funnel: funnel,
+          wallOfFame: fame,
+          famePrograms: famePrograms,
+          currentPage: data.currentPage,
+          lastPage: data.lastPage,
+          hasMore: data.hasMore,
+        ),
+      ),
     );
   }
 
   Future<void> loadMore() async {
-    if (state.status == MarketingFeedStatus.loadingMore || !state.hasMore) return;
+    if (state.status == MarketingFeedStatus.loadingMore || !state.hasMore)
+      return;
 
     emit(state.copyWith(status: MarketingFeedStatus.loadingMore));
     final result = await getFeedPostsUseCase(page: state.currentPage + 1);
     result.fold(
       // Tetap `loaded` supaya scroll berikutnya mencoba lagi; daftar yang sudah ada tidak hilang.
-      (message) => emit(state.copyWith(status: MarketingFeedStatus.loaded, errorMessage: message)),
-      (data) => emit(state.copyWith(
-        status: MarketingFeedStatus.loaded,
-        posts: [...state.posts, ...data.items],
-        homeOrder: [...state.homeOrder, ...data.home],
-        currentPage: data.currentPage,
-        lastPage: data.lastPage,
-        hasMore: data.hasMore,
-      )),
+      (message) => emit(
+        state.copyWith(
+          status: MarketingFeedStatus.loaded,
+          errorMessage: message,
+        ),
+      ),
+      (data) => emit(
+        state.copyWith(
+          status: MarketingFeedStatus.loaded,
+          posts: [...state.posts, ...data.items],
+          homeOrder: [...state.homeOrder, ...data.home],
+          currentPage: data.currentPage,
+          lastPage: data.lastPage,
+          hasMore: data.hasMore,
+        ),
+      ),
     );
   }
 
@@ -113,17 +134,28 @@ class MarketingFeedCubit extends Cubit<MarketingFeedState> {
     return result.fold((error) => error, (_) => null);
   }
 
-  Future<Either<String, FeedPageEntity>> getMySubmissions({int page = 1, String? status}) =>
-      getMySubmissionsUseCase(page: page, status: status);
+  Future<Either<String, FeedPageEntity>> getMySubmissions({
+    int page = 1,
+    String? status,
+  }) => getMySubmissionsUseCase(page: page, status: status);
 
   /// Kirim reaksi untuk post yang dipegang halaman lain (detail) — optimistic update & rollback
   /// diurus pemanggil; salinan di feed disamakan dengan angka server.
-  Future<Either<String, PostReactionResult>> sendReaction(int postId, FeedReaction next) async {
+  Future<Either<String, PostReactionResult>> sendReaction(
+    int postId,
+    FeedReaction next,
+  ) async {
     final result = await reactFeedPostUseCase(postId, next);
     result.fold((_) {}, (res) {
       final current = _findPost(postId);
       if (current != null) {
-        _replacePost(current.copyWith(myReaction: res.myReaction, likeCount: res.likes, dislikeCount: res.dislikes));
+        _replacePost(
+          current.copyWith(
+            myReaction: res.myReaction,
+            likeCount: res.likes,
+            dislikeCount: res.dislikes,
+          ),
+        );
       }
     });
     return result;
@@ -172,7 +204,10 @@ class MarketingFeedCubit extends Cubit<MarketingFeedState> {
   }
 
   /// Kirim jawaban poll dan kembalikan poll terbaru dari server; salinan di feed ikut diperbarui.
-  Future<Either<String, FeedPollEntity>> submitVote(int postId, List<int> optionIndexes) async {
+  Future<Either<String, FeedPollEntity>> submitVote(
+    int postId,
+    List<int> optionIndexes,
+  ) async {
     final result = await voteFeedPollUseCase(postId, optionIndexes);
     result.fold((_) {}, (newPoll) {
       final target = _findPost(postId);

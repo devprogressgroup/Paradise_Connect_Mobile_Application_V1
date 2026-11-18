@@ -21,8 +21,11 @@ class FeedDraftsCubit extends Cubit<FeedDraftsState> {
     final result = await getFeedDraftsUseCase();
     if (isClosed) return;
     result.fold(
-      (message) => emit(state.copyWith(status: FeedDraftsStatus.error, errorMessage: message)),
-      (data) => emit(FeedDraftsState(status: FeedDraftsStatus.loaded, items: data)),
+      (message) => emit(
+        state.copyWith(status: FeedDraftsStatus.error, errorMessage: message),
+      ),
+      (data) =>
+          emit(FeedDraftsState(status: FeedDraftsStatus.loaded, items: data)),
     );
   }
 
@@ -46,6 +49,8 @@ class FeedDraftsCubit extends Cubit<FeedDraftsState> {
 
   void _remove(int postId) {
     if (isClosed) return;
-    emit(state.copyWith(items: state.items.where((p) => p.id != postId).toList()));
+    emit(
+      state.copyWith(items: state.items.where((p) => p.id != postId).toList()),
+    );
   }
 }

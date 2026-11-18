@@ -49,9 +49,12 @@ class _FeedPollFormPageState extends State<FeedPollFormPage> {
     // Gambar pertanyaan dikirim API di media[] post (lihat FeedPollBox).
     _image = (post?.media.isNotEmpty ?? false) ? post!.media.first : null;
     _multiple = poll?.isMultiple ?? true;
-    _settings = post?.settings ?? const FeedInteractionSettings(allowDislike: false);
+    _settings =
+        post?.settings ?? const FeedInteractionSettings(allowDislike: false);
     _townshipId = post?.township?.id;
-    _scheduledAt = post?.status == FeedPostStatus.scheduled ? post!.publishAt : null;
+    _scheduledAt = post?.status == FeedPostStatus.scheduled
+        ? post!.publishAt
+        : null;
   }
 
   @override
@@ -66,7 +69,9 @@ class _FeedPollFormPageState extends State<FeedPollFormPage> {
   }
 
   void _showMessage(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   void _addAnswer() {
@@ -91,28 +96,35 @@ class _FeedPollFormPageState extends State<FeedPollFormPage> {
     ].where((a) => a.isNotEmpty).toList();
     if (question.isEmpty) return _showMessage('Tulis pertanyaan poll.');
     if (answers.length < 2) return _showMessage('Isi minimal 2 jawaban.');
-    if (answers.length > _maxOptions) return _showMessage('Maksimal $_maxOptions jawaban.');
+    if (answers.length > _maxOptions)
+      return _showMessage('Maksimal $_maxOptions jawaban.');
     final image = _image;
     final media = [if (image != null) image];
     final mediaError = validateFeedMediaFiles(media);
     if (mediaError != null) return _showMessage(mediaError);
     final scheduledAt = _scheduledAt;
-    if (!asDraft && scheduledAt != null && !scheduledAt.isAfter(AppTime.now())) {
+    if (!asDraft &&
+        scheduledAt != null &&
+        !scheduledAt.isAfter(AppTime.now())) {
       return _showMessage('Pilih waktu tayang yang akan datang.');
     }
-    AnalyticsService.logEvent(asDraft ? 'marketing_feed_poll_draft' : 'marketing_feed_poll_submit');
-    context.read<FeedComposeCubit>().savePost(SaveFeedPostParams(
-      postId: widget.post?.id,
-      type: FeedPostType.poll,
-      text: question,
-      media: media,
-      pollOptions: answers,
-      pollMultiple: _multiple,
-      townshipId: _townshipId,
-      settings: _settings,
-      scheduledAt: scheduledAt,
-      asDraft: asDraft,
-    ));
+    AnalyticsService.logEvent(
+      asDraft ? 'marketing_feed_poll_draft' : 'marketing_feed_poll_submit',
+    );
+    context.read<FeedComposeCubit>().savePost(
+      SaveFeedPostParams(
+        postId: widget.post?.id,
+        type: FeedPostType.poll,
+        text: question,
+        media: media,
+        pollOptions: answers,
+        pollMultiple: _multiple,
+        townshipId: _townshipId,
+        settings: _settings,
+        scheduledAt: scheduledAt,
+        asDraft: asDraft,
+      ),
+    );
   }
 
   @override
@@ -128,7 +140,10 @@ class _FeedPollFormPageState extends State<FeedPollFormPage> {
         ],
         const FeedFormLabel('Gambar Pertanyaan (opsional)'),
         const SizedBox(height: 8),
-        FeedSingleImagePicker(image: _image, onChanged: (m) => setState(() => _image = m)),
+        FeedSingleImagePicker(
+          image: _image,
+          onChanged: (m) => setState(() => _image = m),
+        ),
         const SizedBox(height: 12),
         const FeedFormLabel('Pertanyaan'),
         const SizedBox(height: 8),
@@ -136,9 +151,13 @@ class _FeedPollFormPageState extends State<FeedPollFormPage> {
           controller: _questionController,
           maxLines: 2,
           maxLength: 500,
-          buildCounter: (_, {required currentLength, required isFocused, maxLength}) => null,
+          buildCounter:
+              (_, {required currentLength, required isFocused, maxLength}) =>
+                  null,
           style: const TextStyle(fontSize: 13.5),
-          decoration: feedInputDecoration(hintText: 'Mis. Objection apa yang paling sering kamu temui?'),
+          decoration: feedInputDecoration(
+            hintText: 'Mis. Objection apa yang paling sering kamu temui?',
+          ),
         ),
         const SizedBox(height: 12),
         const FeedFormLabel('Jawaban'),
@@ -153,8 +172,17 @@ class _FeedPollFormPageState extends State<FeedPollFormPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Bisa pilih lebih dari satu', style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.w600)),
-                    Text('Multiple answer poll', style: TextStyle(fontSize: 12, color: Color(grey2Color))),
+                    Text(
+                      'Bisa pilih lebih dari satu',
+                      style: TextStyle(
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    Text(
+                      'Multiple answer poll',
+                      style: TextStyle(fontSize: 12, color: Color(grey2Color)),
+                    ),
                   ],
                 ),
               ),
@@ -170,15 +198,24 @@ class _FeedPollFormPageState extends State<FeedPollFormPage> {
         const SizedBox(height: 12),
         const FeedFormLabel('Target Township'),
         const SizedBox(height: 8),
-        FeedTownshipField(townshipId: _townshipId, onChanged: (id) => setState(() => _townshipId = id)),
+        FeedTownshipField(
+          townshipId: _townshipId,
+          onChanged: (id) => setState(() => _townshipId = id),
+        ),
         const SizedBox(height: 12),
         const FeedFormLabel('Pengaturan Interaksi'),
         const SizedBox(height: 8),
-        FeedInteractionSettingsCard(settings: _settings, onChanged: (s) => setState(() => _settings = s)),
+        FeedInteractionSettingsCard(
+          settings: _settings,
+          onChanged: (s) => setState(() => _settings = s),
+        ),
         const SizedBox(height: 12),
         const FeedFormLabel('Waktu Tayang'),
         const SizedBox(height: 8),
-        FeedScheduleField(scheduledAt: _scheduledAt, onChanged: (at) => setState(() => _scheduledAt = at)),
+        FeedScheduleField(
+          scheduledAt: _scheduledAt,
+          onChanged: (at) => setState(() => _scheduledAt = at),
+        ),
       ],
     );
   }
@@ -194,7 +231,13 @@ class _FeedPollFormPageState extends State<FeedPollFormPage> {
                 child: TextField(
                   controller: _answerControllers[i],
                   maxLength: 100,
-                  buildCounter: (_, {required currentLength, required isFocused, maxLength}) => null,
+                  buildCounter:
+                      (
+                        _, {
+                        required currentLength,
+                        required isFocused,
+                        maxLength,
+                      }) => null,
                   style: const TextStyle(fontSize: 13.5),
                   decoration: feedInputDecoration(hintText: 'Jawaban ${i + 1}'),
                 ),
@@ -215,11 +258,19 @@ class _FeedPollFormPageState extends State<FeedPollFormPage> {
                 controller: _newAnswerController,
                 focusNode: _newAnswerFocus,
                 maxLength: 100,
-                buildCounter: (_, {required currentLength, required isFocused, maxLength}) => null,
+                buildCounter:
+                    (
+                      _, {
+                      required currentLength,
+                      required isFocused,
+                      maxLength,
+                    }) => null,
                 style: const TextStyle(fontSize: 13.5),
                 textInputAction: TextInputAction.done,
                 onSubmitted: (_) => _addAnswer(),
-                decoration: feedInputDecoration(hintText: 'Tambah opsi jawaban...'),
+                decoration: feedInputDecoration(
+                  hintText: 'Tambah opsi jawaban...',
+                ),
               ),
             ),
             IconButton(

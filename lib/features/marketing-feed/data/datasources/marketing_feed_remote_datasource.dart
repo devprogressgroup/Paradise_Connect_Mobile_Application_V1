@@ -1,3 +1,5 @@
+import 'package:progress_group/features/marketing-feed/domain/entities/my_profile_entity.dart';
+import 'package:progress_group/features/marketing-feed/data/models/my_profile_model.dart';
 import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
@@ -53,19 +55,33 @@ abstract class MarketingFeedRemoteDataSource {
   Future<FeedPollModel> votePoll(int postId, List<int> optionIndexes);
 
   /// GET /api/marketing-feed/{id}/comments?page=&per_page=
-  Future<FeedCommentPageEntity> getComments(int postId, {int page = 1, int perPage = 10});
+  Future<FeedCommentPageEntity> getComments(
+    int postId, {
+    int page = 1,
+    int perPage = 10,
+  });
 
   /// POST /api/marketing-feed/{id}/comments {body, parent_id}
   Future<FeedCommentModel> addComment(int postId, String text, {int? parentId});
 
   /// POST /api/marketing-feed/comments/{commentId}/like atau DELETE
-  Future<CommentLikeResult> toggleCommentLike(int commentId, {required bool currentlyLiked});
+  Future<CommentLikeResult> toggleCommentLike(
+    int commentId, {
+    required bool currentlyLiked,
+  });
 
   /// POST /api/marketing-feed/submit (multipart)
   Future<FeedPostModel> shareMoment(ShareFeedMomentParams params);
 
   /// GET /api/marketing-feed/my-submissions?page=&per_page=
-  Future<FeedPageModel> getMySubmissions({int page = 1, int perPage = 10, String? status});
+  Future<FeedPageModel> getMySubmissions({
+    int page = 1,
+    int perPage = 10,
+    String? status,
+  });
+
+  /// GET /api/marketing-feed/me/profile — profil sales sendiri.
+  Future<MyProfileEntity> getMyProfile({int? userId});
 
   /// Moderator — GET /api/marketing-feed/moderator/posts: terjadwal & draft.
   Future<List<FeedPostModel>> getModeratorPosts();
@@ -89,18 +105,23 @@ Future<MultipartFile?> _multipartOf(FeedMediaEntity m, int index) async {
   if (!kIsWeb && m.filePath != null && m.filePath!.isNotEmpty) {
     final file = File(m.filePath!);
     if (await file.exists()) {
-      final fileName = m.fileName ?? m.filePath!.split(Platform.pathSeparator).last;
+      final fileName =
+          m.fileName ?? m.filePath!.split(Platform.pathSeparator).last;
       return MultipartFile.fromFile(m.filePath!, filename: fileName);
     }
   }
   if (m.bytes != null) {
     final ext = m.isVideo ? 'mp4' : 'jpg';
-    return MultipartFile.fromBytes(m.bytes!, filename: m.fileName ?? 'media_$index.$ext');
+    return MultipartFile.fromBytes(
+      m.bytes!,
+      filename: m.fileName ?? 'media_$index.$ext',
+    );
   }
   return null;
 }
 
-class MarketingFeedRemoteDataSourceImpl implements MarketingFeedRemoteDataSource {
+class MarketingFeedRemoteDataSourceImpl
+    implements MarketingFeedRemoteDataSource {
   final Dio dio;
 
   MarketingFeedRemoteDataSourceImpl(this.dio);
@@ -114,7 +135,9 @@ class MarketingFeedRemoteDataSourceImpl implements MarketingFeedRemoteDataSource
       );
       final body = response.data;
       if (body is Map && body['status'] == true && body['data'] != null) {
-        return FeedPageModel.fromJson(Map<String, dynamic>.from(body['data'] as Map));
+        return FeedPageModel.fromJson(
+          Map<String, dynamic>.from(body['data'] as Map),
+        );
       }
       throw parseMarketingFeedException(body, 'Gagal mengambil feed.');
     } catch (e) {
@@ -128,7 +151,9 @@ class MarketingFeedRemoteDataSourceImpl implements MarketingFeedRemoteDataSource
       final response = await dio.get('/marketing-feed/$postId');
       final body = response.data;
       if (body is Map && body['status'] == true && body['data'] != null) {
-        return FeedPostModel.fromJson(Map<String, dynamic>.from(body['data'] as Map));
+        return FeedPostModel.fromJson(
+          Map<String, dynamic>.from(body['data'] as Map),
+        );
       }
       throw parseMarketingFeedException(body, 'Post tidak ditemukan.');
     } catch (e) {
@@ -145,7 +170,11 @@ class MarketingFeedRemoteDataSourceImpl implements MarketingFeedRemoteDataSource
         final dataMap = Map<String, dynamic>.from(body['data'] as Map);
         final items = (dataMap['items'] as List<dynamic>? ?? const []);
         return items
-            .map((e) => WallOfFameLevelModel.fromJson(Map<String, dynamic>.from(e as Map)))
+            .map(
+              (e) => WallOfFameLevelModel.fromJson(
+                Map<String, dynamic>.from(e as Map),
+              ),
+            )
             .toList();
       }
       return const [];
@@ -160,7 +189,9 @@ class MarketingFeedRemoteDataSourceImpl implements MarketingFeedRemoteDataSource
       final response = await dio.get('/marketing-feed/my-funnel');
       final body = response.data;
       if (body is Map && body['status'] == true && body['data'] is Map) {
-        return PersonalFunnelModel.fromJson(Map<String, dynamic>.from(body['data'] as Map));
+        return PersonalFunnelModel.fromJson(
+          Map<String, dynamic>.from(body['data'] as Map),
+        );
       }
       return const PersonalFunnelModel(periodLabel: '', stages: []);
     } catch (e) {
@@ -169,7 +200,10 @@ class MarketingFeedRemoteDataSourceImpl implements MarketingFeedRemoteDataSource
   }
 
   @override
-  Future<PostReactionResult> reactToPost(int postId, FeedReaction reaction) async {
+  Future<PostReactionResult> reactToPost(
+    int postId,
+    FeedReaction reaction,
+  ) async {
     try {
       final Response response;
       if (reaction == FeedReaction.none) {
@@ -187,8 +221,8 @@ class MarketingFeedRemoteDataSourceImpl implements MarketingFeedRemoteDataSource
         final myReaction = myReactionStr == 'like'
             ? FeedReaction.like
             : myReactionStr == 'dislike'
-                ? FeedReaction.dislike
-                : FeedReaction.none;
+            ? FeedReaction.dislike
+            : FeedReaction.none;
         return PostReactionResult(
           myReaction: myReaction,
           likes: (d['likes'] as num?)?.toInt() ?? 0,
@@ -210,7 +244,9 @@ class MarketingFeedRemoteDataSourceImpl implements MarketingFeedRemoteDataSource
       );
       final body = response.data;
       if (body is Map && body['status'] == true && body['data'] != null) {
-        return FeedPollModel.fromJson(Map<String, dynamic>.from(body['data'] as Map));
+        return FeedPollModel.fromJson(
+          Map<String, dynamic>.from(body['data'] as Map),
+        );
       }
       throw parseMarketingFeedException(body, 'Gagal mengirim suara poll.');
     } catch (e) {
@@ -219,7 +255,11 @@ class MarketingFeedRemoteDataSourceImpl implements MarketingFeedRemoteDataSource
   }
 
   @override
-  Future<FeedCommentPageEntity> getComments(int postId, {int page = 1, int perPage = 10}) async {
+  Future<FeedCommentPageEntity> getComments(
+    int postId, {
+    int page = 1,
+    int perPage = 10,
+  }) async {
     try {
       final response = await dio.get(
         '/marketing-feed/$postId/comments',
@@ -227,7 +267,9 @@ class MarketingFeedRemoteDataSourceImpl implements MarketingFeedRemoteDataSource
       );
       final body = response.data;
       if (body is Map && body['status'] == true && body['data'] != null) {
-        return FeedCommentModel.pageFromJson(Map<String, dynamic>.from(body['data'] as Map));
+        return FeedCommentModel.pageFromJson(
+          Map<String, dynamic>.from(body['data'] as Map),
+        );
       }
       throw parseMarketingFeedException(body, 'Gagal mengambil komentar.');
     } catch (e) {
@@ -236,18 +278,23 @@ class MarketingFeedRemoteDataSourceImpl implements MarketingFeedRemoteDataSource
   }
 
   @override
-  Future<FeedCommentModel> addComment(int postId, String text, {int? parentId}) async {
+  Future<FeedCommentModel> addComment(
+    int postId,
+    String text, {
+    int? parentId,
+  }) async {
     try {
       final response = await dio.post(
         '/marketing-feed/$postId/comments',
-        data: {
-          'body': text,
-          if (parentId != null) 'parent_id': parentId,
-        },
+        data: {'body': text, if (parentId != null) 'parent_id': parentId},
       );
       final body = response.data;
-      if (body is Map && (body['status'] == true || response.statusCode == 201) && body['data'] != null) {
-        return FeedCommentModel.fromJson(Map<String, dynamic>.from(body['data'] as Map));
+      if (body is Map &&
+          (body['status'] == true || response.statusCode == 201) &&
+          body['data'] != null) {
+        return FeedCommentModel.fromJson(
+          Map<String, dynamic>.from(body['data'] as Map),
+        );
       }
       throw parseMarketingFeedException(body, 'Gagal mengirim komentar.');
     } catch (e) {
@@ -256,7 +303,10 @@ class MarketingFeedRemoteDataSourceImpl implements MarketingFeedRemoteDataSource
   }
 
   @override
-  Future<CommentLikeResult> toggleCommentLike(int commentId, {required bool currentlyLiked}) async {
+  Future<CommentLikeResult> toggleCommentLike(
+    int commentId, {
+    required bool currentlyLiked,
+  }) async {
     try {
       final Response response;
       if (currentlyLiked) {
@@ -286,15 +336,24 @@ class MarketingFeedRemoteDataSourceImpl implements MarketingFeedRemoteDataSource
         formData.fields.add(MapEntry('text', params.text));
       }
       if (params.townshipId != null) {
-        formData.fields.add(MapEntry('township_id', params.townshipId.toString()));
+        formData.fields.add(
+          MapEntry('township_id', params.townshipId.toString()),
+        );
       }
 
       // Status ditentukan server (permission SkipReview): submit = review atau langsung tayang, draft = draft.
-      formData.fields.add(MapEntry('submit', params.asDraft ? 'draft' : 'review'));
+      formData.fields.add(
+        MapEntry('submit', params.asDraft ? 'draft' : 'review'),
+      );
       final scheduledAt = params.scheduledAt;
       if (scheduledAt != null) {
         formData.fields.add(MapEntry('mode', 'later'));
-        formData.fields.add(MapEntry('publish_at', DateFormat('yyyy-MM-dd HH:mm').format(scheduledAt)));
+        formData.fields.add(
+          MapEntry(
+            'publish_at',
+            DateFormat('yyyy-MM-dd HH:mm').format(scheduledAt),
+          ),
+        );
       }
 
       String flag(bool v) => v ? '1' : '0';
@@ -325,8 +384,12 @@ class MarketingFeedRemoteDataSourceImpl implements MarketingFeedRemoteDataSource
       );
 
       final body = response.data;
-      if (body is Map && (body['status'] == true || response.statusCode == 201) && body['data'] != null) {
-        return FeedPostModel.fromJson(Map<String, dynamic>.from(body['data'] as Map));
+      if (body is Map &&
+          (body['status'] == true || response.statusCode == 201) &&
+          body['data'] != null) {
+        return FeedPostModel.fromJson(
+          Map<String, dynamic>.from(body['data'] as Map),
+        );
       }
       throw parseMarketingFeedException(body, 'Gagal mengirim momen.');
     } catch (e) {
@@ -335,19 +398,49 @@ class MarketingFeedRemoteDataSourceImpl implements MarketingFeedRemoteDataSource
   }
 
   @override
-  Future<FeedPageModel> getMySubmissions({int page = 1, int perPage = 10, String? status}) async {
+  Future<FeedPageModel> getMySubmissions({
+    int page = 1,
+    int perPage = 10,
+    String? status,
+  }) async {
     try {
       final response = await dio.get(
         '/marketing-feed/my-submissions',
-        queryParameters: {'page': page, 'per_page': perPage, if (status != null) 'status': status},
+        queryParameters: {
+          'page': page,
+          'per_page': perPage,
+          if (status != null) 'status': status,
+        },
       );
       final body = response.data;
       if (body is Map && body['status'] == true && body['data'] != null) {
-        return FeedPageModel.fromJson(Map<String, dynamic>.from(body['data'] as Map));
+        return FeedPageModel.fromJson(
+          Map<String, dynamic>.from(body['data'] as Map),
+        );
       }
       throw parseMarketingFeedException(body, 'Gagal mengambil kiriman saya.');
     } catch (e) {
       throw parseMarketingFeedException(e, 'Gagal mengambil kiriman saya.');
+    }
+  }
+
+  @override
+  Future<MyProfileEntity> getMyProfile({int? userId}) async {
+    try {
+      final response = await dio.get(
+        userId == null
+            ? '/marketing-feed/me/profile'
+            : '/marketing-feed/users/$userId/profile',
+      );
+      final body = response.data;
+      if (body is Map && body['status'] == true && body['data'] != null) {
+        return MyProfileModel.fromJson(
+          Map<String, dynamic>.from(body['data'] as Map),
+        );
+      }
+      throw parseMarketingFeedException(body, 'Gagal mengambil profil.');
+    } catch (e) {
+      throw parseMarketingFeedException(e, 'Gagal mengambil profil.');
     }
   }
 
@@ -357,12 +450,24 @@ class MarketingFeedRemoteDataSourceImpl implements MarketingFeedRemoteDataSource
       final response = await dio.get('/marketing-feed/moderator/posts');
       final body = response.data;
       if (body is Map && body['status'] == true && body['data'] is Map) {
-        final items = (body['data'] as Map)['items'] as List<dynamic>? ?? const [];
-        return items.map((e) => FeedPostModel.fromJson(Map<String, dynamic>.from(e as Map))).toList();
+        final items =
+            (body['data'] as Map)['items'] as List<dynamic>? ?? const [];
+        return items
+            .map(
+              (e) =>
+                  FeedPostModel.fromJson(Map<String, dynamic>.from(e as Map)),
+            )
+            .toList();
       }
-      throw parseMarketingFeedException(body, 'Gagal mengambil draft & konten terjadwal.');
+      throw parseMarketingFeedException(
+        body,
+        'Gagal mengambil draft & konten terjadwal.',
+      );
     } catch (e) {
-      throw parseMarketingFeedException(e, 'Gagal mengambil draft & konten terjadwal.');
+      throw parseMarketingFeedException(
+        e,
+        'Gagal mengambil draft & konten terjadwal.',
+      );
     }
   }
 
@@ -370,7 +475,8 @@ class MarketingFeedRemoteDataSourceImpl implements MarketingFeedRemoteDataSource
   Future<FeedPostModel> savePost(SaveFeedPostParams params) async {
     try {
       final formData = FormData();
-      void field(String key, String value) => formData.fields.add(MapEntry(key, value));
+      void field(String key, String value) =>
+          formData.fields.add(MapEntry(key, value));
       String flag(bool v) => v ? '1' : '0';
 
       field('type', params.type.name);
@@ -378,8 +484,10 @@ class MarketingFeedRemoteDataSourceImpl implements MarketingFeedRemoteDataSource
       final scheduledAt = params.scheduledAt;
       field('mode', scheduledAt != null ? 'later' : 'now');
       // jam dinding WIB → server Asia/Jakarta
-      if (scheduledAt != null) field('publish_at', DateFormat('yyyy-MM-dd HH:mm').format(scheduledAt));
-      if (params.townshipId != null) field('township_id', params.townshipId.toString());
+      if (scheduledAt != null)
+        field('publish_at', DateFormat('yyyy-MM-dd HH:mm').format(scheduledAt));
+      if (params.townshipId != null)
+        field('township_id', params.townshipId.toString());
 
       final s = params.settings;
       field('allow[like]', flag(s.allowLike));
@@ -421,7 +529,9 @@ class MarketingFeedRemoteDataSourceImpl implements MarketingFeedRemoteDataSource
 
       final postId = params.postId;
       final response = await dio.post(
-        postId == null ? '/marketing-feed/moderator/posts' : '/marketing-feed/moderator/posts/$postId',
+        postId == null
+            ? '/marketing-feed/moderator/posts'
+            : '/marketing-feed/moderator/posts/$postId',
         data: formData,
         // Sama dengan shareMoment: multipart langsung tanpa proxy /px.
         options: Options(
@@ -433,7 +543,9 @@ class MarketingFeedRemoteDataSourceImpl implements MarketingFeedRemoteDataSource
 
       final body = response.data;
       if (body is Map && body['status'] == true && body['data'] != null) {
-        return FeedPostModel.fromJson(Map<String, dynamic>.from(body['data'] as Map));
+        return FeedPostModel.fromJson(
+          Map<String, dynamic>.from(body['data'] as Map),
+        );
       }
       throw parseMarketingFeedException(body, 'Gagal menyimpan konten.');
     } catch (e) {
@@ -460,10 +572,17 @@ class MarketingFeedRemoteDataSourceImpl implements MarketingFeedRemoteDataSource
 
   /// Satu program "Wall of Fame" berisi kategori per level (TOP GM/SM/SPV/SE).
   /// Juara #1 = ranking 1, peringkat lain di [WallOfFameLevelEntity.runnersUp] = ranking 2 dst.
-  List<FameProgramEntity> _programsFromLevels(List<WallOfFameLevelEntity> levels) {
+  List<FameProgramEntity> _programsFromLevels(
+    List<WallOfFameLevelEntity> levels,
+  ) {
     if (levels.isEmpty) return const [];
 
-    FameEntryEntity toEntry(WallOfFameEntryEntity e, String level, int ranking, int id) {
+    FameEntryEntity toEntry(
+      WallOfFameEntryEntity e,
+      String level,
+      int ranking,
+      int id,
+    ) {
       final media = e.media;
       return FameEntryEntity(
         id: e.id ?? id,
@@ -476,7 +595,9 @@ class MarketingFeedRemoteDataSourceImpl implements MarketingFeedRemoteDataSource
         name: e.name,
         initials: e.initials ?? '',
         photoUrl: e.photoUrl,
-        mediaType: media == null || media.url == null ? null : (media.isVideo ? 'video' : 'image'),
+        mediaType: media == null || media.url == null
+            ? null
+            : (media.isVideo ? 'video' : 'image'),
         mediaUrl: media?.url,
       );
     }
@@ -489,11 +610,17 @@ class MarketingFeedRemoteDataSourceImpl implements MarketingFeedRemoteDataSource
         for (var j = 0; j < level.runnersUp.length; j++)
           toEntry(level.runnersUp[j], level.level, j + 2, i * 100 + j + 1),
       ];
-      categories.add(FameCategoryEntity(kategori: level.level, entries: entries));
+      categories.add(
+        FameCategoryEntity(kategori: level.level, entries: entries),
+      );
     }
 
     return [
-      FameProgramEntity(id: 0, namaProgram: 'Wall of Fame', categories: categories),
+      FameProgramEntity(
+        id: 0,
+        namaProgram: 'Wall of Fame',
+        categories: categories,
+      ),
     ];
   }
 
@@ -512,7 +639,10 @@ class MarketingFeedRemoteDataSourceImpl implements MarketingFeedRemoteDataSource
 
   Future<void> moderatorAction(int postId, String action) async {
     try {
-      final response = await dio.post('/marketing-feed/moderator/posts/$postId/action', data: {'action': action});
+      final response = await dio.post(
+        '/marketing-feed/moderator/posts/$postId/action',
+        data: {'action': action},
+      );
       final body = response.data;
       if (body is Map && body['status'] == true) return;
       throw parseMarketingFeedException(body, 'Gagal memproses konten.');

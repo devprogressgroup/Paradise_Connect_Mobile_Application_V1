@@ -7,7 +7,11 @@ class AddFeedCommentUseCase {
 
   AddFeedCommentUseCase(this.repository);
 
-  Future<Either<String, FeedCommentEntity>> call(int postId, String text, {int? parentId}) async {
+  Future<Either<String, FeedCommentEntity>> call(
+    int postId,
+    String text, {
+    int? parentId,
+  }) async {
     return await repository.addComment(postId, text, parentId: parentId);
   }
 }

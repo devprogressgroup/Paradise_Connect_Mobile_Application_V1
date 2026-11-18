@@ -7,7 +7,13 @@ class ToggleFeedCommentLikeUseCase {
 
   ToggleFeedCommentLikeUseCase(this.repository);
 
-  Future<Either<String, CommentLikeResult>> call(int commentId, {required bool currentlyLiked}) async {
-    return await repository.toggleCommentLike(commentId, currentlyLiked: currentlyLiked);
+  Future<Either<String, CommentLikeResult>> call(
+    int commentId, {
+    required bool currentlyLiked,
+  }) async {
+    return await repository.toggleCommentLike(
+      commentId,
+      currentlyLiked: currentlyLiked,
+    );
   }
 }

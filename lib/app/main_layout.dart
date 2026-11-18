@@ -1,4 +1,5 @@
-import 'package:flutter/foundation.dart' show kIsWeb, defaultTargetPlatform, TargetPlatform;
+import 'package:flutter/foundation.dart'
+    show kIsWeb, defaultTargetPlatform, TargetPlatform;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -45,7 +46,9 @@ class _MainLayoutState extends State<MainLayout> {
   void initState() {
     super.initState();
     AnalyticsService.logScreenView('main_layout');
-    context.read<WhatsappActivityBloc>().add(const FetchWhatsappUnreadSummaryEvent(0));
+    context.read<WhatsappActivityBloc>().add(
+      const FetchWhatsappUnreadSummaryEvent(0),
+    );
     _setupPwa();
     _loadAppVersion();
   }
@@ -109,16 +112,16 @@ class _MainLayoutState extends State<MainLayout> {
         title: Text('Konfirmasi Logout'),
         content: Text('Apakah Anda yakin ingin logout?'),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: Text('Batal'),
-          ),
+          TextButton(onPressed: () => Navigator.pop(ctx), child: Text('Batal')),
           TextButton(
             onPressed: () {
               Navigator.pop(ctx);
               context.read<AuthBloc>().add(LogoutEvent());
             },
-            child: Text('Logout', style: TextStyle(color: Color(redAccentColor))),
+            child: Text(
+              'Logout',
+              style: TextStyle(color: Color(redAccentColor)),
+            ),
           ),
         ],
       ),
@@ -137,8 +140,12 @@ class _MainLayoutState extends State<MainLayout> {
           mainAxisSize: MainAxisSize.min,
           children: [
             Container(
-              width: 40, height: 4,
-              decoration: BoxDecoration(color: Color(greyShade300), borderRadius: BorderRadius.circular(2)),
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Color(greyShade300),
+                borderRadius: BorderRadius.circular(2),
+              ),
             ),
             const SizedBox(height: 20),
             const Text(
@@ -154,7 +161,8 @@ class _MainLayoutState extends State<MainLayout> {
             const SizedBox(height: 24),
             _iosStep(
               icon: Icons.ios_share,
-              text: 'Tap ikon Share (kotak dengan panah ke atas) di toolbar Safari',
+              text:
+                  'Tap ikon Share (kotak dengan panah ke atas) di toolbar Safari',
             ),
             const SizedBox(height: 16),
             _iosStep(
@@ -197,7 +205,6 @@ class _MainLayoutState extends State<MainLayout> {
     if (location.startsWith('/report')) return 11;
     return -1;
   }
-  
 
   @override
   void didChangeDependencies() {
@@ -210,8 +217,10 @@ class _MainLayoutState extends State<MainLayout> {
       ScaffoldMessenger.of(context).hideCurrentSnackBar();
       context.read<AuthBloc>().add(FetchPermissionsEvent());
 
-      final wasInSection = oldUri.startsWith('/contact') || oldUri.startsWith('/inbox');
-      final isNowInSection = newUri.startsWith('/contact') || newUri.startsWith('/inbox');
+      final wasInSection =
+          oldUri.startsWith('/contact') || oldUri.startsWith('/inbox');
+      final isNowInSection =
+          newUri.startsWith('/contact') || newUri.startsWith('/inbox');
       if (wasInSection && !isNowInSection) {
         context.read<ContactBloc>().add(const ResetContactFiltersEvent());
       }
@@ -226,152 +235,234 @@ class _MainLayoutState extends State<MainLayout> {
     // Home (Marketing Feed) & Report (dashboard lama) sama-sama punya tombol menu di header.
     final hasDrawer = location == '/' || location == '/report';
 
-    final statusBarStyle = isAttendance  ? const SystemUiOverlayStyle(statusBarColor: Color(primaryColor),statusBarIconBrightness: Brightness.light,statusBarBrightness: Brightness.dark)  : const SystemUiOverlayStyle(statusBarColor: Color(whiteColor),statusBarIconBrightness: Brightness.dark,statusBarBrightness: Brightness.light,);
-    
-    return AnnotatedRegion<SystemUiOverlayStyle>(
-    value: statusBarStyle,
-    child: PopScope(
-      canPop: false,
-      onPopInvokedWithResult: (didPop, result) async {
-        if (didPop) return;
-
-        if (_scaffoldKey.currentState?.isDrawerOpen ?? false) {
-          _scaffoldKey.currentState?.closeDrawer();
-          return;
-        }
-
-        if (context.canPop()) {
-          context.pop();
-          return;
-        }
-
-        if (location != '/' && location != '/login') {
-          context.go('/');
-          return;
-        }
-
-        final now = DateTime.now();
-        final isTimeout = _lastPressedAt == null ||now.difference(_lastPressedAt!) > const Duration(seconds: 2);
-
-        if (isTimeout) {
-          _lastPressedAt = now;
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Tekan sekali lagi untuk keluar'),
-              duration: Duration(seconds: 2),
-            ),
+    final statusBarStyle = isAttendance
+        ? const SystemUiOverlayStyle(
+            statusBarColor: Color(primaryColor),
+            statusBarIconBrightness: Brightness.light,
+            statusBarBrightness: Brightness.dark,
+          )
+        : const SystemUiOverlayStyle(
+            statusBarColor: Color(whiteColor),
+            statusBarIconBrightness: Brightness.dark,
+            statusBarBrightness: Brightness.light,
           );
-        } else {
-          AnalyticsService.logEvent('main_layout_exit_app_confirm');
-          SystemNavigator.pop();
-        }
-      },
-    child: Scaffold(
-      key: _scaffoldKey,
-      drawerEnableOpenDragGesture: false,
-      drawer: hasDrawer ? _buildFloatingDrawer(context) : null,
-      drawerScrimColor: Color(background2Color).withOpacity(0.16),
-      body: Column(
-        children: [
-          const EnvironmentBanner(),
-          const ImpersonationBanner(),
-          const OldAppBanner(),
-          Expanded(
-            child: Builder(
-              builder: (context) {
-                return Stack(
-                  children: [
-                    widget.child,
-                    if (hasDrawer)
-                      Positioned(
-                        left: 20,
-                        top: 10,
-                        bottom: 0,
-                        width: 40,
-                        child: GestureDetector(
-                          behavior: HitTestBehavior.translucent,
-                          onHorizontalDragUpdate: (details) {
-                            if (details.delta.dx > 12) {
-                              AnalyticsService.logEvent('main_layout_open_drawer');
-                              Scaffold.of(context).openDrawer();
-                            }
-                          },
-                        ),
-                      ),
-                  ],
-                );
-              },
-            ),
-          ),
-        ],
-      ),
-      bottomNavigationBar: location.endsWith('/camera')
-          ? null
-          // Inset bawah dihitung di DALAM Container supaya background putih ikut mengisi
-          // area home indicator iOS — lihat _navBottomPadding.
-          : Container(
-        decoration: BoxDecoration(
-          color: Color(whiteColor),
-          boxShadow: [
-            BoxShadow(
-              color: Color(blackColor).withOpacity(0.04),
-              blurRadius: 10,
-              offset: const Offset(0, -4),
-            ),
-          ],
-        ),
-        child: Padding(
-        padding: EdgeInsets.fromLTRB(6, 15, 6, _navBottomPadding(context)),
-        child: BlocBuilder<AuthBloc, AuthState>(
-          buildWhen: (prev, curr) => curr is PermissionsLoading || curr is PermissionsLoaded || curr is PermissionsError,
-          builder: (context, state) {
-            if (state is PermissionsLoading) {
-              return const ShimmerBottomNav();
-            }
 
-            if (state is PermissionsError) {
-              return Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.wifi_off_rounded, size: 18, color: Color(greyShade400)),
-                  const SizedBox(width: 8),
-                  Text('Gagal memuat', style: TextStyle(fontSize: 12, color: Color(greyShade400))),
-                  const SizedBox(width: 8),
-                  GestureDetector(
-                    onTap: () {
-                      AnalyticsService.logEvent('main_layout_retry_permissions');
-                      context.read<AuthBloc>().add(FetchPermissionsEvent());
-                    },
-                    child: Text('Coba lagi', style: TextStyle(fontSize: 12, color: Color(primaryColor), fontWeight: FontWeight.w600)),
-                  ),
-                ],
-              );
-            }
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: statusBarStyle,
+      child: PopScope(
+        canPop: false,
+        onPopInvokedWithResult: (didPop, result) async {
+          if (didPop) return;
 
-            return Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                _buildNavItem(context, path: '/', icon: icNavHome, label: 'Home', isActive: currentIndex == 0),
-                if (PermissionsHelper.canAccessContacts)
-                  _buildNavItem(context, path: '/contact', icon: icSidebarContacts, label: 'Contact', isActive: currentIndex == 1),
-                if (PermissionsHelper.canAccessAttendance)
-                  _buildNavItem(context, path: '/attandance', icon: icNavAttendance, label: 'Attendance', isActive: currentIndex == 6),
-                if (PermissionsHelper.canAccessInbox)
-                  BlocBuilder<WhatsappActivityBloc, WhatsappActivityState>(
-                    builder: (context, state) {
-                      final totalUnread = state.data.fold<int>(0, (sum, item) => sum + item.unreadCount);
-                      return _buildNavItem(context, path: '/inbox', icon: icSidebarInbox, label: 'Inbox', isActive: currentIndex == 2, badgeCount: totalUnread);
-                    },
-                  ),
-                if (PermissionsHelper.canAccessSitePlan)
-                  _buildNavItem(context, path: '/site-plan', icon: icSidebarSitePlan, label: 'Site Plan', isActive: currentIndex == 4),
-              ],
+          if (_scaffoldKey.currentState?.isDrawerOpen ?? false) {
+            _scaffoldKey.currentState?.closeDrawer();
+            return;
+          }
+
+          if (context.canPop()) {
+            context.pop();
+            return;
+          }
+
+          if (location != '/' && location != '/login') {
+            context.go('/');
+            return;
+          }
+
+          final now = DateTime.now();
+          final isTimeout =
+              _lastPressedAt == null ||
+              now.difference(_lastPressedAt!) > const Duration(seconds: 2);
+
+          if (isTimeout) {
+            _lastPressedAt = now;
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Tekan sekali lagi untuk keluar'),
+                duration: Duration(seconds: 2),
+              ),
             );
-          },
+          } else {
+            AnalyticsService.logEvent('main_layout_exit_app_confirm');
+            SystemNavigator.pop();
+          }
+        },
+        child: Scaffold(
+          key: _scaffoldKey,
+          drawerEnableOpenDragGesture: false,
+          drawer: hasDrawer ? _buildFloatingDrawer(context) : null,
+          drawerScrimColor: Color(background2Color).withOpacity(0.16),
+          body: Column(
+            children: [
+              const EnvironmentBanner(),
+              const ImpersonationBanner(),
+              const OldAppBanner(),
+              Expanded(
+                child: Builder(
+                  builder: (context) {
+                    return Stack(
+                      children: [
+                        widget.child,
+                        if (hasDrawer)
+                          Positioned(
+                            left: 20,
+                            top: 10,
+                            bottom: 0,
+                            width: 40,
+                            child: GestureDetector(
+                              behavior: HitTestBehavior.translucent,
+                              onHorizontalDragUpdate: (details) {
+                                if (details.delta.dx > 12) {
+                                  AnalyticsService.logEvent(
+                                    'main_layout_open_drawer',
+                                  );
+                                  Scaffold.of(context).openDrawer();
+                                }
+                              },
+                            ),
+                          ),
+                      ],
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+          bottomNavigationBar: location.endsWith('/camera')
+              ? null
+              // Inset bawah dihitung di DALAM Container supaya background putih ikut mengisi
+              // area home indicator iOS — lihat _navBottomPadding.
+              : Container(
+                  decoration: BoxDecoration(
+                    color: Color(whiteColor),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Color(blackColor).withOpacity(0.04),
+                        blurRadius: 10,
+                        offset: const Offset(0, -4),
+                      ),
+                    ],
+                  ),
+                  child: Padding(
+                    padding: EdgeInsets.fromLTRB(
+                      6,
+                      15,
+                      6,
+                      _navBottomPadding(context),
+                    ),
+                    child: BlocBuilder<AuthBloc, AuthState>(
+                      buildWhen: (prev, curr) =>
+                          curr is PermissionsLoading ||
+                          curr is PermissionsLoaded ||
+                          curr is PermissionsError,
+                      builder: (context, state) {
+                        if (state is PermissionsLoading) {
+                          return const ShimmerBottomNav();
+                        }
+
+                        if (state is PermissionsError) {
+                          return Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.wifi_off_rounded,
+                                size: 18,
+                                color: Color(greyShade400),
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                'Gagal memuat',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Color(greyShade400),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              GestureDetector(
+                                onTap: () {
+                                  AnalyticsService.logEvent(
+                                    'main_layout_retry_permissions',
+                                  );
+                                  context.read<AuthBloc>().add(
+                                    FetchPermissionsEvent(),
+                                  );
+                                },
+                                child: Text(
+                                  'Coba lagi',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Color(primaryColor),
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          );
+                        }
+
+                        return Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceAround,
+                          children: [
+                            _buildNavItem(
+                              context,
+                              path: '/',
+                              icon: icNavHome,
+                              label: 'Home',
+                              isActive: currentIndex == 0,
+                            ),
+                            if (PermissionsHelper.canAccessContacts)
+                              _buildNavItem(
+                                context,
+                                path: '/contact',
+                                icon: icSidebarContacts,
+                                label: 'Contact',
+                                isActive: currentIndex == 1,
+                              ),
+                            if (PermissionsHelper.canAccessAttendance)
+                              _buildNavItem(
+                                context,
+                                path: '/attandance',
+                                icon: icNavAttendance,
+                                label: 'Attendance',
+                                isActive: currentIndex == 6,
+                              ),
+                            if (PermissionsHelper.canAccessInbox)
+                              BlocBuilder<
+                                WhatsappActivityBloc,
+                                WhatsappActivityState
+                              >(
+                                builder: (context, state) {
+                                  final totalUnread = state.data.fold<int>(
+                                    0,
+                                    (sum, item) => sum + item.unreadCount,
+                                  );
+                                  return _buildNavItem(
+                                    context,
+                                    path: '/inbox',
+                                    icon: icSidebarInbox,
+                                    label: 'Inbox',
+                                    isActive: currentIndex == 2,
+                                    badgeCount: totalUnread,
+                                  );
+                                },
+                              ),
+                            if (PermissionsHelper.canAccessSitePlan)
+                              _buildNavItem(
+                                context,
+                                path: '/site-plan',
+                                icon: icSidebarSitePlan,
+                                label: 'Site Plan',
+                                isActive: currentIndex == 4,
+                              ),
+                          ],
+                        );
+                      },
+                    ),
+                  ),
+                ),
         ),
       ),
-      ),
-    )));
+    );
   }
 
   // Jarak bawah navbar. Android/web: padding 15 + inset sistem (biasanya 0).
@@ -384,10 +475,9 @@ class _MainLayoutState extends State<MainLayout> {
     return 15 + inset;
   }
 
-
   Widget _buildFloatingDrawer(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
-    final drawerWidth = screenWidth * 0.6; 
+    final drawerWidth = screenWidth * 0.6;
 
     return SizedBox(
       width: drawerWidth,
@@ -402,156 +492,295 @@ class _MainLayoutState extends State<MainLayout> {
                 SliverFillRemaining(
                   hasScrollBody: false,
                   child: Column(
-              mainAxisAlignment: MainAxisAlignment.start,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                GestureDetector(
-                  onTap: () {
-                    AnalyticsService.logEvent('main_layout_drawer_open_profile');
-                    context.push('/profile');
-                  },
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric( horizontal: 16),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.start,
-                      children: [
-                        BlocBuilder<ProfileBloc, ProfileState>(
-                          builder: (context, state) {
-                            String userName = "User";
-                            String userPosition = "";
-                            String? photoUrl;
-                            if (state is ProfileLoaded) {
-                              final profile = state.profile;
-                              userName = profile.fullName;
-                              final isSales = profile.userRoleId == 3 || profile.salesPersonId != null;
-                              userPosition = isSales
-                                  ? (profile.positionName ?? "")
-                                  : (profile.userRoleName ?? "");
-                              photoUrl = profile.photoUrl;
-                            }
-                            return Row(
-                              children: [
-                                ClipOval(
-                                  child: photoUrl != null
-                                      ? Image.network(
-                                          photoUrl,
-                                          width: 54,
-                                          height: 54,
-                                          fit: BoxFit.cover,
-                                          errorBuilder: (_, __, ___) => CircleAvatar(
-                                            radius: 27,
-                                            backgroundColor: Color(primaryColor),
-                                            child: Icon(Icons.person, color: Color(whiteColor), size: 37),
-                                          ),
-                                        )
-                                      : CircleAvatar(
-                                          radius: 27,
-                                          backgroundColor: Color(primaryColor),
-                                          child: Icon(Icons.person, color: Color(whiteColor), size: 37),
+                    mainAxisAlignment: MainAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      GestureDetector(
+                        onTap: () {
+                          AnalyticsService.logEvent(
+                            'main_layout_drawer_open_profile',
+                          );
+                          context.push('/profile');
+                        },
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.start,
+                            children: [
+                              BlocBuilder<ProfileBloc, ProfileState>(
+                                builder: (context, state) {
+                                  String userName = "User";
+                                  String userPosition = "";
+                                  String? photoUrl;
+                                  if (state is ProfileLoaded) {
+                                    final profile = state.profile;
+                                    userName = profile.fullName;
+                                    final isSales =
+                                        profile.userRoleId == 3 ||
+                                        profile.salesPersonId != null;
+                                    userPosition = isSales
+                                        ? (profile.positionName ?? "")
+                                        : (profile.userRoleName ?? "");
+                                    photoUrl = profile.photoUrl;
+                                  }
+                                  return Row(
+                                    children: [
+                                      ClipOval(
+                                        child: photoUrl != null
+                                            ? Image.network(
+                                                photoUrl,
+                                                width: 54,
+                                                height: 54,
+                                                fit: BoxFit.cover,
+                                                errorBuilder: (_, __, ___) =>
+                                                    CircleAvatar(
+                                                      radius: 27,
+                                                      backgroundColor: Color(
+                                                        primaryColor,
+                                                      ),
+                                                      child: Icon(
+                                                        Icons.person,
+                                                        color: Color(
+                                                          whiteColor,
+                                                        ),
+                                                        size: 37,
+                                                      ),
+                                                    ),
+                                              )
+                                            : CircleAvatar(
+                                                radius: 27,
+                                                backgroundColor: Color(
+                                                  primaryColor,
+                                                ),
+                                                child: Icon(
+                                                  Icons.person,
+                                                  color: Color(whiteColor),
+                                                  size: 37,
+                                                ),
+                                              ),
+                                      ),
+                                      SizedBox(width: 10),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              userName,
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                              style: TextStyle(
+                                                fontSize: 16,
+                                                fontWeight: FontWeight.w400,
+                                                color: Color(grey2Color),
+                                              ),
+                                            ),
+                                            if (userPosition.isNotEmpty)
+                                              Text(
+                                                userPosition,
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
+                                                style: TextStyle(
+                                                  fontSize: 10,
+                                                  fontWeight: FontWeight.w400,
+                                                  color: Color(grey2Color),
+                                                ),
+                                              ),
+                                          ],
                                         ),
+                                      ),
+                                    ],
+                                  );
+                                },
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      SizedBox(height: 10),
+                      _buildDrawerItem(
+                        context,
+                        icNavHome,
+                        'Home',
+                        path: '/',
+                        index: 0,
+                      ),
+                      // Marketing Feed (sesuai prototype): Feeds = Kiriman Saya milik sendiri
+                      if (PermissionsHelper.canModerateMarketingFeed)
+                        _buildDrawerItem(
+                          context,
+                          '',
+                          'Feeds',
+                          path: '/marketing-feed/my-submissions',
+                          index: 12,
+                          iconData: Icons.history_rounded,
+                        ),
+                      _buildDrawerItem(
+                        context,
+                        icSidebarDashboard,
+                        'Report',
+                        path: '/report',
+                        index: 11,
+                      ),
+                      if (PermissionsHelper.canAccessContacts)
+                        _buildDrawerItem(
+                          context,
+                          icSidebarContacts,
+                          'Contacts',
+                          path: '/contact',
+                          index: 1,
+                        ),
+                      if (PermissionsHelper.canAccessInbox)
+                        _buildDrawerItem(
+                          context,
+                          icSidebarInbox,
+                          'Inbox',
+                          path: '/inbox',
+                          index: 2,
+                        ),
+                      if (PermissionsHelper.canAccessSitePlan)
+                        _buildDrawerItem(
+                          context,
+                          icSidebarSitePlan,
+                          'Site Plan',
+                          path: '/site-plan',
+                          index: 4,
+                        ),
+                      if (PermissionsHelper.canAccessSalesKit)
+                        _buildDrawerItem(
+                          context,
+                          icSidebarSalesKit,
+                          'Sales Kit',
+                          path: '/sales-kit',
+                          index: 5,
+                        ),
+                      if (PermissionsHelper.canAccessSiapHuni)
+                        _buildDrawerItem(
+                          context,
+                          '',
+                          'Siap Huni',
+                          path: '/siap-huni',
+                          index: 9,
+                          iconData: Icons.home_rounded,
+                        ),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        child: Divider(),
+                      ),
+                      if (PermissionsHelper.canAccessAttendance)
+                        _buildDrawerItem(
+                          context,
+                          icNavAttendance,
+                          'Attendance',
+                          path: '/attandance',
+                          index: 6,
+                        ),
+                      if (PermissionsHelper.canAccessReserveOrder)
+                        _buildDrawerItem(
+                          context,
+                          '',
+                          'Transaction',
+                          path: '/reserve-order',
+                          index: 10,
+                          iconData: Icons.local_offer,
+                        ),
+                      const Spacer(),
+
+                      const Spacer(),
+                      _buildDrawerItem(
+                        context,
+                        '',
+                        'Info & Panduan',
+                        path: '/landing-page',
+                        index: 8,
+                        iconData: Icons.info,
+                      ),
+                      if (_pwaAvailable || _isIosSafariDevice)
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 20),
+                          child: GestureDetector(
+                            onTap: () {
+                              AnalyticsService.logEvent(
+                                'main_layout_install_app',
+                              );
+                              Navigator.of(context).pop();
+                              if (_isIosSafariDevice) {
+                                _showIosInstallInstructions();
+                              } else {
+                                showPwaInstallPrompt().then((_) {
+                                  if (mounted)
+                                    setState(
+                                      () => _pwaAvailable =
+                                          isPwaInstallAvailable(),
+                                    );
+                                });
+                              }
+                            },
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.install_mobile_outlined,
+                                  color: Color(primaryColor),
+                                  size: 24,
                                 ),
                                 SizedBox(width: 10),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(userName, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w400, color: Color(grey2Color))),
-                                      if (userPosition.isNotEmpty)
-                                        Text(userPosition, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w400, color: Color(grey2Color))),
-                                    ],
+                                Text(
+                                  "Install App",
+                                  style: TextStyle(
+                                    color: Color(primaryColor),
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
                                   ),
                                 ),
                               ],
-                            );
-                          },
+                            ),
+                          ),
                         ),
-                      ],
-                    ),
-                  ),
-                ),
-                SizedBox(height: 10),
-                _buildDrawerItem(context, icNavHome, 'Home', path: '/', index: 0),
-                // Marketing Feed (sesuai prototype): Feeds = Kiriman Saya milik sendiri
-                if (PermissionsHelper.canModerateMarketingFeed)
-                _buildDrawerItem(context, '', 'Feeds', path: '/marketing-feed/my-submissions', index: 12, iconData: Icons.history_rounded),
-                 
-                _buildDrawerItem(context, icSidebarDashboard, 'Report', path: '/report', index: 11),
-                if (PermissionsHelper.canAccessContacts)
-                  _buildDrawerItem(context, icSidebarContacts, 'Contacts', path: '/contact', index: 1),
-                if (PermissionsHelper.canAccessInbox)
-                  _buildDrawerItem(context, icSidebarInbox, 'Inbox', path: '/inbox', index: 2),
-                if (PermissionsHelper.canAccessSitePlan)
-                  _buildDrawerItem(context, icSidebarSitePlan, 'Site Plan', path: '/site-plan', index: 4),
-                if (PermissionsHelper.canAccessSalesKit)
-                  _buildDrawerItem(context, icSidebarSalesKit, 'Sales Kit', path: '/sales-kit', index: 5),
-                if (PermissionsHelper.canAccessSiapHuni)
-                  _buildDrawerItem(context, '', 'Siap Huni', path: '/siap-huni', index: 9, iconData: Icons.home_rounded),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: Divider(),
-                ),
-                if (PermissionsHelper.canAccessAttendance)
-                  _buildDrawerItem(context, icNavAttendance, 'Attendance', path: '/attandance', index: 6),
-                if (PermissionsHelper.canAccessReserveOrder)
-                  _buildDrawerItem(context, '', 'Transaction', path: '/reserve-order', index: 10, iconData: Icons.local_offer),
-                const Spacer(),
-
-                const Spacer(),
-                 _buildDrawerItem(context, '', 'Info & Panduan', path: '/landing-page', index: 8, iconData: Icons.info),
-                if (_pwaAvailable || _isIosSafariDevice)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
-                    child: GestureDetector(
-                      onTap: () {
-                        AnalyticsService.logEvent('main_layout_install_app');
-                        Navigator.of(context).pop();
-                        if (_isIosSafariDevice) {
-                          _showIosInstallInstructions();
-                        } else {
-                          showPwaInstallPrompt().then((_) {
-                            if (mounted) setState(() => _pwaAvailable = isPwaInstallAvailable());
-                          });
-                        }
-                      },
-                      child: Row(
-                        children: [
-                          Icon(Icons.install_mobile_outlined, color: Color(primaryColor), size: 24),
-                          SizedBox(width: 10),
-                          Text("Install App", style: TextStyle(color: Color(primaryColor), fontSize: 16, fontWeight: FontWeight.w600)),
-                        ],
+                      if (_pwaAvailable || _isIosSafariDevice)
+                        const SizedBox(height: 16),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                        child: GestureDetector(
+                          onTap: () {
+                            AnalyticsService.logEvent('main_layout_logout');
+                            Navigator.of(context).pop();
+                            _showLogoutConfirmation();
+                          },
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.login_outlined,
+                                color: Color(grey2Color),
+                                size: 24,
+                              ),
+                              SizedBox(width: 10),
+                              Text(
+                                "Logout",
+                                style: TextStyle(
+                                  color: Color(grey2Color),
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                       ),
-                    ),
-                  ),
-                if (_pwaAvailable || _isIosSafariDevice) const SizedBox(height: 16),
-                Padding(
-                  padding: const EdgeInsets.symmetric( horizontal: 20),
-                  child: GestureDetector(
-                    onTap: () {
-                      AnalyticsService.logEvent('main_layout_logout');
-                      Navigator.of(context).pop();
-                      _showLogoutConfirmation();
-                    },
-                    child: Row(
-                      children: [
-                        Icon(Icons.login_outlined, color: Color(grey2Color), size: 24),
-                        SizedBox(width: 10),
-                        Text("Logout", style: TextStyle(color: Color(grey2Color), fontSize: 16, fontWeight: FontWeight.w600),),
-                      ],
-                    ),
-                  ),
-                ),
-                if (_appVersion.isNotEmpty)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 12),
-                    child: Center(
-                      child: Text(
-                        'v$_appVersion',
-                        style: TextStyle(color: Color(grey4Color), fontSize: 11),
-                      ),
-                    ),
-                  ),
-                const SizedBox(height: 16),
-              ],
+                      if (_appVersion.isNotEmpty)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 12),
+                          child: Center(
+                            child: Text(
+                              'v$_appVersion',
+                              style: TextStyle(
+                                color: Color(grey4Color),
+                                fontSize: 11,
+                              ),
+                            ),
+                          ),
+                        ),
+                      const SizedBox(height: 16),
+                    ],
                   ),
                 ),
               ],
@@ -562,7 +791,15 @@ class _MainLayoutState extends State<MainLayout> {
     );
   }
 
-  Widget _buildDrawerItem(BuildContext context, String icon, String title, {required String path, required int index, IconData? iconData, String? badge}) {
+  Widget _buildDrawerItem(
+    BuildContext context,
+    String icon,
+    String title, {
+    required String path,
+    required int index,
+    IconData? iconData,
+    String? badge,
+  }) {
     final currentIndex = _currentIndex;
     final isActive = currentIndex == index || (index == 4 && currentIndex == 3);
 
@@ -582,34 +819,60 @@ class _MainLayoutState extends State<MainLayout> {
                 height: 48,
                 padding: const EdgeInsets.symmetric(horizontal: 12),
                 decoration: BoxDecoration(
-                  color: isActive ? Color(primaryColor).withOpacity(0.08) : Color(transparentColor),
+                  color: isActive
+                      ? Color(primaryColor).withOpacity(0.08)
+                      : Color(transparentColor),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Row(
                   children: [
                     iconData != null
-                        ? Icon(iconData, size: 24, color: isActive ? Color(primaryColor) : Color(grey2Color))
-                        : Image.asset(icon, width: 24, height: 24, color: isActive ? Color(primaryColor) : Color(grey2Color)),
+                        ? Icon(
+                            iconData,
+                            size: 24,
+                            color: isActive
+                                ? Color(primaryColor)
+                                : Color(grey2Color),
+                          )
+                        : Image.asset(
+                            icon,
+                            width: 24,
+                            height: 24,
+                            color: isActive
+                                ? Color(primaryColor)
+                                : Color(grey2Color),
+                          ),
                     const SizedBox(width: 12),
                     Text(
                       title,
                       style: TextStyle(
                         fontSize: 16,
-                        fontWeight: isActive ? FontWeight.bold : FontWeight.w600,
-                        color: isActive ? Color(primaryColor) : Color(grey2Color),
+                        fontWeight: isActive
+                            ? FontWeight.bold
+                            : FontWeight.w600,
+                        color: isActive
+                            ? Color(primaryColor)
+                            : Color(grey2Color),
                       ),
                     ),
                     if (badge != null) ...[
                       const SizedBox(width: 6),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 1,
+                        ),
                         decoration: BoxDecoration(
                           color: Color(orangeAccentColor),
                           borderRadius: BorderRadius.circular(99),
                         ),
                         child: Text(
                           badge,
-                          style: TextStyle(fontSize: 9.5, fontWeight: FontWeight.w800, color: Color(whiteColor)),
+                          style: TextStyle(
+                            fontSize: 9.5,
+                            fontWeight: FontWeight.w800,
+                            color: Color(whiteColor),
+                          ),
                         ),
                       ),
                     ],
@@ -633,7 +896,14 @@ class _MainLayoutState extends State<MainLayout> {
     );
   }
 
-  Widget _buildNavItem(BuildContext context, {required String path, required String icon, required String label, required bool isActive, int badgeCount = 0}) {
+  Widget _buildNavItem(
+    BuildContext context, {
+    required String path,
+    required String icon,
+    required String label,
+    required bool isActive,
+    int badgeCount = 0,
+  }) {
     return GestureDetector(
       onTap: () {
         final event = _navEventByPath[path];
@@ -646,7 +916,7 @@ class _MainLayoutState extends State<MainLayout> {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 10),
             child: Container(
-              padding: const EdgeInsets.symmetric(vertical: 5,horizontal: 6),
+              padding: const EdgeInsets.symmetric(vertical: 5, horizontal: 6),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [

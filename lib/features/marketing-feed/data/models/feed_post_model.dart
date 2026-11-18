@@ -121,7 +121,9 @@ class FeedPollModel extends FeedPollEntity {
     for (var i = 0; i < rawOptions.length; i++) {
       final opt = rawOptions[i];
       if (opt is Map) {
-        options.add(FeedPollOptionModel.fromJson(Map<String, dynamic>.from(opt)));
+        options.add(
+          FeedPollOptionModel.fromJson(Map<String, dynamic>.from(opt)),
+        );
       } else if (opt is String) {
         options.add(FeedPollOptionModel(index: i + 1, label: opt));
       }
@@ -163,8 +165,10 @@ class FeedLinkModel extends FeedLinkEntity {
   });
 
   factory FeedLinkModel.fromJson(Map<String, dynamic> json) {
-    final platform = json['platform'] as String? ?? json['source'] as String? ?? 'web';
-    final channel = json['channel'] as String? ?? json['source_label'] as String?;
+    final platform =
+        json['platform'] as String? ?? json['source'] as String? ?? 'web';
+    final channel =
+        json['channel'] as String? ?? json['source_label'] as String?;
     return FeedLinkModel(
       url: json['url'] as String? ?? '',
       platform: platform,
@@ -228,7 +232,9 @@ class FeedPostModel extends FeedPostEntity {
         ? (counts['comments'] as num?)?.toInt() ?? 0
         : (json['comment_count'] as num?)?.toInt() ?? 0;
 
-    final allowMap = json['allow'] as Map<String, dynamic>? ?? json['settings'] as Map<String, dynamic>?;
+    final allowMap =
+        json['allow'] as Map<String, dynamic>? ??
+        json['settings'] as Map<String, dynamic>?;
     final settings = allowMap != null
         ? FeedInteractionSettingsModel.fromJson(allowMap)
         : const FeedInteractionSettingsModel();
@@ -238,13 +244,18 @@ class FeedPostModel extends FeedPostEntity {
     final myReaction = myReactionStr == 'like'
         ? FeedReaction.like
         : myReactionStr == 'dislike'
-            ? FeedReaction.dislike
-            : FeedReaction.none;
+        ? FeedReaction.dislike
+        : FeedReaction.none;
 
     // Semua waktu jadi jam dinding WIB (lihat DateHelper.parseServerTime). Draft dari layar moderator
     // tidak punya published_at → pakai updated_at (terakhir diubah).
-    final submittedAt = DateHelper.parseServerTime(json['submitted_at'] as String?);
-    final publishAt = DateHelper.parseServerTime(json['published_at'] as String? ?? json['publish_at'] as String?) ??
+    final submittedAt = DateHelper.parseServerTime(
+      json['submitted_at'] as String?,
+    );
+    final publishAt =
+        DateHelper.parseServerTime(
+          json['published_at'] as String? ?? json['publish_at'] as String?,
+        ) ??
         DateHelper.parseServerTime(json['updated_at'] as String?) ??
         submittedAt ??
         AppTime.now();
@@ -257,7 +268,11 @@ class FeedPostModel extends FeedPostEntity {
           )
         : FeedPostStatus.published;
 
-    final isMine = json['is_mine'] == true || statusStr == 'review' || statusStr == 'rejected' || submittedAt != null;
+    final isMine =
+        json['is_mine'] == true ||
+        statusStr == 'review' ||
+        statusStr == 'rejected' ||
+        submittedAt != null;
 
     return FeedPostModel(
       id: json['id'] as int,
@@ -266,7 +281,9 @@ class FeedPostModel extends FeedPostEntity {
         orElse: () => FeedPostType.post,
       ),
       status: status,
-      author: FeedAuthorModel.fromJson(json['author'] as Map<String, dynamic>? ?? const {}),
+      author: FeedAuthorModel.fromJson(
+        json['author'] as Map<String, dynamic>? ?? const {},
+      ),
       township: township != null ? FeedTownshipModel.fromJson(township) : null,
       text: json['text'] as String? ?? '',
       label: json['label'] as String?,
@@ -283,7 +300,9 @@ class FeedPostModel extends FeedPostEntity {
       dislikeCount: dislikeCount,
       myReaction: myReaction,
       commentCount: commentCount,
-      latestComment: latestComment == null ? null : FeedCommentModel.fromJson(latestComment),
+      latestComment: latestComment == null
+          ? null
+          : FeedCommentModel.fromJson(latestComment),
       rejectReason: json['reject_reason'] as String?,
       profilePinned: json['profile_pinned'] == true,
       isPinned: isPinned,
@@ -308,16 +327,28 @@ class FeedPageModel extends FeedPageEntity {
     final pinned = (json['pinned'] as List<dynamic>? ?? const [])
         .map((e) => FeedPostModel.fromJson(e as Map<String, dynamic>))
         .toList();
-    final items = (json['items'] as List<dynamic>? ?? json['data'] as List<dynamic>? ?? const [])
-        .map((e) => FeedPostModel.fromJson(e as Map<String, dynamic>))
-        .toList();
+    final items =
+        (json['items'] as List<dynamic>? ??
+                json['data'] as List<dynamic>? ??
+                const [])
+            .map((e) => FeedPostModel.fromJson(e as Map<String, dynamic>))
+            .toList();
     final home = (json['home'] as List<dynamic>? ?? const [])
-        .map((e) => HomeRefEntity(type: (e['type'] ?? 'post') as String, id: (e['id'] as num).toInt()))
+        .map(
+          (e) => HomeRefEntity(
+            type: (e['type'] ?? 'post') as String,
+            id: (e['id'] as num).toInt(),
+          ),
+        )
         .toList();
     final currentPage = json['current_page'] as int? ?? 1;
     final perPage = json['per_page'] as int? ?? 10;
     final total = json['total'] as int? ?? items.length;
-    final hasMore = json['has_more'] as bool? ?? (json['last_page'] != null ? currentPage < (json['last_page'] as int) : false);
+    final hasMore =
+        json['has_more'] as bool? ??
+        (json['last_page'] != null
+            ? currentPage < (json['last_page'] as int)
+            : false);
 
     return FeedPageModel(
       home: home,
