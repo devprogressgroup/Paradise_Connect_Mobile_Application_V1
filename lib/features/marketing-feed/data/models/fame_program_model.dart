@@ -20,8 +20,11 @@ List<FameProgramEntity> parseFamePrograms(List<dynamic> items) {
                   FameEntryEntity(
                     id: (e['id'] as num).toInt(),
                     programId: (e['program_id'] as num).toInt(),
-                    programName: (e['program'] ?? raw['nama_program'] ?? '') as String,
-                    periodeLabel: e['periode'] as String? ?? raw['periode_label'] as String?,
+                    programName:
+                        (e['program'] ?? raw['nama_program'] ?? '') as String,
+                    periodeLabel:
+                        e['periode'] as String? ??
+                        raw['periode_label'] as String?,
                     kategori: (e['kategori'] ?? '') as String,
                     ranking: (e['ranking'] as num).toInt(),
                     posisiLabel: e['posisi_label'] as String?,
@@ -32,7 +35,15 @@ List<FameProgramEntity> parseFamePrograms(List<dynamic> items) {
                     mediaType: (e['media'] as Map?)?['type'] as String?,
                     mediaUrl: (e['media'] as Map?)?['url'] as String?,
                     isPinned: e['is_pinned'] == true,
-                    publishedAt: e['published_at'] == null ? null : DateTime.tryParse(e['published_at'] as String),
+                    publishedAt: e['published_at'] == null
+                        ? null
+                        : DateTime.tryParse(e['published_at'] as String),
+                    creatorName:
+                        ((e['creator'] as Map?)?['name'] ?? 'Admin') as String,
+                    creatorInitials:
+                        ((e['creator'] as Map?)?['initials'] ?? 'A') as String,
+                    creatorPhotoUrl:
+                        (e['creator'] as Map?)?['photo_url'] as String?,
                   ),
               ],
             ),

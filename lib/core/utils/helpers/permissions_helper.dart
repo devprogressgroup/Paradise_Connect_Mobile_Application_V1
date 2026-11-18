@@ -131,5 +131,27 @@ class PermissionsHelper {
 
   // Moderator Marketing Feed di app: buat post/poll/link, kelola Draft & Terjadwal. Semua user tetap bisa
   // lihat feed & "Bagikan Momen" (masuk review moderator). Backend mengecek feature yang sama.
-  static bool get canModerateMarketingFeed => check('Marketing Feed', 'Modify');
+  // Feature moderator per aksi (sama dengan backend MarketingFeedMobileService). "Modify" dibiarkan untuk akses lama.
+  // "View" sengaja TIDAK ada di sini: semua sales punya View, jadi akan terbaca sebagai moderator.
+  static const List<String> _marketingFeedModFeatures = [
+    'CreatePost', 'CreatePoll', 'CreateLink', 'Edit', 'PublishNow', 'Delete', 'ApproveReject', 'Modify',
+  ];
+  static bool get canModerateMarketingFeed =>
+      _marketingFeedModFeatures.any((f) => check('Marketing Feed', f));
+
+  // Izin membuat konten per jenis. Momen & Postingan memakai CreatePost, Polling CreatePoll, Link CreateLink.
+  // Sama dengan pengecekan di backend (MarketingFeedMobileService::CREATE_FEATURE).
+  static bool get canCreateMarketingPost => check('Marketing Feed', 'CreatePost');
+  static bool get canCreateMarketingPoll => check('Marketing Feed', 'CreatePoll');
+  static bool get canCreateMarketingLink => check('Marketing Feed', 'CreateLink');
+
+  // Permission "SetTownship": sales boleh memilih target township. Tanpa permission, kiriman mengikuti township sales.
+  static bool get canSetTownshipMarketingFeed => check('Marketing Feed', 'SetTownship');
+
+  // Permission "SetSchedule": sales boleh mengatur waktu tayang. Tanpa permission, kiriman hanya bisa tayang sekarang.
+  static bool get canSetScheduleMarketingFeed => check('Marketing Feed', 'SetSchedule');
+
+  // Permission "SkipReview": dicentang = kiriman langsung tayang; tidak dicentang (default) = ditinjau moderator dulu.
+  // Sama dengan backend: MarketingFeedMobileService::SKIP_REVIEW_FEATURE.
+  static bool get canSkipReviewMarketingFeed => check('Marketing Feed', 'SkipReview');
 }

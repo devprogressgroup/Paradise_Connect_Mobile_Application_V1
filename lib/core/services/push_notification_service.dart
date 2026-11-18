@@ -270,6 +270,10 @@ class PushNotificationService {
   /// navigasi ke halaman terkait dan return true. Kalau bukan (link eksternal
   /// biasa/null/key tak dikenal), return false — caller yang buka via
   /// url_launcher seperti biasa.
+  /// Notifikasi Marketing Feed (post tayang / hasil review) tidak memakai dialog atau banner.
+  static bool isMarketingFeedLink(String? linkUrl) =>
+      linkUrl != null && linkUrl.startsWith('app://marketing_feed');
+
   static bool tryNavigateInternalLink(String? linkUrl) {
     if (linkUrl == null || !linkUrl.startsWith('app://')) return false;
     final uri = Uri.tryParse(linkUrl);
@@ -570,6 +574,8 @@ class PushNotificationService {
     }
 
     if (data['type'] == 'global_notification') {
+      // Marketing Feed: tanpa banner/dialog. Notifikasinya tetap ada di riwayat notifikasi.
+      if (isMarketingFeedLink(data['link_url'] as String?)) return;
       _showDialogAfterFrame(() => _showGlobalNotificationDialogFromData(data));
       return;
     }
@@ -721,6 +727,11 @@ class PushNotificationService {
     }
 
     if (type == 'global_notification') {
+      // Marketing Feed: langsung buka post-nya, tanpa dialog.
+      if (isMarketingFeedLink(data['link_url'] as String?)) {
+        tryNavigateInternalLink(data['link_url'] as String?);
+        return;
+      }
       _showDialogAfterFrame(() => _showGlobalNotificationDialogFromData(data));
       return;
     }

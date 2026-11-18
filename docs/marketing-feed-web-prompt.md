@@ -165,7 +165,7 @@ Semua endpoint memakai token login. Format tanggal ISO 8601 dalam UTC, ditampilk
 |---|---|---|
 | GET | `/admin/marketing-feed/settings/feed` | Daftar pengaturan global dan per sales yang punya baris. |
 | GET | `/admin/marketing-feed/settings/feed/effective?user_id=` | Pengaturan yang berlaku untuk satu sales, hasil gabungan global dan user. |
-| PUT | `/admin/marketing-feed/settings/feed/global` | Simpan global. Body `{mode, bobot?, pin_post?, pin_fame?}`. Upsert. |
+| PUT | `/admin/marketing-feed/settings/feed/global` | Simpan global. Body `{mode, bobot?, pin_post?, pin_fame?, review?}`. Upsert. |
 | PUT | `/admin/marketing-feed/settings/feed/users/{user_id}` | Simpan per sales. Field yang tidak dikirim ikut global. |
 | DELETE | `/admin/marketing-feed/settings/feed/users/{user_id}` | Hapus pengaturan sales. Sales kembali ikut global. |
 
@@ -212,8 +212,10 @@ Kode yang wajib ada:
 5. Notifikasi ke moderator: **satu notifikasi ringkas** dibuat saat momen masuk antrean review (jika kebijakan notifikasi mengizinkan). Belum ada notifikasi untuk draft.
 6. Di Kiriman Saya, kiriman `review` ditandai **Menunggu persetujuan Tim Marketing**. Sales tidak bisa mengubahnya selama masih `review`.
 
+Jika kebijakan efektif pengirim adalah `review = none`, langkah 4 berubah: `submit = review` diperlakukan sebagai `publish` atau `schedule` sesuai input, dan langkah 5 dan 6 tidak dibuat. Momen tetap berstatus `published` atau `scheduled` tanpa melewati antrean.
+
 Yang tidak boleh terjadi:
-- Momen dari sales tidak pernah langsung `published`. Ini aturan keras, dicek di server.
+- Momen dari user yang kebijakannya `required` tidak pernah langsung `published`. Dicek di server.
 - Sales tidak bisa melihat kiriman sales lain yang masih `review`.
 
 ### 6.2 Moderator menyetujui kiriman (approve)
@@ -263,7 +265,12 @@ Kiriman `rejected` tidak pernah langsung kembali ke feed tanpa persetujuan.
 
 ### 6.5 Pengajuan dari moderator di mobile
 
-Moderator memakai tombol + dengan opsi **Post baru**, **Poll baru**, dan **Link**, dengan aksi Tayangkan, Jadwalkan, atau Simpan draft. Ini memakai endpoint `POST /admin/marketing-feed/posts` dengan `source = mobile` dan izin moderator. Tidak ada antrean review untuk moderator.
+Moderator memakai tombol + dengan opsi **Post baru**, **Poll baru**, dan **Link**, dengan aksi Tayangkan, Jadwalkan, atau Simpan draft. Ini memakai endpoint `POST /admin/marketing-feed/posts` dengan `source = mobile` dan izin moderator.
+
+Kebijakan persetujuan moderator mengikuti `review` pada bagian 9.1 (nilai efektif untuk moderator yang membuat kiriman):
+- `none`: aksi Tayangkan atau Jadwalkan langsung berlaku, tanpa antrean.
+- `required`: aksi Tayangkan atau Jadwalkan menjadi `status = review`. Kiriman masuk antrean `/admin/marketing-feed/reviews` dan tidak tampil di feed sampai disetujui moderator lain atau dirinya sendiri, sesuai aturan yang diisi di Admin Web. Pengirim tidak boleh menyetujui kirimannya sendiri jika kebijakan ini aktif.
+- Aksi Simpan draft tidak pernah masuk antrean.
 
 ---
 
@@ -348,11 +355,14 @@ Skor tidak disimpan. Hitung saat feed diambil, dan batasi jumlah kandidat (misal
 - `config` JSON:
 
 ```json
-{ "mode": "otomatis", "bobot": {"rel":3,"minat":2,"engage":2,"baru":2,"proyek":1}, "pin_post": [12], "pin_fame": [3] }
+{ "mode": "otomatis", "bobot": {"rel":3,"minat":2,"engage":2,"baru":2,"proyek":1}, "pin_post": [12], "pin_fame": [3], "review": "required" }
 ```
 
 Aturan:
 - Pengaturan user menimpa global per kunci. Kunci yang kosong ikut global.
+- `review` (kebijakan persetujuan) bernilai `required` (wajib lewat antrean review) atau `none` (langsung tayang atau dijadwalkan). Berlaku untuk setiap kiriman yang dibuat oleh user itu, baik Momen maupun Postingan. Lihat bagian 6.1 dan 6.5.
+- Nilai efektif untuk satu user: `review` di baris user, jika ada. Jika tidak ada, pakai `review` global. Jika global juga kosong, pakai `required`.
+- Perubahan kebijakan hanya berlaku untuk kiriman baru. Kiriman yang sudah berstatus `review` tetap di antrean.
 - `bobot` hanya dipakai saat mode `custom`.
 - `pin_post` maks. 3 dan hanya kiriman `published`. Kiriman yang kemudian ditarik ke draft dilepas dari pin.
 - `pin_fame` maks. 3 dan hanya entri Wall of Fame `published`.
@@ -442,6 +452,8 @@ Setiap skenario di bawah harus lolos uji otomatis.
 5. Apakah juara Wall of Fame yang tampil harus selalu sama dengan juara yang dibayar. Jika tidak, perlu kolom catatan selisih.
 6. Kebijakan notifikasi: apakah moderator mendapat notifikasi per momen atau dikumpulkan.
 7. Pengguna lain yang belum punya riwayat interaksi: sinyal personal untuk mereka bagaimana. Usulan: hanya sinyal non-personal.
+8. Nilai default `review` untuk moderator. Usulan: global default `required` (sama dengan perilaku sales sekarang), dan moderator yang ingin langsung tayang diberi `none` lewat baris per user. Jika tidak, moderator yang sudah ada akan ikut antrean setelah fitur ini aktif.
+9. Pengaturan `review` per user berlaku untuk pembuat kiriman. Untuk Postingan oleh moderator, pembuat adalah moderator itu sendiri. Pastikan tidak ada moderator yang bisa menyetujui kirimannya sendiri (lihat bagian 6.5).
 
 ---
 

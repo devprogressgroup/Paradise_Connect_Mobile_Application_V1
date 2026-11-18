@@ -48,7 +48,6 @@ import '../features/marketing-feed/presentation/pages/link-form/index.dart';
 import '../features/marketing-feed/presentation/pages/my-submissions/index.dart';
 import '../features/marketing-feed/presentation/pages/poll-form/index.dart';
 import '../features/marketing-feed/presentation/pages/post-form/index.dart';
-import '../features/marketing-feed/presentation/pages/share-moment/index.dart';
 import 'main_layout.dart';
 import '../core/services/analytics_service.dart';
 import '../core/utils/helpers/permissions_helper.dart';
@@ -247,11 +246,6 @@ class AppRouter {
                 },
               ),
               GoRoute(
-                name: 'marketingFeedShare',
-                path: 'marketing-feed/share',
-                builder: (context, state) => const FeedShareMomentPage(),
-              ),
-              GoRoute(
                 name: 'marketingFeedMySubmissions',
                 path: 'marketing-feed/my-submissions',
                 builder: (context, state) => const FeedMySubmissionsPage(),
@@ -269,19 +263,19 @@ class AppRouter {
               GoRoute(
                 name: 'marketingFeedPostForm',
                 path: 'marketing-feed/post-form',
-                redirect: (context, state) => PermissionsHelper.canModerateMarketingFeed ? null : '/',
+                redirect: (context, state) => PermissionsHelper.canCreateMarketingPost ? null : '/',
                 builder: (context, state) => FeedPostFormPage(post: state.extra as FeedPostEntity?),
               ),
               GoRoute(
                 name: 'marketingFeedPollForm',
                 path: 'marketing-feed/poll-form',
-                redirect: (context, state) => PermissionsHelper.canModerateMarketingFeed ? null : '/',
+                redirect: (context, state) => PermissionsHelper.canCreateMarketingPoll ? null : '/',
                 builder: (context, state) => FeedPollFormPage(post: state.extra as FeedPostEntity?),
               ),
               GoRoute(
                 name: 'marketingFeedLinkForm',
                 path: 'marketing-feed/link-form',
-                redirect: (context, state) => PermissionsHelper.canModerateMarketingFeed ? null : '/',
+                redirect: (context, state) => PermissionsHelper.canCreateMarketingLink ? null : '/',
                 builder: (context, state) => FeedLinkFormPage(post: state.extra as FeedPostEntity?),
               ),
               GoRoute(

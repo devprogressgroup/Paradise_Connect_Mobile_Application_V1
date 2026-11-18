@@ -52,6 +52,7 @@ class _FeedModeratorFormScaffoldState extends State<FeedModeratorFormScaffold> {
       FeedPostType.link => 'Link',
     };
     return switch (post.status) {
+      FeedPostStatus.review => 'Kiriman terkirim dan menunggu review moderator',
       FeedPostStatus.published => '$label dipublikasikan, notifikasi dikirim ke sales',
       FeedPostStatus.scheduled => 'Dijadwalkan tayang ${DateHelper.relativeDayTime(post.publishAt)}',
       _ => 'Disimpan sebagai draft',

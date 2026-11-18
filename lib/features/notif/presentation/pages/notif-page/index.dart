@@ -635,6 +635,11 @@ class _NotifPageState extends State<NotifPage> {
         // navigasi, bukan dialog). Broadcast admin biasa (app://<key> polos/eksternal/tanpa link)
         // tetap lewat dialog seperti semula.
         if (PushNotificationService.tryNavigateFromEventLink(notif.linkUrl)) return;
+        // Marketing Feed: langsung buka post-nya, tanpa dialog.
+        if (PushNotificationService.isMarketingFeedLink(notif.linkUrl)) {
+          PushNotificationService.tryNavigateInternalLink(notif.linkUrl);
+          return;
+        }
 
         showGlobalNotificationDialog(
           context,

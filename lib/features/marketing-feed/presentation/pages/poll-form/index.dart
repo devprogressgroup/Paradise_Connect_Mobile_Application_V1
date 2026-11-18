@@ -7,6 +7,7 @@ import 'package:progress_group/features/marketing-feed/domain/entities/feed_post
 import 'package:progress_group/features/marketing-feed/domain/entities/save_feed_post_params.dart';
 import 'package:progress_group/features/marketing-feed/presentation/state/feed_compose/feed_compose_cubit.dart';
 import 'package:progress_group/features/marketing-feed/presentation/widgets/feed_compose_fields.dart';
+import 'package:progress_group/features/marketing-feed/presentation/widgets/feed_create_tabs.dart';
 import 'package:progress_group/features/marketing-feed/presentation/widgets/feed_moderator_form_scaffold.dart';
 import 'package:progress_group/features/marketing-feed/presentation/widgets/feed_section.dart';
 
@@ -121,6 +122,10 @@ class _FeedPollFormPageState extends State<FeedPollFormPage> {
       primaryLabel: _scheduledAt != null ? 'Jadwalkan' : 'Publikasikan Poll',
       onSave: _save,
       children: [
+        if (widget.post == null && FeedCreateTabs.showRow) ...[
+          const FeedCreateTabs(current: FeedCreateTab.polling),
+          const SizedBox(height: 16),
+        ],
         const FeedFormLabel('Gambar Pertanyaan (opsional)'),
         const SizedBox(height: 8),
         FeedSingleImagePicker(image: _image, onChanged: (m) => setState(() => _image = m)),

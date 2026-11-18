@@ -14,8 +14,14 @@ class FameEntryEntity {
   final String? mediaType;
   final String? mediaUrl;
   final bool isPinned;
+
   /// Waktu tayang juara. Dipakai untuk mengurutkan bersama kiriman lain (bukan selalu di atas).
   final DateTime? publishedAt;
+
+  /// Pembuat entri (admin yang memasukkan juara). Ditampilkan sebagai header kartu, seperti author kiriman.
+  final String creatorName;
+  final String creatorInitials;
+  final String? creatorPhotoUrl;
 
   const FameEntryEntity({
     required this.id,
@@ -33,6 +39,9 @@ class FameEntryEntity {
     this.mediaUrl,
     this.isPinned = false,
     this.publishedAt,
+    this.creatorName = 'Admin',
+    this.creatorInitials = 'A',
+    this.creatorPhotoUrl,
   });
 
   bool get isChampion => ranking == 1;

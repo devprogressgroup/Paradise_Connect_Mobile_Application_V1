@@ -1,10 +1,19 @@
 import 'package:progress_group/features/marketing-feed/domain/entities/feed_post_entity.dart';
 
-/// Body kiriman "Bagikan Momen" dari sales — masuk antrean review moderator dulu.
+/// Body kiriman sales (POST /marketing-feed/submit). Ditinjau moderator atau langsung tayang sesuai permission SkipReview.
 class ShareFeedMomentParams {
   final String text;
   final List<FeedMediaEntity> media;
+
+  /// null = ikut township sales (atau semua kalau bukan sales).
   final int? townshipId;
+  final FeedInteractionSettings settings;
+
+  /// null = tayang sekarang. Jam dinding WIB.
+  final DateTime? scheduledAt;
+
+  /// Simpan sebagai draft (tidak dikirim ke review / tayang).
+  final bool asDraft;
 
   /// Progress upload multipart (byte terkirim, total byte).
   final void Function(int sent, int total)? onProgress;
@@ -13,6 +22,9 @@ class ShareFeedMomentParams {
     required this.text,
     this.media = const [],
     this.townshipId,
+    this.settings = const FeedInteractionSettings(),
+    this.scheduledAt,
+    this.asDraft = false,
     this.onProgress,
   });
 
@@ -21,6 +33,9 @@ class ShareFeedMomentParams {
       text: text,
       media: media,
       townshipId: townshipId,
+      settings: settings,
+      scheduledAt: scheduledAt,
+      asDraft: asDraft,
       onProgress: onProgress ?? this.onProgress,
     );
   }

@@ -3,17 +3,21 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:progress_group/core/constants/colors.dart';
 import 'package:progress_group/core/services/analytics_service.dart';
 import 'package:progress_group/core/utils/helpers/app_time.dart';
+import 'package:progress_group/core/utils/helpers/permissions_helper.dart';
 import 'package:progress_group/features/marketing-feed/domain/entities/feed_post_entity.dart';
 import 'package:progress_group/features/marketing-feed/domain/entities/save_feed_post_params.dart';
 import 'package:progress_group/features/marketing-feed/presentation/state/feed_compose/feed_compose_cubit.dart';
 import 'package:progress_group/features/marketing-feed/presentation/widgets/feed_compose_fields.dart';
+import 'package:progress_group/features/marketing-feed/presentation/widgets/feed_create_tabs.dart';
 import 'package:progress_group/features/marketing-feed/presentation/widgets/feed_moderator_form_scaffold.dart';
 
 const _maxMedia = 10;
 const _maxCaption = 2000;
 
-/// Moderator: buat/edit post (foto/video carousel + caption), target township, interaksi, tayang
-/// sekarang/jadwalkan, atau simpan draft. [post] diisi = edit draft/terjadwal. Pop `true` kalau tersimpan.
+/// Postingan: foto/video + caption + pengaturan interaksi (permission CreatePost).
+/// Target township hanya tampil dengan permission SetTownship, waktu tayang hanya dengan SetSchedule.
+/// Kiriman baru dikirim lewat /submit: permission SkipReview dicentang = langsung tayang, tidak = menunggu approval.
+/// Edit draft/terjadwal (post != null) tetap lewat jalur moderator. Pop `true` kalau tersimpan.
 class FeedPostFormPage extends StatefulWidget {
   final FeedPostEntity? post;
 
@@ -62,7 +66,22 @@ class _FeedPostFormPageState extends State<FeedPostFormPage> {
       return _showMessage('Pilih waktu tayang yang akan datang.');
     }
     AnalyticsService.logEvent(asDraft ? 'marketing_feed_post_draft' : 'marketing_feed_post_submit');
-    context.read<FeedComposeCubit>().savePost(SaveFeedPostParams(
+
+    final cubit = context.read<FeedComposeCubit>();
+    if (widget.post == null) {
+      // Kiriman baru: jalur sales. Township dan jadwal hanya dikirim kalau user punya permission-nya.
+      cubit.shareMoment(ShareFeedMomentParams(
+        text: text,
+        media: _media,
+        townshipId: PermissionsHelper.canSetTownshipMarketingFeed ? _townshipId : null,
+        settings: _settings,
+        scheduledAt: !asDraft && PermissionsHelper.canSetScheduleMarketingFeed ? scheduledAt : null,
+        asDraft: asDraft,
+      ));
+      return;
+    }
+
+    cubit.savePost(SaveFeedPostParams(
       postId: widget.post?.id,
       type: FeedPostType.post,
       text: text,
@@ -76,11 +95,25 @@ class _FeedPostFormPageState extends State<FeedPostFormPage> {
 
   @override
   Widget build(BuildContext context) {
+    final isNew = widget.post == null;
+    final canSetTownship = !isNew || PermissionsHelper.canSetTownshipMarketingFeed;
+    final canSetSchedule = !isNew || PermissionsHelper.canSetScheduleMarketingFeed;
+
+    final primaryLabel = isNew && !PermissionsHelper.canSkipReviewMarketingFeed
+        ? 'Kirim untuk Ditinjau'
+        : _scheduledAt != null
+            ? 'Jadwalkan'
+            : 'Publikasikan';
+
     return FeedModeratorFormScaffold(
-      title: widget.post == null ? 'Post Baru' : 'Edit Post',
-      primaryLabel: _scheduledAt != null ? 'Jadwalkan' : 'Publikasikan',
+      title: isNew ? 'Post Baru' : 'Edit Post',
+      primaryLabel: primaryLabel,
       onSave: _save,
       children: [
+        if (isNew && FeedCreateTabs.showRow) ...[
+          const FeedCreateTabs(current: FeedCreateTab.postingan),
+          const SizedBox(height: 16),
+        ],
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
@@ -101,18 +134,22 @@ class _FeedPostFormPageState extends State<FeedPostFormPage> {
           style: const TextStyle(fontSize: 13.5),
           decoration: feedInputDecoration(hintText: 'Tulis caption… (apit dengan ** untuk teks tebal)'),
         ),
-        const SizedBox(height: 12),
-        const FeedFormLabel('Target Township'),
-        const SizedBox(height: 8),
-        FeedTownshipField(townshipId: _townshipId, onChanged: (id) => setState(() => _townshipId = id)),
+        if (canSetTownship) ...[
+          const SizedBox(height: 12),
+          const FeedFormLabel('Target Township'),
+          const SizedBox(height: 8),
+          FeedTownshipField(townshipId: _townshipId, onChanged: (id) => setState(() => _townshipId = id)),
+        ],
         const SizedBox(height: 12),
         const FeedFormLabel('Pengaturan Interaksi'),
         const SizedBox(height: 8),
         FeedInteractionSettingsCard(settings: _settings, onChanged: (s) => setState(() => _settings = s)),
-        const SizedBox(height: 12),
-        const FeedFormLabel('Waktu Tayang'),
-        const SizedBox(height: 8),
-        FeedScheduleField(scheduledAt: _scheduledAt, onChanged: (at) => setState(() => _scheduledAt = at)),
+        if (canSetSchedule) ...[
+          const SizedBox(height: 12),
+          const FeedFormLabel('Waktu Tayang'),
+          const SizedBox(height: 8),
+          FeedScheduleField(scheduledAt: _scheduledAt, onChanged: (at) => setState(() => _scheduledAt = at)),
+        ],
       ],
     );
   }

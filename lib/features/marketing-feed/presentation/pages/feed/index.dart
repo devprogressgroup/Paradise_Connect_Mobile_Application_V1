@@ -3,7 +3,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:progress_group/core/constants/colors.dart';
 import 'package:progress_group/core/services/analytics_service.dart';
-import 'package:progress_group/core/utils/helpers/permissions_helper.dart';
 import 'package:progress_group/core/utils/widget/custom_header.dart';
 import 'package:progress_group/features/auth/presentation/state/profile/profile_bloc.dart';
 import 'package:progress_group/features/auth/presentation/state/profile/profile_event.dart';
@@ -19,6 +18,7 @@ import 'package:progress_group/features/marketing-feed/presentation/state/market
 import 'package:progress_group/features/marketing-feed/presentation/widgets/feed_comment_sheet.dart';
 import 'package:progress_group/features/marketing-feed/presentation/widgets/feed_post_card.dart';
 import 'package:progress_group/features/marketing-feed/presentation/widgets/fame_programs_section.dart';
+import 'package:progress_group/features/marketing-feed/presentation/widgets/progress_funnel_card.dart';
 import 'package:share_plus/share_plus.dart';
 
 /// Home = Marketing Feed: ajakan bagikan momen, Progress Kamu, Wall of Fame, lalu aliran feed.
@@ -32,7 +32,6 @@ class MarketingFeedPage extends StatefulWidget {
 
 class _MarketingFeedPageState extends State<MarketingFeedPage> {
   final _scrollController = ScrollController();
-  bool _menuOpen = false;
 
   @override
   void initState() {
@@ -72,29 +71,23 @@ class _MarketingFeedPageState extends State<MarketingFeedPage> {
 
   Future<void> _refresh() => context.read<MarketingFeedCubit>().fetch();
 
-  /// Buka menu tombol + (Bagikan Momen, Kiriman Saya, form & Draft moderator); feed dimuat ulang begitu
-  /// kembali dengan hasil `true`.
+  /// Buka halaman lewat tombol + atau sidebar; feed dimuat ulang begitu kembali.
+  /// Tidak memakai hasil `true` dari form: pindah tab Buat Konten memakai pushReplacement, jadi hasil
+  /// simpan tidak sampai ke sini. Karena itu feed selalu dimuat ulang saat kembali.
   Future<void> _open(String routeName) async {
-    setState(() => _menuOpen = false);
-    final changed = await context.pushNamed<bool>(routeName);
+    await context.pushNamed<bool>(routeName);
     if (!mounted) return;
-    if (changed == true) {
-      await _refresh();
-      if (_scrollController.hasClients) {
-        _scrollController.animateTo(0, duration: const Duration(milliseconds: 300), curve: Curves.easeOut);
-      }
+    await _refresh();
+    if (_scrollController.hasClients) {
+      _scrollController.animateTo(0, duration: const Duration(milliseconds: 300), curve: Curves.easeOut);
     }
   }
 
+  /// Sales dan moderator sama-sama langsung ke Buat Konten (Postingan). Tab Polling dan Link hanya tampil
+  /// sesuai permission (lihat FeedCreateTabs).
   void _onFabTap() {
     AnalyticsService.logEvent('marketing_feed_fab');
-    // Sales: tombol + langsung membuka Bagikan Momen (sesuai prototype).
-    // Moderator: tampilkan menu Post / Poll / Link / Momen.
-    if (!PermissionsHelper.canModerateMarketingFeed) {
-      _open('marketingFeedShare');
-      return;
-    }
-    setState(() => _menuOpen = !_menuOpen);
+    _open('marketingFeedPostForm');
   }
 
   Future<void> _react(FeedPostEntity post, FeedReaction reaction) async {
@@ -136,14 +129,6 @@ class _MarketingFeedPageState extends State<MarketingFeedPage> {
                     child: _buildList(state),
                   ),
                 ),
-                if (_menuOpen)
-                  Positioned.fill(
-                    child: GestureDetector(
-                      behavior: HitTestBehavior.opaque,
-                      onTap: () => setState(() => _menuOpen = false),
-                    ),
-                  ),
-                if (_menuOpen) Positioned(right: 16, bottom: 82, child: _buildComposeMenu()),
                 Positioned(right: 16, bottom: 16, child: _buildFab()),
               ],
             ),
@@ -205,6 +190,11 @@ class _MarketingFeedPageState extends State<MarketingFeedPage> {
     };
 
     final children = <Widget>[ 
+      // Progress Kamu: di paling atas Home (sesuai prototype), di atas kiriman dan Wall of Fame.
+      ProgressFunnelCard(
+        funnel: state.funnel,
+        onOpenReport: () => context.pushNamed('report'),
+      ),
       if (state.homeOrder.isEmpty) _buildFeedStatus(state),
       for (final ref in state.homeOrder)
         if (ref.type == 'post' && postById[ref.id] != null)
@@ -269,66 +259,11 @@ class _MarketingFeedPageState extends State<MarketingFeedPage> {
         onPressed: _onFabTap,
         backgroundColor: const Color(primaryColor),
         shape: const CircleBorder(),
-        child: AnimatedRotation(
-          turns: _menuOpen ? 0.125 : 0,
-          duration: const Duration(milliseconds: 200),
-          child: const Icon(Icons.add, size: 28, color: Color(whiteColor)),
-        ),
+        child: const Icon(Icons.add, size: 28, color: Color(whiteColor)),
       ),
     );
   }
 
-  Widget _buildComposeMenu() {
-    return Material(
-      color: const Color(whiteColor),
-      elevation: 8,
-      shadowColor: const Color(blue2Color).withValues(alpha: 0.3),
-      borderRadius: BorderRadius.circular(12),
-      child: Padding(
-        padding: const EdgeInsets.all(6),
-        child: IntrinsicWidth(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // Menu ini hanya untuk moderator (sales langsung ke Bagikan Momen).
-              // Label, urutan, dan keterangan mengikuti prototype (tab Momen / Postingan / Polling / Link).
-              // Kiriman Saya dan Draf & Terjadwal ada di sidebar.
-              if (PermissionsHelper.canModerateMarketingFeed) ...[
-                _menuItem(Icons.photo_camera_outlined, 'Momen', 'Kiriman dari sales', 'marketingFeedShare'),
-                _menuItem(Icons.article_outlined, 'Postingan', 'Foto atau video dengan keterangan', 'marketingFeedPostForm'),
-                _menuItem(Icons.poll_outlined, 'Polling', 'Pertanyaan dengan pilihan jawaban', 'marketingFeedPollForm'),
-                _menuItem(Icons.link, 'Link', 'YouTube, Instagram, website, dll.', 'marketingFeedLinkForm'),
-              ],
-            ],
-          ),
-        ),
-      ),
-    );
-  }
+  
 
-  Widget _menuItem(IconData icon, String title, String role, String routeName) {
-    return InkWell(
-      borderRadius: BorderRadius.circular(8),
-      onTap: () {
-        AnalyticsService.logEvent('marketing_feed_menu_$routeName');
-        _open(routeName);
-      },
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(10, 10, 14, 10),
-        child: Row(
-          children: [
-            Icon(icon, color: const Color(primaryColor)),
-            const SizedBox(width: 10),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(title, style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.bold)),
-                Text(role, style: const TextStyle(fontSize: 10.5, fontWeight: FontWeight.w600, color: Color(grey5Color))),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 }

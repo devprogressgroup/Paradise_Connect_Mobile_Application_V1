@@ -12,7 +12,6 @@ import 'package:progress_group/features/marketing-feed/domain/entities/feed_post
 import 'package:progress_group/features/marketing-feed/domain/entities/fame_program_entity.dart';
 import 'package:progress_group/features/marketing-feed/domain/entities/wall_of_fame_entity.dart';
 import 'package:progress_group/features/marketing-feed/data/models/fame_program_model.dart';
-import 'package:progress_group/features/marketing-feed/domain/entities/personal_funnel_entity.dart';
 import 'package:progress_group/features/marketing-feed/domain/entities/save_feed_post_params.dart';
 
 class CommentLikeResult {
@@ -157,18 +156,16 @@ class MarketingFeedRemoteDataSourceImpl implements MarketingFeedRemoteDataSource
 
   @override
   Future<PersonalFunnelModel> getPersonalFunnel() async {
-    // TODO: endpoint /marketing-feed/my-funnel belum tersedia dari backend.
-    // Sementara pakai dummy funnel (Progress Kamu) seperti diminta pada §7.
-    return const PersonalFunnelModel(
-      periodLabel: 'Bulan Berjalan',
-      stages: [
-        FunnelStageEntity(label: 'Leads', count: 12),
-        FunnelStageEntity(label: 'Appt', count: 8),
-        FunnelStageEntity(label: 'Visit', count: 5),
-        FunnelStageEntity(label: 'Reserve', count: 2),
-        FunnelStageEntity(label: 'SP', count: 1),
-      ],
-    );
+    try {
+      final response = await dio.get('/marketing-feed/my-funnel');
+      final body = response.data;
+      if (body is Map && body['status'] == true && body['data'] is Map) {
+        return PersonalFunnelModel.fromJson(Map<String, dynamic>.from(body['data'] as Map));
+      }
+      return const PersonalFunnelModel(periodLabel: '', stages: []);
+    } catch (e) {
+      throw parseMarketingFeedException(e, 'Gagal mengambil Progress Kamu.');
+    }
   }
 
   @override
@@ -291,6 +288,24 @@ class MarketingFeedRemoteDataSourceImpl implements MarketingFeedRemoteDataSource
       if (params.townshipId != null) {
         formData.fields.add(MapEntry('township_id', params.townshipId.toString()));
       }
+
+      // Status ditentukan server (permission SkipReview): submit = review atau langsung tayang, draft = draft.
+      formData.fields.add(MapEntry('submit', params.asDraft ? 'draft' : 'review'));
+      final scheduledAt = params.scheduledAt;
+      if (scheduledAt != null) {
+        formData.fields.add(MapEntry('mode', 'later'));
+        formData.fields.add(MapEntry('publish_at', DateFormat('yyyy-MM-dd HH:mm').format(scheduledAt)));
+      }
+
+      String flag(bool v) => v ? '1' : '0';
+      final s = params.settings;
+      formData.fields.addAll([
+        MapEntry('allow[like]', flag(s.allowLike)),
+        MapEntry('allow[dislike]', flag(s.allowDislike)),
+        MapEntry('allow[comment]', flag(s.allowComment)),
+        MapEntry('allow[reply]', flag(s.allowComment && s.allowReply)),
+        MapEntry('allow[share]', flag(s.allowShare)),
+      ]);
 
       for (var i = 0; i < params.media.length; i++) {
         final file = await _multipartOf(params.media[i], i);
