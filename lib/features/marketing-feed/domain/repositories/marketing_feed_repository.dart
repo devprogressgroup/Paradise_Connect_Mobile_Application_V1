@@ -46,6 +46,8 @@ abstract class MarketingFeedRepository {
   });
   Future<Either<String, MyProfileEntity>> getMyProfile({int? userId});
 
+  Future<Either<String, FeedPageEntity>> searchFeedPosts({required String q, int page, int perPage});
+
   Future<Either<String, void>> setProfilePin(
     int postId, {
     required bool pinned,

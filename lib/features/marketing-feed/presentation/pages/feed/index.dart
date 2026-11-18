@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:progress_group/core/constants/colors.dart';
+import 'package:progress_group/core/network/auth_token_cache.dart';
 import 'package:progress_group/core/services/analytics_service.dart';
 import 'package:progress_group/core/utils/widget/custom_header.dart';
 import 'package:progress_group/features/auth/presentation/state/profile/profile_bloc.dart';
@@ -185,17 +186,23 @@ class _MarketingFeedPageState extends State<MarketingFeedPage> {
                 AnalyticsService.logEvent('marketing_feed_open_menu');
                 Scaffold.of(context).openDrawer();
               },
+              iconLeft2: Icons.search,
+              iconLeft2OnTap: () {
+                AnalyticsService.logEvent('marketing_feed_open_search');
+                context.pushNamed('marketingFeedSearch');
+              },
               iconLeft: Icons.notifications_none_rounded,
               showBadgeLeft: showBadge,
               iconLeftOnTap: () {
                 AnalyticsService.logEvent('marketing_feed_open_notifications');
                 context.pushNamed('notif');
               },
-              iconTrailing: Icons.contact_page_outlined,
-              iconTrailingOnTap: () {
-                AnalyticsService.logEvent('marketing_feed_open_profile');
-                context.go('/marketing-feed/profile');
-              },
+              trailing: _ProfileAvatarButton(
+                onTap: () {
+                  AnalyticsService.logEvent('marketing_feed_open_profile');
+                  context.go('/marketing-feed/profile');
+                },
+              ),
             );
           },
         );
@@ -363,4 +370,51 @@ class _MarketingFeedPageState extends State<MarketingFeedPage> {
       ),
     );
   }
+}
+
+/// Avatar profil pengguna di header (foto, atau inisial nama kalau belum ada foto).
+class _ProfileAvatarButton extends StatelessWidget {
+  final VoidCallback onTap;
+
+  const _ProfileAvatarButton({required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocBuilder<ProfileBloc, ProfileState>(
+      builder: (context, state) {
+        final profile = state is ProfileLoaded ? state.profile : null;
+        final photoUrl = profile?.photoUrl;
+        return SizedBox(
+          width: 48,
+          height: 48,
+          child: Center(
+            child: InkWell(
+              customBorder: const CircleBorder(),
+              onTap: onTap,
+              child: photoUrl != null && photoUrl.isNotEmpty
+                  ? ClipOval(
+                      child: Image.network(
+                        photoUrl,
+                        width: 32,
+                        height: 32,
+                        fit: BoxFit.cover,
+                        headers: AuthTokenCache.getAuthHeadersFor(photoUrl),
+                        loadingBuilder: (_, child, progress) =>
+                            progress == null ? child : _fallbackIcon(),
+                        errorBuilder: (_, __, ___) => _fallbackIcon(),
+                      ),
+                    )
+                  : _fallbackIcon(),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _fallbackIcon() => const Icon(
+        Icons.account_circle_outlined,
+        size: 32,
+        color: Color(grey2Color),
+      );
 }

@@ -126,6 +126,10 @@ class MarketingFeedRepositoryImpl implements MarketingFeedRepository {
       _guard(() => remoteDataSource.getMyProfile(userId: userId));
 
   @override
+  Future<Either<String, FeedPageEntity>> searchFeedPosts({required String q, int page = 1, int perPage = 10}) =>
+      _guard(() => remoteDataSource.searchFeedPosts(q: q, page: page, perPage: perPage));
+
+  @override
   Future<Either<String, List<FeedPostEntity>>> getModeratorPosts() =>
       _guard(() => remoteDataSource.getModeratorPosts());
 

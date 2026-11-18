@@ -43,6 +43,7 @@ import '../features/marketing-feed/domain/entities/feed_post_entity.dart';
 import '../features/marketing-feed/presentation/pages/detail/index.dart';
 import '../features/marketing-feed/presentation/pages/drafts/index.dart';
 import '../features/marketing-feed/presentation/pages/my-profile/index.dart';
+import '../features/marketing-feed/presentation/pages/search/index.dart';
 import '../features/marketing-feed/presentation/pages/feed/index.dart';
 import '../features/marketing-feed/presentation/pages/link-form/index.dart';
 import '../features/marketing-feed/presentation/pages/my-submissions/index.dart';
@@ -310,6 +311,11 @@ class AppRouter {
                       state.uri.queryParameters['user_id'] ?? '',
                     ),
                   ),
+                ),
+                GoRoute(
+                  name: 'marketingFeedSearch',
+                  path: 'marketing-feed/search',
+                  builder: (context, state) => const FeedSearchPage(),
                 ),
               ],
             ),

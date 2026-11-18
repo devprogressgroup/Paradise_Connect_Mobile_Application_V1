@@ -20,9 +20,7 @@ Widget customHeader(
   IconData? iconLeft2,
   Color? colorIconLeft2,
   VoidCallback? iconLeft2OnTap,
-  IconData? iconTrailing,
-  Color? colorIconTrailing,
-  VoidCallback? iconTrailingOnTap,
+  Widget? trailing,
 }) {
   return Container(
     decoration: BoxDecoration(color: colorBg ?? Color(whiteColor)),
@@ -83,7 +81,7 @@ Widget customHeader(
             ),
           ),
 
-          if (iconLeft != null || iconTrailing != null)
+          if (iconLeft != null || trailing != null)
             Row(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -117,13 +115,7 @@ Widget customHeader(
                       ),
                   ],
                 ),
-                if (iconTrailing != null)
-                  IconButton(
-                    icon: Icon(iconTrailing, size: 24, color: colorIconTrailing),
-                    onPressed: () {
-                      iconTrailingOnTap?.call();
-                    },
-                  ),
+                if (trailing != null) trailing,
               ],
             ),
         ],

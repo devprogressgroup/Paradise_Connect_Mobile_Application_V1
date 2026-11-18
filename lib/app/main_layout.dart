@@ -679,7 +679,7 @@ class _MainLayoutState extends State<MainLayout> {
                         _buildDrawerItem(
                           context,
                           '',
-                          'Transaction',
+                          'Transactions',
                           path: '/reserve-order',
                           index: 10,
                           iconData: Icons.local_offer,

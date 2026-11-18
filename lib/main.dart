@@ -214,6 +214,8 @@ import 'features/marketing-feed/domain/usecases/get_feed_comments_usecase.dart';
 import 'features/marketing-feed/domain/usecases/get_feed_drafts_usecase.dart';
 import 'features/marketing-feed/domain/usecases/get_my_profile_usecase.dart';
 import 'features/marketing-feed/presentation/state/my_profile/my_profile_cubit.dart';
+import 'features/marketing-feed/domain/usecases/search_feed_posts_usecase.dart';
+import 'features/marketing-feed/presentation/state/feed_search/feed_search_cubit.dart';
 import 'features/marketing-feed/domain/usecases/get_feed_post_usecase.dart';
 import 'features/marketing-feed/domain/usecases/get_feed_posts_usecase.dart';
 import 'features/marketing-feed/domain/usecases/get_my_submissions_usecase.dart';
@@ -734,6 +736,9 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
       marketingFeedRepository,
     );
     final getMyProfileUseCase = GetMyProfileUseCase(marketingFeedRepository);
+    final searchFeedPostsUseCase = SearchFeedPostsUseCase(
+      marketingFeedRepository,
+    );
 
     return MaterialApp.router(
       debugShowCheckedModeBanner: false,
@@ -1094,6 +1099,11 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
               BlocProvider(
                 create: (_) =>
                     MyProfileCubit(getMyProfileUseCase: getMyProfileUseCase),
+              ),
+              BlocProvider(
+                create: (_) => FeedSearchCubit(
+                  searchFeedPostsUseCase: searchFeedPostsUseCase,
+                ),
               ),
             ],
             child: MultiBlocListener(

@@ -3,14 +3,12 @@ import 'package:progress_group/core/constants/colors.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:progress_group/core/services/analytics_service.dart';
 import 'package:progress_group/core/utils/helpers/app_time.dart';
-import 'package:progress_group/features/marketing-feed/domain/entities/feed_author_entity.dart';
 import 'package:progress_group/features/marketing-feed/domain/entities/feed_post_entity.dart';
 import 'package:progress_group/features/marketing-feed/domain/entities/save_feed_post_params.dart';
 import 'package:progress_group/features/marketing-feed/presentation/state/feed_compose/feed_compose_cubit.dart';
 import 'package:progress_group/features/marketing-feed/presentation/widgets/feed_compose_fields.dart';
 import 'package:progress_group/features/marketing-feed/presentation/widgets/feed_create_tabs.dart';
 import 'package:progress_group/features/marketing-feed/presentation/widgets/feed_moderator_form_scaffold.dart';
-import 'package:progress_group/features/marketing-feed/presentation/widgets/feed_post_card.dart';
 
 /// Moderator: buat/edit link YouTube / website — platform, URL, channel/situs, judul, deskripsi,
 /// thumbnail opsional (link YouTube tanpa thumbnail memakai thumbnail YouTube dari backend), target
@@ -151,32 +149,6 @@ class _FeedLinkFormPageState extends State<FeedLinkFormPage> {
     );
   }
 
-  /// Preview memakai kartu link di feed apa adanya (tanpa footer karena belum tayang).
-  FeedPostEntity _previewPost() {
-    final channel = _channelController.text.trim();
-    final desc = _descController.text.trim();
-    final thumbnail = _thumbnail;
-    return FeedPostEntity(
-      id: 0,
-      type: FeedPostType.link,
-      status: FeedPostStatus.draft,
-      author: const FeedAuthorEntity(
-        name: 'Progress Group Marketing',
-        isOfficial: true,
-      ),
-      link: FeedLinkEntity(
-        url: _urlController.text.trim(),
-        platform: _platform,
-        channel: channel.isEmpty ? null : channel,
-        title: _titleController.text.trim().isEmpty
-            ? '(judul link)'
-            : _titleController.text.trim(),
-        description: desc.isEmpty ? null : desc,
-      ),
-      media: [if (thumbnail != null) thumbnail],
-      publishAt: AppTime.now(),
-    );
-  }
 
   Widget _field(
     String label,
@@ -281,10 +253,6 @@ class _FeedLinkFormPageState extends State<FeedLinkFormPage> {
           uploadLabel: 'Upload thumbnail',
           onChanged: (m) => setState(() => _thumbnail = m),
         ),
-        const SizedBox(height: 12),
-        const FeedFormLabel('Preview di feed'),
-        const SizedBox(height: 8),
-        IgnorePointer(child: FeedPostCard(post: _previewPost())),
         const SizedBox(height: 12),
         const FeedFormLabel('Target Township'),
         const SizedBox(height: 8),

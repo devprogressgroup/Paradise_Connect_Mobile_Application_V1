@@ -83,6 +83,9 @@ abstract class MarketingFeedRemoteDataSource {
   /// GET /api/marketing-feed/me/profile — profil sales sendiri.
   Future<MyProfileEntity> getMyProfile({int? userId});
 
+  /// GET /api/marketing-feed/search?q= — cari kiriman (caption, judul/channel link, nama pembuat).
+  Future<FeedPageModel> searchFeedPosts({required String q, int page = 1, int perPage = 10});
+
   /// Moderator — GET /api/marketing-feed/moderator/posts: terjadwal & draft.
   Future<List<FeedPostModel>> getModeratorPosts();
 
@@ -421,6 +424,23 @@ class MarketingFeedRemoteDataSourceImpl
       throw parseMarketingFeedException(body, 'Gagal mengambil kiriman saya.');
     } catch (e) {
       throw parseMarketingFeedException(e, 'Gagal mengambil kiriman saya.');
+    }
+  }
+
+  @override
+  Future<FeedPageModel> searchFeedPosts({required String q, int page = 1, int perPage = 10}) async {
+    try {
+      final response = await dio.get(
+        '/marketing-feed/search',
+        queryParameters: {'q': q, 'page': page, 'per_page': perPage},
+      );
+      final body = response.data;
+      if (body is Map && body['status'] == true && body['data'] != null) {
+        return FeedPageModel.fromJson(Map<String, dynamic>.from(body['data'] as Map));
+      }
+      throw parseMarketingFeedException(body, 'Gagal mencari kiriman.');
+    } catch (e) {
+      throw parseMarketingFeedException(e, 'Gagal mencari kiriman.');
     }
   }
 
