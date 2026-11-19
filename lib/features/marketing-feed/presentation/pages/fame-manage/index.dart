@@ -162,7 +162,7 @@ class _FameManagePageState extends State<FameManagePage> {
                 child: FilledButton.icon(
                   onPressed: () => _openForm(),
                   icon: const Icon(Icons.add, size: 18),
-                  label: const Text('Tambah juara'),
+                  label: const Text('Tambah'),
                 ),
               ),
             ),
@@ -192,7 +192,7 @@ class _FameManagePageState extends State<FameManagePage> {
       floatingActionButton: canEdit
           ? FloatingActionButton(
               heroTag: 'fame_manage_fab',
-              tooltip: 'Tambah juara',
+              tooltip: 'Tambah',
               onPressed: () => _openForm(),
               child: const Icon(Icons.add),
             )

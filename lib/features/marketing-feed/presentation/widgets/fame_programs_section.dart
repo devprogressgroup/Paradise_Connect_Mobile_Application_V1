@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:progress_group/core/constants/colors.dart';
 import 'package:progress_group/core/network/auth_token_cache.dart';
 import 'package:progress_group/core/utils/helpers/date_helper.dart';
+import 'package:progress_group/features/marketing-feed/domain/entities/feed_post_entity.dart';
 import 'package:progress_group/features/marketing-feed/domain/entities/fame_program_entity.dart';
+import 'package:progress_group/features/marketing-feed/presentation/state/marketing_feed/marketing_feed_cubit.dart';
 import 'package:progress_group/features/marketing-feed/presentation/widgets/feed_avatar.dart';
+import 'package:progress_group/features/marketing-feed/presentation/widgets/feed_comment_sheet.dart';
 import 'package:progress_group/features/marketing-feed/presentation/widgets/feed_media_view.dart';
 
 /// Satu kartu Wall of Fame di Home: kartu gelap berisi header pembuat,
@@ -24,6 +28,129 @@ class _FameEntryTileState extends State<FameEntryTile> {
 
   /// Rasio video asli, diisi setelah video siap. Sebelum itu dipakai 16:9.
   double? _videoRatio;
+
+  // Like, dislike, komentar, dan reaksi saya. Diperbarui optimistis, lalu disamakan dengan server.
+  late int _likes = entry.likeCount;
+  late int _dislikes = entry.dislikeCount;
+  late int _comments = entry.commentCount;
+  late FeedReaction _my = entry.myReaction;
+
+  @override
+  void didUpdateWidget(covariant FameEntryTile oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final e = widget.entry;
+    if (oldWidget.entry.id != e.id ||
+        oldWidget.entry.likeCount != e.likeCount ||
+        oldWidget.entry.dislikeCount != e.dislikeCount ||
+        oldWidget.entry.commentCount != e.commentCount ||
+        oldWidget.entry.myReaction != e.myReaction) {
+      _likes = e.likeCount;
+      _dislikes = e.dislikeCount;
+      _comments = e.commentCount;
+      _my = e.myReaction;
+    }
+  }
+
+  /// Like / dislike: ketuk reaksi yang sama untuk membatalkan.
+  Future<void> _react(FeedReaction target) async {
+    final prevLikes = _likes;
+    final prevDislikes = _dislikes;
+    final prevMy = _my;
+    final next = _my == target ? FeedReaction.none : target;
+    setState(() {
+      if (_my == FeedReaction.like) _likes--;
+      if (_my == FeedReaction.dislike) _dislikes--;
+      if (next == FeedReaction.like) _likes++;
+      if (next == FeedReaction.dislike) _dislikes++;
+      _my = next;
+    });
+    final res = await context.read<MarketingFeedCubit>().reactFameCard(
+      entry.id,
+      next,
+    );
+    if (!mounted) return;
+    res.fold(
+      (message) {
+        setState(() {
+          _likes = prevLikes;
+          _dislikes = prevDislikes;
+          _my = prevMy;
+        });
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(message)));
+      },
+      (r) => setState(() {
+        _likes = r.likes;
+        _dislikes = r.dislikes;
+        _my = r.myReaction;
+      }),
+    );
+  }
+
+  Future<void> _openComments() => showFameCommentSheet(
+    context,
+    cardId: entry.id,
+    commentCount: _comments,
+    onCountChanged: (n) {
+      if (mounted) setState(() => _comments = n);
+    },
+  );
+
+  /// Baris aksi di bawah kartu: like, dislike, dan komentar (seperti kiriman biasa).
+  Widget _buildActions() {
+    final muted = const Color(whiteColor).withValues(alpha: 0.85);
+    Widget action(
+      IconData icon,
+      String label,
+      bool active,
+      VoidCallback onTap,
+    ) {
+      final color = active ? const Color(primaryColor) : muted;
+      return InkWell(
+        borderRadius: BorderRadius.circular(8),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, size: 19, color: color),
+              const SizedBox(width: 5),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: color,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return Row(
+      children: [
+        action(
+          _my == FeedReaction.like ? Icons.favorite : Icons.favorite_border,
+          '$_likes',
+          _my == FeedReaction.like,
+          () => _react(FeedReaction.like),
+        ),
+        action(
+          _my == FeedReaction.dislike
+              ? Icons.thumb_down
+              : Icons.thumb_down_outlined,
+          '$_dislikes',
+          _my == FeedReaction.dislike,
+          () => _react(FeedReaction.dislike),
+        ),
+        action(Icons.chat_bubble_outline, '$_comments', false, _openComments),
+      ],
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -77,6 +204,8 @@ class _FameEntryTileState extends State<FameEntryTile> {
               ),
             ),
           ],
+          const SizedBox(height: 8),
+          _buildActions(),
         ],
       ),
     );
@@ -355,11 +484,8 @@ class _FameEntryTileState extends State<FameEntryTile> {
   /// Pill peringkat: "#1 Juara" untuk juara tunggal #1, "#r Seri" untuk peringkat yang dibagi, selain itu "#r".
   Widget _buildRankPill(FameWinnerEntity w) {
     final gold = w.ranking == 1 || w.isSeri;
-    final label = w.ranking == 1 && !w.isSeri
-        ? '#${w.rankText} Juara'
-        : w.isSeri
-        ? '#${w.rankText} Seri'
-        : '#${w.rankText}';
+    // Cukup nomor peringkat, mis. "#1" (tanpa kata "Juara" atau "Seri").
+    final label = '#${w.rankText}';
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
       decoration: BoxDecoration(

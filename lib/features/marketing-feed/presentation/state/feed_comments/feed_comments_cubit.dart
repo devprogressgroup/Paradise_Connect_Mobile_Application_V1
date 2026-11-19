@@ -1,25 +1,57 @@
+import 'package:dartz/dartz.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:progress_group/features/marketing-feed/data/datasources/marketing_feed_remote_datasource.dart';
 import 'package:progress_group/features/marketing-feed/domain/entities/feed_comment_entity.dart';
+import 'package:progress_group/features/marketing-feed/domain/repositories/marketing_feed_repository.dart';
 import 'package:progress_group/features/marketing-feed/domain/usecases/add_feed_comment_usecase.dart';
 import 'package:progress_group/features/marketing-feed/domain/usecases/get_feed_comments_usecase.dart';
 import 'package:progress_group/features/marketing-feed/domain/usecases/toggle_feed_comment_like_usecase.dart';
 import 'feed_comments_state.dart';
 
-/// State bottom sheet komentar satu post.
+/// State bottom sheet komentar satu target: kiriman biasa, atau kartu Wall of Fame ([FeedCommentsState.fameCard]).
 class FeedCommentsCubit extends Cubit<FeedCommentsState> {
   final GetFeedCommentsUseCase getFeedCommentsUseCase;
   final AddFeedCommentUseCase addFeedCommentUseCase;
   final ToggleFeedCommentLikeUseCase toggleFeedCommentLikeUseCase;
+  final MarketingFeedRepository repository;
 
   FeedCommentsCubit({
     required this.getFeedCommentsUseCase,
     required this.addFeedCommentUseCase,
     required this.toggleFeedCommentLikeUseCase,
+    required this.repository,
   }) : super(const FeedCommentsState());
 
-  Future<void> load(int postId) async {
-    emit(FeedCommentsState(status: FeedCommentsStatus.loading, postId: postId));
-    final result = await getFeedCommentsUseCase(postId);
+  // Satu titik cabang: kiriman biasa lewat usecase, kartu Wall of Fame lewat repository.
+  Future<Either<String, FeedCommentPageEntity>> _page(int id, {int page = 1}) =>
+      state.fameCard
+      ? repository.getFameComments(id, page: page)
+      : getFeedCommentsUseCase(id, page: page);
+
+  Future<Either<String, FeedCommentEntity>> _add(
+    int id,
+    String text,
+    int? parentId,
+  ) => state.fameCard
+      ? repository.addFameComment(id, text, parentId: parentId)
+      : addFeedCommentUseCase(id, text, parentId: parentId);
+
+  Future<Either<String, CommentLikeResult>> _like(
+    int commentId,
+    bool wasLiked,
+  ) => state.fameCard
+      ? repository.toggleFameCommentLike(commentId, currentlyLiked: wasLiked)
+      : toggleFeedCommentLikeUseCase(commentId, currentlyLiked: wasLiked);
+
+  Future<void> load(int postId, {bool fameCard = false}) async {
+    emit(
+      FeedCommentsState(
+        status: FeedCommentsStatus.loading,
+        postId: postId,
+        fameCard: fameCard,
+      ),
+    );
+    final result = await _page(postId);
     if (state.postId != postId) return;
     result.fold(
       (message) => emit(
@@ -44,10 +76,7 @@ class FeedCommentsCubit extends Cubit<FeedCommentsState> {
         !state.hasMore)
       return;
     emit(state.copyWith(status: FeedCommentsStatus.loadingMore));
-    final result = await getFeedCommentsUseCase(
-      postId,
-      page: state.currentPage + 1,
-    );
+    final result = await _page(postId, page: state.currentPage + 1);
     if (state.postId != postId) return;
     result.fold((_) => emit(state.copyWith(status: FeedCommentsStatus.loaded)), (
       data,
@@ -73,11 +102,7 @@ class FeedCommentsCubit extends Cubit<FeedCommentsState> {
     final postId = state.postId;
     if (postId == null || state.isSending) return null;
     emit(state.copyWith(isSending: true));
-    final result = await addFeedCommentUseCase(
-      postId,
-      text,
-      parentId: parentId,
-    );
+    final result = await _add(postId, text, parentId);
     if (state.postId != postId) return null;
     return result.fold(
       (message) {
@@ -132,10 +157,7 @@ class FeedCommentsCubit extends Cubit<FeedCommentsState> {
         : c.copyWith(replies: c.replies.map(flip).toList());
     emit(state.copyWith(comments: before.map(flip).toList()));
 
-    final result = await toggleFeedCommentLikeUseCase(
-      commentId,
-      currentlyLiked: wasLiked,
-    );
+    final result = await _like(commentId, wasLiked);
     if (state.postId != postId) return null;
     return result.fold(
       (message) {

@@ -155,7 +155,7 @@ class _FeedPollFormPageState extends State<FeedPollFormPage> {
       primaryLabel: _scheduledAt != null ? 'Jadwalkan' : 'Publikasikan Poll',
       onSave: _save,
       children: [
-        if (widget.post == null && FeedCreateTabs.showRow) ...[
+        if (widget.post == null) ...[
           FeedCreateTabs(
             current: FeedCreateTab.polling,
             query: _calendarQuery(),

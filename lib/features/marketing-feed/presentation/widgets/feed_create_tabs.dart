@@ -12,7 +12,7 @@ enum FeedCreateTab { postingan, polling, link, wallOfFame }
 /// Setiap tab hanya tampil jika user punya permission untuk jenis kontennya (CreatePost / CreatePoll / CreateLink).
 /// Tiap tab adalah route sendiri, jadi pindah tab memakai
 /// pushReplacement: isi form yang belum disimpan di tab sebelumnya tidak ikut terbawa.
-class FeedCreateTabs extends StatelessWidget {
+class FeedCreateTabs extends StatefulWidget {
   final FeedCreateTab current;
 
   /// Query yang ikut dibawa saat pindah tab (mis. tanggal dan sumber kalender). Kosong = tanpa query.
@@ -67,9 +67,12 @@ class FeedCreateTabs extends StatelessWidget {
   static bool get showRow => _items.where((e) => _allowed(e.$1)).length > 1;
 
   @override
-  Widget build(BuildContext context) {
+  State<FeedCreateTabs> createState() => _FeedCreateTabsState();
+
+  Widget buildRow(BuildContext context) {
     final items = _items.where((e) => _allowed(e.$1)).toList();
-    if (items.isEmpty) return const SizedBox.shrink();
+    // Baris tab hanya tampil kalau ada lebih dari satu jenis konten yang boleh dibuat.
+    if (items.length < 2) return const SizedBox.shrink();
 
     return Container(
       padding: const EdgeInsets.all(4),
@@ -77,27 +80,46 @@ class FeedCreateTabs extends StatelessWidget {
         color: const Color(grey10Color),
         borderRadius: BorderRadius.circular(12),
       ),
-      child: Row(
-        children: [
-          for (final (tab, icon, label, routeName) in items)
-            Expanded(
-              child: _TabButton(
-                icon: icon,
-                label: label,
-                selected: tab == current,
-                onTap: () {
-                  if (tab == current) return;
-                  context.pushReplacementNamed(
-                    routeName,
-                    queryParameters: query,
-                  );
-                },
+      // Bisa digeser ke kiri-kanan supaya nama tab yang panjang (mis. "Wall of Fame") tidak terpotong.
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          children: [
+            for (final (tab, icon, label, routeName) in items)
+              ConstrainedBox(
+                constraints: const BoxConstraints(minWidth: 96),
+                child: _TabButton(
+                  icon: icon,
+                  label: label,
+                  selected: tab == current,
+                  onTap: () {
+                    if (tab == current) return;
+                    context.pushReplacementNamed(
+                      routeName,
+                      queryParameters: query,
+                    );
+                  },
+                ),
               ),
-            ),
-        ],
+          ],
+        ),
       ),
     );
   }
+}
+
+class _FeedCreateTabsState extends State<FeedCreateTabs> {
+  @override
+  void initState() {
+    super.initState();
+    // Hak akses Wall of Fame dimuat di sini, jadi tab ikut muncul walau halaman dibuka langsung (mis. PWA).
+    FeedCreateTabs.refreshFameAccess(context).then((_) {
+      if (mounted) setState(() {});
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) => widget.buildRow(context);
 }
 
 class _TabButton extends StatelessWidget {
@@ -141,7 +163,9 @@ class _TabButton extends StatelessWidget {
           children: [
             Icon(icon, size: 16, color: color),
             const SizedBox(width: 4),
+            // flex 0: di dalam scroll horizontal lebar tidak dibatasi, Flexible dengan flex > 0 akan error (layar kosong).
             Flexible(
+              flex: 0,
               child: Text(
                 label,
                 overflow: TextOverflow.ellipsis,

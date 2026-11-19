@@ -17,14 +17,59 @@ Future<void> showFeedCommentSheet(BuildContext context, FeedPostEntity post) {
     context: context,
     isScrollControlled: true,
     backgroundColor: Colors.transparent,
-    builder: (_) => FeedCommentSheet(post: post),
+    builder: (_) => FeedCommentSheet(
+      targetId: post.id,
+      fameCard: false,
+      allowComment: post.settings.allowComment,
+      allowReply: post.settings.allowReply,
+      commentCount: post.commentCount,
+    ),
+  );
+}
+
+/// Buka sheet komentar kartu Wall of Fame (like & komentar seperti kiriman biasa).
+/// [onCountChanged] dipanggil dengan jumlah komentar terbaru setiap kali user mengirim komentar.
+Future<void> showFameCommentSheet(
+  BuildContext context, {
+  required int cardId,
+  required int commentCount,
+  ValueChanged<int>? onCountChanged,
+}) {
+  return showModalBottomSheet<void>(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: Colors.transparent,
+    builder: (_) => FeedCommentSheet(
+      targetId: cardId,
+      fameCard: true,
+      allowComment: true,
+      allowReply: true,
+      commentCount: commentCount,
+      onCountChanged: onCountChanged,
+    ),
   );
 }
 
 class FeedCommentSheet extends StatefulWidget {
-  final FeedPostEntity post;
+  /// Id kiriman, atau id kartu Wall of Fame kalau [fameCard].
+  final int targetId;
+  final bool fameCard;
+  final bool allowComment;
+  final bool allowReply;
 
-  const FeedCommentSheet({super.key, required this.post});
+  /// Jumlah komentar dari data target (dipakai sebelum halaman komentar termuat).
+  final int commentCount;
+  final ValueChanged<int>? onCountChanged;
+
+  const FeedCommentSheet({
+    super.key,
+    required this.targetId,
+    required this.fameCard,
+    required this.allowComment,
+    required this.allowReply,
+    required this.commentCount,
+    this.onCountChanged,
+  });
 
   @override
   State<FeedCommentSheet> createState() => _FeedCommentSheetState();
@@ -36,13 +81,16 @@ class _FeedCommentSheetState extends State<FeedCommentSheet> {
   final _scrollController = ScrollController();
   FeedCommentEntity? _replyTo;
 
-  bool get _allowReply => widget.post.settings.allowReply;
+  bool get _allowReply => widget.allowReply;
 
   @override
   void initState() {
     super.initState();
     _scrollController.addListener(_onScroll);
-    context.read<FeedCommentsCubit>().load(widget.post.id);
+    context.read<FeedCommentsCubit>().load(
+      widget.targetId,
+      fameCard: widget.fameCard,
+    );
   }
 
   void _onScroll() {
@@ -84,6 +132,9 @@ class _FeedCommentSheetState extends State<FeedCommentSheet> {
       ).showSnackBar(SnackBar(content: Text(error)));
       return;
     }
+    widget.onCountChanged?.call(
+      context.read<FeedCommentsCubit>().state.totalCount,
+    );
     _controller.clear();
     setState(() => _replyTo = null);
     if (parentId == null) {
@@ -136,7 +187,7 @@ class _FeedCommentSheetState extends State<FeedCommentSheet> {
                         child: Text(
                           state.status == FeedCommentsStatus.loaded
                               // Balasan halaman berikutnya belum termuat, jadi pakai angka dari post.
-                              ? 'Komentar (${state.hasMore ? widget.post.commentCount : state.totalCount})'
+                              ? 'Komentar (${state.hasMore ? widget.commentCount : state.totalCount})'
                               : 'Komentar',
                           style: const TextStyle(
                             fontSize: 16,
@@ -182,7 +233,7 @@ class _FeedCommentSheetState extends State<FeedCommentSheet> {
                   ),
                 Expanded(child: _buildList(state)),
                 if (_replyTo != null) _buildReplyingBar(),
-                if (widget.post.settings.allowComment)
+                if (widget.allowComment)
                   _buildInput(state)
                 else
                   Container(
@@ -219,8 +270,10 @@ class _FeedCommentSheetState extends State<FeedCommentSheet> {
               style: const TextStyle(fontSize: 12, color: Color(grey4Color)),
             ),
             TextButton(
-              onPressed: () =>
-                  context.read<FeedCommentsCubit>().load(widget.post.id),
+              onPressed: () => context.read<FeedCommentsCubit>().load(
+                widget.targetId,
+                fameCard: widget.fameCard,
+              ),
               child: const Text('Coba lagi'),
             ),
           ],

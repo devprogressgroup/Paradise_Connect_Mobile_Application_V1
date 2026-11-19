@@ -1081,6 +1081,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
                   getMySubmissionsUseCase: getMySubmissionsUseCase,
                   setProfilePinUseCase: setProfilePinUseCase,
                   getFameProgramsUseCase: getFameProgramsUseCase,
+                  repository: marketingFeedRepository,
                 ),
               ),
               BlocProvider(
@@ -1088,6 +1089,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
                   getFeedCommentsUseCase: getFeedCommentsUseCase,
                   addFeedCommentUseCase: addFeedCommentUseCase,
                   toggleFeedCommentLikeUseCase: toggleFeedCommentLikeUseCase,
+                  repository: marketingFeedRepository,
                 ),
               ),
               BlocProvider(

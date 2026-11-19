@@ -42,7 +42,7 @@ Widget customHeader(
                     width: 34,
                     child: IconButton(
                       icon: Icon(iconRight, size: 20, color: colorBack),
-                      padding: const EdgeInsets.all(6),
+                      padding: const EdgeInsets.all(1),
                       constraints: const BoxConstraints(),
                       onPressed: () {
                         iconRightOnTap?.call();
@@ -88,34 +88,41 @@ Widget customHeader(
           if (iconLeft != null || trailing != null)
             Row(
               mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.end,
               children: [
                 if (iconLeft2 != null)
-                  IconButton(
-                    icon: Icon(iconLeft2, size: 20, color: colorIconLeft2),
-                    padding: const EdgeInsets.all(6),
-                    constraints: const BoxConstraints(),
-                    onPressed: () {
-                      iconLeft2OnTap?.call();
-                    },
+                  Container(
+                    width: 20,
+                    child: IconButton(
+                      icon: Icon(iconLeft2, size: 20, color: colorIconLeft2),
+                      padding: const EdgeInsets.all(1),
+                      constraints: const BoxConstraints(),
+                      onPressed: () {
+                        iconLeft2OnTap?.call();
+                      },
+                    ),
                   ),
                 ...extraActions,
                 if (iconLeft != null) Stack(
                   clipBehavior: Clip.none,
                   children: [
-                    IconButton(
-                      icon: Icon(iconLeft, size: 20, color: colorIconLeft),
-                      padding: const EdgeInsets.all(6),
-                      constraints: const BoxConstraints(),
-                      onPressed: () {
-                        iconLeftOnTap?.call();
-                      },
+                    Container(
+                    width: 20,
+                      child: IconButton(
+                        icon: Icon(iconLeft, size: 25, color: colorIconLeft),
+                        padding: const EdgeInsets.all(1),
+                        constraints: const BoxConstraints(),
+                        onPressed: () {
+                          iconLeftOnTap?.call();
+                        },
+                      ),
                     ),
                     if (showBadgeLeft)
                       Positioned(
-                        right: 8,
-                        top: 8,
+                        right: 4,
+                        top: 4,
                         child: Container(
-                          padding: const EdgeInsets.all(4),
+                          padding: const EdgeInsets.all(1),
                           decoration: const BoxDecoration(
                             color: Color(redAccentColor),
                             shape: BoxShape.circle,

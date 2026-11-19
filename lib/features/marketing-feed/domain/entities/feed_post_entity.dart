@@ -243,7 +243,7 @@ class FeedPostEntity extends Equatable {
 
   String get plainText => type == FeedPostType.link
       ? (link?.title ?? '')
-      : text.replaceAll('**', '');
+      : text.replaceAll('**', '').replaceAll('__', '');
 
   /// Untuk link YouTube tanpa upload manual, backend sudah mengisi [media] dengan thumbnail YouTube.
   FeedMediaEntity? get thumbnail =>

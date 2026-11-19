@@ -1,3 +1,5 @@
+import 'package:progress_group/features/marketing-feed/domain/entities/feed_post_entity.dart';
+
 /// Satu juara (orang) di dalam kartu Wall of Fame.
 class FameWinnerEntity {
   final int userId;
@@ -64,7 +66,17 @@ class FameEntryEntity {
   /// Peringkat terbaik di kartu (1 = juara utama). Dipakai untuk gaya kartu juara.
   final int topRank;
 
+  /// Like, dislike, jumlah komentar, dan reaksi saya (seperti kiriman biasa).
+  final int likeCount;
+  final int dislikeCount;
+  final int commentCount;
+  final FeedReaction myReaction;
+
   const FameEntryEntity({
+    this.likeCount = 0,
+    this.dislikeCount = 0,
+    this.commentCount = 0,
+    this.myReaction = FeedReaction.none,
     required this.id,
     required this.programId,
     required this.programName,

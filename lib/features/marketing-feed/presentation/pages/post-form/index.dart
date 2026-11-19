@@ -147,12 +147,45 @@ class _FeedPostFormPageState extends State<FeedPostFormPage> {
         ? 'Jadwalkan'
         : 'Publikasikan';
 
+    // Tombol B / I: membungkus teks yang diblok dengan penanda format (tanpa perlu tahu sintaksnya).
+    void wrapCaption(String mark) {
+      final c = _textController;
+      final text = c.text;
+      final sel = c.selection;
+      final start = sel.start < 0 ? text.length : sel.start;
+      final end = sel.end < 0 ? text.length : sel.end;
+      final lo = start < end ? start : end;
+      final hi = start < end ? end : start;
+      c.value = TextEditingValue(
+        text:
+            '${text.substring(0, lo)}$mark${text.substring(lo, hi)}$mark${text.substring(hi)}',
+        selection: TextSelection.collapsed(offset: hi + mark.length * 2),
+      );
+    }
+
+    Widget captionTool(String label, String mark, TextStyle style) {
+      return InkWell(
+        borderRadius: BorderRadius.circular(8),
+        onTap: () => wrapCaption(mark),
+        child: Container(
+          width: 36,
+          height: 32,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: const Color(grey10Color),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Text(label, style: style),
+        ),
+      );
+    }
+
     return FeedModeratorFormScaffold(
       title: isNew ? 'Post Baru' : 'Edit Post',
       primaryLabel: primaryLabel,
       onSave: _save,
       children: [
-        if (isNew && FeedCreateTabs.showRow) ...[
+        if (isNew) ...[
           FeedCreateTabs(
             current: FeedCreateTab.postingan,
             query: _calendarQuery(),
@@ -178,6 +211,22 @@ class _FeedPostFormPageState extends State<FeedPostFormPage> {
         const SizedBox(height: 12),
         const FeedFormLabel('Caption'),
         const SizedBox(height: 8),
+        Row(
+          children: [
+            captionTool(
+              'B',
+              '**',
+              const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+            ),
+            const SizedBox(width: 6),
+            captionTool(
+              'I',
+              '__',
+              const TextStyle(fontStyle: FontStyle.italic, fontSize: 15),
+            ),
+          ],
+        ),
+        const SizedBox(height: 6),
         TextField(
           controller: _textController,
           maxLines: 3,
@@ -187,7 +236,7 @@ class _FeedPostFormPageState extends State<FeedPostFormPage> {
                   null,
           style: const TextStyle(fontSize: 13.5),
           decoration: feedInputDecoration(
-            hintText: 'Tulis caption… (apit dengan ** untuk teks tebal)',
+            hintText: 'Tulis caption…',
           ),
         ),
         if (canSetTownship) ...[

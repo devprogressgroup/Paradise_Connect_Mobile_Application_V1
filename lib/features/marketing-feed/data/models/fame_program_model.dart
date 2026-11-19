@@ -1,3 +1,4 @@
+import 'package:progress_group/features/marketing-feed/domain/entities/feed_post_entity.dart';
 import 'package:progress_group/features/marketing-feed/domain/entities/fame_program_entity.dart';
 
 DateTime? _parseDate(Object? raw) =>
@@ -45,6 +46,14 @@ FameEntryEntity _parseCard(
     topRank:
         (e['top_rank'] as num?)?.toInt() ??
         (winners.isEmpty ? 0 : winners.first.ranking),
+    likeCount: ((e['counts'] as Map?)?['likes'] as num?)?.toInt() ?? 0,
+    dislikeCount: ((e['counts'] as Map?)?['dislikes'] as num?)?.toInt() ?? 0,
+    commentCount: ((e['counts'] as Map?)?['comments'] as num?)?.toInt() ?? 0,
+    myReaction: switch (e['my_reaction'] as String?) {
+      'like' => FeedReaction.like,
+      'dislike' => FeedReaction.dislike,
+      _ => FeedReaction.none,
+    },
   );
 }
 

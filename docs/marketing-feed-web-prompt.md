@@ -175,7 +175,7 @@ Semua endpoint memakai token login. Format tanggal ISO 8601 dalam UTC, ditampilk
 |---|---|---|
 | GET | `/admin/wall-of-fame/programs` | Daftar program dan periodenya. |
 | POST | `/admin/wall-of-fame/programs` | Buat program. Body `{nama_program, periode_label, periode_mulai?, periode_selesai?}`. |
-| POST | `/admin/wall-of-fame/programs/{id}/entries` | Tambah juara. Body `{kategori, ranking, user_id, posisi_label?, caption, status, publish_at?}`. |
+| POST | `/admin/wall-of-fame/programs/{id}/entries` | Tambah. Body `{kategori, ranking, user_id, posisi_label?, caption, status, publish_at?}`. |
 | PUT | `/admin/wall-of-fame/entries/{id}` | Ubah juara. |
 | POST | `/admin/wall-of-fame/entries/{id}/status` | Body `{status: "draft" \| "scheduled" \| "published", publish_at?}`. |
 | POST / DELETE | `/admin/wall-of-fame/entries/{id}/media` | Unggah atau hapus foto/video khusus (maks. 1 per entri). |

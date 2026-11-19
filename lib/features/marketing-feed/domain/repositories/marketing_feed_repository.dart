@@ -47,7 +47,11 @@ abstract class MarketingFeedRepository {
   });
   Future<Either<String, MyProfileEntity>> getMyProfile({int? userId});
 
-  Future<Either<String, FeedPageEntity>> searchFeedPosts({required String q, int page, int perPage});
+  Future<Either<String, FeedPageEntity>> searchFeedPosts({
+    required String q,
+    int page,
+    int perPage,
+  });
 
   Future<Either<String, void>> setProfilePin(
     int postId, {
@@ -58,6 +62,25 @@ abstract class MarketingFeedRepository {
   Future<Either<String, FameAccessEntity>> getFameAccess();
   Future<Either<String, List<FameManageProgramEntity>>> getFameManage();
   Future<Either<String, List<FameCandidateEntity>>> getFameCandidates();
+
+  // Wall of Fame: like/dislike dan komentar kartu (sama seperti kiriman biasa).
+  Future<Either<String, PostReactionResult>> reactFameCard(
+    int cardId,
+    FeedReaction reaction,
+  );
+  Future<Either<String, FeedCommentPageEntity>> getFameComments(
+    int cardId, {
+    int page = 1,
+  });
+  Future<Either<String, FeedCommentEntity>> addFameComment(
+    int cardId,
+    String text, {
+    int? parentId,
+  });
+  Future<Either<String, CommentLikeResult>> toggleFameCommentLike(
+    int commentId, {
+    required bool currentlyLiked,
+  });
   Future<Either<String, FameAdminCardEntity>> saveFameCard(
     FameCardParams params, {
     int? cardId,

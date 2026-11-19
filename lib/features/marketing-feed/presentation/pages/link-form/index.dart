@@ -216,7 +216,7 @@ class _FeedLinkFormPageState extends State<FeedLinkFormPage> {
       primaryLabel: _scheduledAt != null ? 'Jadwalkan' : 'Publikasikan',
       onSave: _save,
       children: [
-        if (widget.post == null && FeedCreateTabs.showRow) ...[
+        if (widget.post == null) ...[
           FeedCreateTabs(
             current: FeedCreateTab.link,
             query: _calendarQuery(),

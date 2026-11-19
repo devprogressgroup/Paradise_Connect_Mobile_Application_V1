@@ -2,6 +2,7 @@ import 'package:dartz/dartz.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:progress_group/features/marketing-feed/data/datasources/marketing_feed_remote_datasource.dart';
 import 'package:progress_group/features/marketing-feed/domain/entities/feed_post_entity.dart';
+import 'package:progress_group/features/marketing-feed/domain/repositories/marketing_feed_repository.dart';
 import 'package:progress_group/features/marketing-feed/domain/usecases/get_feed_post_usecase.dart';
 import 'package:progress_group/features/marketing-feed/domain/usecases/get_feed_posts_usecase.dart';
 import 'package:progress_group/features/marketing-feed/domain/usecases/get_my_submissions_usecase.dart';
@@ -25,6 +26,7 @@ class MarketingFeedCubit extends Cubit<MarketingFeedState> {
   final GetMySubmissionsUseCase getMySubmissionsUseCase;
   final SetProfilePinUseCase setProfilePinUseCase;
   final GetFameProgramsUseCase getFameProgramsUseCase;
+  final MarketingFeedRepository repository;
 
   MarketingFeedCubit({
     required this.getFeedPostsUseCase,
@@ -36,7 +38,14 @@ class MarketingFeedCubit extends Cubit<MarketingFeedState> {
     required this.getMySubmissionsUseCase,
     required this.setProfilePinUseCase,
     required this.getFameProgramsUseCase,
+    required this.repository,
   }) : super(const MarketingFeedState());
+
+  /// Like / dislike kartu Wall of Fame. Balikan: pesan error, atau hasil terbaru (hitungan + reaksi saya).
+  Future<Either<String, PostReactionResult>> reactFameCard(
+    int cardId,
+    FeedReaction reaction,
+  ) => repository.reactFameCard(cardId, reaction);
 
   Future<void> fetch() async {
     emit(state.copyWith(status: MarketingFeedStatus.loading));

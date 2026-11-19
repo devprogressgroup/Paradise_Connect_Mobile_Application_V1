@@ -151,7 +151,7 @@ class _FeedMySubmissionsPageState extends State<FeedMySubmissionsPage> {
       body: SafeArea(
         child: Column(
           children: [
-            customHeader(context, 'Kiriman Saya', isBack: true),
+            customHeader(context, 'Feeds', isBack: true),
             _buildTabs(),
             Expanded(child: _buildBody()),
           ],

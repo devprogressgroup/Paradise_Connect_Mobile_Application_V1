@@ -117,6 +117,38 @@ class MarketingFeedRepositoryImpl implements MarketingFeedRepository {
       _guard(() => remoteDataSource.getFameCandidates());
 
   @override
+  Future<Either<String, PostReactionResult>> reactFameCard(
+    int cardId,
+    FeedReaction reaction,
+  ) => _guard(() => remoteDataSource.reactFameCard(cardId, reaction));
+
+  @override
+  Future<Either<String, FeedCommentPageEntity>> getFameComments(
+    int cardId, {
+    int page = 1,
+  }) => _guard(() => remoteDataSource.getFameComments(cardId, page: page));
+
+  @override
+  Future<Either<String, FeedCommentEntity>> addFameComment(
+    int cardId,
+    String text, {
+    int? parentId,
+  }) => _guard(
+    () => remoteDataSource.addFameComment(cardId, text, parentId: parentId),
+  );
+
+  @override
+  Future<Either<String, CommentLikeResult>> toggleFameCommentLike(
+    int commentId, {
+    required bool currentlyLiked,
+  }) => _guard(
+    () => remoteDataSource.toggleFameCommentLike(
+      commentId,
+      currentlyLiked: currentlyLiked,
+    ),
+  );
+
+  @override
   Future<Either<String, FameAdminCardEntity>> saveFameCard(
     FameCardParams params, {
     int? cardId,
@@ -145,7 +177,6 @@ class MarketingFeedRepositoryImpl implements MarketingFeedRepository {
   Future<Either<String, void>> deleteFameCard(int cardId) =>
       _guard(() => remoteDataSource.deleteFameCard(cardId));
 
-
   @override
   Future<Either<String, void>> setProfilePin(
     int postId, {
@@ -169,8 +200,13 @@ class MarketingFeedRepositoryImpl implements MarketingFeedRepository {
       _guard(() => remoteDataSource.getMyProfile(userId: userId));
 
   @override
-  Future<Either<String, FeedPageEntity>> searchFeedPosts({required String q, int page = 1, int perPage = 10}) =>
-      _guard(() => remoteDataSource.searchFeedPosts(q: q, page: page, perPage: perPage));
+  Future<Either<String, FeedPageEntity>> searchFeedPosts({
+    required String q,
+    int page = 1,
+    int perPage = 10,
+  }) => _guard(
+    () => remoteDataSource.searchFeedPosts(q: q, page: page, perPage: perPage),
+  );
 
   @override
   Future<Either<String, List<FeedPostEntity>>> getModeratorPosts() =>

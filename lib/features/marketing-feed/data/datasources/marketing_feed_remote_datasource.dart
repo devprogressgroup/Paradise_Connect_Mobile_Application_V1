@@ -86,7 +86,34 @@ abstract class MarketingFeedRemoteDataSource {
   Future<MyProfileEntity> getMyProfile({int? userId});
 
   /// GET /api/marketing-feed/search?q= — cari kiriman (caption, judul/channel link, nama pembuat).
-  Future<FeedPageModel> searchFeedPosts({required String q, int page = 1, int perPage = 10});
+  Future<FeedPageModel> searchFeedPosts({
+    required String q,
+    int page = 1,
+    int perPage = 10,
+  });
+
+  /// Wall of Fame — like / dislike kartu: POST wall-of-fame/cards/{id}/reaction (null = batal).
+  Future<PostReactionResult> reactFameCard(int cardId, FeedReaction reaction);
+
+  /// Wall of Fame — GET wall-of-fame/cards/{id}/comments?page=&per_page=
+  Future<FeedCommentPageEntity> getFameComments(
+    int cardId, {
+    int page = 1,
+    int perPage = 10,
+  });
+
+  /// Wall of Fame — POST wall-of-fame/cards/{id}/comments {body, parent_id}
+  Future<FeedCommentModel> addFameComment(
+    int cardId,
+    String text, {
+    int? parentId,
+  });
+
+  /// Wall of Fame — POST / DELETE wall-of-fame/comments/{commentId}/like
+  Future<CommentLikeResult> toggleFameCommentLike(
+    int commentId, {
+    required bool currentlyLiked,
+  });
 
   /// Moderator — GET /api/marketing-feed/moderator/posts: terjadwal & draft.
   Future<List<FeedPostModel>> getModeratorPosts();
@@ -119,7 +146,10 @@ abstract class MarketingFeedRemoteDataSource {
   Future<List<FameCandidateEntity>> getFameCandidates();
 
   /// POST /marketing-feed/wall-of-fame/cards (baru) atau POST .../cards/{id} (ubah), multipart.
-  Future<FameAdminCardEntity> saveFameCard(FameCardParams params, {int? cardId});
+  Future<FameAdminCardEntity> saveFameCard(
+    FameCardParams params, {
+    int? cardId,
+  });
 
   /// POST /marketing-feed/wall-of-fame/cards/{id}/status {status, publish_at}.
   Future<FameAdminCardEntity> setFameCardStatus(
@@ -464,7 +494,11 @@ class MarketingFeedRemoteDataSourceImpl
   }
 
   @override
-  Future<FeedPageModel> searchFeedPosts({required String q, int page = 1, int perPage = 10}) async {
+  Future<FeedPageModel> searchFeedPosts({
+    required String q,
+    int page = 1,
+    int perPage = 10,
+  }) async {
     try {
       final response = await dio.get(
         '/marketing-feed/search',
@@ -472,7 +506,9 @@ class MarketingFeedRemoteDataSourceImpl
       );
       final body = response.data;
       if (body is Map && body['status'] == true && body['data'] != null) {
-        return FeedPageModel.fromJson(Map<String, dynamic>.from(body['data'] as Map));
+        return FeedPageModel.fromJson(
+          Map<String, dynamic>.from(body['data'] as Map),
+        );
       }
       throw parseMarketingFeedException(body, 'Gagal mencari kiriman.');
     } catch (e) {
@@ -528,6 +564,116 @@ class MarketingFeedRemoteDataSourceImpl
   }
 
   @override
+  Future<PostReactionResult> reactFameCard(
+    int cardId,
+    FeedReaction reaction,
+  ) async {
+    try {
+      final response = await dio.post(
+        '/marketing-feed/wall-of-fame/cards/$cardId/reaction',
+        data: {
+          'reaction': reaction == FeedReaction.none ? null : reaction.name,
+        },
+      );
+      final body = response.data;
+      if (body is Map && body['status'] == true && body['data'] != null) {
+        final d = Map<String, dynamic>.from(body['data'] as Map);
+        final str = d['my_reaction'] as String?;
+        return PostReactionResult(
+          myReaction: str == 'like'
+              ? FeedReaction.like
+              : str == 'dislike'
+              ? FeedReaction.dislike
+              : FeedReaction.none,
+          likes: (d['likes'] as num?)?.toInt() ?? 0,
+          dislikes: (d['dislikes'] as num?)?.toInt() ?? 0,
+        );
+      }
+      throw parseMarketingFeedException(body, 'Gagal menyimpan reaksi.');
+    } catch (e) {
+      throw parseMarketingFeedException(e, 'Gagal menyimpan reaksi.');
+    }
+  }
+
+  @override
+  Future<FeedCommentPageEntity> getFameComments(
+    int cardId, {
+    int page = 1,
+    int perPage = 10,
+  }) async {
+    try {
+      final response = await dio.get(
+        '/marketing-feed/wall-of-fame/cards/$cardId/comments',
+        queryParameters: {'page': page, 'per_page': perPage},
+      );
+      final body = response.data;
+      if (body is Map && body['status'] == true && body['data'] != null) {
+        return FeedCommentModel.pageFromJson(
+          Map<String, dynamic>.from(body['data'] as Map),
+        );
+      }
+      throw parseMarketingFeedException(body, 'Gagal mengambil komentar.');
+    } catch (e) {
+      throw parseMarketingFeedException(e, 'Gagal mengambil komentar.');
+    }
+  }
+
+  @override
+  Future<FeedCommentModel> addFameComment(
+    int cardId,
+    String text, {
+    int? parentId,
+  }) async {
+    try {
+      final response = await dio.post(
+        '/marketing-feed/wall-of-fame/cards/$cardId/comments',
+        data: {'body': text, if (parentId != null) 'parent_id': parentId},
+      );
+      final body = response.data;
+      if (body is Map &&
+          (body['status'] == true || response.statusCode == 201) &&
+          body['data'] != null) {
+        return FeedCommentModel.fromJson(
+          Map<String, dynamic>.from(body['data'] as Map),
+        );
+      }
+      throw parseMarketingFeedException(body, 'Gagal mengirim komentar.');
+    } catch (e) {
+      throw parseMarketingFeedException(e, 'Gagal mengirim komentar.');
+    }
+  }
+
+  @override
+  Future<CommentLikeResult> toggleFameCommentLike(
+    int commentId, {
+    required bool currentlyLiked,
+  }) async {
+    try {
+      final Response response;
+      if (currentlyLiked) {
+        response = await dio.delete(
+          '/marketing-feed/wall-of-fame/comments/$commentId/like',
+        );
+      } else {
+        response = await dio.post(
+          '/marketing-feed/wall-of-fame/comments/$commentId/like',
+        );
+      }
+      final body = response.data;
+      if (body is Map && body['status'] == true && body['data'] != null) {
+        final d = Map<String, dynamic>.from(body['data'] as Map);
+        return CommentLikeResult(
+          liked: d['liked'] == true,
+          likeCount: (d['like_count'] as num?)?.toInt() ?? 0,
+        );
+      }
+      throw parseMarketingFeedException(body, 'Gagal menyukai komentar.');
+    } catch (e) {
+      throw parseMarketingFeedException(e, 'Gagal menyukai komentar.');
+    }
+  }
+
+  @override
   Future<List<FeedPostModel>> getModeratorCalendar({
     required DateTime from,
     required DateTime to,
@@ -551,7 +697,10 @@ class MarketingFeedRemoteDataSourceImpl
             )
             .toList();
       }
-      throw parseMarketingFeedException(body, 'Gagal mengambil kalender jadwal.');
+      throw parseMarketingFeedException(
+        body,
+        'Gagal mengambil kalender jadwal.',
+      );
     } catch (e) {
       throw parseMarketingFeedException(e, 'Gagal mengambil kalender jadwal.');
     }
@@ -712,7 +861,9 @@ class MarketingFeedRemoteDataSourceImpl
       fields['periode_label'] = p.periodeLabel ?? '';
     }
     if (p.publishAt != null) {
-      fields['publish_at'] = DateFormat('yyyy-MM-dd HH:mm').format(p.publishAt!);
+      fields['publish_at'] = DateFormat(
+        'yyyy-MM-dd HH:mm',
+      ).format(p.publishAt!);
     }
     for (var i = 0; i < p.winners.length; i++) {
       final w = p.winners[i];
@@ -807,14 +958,16 @@ class MarketingFeedRemoteDataSourceImpl
   }
 
   @override
-  Future<void> deleteFameCardMedia(int cardId) =>
-      _fameDelete('/marketing-feed/wall-of-fame/cards/$cardId/media',
-          'Gagal menghapus poster Wall of Fame.');
+  Future<void> deleteFameCardMedia(int cardId) => _fameDelete(
+    '/marketing-feed/wall-of-fame/cards/$cardId/media',
+    'Gagal menghapus poster Wall of Fame.',
+  );
 
   @override
-  Future<void> deleteFameCard(int cardId) =>
-      _fameDelete('/marketing-feed/wall-of-fame/cards/$cardId',
-          'Gagal menghapus kartu Wall of Fame.');
+  Future<void> deleteFameCard(int cardId) => _fameDelete(
+    '/marketing-feed/wall-of-fame/cards/$cardId',
+    'Gagal menghapus kartu Wall of Fame.',
+  );
 
   Future<void> _fameDelete(String path, String fallback) async {
     try {

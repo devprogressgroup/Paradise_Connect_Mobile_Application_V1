@@ -49,7 +49,24 @@ class FeedPostCard extends StatelessWidget {
       : feedCardDecoration();
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) => _withPin(_buildCard(context));
+
+  /// Ikon pin selalu di pojok kanan atas kartu, untuk semua jenis kiriman yang disematkan.
+  Widget _withPin(Widget card) {
+    if (!post.isPinned) return card;
+    return Stack(
+      children: [
+        card,
+        const Positioned(
+          top: 12,
+          right: 12,
+          child: Icon(Icons.push_pin, size: 16, color: Color(primaryColor)),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildCard(BuildContext context) {
     if (post.type == FeedPostType.link) return _buildLinkCard();
 
     final showFooter = post.status == FeedPostStatus.published;
@@ -167,31 +184,6 @@ class FeedPostCard extends StatelessWidget {
             ],
           ),
         ),
-        if (post.isPinned) ...[
-          const SizedBox(width: 8),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-            decoration: BoxDecoration(
-              color: const Color(blueShade50Color),
-              borderRadius: BorderRadius.circular(99),
-            ),
-            child: const Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.push_pin, size: 12, color: Color(primaryColor)),
-                SizedBox(width: 4),
-                Text(
-                  'Disematkan',
-                  style: TextStyle(
-                    fontSize: 10.5,
-                    fontWeight: FontWeight.bold,
-                    color: Color(primaryColor),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
       ],
     );
   }
@@ -280,12 +272,20 @@ class FeedPostCard extends StatelessWidget {
                           ),
                         ),
                       const SizedBox(height: 4),
-                      Text(
-                        link.title,
-                        style: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
-                        ),
+                      // Judul + ikon pin di kanan kalau kiriman link ini disematkan.
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            child: Text(
+                              link.title,
+                              style: const TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                       if (link.description != null) ...[
                         const SizedBox(height: 4),
@@ -338,18 +338,31 @@ class FeedRichText extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final parts = text.split('**');
+    // `**teks**` = tebal, `__teks__` = miring.
+    final spans = <TextSpan>[];
+    final re = RegExp(r'\*\*([\s\S]+?)\*\*|__([\s\S]+?)__');
+    var last = 0;
+    for (final m in re.allMatches(text)) {
+      if (m.start > last) spans.add(TextSpan(text: text.substring(last, m.start)));
+      if (m.group(1) != null) {
+        spans.add(TextSpan(
+          text: m.group(1),
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        ));
+      } else {
+        spans.add(TextSpan(
+          text: m.group(2),
+          style: const TextStyle(fontStyle: FontStyle.italic),
+        ));
+      }
+      last = m.end;
+    }
+    if (last < text.length) spans.add(TextSpan(text: text.substring(last)));
     return Text.rich(
       TextSpan(
         style: style,
         children: [
-          for (var i = 0; i < parts.length; i++)
-            TextSpan(
-              text: parts[i],
-              style: i.isOdd
-                  ? const TextStyle(fontWeight: FontWeight.bold)
-                  : null,
-            ),
+          ...spans,
           if (trailing != null)
             TextSpan(
               text: trailing,

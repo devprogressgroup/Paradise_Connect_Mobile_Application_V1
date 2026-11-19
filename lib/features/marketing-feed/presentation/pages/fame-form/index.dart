@@ -9,6 +9,7 @@ import 'package:progress_group/features/marketing-feed/domain/entities/feed_post
 import 'package:progress_group/features/marketing-feed/presentation/state/fame_form/fame_form_cubit.dart';
 import 'package:progress_group/features/marketing-feed/presentation/state/fame_form/fame_form_state.dart';
 import 'package:progress_group/features/marketing-feed/presentation/widgets/feed_compose_fields.dart';
+import 'package:progress_group/features/marketing-feed/presentation/widgets/feed_create_tabs.dart';
 import 'package:progress_group/features/marketing-feed/presentation/widgets/feed_moderator_form_scaffold.dart';
 
 /// Argumen route form Wall of Fame. [card] null = kartu baru. [programs] = daftar program yang sudah ada.
@@ -138,19 +139,16 @@ class _FameFormPageState extends State<FameFormPage> {
     final programName = _programCtrl.text.trim();
     if (programName.isEmpty) return _msg('Isi nama program dulu.');
     if (kategori.isEmpty) return _msg('Isi kategori dulu.');
+    // Izin membuat program baru dan izin per juara dicek di backend (superuser selalu boleh),
+    // jadi tidak ada pengecekan izin di sisi app yang bisa salah membaca hak akses.
     final matched = _matchProgram(programName);
-    if (matched == null && !_args.canCreateProgram) {
-      return _msg(
-        'Pilih program yang sudah ada. Membuat program baru perlu izin.',
-      );
-    }
     if (_winners.isEmpty) return _msg('Tambahkan minimal satu juara.');
 
     final inputs = <FameWinnerInput>[];
     final seen = <int>{};
     for (final w in _winners) {
-      if (w.userId == null) return _msg('Pilih sales untuk setiap juara.');
-      if (!seen.add(w.userId!)) return _msg('Sales ${w.name} sudah dipilih.');
+      if (w.userId == null) return _msg('Pilih user untuk setiap juara.');
+      if (!seen.add(w.userId!)) return _msg('User ${w.name} sudah dipilih.');
       // Angka di depan label jadi peringkat (urutan & seri); label utuh (mis. "1+") yang tampil.
       final label = w.ranking.text.trim();
       final rank = int.tryParse(RegExp(r'^\d+').stringMatch(label) ?? '');
@@ -224,7 +222,7 @@ class _FameFormPageState extends State<FameFormPage> {
     );
     if (picked == null || !mounted) return;
     if (_winners.any((w) => w != draft && w.userId == picked.userId)) {
-      return _msg('Sales ${picked.name} sudah dipilih.');
+      return _msg('User ${picked.name} sudah dipilih.');
     }
     setState(() {
       draft.userId = picked.userId;
@@ -243,6 +241,11 @@ class _FameFormPageState extends State<FameFormPage> {
       primaryLabel: _scheduledAt != null ? 'Jadwalkan' : 'Tayangkan',
       onSave: (asDraft) => _save(asDraft),
       children: [
+        // Tab Buat Konten tetap tampil di halaman ini, dengan Wall of Fame aktif (satu layout dengan Postingan/Polling/Link).
+        if (card == null) ...[
+          const FeedCreateTabs(current: FeedCreateTab.wallOfFame),
+          const SizedBox(height: 16),
+        ],
         const FeedFormLabel('Program'),
         const SizedBox(height: 8),
         TextField(
@@ -342,11 +345,11 @@ class _FameFormPageState extends State<FameFormPage> {
         OutlinedButton.icon(
           onPressed: _addWinner,
           icon: const Icon(Icons.add, size: 18),
-          label: const Text('Tambah juara'),
+          label: const Text('Tambah'),
         ),
         const SizedBox(height: 8),
         const Text(
-          'Peringkat yang sama dianggap seri. Jabatan dan tim terisi otomatis dari sales, tetapi bisa diubah.',
+          'Peringkat yang sama dianggap seri. Jabatan dan tim terisi otomatis dari user, tetapi bisa diubah.',
           style: TextStyle(fontSize: 12, color: Color(grey2Color)),
         ),
       ],
@@ -369,19 +372,43 @@ class _FameFormPageState extends State<FameFormPage> {
             children: [
               Expanded(
                 child: InkWell(
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(10),
                   onTap: () => _pickSales(w),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 6),
-                    child: Text(
-                      w.name.isEmpty ? 'Pilih sales' : w.name,
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700,
-                        color: w.name.isEmpty
-                            ? const Color(primaryColor)
-                            : const Color(blackColor),
-                      ),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 10,
+                    ),
+                    decoration: BoxDecoration(
+                      color: const Color(blueShade50Color),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          w.name.isEmpty
+                              ? Icons.person_add_alt_1
+                              : Icons.person,
+                          size: 18,
+                          color: const Color(primaryColor),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            w.name.isEmpty ? 'Pilih user' : w.name,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w700,
+                              color: Color(primaryColor),
+                            ),
+                          ),
+                        ),
+                        const Icon(
+                          Icons.arrow_drop_down,
+                          color: Color(primaryColor),
+                        ),
+                      ],
                     ),
                   ),
                 ),
@@ -467,7 +494,7 @@ class _CandidateSheetState extends State<_CandidateSheet> {
                     autofocus: false,
                     onChanged: (v) => setState(() => _query = v),
                     decoration: feedInputDecoration(
-                      hintText: 'Cari nama sales',
+                      hintText: 'Cari nama user',
                     ),
                   ),
                   const SizedBox(height: 8),
@@ -479,7 +506,7 @@ class _CandidateSheetState extends State<_CandidateSheet> {
                     const Expanded(
                       child: Center(
                         child: Text(
-                          'Sales tidak ditemukan.',
+                          'User tidak ditemukan.',
                           style: TextStyle(color: Color(grey2Color)),
                         ),
                       ),
