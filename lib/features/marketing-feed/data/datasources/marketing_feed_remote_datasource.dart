@@ -15,6 +15,8 @@ import 'package:progress_group/features/marketing-feed/domain/entities/fame_prog
 import 'package:progress_group/features/marketing-feed/domain/entities/wall_of_fame_entity.dart';
 import 'package:progress_group/features/marketing-feed/data/models/fame_program_model.dart';
 import 'package:progress_group/features/marketing-feed/domain/entities/save_feed_post_params.dart';
+import 'package:progress_group/features/marketing-feed/domain/entities/fame_manage_entity.dart';
+import 'package:progress_group/features/marketing-feed/data/models/fame_manage_model.dart';
 
 class CommentLikeResult {
   final bool liked;
@@ -89,6 +91,12 @@ abstract class MarketingFeedRemoteDataSource {
   /// Moderator — GET /api/marketing-feed/moderator/posts: terjadwal & draft.
   Future<List<FeedPostModel>> getModeratorPosts();
 
+  /// Moderator — GET /api/marketing-feed/moderator/calendar?from=&to= (Kalender Jadwal): terjadwal & tayang.
+  Future<List<FeedPostModel>> getModeratorCalendar({
+    required DateTime from,
+    required DateTime to,
+  });
+
   /// Moderator — POST /api/marketing-feed/moderator/posts (baru) atau /{id} (edit), multipart.
   Future<FeedPostModel> savePost(SaveFeedPostParams params);
 
@@ -100,6 +108,34 @@ abstract class MarketingFeedRemoteDataSource {
 
   /// Wall of Fame baru: GET /marketing-feed/wall-of-fame/programs.
   Future<List<FameProgramEntity>> getFamePrograms();
+
+  /// Kelola Wall of Fame: GET /marketing-feed/wall-of-fame/access (can_edit, can_create_program).
+  Future<FameAccessEntity> getFameAccess();
+
+  /// GET /marketing-feed/wall-of-fame/manage — program + kartu (admin). 403 kalau tidak punya izin.
+  Future<List<FameManageProgramEntity>> getFameManage();
+
+  /// GET /marketing-feed/wall-of-fame/candidates — sales yang bisa dipilih sebagai juara.
+  Future<List<FameCandidateEntity>> getFameCandidates();
+
+  /// POST /marketing-feed/wall-of-fame/cards (baru) atau POST .../cards/{id} (ubah), multipart.
+  Future<FameAdminCardEntity> saveFameCard(FameCardParams params, {int? cardId});
+
+  /// POST /marketing-feed/wall-of-fame/cards/{id}/status {status, publish_at}.
+  Future<FameAdminCardEntity> setFameCardStatus(
+    int cardId,
+    String status,
+    DateTime? publishAt,
+  );
+
+  /// POST /marketing-feed/wall-of-fame/cards/{id}/media, multipart field `media`.
+  Future<void> uploadFameCardMedia(int cardId, FeedMediaEntity media);
+
+  /// DELETE /marketing-feed/wall-of-fame/cards/{id}/media.
+  Future<void> deleteFameCardMedia(int cardId);
+
+  /// DELETE /marketing-feed/wall-of-fame/cards/{id}.
+  Future<void> deleteFameCard(int cardId);
 }
 
 /// File baru dari picker → MultipartFile. Di web filePath berupa blob URL dan dart:io tidak tersedia,
@@ -492,6 +528,36 @@ class MarketingFeedRemoteDataSourceImpl
   }
 
   @override
+  Future<List<FeedPostModel>> getModeratorCalendar({
+    required DateTime from,
+    required DateTime to,
+  }) async {
+    try {
+      final response = await dio.get(
+        '/marketing-feed/moderator/calendar',
+        queryParameters: {
+          'from': DateFormat('yyyy-MM-dd').format(from),
+          'to': DateFormat('yyyy-MM-dd').format(to),
+        },
+      );
+      final body = response.data;
+      if (body is Map && body['status'] == true && body['data'] is Map) {
+        final items =
+            (body['data'] as Map)['items'] as List<dynamic>? ?? const [];
+        return items
+            .map(
+              (e) =>
+                  FeedPostModel.fromJson(Map<String, dynamic>.from(e as Map)),
+            )
+            .toList();
+      }
+      throw parseMarketingFeedException(body, 'Gagal mengambil kalender jadwal.');
+    } catch (e) {
+      throw parseMarketingFeedException(e, 'Gagal mengambil kalender jadwal.');
+    }
+  }
+
+  @override
   Future<FeedPostModel> savePost(SaveFeedPostParams params) async {
     try {
       final formData = FormData();
@@ -590,6 +656,177 @@ class MarketingFeedRemoteDataSourceImpl
     return _programsFromLevels(levels);
   }
 
+  /// Ambil `data` dari respons standar { status, message, data }; error dilempar sebagai MarketingFeedException.
+  Future<dynamic> _fameGet(String path, String fallback) async {
+    try {
+      final response = await dio.get(path);
+      final body = response.data;
+      if (body is Map && body['status'] == true && body['data'] != null) {
+        return body['data'];
+      }
+      throw parseMarketingFeedException(body, fallback);
+    } catch (e) {
+      throw parseMarketingFeedException(e, fallback);
+    }
+  }
+
+  @override
+  Future<FameAccessEntity> getFameAccess() async {
+    final data = await _fameGet(
+      '/marketing-feed/wall-of-fame/access',
+      'Gagal mengambil hak akses Wall of Fame.',
+    );
+    return parseFameAccess(Map<String, dynamic>.from(data as Map));
+  }
+
+  @override
+  Future<List<FameManageProgramEntity>> getFameManage() async {
+    final data = await _fameGet(
+      '/marketing-feed/wall-of-fame/manage',
+      'Gagal mengambil Wall of Fame.',
+    );
+    final items = (data as Map)['items'] as List? ?? const [];
+    return parseFameManage(items);
+  }
+
+  @override
+  Future<List<FameCandidateEntity>> getFameCandidates() async {
+    final data = await _fameGet(
+      '/marketing-feed/wall-of-fame/candidates',
+      'Gagal mengambil daftar sales.',
+    );
+    final items = (data as Map)['items'] as List? ?? const [];
+    return parseFameCandidates(items);
+  }
+
+  /// Field form kartu. Semua nilai dikirim sebagai string; juara dikirim dengan nama indeks winners[i][field].
+  Map<String, String> _fameFields(FameCardParams p) {
+    final fields = <String, String>{
+      'kategori': p.kategori,
+      'status': p.status,
+      'caption': p.caption ?? '',
+    };
+    if (p.programId != null) fields['program_id'] = '${p.programId}';
+    if (p.namaProgram != null && p.namaProgram!.isNotEmpty) {
+      fields['nama_program'] = p.namaProgram!;
+      fields['periode_label'] = p.periodeLabel ?? '';
+    }
+    if (p.publishAt != null) {
+      fields['publish_at'] = DateFormat('yyyy-MM-dd HH:mm').format(p.publishAt!);
+    }
+    for (var i = 0; i < p.winners.length; i++) {
+      final w = p.winners[i];
+      fields['winners[$i][user_id]'] = '${w.userId}';
+      fields['winners[$i][ranking]'] = '${w.ranking}';
+      fields['winners[$i][peringkat_label]'] = w.peringkatLabel ?? '';
+      fields['winners[$i][posisi_label]'] = w.posisiLabel ?? '';
+      fields['winners[$i][tim_label]'] = w.timLabel ?? '';
+    }
+    return fields;
+  }
+
+  @override
+  Future<FameAdminCardEntity> saveFameCard(
+    FameCardParams params, {
+    int? cardId,
+  }) async {
+    const fallback = 'Gagal menyimpan Wall of Fame.';
+    try {
+      final formData = FormData.fromMap(_fameFields(params));
+      final poster = params.poster;
+      if (poster != null) {
+        final file = await _multipartOf(poster, 0);
+        if (file != null) formData.files.add(MapEntry('media', file));
+      }
+      final path = cardId == null
+          ? '/marketing-feed/wall-of-fame/cards'
+          : '/marketing-feed/wall-of-fame/cards/$cardId';
+      final response = await dio.post(path, data: formData);
+      final body = response.data;
+      if (body is Map && body['status'] == true && body['data'] is Map) {
+        return parseFameAdminCard(
+          Map<String, dynamic>.from(body['data'] as Map),
+        );
+      }
+      throw parseMarketingFeedException(body, fallback);
+    } catch (e) {
+      throw parseMarketingFeedException(e, fallback);
+    }
+  }
+
+  @override
+  Future<FameAdminCardEntity> setFameCardStatus(
+    int cardId,
+    String status,
+    DateTime? publishAt,
+  ) async {
+    const fallback = 'Gagal mengubah status Wall of Fame.';
+    try {
+      final response = await dio.post(
+        '/marketing-feed/wall-of-fame/cards/$cardId/status',
+        data: {
+          'status': status,
+          if (publishAt != null)
+            'publish_at': DateFormat('yyyy-MM-dd HH:mm').format(publishAt),
+        },
+      );
+      final body = response.data;
+      if (body is Map && body['status'] == true && body['data'] is Map) {
+        return parseFameAdminCard(
+          Map<String, dynamic>.from(body['data'] as Map),
+        );
+      }
+      throw parseMarketingFeedException(body, fallback);
+    } catch (e) {
+      throw parseMarketingFeedException(e, fallback);
+    }
+  }
+
+  @override
+  Future<void> uploadFameCardMedia(int cardId, FeedMediaEntity media) async {
+    const fallback = 'Gagal mengunggah poster Wall of Fame.';
+    try {
+      final file = await _multipartOf(media, 0);
+      if (file == null) {
+        throw const MarketingFeedException(
+          message: 'File poster tidak bisa dibaca.',
+        );
+      }
+      final formData = FormData();
+      formData.files.add(MapEntry('media', file));
+      final response = await dio.post(
+        '/marketing-feed/wall-of-fame/cards/$cardId/media',
+        data: formData,
+      );
+      final body = response.data;
+      if (body is Map && body['status'] == true) return;
+      throw parseMarketingFeedException(body, fallback);
+    } catch (e) {
+      throw parseMarketingFeedException(e, fallback);
+    }
+  }
+
+  @override
+  Future<void> deleteFameCardMedia(int cardId) =>
+      _fameDelete('/marketing-feed/wall-of-fame/cards/$cardId/media',
+          'Gagal menghapus poster Wall of Fame.');
+
+  @override
+  Future<void> deleteFameCard(int cardId) =>
+      _fameDelete('/marketing-feed/wall-of-fame/cards/$cardId',
+          'Gagal menghapus kartu Wall of Fame.');
+
+  Future<void> _fameDelete(String path, String fallback) async {
+    try {
+      final response = await dio.delete(path);
+      final body = response.data;
+      if (body is Map && body['status'] == true) return;
+      throw parseMarketingFeedException(body, fallback);
+    } catch (e) {
+      throw parseMarketingFeedException(e, fallback);
+    }
+  }
+
   /// Satu program "Wall of Fame" berisi kategori per level (TOP GM/SM/SPV/SE).
   /// Juara #1 = ranking 1, peringkat lain di [WallOfFameLevelEntity.runnersUp] = ranking 2 dst.
   List<FameProgramEntity> _programsFromLevels(
@@ -604,21 +841,30 @@ class MarketingFeedRemoteDataSourceImpl
       int id,
     ) {
       final media = e.media;
+      // Data lama per orang: satu kartu = satu juara.
       return FameEntryEntity(
         id: e.id ?? id,
         programId: 0,
         programName: 'Wall of Fame',
         kategori: level,
-        ranking: ranking,
-        posisiLabel: e.info,
         caption: e.highlight,
-        name: e.name,
-        initials: e.initials ?? '',
-        photoUrl: e.photoUrl,
         mediaType: media == null || media.url == null
             ? null
             : (media.isVideo ? 'video' : 'image'),
         mediaUrl: media?.url,
+        winners: [
+          FameWinnerEntity(
+            userId: 0,
+            name: e.name,
+            initials: e.initials ?? '',
+            photoUrl: e.photoUrl,
+            ranking: ranking,
+            posisiLabel: e.info,
+          ),
+        ],
+        juaraCount: 1,
+        summary: '1 JUARA',
+        topRank: ranking,
       );
     }
 

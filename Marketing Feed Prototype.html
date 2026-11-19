@@ -365,6 +365,102 @@ textarea:focus,input[type=text]:focus{border-color:var(--primary);outline:none}
 /* tombol + (FAB) berbentuk bulat */
 .fab{border-radius:50%}
 
+/* ===== kalender jadwal (moderator): grid bulan + agenda hari terpilih ===== */
+.cal-head{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.cal-head b{font-size:16px;text-transform:capitalize}
+.cal-head .hb{color:var(--primary)}
+.cal-flip{display:block;transform:rotate(180deg)}
+.cal-now{font-size:12px;font-weight:800;color:var(--primary);padding:6px 10px;border-radius:99px;background:var(--blue50);white-space:nowrap}
+.cal-legend{display:flex;gap:14px;font-size:11.5px;color:var(--grey2);font-weight:600;justify-content:center}
+.cal-legend span{display:flex;align-items:center;gap:5px}
+.cal-wk,.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;text-align:center}
+.cal-wk span{font-size:11px;font-weight:700;color:var(--grey2);padding:2px 0}
+.cal-d{aspect-ratio:1/1.05;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;font-size:13px;font-weight:700;color:var(--black);background:var(--white);box-shadow:0 1px 2px rgba(0,0,0,.04)}
+.cal-d.out{background:none;box-shadow:none}
+.cal-d.today span:first-child{color:var(--primary)}
+.cal-d.sel{background:var(--primary);color:var(--white)}
+.cal-d.sel span:first-child{color:var(--white)}
+.cal-dots{display:flex;gap:3px;height:6px;align-items:center}
+.cal-dots i,.cal-legend i{width:6px;height:6px;border-radius:50%;display:block;flex:none}
+.cal-legend i{width:7px;height:7px}
+.cal-d.sel .cal-dots i{background:var(--white)!important}
+.dot-sch{background:var(--primary)}
+.dot-pub{background:var(--green)}
+.cal-agenda-hd{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-top:6px}
+.cal-agenda-hd b{font-size:14px}
+.cal-sub{font-size:12px;font-weight:800;color:var(--grey2);margin-top:8px}
+.cal-row{display:flex;align-items:stretch;gap:10px;background:var(--white);border-radius:10px;box-shadow:var(--shadow);padding:10px 12px;text-align:left;width:100%}
+.cal-time{font-size:13px;font-weight:800;color:var(--grey2);min-width:44px;font-variant-numeric:tabular-nums;display:flex;align-items:center}
+.cal-bar{width:4px;border-radius:4px;flex:none;background:var(--primary)}
+.cal-bar.pub{background:var(--green)}
+.cal-bar.mut{background:var(--g500)}
+.cal-mid{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.cal-mid b{font-size:13px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+
+/* ===== kalender: deretan bulan, agenda bergulir, dan tombol + ===== */
+#calBody{padding-bottom:84px}
+.cal-months{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;margin:0 -16px;padding:2px 16px 4px}
+.cal-months::-webkit-scrollbar{display:none}
+.cal-mchip{flex:none;padding:7px 14px;border-radius:99px;background:var(--white);box-shadow:0 1px 2px rgba(0,0,0,.06);font-size:13px;font-weight:700;color:var(--grey2)}
+.cal-mchip.on{background:var(--blue50);color:var(--primary)}
+.ag-list{display:flex;flex-direction:column;gap:14px}
+.ag-day{display:grid;grid-template-columns:48px minmax(0,1fr);gap:10px;align-items:start}
+.ag-date{display:flex;flex-direction:column;align-items:center;padding-top:6px;color:var(--grey2)}
+.ag-date span{font-size:11.5px;font-weight:700}
+.ag-date b{font-size:22px;font-weight:700;color:var(--black);line-height:1.2}
+.ag-day.today .ag-date b{color:var(--white);background:var(--primary);border-radius:50%;width:34px;height:34px;display:grid;place-items:center;font-size:17px}
+.ag-items{display:flex;flex-direction:column;gap:6px;min-width:0}
+.ag-item{display:flex;flex-direction:column;align-items:flex-start;gap:2px;text-align:left;border-radius:10px;padding:9px 12px;width:100%;min-width:0;color:#0d2b45;background:#64B5F6}
+.ag-item.pub{background:#4DB6AC;color:#06302c}
+.ag-time{font-size:11.5px;font-weight:700;opacity:.85}
+.ag-item b{font-size:13.5px;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;max-width:100%}
+.ag-sub{font-size:11.5px;opacity:.85}
+.cal-hint{font-size:12.5px;color:var(--grey2);line-height:1.5;margin:0 0 2px}
+.cal-hint b{color:var(--black)}
+/* ubah tanggal, bulan, dan tahun (tombol pensil di judul kalender) */
+.cal-field{display:flex;flex-direction:column;gap:4px;font-size:12px;font-weight:700;color:var(--grey2)}
+.cal-field select{border:1px solid var(--g300);border-radius:10px;padding:9px 10px;font:inherit;font-size:14px;color:var(--black);background:var(--white)}
+.cal-edit-acts{display:flex;justify-content:flex-end;gap:8px}
+/* pilihan Bulan / Minggu / Hari */
+.cal-find{display:flex;flex-direction:column;gap:8px;margin:0}
+.cal-search{display:flex;gap:6px}
+.cal-search input{flex:1;min-width:0;border:1px solid var(--g300);border-radius:10px;padding:9px 12px;font:inherit;font-size:13.5px;color:var(--black);background:var(--white)}
+.cal-search input:focus{outline:none;border-color:var(--primary)}
+.cal-search button{flex:none;background:var(--primary);color:var(--white);font-weight:700;font-size:13px;border-radius:10px;padding:0 14px}
+.cal-quick{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.cal-quick button{padding:6px 12px;border-radius:99px;background:var(--white);box-shadow:0 1px 2px rgba(0,0,0,.06);font-size:12.5px;font-weight:700;color:var(--primary)}
+.cal-pick{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:var(--grey2);margin-left:auto}
+.cal-pick input{border:1px solid var(--g300);border-radius:8px;padding:5px 6px;font:inherit;font-size:12.5px;color:var(--black);background:var(--white)}
+.cal-find label{display:flex;flex-direction:column;gap:4px;font-size:11.5px;font-weight:700;color:var(--grey2)}
+.cal-find input{border:1px solid var(--g300);border-radius:10px;padding:7px 8px;font:inherit;font-size:13px;color:var(--black);background:var(--white);min-width:0}
+.cal-find input:focus{outline:none;border-color:var(--primary)}
+.cal-seg{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;background:var(--grey10);border-radius:12px;padding:4px}
+.cal-seg button{padding:8px 4px;border-radius:9px;font-size:13px;font-weight:700;color:var(--grey2)}
+.cal-seg button.on{background:var(--white);color:var(--primary);box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.cal-navrow{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.cal-navrow b{font-size:14px;text-align:center}
+.cal-week{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.cal-wd{display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 0;border-radius:10px;background:var(--white);box-shadow:0 1px 2px rgba(0,0,0,.04);font-size:11px;font-weight:700;color:var(--grey2)}
+.cal-wd b{font-size:15px;color:var(--black)}
+.cal-wd.sel{background:var(--primary)}
+.cal-wd.sel,.cal-wd.sel b{color:var(--white)}
+.cal-wd.sel .cal-dots i{background:var(--white)!important}
+
+/* ===== samakan dengan app: avatar profil di header & tombol "Ke atas" di bawah tengah ===== */
+.hb-ava{width:28px;height:28px;border:2px solid currentColor;border-radius:50%;display:grid;place-items:center;margin:0 6px}
+.totop{position:absolute;left:50%;transform:translateX(-50%);bottom:16px;display:flex;align-items:center;gap:6px;background:var(--primary);color:var(--white);font-weight:700;font-size:13px;padding:9px 16px;border-radius:99px;box-shadow:0 4px 12px rgba(33,150,243,.35);z-index:5;white-space:nowrap}
+.totop:hover{filter:brightness(.95)}
+/* header Home: judul dan ikon dibagi rata kiri-kanan */
+#home .hdr{justify-content:space-between;gap:0}
+#home .hdr h1{flex:0 1 auto;min-width:0}
+/* ukuran ikon header Home dikecilkan dan seragam */
+#home .hdr .hb svg{width:20px!important;height:20px!important}
+#home .hdr .hb-ava{width:24px;height:24px;margin:0}
+#home .hdr .hgrp{display:flex;align-items:center;gap:0;margin-left:auto}
+#home .hdr .hgrp .hb{width:32px;height:32px}
+#home .hdr .hgrp .hb+.hb{margin-left:2px}
+#home .hdr .hb-ava svg{width:12px!important;height:12px!important}
+
 /* wall of fame: semua level langsung tampil */
 .fame-all{display:flex;flex-direction:column;gap:14px}
 .flevel{display:flex;flex-direction:column;gap:8px}
@@ -479,6 +575,26 @@ textarea:focus,input[type=text]:focus{border-color:var(--primary);outline:none}
 select{font:inherit}
 @media (max-width:640px){.wrow{grid-template-columns:1fr}}
 .fcard{padding:14px 14px 16px}
+/* kartu Wall of Fame disamakan dengan kartu feed: media juara full-bleed dan kotak 1:1 seperti foto post */
+.fcard .hero{height:auto;aspect-ratio:1/1;border-radius:0;margin:0 -14px}
+/* kartu Wall of Fame (meniru app) */
+.wbadge{align-self:flex-start;display:inline-flex;align-items:center;gap:6px;background:linear-gradient(90deg,#FF9800,#6D5DD3);color:#fff;font-size:11.5px;font-weight:800;padding:6px 12px;border-radius:99px}
+.wmedia{position:relative;margin:0 -14px;aspect-ratio:16/10;overflow:hidden;background:linear-gradient(160deg,var(--secondary),var(--bg2));color:#fff}
+.wmedia .hmedia{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.wmedia::after{content:"";position:absolute;inset:0;z-index:1;background:linear-gradient(180deg,rgba(0,0,0,0) 40%,rgba(0,0,0,.75))}
+.wph{position:absolute;inset:0;display:grid;place-items:center;font-size:56px;font-weight:800;opacity:.4}
+.wph img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:1}
+.wov{position:absolute;left:14px;right:56px;bottom:12px;z-index:2;display:flex;flex-direction:column}
+.wov b{font-size:17px;line-height:1.25}.wov small{font-size:12px;opacity:.9}
+.wvid{position:absolute;top:10px;right:10px;z-index:2;display:inline-flex;align-items:center;gap:5px;background:rgba(0,0,0,.55);color:#fff;font-size:11px;font-weight:700;padding:4px 9px;border-radius:99px}
+.wmute{position:absolute;right:12px;bottom:12px;z-index:2;width:30px;height:30px;border-radius:50%;background:rgba(0,0,0,.5);display:grid;place-items:center}
+.winfo{display:grid;grid-template-columns:1fr 1fr;border:1px solid var(--grey10);border-radius:10px}
+.winfo>div{padding:10px 12px;display:flex;flex-direction:column;gap:2px;min-width:0}
+.winfo>div:nth-child(odd){border-right:1px solid var(--grey10)}
+.winfo>div:nth-child(-n+2){border-bottom:1px solid var(--grey10)}
+.winfo small{font-size:11.5px;color:var(--grey2)}
+.winfo b{font-size:13.5px;line-height:1.3}
+.wrank{color:var(--orange)}
 .fhd{display:flex;gap:10px;align-items:center;margin-bottom:10px}
 .fhd b{font-size:14px}
 .fhd small{display:block;color:var(--grey2);font-size:12px}
@@ -800,24 +916,30 @@ button.db-t:hover{box-shadow:0 0 0 3px var(--db-acc-soft)}
       <section class="view" id="home" aria-label="Home">
         <header class="hdr">
           <button class="hb" data-drawer aria-label="Menu"><i data-ic="menu"></i><span class="dot" data-menudot hidden></span></button>
-          <h1>Marketing Feed</h1>
-          <button class="hb" data-activity aria-label="Lihat aktivitas kiriman saya"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2"/></svg><span class="dot" id="actDot" hidden></span></button>
+          <h4>Marketing Feed</h4>
+          <div class="hgrp">
+          <button class="hb" data-soon="Pencarian" aria-label="Cari"><i data-ic="search" data-s="24"></i></button>
+          <!-- Kalender Jadwal: hanya moderator (ikut setRole) -->
+          <button class="hb" data-mod data-cal hidden aria-label="Kalender Jadwal"><i data-ic="cal" data-s="24"></i></button>
           <button class="hb" data-bell aria-label="Notifikasi"><i data-ic="bell"></i><span class="dot"></span></button>
+          <button class="hb hb-ava" data-activity aria-label="Profil saya"><i data-ic="person" data-s="16"></i></button>
+          </div>
         </header>
 
         <main class="scroll" id="feed">
           <div class="blk">
-            <div class="sec"><h2>Progress Kamu</h2><button class="lnk" data-go="report">Lihat Report</button></div>
+            <div class="sec"><h5>Progress Kamu</h5><button class="lnk" data-go="report">Lihat Report</button></div>
             <div class="hint">Funnel pribadi Oktober 2026, update tiap hari</div>
             <section class="card"><div class="bars" id="bars"></div></section>
           </div>
 
-          <div class="sec" style="margin-top:4px"><h2>Kiriman Terbaru</h2></div>
+         
           <!-- Item feed disisipkan di sini, campur dalam satu aliran vertikal -->
           <div id="stream" style="display:contents"></div>
         </main>
 
         <button class="fab" id="fab" aria-label="Buat konten"><i data-ic="add" data-s="28"></i></button>
+        <button class="totop" id="toTop" aria-label="Kembali ke atas" hidden><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M4 12l1.41 1.41L11 7.83V20h2V7.83l5.58 5.59L20 12l-8-8z"/></svg>Ke atas</button>
       </section>
 
       <!-- REPORT = Dashboard lama (lib/features/home/presentation/pages/home/index.dart) -->
@@ -850,6 +972,8 @@ button.db-t:hover{box-shadow:0 0 0 3px var(--db-acc-soft)}
       <!-- Kiriman Saya = profil Marketing Feed milik sales: draft, kiriman yang ditinjau / ditolak / sudah tayang.
            Badge merah hanya untuk yang butuh tindakan (kiriman ditolak); yang masih ditinjau cukup terlihat di feed & grid -->
       <button class="ditem" data-mine><span class="in"><i data-ic="post"></i>Feeds</span><span class="bar5"></span></button>
+      <!-- Kalender Jadwal: hanya moderator (ikut setRole) -->
+      <button class="ditem" data-mod data-cal hidden><span class="in"><i data-ic="cal"></i>Kalender Jadwal</span><span class="bar5"></span></button>
       <!-- Draf & Terjadwal = konten resmi buatan moderator (bukan milik pribadi), hanya untuk peran moderator -->
       <button class="ditem" data-go="report"><span class="in"><i data-pi="dashboard"></i>Report<span class="new">Pindah</span></span><span class="bar5"></span></button>
       <button class="ditem" data-soon="Contacts"><span class="in"><i data-pi="contact"></i>Contacts</span><span class="bar5"></span></button>
@@ -977,6 +1101,14 @@ button.db-t:hover{box-shadow:0 0 0 3px var(--db-acc-soft)}
       <header class="hdr sub"><button class="hb" data-close aria-label="Kembali"><i data-ic="back" data-s="27"></i></button><h1>Kiriman Saya</h1></header>
       <div class="seg ktabs" id="kTabs" role="tablist" style="margin:12px 16px 0"></div>
       <div class="form" id="draftList"></div>
+    </section>
+
+    <!-- Moderator: kalender jadwal (grid bulan + agenda hari terpilih). Tap kiriman = buka editor -->
+    <section class="screen" id="sCal">
+      <div class="status"><span data-clock="hm">9:41</span><span>●●● 100%</span></div>
+      <header class="hdr sub"><button class="hb" data-close aria-label="Kembali"><i data-ic="back" data-s="27"></i></button><h1 id="calTitle">Kalender</h1><button class="hb" data-caledit aria-label="Ubah tanggal, bulan, atau tahun"><i data-ic="edit" data-s="20"></i></button></header>
+      <div class="form" id="calBody"></div>
+      <button class="fab" data-calfab aria-label="Jadwalkan postingan"><i data-ic="add" data-s="28"></i></button>
     </section>
 
     <!-- Komentar (bottom sheet) -->
@@ -1888,6 +2020,7 @@ function go(v){
 phone.addEventListener('click',e=>{
   const g=e.target.closest('[data-go]');if(g){go(g.dataset.go);return}
   if(e.target.closest('[data-mine]')){phone.classList.remove('drawer-open');openDraftList();return}
+  if(e.target.closest('[data-cal]')){phone.classList.remove('drawer-open');openCalendar();return}
   if(e.target.closest('[data-activity]')){openProfile(ME);return}
   if(e.target.closest('[data-drafts]')){phone.classList.remove('drawer-open');openDraftList();return}
   const s=e.target.closest('[data-soon]');if(s){phone.classList.remove('drawer-open');toast(`Menu ${s.dataset.soon} belum ada di contoh ini`);return}
@@ -2259,12 +2392,28 @@ function fameGroups(){
   }).filter(g=>g.cats.length);
 }
 /* satu kartu per orang: setiap juara punya kartunya sendiri (foto atau inisial dirinya) */
+/* kartu Wall of Fame, meniru kartu di app: header penerima, badge kategori, media juara dengan nama di atasnya,
+   tabel info (peringkat, periode, program, jabatan), lalu caption. Semua peringkat memakai kartu yang sama */
 function fameCardHTML(p,k,e){
-  const judul=p.periode&&!p.nama.includes(p.periode)?p.nama+' · '+p.periode:p.nama;
-  const isi=e.rank===1
-    ? fameHero(e)
-    : `<div class="rank"><div class="av" style="background:${FAME_COLORS[(e.rank-2)%FAME_COLORS.length]}">${fEsc(e.av)}<span class="medal m${e.rank}">${e.rank}</span></div><div style="flex:1"><b>${fEsc(e.nama)} · ${fEsc(e.sub)}</b><div class="small">${fEsc(e.caption)}</div></div><span class="small" style="font-weight:800">#${e.rank}</span></div>`;
-  return `<article class="card fcard"><div class="fhd"><span class="fic">${ic('trophy',18)}</span><div><b>${fEsc(k)}</b><small>${fEsc(judul)}</small></div></div>${isi}</article>`;
+  const m=e.media;
+  const media=m
+    ? (m.kind==='video'
+        ? `<video class="hmedia" src="${m.url}" autoplay muted loop playsinline></video><span class="wvid">${ic('play',12)}Video</span>`
+        : art(m,'hmedia','xMidYMin'))
+    : `<div class="wph"><span>${fEsc(e.av)}</span>${e.foto?`<img src="${fEsc(e.foto)}" alt="" onerror="this.remove()">`:''}</div>`;
+  const periode=p.periode||'-';
+  return `<article class="card wcard">
+    <div class="row"><span class="pav" style="background:${FAME_COLORS[(e.rank-1)%FAME_COLORS.length]}">${fEsc(e.av)}</span><div style="min-width:0"><span class="name">${fEsc(e.nama)}</span><div class="small">Wall of Fame · ${fEsc(periode)}</div></div></div>
+    <span class="wbadge">${ic('trophy',13)}${fEsc(k)} - ${fEsc(periode).toUpperCase()}</span>
+    <div class="wmedia">${media}<div class="wov"><b>${fEsc(e.nama)}</b><small>${fEsc(e.sub)}</small></div><span class="wmute" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="#fff"><path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z"/></svg></span></div>
+    <div class="winfo">
+      <div><small>Peringkat</small><b class="wrank">#${e.rank}</b></div>
+      <div><small>Periode</small><b>${fEsc(periode)}</b></div>
+      <div><small>Program</small><b>${fEsc(p.nama)}</b></div>
+      <div><small>Jabatan</small><b>${fEsc(e.sub)}</b></div>
+    </div>
+    ${e.caption?`<p class="txt">${fEsc(e.caption)}</p>`:''}
+  </article>`;
 }
 const fameCards=()=>{
   const pinned=pinsUntuk(ME.name).pinFame;
@@ -2408,6 +2557,9 @@ function cardClick(e){
 }
 $('#feed').addEventListener('scroll',slideSync,true);
 $('#feed').addEventListener('click',cardClick);
+/* tombol Ke atas muncul setelah feed digulir cukup jauh, seperti di app */
+$('#feed').addEventListener('scroll',()=>{$('#toTop').hidden=$('#feed').scrollTop<300});
+$('#toTop').onclick=()=>$('#feed').scrollTo({top:0,behavior:'smooth'});
 
 /* ---------- MOBILE: komentar (bottom sheet) ---------- */
 let cPost=null,replyTo=null;
@@ -2808,6 +2960,165 @@ $('#folderBody').addEventListener('click',e=>{
 });
 document.querySelectorAll('.screen:not([data-form]) [data-close]').forEach(b=>b.addEventListener('click',()=>b.closest('.screen').classList.remove('open')));
 
+/* ---------- MOBILE: Kalender Jadwal (moderator). Pola dari referensi scheduler sosial & kalender mobile:
+   grid bulan dengan titik per status di atas, agenda kronologis hari terpilih di bawah (semua kiriman tampil,
+   tidak ada yang disembunyikan), dan draf dipisah karena belum punya tanggal tayang ---------- */
+let calMonth=null,calSel=null;
+const MONTH_FMT=new Intl.DateTimeFormat('id-ID',{month:'long',year:'numeric'});
+const DAY_FMT=new Intl.DateTimeFormat('id-ID',{weekday:'long',day:'numeric',month:'long'});
+function openCalendar(){
+  if(calMonth===null){const d=new Date(clock);calMonth=new Date(d.getFullYear(),d.getMonth(),1).getTime();calSel=dayKey(clock)}
+  renderCalendar();$('#sCal').classList.add('open');$('#calBody').scrollTop=0;
+}
+function renderMonthView(){
+  const m=new Date(calMonth),y=m.getFullYear(),mo=m.getMonth();
+  const offset=(new Date(y,mo,1).getDay()+6)%7,total=new Date(y,mo+1,0).getDate();
+  const byDay={};
+  posts.filter(p=>!isSalesDraft(p)&&(p.status==='scheduled'||p.status==='published')).forEach(p=>{const k=dayKey(p.at);(byDay[k]=byDay[k]||[]).push(p)});
+  const DOT={scheduled:'dot-sch',published:'dot-pub'};
+  let cells='';
+  for(let i=0;i<offset;i++)cells+='<span class="cal-d out" aria-hidden="true"></span>';
+  for(let d=1;d<=total;d++){
+    const t=new Date(y,mo,d).getTime(),list=byDay[t]||[],kinds=[...new Set(list.map(p=>p.status))];
+    cells+=`<button class="cal-d ${t===dayKey(clock)?'today':''} ${t===calSel?'sel':''}" data-calday="${t}" aria-pressed="${t===calSel}" aria-label="${d} ${MONTH_FMT.format(m)}, ${list.length} postingan"><span>${d}</span><span class="cal-dots">${kinds.slice(0,3).map(s=>`<i class="${DOT[s]}"></i>`).join('')}</span></button>`;
+  }
+  const list=(byDay[calSel]||[]).sort((a,b)=>a.at-b.at);
+  const agenda=list.length?list.map(p=>`<button class="cal-row" data-calpost="${p.id}"><span class="cal-time">${hhmm(p.at)}</span><span class="cal-bar ${p.status==='published'?'pub':''}"></span><span class="cal-mid"><b>${plain(p)}</b><span class="small">${TYPE[p.type]} · ${p.project==='Semua'?'Semua project':p.project} · ${p.status==='published'?'sudah tayang':'terjadwal'}</span></span></button>`).join('')
+    :`<div class="empty">${ic('cal',36,'var(--grey10)')}<b>Tidak ada postingan di tanggal ini</b><span>Tekan tombol di bawah untuk menjadwalkan postingan.</span></div>`;
+  const drafts=posts.filter(p=>p.status==='draft'&&!isSalesDraft(p)).sort((a,b)=>b.at-a.at);
+  const draftHTML=drafts.length?`<div class="cal-sub">Draf belum berjadwal (${drafts.length})</div>`+drafts.map(p=>`<button class="cal-row" data-calpost="${p.id}"><span class="cal-time">${ic('draft',16,'var(--grey2)')}</span><span class="cal-bar mut"></span><span class="cal-mid"><b>${plain(p)}</b><span class="small">${TYPE[p.type]} · diubah ${ago(p.at)}</span></span></button>`).join(''):'';
+  const isToday=calSel===dayKey(clock);
+  $('#calBody').innerHTML=`
+    ${modeBar()}
+    <div class="cal-head"><button class="hb" data-calshift="-1" aria-label="Bulan sebelumnya"><span class="cal-flip">${ic('chevron',22)}</span></button><b>${MONTH_FMT.format(m)}</b><button class="hb" data-calshift="1" aria-label="Bulan berikutnya">${ic('chevron',22)}</button></div>
+    <div class="cal-legend"><span><i class="dot-sch"></i>Terjadwal</span><span><i class="dot-pub"></i>Tayang</span></div>
+    <div class="cal-wk">${['Sen','Sel','Rab','Kam','Jum','Sab','Min'].map(x=>`<span>${x}</span>`).join('')}</div>
+    <div class="cal-grid">${cells}</div>
+    <div class="cal-agenda-hd"><b>${isToday?'Hari ini · ':''}${DAY_FMT.format(new Date(calSel))}</b><span class="small">${list.length} postingan</span></div>
+    ${agenda}
+    <button class="btn icn" data-calnew style="margin-top:4px">${ic('add',18)}Jadwalkan di tanggal ini</button>
+    ${draftHTML}`;
+}
+$('#calBody').addEventListener('click',e=>{
+  const sh=e.target.closest('[data-calshift]');
+  if(sh){const d=new Date(calMonth);calMonth=new Date(d.getFullYear(),d.getMonth()+ +sh.dataset.calshift,1).getTime();calSel=calMonth;renderCalendar();return}
+  const cd=e.target.closest('[data-calday]');if(cd){calSel=+cd.dataset.calday;renderCalendar();return}
+  const cr=e.target.closest('[data-calpost]');if(cr)return calOpen(byId(cr.dataset.calpost));
+  if(e.target.closest('[data-calnew]'))return calNew(calSel);
+});
+/* --- tampilan kalender: Agenda (daftar bergulir, seperti Google Calendar) atau Bulan (grid + agenda hari) --- */
+let calView='bulan';
+/* keterangan singkat untuk pengguna awam: apa isi kalender ini dan cara memakainya */
+const CAL_HINT='';
+P.list="M3 13h2v-2H3v2zm0 4h2v-2H3v2zm0-8h2V7H3v2zm4 4h14v-2H7v2zm0 4h14v-2H7v2zM7 7v2h14V7H7z";
+const WD_FMT=new Intl.DateTimeFormat('id-ID',{weekday:'short'});
+const CHIP_FMT=new Intl.DateTimeFormat('id-ID',{month:'short'});
+const MONTH_ONLY=new Intl.DateTimeFormat('id-ID',{month:'long'});
+/* deretan bulan di atas: bulan yang dipilih selalu di tengah, geser kiri-kanan untuk pindah bulan */
+function monthChips(){
+  const base=new Date(calMonth);let h='';
+  for(let i=-4;i<=4;i++){const t=new Date(base.getFullYear(),base.getMonth()+i,1);h+=`<button class="cal-mchip ${i===0?'on':''}" data-calm="${i}" aria-pressed="${i===0}">${CHIP_FMT.format(t)}</button>`}
+  return `<div class="cal-months" role="group" aria-label="Pilih bulan">${h}</div>`;
+}
+/* daftar postingan dari hari "from" sampai hari "to" (dipakai tampilan Minggu dan Hari) */
+function renderAgenda(from,to,head=''){
+  const items=posts.filter(p=>!isSalesDraft(p)&&(p.status==='scheduled'||p.status==='published')&&dayKey(p.at)>=from&&dayKey(p.at)<=to).sort((a,b)=>a.at-b.at);
+  const groups=[];let cur=null;
+  items.forEach(p=>{const k=dayKey(p.at);if(!cur||cur.k!==k){cur={k,list:[]};groups.push(cur)}cur.list.push(p)});
+  const today=dayKey(clock);
+  const body=groups.length?groups.map(g=>{const d=new Date(g.k);return `<div class="ag-day ${g.k===today?'today':''}"><div class="ag-date"><span>${WD_FMT.format(d)}</span><b>${d.getDate()}</b></div><div class="ag-items">${g.list.map(p=>`<button class="ag-item ${p.status==='published'?'pub':'sch'}" data-calpost="${p.id}"><span class="ag-time">${hhmm(p.at)}</span><b>${plain(p)}</b><span class="ag-sub"><b>${p.status==='published'?'Sudah tayang':'Terjadwal'}</b> · ${TYPE[p.type]} · ${p.project==='Semua'?'Semua project':p.project}</span></button>`).join('')}</div></div>`}).join('')
+    :`<div class="empty">${ic('cal',36,'var(--grey10)')}<b>Belum ada postingan di sini</b><span>Coba tanggal lain, atau tekan + untuk menjadwalkan.</span></div>`;
+  const drafts=posts.filter(p=>p.status==='draft'&&!isSalesDraft(p)).sort((a,b)=>b.at-a.at);
+  const draftHTML=drafts.length?`<div class="cal-sub">Draf belum berjadwal (${drafts.length})</div>`+drafts.map(p=>`<button class="cal-row" data-calpost="${p.id}"><span class="cal-time">${ic('draft',16,'var(--grey2)')}</span><span class="cal-bar mut"></span><span class="cal-mid"><b>${plain(p)}</b><span class="small">${TYPE[p.type]} · diubah ${ago(p.at)}</span></span></button>`).join(''):'';
+  $('#calBody').innerHTML=`${modeBar()}${head}<div class="ag-list">${body}</div>${draftHTML}`;
+}
+/* cari tanggal atau bulan sendiri: pilih tanggal (hari, bulan, tahun) atau bulan + tahun, lalu kalender pindah ke sana */
+/* tombol pensil di judul kalender: ubah tanggal, bulan, dan tahun lewat tiga pilihan */
+const MONTH_NAMES=['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+/* ubah tanggal, bulan, dan tahun lewat tiga pilihan (tombol pensil di judul kalender) */
+function openDateEdit(){
+  document.getElementById('dateEdit')?.remove();
+  const s=new Date(calSel),y0=s.getFullYear();
+  const ov=document.createElement('div');
+  ov.className='asheet open';ov.id='dateEdit';
+  ov.innerHTML=`<div class="sheet-bd" data-de="close"></div><div class="as-pn" role="dialog" aria-label="Ubah tanggal"><div class="grab"></div><b>Ubah tanggal</b>
+    <label class="cal-field">Tanggal<select id="deD"></select></label>
+    <label class="cal-field">Bulan<select id="deM">${MONTH_NAMES.map((n,i)=>`<option value="${i}" ${i===s.getMonth()?'selected':''}>${n}</option>`).join('')}</select></label>
+    <label class="cal-field">Tahun<select id="deY">${Array.from({length:21},(_,i)=>y0-10+i).map(y=>`<option value="${y}" ${y===y0?'selected':''}>${y}</option>`).join('')}</select></label>
+    <button class="btn" data-de="save" style="margin-top:8px;width:100%">Simpan</button>
+    <button class="as-b cancel" data-de="close">Batal</button>
+  </div>`;
+  document.getElementById('sCal').appendChild(ov);
+  /* jumlah tanggal mengikuti bulan dan tahun yang dipilih */
+  const fillDays=()=>{
+    const y=+ov.querySelector('#deY').value,m=+ov.querySelector('#deM').value,dEl=ov.querySelector('#deD');
+    const keep=Math.min(+dEl.value||s.getDate(),new Date(y,m+1,0).getDate());
+    dEl.innerHTML=Array.from({length:new Date(y,m+1,0).getDate()},(_,i)=>`<option value="${i+1}" ${i+1===keep?'selected':''}>${i+1}</option>`).join('');
+  };
+  fillDays();
+  ov.querySelector('#deM').onchange=fillDays;
+  ov.querySelector('#deY').onchange=fillDays;
+  ov.addEventListener('click',e=>{
+    if(e.target===ov||e.target.closest('[data-de="close"]')){ov.remove();return}
+    if(e.target.closest('[data-de="save"]')){
+      calSel=new Date(+ov.querySelector('#deY').value,+ov.querySelector('#deM').value,+ov.querySelector('#deD').value).getTime();
+      ov.remove();renderCalendar();
+    }
+  });
+}
+document.querySelector('#sCal [data-caledit]').onclick=openDateEdit;
+/* tombol pilihan tampilan: Bulan / Minggu / Hari */
+function modeBar(){
+  return `<div class="cal-seg" role="group" aria-label="Pilih tampilan">${[['bulan','Bulan'],['minggu','Minggu'],['hari','Hari']].map(([k,l])=>`<button data-calmode="${k}" class="${calView===k?'on':''}" aria-pressed="${calView===k}">${l}</button>`).join('')}</div>`;
+}
+/* baris "‹  judul  ›" untuk pindah minggu atau hari */
+function navRow(label){
+  return `<div class="cal-navrow"><button class="hb" data-calnav="-1" aria-label="Sebelumnya"><span class="cal-flip">${ic('chevron',22)}</span></button><b>${label}</b><button class="hb" data-calnav="1" aria-label="Berikutnya">${ic('chevron',22)}</button></div>`;
+}
+const WEEK_START=t=>{const x=new Date(t);return dayKey(x)-((x.getDay()+6)%7)*DAY};
+const SHORT_FMT=new Intl.DateTimeFormat('id-ID',{day:'numeric',month:'short',year:'numeric'});
+function renderWeek(){
+  const start=WEEK_START(calSel),days=[0,1,2,3,4,5,6].map(i=>start+i*DAY);
+  const count={};posts.filter(p=>!isSalesDraft(p)&&(p.status==='scheduled'||p.status==='published')).forEach(p=>{const k=dayKey(p.at);count[k]=(count[k]||0)+1});
+  const strip=days.map(t=>{const d=new Date(t);return `<button class="cal-wd ${t===calSel?'sel':''} ${t===dayKey(clock)?'today':''}" data-calday="${t}" aria-pressed="${t===calSel}" aria-label="${WD_FMT.format(d)} ${d.getDate()}, ${count[t]||0} postingan"><span>${WD_FMT.format(d)}</span><b>${d.getDate()}</b><span class="cal-dots">${count[t]?'<i class="dot-sch"></i>':''}</span></button>`}).join('');
+  renderAgenda(start,start+6*DAY,navRow(`${SHORT_FMT.format(new Date(start))} – ${SHORT_FMT.format(new Date(start+6*DAY))}`)+`<div class="cal-week">${strip}</div>`);
+}
+function renderDay(){
+  renderAgenda(calSel,calSel,navRow(`${DAY_FMT.format(new Date(calSel))}${calSel===dayKey(clock)?' (hari ini)':''}`));
+}
+/* Bulan: grid + agenda hari terpilih. Minggu dan Hari: daftar postingan untuk rentang tanggal itu */
+function renderCalendar(){
+  const s=new Date(calSel);
+  calMonth=new Date(s.getFullYear(),s.getMonth(),1).getTime();
+  $('#calTitle').textContent=MONTH_FMT.format(new Date(calMonth));
+  if(calView==='minggu')renderWeek();else if(calView==='hari')renderDay();else renderMonthView();
+  document.querySelector('#calBody .cal-mchip.on')?.scrollIntoView({inline:'center',block:'nearest'});
+}
+$('#calBody').addEventListener('click',e=>{
+  const c=e.target.closest('[data-calm]');
+  if(c){const d=new Date(calMonth);calMonth=new Date(d.getFullYear(),d.getMonth()+ +c.dataset.calm,1).getTime();calSel=calMonth;renderCalendar();return}
+});
+$('#calBody').addEventListener('click',e=>{
+  const md=e.target.closest('[data-calmode]');if(md){calView=md.dataset.calmode;renderCalendar();return}
+  const nv=e.target.closest('[data-calnav]');if(nv){calSel+=+nv.dataset.calnav*(calView==='minggu'?7:1)*DAY;renderCalendar();return}
+});
+document.querySelector('#sCal [data-calfab]').onclick=()=>calNew(Math.max(calSel,dayKey(clock)));
+/* kiriman terjadwal / draf dibuka di editor; yang sudah tayang dibuka sebagai tampilan kiriman (tidak mengubah jam tayangnya) */
+function calOpen(p){
+  closeScreen('sCal');
+  if(p.status==='published')return openPostView(p);
+  if(p.type==='poll')openPollForm(p);else if(p.type==='link')openLinkForm(p);else openPostForm(p);
+}
+/* jadwalkan kiriman baru di tanggal yang dipilih, jam 09:00 */
+function calNew(day){
+  if(day<dayKey(clock)){toast('Pilih tanggal hari ini atau setelahnya');return}
+  fillPostForm();
+  form.post.mode='later';form.post.at=day+9*HOUR;
+  if(form.post.at<=clock)form.post.at=clock+HOUR;
+  drawForm('post');
+  closeScreen('sCal');showCreate('post',true);
+}
+
 /* tombol + langsung ke Buat Konten › Momen */
 $('#fab').onclick=startCreate;
 /* aksi "Lihat" setelah simpan draft Momen */
@@ -2815,8 +3126,7 @@ function openMyDrafts(){kTab='draft';openDraftList()}
 /* sidebar Kiriman Saya: badge merah + titik di ikon menu hanya untuk kiriman ditolak (perlu diperbaiki).
    Yang masih ditinjau tidak butuh tindakan, cukup terlihat di feed dan di grid Kiriman Saya */
 function renderMineCnt(){
-  const n=posts.filter(p=>p.a===ME&&p.status==='rejected').length,b=$('#actDot');
-  b.hidden=!n;b.title=n?`${n} kiriman ditolak`:'';
+  const n=posts.filter(p=>p.a===ME&&p.status==='rejected').length;
   document.querySelectorAll('[data-menudot]').forEach(d=>{d.hidden=!n;d.parentElement.setAttribute('aria-label',n?`Menu, ${n} kiriman ditolak perlu diperbaiki`:'Menu')});
 }
 
@@ -2827,6 +3137,7 @@ function setRole(r){
   document.querySelectorAll('[data-role]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.role===r));
   document.querySelectorAll('[data-mod]').forEach(x=>x.hidden=!isMod());
   if(!isMod()&&isOpen('sDrafts'))closeScreen('sDrafts');
+  if(!isMod()&&isOpen('sCal'))closeScreen('sCal');
   /* Buat Konten (alur baru) yang sedang terbuka ikut menyesuaikan: tab muncul / hilang */
   const cur=openCreate();
   if(cur&&(createTabs||(cur==='share'&&form.share.from==='new'))){
@@ -2837,7 +3148,7 @@ function setRole(r){
 document.querySelectorAll('[data-role]').forEach(b=>b.onclick=()=>setRole(b.dataset.role));
 
 const isOpen=id=>document.getElementById(id).classList.contains('open');
-onChange(()=>{renderFeed();renderMineCnt();if(cPost)renderComments();if(isOpen('sDrafts'))renderDrafts();if(isOpen('sProfile'))renderProfile();if(isOpen('sPostView'))renderPostView();if(isOpen('sFolder'))renderFolder()});
+onChange(()=>{renderFeed();renderMineCnt();if(cPost)renderComments();if(isOpen('sDrafts'))renderDrafts();if(isOpen('sProfile'))renderProfile();if(isOpen('sPostView'))renderPostView();if(isOpen('sFolder'))renderFolder();if(isOpen('sCal'))renderCalendar()});
 renderFeed();renderMineCnt();
 
 /* ---------- REPORT: isi dashboard lama ---------- */

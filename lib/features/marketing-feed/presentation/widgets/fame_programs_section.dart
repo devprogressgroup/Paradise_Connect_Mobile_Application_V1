@@ -1,17 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 import 'package:progress_group/core/constants/colors.dart';
 import 'package:progress_group/core/network/auth_token_cache.dart';
-import 'package:progress_group/core/utils/helpers/app_time.dart';
 import 'package:progress_group/core/utils/helpers/date_helper.dart';
 import 'package:progress_group/features/marketing-feed/domain/entities/fame_program_entity.dart';
 import 'package:progress_group/features/marketing-feed/presentation/widgets/feed_avatar.dart';
 import 'package:progress_group/features/marketing-feed/presentation/widgets/feed_media_view.dart';
-import 'package:progress_group/features/marketing-feed/presentation/widgets/feed_section.dart';
 
-/// Satu juara Wall of Fame di Home. Susunannya: header = pembuat entri (author), lalu media juara
-/// dengan judul nama di bawahnya, lalu grid keterangan (peringkat, periode, kategori, jabatan, program),
-/// lalu caption.
+/// Satu kartu Wall of Fame di Home: kartu gelap berisi header pembuat,
+/// nama kategori, poster (opsional), daftar juara dengan peringkat, dan caption.
 class FameEntryTile extends StatefulWidget {
   final FameEntryEntity entry;
 
@@ -31,62 +27,23 @@ class _FameEntryTileState extends State<FameEntryTile> {
 
   @override
   Widget build(BuildContext context) {
-    final content = Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(14, 14, 14, 10),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildHeader(),
-              if (entry.isChampion) ...[
-                const SizedBox(height: 10),
-                _buildChampionBadge(),
-              ],
-            ],
-          ),
-        ),
-        if (_hasMedia)
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 14),
-            child: _buildHero(),
-          ),
-        Padding(
-          padding: EdgeInsets.fromLTRB(14, _hasMedia ? 12 : 10, 14, 14),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildInfoGrid(),
-              if (entry.caption != null && entry.caption!.isNotEmpty) ...[
-                const SizedBox(height: 10),
-                Text(entry.caption!, style: const TextStyle(fontSize: 14)),
-              ],
-            ],
-          ),
-        ),
-      ],
-    );
+    return _buildCard();
+  }
 
-    if (!entry.isChampion) {
-      return FeedCard(padding: EdgeInsets.zero, child: content);
-    }
-
-    // Juara #1: latar gradasi oranye ke biru yang lembut, bingkai oranye, dan bayangan supaya menonjol.
+  Widget _buildCard() {
+    final caption = entry.caption?.trim() ?? '';
     return Container(
+      padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(16),
-        color: const Color(whiteColor),
-        // gradient: LinearGradient(
-        //   begin: Alignment.topLeft,
-        //   end: Alignment.bottomRight,
-        //   colors: [
-        //     const Color(orangeAccentColor).withValues(alpha: 0.30),
-        //     const Color(primaryColor).withValues(alpha: 0.8),
-        //     const Color(whiteColor),
-        //   ],
-        //   stops: const [0, 0.5, 1],
-        // ),
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(secondaryColor), Color(background2Color)],
+        ),
+        border: Border.all(
+          color: const Color(whiteColor).withValues(alpha: 0.12),
+        ),
         boxShadow: [
           BoxShadow(
             color: const Color(grey4Color).withValues(alpha: 0.28),
@@ -95,66 +52,41 @@ class _FameEntryTileState extends State<FameEntryTile> {
           ),
         ],
       ),
-      child: ClipRRect(borderRadius: BorderRadius.circular(14), child: content),
-    );
-  }
-
-  /// Label pita juara, memakai nama kategori dan peringkat asli (bukan tulisan "JUARA #1" tetap).
-  /// Kalau periode sama dengan bulan berjalan: "<KATEGORI> #<peringkat> BULAN INI".
-  /// Selain itu: "<KATEGORI> #<peringkat> - <periode>", misalnya "TOP GM #1 - OKTOBER 2026".
-  String _championLabel() {
-    final kategori = entry.kategori.trim().toUpperCase();
-    final rank = '#${entry.ranking}';
-    final prefix = kategori.isEmpty ? 'JUARA $rank' : '$kategori';
-    final period = entry.periodeLabel?.trim() ?? '';
-    if (period.isEmpty) return prefix;
-    final thisMonth = DateFormat('MMMM yyyy', 'id_ID').format(AppTime.now());
-    if (period.toLowerCase() == thisMonth.toLowerCase())
-      return '$prefix BULAN INI';
-    return '$prefix - ${period.toUpperCase()}';
-  }
-
-  /// Label pita untuk juara #1 dengan gradasi oranye ke biru.
-  Widget _buildChampionBadge() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(99),
-        gradient: const LinearGradient(
-          colors: [Color(orangeAccentColor), Color(secondaryColor)],
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(orangeAccentColor).withValues(alpha: 0.4),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(Icons.emoji_events, size: 16, color: Color(whiteColor)),
-          SizedBox(width: 6),
-          Text(
-            _championLabel(),
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w900,
-              letterSpacing: 0.6,
-              color: Color(whiteColor),
+          _buildHeader(),
+          const SizedBox(height: 12),
+          _buildTitleRow(),
+          if (_hasMedia) ...[const SizedBox(height: 10), _buildPoster()],
+          for (final w in entry.winners) _buildWinnerRow(w),
+          if (caption.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            Divider(
+              height: 1,
+              thickness: 1,
+              color: const Color(whiteColor).withValues(alpha: 0.15),
             ),
-          ),
+            const SizedBox(height: 10),
+            Text(
+              caption,
+              style: TextStyle(
+                fontSize: 13.5,
+                height: 1.35,
+                color: const Color(whiteColor).withValues(alpha: 0.92),
+              ),
+            ),
+          ],
         ],
       ),
     );
   }
 
-  /// Header: pembuat entri (sama seperti author kiriman), waktu tayang di bawah nama.
+  /// Header: pembuat kartu, waktu tayang di bawah nama, dan pin kalau disematkan.
   Widget _buildHeader() {
     final when = entry.publishedAt == null
-        ? 'Wall of Fame'
-        : 'Wall of Fame · ${DateHelper.timeAgo(entry.publishedAt!)}';
+        ? ''
+        : DateHelper.timeAgo(entry.publishedAt!);
     return Row(
       children: [
         FeedAvatar(
@@ -162,7 +94,7 @@ class _FameEntryTileState extends State<FameEntryTile> {
           initials: entry.creatorInitials,
           photoUrl: entry.creatorPhotoUrl,
         ),
-        const SizedBox(width: 8),
+        const SizedBox(width: 10),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -174,29 +106,85 @@ class _FameEntryTileState extends State<FameEntryTile> {
                 style: const TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.bold,
+                  color: Color(whiteColor),
                 ),
               ),
-              Text(
-                when,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(fontSize: 12, color: Color(grey2Color)),
-              ),
+              if (when.isNotEmpty)
+                Text(
+                  when,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: const Color(whiteColor).withValues(alpha: 0.65),
+                  ),
+                ),
             ],
           ),
         ),
-        if (entry.isPinned) ...[
+        if (entry.isPinned)
+          Icon(
+            Icons.push_pin,
+            size: 16,
+            color: const Color(whiteColor).withValues(alpha: 0.7),
+          ),
+      ],
+    );
+  }
+
+  /// Judul kategori (huruf besar) dengan piala, dan pill "N juara" hanya kalau juaranya lebih dari satu.
+  Widget _buildTitleRow() {
+    return Row(
+      children: [
+        const Icon(
+          Icons.emoji_events,
+          size: 20,
+          color: Color(amberMaterialColor),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            entry.kategori.trim().toUpperCase(),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 0.4,
+              color: Color(whiteColor),
+            ),
+          ),
+        ),
+        if (entry.juaraCount > 1) ...[
           const SizedBox(width: 8),
-          const Icon(Icons.push_pin, size: 14, color: Color(primaryColor)),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            decoration: BoxDecoration(
+              color: const Color(whiteColor).withValues(alpha: 0.15),
+              borderRadius: BorderRadius.circular(99),
+            ),
+            child: Text(
+              '${entry.juaraCount} juara',
+              style: const TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+                color: Color(whiteColor),
+              ),
+            ),
+          ),
         ],
       ],
     );
   }
 
-  /// Media juara dalam bingkai membulat. Judul nama dan badge "Video" ditumpuk di atas media.
-  Widget _buildHero() {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(12),
+  /// Poster kartu dengan bingkai emas. Gambar mengikuti rasio aslinya, video diputar senyap.
+  Widget _buildPoster() {
+    return Container(
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(orangeAccentColor), width: 2),
+      ),
       child: Stack(
         children: [
           _buildMedia(),
@@ -204,28 +192,19 @@ class _FameEntryTileState extends State<FameEntryTile> {
             left: 0,
             right: 0,
             bottom: 0,
-            child: IgnorePointer(child: _buildTitleOverlay()),
+            child: IgnorePointer(child: _buildPosterBar()),
           ),
-          if (entry.mediaType == 'video')
-            Positioned(
-              top: 10,
-              right: 10,
-              child: IgnorePointer(child: _buildVideoBadge()),
-            ),
         ],
       ),
     );
   }
 
-  /// Nama juara di pojok bawah media, dengan latar gelap di bawah supaya teks terbaca.
-  Widget _buildTitleOverlay() {
-    final sub = [
-      entry.posisiLabel,
-      entry.kategori,
-    ].where((s) => s != null && s.isNotEmpty).join(' · ');
+  /// Bar di bawah poster: nama program (dengan piala) dan pill periode di kanan.
+  Widget _buildPosterBar() {
+    final program = entry.programName.trim();
+    final periode = entry.periodeLabel?.trim() ?? '';
     return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(12, 28, 12, 12),
+      padding: const EdgeInsets.fromLTRB(12, 22, 12, 10),
       decoration: const BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topCenter,
@@ -233,160 +212,181 @@ class _FameEntryTileState extends State<FameEntryTile> {
           colors: [Colors.transparent, Colors.black87],
         ),
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
         children: [
-          Text(
-            entry.name,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w800,
-              color: Color(whiteColor),
-            ),
+          const Icon(
+            Icons.emoji_events,
+            size: 14,
+            color: Color(orangeAccentColor),
           ),
-          if (sub.isNotEmpty)
-            Text(
-              sub,
+          const SizedBox(width: 6),
+          Expanded(
+            child: Text(
+              program,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                color: const Color(whiteColor).withValues(alpha: 0.85),
+              style: const TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w800,
+                color: Color(whiteColor),
               ),
             ),
+          ),
+          if (periode.isNotEmpty) ...[
+            const SizedBox(width: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+              decoration: BoxDecoration(
+                color: const Color(whiteColor).withValues(alpha: 0.18),
+                borderRadius: BorderRadius.circular(99),
+              ),
+              child: Text(
+                periode,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  color: Color(whiteColor),
+                ),
+              ),
+            ),
+          ],
         ],
       ),
     );
   }
 
-  Widget _buildVideoBadge() {
+  /// Satu juara: medali peringkat, nama, jabatan · tim, dan pill peringkat di kanan.
+  Widget _buildWinnerRow(FameWinnerEntity w) {
+    final sub = [
+      w.posisiLabel,
+      w.timLabel,
+    ].where((s) => s != null && s.trim().isNotEmpty).join(' · ');
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      margin: const EdgeInsets.only(top: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
-        color: Colors.black54,
-        borderRadius: BorderRadius.circular(6),
+        color: const Color(whiteColor).withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: const Color(whiteColor).withValues(alpha: 0.15),
+        ),
       ),
-      child: const Row(
-        mainAxisSize: MainAxisSize.min,
+      child: Row(
         children: [
-          Icon(Icons.play_arrow_rounded, size: 12, color: Color(whiteColor)),
-          SizedBox(width: 4),
-          Text(
-            'Video',
-            style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w700,
-              color: Color(whiteColor),
+          _buildRankMedal(w),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  w.name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w800,
+                    color: Color(whiteColor),
+                  ),
+                ),
+                if (sub.isNotEmpty)
+                  Text(
+                    sub,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: const Color(whiteColor).withValues(alpha: 0.65),
+                    ),
+                  ),
+              ],
             ),
           ),
+          const SizedBox(width: 8),
+          _buildRankPill(w),
         ],
       ),
     );
   }
 
-  /// Grid keterangan juara: dua kolom, Program memakai lebar penuh. Baris kosong tidak ditampilkan.
-  Widget _buildInfoGrid() {
-    final cells = <_InfoCell>[
-      if (!_hasMedia)
-        _InfoCell('Juara', entry.name, fullWidth: true, bold: true),
-      _InfoCell(
-        'Peringkat',
-        '#${entry.ranking}',
-        valueColor: const Color(orangeAccentColor),
-      ),
-      if (entry.periodeLabel != null && entry.periodeLabel!.isNotEmpty)
-        _InfoCell('Periode', entry.periodeLabel!),
-      if (entry.programName.isNotEmpty) _InfoCell('Program', entry.programName),
-      if (entry.posisiLabel != null && entry.posisiLabel!.isNotEmpty)
-        _InfoCell('Jabatan', entry.posisiLabel!),
-    ];
-
-    final rows = <Widget>[];
-    var i = 0;
-    while (i < cells.length) {
-      final first = cells[i];
-      final second =
-          !first.fullWidth && i + 1 < cells.length && !cells[i + 1].fullWidth
-          ? cells[i + 1]
-          : null;
-      rows.add(
-        IntrinsicHeight(
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Expanded(child: _buildCell(first)),
-              if (second != null) ...[
-                const VerticalDivider(
-                  width: 1,
-                  thickness: 1,
-                  color: Color(grey10Color),
-                ),
-                Expanded(child: _buildCell(second)),
-              ],
-            ],
-          ),
+  /// Medali: #1 oranye, #2 perak, #3 perunggu, selain itu lingkaran berbingkai dengan angka.
+  Widget _buildRankMedal(FameWinnerEntity w) {
+    final rank = w.ranking;
+    final BoxDecoration decoration;
+    if (rank == 1) {
+      decoration = const BoxDecoration(
+        shape: BoxShape.circle,
+        gradient: LinearGradient(
+          colors: [Color(orangeAccentColor), Color(amberMaterialColor)],
         ),
       );
-      i += second != null ? 2 : 1;
-    }
-
-    final children = <Widget>[];
-    for (var r = 0; r < rows.length; r++) {
-      if (r > 0)
-        children.add(
-          const Divider(height: 1, thickness: 1, color: Color(grey10Color)),
-        );
-      children.add(rows[r]);
-    }
-
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(10),
-      child: Container(
-        decoration: BoxDecoration(
-          border: Border.all(color: const Color(grey10Color)),
-          borderRadius: BorderRadius.circular(10),
+    } else if (rank == 2 || rank == 3) {
+      decoration = BoxDecoration(
+        shape: BoxShape.circle,
+        color: Color(rank == 2 ? greyShade500 : feedBronzeColor),
+      );
+    } else {
+      decoration = BoxDecoration(
+        shape: BoxShape.circle,
+        border: Border.all(
+          color: const Color(whiteColor).withValues(alpha: 0.7),
+          width: 1.5,
         ),
-        child: Column(children: children),
+      );
+    }
+    return Container(
+      width: 34,
+      height: 34,
+      alignment: Alignment.center,
+      decoration: decoration,
+      child: Text(
+        w.rankText,
+        style: const TextStyle(
+          fontSize: 14,
+          fontWeight: FontWeight.w900,
+          color: Color(whiteColor),
+        ),
       ),
     );
   }
 
-  Widget _buildCell(_InfoCell cell) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            cell.label,
-            style: const TextStyle(
-              fontSize: 11.5,
-              fontWeight: FontWeight.w500,
-              color: Color(grey2Color),
-            ),
-          ),
-          const SizedBox(height: 2),
-          Text(
-            cell.value,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: cell.bold ? FontWeight.w800 : FontWeight.w700,
-              color: cell.valueColor,
-            ),
-          ),
-        ],
+  /// Pill peringkat: "#1 Juara" untuk juara tunggal #1, "#r Seri" untuk peringkat yang dibagi, selain itu "#r".
+  Widget _buildRankPill(FameWinnerEntity w) {
+    final gold = w.ranking == 1 || w.isSeri;
+    final label = w.ranking == 1 && !w.isSeri
+        ? '#${w.rankText} Juara'
+        : w.isSeri
+        ? '#${w.rankText} Seri'
+        : '#${w.rankText}';
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+      decoration: BoxDecoration(
+        color: gold
+            ? const Color(amberMaterialColor).withValues(alpha: 0.22)
+            : const Color(whiteColor).withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(99),
+        border: Border.all(
+          color: gold
+              ? const Color(amberMaterialColor).withValues(alpha: 0.6)
+              : const Color(whiteColor).withValues(alpha: 0.2),
+        ),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          fontSize: 11.5,
+          fontWeight: FontWeight.w800,
+          color: gold
+              ? const Color(amberMaterialColor)
+              : const Color(whiteColor).withValues(alpha: 0.8),
+        ),
       ),
     );
   }
 
-  /// Media juara di bawah isi, seperti kiriman: gambar atau video (tanpa kontrol, diputar senyap).
+  /// Media poster: video (autoplay, tanpa suara, berulang) atau gambar dengan header auth.
   Widget _buildMedia() {
     final url = entry.mediaUrl!;
     if (entry.mediaType == 'video') {
@@ -424,7 +424,7 @@ class _FameEntryTileState extends State<FameEntryTile> {
     );
   }
 
-  /// Placeholder yang terlihat saat media belum siap atau gagal, supaya kartu tidak tampak kosong.
+  /// Placeholder saat media belum siap atau gagal, supaya poster tidak tampak kosong.
   Widget _mediaPlaceholder() {
     return Container(
       color: const Color(background2Color),
@@ -436,21 +436,4 @@ class _FameEntryTileState extends State<FameEntryTile> {
       ),
     );
   }
-}
-
-/// Satu kotak keterangan di grid juara.
-class _InfoCell {
-  final String label;
-  final String value;
-  final Color? valueColor;
-  final bool fullWidth;
-  final bool bold;
-
-  const _InfoCell(
-    this.label,
-    this.value, {
-    this.valueColor,
-    this.fullWidth = false,
-    this.bold = false,
-  });
 }

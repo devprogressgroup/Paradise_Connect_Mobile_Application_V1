@@ -6,7 +6,9 @@ import 'package:progress_group/core/services/analytics_service.dart';
 import 'package:progress_group/core/utils/helpers/date_helper.dart';
 import 'package:progress_group/core/utils/widget/custom_header.dart';
 import 'package:progress_group/features/marketing-feed/domain/entities/feed_post_entity.dart';
+import 'package:progress_group/features/marketing-feed/presentation/pages/fame-manage/index.dart';
 import 'package:progress_group/features/marketing-feed/presentation/state/marketing_feed/marketing_feed_cubit.dart';
+import 'package:progress_group/features/marketing-feed/presentation/widgets/feed_create_tabs.dart';
 import 'package:progress_group/features/marketing-feed/presentation/widgets/feed_link_default_thumb.dart';
 import 'package:progress_group/features/marketing-feed/presentation/widgets/feed_media_view.dart';
 import 'package:progress_group/features/marketing-feed/presentation/widgets/feed_section.dart';
@@ -36,12 +38,22 @@ class _FeedMySubmissionsPageState extends State<FeedMySubmissionsPage> {
     ('rejected', 'Ditolak'),
   ];
 
+  /// Tab tambahan "Wall of Fame" (lihat & edit kartu) hanya untuk user yang punya izin edit.
+  List<(String, String)> get _visibleTabs => [
+    ..._tabs,
+    if (FeedCreateTabs.fameEditable) ('fame', 'Wall of Fame'),
+  ];
+
   @override
   void initState() {
     super.initState();
     AnalyticsService.logScreenView('marketing_feed_my_submissions');
     _scrollController.addListener(_onScroll);
     _fetch();
+    // Tab "Wall of Fame" hanya muncul kalau user punya izin edit (hak akses dimuat ulang di sini).
+    FeedCreateTabs.refreshFameAccess(context).then((_) {
+      if (mounted) setState(() {});
+    });
   }
 
   @override
@@ -156,7 +168,8 @@ class _FeedMySubmissionsPageState extends State<FeedMySubmissionsPage> {
       _currentPage = 1;
       _hasMore = false;
     });
-    _fetch();
+    // Tab Wall of Fame memakai daftarnya sendiri (FameManagePage), tidak memuat kiriman.
+    if (status != 'fame') _fetch();
   }
 
   Widget _buildTabs() {
@@ -165,7 +178,7 @@ class _FeedMySubmissionsPageState extends State<FeedMySubmissionsPage> {
       padding: const EdgeInsets.symmetric(horizontal: 12),
       child: Row(
         children: [
-          for (final (value, label) in _tabs)
+          for (final (value, label) in _visibleTabs)
             Padding(
               padding: const EdgeInsets.only(right: 8, top: 8, bottom: 8),
               child: ChoiceChip(
@@ -189,6 +202,9 @@ class _FeedMySubmissionsPageState extends State<FeedMySubmissionsPage> {
   }
 
   Widget _buildBody() {
+    if (_status == 'fame') {
+      return const FameManagePage(embedded: true);
+    }
     if (_isLoading) {
       return const Center(child: CircularProgressIndicator());
     }
@@ -285,7 +301,10 @@ class _FeedMySubmissionsPageState extends State<FeedMySubmissionsPage> {
                     child: thumb != null
                         ? FeedMediaView(media: thumb, compact: true)
                         : post.link != null
-                        ? FeedLinkDefaultThumb(platform: post.link!.platform, compact: true)
+                        ? FeedLinkDefaultThumb(
+                            platform: post.link!.platform,
+                            compact: true,
+                          )
                         : ColoredBox(
                             color: const Color(grey10Color),
                             child: Icon(

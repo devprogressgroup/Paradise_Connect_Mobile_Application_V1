@@ -615,6 +615,8 @@ class _MainLayoutState extends State<MainLayout> {
                           index: 12,
                           iconData: Icons.history_rounded,
                         ),
+                      // Kalender Jadwal & Wall of Fame tidak lagi di drawer: Wall of Fame ada di Post Baru
+                      // (tab) dan Kiriman Saya; Kalender lewat ikon di header Marketing Feed.
                       _buildDrawerItem(
                         context,
                         icSidebarDashboard,

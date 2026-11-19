@@ -139,6 +139,10 @@ class PermissionsHelper {
   static bool get canModerateMarketingFeed =>
       _marketingFeedModFeatures.any((f) => check('Marketing Feed', f));
 
+  // Kalender Jadwal (ikon di header, menu, dan halamannya): memakai "Modify", sama dengan Draft & Terjadwal.
+  // Sama dengan backend: GET /marketing-feed/moderator/calendar dan abilities.calendar.
+  static bool get canViewMarketingCalendar => check('Marketing Feed', 'Modify');
+
   // Izin membuat konten per jenis. Momen & Postingan memakai CreatePost, Polling CreatePoll, Link CreateLink.
   // Sama dengan pengecekan di backend (MarketingFeedMobileService::CREATE_FEATURE).
   static bool get canCreateMarketingPost => check('Marketing Feed', 'CreatePost');

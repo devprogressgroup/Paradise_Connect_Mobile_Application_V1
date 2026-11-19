@@ -1,9 +1,55 @@
 import 'package:progress_group/features/marketing-feed/domain/entities/fame_program_entity.dart';
 
+DateTime? _parseDate(Object? raw) =>
+    raw == null ? null : DateTime.tryParse(raw as String);
+
+FameWinnerEntity _parseWinner(Map<dynamic, dynamic> w) => FameWinnerEntity(
+  userId: (w['user_id'] as num?)?.toInt() ?? 0,
+  name: (w['name'] ?? '') as String,
+  initials: (w['initials'] ?? '') as String,
+  photoUrl: w['photo_url'] as String?,
+  ranking: (w['ranking'] as num).toInt(),
+  rankLabel: w['rank_label'] as String?,
+  posisiLabel: w['posisi_label'] as String?,
+  timLabel: w['tim_label'] as String?,
+  isSeri: w['is_seri'] == true,
+);
+
+FameEntryEntity _parseCard(
+  Map<dynamic, dynamic> e,
+  Map<dynamic, dynamic> program,
+) {
+  final creator = (e['creator'] as Map?) ?? const {};
+  final media = e['media'] as Map?;
+  final winners = [
+    for (final w in (e['winners'] as List? ?? const [])) _parseWinner(w as Map),
+  ];
+  return FameEntryEntity(
+    id: (e['id'] as num).toInt(),
+    programId: (e['program_id'] as num).toInt(),
+    programName: (e['program'] ?? program['nama_program'] ?? '') as String,
+    periodeLabel:
+        e['periode'] as String? ?? program['periode_label'] as String?,
+    kategori: (e['kategori'] ?? '') as String,
+    caption: e['caption'] as String?,
+    isPinned: e['is_pinned'] == true,
+    publishedAt: _parseDate(e['published_at']),
+    creatorName: (creator['name'] ?? 'Admin') as String,
+    creatorInitials: (creator['initials'] ?? 'A') as String,
+    creatorPhotoUrl: creator['photo_url'] as String?,
+    mediaType: media?['type'] as String?,
+    mediaUrl: media?['url'] as String?,
+    winners: winners,
+    juaraCount: (e['juara_count'] as num?)?.toInt() ?? winners.length,
+    summary: (e['summary'] ?? '') as String,
+    topRank:
+        (e['top_rank'] as num?)?.toInt() ??
+        (winners.isEmpty ? 0 : winners.first.ranking),
+  );
+}
+
 /// Membaca respons GET /marketing-feed/wall-of-fame/programs (data.items).
-/// Bentuk: items[] = { id, nama_program, periode_label, categories[] = { kategori, entries[] } }.
-/// Entry: { id, program_id, program, periode, kategori, ranking, posisi_label, caption, name, initials,
-///          photo_url, media{type,url}|null, is_pinned, published_at }.
+/// items[] = { id, nama_program, periode_label, categories[] = { kategori, entries[] = kartu } }.
 List<FameProgramEntity> parseFamePrograms(List<dynamic> items) {
   return [
     for (final raw in items)
@@ -17,34 +63,7 @@ List<FameProgramEntity> parseFamePrograms(List<dynamic> items) {
               kategori: (c['kategori'] ?? '') as String,
               entries: [
                 for (final e in (c['entries'] as List? ?? const []))
-                  FameEntryEntity(
-                    id: (e['id'] as num).toInt(),
-                    programId: (e['program_id'] as num).toInt(),
-                    programName:
-                        (e['program'] ?? raw['nama_program'] ?? '') as String,
-                    periodeLabel:
-                        e['periode'] as String? ??
-                        raw['periode_label'] as String?,
-                    kategori: (e['kategori'] ?? '') as String,
-                    ranking: (e['ranking'] as num).toInt(),
-                    posisiLabel: e['posisi_label'] as String?,
-                    caption: e['caption'] as String?,
-                    name: (e['name'] ?? '') as String,
-                    initials: (e['initials'] ?? '') as String,
-                    photoUrl: e['photo_url'] as String?,
-                    mediaType: (e['media'] as Map?)?['type'] as String?,
-                    mediaUrl: (e['media'] as Map?)?['url'] as String?,
-                    isPinned: e['is_pinned'] == true,
-                    publishedAt: e['published_at'] == null
-                        ? null
-                        : DateTime.tryParse(e['published_at'] as String),
-                    creatorName:
-                        ((e['creator'] as Map?)?['name'] ?? 'Admin') as String,
-                    creatorInitials:
-                        ((e['creator'] as Map?)?['initials'] ?? 'A') as String,
-                    creatorPhotoUrl:
-                        (e['creator'] as Map?)?['photo_url'] as String?,
-                  ),
+                  _parseCard(e as Map, raw as Map),
               ],
             ),
         ],

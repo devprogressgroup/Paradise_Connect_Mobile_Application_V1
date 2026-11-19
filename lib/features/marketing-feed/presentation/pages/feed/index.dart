@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:progress_group/core/constants/colors.dart';
 import 'package:progress_group/core/network/auth_token_cache.dart';
 import 'package:progress_group/core/services/analytics_service.dart';
+import 'package:progress_group/core/utils/helpers/permissions_helper.dart';
 import 'package:progress_group/core/utils/widget/custom_header.dart';
 import 'package:progress_group/features/auth/presentation/state/profile/profile_bloc.dart';
 import 'package:progress_group/features/auth/presentation/state/profile/profile_event.dart';
@@ -17,6 +18,7 @@ import 'package:progress_group/features/marketing-feed/domain/entities/feed_post
 import 'package:progress_group/features/marketing-feed/presentation/state/marketing_feed/marketing_feed_cubit.dart';
 import 'package:progress_group/features/marketing-feed/presentation/state/marketing_feed/marketing_feed_state.dart';
 import 'package:progress_group/features/marketing-feed/presentation/widgets/feed_comment_sheet.dart';
+import 'package:progress_group/features/marketing-feed/presentation/widgets/feed_create_tabs.dart';
 import 'package:progress_group/features/marketing-feed/presentation/widgets/feed_post_card.dart';
 import 'package:progress_group/features/marketing-feed/presentation/widgets/fame_programs_section.dart';
 import 'package:progress_group/features/marketing-feed/presentation/widgets/progress_funnel_card.dart';
@@ -45,6 +47,8 @@ class _MarketingFeedPageState extends State<MarketingFeedPage> {
     _scrollController.addListener(_onScroll);
     _loadHeaderData();
     context.read<MarketingFeedCubit>().fetch();
+    // Hak akses Wall of Fame untuk tab "Wall of Fame" di Post Baru dan Kiriman Saya.
+    FeedCreateTabs.refreshFameAccess(context);
   }
 
   @override
@@ -191,6 +195,18 @@ class _MarketingFeedPageState extends State<MarketingFeedPage> {
                 AnalyticsService.logEvent('marketing_feed_open_search');
                 context.pushNamed('marketingFeedSearch');
               },
+              // Kalender Jadwal hanya untuk moderator (permission Modify).
+              extraActions: [
+                if (PermissionsHelper.canViewMarketingCalendar)
+                  IconButton(
+                    tooltip: 'Kalender Jadwal',
+                    icon: const Icon(Icons.calendar_month_outlined, size: 24),
+                    onPressed: () {
+                      AnalyticsService.logEvent('marketing_feed_open_calendar');
+                      _open('marketingFeedCalendar');
+                    },
+                  ),
+              ],
               iconLeft: Icons.notifications_none_rounded,
               showBadgeLeft: showBadge,
               iconLeftOnTap: () {
@@ -413,8 +429,8 @@ class _ProfileAvatarButton extends StatelessWidget {
   }
 
   Widget _fallbackIcon() => const Icon(
-        Icons.account_circle_outlined,
-        size: 32,
-        color: Color(grey2Color),
-      );
+    Icons.account_circle_outlined,
+    size: 32,
+    color: Color(grey2Color),
+  );
 }

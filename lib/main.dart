@@ -211,6 +211,7 @@ import 'features/marketing-feed/domain/repositories/marketing_feed_repository_im
 import 'features/marketing-feed/domain/usecases/add_feed_comment_usecase.dart';
 import 'features/marketing-feed/domain/usecases/delete_feed_post_usecase.dart';
 import 'features/marketing-feed/domain/usecases/get_feed_comments_usecase.dart';
+import 'features/marketing-feed/domain/usecases/get_feed_calendar_usecase.dart';
 import 'features/marketing-feed/domain/usecases/get_feed_drafts_usecase.dart';
 import 'features/marketing-feed/domain/usecases/get_my_profile_usecase.dart';
 import 'features/marketing-feed/presentation/state/my_profile/my_profile_cubit.dart';
@@ -231,6 +232,9 @@ import 'features/marketing-feed/domain/usecases/toggle_feed_comment_like_usecase
 import 'features/marketing-feed/domain/usecases/vote_feed_poll_usecase.dart';
 import 'features/marketing-feed/presentation/state/feed_comments/feed_comments_cubit.dart';
 import 'features/marketing-feed/presentation/state/feed_compose/feed_compose_cubit.dart';
+import 'features/marketing-feed/presentation/state/feed_calendar/feed_calendar_cubit.dart';
+import 'features/marketing-feed/presentation/state/fame_manage/fame_manage_cubit.dart';
+import 'features/marketing-feed/presentation/state/fame_form/fame_form_cubit.dart';
 import 'features/marketing-feed/presentation/state/feed_drafts/feed_drafts_cubit.dart';
 import 'features/marketing-feed/presentation/state/marketing_feed/marketing_feed_cubit.dart';
 
@@ -729,6 +733,9 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     );
     final saveFeedPostUseCase = SaveFeedPostUseCase(marketingFeedRepository);
     final getFeedDraftsUseCase = GetFeedDraftsUseCase(marketingFeedRepository);
+    final getFeedCalendarUseCase = GetFeedCalendarUseCase(
+      marketingFeedRepository,
+    );
     final publishFeedPostNowUseCase = PublishFeedPostNowUseCase(
       marketingFeedRepository,
     );
@@ -1095,6 +1102,19 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
                   publishFeedPostNowUseCase: publishFeedPostNowUseCase,
                   deleteFeedPostUseCase: deleteFeedPostUseCase,
                 ),
+              ),
+              BlocProvider(
+                create: (_) => FeedCalendarCubit(
+                  getFeedCalendarUseCase: getFeedCalendarUseCase,
+                ),
+              ),
+              BlocProvider(
+                create: (_) =>
+                    FameManageCubit(repository: marketingFeedRepository),
+              ),
+              BlocProvider(
+                create: (_) =>
+                    FameFormCubit(repository: marketingFeedRepository),
               ),
               BlocProvider(
                 create: (_) =>

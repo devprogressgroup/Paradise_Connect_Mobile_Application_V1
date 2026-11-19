@@ -5,6 +5,7 @@ import 'package:progress_group/core/utils/helpers/error_message.dart';
 import 'package:progress_group/features/marketing-feed/data/datasources/marketing_feed_remote_datasource.dart';
 import 'package:progress_group/features/marketing-feed/domain/entities/feed_comment_entity.dart';
 import 'package:progress_group/features/marketing-feed/domain/entities/fame_program_entity.dart';
+import 'package:progress_group/features/marketing-feed/domain/entities/fame_manage_entity.dart';
 import 'package:progress_group/features/marketing-feed/domain/entities/feed_post_entity.dart';
 import 'package:progress_group/features/marketing-feed/domain/entities/personal_funnel_entity.dart';
 import 'package:progress_group/features/marketing-feed/domain/entities/save_feed_post_params.dart';
@@ -104,6 +105,48 @@ class MarketingFeedRepositoryImpl implements MarketingFeedRepository {
       _guard(() => remoteDataSource.getFamePrograms());
 
   @override
+  Future<Either<String, FameAccessEntity>> getFameAccess() =>
+      _guard(() => remoteDataSource.getFameAccess());
+
+  @override
+  Future<Either<String, List<FameManageProgramEntity>>> getFameManage() =>
+      _guard(() => remoteDataSource.getFameManage());
+
+  @override
+  Future<Either<String, List<FameCandidateEntity>>> getFameCandidates() =>
+      _guard(() => remoteDataSource.getFameCandidates());
+
+  @override
+  Future<Either<String, FameAdminCardEntity>> saveFameCard(
+    FameCardParams params, {
+    int? cardId,
+  }) => _guard(() => remoteDataSource.saveFameCard(params, cardId: cardId));
+
+  @override
+  Future<Either<String, FameAdminCardEntity>> setFameCardStatus(
+    int cardId,
+    String status,
+    DateTime? publishAt,
+  ) => _guard(
+    () => remoteDataSource.setFameCardStatus(cardId, status, publishAt),
+  );
+
+  @override
+  Future<Either<String, void>> uploadFameCardMedia(
+    int cardId,
+    FeedMediaEntity media,
+  ) => _guard(() => remoteDataSource.uploadFameCardMedia(cardId, media));
+
+  @override
+  Future<Either<String, void>> deleteFameCardMedia(int cardId) =>
+      _guard(() => remoteDataSource.deleteFameCardMedia(cardId));
+
+  @override
+  Future<Either<String, void>> deleteFameCard(int cardId) =>
+      _guard(() => remoteDataSource.deleteFameCard(cardId));
+
+
+  @override
   Future<Either<String, void>> setProfilePin(
     int postId, {
     required bool pinned,
@@ -132,6 +175,12 @@ class MarketingFeedRepositoryImpl implements MarketingFeedRepository {
   @override
   Future<Either<String, List<FeedPostEntity>>> getModeratorPosts() =>
       _guard(() => remoteDataSource.getModeratorPosts());
+
+  @override
+  Future<Either<String, List<FeedPostEntity>>> getModeratorCalendar({
+    required DateTime from,
+    required DateTime to,
+  }) => _guard(() => remoteDataSource.getModeratorCalendar(from: from, to: to));
 
   /// Sama dengan [shareMoment]: error dibiarkan utuh (kode STORAGE_ERROR, pesan Raptor) untuk dialog upload.
   @override

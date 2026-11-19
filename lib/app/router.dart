@@ -41,6 +41,10 @@ import '../features/contact/presentation/pages/pipeline/index.dart';
 import '../features/reserve-order/presentation/pages/reserve-list/index.dart';
 import '../features/marketing-feed/domain/entities/feed_post_entity.dart';
 import '../features/marketing-feed/presentation/pages/detail/index.dart';
+import '../features/marketing-feed/presentation/pages/calendar/calendar_route_args.dart';
+import '../features/marketing-feed/presentation/pages/calendar/index.dart';
+import '../features/marketing-feed/presentation/pages/fame-manage/index.dart';
+import '../features/marketing-feed/presentation/pages/fame-form/index.dart';
 import '../features/marketing-feed/presentation/pages/drafts/index.dart';
 import '../features/marketing-feed/presentation/pages/my-profile/index.dart';
 import '../features/marketing-feed/presentation/pages/search/index.dart';
@@ -277,24 +281,46 @@ class AppRouter {
                   path: 'marketing-feed/post-form',
                   redirect: (context, state) =>
                       PermissionsHelper.canCreateMarketingPost ? null : '/',
-                  builder: (context, state) =>
-                      FeedPostFormPage(post: state.extra as FeedPostEntity?),
+                  // ?source=calendar&at=yyyy-MM-dd HH:mm kalau dibuka dari Kalender Jadwal (tanggal awal tayang).
+                  builder: (context, state) => FeedPostFormPage(
+                    post: state.extra as FeedPostEntity?,
+                    initialScheduledAt: FeedCalendarRouteArgs.parseAt(
+                      state.uri.queryParameters[FeedCalendarRouteArgs.atKey],
+                    ),
+                    fromCalendar: FeedCalendarRouteArgs.isFromCalendar(
+                      state.uri.queryParameters,
+                    ),
+                  ),
                 ),
                 GoRoute(
                   name: 'marketingFeedPollForm',
                   path: 'marketing-feed/poll-form',
                   redirect: (context, state) =>
                       PermissionsHelper.canCreateMarketingPoll ? null : '/',
-                  builder: (context, state) =>
-                      FeedPollFormPage(post: state.extra as FeedPostEntity?),
+                  builder: (context, state) => FeedPollFormPage(
+                    post: state.extra as FeedPostEntity?,
+                    initialScheduledAt: FeedCalendarRouteArgs.parseAt(
+                      state.uri.queryParameters[FeedCalendarRouteArgs.atKey],
+                    ),
+                    fromCalendar: FeedCalendarRouteArgs.isFromCalendar(
+                      state.uri.queryParameters,
+                    ),
+                  ),
                 ),
                 GoRoute(
                   name: 'marketingFeedLinkForm',
                   path: 'marketing-feed/link-form',
                   redirect: (context, state) =>
                       PermissionsHelper.canCreateMarketingLink ? null : '/',
-                  builder: (context, state) =>
-                      FeedLinkFormPage(post: state.extra as FeedPostEntity?),
+                  builder: (context, state) => FeedLinkFormPage(
+                    post: state.extra as FeedPostEntity?,
+                    initialScheduledAt: FeedCalendarRouteArgs.parseAt(
+                      state.uri.queryParameters[FeedCalendarRouteArgs.atKey],
+                    ),
+                    fromCalendar: FeedCalendarRouteArgs.isFromCalendar(
+                      state.uri.queryParameters,
+                    ),
+                  ),
                 ),
                 GoRoute(
                   name: 'marketingFeedDrafts',
@@ -302,6 +328,26 @@ class AppRouter {
                   redirect: (context, state) =>
                       PermissionsHelper.canModerateMarketingFeed ? null : '/',
                   builder: (context, state) => const FeedDraftsPage(),
+                ),
+                // Kalender Jadwal (moderator, permission Modify).
+                GoRoute(
+                  name: 'marketingFeedCalendar',
+                  path: 'marketing-feed/calendar',
+                  redirect: (context, state) =>
+                      PermissionsHelper.canViewMarketingCalendar ? null : '/',
+                  builder: (context, state) => const FeedCalendarPage(),
+                ),
+                // Kelola Wall of Fame (admin mobile). Hak akses dicek backend lewat wall-of-fame/access.
+                GoRoute(
+                  name: 'marketingFameManage',
+                  path: 'marketing-feed/fame-manage',
+                  builder: (context, state) => const FameManagePage(),
+                ),
+                GoRoute(
+                  name: 'marketingFameForm',
+                  path: 'marketing-feed/fame-form',
+                  builder: (context, state) =>
+                      FameFormPage(args: state.extra as FameFormArgs?),
                 ),
                 GoRoute(
                   name: 'marketingFeedProfile',

@@ -21,6 +21,8 @@ Widget customHeader(
   Color? colorIconLeft2,
   VoidCallback? iconLeft2OnTap,
   Widget? trailing,
+  /// Ikon tambahan di antara ikon search dan lonceng (mis. Kalender Jadwal untuk moderator).
+  List<Widget> extraActions = const [],
 }) {
   return Container(
     decoration: BoxDecoration(color: colorBg ?? Color(whiteColor)),
@@ -30,16 +32,18 @@ Widget customHeader(
         vertical: 10,
       ),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        mainAxisAlignment: MainAxisAlignment.end,
         children: [
           Expanded(
             child: Row(
               children: [
                 if (iconRight != null)
                   Container(
-                    width: 40,
+                    width: 34,
                     child: IconButton(
-                      icon: Icon(iconRight, size: 24, color: colorBack),
+                      icon: Icon(iconRight, size: 20, color: colorBack),
+                      padding: const EdgeInsets.all(6),
+                      constraints: const BoxConstraints(),
                       onPressed: () {
                         iconRightOnTap?.call();
                       },
@@ -71,7 +75,7 @@ Widget customHeader(
                     title,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
-                      fontSize: 20,
+                      fontSize: 18,
                       fontWeight: FontWeight.bold,
                       color: colorTitle,
                     ),
@@ -87,16 +91,21 @@ Widget customHeader(
               children: [
                 if (iconLeft2 != null)
                   IconButton(
-                    icon: Icon(iconLeft2, size: 24, color: colorIconLeft2),
+                    icon: Icon(iconLeft2, size: 20, color: colorIconLeft2),
+                    padding: const EdgeInsets.all(6),
+                    constraints: const BoxConstraints(),
                     onPressed: () {
                       iconLeft2OnTap?.call();
                     },
                   ),
+                ...extraActions,
                 if (iconLeft != null) Stack(
                   clipBehavior: Clip.none,
                   children: [
                     IconButton(
-                      icon: Icon(iconLeft, size: 24, color: colorIconLeft),
+                      icon: Icon(iconLeft, size: 20, color: colorIconLeft),
+                      padding: const EdgeInsets.all(6),
+                      constraints: const BoxConstraints(),
                       onPressed: () {
                         iconLeftOnTap?.call();
                       },

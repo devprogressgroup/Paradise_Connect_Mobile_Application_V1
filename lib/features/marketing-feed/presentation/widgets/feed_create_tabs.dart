@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:progress_group/core/constants/colors.dart';
 import 'package:progress_group/core/utils/helpers/permissions_helper.dart';
+import 'package:progress_group/features/marketing-feed/presentation/state/fame_manage/fame_manage_cubit.dart';
 
-/// Jenis konten yang bisa dibuat.
-enum FeedCreateTab { postingan, polling, link }
+/// Jenis konten yang bisa dibuat. [wallOfFame] = unggah juara/kartu Wall of Fame (izin edit dari backend).
+enum FeedCreateTab { postingan, polling, link, wallOfFame }
 
 /// Tab "Buat Konten" (Postingan / Polling / Link).
 /// Setiap tab hanya tampil jika user punya permission untuk jenis kontennya (CreatePost / CreatePoll / CreateLink).
@@ -13,7 +15,14 @@ enum FeedCreateTab { postingan, polling, link }
 class FeedCreateTabs extends StatelessWidget {
   final FeedCreateTab current;
 
-  const FeedCreateTabs({super.key, required this.current});
+  /// Query yang ikut dibawa saat pindah tab (mis. tanggal dan sumber kalender). Kosong = tanpa query.
+  final Map<String, String> query;
+
+  const FeedCreateTabs({
+    super.key,
+    required this.current,
+    this.query = const {},
+  });
 
   static const _items = <(FeedCreateTab, IconData, String, String)>[
     (
@@ -29,12 +38,29 @@ class FeedCreateTabs extends StatelessWidget {
       'marketingFeedPollForm',
     ),
     (FeedCreateTab.link, Icons.link, 'Link', 'marketingFeedLinkForm'),
+    (
+      FeedCreateTab.wallOfFame,
+      Icons.emoji_events_outlined,
+      'Wall of Fame',
+      'marketingFameForm',
+    ),
   ];
+
+  /// Izin Wall of Fame user (dari backend, t_feed_fame_perm). Diisi lewat [refreshFameAccess] saat feed dibuka.
+  static bool fameEditable = false;
+
+  /// Muat ulang hak akses Wall of Fame dari backend. Dipanggil saat feed dan Kiriman Saya dibuka.
+  static Future<void> refreshFameAccess(BuildContext context) async {
+    final cubit = context.read<FameManageCubit>();
+    await cubit.load();
+    fameEditable = cubit.state.access?.canEdit ?? false;
+  }
 
   static bool _allowed(FeedCreateTab tab) => switch (tab) {
     FeedCreateTab.postingan => PermissionsHelper.canCreateMarketingPost,
     FeedCreateTab.polling => PermissionsHelper.canCreateMarketingPoll,
     FeedCreateTab.link => PermissionsHelper.canCreateMarketingLink,
+    FeedCreateTab.wallOfFame => fameEditable,
   };
 
   /// Baris tab hanya tampil kalau user boleh membuat lebih dari satu jenis konten. Kalau hanya Postingan, tidak ada tab.
@@ -61,7 +87,10 @@ class FeedCreateTabs extends StatelessWidget {
                 selected: tab == current,
                 onTap: () {
                   if (tab == current) return;
-                  context.pushReplacementNamed(routeName);
+                  context.pushReplacementNamed(
+                    routeName,
+                    queryParameters: query,
+                  );
                 },
               ),
             ),

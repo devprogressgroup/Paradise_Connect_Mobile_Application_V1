@@ -4,6 +4,7 @@ import 'package:progress_group/core/network/marketing_feed_exception.dart';
 import 'package:progress_group/features/marketing-feed/data/datasources/marketing_feed_remote_datasource.dart';
 import 'package:progress_group/features/marketing-feed/domain/entities/feed_comment_entity.dart';
 import 'package:progress_group/features/marketing-feed/domain/entities/fame_program_entity.dart';
+import 'package:progress_group/features/marketing-feed/domain/entities/fame_manage_entity.dart';
 import 'package:progress_group/features/marketing-feed/domain/entities/feed_post_entity.dart';
 import 'package:progress_group/features/marketing-feed/domain/entities/personal_funnel_entity.dart';
 import 'package:progress_group/features/marketing-feed/domain/entities/save_feed_post_params.dart';
@@ -54,9 +55,31 @@ abstract class MarketingFeedRepository {
   });
 
   Future<Either<String, List<FameProgramEntity>>> getFamePrograms();
+  Future<Either<String, FameAccessEntity>> getFameAccess();
+  Future<Either<String, List<FameManageProgramEntity>>> getFameManage();
+  Future<Either<String, List<FameCandidateEntity>>> getFameCandidates();
+  Future<Either<String, FameAdminCardEntity>> saveFameCard(
+    FameCardParams params, {
+    int? cardId,
+  });
+  Future<Either<String, FameAdminCardEntity>> setFameCardStatus(
+    int cardId,
+    String status,
+    DateTime? publishAt,
+  );
+  Future<Either<String, void>> uploadFameCardMedia(
+    int cardId,
+    FeedMediaEntity media,
+  );
+  Future<Either<String, void>> deleteFameCardMedia(int cardId);
+  Future<Either<String, void>> deleteFameCard(int cardId);
 
   // Moderator
   Future<Either<String, List<FeedPostEntity>>> getModeratorPosts();
+  Future<Either<String, List<FeedPostEntity>>> getModeratorCalendar({
+    required DateTime from,
+    required DateTime to,
+  });
   Future<Either<MarketingFeedException, FeedPostEntity>> savePost(
     SaveFeedPostParams params,
   );

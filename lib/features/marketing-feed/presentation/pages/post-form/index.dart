@@ -6,6 +6,7 @@ import 'package:progress_group/core/utils/helpers/app_time.dart';
 import 'package:progress_group/core/utils/helpers/permissions_helper.dart';
 import 'package:progress_group/features/marketing-feed/domain/entities/feed_post_entity.dart';
 import 'package:progress_group/features/marketing-feed/domain/entities/save_feed_post_params.dart';
+import 'package:progress_group/features/marketing-feed/presentation/pages/calendar/calendar_route_args.dart';
 import 'package:progress_group/features/marketing-feed/presentation/state/feed_compose/feed_compose_cubit.dart';
 import 'package:progress_group/features/marketing-feed/presentation/widgets/feed_compose_fields.dart';
 import 'package:progress_group/features/marketing-feed/presentation/widgets/feed_create_tabs.dart';
@@ -21,7 +22,19 @@ const _maxCaption = 2000;
 class FeedPostFormPage extends StatefulWidget {
   final FeedPostEntity? post;
 
-  const FeedPostFormPage({super.key, this.post});
+  /// Tanggal tayang awal dari Kalender Jadwal (null = tidak dari kalender).
+  final DateTime? initialScheduledAt;
+
+  /// Dibuka dari Kalender Jadwal: kiriman baru disimpan lewat jalur moderator (langsung atau terjadwal),
+  /// bukan lewat antrean review sales.
+  final bool fromCalendar;
+
+  const FeedPostFormPage({
+    super.key,
+    this.post,
+    this.initialScheduledAt,
+    this.fromCalendar = false,
+  });
 
   @override
   State<FeedPostFormPage> createState() => _FeedPostFormPageState();
@@ -45,7 +58,7 @@ class _FeedPostFormPageState extends State<FeedPostFormPage> {
     _townshipId = post?.township?.id;
     _scheduledAt = post?.status == FeedPostStatus.scheduled
         ? post!.publishAt
-        : null;
+        : widget.initialScheduledAt;
   }
 
   @override
@@ -77,7 +90,7 @@ class _FeedPostFormPageState extends State<FeedPostFormPage> {
     );
 
     final cubit = context.read<FeedComposeCubit>();
-    if (widget.post == null) {
+    if (widget.post == null && !widget.fromCalendar) {
       // Kiriman baru: jalur sales. Township dan jadwal hanya dikirim kalau user punya permission-nya.
       cubit.shareMoment(
         ShareFeedMomentParams(
@@ -110,15 +123,25 @@ class _FeedPostFormPageState extends State<FeedPostFormPage> {
     );
   }
 
+  /// Query tab Buat Konten: dari kalender, tanggal yang sedang dipilih ikut dibawa ke tab Polling / Link.
+  Map<String, String> _calendarQuery() {
+    if (!widget.fromCalendar) return const {};
+    final at = _scheduledAt;
+    return at == null
+        ? {FeedCalendarRouteArgs.sourceKey: FeedCalendarRouteArgs.sourceCalendar}
+        : FeedCalendarRouteArgs.forSchedule(at);
+  }
+
   @override
   Widget build(BuildContext context) {
     final isNew = widget.post == null;
+    // Dari kalender = moderator menjadwalkan: target township dan waktu tayang selalu tampil.
     final canSetTownship =
-        !isNew || PermissionsHelper.canSetTownshipMarketingFeed;
+        !isNew || widget.fromCalendar || PermissionsHelper.canSetTownshipMarketingFeed;
     final canSetSchedule =
-        !isNew || PermissionsHelper.canSetScheduleMarketingFeed;
+        !isNew || widget.fromCalendar || PermissionsHelper.canSetScheduleMarketingFeed;
 
-    final primaryLabel = isNew && !PermissionsHelper.canSkipReviewMarketingFeed
+    final primaryLabel = isNew && !widget.fromCalendar && !PermissionsHelper.canSkipReviewMarketingFeed
         ? 'Kirim untuk Ditinjau'
         : _scheduledAt != null
         ? 'Jadwalkan'
@@ -130,7 +153,10 @@ class _FeedPostFormPageState extends State<FeedPostFormPage> {
       onSave: _save,
       children: [
         if (isNew && FeedCreateTabs.showRow) ...[
-          const FeedCreateTabs(current: FeedCreateTab.postingan),
+          FeedCreateTabs(
+            current: FeedCreateTab.postingan,
+            query: _calendarQuery(),
+          ),
           const SizedBox(height: 16),
         ],
         Row(

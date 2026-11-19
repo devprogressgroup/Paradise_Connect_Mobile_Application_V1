@@ -5,6 +5,7 @@ import 'package:progress_group/core/services/analytics_service.dart';
 import 'package:progress_group/core/utils/helpers/app_time.dart';
 import 'package:progress_group/features/marketing-feed/domain/entities/feed_post_entity.dart';
 import 'package:progress_group/features/marketing-feed/domain/entities/save_feed_post_params.dart';
+import 'package:progress_group/features/marketing-feed/presentation/pages/calendar/calendar_route_args.dart';
 import 'package:progress_group/features/marketing-feed/presentation/state/feed_compose/feed_compose_cubit.dart';
 import 'package:progress_group/features/marketing-feed/presentation/widgets/feed_compose_fields.dart';
 import 'package:progress_group/features/marketing-feed/presentation/widgets/feed_create_tabs.dart';
@@ -16,7 +17,18 @@ import 'package:progress_group/features/marketing-feed/presentation/widgets/feed
 class FeedLinkFormPage extends StatefulWidget {
   final FeedPostEntity? post;
 
-  const FeedLinkFormPage({super.key, this.post});
+  /// Tanggal tayang awal dari Kalender Jadwal (null = tidak dari kalender).
+  final DateTime? initialScheduledAt;
+
+  /// Dibuka dari Kalender Jadwal (dipakai untuk membawa tanggal saat pindah tab Buat Konten).
+  final bool fromCalendar;
+
+  const FeedLinkFormPage({
+    super.key,
+    this.post,
+    this.initialScheduledAt,
+    this.fromCalendar = false,
+  });
 
   @override
   State<FeedLinkFormPage> createState() => _FeedLinkFormPageState();
@@ -79,7 +91,7 @@ class _FeedLinkFormPageState extends State<FeedLinkFormPage> {
     _townshipId = post?.township?.id;
     _scheduledAt = post?.status == FeedPostStatus.scheduled
         ? post!.publishAt
-        : null;
+        : widget.initialScheduledAt;
   }
 
   @override
@@ -187,6 +199,15 @@ class _FeedLinkFormPageState extends State<FeedLinkFormPage> {
     if (p != _platform) setState(() => _platform = p);
   }
 
+  /// Query tab Buat Konten: dari kalender, tanggal yang sedang dipilih ikut dibawa ke tab Postingan / Polling.
+  Map<String, String> _calendarQuery() {
+    if (!widget.fromCalendar) return const {};
+    final at = _scheduledAt;
+    return at == null
+        ? {FeedCalendarRouteArgs.sourceKey: FeedCalendarRouteArgs.sourceCalendar}
+        : FeedCalendarRouteArgs.forSchedule(at);
+  }
+
   @override
   Widget build(BuildContext context) {
     final youtube = _platform == 'youtube';
@@ -196,7 +217,10 @@ class _FeedLinkFormPageState extends State<FeedLinkFormPage> {
       onSave: _save,
       children: [
         if (widget.post == null && FeedCreateTabs.showRow) ...[
-          const FeedCreateTabs(current: FeedCreateTab.link),
+          FeedCreateTabs(
+            current: FeedCreateTab.link,
+            query: _calendarQuery(),
+          ),
           const SizedBox(height: 16),
         ],
         const FeedFormLabel('Platform'),
