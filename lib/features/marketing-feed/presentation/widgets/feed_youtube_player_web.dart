@@ -32,6 +32,10 @@ class _FeedYoutubePlayerState extends State<FeedYoutubePlayer> {
   late final html.IFrameElement _iframe;
   bool _playing = true;
 
+  /// Autoplay wajib muted (kebijakan browser), jadi video mulai tanpa suara.
+  /// Pengguna bisa menyalakan suara lewat tombol speaker (sudah ada interaksi tap).
+  bool _muted = true;
+
   @override
   void initState() {
     super.initState();
@@ -75,6 +79,19 @@ class _FeedYoutubePlayerState extends State<FeedYoutubePlayer> {
     setState(() => _playing = !_playing);
   }
 
+  void _toggleMute() {
+    if (_muted) {
+      _command('unMute');
+      _iframe.contentWindow?.postMessage(
+        '{"event":"command","func":"setVolume","args":[100]}',
+        '*',
+      );
+    } else {
+      _command('mute');
+    }
+    setState(() => _muted = !_muted);
+  }
+
   @override
   void dispose() {
     _iframe.remove();
@@ -106,6 +123,26 @@ class _FeedYoutubePlayerState extends State<FeedYoutubePlayer> {
                   color: Colors.white,
                   size: 36,
                 ),
+              ),
+            ),
+          ),
+        ),
+        Positioned(
+          right: 8,
+          bottom: 8,
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: _toggleMute,
+            child: Container(
+              padding: const EdgeInsets.all(6),
+              decoration: const BoxDecoration(
+                color: Colors.black54,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                _muted ? Icons.volume_off_rounded : Icons.volume_up_rounded,
+                color: Colors.white,
+                size: 18,
               ),
             ),
           ),

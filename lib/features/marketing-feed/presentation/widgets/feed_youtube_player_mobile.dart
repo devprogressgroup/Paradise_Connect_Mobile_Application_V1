@@ -1,15 +1,19 @@
-import 'package:flutter/material.dart';
-import 'package:webview_flutter/webview_flutter.dart';
+import 'dart:async';
 
-/// Pemutar YouTube inline seperti video postingan: autoplay (tanpa suara) saat kartu terlihat,
-/// di-pause saat keluar layar, dan tap untuk play/pause. Memakai iframe YouTube di dalam WebView.
+import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:youtube_player_iframe/youtube_player_iframe.dart';
+
+/// Pemutar YouTube inline di kartu feed, memakai package youtube_player_iframe.
+/// Autoplay saat kartu terlihat, di-pause saat keluar layar, dan diputar lagi saat kembali terlihat.
+/// Kalau embed dimatikan pemilik video (error 150/152/153), tampil poster dengan tombol buka di YouTube.
 class FeedYoutubePlayer extends StatefulWidget {
   final String videoId;
 
   /// false = kartu keluar layar, video di-pause. Saat kembali true, diputar lagi.
   final bool visible;
 
-  /// Tampilan sebelum video mulai (thumbnail), juga muncul di belakang WebView.
+  /// Tampilan sebelum video mulai (thumbnail), tampil di belakang player.
   final Widget poster;
 
   const FeedYoutubePlayer({
@@ -24,29 +28,52 @@ class FeedYoutubePlayer extends StatefulWidget {
 }
 
 class _FeedYoutubePlayerState extends State<FeedYoutubePlayer> {
-  late final WebViewController _controller;
-  bool _playing = true;
+  YoutubePlayerController? _controller;
+  StreamSubscription<YoutubePlayerValue>? _subscription;
+
+  /// Embed gagal (dimatikan pemilik video / jaringan): tampilkan poster dengan tombol YouTube.
+  bool _failed = false;
+
+  /// Video mulai tanpa suara (aturan autoplay); pengguna menyalakan suara lewat tombol speaker.
+  bool _muted = true;
+
+  void _toggleMute() {
+    if (_muted) {
+      _controller?.unMute();
+    } else {
+      _controller?.mute();
+    }
+    setState(() => _muted = !_muted);
+  }
 
   @override
   void initState() {
     super.initState();
-    _controller = WebViewController()
-      ..setJavaScriptMode(JavaScriptMode.unrestricted)
-      ..setBackgroundColor(Colors.black)
-      ..setNavigationDelegate(
-        NavigationDelegate(
-          // Tahan navigasi halaman utama supaya WebView tidak pindah ke situs lain.
-          onNavigationRequest: (request) {
-            final allowed = !request.isMainFrame ||
-                request.url.startsWith('about:') ||
-                request.url.startsWith('https://www.youtube.com');
-            return allowed
-                ? NavigationDecision.navigate
-                : NavigationDecision.prevent;
-          },
-        ),
-      )
-      ..loadHtmlString(_html(widget.videoId), baseUrl: 'https://www.youtube.com');
+    if (widget.visible) _createController();
+  }
+
+  void _createController() {
+    final controller = YoutubePlayerController.fromVideoId(
+      videoId: widget.videoId,
+      autoPlay: true,
+      // Autoplay wajib tanpa suara di WebView; suara dinyalakan lewat tombol speaker.
+      params: const YoutubePlayerParams(
+        showControls: true,
+        showFullscreenButton: true,
+        mute: true,
+      ),
+    );
+    _subscription = controller.listen(
+      (value) {
+        if (value.hasError && mounted && !_failed) {
+          debugPrint(
+            'FeedYoutubePlayer error ${widget.videoId}: ${value.error}',
+          );
+          setState(() => _failed = true);
+        }
+      },
+    );
+    _controller = controller;
   }
 
   @override
@@ -54,70 +81,121 @@ class _FeedYoutubePlayerState extends State<FeedYoutubePlayer> {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.visible == widget.visible) return;
     if (widget.visible) {
-      _command('playVideo');
-      setState(() => _playing = true);
+      if (_controller == null) {
+        setState(_createController);
+      } else {
+        _controller!.playVideo();
+      }
     } else {
-      _command('pauseVideo');
-      setState(() => _playing = false);
+      _controller?.pauseVideo();
     }
   }
 
-  static String _html(String videoId) => '''
-<!doctype html>
-<html>
-<head>
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<style>
-  html, body { margin: 0; height: 100%; background: #000; overflow: hidden; }
-  iframe { position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: 0; }
-</style>
-</head>
-<body>
-<iframe id="yt" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen
-  src="https://www.youtube.com/embed/$videoId?autoplay=1&mute=1&playsinline=1&enablejsapi=1&controls=0&rel=0&modestbranding=1"></iframe>
-</body>
-</html>
-''';
-
-  /// Kirim perintah ke player YouTube lewat postMessage (YouTube IFrame API).
-  void _command(String func) {
-    _controller.runJavaScript(
-      "document.getElementById('yt').contentWindow.postMessage("
-      "'{\"event\":\"command\",\"func\":\"$func\",\"args\":\"\"}', '*');",
-    );
+  @override
+  void dispose() {
+    _subscription?.cancel();
+    _controller?.close();
+    super.dispose();
   }
 
-  void _togglePlay() {
-    _command(_playing ? 'pauseVideo' : 'playVideo');
-    setState(() => _playing = !_playing);
+  void _openInYoutube() {
+    launchUrl(
+      Uri.parse('https://www.youtube.com/watch?v=${widget.videoId}'),
+      mode: LaunchMode.externalApplication,
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
-      fit: StackFit.expand,
-      children: [
-        widget.poster,
-        WebViewWidget(controller: _controller),
-        GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onTap: _togglePlay,
-          child: Center(
-            child: AnimatedOpacity(
-              opacity: _playing ? 0 : 1,
-              duration: const Duration(milliseconds: 150),
-              child: Container(
-                padding: const EdgeInsets.all(12),
-                decoration: const BoxDecoration(
-                  color: Colors.black45,
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.play_arrow_rounded,
-                  color: Colors.white,
-                  size: 36,
-                ),
+    if (_failed) {
+      // Embed tidak bisa diputar di sini: tampilkan poster dan ajak buka di aplikasi YouTube.
+      return GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: _openInYoutube,
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            widget.poster,
+            Positioned(
+              left: 16,
+              right: 16,
+              bottom: 12,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text(
+                    'Video tidak bisa diputar di sini. Tonton langsung di YouTube.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 12,
+                      shadows: [Shadow(color: Colors.black87, blurRadius: 4)],
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Material(
+                    color: Colors.white,
+                    shape: const StadiumBorder(),
+                    elevation: 2,
+                    child: InkWell(
+                      customBorder: const StadiumBorder(),
+                      onTap: _openInYoutube,
+                      child: const Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.play_arrow_rounded, color: Colors.black87),
+                            SizedBox(width: 4),
+                            Text(
+                              'Tonton di YouTube',
+                              style: TextStyle(
+                                color: Colors.black87,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    final controller = _controller;
+    if (controller == null) return widget.poster;
+
+    // Tombol suara ditaruh di bawah video (bukan di atas), karena WebView pemutar
+    // tampil di atas widget Flutter lain dan akan menutupi tombol yang ada di dalam area video.
+    return Column(
+      children: [
+        Expanded(
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              widget.poster,
+              YoutubePlayer(
+                controller: controller,
+                aspectRatio: 16 / 9,
+                backgroundColor: Colors.black,
+              ),
+            ],
+          ),
+        ),
+        Align(
+          alignment: Alignment.centerRight,
+          child: IconButton(
+            onPressed: _toggleMute,
+            visualDensity: VisualDensity.compact,
+            tooltip: _muted ? 'Nyalakan suara' : 'Matikan suara',
+            icon: Icon(
+              _muted ? Icons.volume_off_rounded : Icons.volume_up_rounded,
+              color: Colors.black87,
             ),
           ),
         ),

@@ -149,9 +149,11 @@ class _FeedVideoPlayerState extends State<FeedVideoPlayer> {
   late VideoPlayerController _controller;
   bool _initialized = false;
   bool _hasError = false;
+  late bool _muted;
 
   @override
   void initState() {
+    _muted = widget.muted;
     super.initState();
     _initVideo();
   }
@@ -179,9 +181,7 @@ class _FeedVideoPlayerState extends State<FeedVideoPlayer> {
         .initialize()
         .then((_) {
           if (!mounted) return;
-          if (widget.muted) {
-            _controller.setVolume(0.0);
-          }
+          _controller.setVolume(_muted ? 0.0 : 1.0);
           if (widget.loop) {
             _controller.setLooping(true);
           }
@@ -294,7 +294,35 @@ class _FeedVideoPlayerState extends State<FeedVideoPlayer> {
               : _controller.play();
         });
       },
-      child: video,
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          video,
+          Positioned(
+            right: 8,
+            bottom: 8,
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: () {
+                setState(() => _muted = !_muted);
+                _controller.setVolume(_muted ? 0.0 : 1.0);
+              },
+              child: Container(
+                padding: const EdgeInsets.all(6),
+                decoration: const BoxDecoration(
+                  color: Colors.black54,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  _muted ? Icons.volume_off_rounded : Icons.volume_up_rounded,
+                  color: Colors.white,
+                  size: 18,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
