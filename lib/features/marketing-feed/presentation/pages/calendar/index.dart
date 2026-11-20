@@ -236,7 +236,13 @@ class _FeedCalendarPageState extends State<FeedCalendarPage> {
     AnalyticsService.logEvent('marketing_feed_calendar_add');
     await context.pushNamed<bool>(
       chosen,
-      queryParameters: FeedCalendarRouteArgs.forSchedule(at),
+      // Tanggal jadwal hanya dikirim kalau user punya SetSchedule; kalau tidak, form dibuka sebagai "Sekarang".
+      queryParameters: PermissionsHelper.canSetScheduleMarketingFeed
+          ? FeedCalendarRouteArgs.forSchedule(at)
+          : {
+              FeedCalendarRouteArgs.sourceKey:
+                  FeedCalendarRouteArgs.sourceCalendar,
+            },
     );
     if (mounted) _load(force: true);
   }

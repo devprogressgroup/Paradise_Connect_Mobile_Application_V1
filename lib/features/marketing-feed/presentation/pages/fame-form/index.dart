@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:progress_group/core/utils/helpers/permissions_helper.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:progress_group/core/constants/colors.dart';
@@ -320,13 +321,16 @@ class _FameFormPageState extends State<FameFormPage> {
               style: TextStyle(fontSize: 12, color: Color(grey2Color)),
             ),
           ),
-        const SizedBox(height: 12),
-        const FeedFormLabel('Waktu Tayang'),
-        const SizedBox(height: 8),
-        FeedScheduleField(
-          scheduledAt: _scheduledAt,
-          onChanged: (at) => setState(() => _scheduledAt = at),
-        ),
+        // Jadwal tayang kartu memakai permission SetSchedule.
+        if (PermissionsHelper.canSetScheduleMarketingFeed) ...[
+          const SizedBox(height: 12),
+          const FeedFormLabel('Waktu Tayang'),
+          const SizedBox(height: 8),
+          FeedScheduleField(
+            scheduledAt: _scheduledAt,
+            onChanged: (at) => setState(() => _scheduledAt = at),
+          ),
+        ],
         const SizedBox(height: 16),
         Row(
           children: [
@@ -493,9 +497,7 @@ class _CandidateSheetState extends State<_CandidateSheet> {
                   TextField(
                     autofocus: false,
                     onChanged: (v) => setState(() => _query = v),
-                    decoration: feedInputDecoration(
-                      hintText: 'Cari nama user',
-                    ),
+                    decoration: feedInputDecoration(hintText: 'Cari nama user'),
                   ),
                   const SizedBox(height: 8),
                   if (state.loadingCandidates && source.isEmpty)

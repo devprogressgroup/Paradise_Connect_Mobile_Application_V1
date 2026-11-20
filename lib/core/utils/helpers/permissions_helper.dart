@@ -63,78 +63,130 @@ class PermissionsHelper {
     return 'none';
   }
 
-  static bool get canReadAttendance       => checkScoped('Attendance', 'ReadOnly');
-  static bool get canClockInOffice                    => check('Attendance', 'ClockInOffice');
-  static bool get canClockInPameran                   => check('Attendance', 'ClockInPameran');
-  static bool get canClockOutOffice                   => check('Attendance', 'ClockOutOffice');
-  static bool get canClockOutPameran                  => check('Attendance', 'ClockOutPameran');
-  static bool get canApproveRejectAttendance          => check('Attendance', 'ApproveReject');
-  static bool get canCheckInVerify                    => check('Attendance', 'CheckInVerify');
+  static bool get canReadAttendance => checkScoped('Attendance', 'ReadOnly');
+  static bool get canClockInOffice => check('Attendance', 'ClockInOffice');
+  static bool get canClockInPameran => check('Attendance', 'ClockInPameran');
+  static bool get canClockOutOffice => check('Attendance', 'ClockOutOffice');
+  static bool get canClockOutPameran => check('Attendance', 'ClockOutPameran');
+  static bool get canApproveRejectAttendance =>
+      check('Attendance', 'ApproveReject');
+  static bool get canCheckInVerify => check('Attendance', 'CheckInVerify');
 
-  static bool get canClockInLuarLokasi                => check('Attendance', 'ClockInLuarLokasi');
-  static bool get canClockOutLuarLokasi               => check('Attendance', 'ClockOutLuarLokasi');
-  static bool get canClockInLuarLokasiRequestApprove  => check('Attendance', 'ClockInLuarLokasiRequestApprove');
-  static bool get canClockOutLuarLokasiRequestApprove => check('Attendance', 'ClockOutLuarLokasiRequestApprove');
+  static bool get canClockInLuarLokasi =>
+      check('Attendance', 'ClockInLuarLokasi');
+  static bool get canClockOutLuarLokasi =>
+      check('Attendance', 'ClockOutLuarLokasi');
+  static bool get canClockInLuarLokasiRequestApprove =>
+      check('Attendance', 'ClockInLuarLokasiRequestApprove');
+  static bool get canClockOutLuarLokasiRequestApprove =>
+      check('Attendance', 'ClockOutLuarLokasiRequestApprove');
 
-  static bool get canClockIn  => canClockInOffice || canClockInPameran || canClockInLuarLokasi;
-  static bool get canClockOut => canClockOutOffice || canClockOutPameran || canClockOutLuarLokasi;
+  static bool get canClockIn =>
+      canClockInOffice || canClockInPameran || canClockInLuarLokasi;
+  static bool get canClockOut =>
+      canClockOutOffice || canClockOutPameran || canClockOutLuarLokasi;
 
-  static bool get canAccessAttendance => canReadAttendance || canClockInOffice || canClockInPameran || canClockOutOffice || canClockOutPameran || canApproveRejectAttendance || canCheckInVerify || canClockInLuarLokasi || canClockOutLuarLokasi || canClockInLuarLokasiRequestApprove || canClockOutLuarLokasiRequestApprove;
+  static bool get canAccessAttendance =>
+      canReadAttendance ||
+      canClockInOffice ||
+      canClockInPameran ||
+      canClockOutOffice ||
+      canClockOutPameran ||
+      canApproveRejectAttendance ||
+      canCheckInVerify ||
+      canClockInLuarLokasi ||
+      canClockOutLuarLokasi ||
+      canClockInLuarLokasiRequestApprove ||
+      canClockOutLuarLokasiRequestApprove;
 
-  static int? get rawReadAttendance                       => canReadAttendance ? 1 : 0;
-  static int? get rawClockInOffice                        => checkRaw('Attendance', 'ClockInOffice');
-  static int? get rawClockInPameran                       => checkRaw('Attendance', 'ClockInPameran');
-  static int? get rawClockOutOffice                       => checkRaw('Attendance', 'ClockOutOffice');
-  static int? get rawClockOutPameran                      => checkRaw('Attendance', 'ClockOutPameran');
-  static int? get rawApproveAttendance                    => checkRaw('Attendance', 'ApproveReject');
-  static int? get rawClockInLuarLokasi                    => checkRaw('Attendance', 'ClockInLuarLokasi');
-  static int? get rawClockOutLuarLokasi                   => checkRaw('Attendance', 'ClockOutLuarLokasi');
-  static int? get rawClockInLuarLokasiRequestApprove      => checkRaw('Attendance', 'ClockInLuarLokasiRequestApprove');
-  static int? get rawClockOutLuarLokasiRequestApprove     => checkRaw('Attendance', 'ClockOutLuarLokasiRequestApprove');
+  static int? get rawReadAttendance => canReadAttendance ? 1 : 0;
+  static int? get rawClockInOffice => checkRaw('Attendance', 'ClockInOffice');
+  static int? get rawClockInPameran => checkRaw('Attendance', 'ClockInPameran');
+  static int? get rawClockOutOffice => checkRaw('Attendance', 'ClockOutOffice');
+  static int? get rawClockOutPameran =>
+      checkRaw('Attendance', 'ClockOutPameran');
+  static int? get rawApproveAttendance =>
+      checkRaw('Attendance', 'ApproveReject');
+  static int? get rawClockInLuarLokasi =>
+      checkRaw('Attendance', 'ClockInLuarLokasi');
+  static int? get rawClockOutLuarLokasi =>
+      checkRaw('Attendance', 'ClockOutLuarLokasi');
+  static int? get rawClockInLuarLokasiRequestApprove =>
+      checkRaw('Attendance', 'ClockInLuarLokasiRequestApprove');
+  static int? get rawClockOutLuarLokasiRequestApprove =>
+      checkRaw('Attendance', 'ClockOutLuarLokasiRequestApprove');
 
-  static bool get canModifyContacts       => checkScoped('Contacts', 'Modify');
-  static bool get canDeleteContacts       => checkScoped('Contacts', 'Delete');
-  static bool get canReadContacts         => checkScoped('Contacts', 'ReadOnly') || canModifyContacts || canDeleteContacts;
-  static bool get canModifyAttachment     => checkScopedAttachment('Modify');
-  static bool get canDeleteAttachment     => checkScopedAttachment('Delete');
+  static bool get canModifyContacts => checkScoped('Contacts', 'Modify');
+  static bool get canDeleteContacts => checkScoped('Contacts', 'Delete');
+  static bool get canReadContacts =>
+      checkScoped('Contacts', 'ReadOnly') ||
+      canModifyContacts ||
+      canDeleteContacts;
+  static bool get canModifyAttachment => checkScopedAttachment('Modify');
+  static bool get canDeleteAttachment => checkScopedAttachment('Delete');
 
-  static bool get canAccessContacts => canReadContacts || canModifyContacts || canDeleteContacts || canModifyAttachment || canDeleteAttachment;
+  static bool get canAccessContacts =>
+      canReadContacts ||
+      canModifyContacts ||
+      canDeleteContacts ||
+      canModifyAttachment ||
+      canDeleteAttachment;
 
   static bool get canCreateContact => canModifyContacts;
-  static bool get canEditContact   => canModifyContacts;
+  static bool get canEditContact => canModifyContacts;
   static bool get canDeleteContact => canDeleteContacts;
 
-  static bool get canUploadAttachment     => canModifyContacts || canModifyAttachment;
-  static bool get canEditAttachmentItem   => canModifyContacts || canModifyAttachment;
-  static bool get canDeleteAttachmentItem => canModifyContacts || canDeleteAttachment;
-  static bool get canViewAttachment       => canModifyContacts || canModifyAttachment || canDeleteAttachment || canReadContacts;
+  static bool get canUploadAttachment =>
+      canModifyContacts || canModifyAttachment;
+  static bool get canEditAttachmentItem =>
+      canModifyContacts || canModifyAttachment;
+  static bool get canDeleteAttachmentItem =>
+      canModifyContacts || canDeleteAttachment;
+  static bool get canViewAttachment =>
+      canModifyContacts ||
+      canModifyAttachment ||
+      canDeleteAttachment ||
+      canReadContacts;
 
-  static bool get canModifySalesKit       => check('Sales Kit', 'Modify');
-  static bool get canReadSalesKit         => check('Sales Kit', 'ReadOnly');
+  static bool get canModifySalesKit => check('Sales Kit', 'Modify');
+  static bool get canReadSalesKit => check('Sales Kit', 'ReadOnly');
 
   static bool get canAccessSalesKit => canReadSalesKit || canModifySalesKit;
 
-  static bool get canReadSitePlan         => check('Site Plan', 'ReadOnly');
-  static bool get canAccessSitePlan       => canReadSitePlan;
+  static bool get canReadSitePlan => check('Site Plan', 'ReadOnly');
+  static bool get canAccessSitePlan => canReadSitePlan;
 
-  static bool get canReadSiapHuni         => check('Siap Huni', 'ReadOnly');
-  static bool get canAccessSiapHuni       => canReadSiapHuni;
+  static bool get canReadSiapHuni => check('Siap Huni', 'ReadOnly');
+  static bool get canAccessSiapHuni => canReadSiapHuni;
 
-  static bool get canReadInbox            => checkScoped('Inbox', 'ReadOnly');
-  static bool get canAccessInbox          => canReadInbox;
+  static bool get canReadInbox => checkScoped('Inbox', 'ReadOnly');
+  static bool get canAccessInbox => canReadInbox;
 
-  static bool get canCreateReserveOrder  => check('Reserve Order', 'Create');
-  static bool get canModifyReserveOrder  => checkScoped('Reserve Order', 'Modify');
-  static bool get canDeleteReserveOrder  => checkScoped('Reserve Order', 'Delete');
-  static bool get canReadReserveOrder    => checkScoped('Reserve Order', 'ReadOnly') || canModifyReserveOrder || canDeleteReserveOrder;
-  static bool get canAccessReserveOrder  => canReadReserveOrder || canCreateReserveOrder;
+  static bool get canCreateReserveOrder => check('Reserve Order', 'Create');
+  static bool get canModifyReserveOrder =>
+      checkScoped('Reserve Order', 'Modify');
+  static bool get canDeleteReserveOrder =>
+      checkScoped('Reserve Order', 'Delete');
+  static bool get canReadReserveOrder =>
+      checkScoped('Reserve Order', 'ReadOnly') ||
+      canModifyReserveOrder ||
+      canDeleteReserveOrder;
+  static bool get canAccessReserveOrder =>
+      canReadReserveOrder || canCreateReserveOrder;
 
   // Moderator Marketing Feed di app: buat post/poll/link, kelola Draft & Terjadwal. Semua user tetap bisa
   // lihat feed & "Bagikan Momen" (masuk review moderator). Backend mengecek feature yang sama.
   // Feature moderator per aksi (sama dengan backend MarketingFeedMobileService). "Modify" dibiarkan untuk akses lama.
   // "View" sengaja TIDAK ada di sini: semua sales punya View, jadi akan terbaca sebagai moderator.
   static const List<String> _marketingFeedModFeatures = [
-    'CreatePost', 'CreatePoll', 'CreateLink', 'Edit', 'PublishNow', 'Delete', 'ApproveReject', 'Modify',
+    'CreatePost',
+    'CreatePoll',
+    'CreateLink',
+    'Edit',
+    'PublishNow',
+    'Delete',
+    'ApproveReject',
+    'Modify',
   ];
   static bool get canModerateMarketingFeed =>
       _marketingFeedModFeatures.any((f) => check('Marketing Feed', f));
@@ -143,19 +195,28 @@ class PermissionsHelper {
   // Sama dengan backend: GET /marketing-feed/moderator/calendar dan abilities.calendar.
   static bool get canViewMarketingCalendar => check('Marketing Feed', 'Modify');
 
+  // Wall of Fame: fitur "WallOfFame" di form Marketing Feed (checkbox Permission Management).
+  static bool get canManageWallOfFame => check('Marketing Feed', 'WallOfFame');
+
   // Izin membuat konten per jenis. Momen & Postingan memakai CreatePost, Polling CreatePoll, Link CreateLink.
   // Sama dengan pengecekan di backend (MarketingFeedMobileService::CREATE_FEATURE).
-  static bool get canCreateMarketingPost => check('Marketing Feed', 'CreatePost');
-  static bool get canCreateMarketingPoll => check('Marketing Feed', 'CreatePoll');
-  static bool get canCreateMarketingLink => check('Marketing Feed', 'CreateLink');
+  static bool get canCreateMarketingPost =>
+      check('Marketing Feed', 'CreatePost');
+  static bool get canCreateMarketingPoll =>
+      check('Marketing Feed', 'CreatePoll');
+  static bool get canCreateMarketingLink =>
+      check('Marketing Feed', 'CreateLink');
 
   // Permission "SetTownship": sales boleh memilih target township. Tanpa permission, kiriman mengikuti township sales.
-  static bool get canSetTownshipMarketingFeed => check('Marketing Feed', 'SetTownship');
+  static bool get canSetTownshipMarketingFeed =>
+      check('Marketing Feed', 'SetTownship');
 
   // Permission "SetSchedule": sales boleh mengatur waktu tayang. Tanpa permission, kiriman hanya bisa tayang sekarang.
-  static bool get canSetScheduleMarketingFeed => check('Marketing Feed', 'SetSchedule');
+  static bool get canSetScheduleMarketingFeed =>
+      check('Marketing Feed', 'SetSchedule');
 
   // Permission "SkipReview": dicentang = kiriman langsung tayang; tidak dicentang (default) = ditinjau moderator dulu.
   // Sama dengan backend: MarketingFeedMobileService::SKIP_REVIEW_FEATURE.
-  static bool get canSkipReviewMarketingFeed => check('Marketing Feed', 'SkipReview');
+  static bool get canSkipReviewMarketingFeed =>
+      check('Marketing Feed', 'SkipReview');
 }

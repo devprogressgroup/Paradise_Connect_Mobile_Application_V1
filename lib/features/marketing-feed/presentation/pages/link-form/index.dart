@@ -3,6 +3,7 @@ import 'package:progress_group/core/constants/colors.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:progress_group/core/services/analytics_service.dart';
 import 'package:progress_group/core/utils/helpers/app_time.dart';
+import 'package:progress_group/core/utils/helpers/permissions_helper.dart';
 import 'package:progress_group/features/marketing-feed/domain/entities/feed_post_entity.dart';
 import 'package:progress_group/features/marketing-feed/domain/entities/save_feed_post_params.dart';
 import 'package:progress_group/features/marketing-feed/presentation/pages/calendar/calendar_route_args.dart';
@@ -91,7 +92,9 @@ class _FeedLinkFormPageState extends State<FeedLinkFormPage> {
     _townshipId = post?.township?.id;
     _scheduledAt = post?.status == FeedPostStatus.scheduled
         ? post!.publishAt
-        : widget.initialScheduledAt;
+        : (PermissionsHelper.canSetScheduleMarketingFeed
+              ? widget.initialScheduledAt
+              : null);
   }
 
   @override
@@ -161,7 +164,6 @@ class _FeedLinkFormPageState extends State<FeedLinkFormPage> {
     );
   }
 
-
   Widget _field(
     String label,
     TextEditingController controller, {
@@ -204,7 +206,10 @@ class _FeedLinkFormPageState extends State<FeedLinkFormPage> {
     if (!widget.fromCalendar) return const {};
     final at = _scheduledAt;
     return at == null
-        ? {FeedCalendarRouteArgs.sourceKey: FeedCalendarRouteArgs.sourceCalendar}
+        ? {
+            FeedCalendarRouteArgs.sourceKey:
+                FeedCalendarRouteArgs.sourceCalendar,
+          }
         : FeedCalendarRouteArgs.forSchedule(at);
   }
 
@@ -217,10 +222,7 @@ class _FeedLinkFormPageState extends State<FeedLinkFormPage> {
       onSave: _save,
       children: [
         if (widget.post == null) ...[
-          FeedCreateTabs(
-            current: FeedCreateTab.link,
-            query: _calendarQuery(),
-          ),
+          FeedCreateTabs(current: FeedCreateTab.link, query: _calendarQuery()),
           const SizedBox(height: 16),
         ],
         const FeedFormLabel('Platform'),
@@ -291,13 +293,16 @@ class _FeedLinkFormPageState extends State<FeedLinkFormPage> {
           settings: _settings,
           onChanged: (s) => setState(() => _settings = s),
         ),
-        const SizedBox(height: 12),
-        const FeedFormLabel('Waktu Tayang'),
-        const SizedBox(height: 8),
-        FeedScheduleField(
-          scheduledAt: _scheduledAt,
-          onChanged: (at) => setState(() => _scheduledAt = at),
-        ),
+        // Jadwal tayang memakai permission SetSchedule.
+        if (PermissionsHelper.canSetScheduleMarketingFeed) ...[
+          const SizedBox(height: 12),
+          const FeedFormLabel('Waktu Tayang'),
+          const SizedBox(height: 8),
+          FeedScheduleField(
+            scheduledAt: _scheduledAt,
+            onChanged: (at) => setState(() => _scheduledAt = at),
+          ),
+        ],
       ],
     );
   }

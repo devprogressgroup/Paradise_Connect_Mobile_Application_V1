@@ -10,6 +10,7 @@ import 'package:progress_group/features/marketing-feed/presentation/pages/calend
 import 'package:progress_group/features/marketing-feed/presentation/state/feed_compose/feed_compose_cubit.dart';
 import 'package:progress_group/features/marketing-feed/presentation/widgets/feed_compose_fields.dart';
 import 'package:progress_group/features/marketing-feed/presentation/widgets/feed_create_tabs.dart';
+import 'package:progress_group/features/marketing-feed/presentation/widgets/feed_formatted_text_controller.dart';
 import 'package:progress_group/features/marketing-feed/presentation/widgets/feed_moderator_form_scaffold.dart';
 
 const _maxMedia = 10;
@@ -41,7 +42,7 @@ class FeedPostFormPage extends StatefulWidget {
 }
 
 class _FeedPostFormPageState extends State<FeedPostFormPage> {
-  late final TextEditingController _textController;
+  late final FeedFormattedTextController _textController;
   late List<FeedMediaEntity> _media;
   late FeedInteractionSettings _settings;
   int? _townshipId;
@@ -52,17 +53,23 @@ class _FeedPostFormPageState extends State<FeedPostFormPage> {
     super.initState();
     AnalyticsService.logScreenView('marketing_feed_post_form');
     final post = widget.post;
-    _textController = TextEditingController(text: post?.text ?? '');
+    _textController = FeedFormattedTextController(text: post?.text ?? '')
+      ..addListener(_onCaptionChanged);
     _media = post?.media ?? const [];
     _settings = post?.settings ?? const FeedInteractionSettings();
     _townshipId = post?.township?.id;
     _scheduledAt = post?.status == FeedPostStatus.scheduled
         ? post!.publishAt
-        : widget.initialScheduledAt;
+        : (PermissionsHelper.canSetScheduleMarketingFeed
+              ? widget.initialScheduledAt
+              : null);
   }
+
+  void _onCaptionChanged() => setState(() {});
 
   @override
   void dispose() {
+    _textController.removeListener(_onCaptionChanged);
     _textController.dispose();
     super.dispose();
   }
@@ -128,7 +135,10 @@ class _FeedPostFormPageState extends State<FeedPostFormPage> {
     if (!widget.fromCalendar) return const {};
     final at = _scheduledAt;
     return at == null
-        ? {FeedCalendarRouteArgs.sourceKey: FeedCalendarRouteArgs.sourceCalendar}
+        ? {
+            FeedCalendarRouteArgs.sourceKey:
+                FeedCalendarRouteArgs.sourceCalendar,
+          }
         : FeedCalendarRouteArgs.forSchedule(at);
   }
 
@@ -137,42 +147,40 @@ class _FeedPostFormPageState extends State<FeedPostFormPage> {
     final isNew = widget.post == null;
     // Dari kalender = moderator menjadwalkan: target township dan waktu tayang selalu tampil.
     final canSetTownship =
-        !isNew || widget.fromCalendar || PermissionsHelper.canSetTownshipMarketingFeed;
+        !isNew ||
+        widget.fromCalendar ||
+        PermissionsHelper.canSetTownshipMarketingFeed;
+    // Jadwal tayang memakai permission SetSchedule (termasuk dari kalender).
     final canSetSchedule =
-        !isNew || widget.fromCalendar || PermissionsHelper.canSetScheduleMarketingFeed;
+        !isNew || PermissionsHelper.canSetScheduleMarketingFeed;
 
-    final primaryLabel = isNew && !widget.fromCalendar && !PermissionsHelper.canSkipReviewMarketingFeed
+    final primaryLabel =
+        isNew &&
+            !widget.fromCalendar &&
+            !PermissionsHelper.canSkipReviewMarketingFeed
         ? 'Kirim untuk Ditinjau'
         : _scheduledAt != null
         ? 'Jadwalkan'
         : 'Publikasikan';
 
     // Tombol B / I: membungkus teks yang diblok dengan penanda format (tanpa perlu tahu sintaksnya).
-    void wrapCaption(String mark) {
-      final c = _textController;
-      final text = c.text;
-      final sel = c.selection;
-      final start = sel.start < 0 ? text.length : sel.start;
-      final end = sel.end < 0 ? text.length : sel.end;
-      final lo = start < end ? start : end;
-      final hi = start < end ? end : start;
-      c.value = TextEditingValue(
-        text:
-            '${text.substring(0, lo)}$mark${text.substring(lo, hi)}$mark${text.substring(hi)}',
-        selection: TextSelection.collapsed(offset: hi + mark.length * 2),
-      );
-    }
-
-    Widget captionTool(String label, String mark, TextStyle style) {
+    Widget captionTool(
+      String label,
+      bool active,
+      VoidCallback onTap,
+      TextStyle style,
+    ) {
       return InkWell(
         borderRadius: BorderRadius.circular(8),
-        onTap: () => wrapCaption(mark),
+        onTap: onTap,
         child: Container(
           width: 36,
           height: 32,
           alignment: Alignment.center,
           decoration: BoxDecoration(
-            color: const Color(grey10Color),
+            color: active
+                ? Theme.of(context).colorScheme.primary.withOpacity(0.18)
+                : const Color(grey10Color),
             borderRadius: BorderRadius.circular(8),
           ),
           child: Text(label, style: style),
@@ -215,13 +223,15 @@ class _FeedPostFormPageState extends State<FeedPostFormPage> {
           children: [
             captionTool(
               'B',
-              '**',
+              _textController.isActive(bold: true),
+              _textController.toggleBold,
               const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
             ),
             const SizedBox(width: 6),
             captionTool(
               'I',
-              '__',
+              _textController.isActive(bold: false),
+              _textController.toggleItalic,
               const TextStyle(fontStyle: FontStyle.italic, fontSize: 15),
             ),
           ],
@@ -235,9 +245,7 @@ class _FeedPostFormPageState extends State<FeedPostFormPage> {
               (_, {required currentLength, required isFocused, maxLength}) =>
                   null,
           style: const TextStyle(fontSize: 13.5),
-          decoration: feedInputDecoration(
-            hintText: 'Tulis caption…',
-          ),
+          decoration: feedInputDecoration(hintText: 'Tulis caption…'),
         ),
         if (canSetTownship) ...[
           const SizedBox(height: 12),

@@ -4,6 +4,7 @@ import 'package:progress_group/core/constants/colors.dart';
 import 'package:progress_group/core/utils/helpers/date_helper.dart';
 import 'package:progress_group/features/marketing-feed/domain/entities/feed_post_entity.dart';
 import 'package:progress_group/features/marketing-feed/presentation/widgets/feed_avatar.dart';
+import 'package:progress_group/features/marketing-feed/presentation/widgets/feed_formatted_text_controller.dart';
 import 'package:progress_group/features/marketing-feed/presentation/widgets/feed_link_default_thumb.dart';
 import 'package:progress_group/features/marketing-feed/presentation/widgets/feed_media_view.dart';
 import 'package:progress_group/features/marketing-feed/presentation/widgets/feed_youtube_player.dart';
@@ -338,26 +339,18 @@ class FeedRichText extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // `**teks**` = tebal, `__teks__` = miring.
-    final spans = <TextSpan>[];
-    final re = RegExp(r'\*\*([\s\S]+?)\*\*|__([\s\S]+?)__');
-    var last = 0;
-    for (final m in re.allMatches(text)) {
-      if (m.start > last) spans.add(TextSpan(text: text.substring(last, m.start)));
-      if (m.group(1) != null) {
-        spans.add(TextSpan(
-          text: m.group(1),
-          style: const TextStyle(fontWeight: FontWeight.bold),
-        ));
-      } else {
-        spans.add(TextSpan(
-          text: m.group(2),
-          style: const TextStyle(fontStyle: FontStyle.italic),
-        ));
-      }
-      last = m.end;
-    }
-    if (last < text.length) spans.add(TextSpan(text: text.substring(last)));
+    // `**` = tebal, `__` = miring (bisa bersarang). Penanda tidak ditampilkan.
+    final spans = <TextSpan>[
+      for (final t in tokenizeFeedCaption(text))
+        if (!t.marker)
+          TextSpan(
+            text: text.substring(t.start, t.end),
+            style: TextStyle(
+              fontWeight: t.bold ? FontWeight.bold : null,
+              fontStyle: t.italic ? FontStyle.italic : null,
+            ),
+          ),
+    ];
     return Text.rich(
       TextSpan(
         style: style,
