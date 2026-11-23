@@ -8,13 +8,19 @@ import 'package:progress_group/core/utils/widget/custom_header.dart';
 import 'package:progress_group/features/marketing-feed/domain/entities/feed_post_entity.dart';
 import 'package:progress_group/features/marketing-feed/presentation/pages/fame-manage/index.dart';
 import 'package:progress_group/features/marketing-feed/presentation/state/marketing_feed/marketing_feed_cubit.dart';
+import 'package:progress_group/core/utils/helpers/permissions_helper.dart';
+import 'package:progress_group/features/marketing-feed/presentation/widgets/feed_approval_list.dart';
+import 'package:progress_group/features/marketing-feed/presentation/widgets/feed_published_list.dart';
 import 'package:progress_group/features/marketing-feed/presentation/widgets/feed_create_tabs.dart';
 import 'package:progress_group/features/marketing-feed/presentation/widgets/feed_link_default_thumb.dart';
 import 'package:progress_group/features/marketing-feed/presentation/widgets/feed_media_view.dart';
 import 'package:progress_group/features/marketing-feed/presentation/widgets/feed_section.dart';
 
 class FeedMySubmissionsPage extends StatefulWidget {
-  const FeedMySubmissionsPage({super.key});
+  /// 'approval' = buka langsung di tab Persetujuan (dari notifikasi kiriman yang menunggu persetujuan).
+  final String? initialTab;
+
+  const FeedMySubmissionsPage({super.key, this.initialTab});
 
   @override
   State<FeedMySubmissionsPage> createState() => _FeedMySubmissionsPageState();
@@ -30,6 +36,8 @@ class _FeedMySubmissionsPageState extends State<FeedMySubmissionsPage> {
   String? _errorMessage;
   // Tab seperti prototype: Draf, Ditinjau (menunggu Tim Marketing), Tayang, Ditolak.
   String _status = 'draft';
+  // Dipakai + di bawah untuk membuka form kartu Wall of Fame saat tab Wall of Fame aktif.
+  final _fameKey = GlobalKey<FameManagePageState>();
   static const _tabs = [
     ('draft', 'Draf'),
     ('scheduled', 'Terjadwal'),
@@ -42,6 +50,8 @@ class _FeedMySubmissionsPageState extends State<FeedMySubmissionsPage> {
   List<(String, String)> get _visibleTabs => [
     ..._tabs,
     if (FeedCreateTabs.fameEditable) ('fame', 'Wall of Fame'),
+    // Persetujuan kiriman sales: hanya untuk user dengan izin ApproveReject (superuser selalu punya).
+    if (PermissionsHelper.canApproveMarketingFeed) ('approval', 'Persetujuan'),
   ];
 
   @override
@@ -49,7 +59,11 @@ class _FeedMySubmissionsPageState extends State<FeedMySubmissionsPage> {
     super.initState();
     AnalyticsService.logScreenView('marketing_feed_my_submissions');
     _scrollController.addListener(_onScroll);
-    _fetch();
+    if (widget.initialTab == 'approval' && PermissionsHelper.canApproveMarketingFeed) {
+      _status = 'approval';
+    } else {
+      _fetch();
+    }
     // Tab "Wall of Fame" hanya muncul kalau user punya izin edit (hak akses dimuat ulang di sini).
     FeedCreateTabs.refreshFameAccess(context).then((_) {
       if (mounted) setState(() {});
@@ -145,9 +159,27 @@ class _FeedMySubmissionsPageState extends State<FeedMySubmissionsPage> {
     );
   }
 
+  /// + seperti di Home: buat kiriman baru. Di tab Wall of Fame, + yang sama membuka form kartu Wall of Fame.
+  Future<void> _onFabTap() async {
+    if (_status == 'fame') {
+      _fameKey.currentState?.openNewCard();
+      return;
+    }
+    AnalyticsService.logEvent('marketing_feed_fab');
+    await context.pushNamed<bool>('marketingFeedPostForm');
+    if (mounted) _fetch();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      floatingActionButton: FloatingActionButton(
+        heroTag: 'my_submissions_fab',
+        onPressed: _onFabTap,
+        backgroundColor: const Color(primaryColor),
+        shape: const CircleBorder(),
+        child: const Icon(Icons.add, size: 28, color: Color(whiteColor)),
+      ),
       body: SafeArea(
         child: Column(
           children: [
@@ -169,7 +201,9 @@ class _FeedMySubmissionsPageState extends State<FeedMySubmissionsPage> {
       _hasMore = false;
     });
     // Tab Wall of Fame memakai daftarnya sendiri (FameManagePage), tidak memuat kiriman.
-    if (status != 'fame') _fetch();
+    // Tab Persetujuan dan Tayang (untuk izin ApproveReject) memuat datanya sendiri.
+    final ownList = !(status == 'published' && PermissionsHelper.canApproveMarketingFeed);
+    if (status != 'fame' && status != 'approval' && ownList) _fetch();
   }
 
   Widget _buildTabs() {
@@ -203,7 +237,14 @@ class _FeedMySubmissionsPageState extends State<FeedMySubmissionsPage> {
 
   Widget _buildBody() {
     if (_status == 'fame') {
-      return const FameManagePage(embedded: true);
+      return FameManagePage(key: _fameKey, embedded: true);
+    }
+    // Tayang untuk user ApproveReject: semua kiriman tayang, dengan aksi turunkan tayang dan hapus.
+    if (_status == 'published' && PermissionsHelper.canApproveMarketingFeed) {
+      return const FeedPublishedList();
+    }
+    if (_status == 'approval') {
+      return const FeedApprovalList();
     }
     if (_isLoading) {
       return const Center(child: CircularProgressIndicator());

@@ -2,7 +2,12 @@ import 'package:go_router/go_router.dart';
 import 'package:flutter/material.dart';
 import 'package:progress_group/core/constants/colors.dart';
 import 'package:progress_group/core/utils/helpers/date_helper.dart';
+import 'package:progress_group/core/utils/helpers/initial_name_helper.dart';
+import 'package:progress_group/features/marketing-feed/domain/entities/feed_author_entity.dart';
+import 'package:progress_group/features/marketing-feed/domain/entities/feed_comment_entity.dart';
 import 'package:progress_group/features/marketing-feed/domain/entities/feed_post_entity.dart';
+import 'package:progress_group/features/marketing-feed/domain/entities/feed_stats_entity.dart';
+import 'package:progress_group/features/marketing-feed/presentation/state/feed_live/feed_live_stats.dart';
 import 'package:progress_group/features/marketing-feed/presentation/widgets/feed_avatar.dart';
 import 'package:progress_group/features/marketing-feed/presentation/widgets/feed_formatted_text_controller.dart';
 import 'package:progress_group/features/marketing-feed/presentation/widgets/feed_link_default_thumb.dart';
@@ -21,6 +26,13 @@ class FeedPostCard extends StatelessWidget {
   final VoidCallback? onShare;
   final Future<String?> Function(List<int> optionIndexes)? onVote;
 
+  /// false = nama/avatar pembuat tidak membuka profil (dipakai di halaman profil itu sendiri).
+  final bool linkAuthorProfile;
+
+  /// true = hitungan dan komentar terbaru diperbarui lewat polling ([FeedLiveStats]) selama kartu di layar.
+  /// Dipakai di Home dan profil. false = kartu dasar tanpa polling (dipakai di dalam kartu itu sendiri).
+  final bool liveUpdates;
+
   const FeedPostCard({
     super.key,
     required this.post,
@@ -28,6 +40,8 @@ class FeedPostCard extends StatelessWidget {
     this.onComment,
     this.onShare,
     this.onVote,
+    this.linkAuthorProfile = true,
+    this.liveUpdates = true,
   });
 
   bool get _isPending =>
@@ -50,7 +64,48 @@ class FeedPostCard extends StatelessWidget {
       : feedCardDecoration();
 
   @override
-  Widget build(BuildContext context) => _withPin(_buildCard(context));
+  Widget build(BuildContext context) {
+    if (!liveUpdates) return _withPin(_buildCard(context));
+    return FeedLiveWatch(
+      postId: post.id,
+      child: ValueListenableBuilder<FeedStatsEntity?>(
+        valueListenable: FeedLiveStats.instance.of(post.id),
+        builder: (context, live, _) {
+          return FeedPostCard(
+            post: live == null ? post : _withLive(post, live),
+            onReact: onReact,
+            onComment: onComment,
+            onShare: onShare,
+            onVote: onVote,
+            linkAuthorProfile: linkAuthorProfile,
+            liveUpdates: false,
+          );
+        },
+      ),
+    );
+  }
+
+  /// Hitungan dan komentar terbaru dari polling menggantikan nilai saat kartu ini dibuat.
+  FeedPostEntity _withLive(FeedPostEntity p, FeedStatsEntity s) {
+    final c = s.latestComments.isEmpty ? null : s.latestComments.first;
+    return p.copyWith(
+      likeCount: s.likes,
+      dislikeCount: s.dislikes,
+      commentCount: s.comments,
+      latestComment: c == null
+          ? null
+          : FeedCommentEntity(
+              id: c.id,
+              author: FeedAuthorEntity(
+                id: 0,
+                name: c.authorName,
+                initials: getInitials(c.authorName),
+              ),
+              text: c.body,
+              createdAt: c.createdAt,
+            ),
+    );
+  }
 
   /// Ikon pin selalu di pojok kanan atas kartu, untuk semua jenis kiriman yang disematkan.
   Widget _withPin(Widget card) {
@@ -68,7 +123,7 @@ class FeedPostCard extends StatelessWidget {
   }
 
   Widget _buildCard(BuildContext context) {
-    if (post.type == FeedPostType.link) return _buildLinkCard();
+    if (post.type == FeedPostType.link) return _buildLinkCard(context);
 
     final showFooter = post.status == FeedPostStatus.published;
     return Container(
@@ -131,7 +186,7 @@ class FeedPostCard extends StatelessWidget {
     final author = post.author;
     // Nama atau avatar pembuat membuka profilnya (kecuali akun resmi/moderator tanpa profil sales).
     void openProfile() {
-      if (author.id > 0 && !author.isOfficial) {
+      if (linkAuthorProfile && author.id > 0 && !author.isOfficial) {
         context.pushNamed(
           'marketingFeedProfile',
           queryParameters: {'user_id': '${author.id}'},
@@ -217,7 +272,7 @@ class FeedPostCard extends StatelessWidget {
     );
   }
 
-  Widget _buildLinkCard() {
+  Widget _buildLinkCard(BuildContext context) {
     final link = post.link!;
     final cover = post.thumbnail == null && !link.isYoutube
         ? FeedLinkDefaultThumb(platform: link.platform)
@@ -233,6 +288,11 @@ class FeedPostCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Pembuat dan waktu tayang, sama seperti kiriman biasa.
+          Padding(
+            padding: const EdgeInsets.fromLTRB(14, 14, 14, 10),
+            child: _buildHeader(context),
+          ),
           if (youtubeId != null)
             AspectRatio(
               aspectRatio: 16 / 9,
@@ -353,7 +413,14 @@ class FeedRichText extends StatelessWidget {
     ];
     return Text.rich(
       TextSpan(
-        style: style,
+        // Nunito Sans tidak punya glyph emoji: sediakan font cadangan emoji supaya tidak tampil kotak.
+        style: style.copyWith(
+          fontFamilyFallback: const [
+            'Noto Color Emoji',
+            'Apple Color Emoji',
+            'Segoe UI Emoji',
+          ],
+        ),
         children: [
           ...spans,
           if (trailing != null)
@@ -405,20 +472,43 @@ class _FeedPostFooter extends StatelessWidget {
                   label: '${post.likeCount}',
                   color: liked ? const Color(redAccentColor) : null,
                   onTap: () => onReact?.call(FeedReaction.like),
+                )
+              else
+                _disabledAction(
+                  context,
+                  icon: Icons.favorite_border,
+                  label: '${post.likeCount}',
+                  message: 'Suka dinonaktifkan untuk post ini',
                 ),
+              // Dislike: hanya ikon yang tampil, angkanya disembunyikan.
               if (s.allowDislike)
                 _action(
                   icon: disliked ? Icons.thumb_down : Icons.thumb_down_outlined,
-                  label: '${post.dislikeCount}',
+                  label: '',
                   color: disliked ? const Color(orangeAccentColor) : null,
                   onTap: () => onReact?.call(FeedReaction.dislike),
+                )
+              else
+                _disabledAction(
+                  context,
+                  icon: Icons.thumb_down_off_alt,
+                  label: '',
+                  message: 'Dislike dinonaktifkan untuk post ini',
                 ),
-              // Komentar dimatikan: input disembunyikan, tapi komentar lama tetap bisa dibuka.
+              // Komentar dimatikan: ikon tetap tampil (dicoret), ketuk memunculkan snackbar.
+              // Komentar lama tetap bisa dibuka kalau sudah ada.
               if (s.allowComment || post.commentCount > 0)
                 _action(
                   icon: Icons.chat_bubble_outline,
                   label: '${post.commentCount}',
                   onTap: onComment,
+                )
+              else
+                _disabledAction(
+                  context,
+                  icon: Icons.comments_disabled_outlined,
+                  label: '${post.commentCount}',
+                  message: 'Komentar dinonaktifkan untuk post ini',
                 ),
               const Spacer(),
               if (s.allowShare)
@@ -493,6 +583,23 @@ class _FeedPostFooter extends StatelessWidget {
     );
   }
 
+  /// Aksi yang dimatikan di post: ikon dicoret (abu-abu) dan ketuk menampilkan snackbar alasannya.
+  Widget _disabledAction(
+    BuildContext context, {
+    required IconData icon,
+    required String label,
+    required String message,
+  }) {
+    return _action(
+      icon: icon,
+      label: label,
+      color: const Color(grey4Color),
+      onTap: () => ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(SnackBar(content: Text(message))),
+    );
+  }
+
   Widget _action({
     required IconData icon,
     required String label,
@@ -512,15 +619,17 @@ class _FeedPostFooter extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               Icon(icon, size: 18, color: c),
-              const SizedBox(width: 5),
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 12.5,
-                  fontWeight: FontWeight.bold,
-                  color: c,
+              if (label.isNotEmpty) ...[
+                const SizedBox(width: 5),
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.bold,
+                    color: c,
+                  ),
                 ),
-              ),
+              ],
             ],
           ),
         ),

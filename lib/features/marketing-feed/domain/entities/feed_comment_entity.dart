@@ -64,12 +64,18 @@ class FeedCommentPageEntity extends Equatable {
   final int currentPage;
   final bool hasMore;
 
+  /// Jumlah komentar utama di server dan ukuran halaman (untuk mencari halaman terakhir saat polling).
+  final int total;
+  final int perPage;
+
   const FeedCommentPageEntity({
     required this.items,
     this.currentPage = 1,
     this.hasMore = false,
+    this.total = 0,
+    this.perPage = 10,
   });
 
   @override
-  List<Object?> get props => [items, currentPage, hasMore];
+  List<Object?> get props => [items, currentPage, hasMore, total, perPage];
 }

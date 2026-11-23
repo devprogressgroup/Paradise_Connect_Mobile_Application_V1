@@ -6,6 +6,7 @@ import 'package:progress_group/features/marketing-feed/domain/repositories/marke
 import 'package:progress_group/features/marketing-feed/domain/usecases/get_feed_post_usecase.dart';
 import 'package:progress_group/features/marketing-feed/domain/usecases/get_feed_posts_usecase.dart';
 import 'package:progress_group/features/marketing-feed/domain/usecases/get_my_submissions_usecase.dart';
+import 'package:progress_group/features/marketing-feed/presentation/state/feed_live/feed_live_stats.dart';
 import 'package:progress_group/features/marketing-feed/domain/usecases/set_profile_pin_usecase.dart';
 import 'package:progress_group/features/marketing-feed/domain/usecases/get_fame_programs_usecase.dart';
 import 'package:progress_group/features/marketing-feed/domain/usecases/get_personal_funnel_usecase.dart';
@@ -187,6 +188,7 @@ class MarketingFeedCubit extends Cubit<MarketingFeedState> {
       dislikeCount: count(before.dislikeCount, FeedReaction.dislike),
     );
     _replacePost(optimistic);
+    FeedLiveStats.instance.markLocalChange(postId);
 
     final result = await reactFeedPostUseCase(postId, next);
     return result.fold(
@@ -201,6 +203,7 @@ class MarketingFeedCubit extends Cubit<MarketingFeedState> {
           dislikeCount: res.dislikes,
         );
         _replacePost(synced);
+        FeedLiveStats.instance.markLocalChange(postId);
         return null;
       },
     );

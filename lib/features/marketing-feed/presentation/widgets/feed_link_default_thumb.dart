@@ -25,18 +25,6 @@ class FeedLinkDefaultThumb extends StatelessWidget {
       child: Stack(
         alignment: Alignment.center,
         children: [
-          Positioned(
-            right: compact ? -12 : -24,
-            top: compact ? -12 : -24,
-            child: Container(
-              width: compact ? 40 : 110,
-              height: compact ? 40 : 110,
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.08),
-                shape: BoxShape.circle,
-              ),
-            ),
-          ),
           Column(
             mainAxisSize: MainAxisSize.min,
             mainAxisAlignment: MainAxisAlignment.center,

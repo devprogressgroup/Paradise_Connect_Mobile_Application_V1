@@ -1,3 +1,4 @@
+import 'package:progress_group/features/marketing-feed/domain/entities/feed_stats_entity.dart';
 import 'package:progress_group/features/marketing-feed/domain/entities/my_profile_entity.dart';
 import 'package:dartz/dartz.dart';
 import 'package:progress_group/core/network/marketing_feed_exception.dart';
@@ -45,7 +46,24 @@ abstract class MarketingFeedRepository {
     int perPage,
     String? status,
   });
-  Future<Either<String, MyProfileEntity>> getMyProfile({int? userId});
+  /// Antrean kiriman sales yang menunggu persetujuan (izin ApproveReject).
+  Future<Either<String, List<FeedPostEntity>>> getReviewQueue();
+
+  /// Judul, deskripsi, dan gambar dari URL, untuk mengisi form link otomatis.
+  Future<Either<String, Map<String, dynamic>>> getLinkMeta(String url);
+
+  /// Setujui langsung tayang (approve), jadwalkan (schedule + publishAt), atau tolak (reject + alasan) kiriman sales.
+  Future<Either<String, void>> decideReview(int postId, String decision, {String? reason, String? publishAt});
+
+  /// Polling ringan: hitungan like/komentar + komentar terbaru untuk kiriman yang sedang terlihat.
+  Future<Either<String, List<FeedStatsEntity>>> getFeedStats(List<int> ids);
+
+  Future<Either<String, MyProfileEntity>> getMyProfile({
+    int? userId,
+    String tab,
+    int page,
+    int perPage,
+  });
 
   Future<Either<String, FeedPageEntity>> searchFeedPosts({
     required String q,
@@ -107,4 +125,7 @@ abstract class MarketingFeedRepository {
     SaveFeedPostParams params,
   );
   Future<Either<String, void>> moderatorAction(int postId, String action);
+
+  /// Semua kiriman tayang (izin ApproveReject).
+  Future<Either<String, List<FeedPostEntity>>> getPublishedPosts();
 }

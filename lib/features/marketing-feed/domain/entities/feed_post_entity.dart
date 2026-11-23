@@ -257,6 +257,7 @@ class FeedPostEntity extends Equatable {
     FeedPollEntity? poll,
     bool? isPinned,
     bool? profilePinned,
+    FeedCommentEntity? latestComment,
   }) {
     return FeedPostEntity(
       id: id,
@@ -277,7 +278,7 @@ class FeedPostEntity extends Equatable {
       dislikeCount: dislikeCount ?? this.dislikeCount,
       myReaction: myReaction ?? this.myReaction,
       commentCount: commentCount ?? this.commentCount,
-      latestComment: latestComment,
+      latestComment: latestComment ?? this.latestComment,
       rejectReason: rejectReason,
       isPinned: isPinned ?? this.isPinned,
       profilePinned: profilePinned ?? this.profilePinned,

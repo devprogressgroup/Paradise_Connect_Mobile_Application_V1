@@ -606,7 +606,7 @@ class _MainLayoutState extends State<MainLayout> {
                         index: 0,
                       ),
                       // Marketing Feed (sesuai prototype): Feeds = Kiriman Saya milik sendiri
-                      if (PermissionsHelper.canModerateMarketingFeed)
+                      if (PermissionsHelper.canOpenMarketingFeeds)
                         _buildDrawerItem(
                           context,
                           '',

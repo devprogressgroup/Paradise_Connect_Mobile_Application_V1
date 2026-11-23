@@ -295,11 +295,26 @@ textarea:focus,input[type=text]:focus{border-color:var(--primary);outline:none}
 .pstat{display:flex;justify-content:center;gap:28px;margin-top:10px}
 .pstat span{display:flex;flex-direction:column;align-items:center;font-size:11.5px;font-weight:600;color:var(--grey2)}
 .pstat b{font-size:16px;color:var(--black);font-variant-numeric:tabular-nums}
+/* tab profil: Semua · Reels (video upload) · Tautan (link) */
+.ptabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));margin:14px -16px 0;border-bottom:1px solid var(--grey10)}
+.ptabs button{width:100%;min-width:0;height:44px;padding:0 6px;font-size:13px;font-weight:700;color:var(--grey2);white-space:nowrap;border-bottom:2px solid transparent;margin-bottom:-1px}
+.ptabs button.on{color:var(--primary);border-bottom-color:var(--primary)}
+.pvid{position:absolute;right:6px;bottom:6px;z-index:1;width:22px;height:22px;border-radius:50%;background:rgba(0,0,0,.5);display:grid;place-items:center;color:#fff}
+.pfeed{display:flex;flex-direction:column;gap:12px;padding:4px 0 24px}
+.pempty{grid-column:1/-1;text-align:center;padding:40px 16px;color:var(--grey2);font-size:13px}
 .pgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:3px;margin:0 -16px}
 .ptile{position:relative;aspect-ratio:3/4;overflow:hidden;background:var(--grey10);color:var(--white)}
 .ptile .art{position:absolute;inset:0}
 .ptile::after{content:"";position:absolute;inset:auto 0 0;height:45%;background:linear-gradient(180deg,transparent,rgba(0,0,0,.55));pointer-events:none}
-.ptxt{position:absolute;inset:0;padding:10px;background:linear-gradient(160deg,var(--secondary),var(--bg2));font-size:11.5px;font-weight:700;line-height:1.35;text-align:left;display:-webkit-box;-webkit-line-clamp:6;-webkit-box-orient:vertical;overflow:hidden}
+/* kiriman tanpa foto/video (gaya Facebook): latar warna solid/gradien, teks di tengah, ukuran menyesuaikan panjang teks */
+.ptxt{position:absolute;inset:0;display:grid;place-items:center;padding:30px 10px;text-align:center;color:#fff;font-weight:800;line-height:1.3;overflow:hidden}
+.ptxt>span{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:7;line-clamp:7;overflow:hidden;word-break:break-word}
+.ptxt.xl>span{font-size:19px}.ptxt.lg>span{font-size:14px}.ptxt.sm>span{font-size:12px;font-weight:700}
+.tbg0{background:linear-gradient(135deg,#1877F2,#0A4FB8)}
+.tbg1{background:linear-gradient(135deg,#F02849,#B30E2E)}
+.tbg2{background:linear-gradient(135deg,#42B72A,#1F7A12)}
+.tbg3{background:linear-gradient(135deg,#7B3FE4,#4B1FA8)}
+.tbg4{background:linear-gradient(135deg,#F5811F,#C4520A)}
 .ppin{position:absolute;top:6px;left:6px;z-index:1;display:flex;align-items:center;gap:3px;background:var(--primary);font-size:10px;font-weight:800;padding:2px 6px 2px 4px;border-radius:4px}
 .pst{position:absolute;top:6px;right:6px;z-index:1;font-size:10px;font-weight:800;padding:2px 6px;border-radius:4px;background:var(--white)}
 .pst.warn{color:var(--orange)}.pst.bad{color:var(--red)}.pst.info{color:var(--primary)}
@@ -2269,6 +2284,18 @@ const posts=[
    text:'Closing 3 unit sekaligus di pameran Mall Kelapa Gading! Makasih tim PAR1 🙌',media:[{k:'booth',o:{}},{k:'sp',o:{title:'3 unit dalam 1 hari!',seed:5}}]}),
  P_({a:ME,pillar:'sales',project:'PAR1',at:clock-9*DAY,likes:28,via:'mobile',
    text:'Kunjungan lokasi sore bareng keluarga Pak Hartono, langsung jatuh hati sama tampak depannya.',media:[{k:'house',o:{tone:'dusk',label:'Tipe 60/90'}}]}),
+ /* sample tanpa media (tampil sebagai kartu teks di grid profil): teks biasa + poll tanpa gambar */
+ P_({a:ME,pillar:'sales',project:'PAR1',at:clock-12*HOUR,likes:18,via:'mobile',
+   text:'Semangat pagi para pejuang SP! 🔥🔥 Target minggu ini satu SP sehari, ayo gaskeun!'}),
+ P_({type:'poll',a:ME,pillar:'sales',project:'PAR1',at:clock-30*HOUR,likes:7,via:'mobile',set:on({dislike:0}),
+   text:'<b>Teknik closing apa yang paling sering berhasil kamu pakai?</b>',poll:{opts:['Simulasi cicilan di depan calon pembeli','Tawarkan promo akhir bulan','Ajak survei langsung ke lokasi'],votes:[14,9,5],n:28,multi:0}}),
+ P_({a:ME,pillar:'sales',project:'PAR1',at:clock-3*DAY,likes:12,via:'mobile',
+   text:'Closing hari ini di cluster Aurora, terima kasih tim PAR1 atas supportnya! 🙏'}),
+ /* sample video (tab Reels) dan tautan (tab Tautan) untuk Budi */
+ P_({a:ME,pillar:'sales',project:'PAR1',at:clock-6*HOUR,likes:23,via:'mobile',
+   text:'Tur singkat unit Tipe 60/90 buat calon pembeli yang belum sempat datang 🎬',media:[{k:'house',o:{tone:'dusk',label:'Tur 60/90',video:true}}]}),
+ P_({type:'link',a:ME,pillar:'sales',project:'PAR1',at:clock-2*DAY,likes:9,via:'mobile',set:on({dislike:0,comment:0,reply:0}),
+   link:{src:'yt',url:'https://www.youtube.com/watch?v=aurora6090',eb:'YouTube · Progress Group Official',title:'Tur Show Unit Cluster Aurora Tipe 60/90',desc:'Video 6 menit keliling unit contoh, pas buat pembeli yang belum sempat datang ke lokasi.'},media:[{k:'yt',o:{}}]}),
  /* kiriman Budi yang ditolak: ditampung di Kiriman Saya › Ditolak, bisa diperbaiki & dikirim ulang */
  P_({status:'rejected',a:ME,pillar:'sales',project:'PAR1',at:clock-26*HOUR,via:'mobile',reason:'Foto kurang jelas, mohon unggah ulang yang lebih terang',
    text:'Serah terima kunci unit Pak Darmawan sore ini 🔑',media:[{k:'house',o:{label:'Tipe 60/90'}}]}),
@@ -2549,7 +2576,7 @@ function cardClick(e){
   }
   switch(t.dataset.act){
     /* detail kiriman selalu dibuka dari profil penulisnya, jadi cukup kembali ke profil */
-    case 'profile':if(inFeed)openProfile(p.a);else closeScreen('sPostView');return;
+    case 'profile':if(inFeed)openProfile(p.a);else if(e.currentTarget.id==='pvBody')closeScreen('sPostView');return;
     case 'like':p.my=p.my===1?0:1;break;
     case 'dislike':p.my=p.my===-1?0:-1;break;
     case 'share':toast('Link kiriman sudah disalin, tinggal tempel di WhatsApp');return;
@@ -2890,7 +2917,9 @@ $('#sDrafts').addEventListener('click',e=>{
 });
 
 /* ---------- MOBILE: profil sales = Kiriman Saya. Seperti profil TikTok: folder Draf & Ditolak paling depan, lalu kiriman yang disematkan ---------- */
-let profUser=null,pvId=null;
+let profUser=null,pvId=null,profTab='all';
+/* video = ada media video (upload, atau contoh seed dengan o.video) */
+const isVid=p=>!!p.media?.some(m=>m.kind==='video'||m.o?.video);
 const likesOf=p=>p.likes+(p.my===1?1:0);
 /* folder pribadi pemilik: kiriman yang belum / tidak tayang ditampung terpisah dari grid */
 const FOLDER={
@@ -2902,24 +2931,31 @@ const FOLDER={
 const folderItems=k=>posts.filter(p=>p.a===ME&&p.status===k).sort((a,b)=>b.at-a.at);
 function tileHTML(p,key,inFolder=false){
   const th=thumbOf(p),st=inFolder?[ago(p.at),'mut']:{review:['Menunggu','warn'],scheduled:['Terjadwal','info']}[p.status];
-  return `<button class="ptile" ${key}="${p.id}" aria-label="${attr(plain(p).slice(0,80))}">${th?art(th):`<span class="ptxt">${plain(p)}</span>`}${profilePinned(p)?`<span class="ppin">${ic('pin',11)}Disematkan</span>`:''}${st?`<span class="pst ${st[1]}">${st[0]}</span>`:''}${p.status==='published'?`<span class="plk">${ic('heart',13)}${fmt(likesOf(p))}</span>`:''}</button>`;
+  const tx=plain(p),n=tx.length,sz=n<=40?'xl':n<=110?'lg':'sm';
+  return `<button class="ptile" ${key}="${p.id}" aria-label="${attr(tx.slice(0,80))}">${th?art(th):`<span class="ptxt tbg${p.id%5} ${sz}"><span>${tx}</span></span>`}${profilePinned(p)?`<span class="ppin">${ic('pin',11)}Disematkan</span>`:''}${st?`<span class="pst ${st[1]}">${st[0]}</span>`:''}${p.status==='published'?`<span class="plk">${ic('heart',13)}${fmt(likesOf(p))}</span>`:''}${isVid(p)?`<span class="pvid">${ic('play',12)}</span>`:''}</button>`;
 }
 const folderTile=k=>{const d=folderItems(k),F=FOLDER[k];if(!d.length)return '';const th=thumbOf(d[0]);
   return `<button class="ptile pfold ${k}" data-folder="${k}" aria-label="Buka folder ${F.title}, ${d.length} kiriman">${th?art(th):''}<span class="pdl">${ic(F.ic,22)}<b>${F.title}</b>${d.length} kiriman</span></button>`};
-function openProfile(u){profUser=u;renderProfile();$('#sProfile').classList.add('open');$('#profBody').scrollTop=0}
+function openProfile(u){profUser=u;profTab='all';renderProfile();$('#sProfile').classList.add('open');$('#profBody').scrollTop=0}
 function renderProfile(){
   const u=profUser,me=u===ME,own=posts.filter(p=>p.a===u),pub=own.filter(p=>p.status==='published');
   const folders='';
   /* yang disematkan di depan (terbaru disematkan dulu), sisanya urut terbaru; draft & ditolak ada di foldernya;
      orang lain hanya melihat yang sudah tayang */
   const list=own.filter(p=>me?p.status!=='draft'&&p.status!=='rejected':p.status==='published').sort((a,b)=>profilePinned(b)-profilePinned(a)||(profilePinned(a)?b.profilePinAt-a.profilePinAt:b.at-a.at));
+  const TABS=[['all','Semua'],['reels','Reels'],['links','Tautan']];
+  const shown=list.filter(p=>profTab==='reels'?p.type!=='link'&&isVid(p):profTab==='links'?p.type==='link':true);
   $('#profBody').innerHTML=`<div class="phd" style="position:relative"><button class="hb" data-close aria-label="Kembali" style="position:absolute;left:8px;top:0;width:40px;height:40px"><svg width="27" height="27" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg></button><div class="pav lg" style="background:${u.color}">${u.ini}</div><b>${u.name}</b><span class="small">${u.badge}</span>
-    <div class="pstat"><span><b>${pub.length}</b>Kiriman</span><span><b>${fmt(pub.reduce((n,p)=>n+likesOf(p),0))}</b>Suka</span><span><b>${fmt(pub.reduce((n,p)=>n+countC(p),0))}</b>Komentar</span></div></div>
-  ${list.length||folders?`<div class="pgrid">${folders}${list.map(p=>tileHTML(p,'data-pv')).join('')}</div>`
+    <div class="pstat"><span><b>${pub.length}</b>Kiriman</span><span><b>${fmt(pub.reduce((n,p)=>n+likesOf(p),0))}</b>Suka</span><span><b>${fmt(pub.reduce((n,p)=>n+countC(p),0))}</b>Komentar</span></div>
+    <div class="ptabs">${TABS.map(([k,l])=>`<button class="${profTab===k?'on':''}" data-ptab="${k}" aria-pressed="${profTab===k}">${l}</button>`).join('')}</div></div>
+  ${list.length||folders?(profTab==='all'
+    ?`<div class="pfeed">${shown.map(p=>cardHTML(p)).join('')}</div>`
+    :`<div class="pgrid">${folders}${shown.map(p=>tileHTML(p,'data-pv')).join('')}${shown.length?'':`<div class="pempty">${profTab==='reels'?'Belum ada video yang diunggah':'Belum ada tautan yang dibagikan'}</div>`}</div>`)
     :`<div class="empty">${ic('camera',36,'var(--grey10)')}<b>Belum ada kiriman</b><span>${me?'Bagikan momen closing atau kunjunganmu lewat tombol + di Home!':'Kiriman yang sudah tayang akan muncul di sini.'}</span></div>`}`;
 }
 $('#profBody').addEventListener('click',e=>{
   if(e.target.closest('[data-close]')){closeScreen('sProfile');return}
+  const pt=e.target.closest('[data-ptab]');if(pt){profTab=pt.dataset.ptab;renderProfile();return}
   const fd=e.target.closest('[data-folder]');if(fd){openFolder(fd.dataset.folder);return}
   const t=e.target.closest('[data-pv]');if(t)openPostView(byId(t.dataset.pv));
 });
@@ -2935,6 +2971,7 @@ function renderPostView(){
 $('#pvBar').addEventListener('click',e=>{if(e.target.closest('[data-pvpin]'))toggleProfilePin(byId(pvId))});
 $('#pvBody').addEventListener('scroll',slideSync,true);
 $('#pvBody').addEventListener('click',cardClick);
+$('#profBody').addEventListener('click',cardClick);
 function toggleProfilePin(p){
   if(profilePinned(p)){p.profilePinAt=null;changed();toast('Sematan dilepas dari profilmu');return}
   if(posts.filter(x=>x.a===p.a&&profilePinned(x)).length>=MAX_PROFILE_PIN){toast(`Maksimal ${MAX_PROFILE_PIN} kiriman disematkan. Lepas salah satu dulu.`);return}

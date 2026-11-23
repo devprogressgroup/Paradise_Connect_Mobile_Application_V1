@@ -310,6 +310,11 @@ class PushNotificationService {
     // Konten Marketing Feed baru tayang / hasil review kiriman "Bagikan Momen" — buka detail
     // post-nya (post milik sendiri ikut menampilkan status & alasan ditolak).
     if (key == 'marketing_feed') {
+      // Kiriman sales yang menunggu persetujuan: buka tab Persetujuan di Feeds.
+      if (uri.queryParameters['tab'] == 'approval') {
+        AppRouter.router.go('/marketing-feed/my-submissions?tab=approval');
+        return true;
+      }
       final postId = int.tryParse(uri.queryParameters['feed_post_id'] ?? '');
       if (postId == null) {
         AppRouter.router.go('/');
@@ -556,6 +561,32 @@ class PushNotificationService {
     );
   }
 
+  /// Banner lokal untuk notifikasi interaksi kiriman saat app sedang dibuka. Tap membuka kirimannya.
+  static void _showFeedInteractionBanner(
+    RemoteMessage message,
+    Map<String, dynamic> data,
+  ) {
+    final title = message.notification?.title ?? data['title'] as String?;
+    final body = message.notification?.body ?? data['description'] as String?;
+    flutterLocalNotificationsPlugin.show(
+      DateTime.now().millisecondsSinceEpoch.remainder(1 << 31),
+      title,
+      body,
+      const NotificationDetails(
+        android: AndroidNotificationDetails(
+          _channelId,
+          _channelName,
+          channelDescription: 'Notifikasi untuk upcoming task hari ini',
+          importance: Importance.high,
+          priority: Priority.high,
+          icon: '@mipmap/ic_launcher',
+        ),
+        iOS: DarwinNotificationDetails(),
+      ),
+      payload: jsonEncode(data),
+    );
+  }
+
   static void _handleForegroundMessage(RemoteMessage message) {
     final data = _safeData(message);
 
@@ -574,7 +605,12 @@ class PushNotificationService {
     }
 
     if (data['type'] == 'global_notification') {
-      // Marketing Feed: tanpa banner/dialog. Notifikasinya tetap ada di riwayat notifikasi.
+      // Like, komentar, balasan, dan kiriman sales yang menunggu persetujuan: banner saat app sedang dibuka.
+      if (data['feed_interaction'] == '1' || data['feed_review'] == '1') {
+        _showFeedInteractionBanner(message, data);
+        return;
+      }
+      // Marketing Feed lainnya: tanpa banner/dialog. Notifikasinya tetap ada di riwayat notifikasi.
       if (isMarketingFeedLink(data['link_url'] as String?)) return;
       _showDialogAfterFrame(() => _showGlobalNotificationDialogFromData(data));
       return;

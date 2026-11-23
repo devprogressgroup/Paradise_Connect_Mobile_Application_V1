@@ -18,6 +18,7 @@ import 'package:progress_group/features/marketing-feed/domain/entities/feed_post
 import 'package:progress_group/features/marketing-feed/presentation/state/marketing_feed/marketing_feed_cubit.dart';
 import 'package:progress_group/features/marketing-feed/presentation/state/marketing_feed/marketing_feed_state.dart';
 import 'package:progress_group/features/marketing-feed/presentation/widgets/feed_comment_sheet.dart';
+import 'package:progress_group/features/marketing-feed/presentation/widgets/feed_avatar.dart';
 import 'package:progress_group/features/marketing-feed/presentation/widgets/feed_create_tabs.dart';
 import 'package:progress_group/features/marketing-feed/presentation/widgets/feed_post_card.dart';
 import 'package:progress_group/features/marketing-feed/presentation/widgets/fame_programs_section.dart';
@@ -400,6 +401,9 @@ class _ProfileAvatarButton extends StatelessWidget {
       builder: (context, state) {
         final profile = state is ProfileLoaded ? state.profile : null;
         final photoUrl = profile?.photoUrl;
+        Widget fallback() => profile == null
+            ? _fallbackIcon()
+            : FeedAvatar(name: profile.fullName, size: 32);
         return SizedBox(
           width: 48,
           height: 48,
@@ -416,11 +420,11 @@ class _ProfileAvatarButton extends StatelessWidget {
                         fit: BoxFit.cover,
                         headers: AuthTokenCache.getAuthHeadersFor(photoUrl),
                         loadingBuilder: (_, child, progress) =>
-                            progress == null ? child : _fallbackIcon(),
-                        errorBuilder: (_, __, ___) => _fallbackIcon(),
+                            progress == null ? child : fallback(),
+                        errorBuilder: (_, __, ___) => fallback(),
                       ),
                     )
-                  : _fallbackIcon(),
+                  : fallback(),
             ),
           ),
         );

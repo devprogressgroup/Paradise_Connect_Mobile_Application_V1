@@ -262,7 +262,15 @@ class AppRouter {
                 GoRoute(
                   name: 'marketingFeedMySubmissions',
                   path: 'marketing-feed/my-submissions',
-                  builder: (context, state) => const FeedMySubmissionsPage(),
+                  // ?tab=approval dari notifikasi kiriman yang menunggu persetujuan. Key mengikuti tab supaya
+                  // halaman yang sudah terbuka ikut pindah tab (initState tidak jalan lagi saat query berubah).
+                  builder: (context, state) {
+                    final tab = state.uri.queryParameters['tab'];
+                    return FeedMySubmissionsPage(
+                      key: ValueKey('my-submissions-${tab ?? 'default'}'),
+                      initialTab: tab,
+                    );
+                  },
                 ),
                 // Juga target notifikasi app://marketing_feed?feed_post_id=… (lihat
                 // PushNotificationService.tryNavigateInternalLink).
@@ -326,7 +334,7 @@ class AppRouter {
                   name: 'marketingFeedDrafts',
                   path: 'marketing-feed/drafts',
                   redirect: (context, state) =>
-                      PermissionsHelper.canModerateMarketingFeed ? null : '/',
+                      PermissionsHelper.canManageMarketingDrafts ? null : '/',
                   builder: (context, state) => const FeedDraftsPage(),
                 ),
                 // Kalender Jadwal (moderator, permission Modify).

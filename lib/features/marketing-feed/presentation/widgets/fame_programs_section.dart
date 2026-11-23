@@ -104,9 +104,10 @@ class _FameEntryTileState extends State<FameEntryTile> {
       IconData icon,
       String label,
       bool active,
-      VoidCallback onTap,
-    ) {
-      final color = active ? const Color(primaryColor) : muted;
+      VoidCallback onTap, {
+      int activeColor = primaryColor,
+    }) {
+      final color = active ? Color(activeColor) : muted;
       return InkWell(
         borderRadius: BorderRadius.circular(8),
         onTap: onTap,
@@ -116,15 +117,17 @@ class _FameEntryTileState extends State<FameEntryTile> {
             mainAxisSize: MainAxisSize.min,
             children: [
               Icon(icon, size: 19, color: color),
-              const SizedBox(width: 5),
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
-                  color: color,
+              if (label.isNotEmpty) ...[
+                const SizedBox(width: 5),
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: color,
+                  ),
                 ),
-              ),
+              ],
             ],
           ),
         ),
@@ -138,14 +141,16 @@ class _FameEntryTileState extends State<FameEntryTile> {
           '$_likes',
           _my == FeedReaction.like,
           () => _react(FeedReaction.like),
+          activeColor: redAccentColor,
         ),
         action(
           _my == FeedReaction.dislike
               ? Icons.thumb_down
               : Icons.thumb_down_outlined,
-          '$_dislikes',
+          '',
           _my == FeedReaction.dislike,
           () => _react(FeedReaction.dislike),
+          activeColor: orangeAccentColor,
         ),
         action(Icons.chat_bubble_outline, '$_comments', false, _openComments),
       ],
@@ -206,6 +211,21 @@ class _FameEntryTileState extends State<FameEntryTile> {
           ],
           const SizedBox(height: 8),
           _buildActions(),
+          const SizedBox(height: 6),
+          // Sama seperti kartu feed: ringkasan komentar di bawah baris aksi.
+          GestureDetector(
+            onTap: _openComments,
+            child: Text(
+              _comments > 0
+                  ? 'Lihat semua $_comments komentar'
+                  : 'Jadi yang pertama berkomentar',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: const Color(whiteColor).withValues(alpha: 0.85),
+              ),
+            ),
+          ),
         ],
       ),
     );

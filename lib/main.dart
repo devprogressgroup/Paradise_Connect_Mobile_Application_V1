@@ -207,6 +207,9 @@ import 'features/landing-page/data/repositories/landing_page_repository_impl.dar
 import 'features/landing-page/domain/usecases/get_landing_page_url_usecase.dart';
 import 'features/landing-page/presentation/state/landing_page_cubit.dart';
 import 'features/marketing-feed/data/datasources/marketing_feed_remote_datasource.dart';
+import 'features/marketing-feed/presentation/state/feed_live/feed_live_stats.dart';
+import 'features/marketing-feed/presentation/state/feed_review/feed_review_cubit.dart';
+import 'features/marketing-feed/presentation/state/feed_published/feed_published_cubit.dart';
 import 'features/marketing-feed/domain/repositories/marketing_feed_repository_impl.dart';
 import 'features/marketing-feed/domain/usecases/add_feed_comment_usecase.dart';
 import 'features/marketing-feed/domain/usecases/delete_feed_post_usecase.dart';
@@ -704,6 +707,8 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     final marketingFeedRepository = MarketingFeedRepositoryImpl(
       marketingFeedRemoteDataSource,
     );
+    // Polling statistik kiriman yang sedang terlihat (Home dan profil).
+    FeedLiveStats.instance.attach(marketingFeedRepository);
     final getFeedPostsUseCase = GetFeedPostsUseCase(marketingFeedRepository);
     final getFeedPostUseCase = GetFeedPostUseCase(marketingFeedRepository);
     final getPersonalFunnelUseCase = GetPersonalFunnelUseCase(
@@ -1085,6 +1090,14 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
                 ),
               ),
               BlocProvider(
+                create: (_) =>
+                    FeedReviewCubit(repository: marketingFeedRepository),
+              ),
+              BlocProvider(
+                create: (_) =>
+                    FeedPublishedCubit(repository: marketingFeedRepository),
+              ),
+              BlocProvider(
                 create: (_) => FeedCommentsCubit(
                   getFeedCommentsUseCase: getFeedCommentsUseCase,
                   addFeedCommentUseCase: addFeedCommentUseCase,
@@ -1096,6 +1109,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
                 create: (_) => FeedComposeCubit(
                   shareFeedMomentUseCase: shareFeedMomentUseCase,
                   saveFeedPostUseCase: saveFeedPostUseCase,
+                  repository: marketingFeedRepository,
                 ),
               ),
               BlocProvider(

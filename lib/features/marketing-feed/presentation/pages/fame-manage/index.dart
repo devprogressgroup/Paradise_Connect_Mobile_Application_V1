@@ -22,10 +22,10 @@ class FameManagePage extends StatefulWidget {
   final bool embedded;
 
   @override
-  State<FameManagePage> createState() => _FameManagePageState();
+  State<FameManagePage> createState() => FameManagePageState();
 }
 
-class _FameManagePageState extends State<FameManagePage> {
+class FameManagePageState extends State<FameManagePage> {
   @override
   void initState() {
     super.initState();
@@ -51,6 +51,9 @@ class _FameManagePageState extends State<FameManagePage> {
     }
     return null;
   }
+
+  /// Form kartu Wall of Fame baru. Dipanggil dari + di bawah halaman Feeds (tab Wall of Fame).
+  void openNewCard() => _openForm();
 
   Future<void> _openForm({
     FameAdminCardEntity? card,
@@ -152,20 +155,9 @@ class _FameManagePageState extends State<FameManagePage> {
     final state = context.watch<FameManageCubit>().state;
     final canEdit = state.access?.canEdit ?? false;
     if (widget.embedded) {
+      // Tombol tambah ada di + bawah halaman Feeds (dipanggil lewat openNewCard).
       return Column(
         children: [
-          if (canEdit)
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-              child: Align(
-                alignment: Alignment.centerRight,
-                child: FilledButton.icon(
-                  onPressed: () => _openForm(),
-                  icon: const Icon(Icons.add, size: 18),
-                  label: const Text('Tambah'),
-                ),
-              ),
-            ),
           Expanded(
             child: RefreshIndicator(
               onRefresh: () => context.read<FameManageCubit>().load(),

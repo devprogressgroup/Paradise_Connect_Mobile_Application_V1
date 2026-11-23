@@ -174,22 +174,17 @@ class PermissionsHelper {
   static bool get canAccessReserveOrder =>
       canReadReserveOrder || canCreateReserveOrder;
 
-  // Moderator Marketing Feed di app: buat post/poll/link, kelola Draft & Terjadwal. Semua user tetap bisa
-  // lihat feed & "Bagikan Momen" (masuk review moderator). Backend mengecek feature yang sama.
-  // Feature moderator per aksi (sama dengan backend MarketingFeedMobileService). "Modify" dibiarkan untuk akses lama.
-  // "View" sengaja TIDAK ada di sini: semua sales punya View, jadi akan terbaca sebagai moderator.
-  static const List<String> _marketingFeedModFeatures = [
-    'CreatePost',
-    'CreatePoll',
-    'CreateLink',
-    'Edit',
-    'PublishNow',
-    'Delete',
-    'ApproveReject',
-    'Modify',
-  ];
-  static bool get canModerateMarketingFeed =>
-      _marketingFeedModFeatures.any((f) => check('Marketing Feed', f));
+  // Draft & Terjadwal (tayangkan = Modify, batal jadwal = Modify, hapus = Delete). Sama dengan backend moderatorAct.
+  static bool get canManageMarketingDrafts =>
+      check('Marketing Feed', 'Modify') ||
+      check('Marketing Feed', 'Delete');
+
+  // Menu Feeds (kiriman sendiri): untuk user yang bisa membuat kiriman atau menyetujui kiriman sales.
+  static bool get canOpenMarketingFeeds =>
+      canCreateMarketingPost ||
+      canCreateMarketingPoll ||
+      canCreateMarketingLink ||
+      canApproveMarketingFeed;
 
   // Kalender Jadwal (ikon di header, menu, dan halamannya): memakai "Modify", sama dengan Draft & Terjadwal.
   // Sama dengan backend: GET /marketing-feed/moderator/calendar dan abilities.calendar.
@@ -219,4 +214,8 @@ class PermissionsHelper {
   // Sama dengan backend: MarketingFeedMobileService::SKIP_REVIEW_FEATURE.
   static bool get canSkipReviewMarketingFeed =>
       check('Marketing Feed', 'SkipReview');
+
+  // Antrean persetujuan kiriman sales. Sama dengan backend: MarketingFeedMobileService::reviewQueue (ApproveReject).
+  static bool get canApproveMarketingFeed =>
+      check('Marketing Feed', 'ApproveReject');
 }

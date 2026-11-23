@@ -50,6 +50,8 @@ class FeedCommentModel extends FeedCommentEntity {
           .toList(),
       currentPage: (json['current_page'] as num?)?.toInt() ?? 1,
       hasMore: json['has_more'] == true,
+      total: (json['total'] as num?)?.toInt() ?? 0,
+      perPage: (json['per_page'] as num?)?.toInt() ?? 10,
     );
   }
 

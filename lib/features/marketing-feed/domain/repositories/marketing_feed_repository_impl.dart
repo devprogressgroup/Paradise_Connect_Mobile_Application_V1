@@ -7,6 +7,7 @@ import 'package:progress_group/features/marketing-feed/domain/entities/feed_comm
 import 'package:progress_group/features/marketing-feed/domain/entities/fame_program_entity.dart';
 import 'package:progress_group/features/marketing-feed/domain/entities/fame_manage_entity.dart';
 import 'package:progress_group/features/marketing-feed/domain/entities/feed_post_entity.dart';
+import 'package:progress_group/features/marketing-feed/domain/entities/feed_stats_entity.dart';
 import 'package:progress_group/features/marketing-feed/domain/entities/personal_funnel_entity.dart';
 import 'package:progress_group/features/marketing-feed/domain/entities/save_feed_post_params.dart';
 import 'package:progress_group/features/marketing-feed/domain/entities/wall_of_fame_entity.dart';
@@ -196,8 +197,35 @@ class MarketingFeedRepositoryImpl implements MarketingFeedRepository {
     ),
   );
   @override
-  Future<Either<String, MyProfileEntity>> getMyProfile({int? userId}) =>
-      _guard(() => remoteDataSource.getMyProfile(userId: userId));
+  Future<Either<String, Map<String, dynamic>>> getLinkMeta(String url) =>
+      _guard(() => remoteDataSource.getLinkMeta(url));
+
+  @override
+  Future<Either<String, List<FeedPostEntity>>> getReviewQueue() =>
+      _guard<List<FeedPostEntity>>(() async => remoteDataSource.getReviewQueue());
+
+  @override
+  Future<Either<String, void>> decideReview(int postId, String decision, {String? reason, String? publishAt}) =>
+      _guard<void>(() => remoteDataSource.decideReview(postId, decision, reason: reason, publishAt: publishAt));
+
+  @override
+  Future<Either<String, List<FeedStatsEntity>>> getFeedStats(List<int> ids) =>
+      _guard(() => remoteDataSource.getFeedStats(ids));
+
+  @override
+  Future<Either<String, MyProfileEntity>> getMyProfile({
+    int? userId,
+    String tab = 'semua',
+    int page = 1,
+    int perPage = 10,
+  }) => _guard(
+    () => remoteDataSource.getMyProfile(
+      userId: userId,
+      tab: tab,
+      page: page,
+      perPage: perPage,
+    ),
+  );
 
   @override
   Future<Either<String, FeedPageEntity>> searchFeedPosts({
@@ -233,4 +261,8 @@ class MarketingFeedRepositoryImpl implements MarketingFeedRepository {
   @override
   Future<Either<String, void>> moderatorAction(int postId, String action) =>
       _guard(() => remoteDataSource.moderatorAction(postId, action));
+
+  @override
+  Future<Either<String, List<FeedPostEntity>>> getPublishedPosts() =>
+      _guard<List<FeedPostEntity>>(() async => remoteDataSource.getPublishedPosts());
 }

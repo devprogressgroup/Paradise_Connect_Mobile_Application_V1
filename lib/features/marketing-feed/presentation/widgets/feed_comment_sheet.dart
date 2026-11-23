@@ -87,11 +87,13 @@ class _FeedCommentSheetState extends State<FeedCommentSheet> {
   void initState() {
     super.initState();
     _scrollController.addListener(_onScroll);
-    context.read<FeedCommentsCubit>().load(
-      widget.targetId,
-      fameCard: widget.fameCard,
-    );
+    _cubit = context.read<FeedCommentsCubit>();
+    _cubit.load(widget.targetId, fameCard: widget.fameCard);
+    // Komentar baru muncul selama sheet terbuka.
+    _cubit.startLive();
   }
+
+  late final FeedCommentsCubit _cubit;
 
   void _onScroll() {
     if (_scrollController.position.pixels >=
@@ -111,6 +113,7 @@ class _FeedCommentSheetState extends State<FeedCommentSheet> {
 
   @override
   void dispose() {
+    _cubit.stopLive();
     _controller.dispose();
     _focus.dispose();
     _scrollController.dispose();

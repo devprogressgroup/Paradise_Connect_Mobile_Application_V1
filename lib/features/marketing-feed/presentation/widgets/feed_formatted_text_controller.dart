@@ -39,8 +39,12 @@ List<FeedCaptionToken> tokenizeFeedCaption(String raw) {
       italic = !italic;
       k += 2;
     } else {
-      out.add(FeedCaptionToken(k, k + 1, bold: bold, italic: italic));
-      k++;
+      // Satu code point: emoji di luar BMP (mis. 🎉) terdiri dari 2 unit UTF-16 (surrogate pair).
+      // Jika dipotong per unit, tiap surrogate tampil sebagai kotak.
+      final isHighSurrogate = raw.codeUnitAt(k) >= 0xD800 && raw.codeUnitAt(k) <= 0xDBFF;
+      final len = isHighSurrogate && k + 1 < raw.length ? 2 : 1;
+      out.add(FeedCaptionToken(k, k + len, bold: bold, italic: italic));
+      k += len;
     }
   }
   return out;
@@ -79,23 +83,24 @@ String _serialize(List<_Ch> chars) {
   return buf.toString();
 }
 
-/// Jumlah karakter tampil (tanpa penanda) sebelum posisi [rawPos] di teks mentah.
+/// Jumlah unit UTF-16 tampil (tanpa penanda) sebelum posisi [rawPos] di teks mentah.
+/// Dihitung per unit UTF-16 agar sejajar dengan posisi kursor TextEditingController.
 int _visibleOf(List<FeedCaptionToken> toks, int rawPos) {
   var n = 0;
   for (final t in toks) {
-    if (!t.marker && t.start < rawPos) n++;
+    if (!t.marker && t.start < rawPos) n += t.end - t.start;
   }
   return n;
 }
 
-/// Posisi mentah dari posisi karakter tampil [visible].
+/// Posisi mentah dari posisi karakter tampil [visible] (dalam unit UTF-16).
 int _rawOf(List<FeedCaptionToken> toks, int visible) {
   var n = 0;
   var last = 0;
   for (final t in toks) {
     if (t.marker) continue;
-    if (n == visible) return t.start;
-    n++;
+    if (n >= visible) return t.start;
+    n += t.end - t.start;
     last = t.end;
   }
   return last;

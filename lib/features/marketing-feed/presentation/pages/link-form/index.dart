@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:progress_group/core/constants/colors.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -56,6 +58,7 @@ String linkPlatformLabel(String platform) => switch (platform) {
 };
 
 class _FeedLinkFormPageState extends State<FeedLinkFormPage> {
+  Timer? _metaTimer;
   late final TextEditingController _urlController;
   late final TextEditingController _channelController;
   late final TextEditingController _titleController;
@@ -99,6 +102,7 @@ class _FeedLinkFormPageState extends State<FeedLinkFormPage> {
 
   @override
   void dispose() {
+    _metaTimer?.cancel();
     _urlController.dispose();
     _channelController.dispose();
     _titleController.dispose();
@@ -195,10 +199,34 @@ class _FeedLinkFormPageState extends State<FeedLinkFormPage> {
     );
   }
 
-  /// Platform mengikuti URL yang diketik.
+  /// Platform mengikuti URL yang diketik. Setelah berhenti mengetik, judul dan deskripsi diisi dari URL (kalau masih kosong).
   void _onUrlChanged() {
     final p = detectLinkPlatform(_urlController.text);
     if (p != _platform) setState(() => _platform = p);
+    _metaTimer?.cancel();
+    _metaTimer = Timer(const Duration(milliseconds: 700), _autoFillFromUrl);
+  }
+
+  /// Isi judul dan deskripsi dari metadata URL. Kolom yang sudah diisi user tidak ditimpa.
+  Future<void> _autoFillFromUrl() async {
+    final url = _urlController.text.trim();
+    final uri = Uri.tryParse(url);
+    if (uri == null || !(uri.isScheme('http') || uri.isScheme('https')) || uri.host.isEmpty) return;
+
+    final meta = await context.read<FeedComposeCubit>().fetchLinkMeta(url);
+    // URL sudah berubah selama menunggu: hasil ini tidak dipakai.
+    if (!mounted || meta == null || url != _urlController.text.trim()) return;
+
+    final title = (meta['title'] as String?)?.trim() ?? '';
+    final desc = (meta['desc'] as String?)?.trim() ?? '';
+    setState(() {
+      if (_titleController.text.trim().isEmpty && title.isNotEmpty) {
+        _titleController.text = title;
+      }
+      if (_descController.text.trim().isEmpty && desc.isNotEmpty) {
+        _descController.text = desc;
+      }
+    });
   }
 
   /// Query tab Buat Konten: dari kalender, tanggal yang sedang dipilih ikut dibawa ke tab Postingan / Polling.

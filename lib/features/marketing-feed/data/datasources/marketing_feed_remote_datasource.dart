@@ -10,6 +10,7 @@ import 'package:progress_group/features/marketing-feed/data/models/feed_post_mod
 import 'package:progress_group/features/marketing-feed/data/models/personal_funnel_model.dart';
 import 'package:progress_group/features/marketing-feed/data/models/wall_of_fame_model.dart';
 import 'package:progress_group/features/marketing-feed/domain/entities/feed_comment_entity.dart';
+import 'package:progress_group/features/marketing-feed/domain/entities/feed_stats_entity.dart';
 import 'package:progress_group/features/marketing-feed/domain/entities/feed_post_entity.dart';
 import 'package:progress_group/features/marketing-feed/domain/entities/fame_program_entity.dart';
 import 'package:progress_group/features/marketing-feed/domain/entities/wall_of_fame_entity.dart';
@@ -82,8 +83,23 @@ abstract class MarketingFeedRemoteDataSource {
     String? status,
   });
 
-  /// GET /api/marketing-feed/me/profile — profil sales sendiri.
-  Future<MyProfileEntity> getMyProfile({int? userId});
+  /// GET /api/marketing-feed/me/profile?tab=&page=&per_page= — profil sales sendiri (userId null) atau user lain.
+  Future<MyProfileEntity> getMyProfile({
+    int? userId,
+    String tab = 'semua',
+    int page = 1,
+    int perPage = 10,
+  });
+
+  /// GET moderator/reviews — antrean kiriman sales yang menunggu persetujuan (izin ApproveReject).
+  Future<List<FeedPostModel>> getReviewQueue();
+
+  /// GET /api/marketing-feed/link-meta?url= — title, desc, image dari URL (isi form link otomatis).
+  Future<Map<String, dynamic>> getLinkMeta(String url);
+
+  /// POST moderator/reviews/{id}/decision — decision: approve | schedule | reject.
+  /// publishAt ("yyyy-MM-dd HH:mm") wajib untuk schedule; reason wajib untuk reject.
+  Future<void> decideReview(int postId, String decision, {String? reason, String? publishAt});
 
   /// GET /api/marketing-feed/search?q= — cari kiriman (caption, judul/channel link, nama pembuat).
   Future<FeedPageModel> searchFeedPosts({
@@ -91,6 +107,9 @@ abstract class MarketingFeedRemoteDataSource {
     int page = 1,
     int perPage = 10,
   });
+
+  /// GET /api/marketing-feed/stats?ids= — polling ringan untuk kiriman yang sedang terlihat.
+  Future<List<FeedStatsEntity>> getFeedStats(List<int> ids);
 
   /// Wall of Fame — like / dislike kartu: POST wall-of-fame/cards/{id}/reaction (null = batal).
   Future<PostReactionResult> reactFameCard(int cardId, FeedReaction reaction);
@@ -127,8 +146,11 @@ abstract class MarketingFeedRemoteDataSource {
   /// Moderator — POST /api/marketing-feed/moderator/posts (baru) atau /{id} (edit), multipart.
   Future<FeedPostModel> savePost(SaveFeedPostParams params);
 
-  /// Moderator — POST /api/marketing-feed/moderator/posts/{id}/action {action: now|unsched|del}.
+  /// Moderator — POST /api/marketing-feed/moderator/posts/{id}/action {action: now|unsched|unpub|del}.
   Future<void> moderatorAction(int postId, String action);
+
+  /// GET moderator/published — semua kiriman tayang (izin ApproveReject).
+  Future<List<FeedPostModel>> getPublishedPosts();
 
   /// Sematkan / lepas kiriman di profil sales (maks. 3). PUT atau DELETE /marketing-feed/me/posts/{id}/profile-pin.
   Future<void> setProfilePin(int postId, {required bool pinned});
@@ -517,12 +539,18 @@ class MarketingFeedRemoteDataSourceImpl
   }
 
   @override
-  Future<MyProfileEntity> getMyProfile({int? userId}) async {
+  Future<MyProfileEntity> getMyProfile({
+    int? userId,
+    String tab = 'semua',
+    int page = 1,
+    int perPage = 10,
+  }) async {
     try {
       final response = await dio.get(
         userId == null
             ? '/marketing-feed/me/profile'
             : '/marketing-feed/users/$userId/profile',
+        queryParameters: {'tab': tab, 'page': page, 'per_page': perPage},
       );
       final body = response.data;
       if (body is Map && body['status'] == true && body['data'] != null) {
@@ -533,6 +561,97 @@ class MarketingFeedRemoteDataSourceImpl
       throw parseMarketingFeedException(body, 'Gagal mengambil profil.');
     } catch (e) {
       throw parseMarketingFeedException(e, 'Gagal mengambil profil.');
+    }
+  }
+
+  @override
+  Future<Map<String, dynamic>> getLinkMeta(String url) async {
+    try {
+      final response = await dio.get(
+        '/marketing-feed/link-meta',
+        queryParameters: {'url': url},
+      );
+      final body = response.data;
+      // Respons endpoint ini JSON biasa: { title, desc, image } (atau { error }).
+      if (body is Map && body['error'] == null) {
+        return Map<String, dynamic>.from(body);
+      }
+      throw parseMarketingFeedException(body, 'Gagal membaca link.');
+    } catch (e) {
+      throw parseMarketingFeedException(e, 'Gagal membaca link.');
+    }
+  }
+
+  @override
+  Future<List<FeedPostModel>> getReviewQueue() async {
+    try {
+      final response = await dio.get('/marketing-feed/moderator/reviews');
+      final body = response.data;
+      if (body is Map && body['status'] == true && body['data'] != null) {
+        final data = Map<String, dynamic>.from(body['data'] as Map);
+        return (data['items'] as List<dynamic>? ?? const [])
+            .map((e) => FeedPostModel.fromJson(Map<String, dynamic>.from(e as Map)))
+            .toList();
+      }
+      throw parseMarketingFeedException(body, 'Gagal mengambil antrean persetujuan.');
+    } catch (e) {
+      throw parseMarketingFeedException(e, 'Gagal mengambil antrean persetujuan.');
+    }
+  }
+
+  @override
+  Future<void> decideReview(int postId, String decision, {String? reason, String? publishAt}) async {
+    try {
+      final response = await dio.post(
+        '/marketing-feed/moderator/reviews/$postId/decision',
+        data: {
+          'decision': decision,
+          if (reason != null) 'reason': reason,
+          if (publishAt != null) 'publish_at': publishAt,
+        },
+      );
+      final body = response.data;
+      if (body is Map && body['status'] == true) return;
+      throw parseMarketingFeedException(body, 'Gagal memproses persetujuan.');
+    } catch (e) {
+      throw parseMarketingFeedException(e, 'Gagal memproses persetujuan.');
+    }
+  }
+
+  @override
+  Future<List<FeedStatsEntity>> getFeedStats(List<int> ids) async {
+    try {
+      final response = await dio.get(
+        '/marketing-feed/stats',
+        queryParameters: {'ids': ids.join(',')},
+      );
+      final body = response.data;
+      if (body is Map && body['status'] == true && body['data'] != null) {
+        final data = Map<String, dynamic>.from(body['data'] as Map);
+        final items = data['items'] as List<dynamic>? ?? const [];
+        return items.map((raw) {
+          final m = Map<String, dynamic>.from(raw as Map);
+          final latest = (m['latest_comments'] as List<dynamic>? ?? const []).map((c) {
+            final cm = Map<String, dynamic>.from(c as Map);
+            return FeedLatestCommentEntity(
+              id: (cm['id'] as num).toInt(),
+              authorName: (cm['author_name'] as String?) ?? 'User',
+              body: (cm['body'] as String?) ?? '',
+              createdAt: DateTime.parse(cm['created_at'] as String),
+            );
+          }).toList();
+          return FeedStatsEntity(
+            id: (m['id'] as num).toInt(),
+            likes: (m['likes'] as num?)?.toInt() ?? 0,
+            dislikes: (m['dislikes'] as num?)?.toInt() ?? 0,
+            comments: (m['comments'] as num?)?.toInt() ?? 0,
+            latestComments: latest,
+          );
+        }).toList();
+      }
+      throw parseMarketingFeedException(body, 'Gagal mengambil statistik.');
+    } catch (e) {
+      throw parseMarketingFeedException(e, 'Gagal mengambil statistik.');
     }
   }
 
@@ -1056,6 +1175,24 @@ class MarketingFeedRemoteDataSourceImpl
     }
   }
 
+  @override
+  Future<List<FeedPostModel>> getPublishedPosts() async {
+    try {
+      final response = await dio.get('/marketing-feed/moderator/published');
+      final body = response.data;
+      if (body is Map && body['status'] == true && body['data'] != null) {
+        final data = Map<String, dynamic>.from(body['data'] as Map);
+        return (data['items'] as List<dynamic>? ?? const [])
+            .map((e) => FeedPostModel.fromJson(Map<String, dynamic>.from(e as Map)))
+            .toList();
+      }
+      throw parseMarketingFeedException(body, 'Gagal mengambil kiriman tayang.');
+    } catch (e) {
+      throw parseMarketingFeedException(e, 'Gagal mengambil kiriman tayang.');
+    }
+  }
+
+  @override
   Future<void> moderatorAction(int postId, String action) async {
     try {
       final response = await dio.post(
