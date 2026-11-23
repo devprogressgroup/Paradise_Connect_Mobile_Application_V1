@@ -46,7 +46,11 @@ class _FeedYoutubePlayerState extends State<FeedYoutubePlayer> {
       ..style.width = '100%'
       ..style.height = '100%'
       ..allow = 'autoplay; encrypted-media; picture-in-picture'
-      ..allowFullscreen = true;
+      ..allowFullscreen = true
+      // Iframe adalah elemen DOM asli di atas canvas Flutter. Tanpa ini, scroll mouse dan
+      // klik di area video ditangkap iframe (scroll feed macet, klik dialog jatuh ke YouTube).
+      // Interaksi tetap lewat overlay Flutter (tap untuk play/pause, tombol suara).
+      ..style.pointerEvents = 'none';
     ui_web.platformViewRegistry.registerViewFactory(_viewId, (_) => _iframe);
   }
 

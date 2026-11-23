@@ -37,6 +37,35 @@ class _FeedYoutubePlayerState extends State<FeedYoutubePlayer> {
   /// Video mulai tanpa suara (aturan autoplay); pengguna menyalakan suara lewat tombol speaker.
   bool _muted = true;
 
+  ModalRoute<dynamic>? _route;
+
+  /// Ada dialog/sheet di atas kartu. WebView pemutar tampil di atas widget Flutter lain,
+  /// jadi saat tertutup WebView diganti poster agar sentuhan pada dialog tidak masuk ke player.
+  bool _covered = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final route = ModalRoute.of(context);
+    if (identical(route, _route)) return;
+    _route?.secondaryAnimation?.removeListener(_onCoverChanged);
+    _route = route;
+    route?.secondaryAnimation?.addListener(_onCoverChanged);
+    _covered = (route?.secondaryAnimation?.value ?? 0) > 0;
+  }
+
+  void _onCoverChanged() {
+    final covered = (_route?.secondaryAnimation?.value ?? 0) > 0;
+    if (covered == _covered) return;
+    _covered = covered;
+    if (covered) {
+      _controller?.pauseVideo();
+    } else if (widget.visible) {
+      _controller?.playVideo();
+    }
+    if (mounted) setState(() {});
+  }
+
   void _toggleMute() {
     if (_muted) {
       _controller?.unMute();
@@ -93,6 +122,7 @@ class _FeedYoutubePlayerState extends State<FeedYoutubePlayer> {
 
   @override
   void dispose() {
+    _route?.secondaryAnimation?.removeListener(_onCoverChanged);
     _subscription?.cancel();
     _controller?.close();
     super.dispose();
@@ -168,7 +198,7 @@ class _FeedYoutubePlayerState extends State<FeedYoutubePlayer> {
     }
 
     final controller = _controller;
-    if (controller == null) return widget.poster;
+    if (controller == null || _covered) return widget.poster;
 
     // Tombol suara ditaruh di bawah video (bukan di atas), karena WebView pemutar
     // tampil di atas widget Flutter lain dan akan menutupi tombol yang ada di dalam area video.
