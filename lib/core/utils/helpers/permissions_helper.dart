@@ -219,6 +219,10 @@ class PermissionsHelper {
   static bool get canApproveMarketingFeed =>
       check('Marketing Feed', 'ApproveReject');
 
+  /// Tombol profil Marketing Feed (avatar kanan atas Home Feed): izin ProfileFeed.
+  static bool get canProfileMarketingFeed =>
+      check('Marketing Feed', 'ProfileFeed');
+
   /// Hapus kiriman: sama dengan backend (izin Delete atau ApproveReject).
   static bool get canDeleteMarketingFeed =>
       check('Marketing Feed', 'Delete') || canApproveMarketingFeed;

@@ -5,6 +5,8 @@ import 'package:progress_group/core/constants/colors.dart';
 import 'package:progress_group/core/network/auth_token_cache.dart';
 import 'package:progress_group/core/services/analytics_service.dart';
 import 'package:progress_group/core/utils/helpers/permissions_helper.dart';
+import 'package:progress_group/features/auth/presentation/state/auth/auth_bloc.dart';
+import 'package:progress_group/features/auth/presentation/state/auth/auth_state.dart';
 import 'package:progress_group/core/utils/widget/custom_header.dart';
 import 'package:progress_group/features/auth/presentation/state/profile/profile_bloc.dart';
 import 'package:progress_group/features/auth/presentation/state/profile/profile_event.dart';
@@ -214,11 +216,17 @@ class _MarketingFeedPageState extends State<MarketingFeedPage> {
                 AnalyticsService.logEvent('marketing_feed_open_notifications');
                 context.pushNamed('notif');
               },
-              trailing: _ProfileAvatarButton(
-                onTap: () {
-                  AnalyticsService.logEvent('marketing_feed_open_profile');
-                  context.go('/marketing-feed/profile');
-                },
+              // Tombol profil hanya untuk user yang punya izin ProfileFeed (default kosong sampai izin dimuat).
+              // BlocBuilder: header dibangun ulang saat izin masuk (PermissionsLoaded).
+              trailing: BlocBuilder<AuthBloc, AuthState>(
+                builder: (context, _) => PermissionsHelper.canProfileMarketingFeed
+                    ? _ProfileAvatarButton(
+                        onTap: () {
+                          AnalyticsService.logEvent('marketing_feed_open_profile');
+                          context.go('/marketing-feed/profile');
+                        },
+                      )
+                    : const SizedBox.shrink(),
               ),
             );
           },

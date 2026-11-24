@@ -210,6 +210,10 @@ import 'features/marketing-feed/data/datasources/marketing_feed_remote_datasourc
 import 'features/marketing-feed/presentation/state/feed_live/feed_live_stats.dart';
 import 'features/marketing-feed/presentation/state/feed_list/feed_list_cubit.dart';
 import 'features/marketing-feed/domain/repositories/marketing_feed_repository_impl.dart';
+import 'features/app-menu/data/datasources/app_menu_remote_datasource.dart';
+import 'features/app-menu/domain/repositories/app_menu_repository.dart';
+import 'features/app-menu/domain/usecases/get_app_menu_usecase.dart';
+import 'features/app-menu/presentation/state/app_menu/app_menu_cubit.dart';
 import 'features/marketing-feed/domain/usecases/add_feed_comment_usecase.dart';
 import 'features/marketing-feed/domain/usecases/delete_feed_post_usecase.dart';
 import 'features/marketing-feed/domain/usecases/get_feed_comments_usecase.dart';
@@ -418,6 +422,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
       ctx.read<ProfileBloc>().add(
         GetProfileEvent(forceRefresh: true, silent: true),
       );
+      ctx.read<AppMenuCubit>().load();
     } catch (_) {}
   }
 
@@ -705,6 +710,9 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     );
     final marketingFeedRepository = MarketingFeedRepositoryImpl(
       marketingFeedRemoteDataSource,
+    );
+    final appMenuRepository = AppMenuRepositoryImpl(
+      AppMenuRemoteDataSourceImpl(dioClient.dio),
     );
     // Polling statistik kiriman yang sedang terlihat (Home dan profil).
     FeedLiveStats.instance.attach(marketingFeedRepository);
@@ -1072,6 +1080,11 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
                 create: (_) => ClusterMediaListBloc(
                   getClusterMediaUseCase,
                   shareCaptionUseCase,
+                ),
+              ),
+              BlocProvider(
+                create: (_) => AppMenuCubit(
+                  getAppMenuUseCase: GetAppMenuUseCase(appMenuRepository),
                 ),
               ),
               BlocProvider(

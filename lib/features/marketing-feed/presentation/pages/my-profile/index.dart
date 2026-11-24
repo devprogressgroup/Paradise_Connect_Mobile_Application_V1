@@ -274,23 +274,25 @@ class _FeedProfilePageState extends State<FeedProfilePage> {
                 ],
               ),
             ),
-            Positioned(
-              right: 8,
-              bottom: 8,
-              child: Container(
-                width: 30,
-                height: 30,
-                decoration: const BoxDecoration(
-                  color: Colors.black45,
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.play_arrow_rounded,
-                  color: Colors.white,
-                  size: 18,
+            // Tombol play hanya untuk video; foto tanpa tombol.
+            if (media?.isVideo ?? false)
+              Positioned(
+                right: 8,
+                bottom: 8,
+                child: Container(
+                  width: 30,
+                  height: 30,
+                  decoration: const BoxDecoration(
+                    color: Colors.black45,
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.play_arrow_rounded,
+                    color: Colors.white,
+                    size: 18,
+                  ),
                 ),
               ),
-            ),
           ],
         ),
       ),

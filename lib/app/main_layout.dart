@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart'
     show kIsWeb, defaultTargetPlatform, TargetPlatform;
 import 'package:flutter/material.dart';
@@ -24,6 +26,10 @@ import 'package:progress_group/core/utils/widget/impersonation_banner.dart';
 import 'package:progress_group/core/services/analytics_service.dart';
 import 'package:progress_group/core/utils/widget/old_app_banner.dart';
 import 'package:progress_group/core/utils/widget/environment_banner.dart';
+import 'package:progress_group/features/app-menu/domain/entities/app_menu_entity.dart';
+import 'package:progress_group/features/app-menu/presentation/app_menu_mapping.dart';
+import 'package:progress_group/features/app-menu/presentation/state/app_menu/app_menu_cubit.dart';
+import 'package:progress_group/features/app-menu/presentation/state/app_menu/app_menu_state.dart';
 
 class MainLayout extends StatefulWidget {
   final Widget child;
@@ -42,6 +48,14 @@ class _MainLayoutState extends State<MainLayout> {
   bool _isIosSafariDevice = false;
   String _appVersion = '';
 
+  StreamSubscription<AuthState>? _permissionsSub;
+
+  /// True sampai menu server selesai diambil dan tujuan Home diputuskan (hanya saat di '/').
+  bool _landing = true;
+
+  /// Home cadangan saat server tidak memberi menu.
+  static const String _defaultHomePath = '/report';
+
   @override
   void initState() {
     super.initState();
@@ -51,6 +65,39 @@ class _MainLayoutState extends State<MainLayout> {
     );
     _setupPwa();
     _loadAppVersion();
+    // Menu sidebar dari server: diambil sekarang, dan setiap izin dimuat ulang (PermissionsLoaded).
+    _landOnHome();
+    _permissionsSub = context.read<AuthBloc>().stream.listen((state) {
+      if (state is PermissionsLoaded) context.read<AppMenuCubit>().load();
+    });
+  }
+
+  @override
+  void dispose() {
+    _permissionsSub?.cancel();
+    super.dispose();
+  }
+
+  /// Setelah login (atau buka app dengan sesi tersimpan), tujuan pertama adalah modul Home dari
+  /// server. Hanya dijalankan saat shell terbuka di '/', supaya deep link (mis. /contact) tidak
+  /// tertimpa. Kalau server belum memberi menu, user tetap di '/'.
+  Future<void> _landOnHome() async {
+    final cubit = context.read<AppMenuCubit>();
+    try {
+      await cubit.load().timeout(const Duration(seconds: 15));
+    } catch (_) {
+      // Timeout / gagal: lanjut dengan menu yang ada (atau kosong).
+    }
+    if (!mounted) return;
+    final atRoot = GoRouterState.of(context).uri.path == '/';
+    final menu = cubit.state.menu;
+    // Tanpa menu dari server (gagal sejak awal): Report jadi Home default.
+    final path = menu == null
+        ? _defaultHomePath
+        : (menu.homeModule == null ? null : appMenuPathFor(menu.homeModule!.code));
+    // Pindah dulu, baru loader dilepas, supaya feed tidak sempat kelihatan.
+    if (atRoot && path != null && path != '/') context.go(path);
+    setState(() => _landing = false);
   }
 
   Future<void> _loadAppVersion() async {
@@ -302,7 +349,13 @@ class _MainLayoutState extends State<MainLayout> {
                   builder: (context) {
                     return Stack(
                       children: [
-                        widget.child,
+                        _landing && location == '/'
+                            ? Center(
+                                child: CircularProgressIndicator(
+                                  color: Color(primaryColor),
+                                ),
+                              )
+                            : widget.child,
                         if (hasDrawer)
                           Positioned(
                             left: 20,
@@ -403,13 +456,7 @@ class _MainLayoutState extends State<MainLayout> {
                         return Row(
                           mainAxisAlignment: MainAxisAlignment.spaceAround,
                           children: [
-                            _buildNavItem(
-                              context,
-                              path: '/',
-                              icon: icNavHome,
-                              label: 'Home',
-                              isActive: currentIndex == 0,
-                            ),
+                            _buildHomeNavItem(context, currentIndex),
                             if (PermissionsHelper.canAccessContacts)
                               _buildNavItem(
                                 context,
@@ -598,94 +645,60 @@ class _MainLayoutState extends State<MainLayout> {
                         ),
                       ),
                       SizedBox(height: 10),
-                      _buildDrawerItem(
-                        context,
-                        icNavHome,
-                        'Home',
-                        path: '/',
-                        index: 0,
+                      // Slot Home: selalu berlabel "Home", membuka modul is_home dari server.
+                      BlocBuilder<AppMenuCubit, AppMenuState>(
+                        builder: (context, menuState) {
+                          final menu = menuState.menu;
+                          // Tanpa menu dari server: Home = Report (cadangan).
+                          if (menu == null) {
+                            return _buildDrawerItem(
+                              context,
+                              icNavHome,
+                              'Home',
+                              path: _defaultHomePath,
+                              index: appMenuIndexFor('REPORT'),
+                            );
+                          }
+                          final homeModule = menu.homeModule;
+                          final homePath = homeModule == null
+                              ? null
+                              : appMenuPathFor(homeModule.code);
+                          return _buildDrawerItem(
+                            context,
+                            icNavHome,
+                            'Home',
+                            path: homePath ?? '/',
+                            index: homeModule == null
+                                ? appMenuHomeIndex
+                                : appMenuIndexFor(homeModule.code),
+                          );
+                        },
                       ),
-                      // Marketing Feed (sesuai prototype): Feeds = Kiriman Saya milik sendiri
-                      if (PermissionsHelper.canOpenMarketingFeeds)
-                        _buildDrawerItem(
-                          context,
-                          '',
-                          'Feeds',
-                          path: '/marketing-feed/my-submissions',
-                          index: 12,
-                          iconData: Icons.history_rounded,
-                        ),
-                      // Kalender Jadwal & Wall of Fame tidak lagi di drawer: Wall of Fame ada di Post Baru
-                      // (tab) dan Kiriman Saya; Kalender lewat ikon di header Marketing Feed.
-                      _buildDrawerItem(
-                        context,
-                        icSidebarDashboard,
-                        'Report',
-                        path: '/report',
-                        index: 11,
+                      // Daftar modul dari server (urutan sudah benar dari server), tanpa modul Home.
+                      BlocBuilder<AppMenuCubit, AppMenuState>(
+                        builder: (context, menuState) {
+                          final items = (menuState.menu?.modules ?? const [])
+                              .where((m) => !m.isHome)
+                              .toList();
+                          return Column(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              for (final module in items) ...[
+                                // Garis pemisah sebelum Attendance (sama seperti sebelumnya).
+                                if (module.code == 'ATTENDANCE')
+                                  Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 16,
+                                    ),
+                                    child: Divider(),
+                                  ),
+                                _buildAppMenuItem(context, module),
+                              ],
+                            ],
+                          );
+                        },
                       ),
-                      if (PermissionsHelper.canAccessContacts)
-                        _buildDrawerItem(
-                          context,
-                          icSidebarContacts,
-                          'Contacts',
-                          path: '/contact',
-                          index: 1,
-                        ),
-                      if (PermissionsHelper.canAccessInbox)
-                        _buildDrawerItem(
-                          context,
-                          icSidebarInbox,
-                          'Inbox',
-                          path: '/inbox',
-                          index: 2,
-                        ),
-                      if (PermissionsHelper.canAccessSitePlan)
-                        _buildDrawerItem(
-                          context,
-                          icSidebarSitePlan,
-                          'Site Plan',
-                          path: '/site-plan',
-                          index: 4,
-                        ),
-                      if (PermissionsHelper.canAccessSalesKit)
-                        _buildDrawerItem(
-                          context,
-                          icSidebarSalesKit,
-                          'Sales Kit',
-                          path: '/sales-kit',
-                          index: 5,
-                        ),
-                      if (PermissionsHelper.canAccessSiapHuni)
-                        _buildDrawerItem(
-                          context,
-                          '',
-                          'Siap Huni',
-                          path: '/siap-huni',
-                          index: 9,
-                          iconData: Icons.home_rounded,
-                        ),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        child: Divider(),
-                      ),
-                      if (PermissionsHelper.canAccessAttendance)
-                        _buildDrawerItem(
-                          context,
-                          icNavAttendance,
-                          'Attendance',
-                          path: '/attandance',
-                          index: 6,
-                        ),
-                      if (PermissionsHelper.canAccessReserveOrder)
-                        _buildDrawerItem(
-                          context,
-                          '',
-                          'Transactions',
-                          path: '/reserve-order',
-                          index: 10,
-                          iconData: Icons.local_offer,
-                        ),
                       const Spacer(),
 
                       const Spacer(),
@@ -793,11 +806,24 @@ class _MainLayoutState extends State<MainLayout> {
     );
   }
 
+  /// Item sidebar dari menu server. Kode yang belum dipetakan tampil tanpa aksi.
+  Widget _buildAppMenuItem(BuildContext context, AppMenuItemEntity module) {
+    final spec = appMenuIconFor(module.icon);
+    return _buildDrawerItem(
+      context,
+      spec.asset ?? '',
+      module.label,
+      path: appMenuPathFor(module.code),
+      index: appMenuIndexFor(module.code),
+      iconData: spec.iconData,
+    );
+  }
+
   Widget _buildDrawerItem(
     BuildContext context,
     String icon,
     String title, {
-    required String path,
+    required String? path,
     required int index,
     IconData? iconData,
     String? badge,
@@ -807,6 +833,7 @@ class _MainLayoutState extends State<MainLayout> {
 
     return InkWell(
       onTap: () {
+        if (path == null) return;
         final event = _drawerNavEventByPath[path];
         if (event != null) AnalyticsService.logEvent(event);
         context.go(path);
@@ -895,6 +922,37 @@ class _MainLayoutState extends State<MainLayout> {
           ],
         ),
       ),
+    );
+  }
+
+  /// Tab Home di bottom nav: ikon dan label tetap. Yang dinamis hanya tujuan ketuknya, yaitu
+  /// modul `is_home` dari server. Tanpa menu dari server, tab membuka Report (cadangan).
+  Widget _buildHomeNavItem(BuildContext context, int currentIndex) {
+    return BlocBuilder<AppMenuCubit, AppMenuState>(
+      builder: (context, menuState) {
+        final menu = menuState.menu;
+        if (menu == null) {
+          return _buildNavItem(
+            context,
+            path: _defaultHomePath,
+            icon: icNavHome,
+            label: 'Home',
+            isActive: currentIndex == appMenuIndexFor('REPORT'),
+          );
+        }
+        final home = menu.homeModule;
+        final path = home == null ? '/' : (appMenuPathFor(home.code) ?? '/');
+        final targetIndex = home == null
+            ? appMenuHomeIndex
+            : appMenuIndexFor(home.code);
+        return _buildNavItem(
+          context,
+          path: path,
+          icon: icNavHome,
+          label: 'Home',
+          isActive: currentIndex == targetIndex,
+        );
+      },
     );
   }
 
