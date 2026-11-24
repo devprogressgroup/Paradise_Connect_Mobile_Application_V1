@@ -7,6 +7,8 @@ import 'package:intl/intl.dart';
 import 'package:progress_group/core/network/marketing_feed_exception.dart';
 import 'package:progress_group/features/marketing-feed/data/models/feed_comment_model.dart';
 import 'package:progress_group/features/marketing-feed/data/models/feed_post_model.dart';
+import 'package:progress_group/features/marketing-feed/data/models/feed_list_model.dart';
+import 'package:progress_group/features/marketing-feed/domain/entities/feed_list_entity.dart';
 import 'package:progress_group/features/marketing-feed/data/models/personal_funnel_model.dart';
 import 'package:progress_group/features/marketing-feed/data/models/wall_of_fame_model.dart';
 import 'package:progress_group/features/marketing-feed/domain/entities/feed_comment_entity.dart';
@@ -81,6 +83,16 @@ abstract class MarketingFeedRemoteDataSource {
     int page = 1,
     int perPage = 10,
     String? status,
+  });
+
+  /// GET /api/marketing-feed/list — daftar Feeds terpadu: status, kind (post|fame, kosong = semua), q, sort, page.
+  Future<FeedListPageEntity> getFeedList({
+    int page = 1,
+    int perPage = 10,
+    List<String> statuses = const [],
+    List<String> kinds = const [],
+    String q = '',
+    String sort = 'latest',
   });
 
   /// GET /api/marketing-feed/me/profile?tab=&page=&per_page= — profil sales sendiri (userId null) atau user lain.
@@ -517,6 +529,37 @@ class MarketingFeedRemoteDataSourceImpl
       throw parseMarketingFeedException(body, 'Gagal mengambil kiriman saya.');
     } catch (e) {
       throw parseMarketingFeedException(e, 'Gagal mengambil kiriman saya.');
+    }
+  }
+
+  @override
+  Future<FeedListPageEntity> getFeedList({
+    int page = 1,
+    int perPage = 10,
+    List<String> statuses = const [],
+    List<String> kinds = const [],
+    String q = '',
+    String sort = 'latest',
+  }) async {
+    try {
+      final response = await dio.get(
+        '/marketing-feed/list',
+        queryParameters: {
+          'page': page,
+          'per_page': perPage,
+          'sort': sort,
+          if (statuses.isNotEmpty) 'status': statuses.join(','),
+          if (kinds.isNotEmpty) 'kind': kinds.join(','),
+          if (q.isNotEmpty) 'q': q,
+        },
+      );
+      final body = response.data;
+      if (body is Map && body['status'] == true && body['data'] != null) {
+        return parseFeedListPage(Map<String, dynamic>.from(body['data'] as Map));
+      }
+      throw parseMarketingFeedException(body, 'Gagal mengambil daftar kiriman.');
+    } catch (e) {
+      throw parseMarketingFeedException(e, 'Gagal mengambil daftar kiriman.');
     }
   }
 

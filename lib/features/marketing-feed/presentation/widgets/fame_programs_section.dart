@@ -5,18 +5,31 @@ import 'package:progress_group/core/network/auth_token_cache.dart';
 import 'package:progress_group/core/utils/helpers/date_helper.dart';
 import 'package:progress_group/features/marketing-feed/domain/entities/feed_post_entity.dart';
 import 'package:progress_group/features/marketing-feed/domain/entities/fame_program_entity.dart';
+import 'package:progress_group/features/marketing-feed/presentation/feed_share.dart';
 import 'package:progress_group/features/marketing-feed/presentation/state/marketing_feed/marketing_feed_cubit.dart';
 import 'package:progress_group/features/marketing-feed/presentation/widgets/feed_avatar.dart';
 import 'package:progress_group/features/marketing-feed/presentation/widgets/feed_comment_sheet.dart';
 import 'package:progress_group/features/marketing-feed/presentation/widgets/feed_media_skeleton.dart';
 import 'package:progress_group/features/marketing-feed/presentation/widgets/feed_media_view.dart';
+import 'package:share_plus/share_plus.dart';
 
 /// Satu kartu Wall of Fame di Home: kartu gelap berisi header pembuat,
 /// nama kategori, poster (opsional), daftar juara dengan peringkat, dan caption.
 class FameEntryTile extends StatefulWidget {
   final FameEntryEntity entry;
 
-  const FameEntryTile({super.key, required this.entry});
+  /// false = tanpa baris like/komentar/bagikan (dipakai halaman kelola).
+  final bool showActions;
+
+  /// Widget tambahan di header kanan (mis. badge status dan menu di halaman kelola).
+  final Widget? trailing;
+
+  const FameEntryTile({
+    super.key,
+    required this.entry,
+    this.showActions = true,
+    this.trailing,
+  });
 
   @override
   State<FameEntryTile> createState() => _FameEntryTileState();
@@ -98,7 +111,62 @@ class _FameEntryTileState extends State<FameEntryTile> {
     },
   );
 
-  /// Baris aksi di bawah kartu: like, dislike, dan komentar (seperti kiriman biasa).
+  /// Teks yang ikut dibagikan: kategori, program, daftar juara, lalu caption kartu.
+  String _shareText() {
+    final lines = <String>[];
+    final kategori = entry.kategori.trim();
+    final program = entry.programName.trim();
+    if (kategori.isNotEmpty) lines.add(kategori.toUpperCase());
+    if (program.isNotEmpty && program != kategori) lines.add(program);
+    if (entry.winners.isNotEmpty) {
+      lines
+        ..add('')
+        ..add('Juara:');
+      for (final w in entry.winners) {
+        final sub = [w.posisiLabel, w.timLabel]
+            .where((s) => s != null && s.trim().isNotEmpty)
+            .join(' · ');
+        lines.add('${w.rankText}. ${w.name}${sub.isEmpty ? '' : ' ($sub)'}');
+      }
+    }
+    final caption = entry.caption?.trim() ?? '';
+    if (caption.isNotEmpty) {
+      lines
+        ..add('')
+        ..add(caption);
+    }
+    return lines.join('\n').trim();
+  }
+
+  /// Bagikan poster (file) beserta teks. Tanpa poster, hanya teks.
+  Future<void> _share() async {
+    final origin = FeedShare.rectOf(context);
+    final text = _shareText();
+    if (!_hasMedia) {
+      await SharePlus.instance.share(
+        ShareParams(
+          text: text.isEmpty ? 'Dibagikan dari Wall of Fame' : text,
+          sharePositionOrigin: origin,
+        ),
+      );
+      return;
+    }
+    await FeedShare.shareMedia(
+      context,
+      cacheKey: 'fame_${entry.id}',
+      filePrefix: 'fame_${entry.id}',
+      medias: [
+        FeedMediaEntity(
+          url: entry.mediaUrl,
+          isVideo: entry.mediaType == 'video',
+        ),
+      ],
+      text: text.isEmpty ? null : text,
+      origin: origin,
+    );
+  }
+
+  /// Baris aksi di bawah kartu: like, dislike, komentar, dan bagikan (seperti kiriman biasa).
   Widget _buildActions() {
     final muted = const Color(whiteColor).withValues(alpha: 0.85);
     Widget action(
@@ -154,6 +222,7 @@ class _FameEntryTileState extends State<FameEntryTile> {
           activeColor: orangeAccentColor,
         ),
         action(Icons.chat_bubble_outline, '$_comments', false, _openComments),
+        action(Icons.share_outlined, '', false, () => _share()),
       ],
     );
   }
@@ -210,23 +279,25 @@ class _FameEntryTileState extends State<FameEntryTile> {
               ),
             ),
           ],
-          const SizedBox(height: 8),
-          _buildActions(),
-          const SizedBox(height: 6),
-          // Sama seperti kartu feed: ringkasan komentar di bawah baris aksi.
-          GestureDetector(
-            onTap: _openComments,
-            child: Text(
-              _comments > 0
-                  ? 'Lihat semua $_comments komentar'
-                  : 'Jadi yang pertama berkomentar',
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                color: const Color(whiteColor).withValues(alpha: 0.85),
+          if (widget.showActions) ...[
+            const SizedBox(height: 8),
+            _buildActions(),
+            const SizedBox(height: 6),
+            // Sama seperti kartu feed: ringkasan komentar di bawah baris aksi.
+            GestureDetector(
+              onTap: _openComments,
+              child: Text(
+                _comments > 0
+                    ? 'Lihat semua $_comments komentar'
+                    : 'Jadi yang pertama berkomentar',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: const Color(whiteColor).withValues(alpha: 0.85),
+                ),
               ),
             ),
-          ),
+          ],
         ],
       ),
     );
@@ -278,6 +349,7 @@ class _FameEntryTileState extends State<FameEntryTile> {
             size: 16,
             color: const Color(whiteColor).withValues(alpha: 0.7),
           ),
+        if (widget.trailing != null) widget.trailing!,
       ],
     );
   }

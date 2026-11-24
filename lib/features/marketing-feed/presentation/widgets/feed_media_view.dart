@@ -1,9 +1,11 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:progress_group/core/constants/colors.dart';
 import 'package:progress_group/core/network/auth_token_cache.dart';
 import 'package:progress_group/features/marketing-feed/domain/entities/feed_post_entity.dart';
+import 'package:progress_group/features/marketing-feed/presentation/widgets/feed_local_video_thumb.dart';
 import 'package:progress_group/features/marketing-feed/presentation/widgets/feed_media_skeleton.dart';
 import 'package:video_player/video_player.dart';
 
@@ -56,13 +58,25 @@ class FeedMediaView extends StatelessWidget {
       );
     }
 
-    if (media.isVideo && url != null && url.isNotEmpty && !compact) {
+    // Mode compact (thumbnail di daftar): frame pertama video, tanpa kontrol dan tanpa diputar.
+    if (media.isVideo && url != null && url.isNotEmpty) {
       return FeedVideoPlayer(
         url: url,
-        autoPlay: autoPlayVideo,
-        loop: autoPlayVideo,
-        muted: autoPlayVideo,
+        autoPlay: !compact && autoPlayVideo,
+        loop: !compact && autoPlayVideo,
+        muted: compact || autoPlayVideo,
         active: active,
+        hideControls: compact,
+      );
+    }
+
+    // Video baru dipilih (belum diunggah): tampilkan frame pertamanya sebagai thumbnail.
+    final localPath = media.filePath;
+    if (media.isVideo && !kIsWeb && localPath != null && localPath.isNotEmpty) {
+      return FeedLocalVideoThumb(
+        path: localPath,
+        compact: compact,
+        fallback: _placeholder(),
       );
     }
 

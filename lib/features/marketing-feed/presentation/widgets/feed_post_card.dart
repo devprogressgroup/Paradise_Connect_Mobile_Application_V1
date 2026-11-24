@@ -8,6 +8,7 @@ import 'package:progress_group/features/marketing-feed/domain/entities/feed_comm
 import 'package:progress_group/features/marketing-feed/domain/entities/feed_post_entity.dart';
 import 'package:progress_group/features/marketing-feed/domain/entities/feed_stats_entity.dart';
 import 'package:progress_group/features/marketing-feed/presentation/state/feed_live/feed_live_stats.dart';
+import 'package:progress_group/features/marketing-feed/presentation/feed_external_link.dart';
 import 'package:progress_group/features/marketing-feed/presentation/widgets/feed_avatar.dart';
 import 'package:progress_group/features/marketing-feed/presentation/widgets/feed_formatted_text_controller.dart';
 import 'package:progress_group/features/marketing-feed/presentation/widgets/feed_link_default_thumb.dart';
@@ -15,7 +16,6 @@ import 'package:progress_group/features/marketing-feed/presentation/widgets/feed
 import 'package:progress_group/features/marketing-feed/presentation/widgets/feed_youtube_player.dart';
 import 'package:progress_group/features/marketing-feed/presentation/widgets/feed_poll_box.dart';
 import 'package:progress_group/features/marketing-feed/presentation/widgets/feed_section.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 /// Posisi global sebuah widget (untuk sharePositionOrigin). Null kalau belum dirender.
 Rect? _rectOf(BuildContext context) {
@@ -33,6 +33,9 @@ class FeedPostCard extends StatelessWidget {
   final void Function(Rect? origin)? onShare;
   final Future<String?> Function(List<int> optionIndexes)? onVote;
 
+  /// Widget tambahan di dalam kartu, di bawah isi (dipakai untuk tombol moderasi).
+  final Widget? footer;
+
   /// false = nama/avatar pembuat tidak membuka profil (dipakai di halaman profil itu sendiri).
   final bool linkAuthorProfile;
 
@@ -47,6 +50,7 @@ class FeedPostCard extends StatelessWidget {
     this.onComment,
     this.onShare,
     this.onVote,
+    this.footer,
     this.linkAuthorProfile = true,
     this.liveUpdates = true,
   });
@@ -58,15 +62,21 @@ class FeedPostCard extends StatelessWidget {
   BoxDecoration get _decoration => _isPending
       ? BoxDecoration(
           color: const Color(whiteColor),
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(14),
           border: Border.all(
             color: Color(
               post.status == FeedPostStatus.rejected
                   ? redAccentColor
                   : orangeAccentColor,
-            ),
-            width: 1.5,
+            ).withValues(alpha: 0.45),
           ),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(shadowColor).withValues(alpha: 0.35),
+              blurRadius: 10,
+              offset: const Offset(0, 3),
+            ),
+          ],
         )
       : feedCardDecoration();
 
@@ -84,6 +94,7 @@ class FeedPostCard extends StatelessWidget {
             onComment: onComment,
             onShare: onShare,
             onVote: onVote,
+            footer: footer,
             linkAuthorProfile: linkAuthorProfile,
             liveUpdates: false,
           );
@@ -132,7 +143,8 @@ class FeedPostCard extends StatelessWidget {
   Widget _buildCard(BuildContext context) {
     if (post.type == FeedPostType.link) return _buildLinkCard(context);
 
-    final showFooter = post.status == FeedPostStatus.published;
+    // Di daftar persetujuan (footer khusus) ikon tetap tampil, supaya terlihat izin yang diberikan pembuat.
+    final showFooter = post.status == FeedPostStatus.published || footer != null;
     return Container(
       width: double.infinity,
       clipBehavior: Clip.antiAlias,
@@ -174,15 +186,26 @@ class FeedPostCard extends StatelessWidget {
             FeedMediaCarousel(media: post.media),
           if (showFooter)
             Padding(
-              padding: const EdgeInsets.fromLTRB(14, 10, 14, 14),
+              padding: EdgeInsets.fromLTRB(
+                14,
+                10,
+                14,
+                footer == null ? 14 : 10,
+              ),
               child: _FeedPostFooter(
                 post: post,
                 onReact: onReact,
                 onComment: onComment,
                 onShare: onShare,
+                showCounts: post.status == FeedPostStatus.published,
               ),
+            ),
+          if (footer != null)
+            Padding(
+              padding: EdgeInsets.fromLTRB(14, showFooter ? 0 : 10, 14, 14),
+              child: footer,
             )
-          else
+          else if (!showFooter)
             const SizedBox(height: 4),
         ],
       ),
@@ -210,7 +233,7 @@ class FeedPostCard extends StatelessWidget {
       FeedPostStatus.scheduled =>
         'Terjadwal · ${DateHelper.relativeDayTime(post.publishAt)}',
       FeedPostStatus.draft => 'Draft',
-      _ => 'Dikirim ${DateHelper.timeAgo(post.publishAt).toLowerCase()}',
+      _ => 'Dikirim ${DateHelper.timeAgo(post.submittedAt ?? post.publishAt).toLowerCase()}',
     };
     return Row(
       children: [
@@ -251,31 +274,39 @@ class FeedPostCard extends StatelessWidget {
     );
   }
 
+  /// Label status kiriman yang masih menunggu/ditolak, tampil sebagai pil berwarna lembut.
   Widget _buildPendingTag() {
     final rejected = post.status == FeedPostStatus.rejected;
     final color = Color(rejected ? redAccentColor : orangeAccentColor);
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Icon(
-          rejected ? Icons.block : Icons.hourglass_top_rounded,
-          size: 14,
-          color: color,
-        ),
-        const SizedBox(width: 4),
-        Expanded(
-          child: Text(
-            rejected
-                ? 'Ditolak moderator: ${post.rejectReason ?? 'belum sesuai pedoman konten'}'
-                : 'Menunggu tinjauan moderator',
-            style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w800,
-              color: color,
+    return Container(
+      padding: const EdgeInsets.fromLTRB(8, 4, 10, 4),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            rejected ? Icons.block : Icons.hourglass_top_rounded,
+            size: 13,
+            color: color,
+          ),
+          const SizedBox(width: 5),
+          Flexible(
+            child: Text(
+              rejected
+                  ? 'Ditolak moderator: ${post.rejectReason ?? 'belum sesuai pedoman konten'}'
+                  : 'Menunggu tinjauan moderator',
+              style: TextStyle(
+                fontSize: 11.5,
+                fontWeight: FontWeight.w700,
+                color: color,
+              ),
             ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
@@ -312,10 +343,7 @@ class FeedPostCard extends StatelessWidget {
               ),
             ),
           InkWell(
-            onTap: () => launchUrl(
-              Uri.parse(link.url),
-              mode: LaunchMode.externalApplication,
-            ),
+            onTap: () => openExternalFeedLink(context, link.url),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -371,7 +399,7 @@ class FeedPostCard extends StatelessWidget {
               ],
             ),
           ),
-          if (post.status == FeedPostStatus.published)
+          if (post.status == FeedPostStatus.published || footer != null)
             Padding(
               padding: const EdgeInsets.fromLTRB(14, 0, 14, 12),
               child: _FeedPostFooter(
@@ -379,7 +407,18 @@ class FeedPostCard extends StatelessWidget {
                 onReact: onReact,
                 onComment: onComment,
                 onShare: onShare,
+                showCounts: post.status == FeedPostStatus.published,
               ),
+            ),
+          if (footer != null)
+            Padding(
+              padding: EdgeInsets.fromLTRB(
+                14,
+                0,
+                14,
+                14,
+              ),
+              child: footer,
             ),
         ],
       ),
@@ -446,12 +485,15 @@ class _FeedPostFooter extends StatelessWidget {
   final ValueChanged<FeedReaction>? onReact;
   final VoidCallback? onComment;
   final void Function(Rect? origin)? onShare;
+  // Jumlah like dan komentar. Pengajuan (menunggu persetujuan) hanya menampilkan ikon.
+  final bool showCounts;
 
   const _FeedPostFooter({
     required this.post,
     this.onReact,
     this.onComment,
     this.onShare,
+    this.showCounts = true,
   });
 
   @override
@@ -460,78 +502,91 @@ class _FeedPostFooter extends StatelessWidget {
     final liked = post.myReaction == FeedReaction.like;
     final disliked = post.myReaction == FeedReaction.dislike;
     final latest = post.latestComment;
-    final hasActions =
-        s.allowLike ||
-        s.allowDislike ||
-        s.allowComment ||
-        post.commentCount > 0 ||
-        s.allowShare;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        if (hasActions)
-          Row(
-            children: [
-              if (s.allowLike)
-                _action(
-                  icon: liked ? Icons.favorite : Icons.favorite_border,
-                  label: '${post.likeCount}',
-                  color: liked ? const Color(redAccentColor) : null,
-                  onTap: () => onReact?.call(FeedReaction.like),
-                )
-              else
-                _disabledAction(
-                  context,
-                  icon: Icons.favorite_border,
-                  label: '${post.likeCount}',
-                  message: 'Suka dinonaktifkan untuk post ini',
-                ),
-              // Dislike: hanya ikon yang tampil, angkanya disembunyikan.
-              if (s.allowDislike)
-                _action(
-                  icon: disliked ? Icons.thumb_down : Icons.thumb_down_outlined,
-                  label: '',
-                  color: disliked ? const Color(orangeAccentColor) : null,
-                  onTap: () => onReact?.call(FeedReaction.dislike),
-                )
-              else
-                _disabledAction(
-                  context,
-                  icon: Icons.thumb_down_off_alt,
-                  label: '',
-                  message: 'Dislike dinonaktifkan untuk post ini',
-                ),
-              // Komentar dimatikan: ikon tetap tampil (dicoret), ketuk memunculkan snackbar.
-              // Komentar lama tetap bisa dibuka kalau sudah ada.
-              if (s.allowComment || post.commentCount > 0)
-                _action(
-                  icon: Icons.chat_bubble_outline,
-                  label: '${post.commentCount}',
-                  onTap: onComment,
-                )
-              else
-                _disabledAction(
-                  context,
-                  icon: Icons.comments_disabled_outlined,
-                  label: '${post.commentCount}',
-                  message: 'Komentar dinonaktifkan untuk post ini',
-                ),
-              const Spacer(),
-              if (s.allowShare)
-                _action(
-                  icon: Icons.share_outlined,
-                  label: 'Bagikan',
-                  color: const Color(primaryColor),
-                  onTap: onShare == null
-                      ? null
-                      : () => onShare!(_rectOf(context)),
-                  trailingGap: false,
-                ),
-            ],
-          ),
+        // Baris aksi selalu tampil: aksi yang dimatikan tetap terlihat dicoret.
+        Row(
+          children: [
+            if (s.allowLike)
+              _action(
+                icon: liked ? Icons.favorite : Icons.favorite_border,
+                label: showCounts ? '${post.likeCount}' : '',
+
+                color: liked ? const Color(redAccentColor) : null,
+                onTap: () => onReact?.call(FeedReaction.like),
+              )
+            else
+              _disabledAction(
+                context,
+                icon: Icons.favorite_border,
+                label: showCounts ? '${post.likeCount}' : '',
+                message: 'Suka dinonaktifkan untuk post ini',
+              ),
+            // Dislike: hanya ikon yang tampil, angkanya disembunyikan.
+            if (s.allowDislike)
+              _action(
+                icon: disliked ? Icons.thumb_down : Icons.thumb_down_outlined,
+                label: '',
+                color: disliked ? const Color(orangeAccentColor) : null,
+                onTap: () => onReact?.call(FeedReaction.dislike),
+              )
+            else
+              _disabledAction(
+                context,
+                icon: Icons.thumb_down_outlined,
+                label: '',
+                message: 'Dislike dinonaktifkan untuk post ini',
+              ),
+            // Komentar dimatikan: ikon tetap tampil (dicoret), ketuk memunculkan snackbar.
+            // Komentar lama tetap bisa dibuka kalau sudah ada.
+            if (s.allowComment || post.commentCount > 0)
+              _action(
+                icon: Icons.chat_bubble_outline,
+                label: showCounts ? '${post.commentCount}' : '',
+                onTap: onComment,
+              )
+            else
+              _disabledAction(
+                context,
+                icon: Icons.chat_bubble_outline,
+                label: showCounts ? '${post.commentCount}' : '',
+                message: 'Komentar dinonaktifkan untuk post ini',
+              ),
+            if (s.allowShare)
+              _action(
+                icon: Icons.share_outlined,
+                label: '',
+                onTap: onShare == null
+                    ? null
+                    : () => onShare!(_rectOf(context)),
+                trailingGap: false,
+              )
+            else
+              _disabledAction(
+                context,
+                icon: Icons.share_outlined,
+                label: '',
+                message: 'Berbagi dinonaktifkan untuk post ini',
+              ),
+          ],
+        ),
         const SizedBox(height: 8),
-        if (s.allowComment) ...[
+        if (!showCounts && !s.allowComment)
+          const Row(
+            children: [
+              Text(
+                'Komentar dinonaktifkan untuk post ini',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: Color(grey4Color),
+                ),
+              ),
+            ],
+          )
+        else if (s.allowComment && showCounts) ...[
           if (latest != null) ...[
             GestureDetector(
               onTap: onComment,
@@ -569,15 +624,9 @@ class _FeedPostFooter extends StatelessWidget {
               ),
             ),
           ),
-        ] else
+        ] else if (showCounts)
           const Row(
             children: [
-              Icon(
-                Icons.speaker_notes_off_outlined,
-                size: 14,
-                color: Color(grey4Color),
-              ),
-              SizedBox(width: 6),
               Text(
                 'Komentar dinonaktifkan untuk post ini',
                 style: TextStyle(
@@ -592,7 +641,8 @@ class _FeedPostFooter extends StatelessWidget {
     );
   }
 
-  /// Aksi yang dimatikan di post: ikon dicoret (abu-abu) dan ketuk menampilkan snackbar alasannya.
+  /// Aksi yang dimatikan di post: ikon dasar yang sama dengan saat aktif, diberi garis coret
+  /// diagonal dan warna abu-abu redup. Ketuk tetap menampilkan snackbar alasannya.
   Widget _disabledAction(
     BuildContext context, {
     required IconData icon,
@@ -603,6 +653,7 @@ class _FeedPostFooter extends StatelessWidget {
       icon: icon,
       label: label,
       color: const Color(grey4Color),
+      disabled: true,
       onTap: () => ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
         ..showSnackBar(SnackBar(content: Text(message))),
@@ -615,8 +666,10 @@ class _FeedPostFooter extends StatelessWidget {
     Color? color,
     VoidCallback? onTap,
     bool trailingGap = true,
+    bool disabled = false,
   }) {
     final c = color ?? const Color(grey2Color);
+    final iconWidget = Icon(icon, size: 18, color: c);
     return Padding(
       padding: EdgeInsets.only(right: trailingGap ? 12 : 0),
       child: InkWell(
@@ -627,7 +680,20 @@ class _FeedPostFooter extends StatelessWidget {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(icon, size: 18, color: c),
+              if (disabled)
+                SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      iconWidget,
+                      CustomPaint(painter: _SlashPainter(color: c)),
+                    ],
+                  ),
+                )
+              else
+                iconWidget,
               if (label.isNotEmpty) ...[
                 const SizedBox(width: 5),
                 Text(
@@ -645,4 +711,29 @@ class _FeedPostFooter extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Garis coret diagonal (kiri bawah ke kanan atas) untuk menandai aksi yang dimatikan.
+class _SlashPainter extends CustomPainter {
+  const _SlashPainter({required this.color});
+
+  final Color color;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..strokeWidth = 1.6
+      ..strokeCap = StrokeCap.round;
+    const pad = 2.0;
+    canvas.drawLine(
+      Offset(pad, size.height - pad),
+      Offset(size.width - pad, pad),
+      paint,
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant _SlashPainter oldDelegate) =>
+      oldDelegate.color != color;
 }

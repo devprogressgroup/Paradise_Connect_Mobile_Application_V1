@@ -268,12 +268,6 @@ class FeedPostModel extends FeedPostEntity {
           )
         : FeedPostStatus.published;
 
-    final isMine =
-        json['is_mine'] == true ||
-        statusStr == 'review' ||
-        statusStr == 'rejected' ||
-        submittedAt != null;
-
     return FeedPostModel(
       id: json['id'] as int,
       type: FeedPostType.values.firstWhere(
@@ -306,7 +300,7 @@ class FeedPostModel extends FeedPostEntity {
       rejectReason: json['reject_reason'] as String?,
       profilePinned: json['profile_pinned'] == true,
       isPinned: isPinned,
-      isMine: isMine,
+      isMine: json['is_mine'] == true,
       fromAdminWeb: json['source'] == 'admin',
     );
   }

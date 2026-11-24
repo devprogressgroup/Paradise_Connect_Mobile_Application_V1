@@ -218,4 +218,8 @@ class PermissionsHelper {
   // Antrean persetujuan kiriman sales. Sama dengan backend: MarketingFeedMobileService::reviewQueue (ApproveReject).
   static bool get canApproveMarketingFeed =>
       check('Marketing Feed', 'ApproveReject');
+
+  /// Hapus kiriman: sama dengan backend (izin Delete atau ApproveReject).
+  static bool get canDeleteMarketingFeed =>
+      check('Marketing Feed', 'Delete') || canApproveMarketingFeed;
 }

@@ -6,6 +6,7 @@ import 'package:progress_group/features/marketing-feed/data/datasources/marketin
 import 'package:progress_group/features/marketing-feed/domain/entities/feed_comment_entity.dart';
 import 'package:progress_group/features/marketing-feed/domain/entities/fame_program_entity.dart';
 import 'package:progress_group/features/marketing-feed/domain/entities/fame_manage_entity.dart';
+import 'package:progress_group/features/marketing-feed/domain/entities/feed_list_entity.dart';
 import 'package:progress_group/features/marketing-feed/domain/entities/feed_post_entity.dart';
 import 'package:progress_group/features/marketing-feed/domain/entities/personal_funnel_entity.dart';
 import 'package:progress_group/features/marketing-feed/domain/entities/save_feed_post_params.dart';
@@ -125,6 +126,16 @@ abstract class MarketingFeedRepository {
     SaveFeedPostParams params,
   );
   Future<Either<String, void>> moderatorAction(int postId, String action);
+
+  /// Daftar Feeds terpadu (semua tab & filter): status kosong = semua, sort latest | oldest | updated.
+  Future<Either<String, FeedListPageEntity>> getFeedList({
+    int page,
+    int perPage,
+    List<String> statuses,
+    List<String> kinds,
+    String q,
+    String sort,
+  });
 
   /// Semua kiriman tayang (izin ApproveReject).
   Future<Either<String, List<FeedPostEntity>>> getPublishedPosts();

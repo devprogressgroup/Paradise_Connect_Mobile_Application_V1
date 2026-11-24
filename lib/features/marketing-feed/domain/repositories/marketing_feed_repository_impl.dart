@@ -6,6 +6,7 @@ import 'package:progress_group/features/marketing-feed/data/datasources/marketin
 import 'package:progress_group/features/marketing-feed/domain/entities/feed_comment_entity.dart';
 import 'package:progress_group/features/marketing-feed/domain/entities/fame_program_entity.dart';
 import 'package:progress_group/features/marketing-feed/domain/entities/fame_manage_entity.dart';
+import 'package:progress_group/features/marketing-feed/domain/entities/feed_list_entity.dart';
 import 'package:progress_group/features/marketing-feed/domain/entities/feed_post_entity.dart';
 import 'package:progress_group/features/marketing-feed/domain/entities/feed_stats_entity.dart';
 import 'package:progress_group/features/marketing-feed/domain/entities/personal_funnel_entity.dart';
@@ -196,6 +197,25 @@ class MarketingFeedRepositoryImpl implements MarketingFeedRepository {
       status: status,
     ),
   );
+  @override
+  Future<Either<String, FeedListPageEntity>> getFeedList({
+    int page = 1,
+    int perPage = 10,
+    List<String> statuses = const [],
+    List<String> kinds = const [],
+    String q = '',
+    String sort = 'latest',
+  }) => _guard(
+    () => remoteDataSource.getFeedList(
+      page: page,
+      perPage: perPage,
+      statuses: statuses,
+      kinds: kinds,
+      q: q,
+      sort: sort,
+    ),
+  );
+
   @override
   Future<Either<String, Map<String, dynamic>>> getLinkMeta(String url) =>
       _guard(() => remoteDataSource.getLinkMeta(url));

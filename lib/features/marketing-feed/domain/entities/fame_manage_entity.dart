@@ -1,3 +1,4 @@
+import 'package:progress_group/features/marketing-feed/domain/entities/fame_program_entity.dart';
 import 'package:progress_group/features/marketing-feed/domain/entities/feed_post_entity.dart';
 
 /// Hak akses kelola Wall of Fame dari backend (t_feed_fame_perm), bukan dari permission app.
@@ -48,6 +49,9 @@ class FameAdminCardEntity {
   final String? mediaType;
   final List<FameAdminWinnerEntity> winners;
 
+  /// Kartu dalam bentuk Home (sama seperti kartu di Home Wall of Fame). Dipakai untuk tampilan kartu di kelola.
+  final FameEntryEntity? entry;
+
   const FameAdminCardEntity({
     required this.id,
     required this.kategori,
@@ -58,6 +62,7 @@ class FameAdminCardEntity {
     this.mediaId,
     this.mediaType,
     this.winners = const [],
+    this.entry,
   });
 
   bool get hasPoster => mediaId != null;

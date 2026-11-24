@@ -1,7 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:url_launcher/url_launcher.dart';
+import 'package:progress_group/features/marketing-feed/presentation/feed_external_link.dart';
 import 'package:youtube_player_iframe/youtube_player_iframe.dart';
 
 /// Pemutar YouTube inline di kartu feed, memakai package youtube_player_iframe.
@@ -129,9 +129,9 @@ class _FeedYoutubePlayerState extends State<FeedYoutubePlayer> {
   }
 
   void _openInYoutube() {
-    launchUrl(
-      Uri.parse('https://www.youtube.com/watch?v=${widget.videoId}'),
-      mode: LaunchMode.externalApplication,
+    openExternalFeedLink(
+      context,
+      'https://www.youtube.com/watch?v=${widget.videoId}',
     );
   }
 

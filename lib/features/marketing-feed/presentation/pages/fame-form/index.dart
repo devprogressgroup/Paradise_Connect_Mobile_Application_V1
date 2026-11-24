@@ -8,6 +8,7 @@ import 'package:progress_group/core/utils/helpers/app_time.dart';
 import 'package:progress_group/features/marketing-feed/domain/entities/fame_manage_entity.dart';
 import 'package:progress_group/features/marketing-feed/domain/entities/feed_post_entity.dart';
 import 'package:progress_group/features/marketing-feed/presentation/state/fame_form/fame_form_cubit.dart';
+import 'package:progress_group/features/marketing-feed/presentation/state/fame_manage/fame_manage_cubit.dart';
 import 'package:progress_group/features/marketing-feed/presentation/state/fame_form/fame_form_state.dart';
 import 'package:progress_group/features/marketing-feed/presentation/widgets/feed_compose_fields.dart';
 import 'package:progress_group/features/marketing-feed/presentation/widgets/feed_create_tabs.dart';
@@ -81,14 +82,47 @@ class _FameFormPageState extends State<FameFormPage> {
   late final TextEditingController _kategoriCtrl;
   late final TextEditingController _captionCtrl;
   final List<_WinnerDraft> _winners = [];
+  // Poster baru dari galeri (kosong = tidak mengganti poster).
   List<FeedMediaEntity> _poster = const [];
+  // Poster yang sudah tersimpan di kartu, ditampilkan sebagai pratinjau.
+  FeedMediaEntity? _existingPoster;
+  // Poster tersimpan dihapus dari form: dihapus di server setelah kartu disimpan.
+  bool _removedExisting = false;
   DateTime? _scheduledAt;
+
+  /// Satu poster saja (gambar atau video): yang tampil poster baru, atau poster tersimpan kalau belum diganti.
+  List<FeedMediaEntity> get _posterShown {
+    if (_poster.isNotEmpty) return _poster;
+    if (_existingPoster != null && !_removedExisting) return [_existingPoster!];
+    return const [];
+  }
+
+  void _onPosterChanged(List<FeedMediaEntity> next) {
+    setState(() {
+      if (next.isEmpty) {
+        // Menghapus poster yang tersimpan (bukan poster baru yang baru dipilih).
+        if (_poster.isEmpty) _removedExisting = true;
+        _poster = const [];
+      } else {
+        // Poster baru menggantikan poster tersimpan di server saat kartu disimpan.
+        _removedExisting = false;
+        _poster = next.take(1).toList();
+      }
+    });
+  }
 
   @override
   void initState() {
     super.initState();
     AnalyticsService.logScreenView('marketing_feed_fame_form');
     final card = _args.card;
+    final existingUrl = card?.entry?.mediaUrl;
+    if (card != null && card.hasPoster && existingUrl != null) {
+      _existingPoster = FeedMediaEntity(
+        url: existingUrl,
+        isVideo: card.mediaType == 'video',
+      );
+    }
     _programCtrl = TextEditingController(text: _args.programName ?? '');
     _periodeCtrl = TextEditingController(text: _args.periodeLabel ?? '');
     _kategoriCtrl = TextEditingController(text: card?.kategori ?? '');
@@ -189,12 +223,18 @@ class _FameFormPageState extends State<FameFormPage> {
       winners: inputs,
       poster: _poster.isEmpty ? null : _poster.first,
     );
+    final cardId = _args.card?.id;
     final error = await context.read<FameFormCubit>().save(
       params,
-      cardId: _args.card?.id,
+      cardId: cardId,
     );
     if (!mounted) return;
     if (error != null) return _msg(error);
+    // Poster tersimpan dihapus dari form (tanpa pengganti): hapus juga di server.
+    if (_removedExisting && _poster.isEmpty && cardId != null) {
+      await context.read<FameManageCubit>().deleteCardPoster(cardId);
+      if (!mounted) return;
+    }
     context.pop(true);
   }
 
@@ -309,15 +349,15 @@ class _FameFormPageState extends State<FameFormPage> {
         const FeedFormLabel('Poster (opsional)'),
         const SizedBox(height: 8),
         FeedMediaPickerGrid(
-          media: _poster,
+          media: _posterShown,
           maxItems: 1,
-          onChanged: (m) => setState(() => _poster = m),
+          onChanged: _onPosterChanged,
         ),
-        if (card != null && card.hasPoster && _poster.isEmpty)
+        if (_existingPoster != null && _poster.isEmpty && !_removedExisting)
           const Padding(
             padding: EdgeInsets.only(top: 6),
             child: Text(
-              'Poster saat ini tersimpan. Pilih file baru untuk menggantinya.',
+              'Poster saat ini tersimpan. Hapus untuk menggantinya dengan file baru.',
               style: TextStyle(fontSize: 12, color: Color(grey2Color)),
             ),
           ),

@@ -1,3 +1,4 @@
+import 'package:progress_group/features/marketing-feed/data/models/fame_program_model.dart';
 import 'package:progress_group/features/marketing-feed/domain/entities/fame_manage_entity.dart';
 
 /// Parser respons kelola Wall of Fame (wall-of-fame/access, manage, candidates, dan kartu).
@@ -44,6 +45,10 @@ FameAdminCardEntity parseFameAdminCard(Map<String, dynamic> raw) {
           timLabel: w['tim_label'] as String?,
         ),
     ],
+    // Bentuk Home hanya ada di daftar kelola (punya program_id); respons detail/simpan tidak punya.
+    entry: raw['program_id'] == null
+        ? null
+        : parseFameEntry(raw, {'nama_program': raw['program']}),
   );
 }
 

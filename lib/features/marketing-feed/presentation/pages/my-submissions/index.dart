@@ -1,23 +1,32 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:progress_group/core/constants/assets.dart';
 import 'package:progress_group/core/constants/colors.dart';
 import 'package:progress_group/core/services/analytics_service.dart';
-import 'package:progress_group/core/utils/helpers/date_helper.dart';
-import 'package:progress_group/core/utils/widget/custom_header.dart';
-import 'package:progress_group/features/marketing-feed/domain/entities/feed_post_entity.dart';
-import 'package:progress_group/features/marketing-feed/presentation/pages/fame-manage/index.dart';
-import 'package:progress_group/features/marketing-feed/presentation/state/marketing_feed/marketing_feed_cubit.dart';
 import 'package:progress_group/core/utils/helpers/permissions_helper.dart';
-import 'package:progress_group/features/marketing-feed/presentation/widgets/feed_approval_list.dart';
-import 'package:progress_group/features/marketing-feed/presentation/widgets/feed_published_list.dart';
+import 'package:progress_group/core/utils/widget/custom_button.dart';
+import 'package:progress_group/core/utils/widget/custom_filter_button.dart';
+import 'package:progress_group/core/utils/widget/custom_header.dart';
+import 'package:progress_group/features/marketing-feed/domain/entities/fame_manage_entity.dart';
+import 'package:progress_group/features/marketing-feed/domain/entities/fame_program_entity.dart';
+import 'package:progress_group/features/marketing-feed/domain/entities/feed_list_entity.dart';
+import 'package:progress_group/features/marketing-feed/domain/entities/feed_post_entity.dart';
+import 'package:progress_group/features/marketing-feed/presentation/pages/fame-form/index.dart';
+import 'package:progress_group/features/marketing-feed/presentation/state/fame_manage/fame_manage_cubit.dart';
+import 'package:progress_group/features/marketing-feed/presentation/state/feed_list/feed_list_cubit.dart';
+import 'package:progress_group/features/marketing-feed/presentation/widgets/feed_action_button.dart';
 import 'package:progress_group/features/marketing-feed/presentation/widgets/feed_create_tabs.dart';
-import 'package:progress_group/features/marketing-feed/presentation/widgets/feed_link_default_thumb.dart';
-import 'package:progress_group/features/marketing-feed/presentation/widgets/feed_media_view.dart';
+import 'package:progress_group/features/marketing-feed/presentation/widgets/feed_manage_card.dart';
+import 'package:progress_group/features/marketing-feed/presentation/widgets/feed_review_actions.dart';
 import 'package:progress_group/features/marketing-feed/presentation/widgets/feed_section.dart';
 
+/// Feeds: satu daftar untuk kiriman dan kartu Wall of Fame, dengan pencarian, filter (status, jenis),
+/// urutan, dan paginasi. Kartu yang sama untuk semua baris; tombol mengikuti status dan izin.
 class FeedMySubmissionsPage extends StatefulWidget {
-  /// 'approval' = buka langsung di tab Persetujuan (dari notifikasi kiriman yang menunggu persetujuan).
+  /// 'approval' = buka langsung dengan filter Persetujuan (dari notifikasi kiriman yang menunggu persetujuan).
   final String? initialTab;
 
   const FeedMySubmissionsPage({super.key, this.initialTab});
@@ -27,44 +36,28 @@ class FeedMySubmissionsPage extends StatefulWidget {
 }
 
 class _FeedMySubmissionsPageState extends State<FeedMySubmissionsPage> {
-  final _scrollController = ScrollController();
-  List<FeedPostEntity> _items = [];
-  bool _isLoading = true;
-  bool _isLoadingMore = false;
-  bool _hasMore = false;
-  int _currentPage = 1;
-  String? _errorMessage;
-  // Tab seperti prototype: Draf, Ditinjau (menunggu Tim Marketing), Tayang, Ditolak.
-  String _status = 'draft';
-  // Dipakai + di bawah untuk membuka form kartu Wall of Fame saat tab Wall of Fame aktif.
-  final _fameKey = GlobalKey<FameManagePageState>();
-  static const _tabs = [
-    ('draft', 'Draf'),
-    ('scheduled', 'Terjadwal'),
-    ('review', 'Ditinjau'),
-    ('published', 'Tayang'),
-    ('rejected', 'Ditolak'),
-  ];
+  static const _pollInterval = Duration(seconds: 30);
 
-  /// Tab tambahan "Wall of Fame" (lihat & edit kartu) hanya untuk user yang punya izin edit.
-  List<(String, String)> get _visibleTabs => [
-    ..._tabs,
-    if (FeedCreateTabs.fameEditable) ('fame', 'Wall of Fame'),
-    // Persetujuan kiriman sales: hanya untuk user dengan izin ApproveReject (superuser selalu punya).
-    if (PermissionsHelper.canApproveMarketingFeed) ('approval', 'Persetujuan'),
-  ];
+  final _scrollController = ScrollController();
+  final _searchController = TextEditingController();
+  Timer? _pollTimer;
 
   @override
   void initState() {
     super.initState();
     AnalyticsService.logScreenView('marketing_feed_my_submissions');
     _scrollController.addListener(_onScroll);
-    if (widget.initialTab == 'approval' && PermissionsHelper.canApproveMarketingFeed) {
-      _status = 'approval';
+
+    final cubit = context.read<FeedListCubit>();
+    if (widget.initialTab == 'approval' &&
+        PermissionsHelper.canApproveMarketingFeed) {
+      cubit.setFilter(statuses: {'approval'}, kinds: {'post'});
     } else {
-      _fetch();
+      cubit.load();
     }
-    // Tab "Wall of Fame" hanya muncul kalau user punya izin edit (hak akses dimuat ulang di sini).
+    _pollTimer = Timer.periodic(_pollInterval, (_) => cubit.load(silent: true));
+
+    // Kartu Wall of Fame hanya muncul kalau user punya izin edit (hak akses dimuat ulang di sini).
     FeedCreateTabs.refreshFameAccess(context).then((_) {
       if (mounted) setState(() {});
     });
@@ -72,103 +65,188 @@ class _FeedMySubmissionsPageState extends State<FeedMySubmissionsPage> {
 
   @override
   void dispose() {
+    _pollTimer?.cancel();
     _scrollController.dispose();
+    _searchController.dispose();
     super.dispose();
   }
 
   void _onScroll() {
     if (_scrollController.position.pixels >=
         _scrollController.position.maxScrollExtent - 250) {
-      if (!_isLoading && !_isLoadingMore && _hasMore) {
-        _loadMore();
-      }
+      context.read<FeedListCubit>().loadMore();
     }
   }
 
-  Future<void> _fetch() async {
-    setState(() {
-      _isLoading = true;
-      _errorMessage = null;
-    });
-
-    final result = await context.read<MarketingFeedCubit>().getMySubmissions(
-      status: _status,
-    );
-
+  void _message(String text) {
     if (!mounted) return;
-
-    result.fold(
-      (error) => setState(() {
-        _isLoading = false;
-        _errorMessage = error;
-      }),
-      (page) => setState(() {
-        _isLoading = false;
-        _items = page.items;
-        _currentPage = page.currentPage;
-        _hasMore = page.hasMore;
-      }),
-    );
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(text)));
   }
 
-  Future<void> _loadMore() async {
-    setState(() => _isLoadingMore = true);
-    final result = await context.read<MarketingFeedCubit>().getMySubmissions(
-      page: _currentPage + 1,
-      status: _status,
-    );
-
-    if (!mounted) return;
-
-    result.fold(
-      (error) => setState(() => _isLoadingMore = false),
-      (page) => setState(() {
-        _isLoadingMore = false;
-        _items = [..._items, ...page.items];
-        _currentPage = page.currentPage;
-        _hasMore = page.hasMore;
-      }),
-    );
-  }
-
-  Future<void> _togglePin(FeedPostEntity post) async {
-    final pinned = !post.profilePinned;
-    final error = await context.read<MarketingFeedCubit>().setProfilePin(
-      post.id,
-      pinned: pinned,
-    );
-    if (!mounted) return;
-    if (error != null) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(error)));
-      return;
-    }
-    setState(() {
-      _items = [
-        for (final p in _items)
-          p.id == post.id ? p.copyWith(profilePinned: pinned) : p,
-      ];
-    });
-  }
-
-  void _openDetail(FeedPostEntity post) {
+  void _openPost(FeedPostEntity post) {
     context.pushNamed(
       'marketingFeedDetail',
       queryParameters: {'feed_post_id': post.id.toString()},
     );
   }
 
-  /// + seperti di Home: buat kiriman baru. Di tab Wall of Fame, + yang sama membuka form kartu Wall of Fame.
+  Future<void> _pin(FeedPostEntity post) async {
+    final error = await context.read<FeedListCubit>().setProfilePin(
+      post.id,
+      pinned: !post.profilePinned,
+    );
+    if (error != null) _message(error);
+  }
+
+  // ------------------------------------------------------------------ tombol +
+
+  /// + seperti di Home: pilih membuat kiriman atau kartu Wall of Fame.
   Future<void> _onFabTap() async {
-    if (_status == 'fame') {
-      _fameKey.currentState?.openNewCard();
+    final choice = await showModalBottomSheet<String>(
+      context: context,
+      showDragHandle: true,
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            ListTile(
+              leading: const Icon(
+                Icons.add_photo_alternate_outlined,
+                color: Color(primaryColor),
+              ),
+              title: const Text('Bagikan momen'),
+              onTap: () => Navigator.pop(ctx, 'post'),
+            ),
+            if (FeedCreateTabs.fameEditable)
+              ListTile(
+                leading: const Icon(
+                  Icons.emoji_events_outlined,
+                  color: Color(orangeAccentColor),
+                ),
+                title: const Text('Wall of Fame baru'),
+                onTap: () => Navigator.pop(ctx, 'fame'),
+              ),
+          ],
+        ),
+      ),
+    );
+    if (!mounted || choice == null) return;
+    if (choice == 'fame') {
+      await _newFame();
       return;
     }
     AnalyticsService.logEvent('marketing_feed_fab');
     await context.pushNamed<bool>('marketingFeedPostForm');
-    if (mounted) _fetch();
+    if (mounted) context.read<FeedListCubit>().load(silent: true);
   }
+
+  // ------------------------------------------------------------------ Wall of Fame
+
+  /// Form kartu Wall of Fame baru. Program dan izin dimuat dulu supaya pilihan program lengkap.
+  Future<void> _newFame() async {
+    final manage = context.read<FameManageCubit>();
+    await manage.load();
+    if (!mounted) return;
+    final state = manage.state;
+    final saved = await context.pushNamed<bool>(
+      'marketingFameForm',
+      extra: FameFormArgs(
+        programs: state.programs,
+        canCreateProgram: state.access?.canCreateProgram ?? false,
+      ),
+    );
+    if (saved == true && mounted) {
+      _message('Wall of Fame disimpan');
+      context.read<FeedListCubit>().load(silent: true);
+    }
+  }
+
+  /// Ubah kartu: form yang sama dengan halaman kelola Wall of Fame.
+  Future<void> _editFame(FameListCardEntity card) async {
+    final manage = context.read<FameManageCubit>();
+    await manage.load();
+    if (!mounted) return;
+    final state = manage.state;
+    final saved = await context.pushNamed<bool>(
+      'marketingFameForm',
+      extra: FameFormArgs(
+        card: _toAdminCard(card),
+        programName: card.program,
+        periodeLabel: card.periode,
+        programs: state.programs,
+        canCreateProgram: state.access?.canCreateProgram ?? false,
+      ),
+    );
+    if (saved == true && mounted) {
+      _message('Wall of Fame disimpan');
+      context.read<FeedListCubit>().load(silent: true);
+    }
+  }
+
+  FameAdminCardEntity _toAdminCard(FameListCardEntity card) {
+    return FameAdminCardEntity(
+      id: card.id,
+      kategori: card.kategori,
+      caption: card.caption,
+      status: card.status,
+      publishAt: card.publishAt,
+      mediaId: card.mediaId,
+      mediaType: card.mediaType,
+      winners: card.winners,
+      entry: FameEntryEntity(
+        id: card.id,
+        programId: 0,
+        programName: card.program,
+        kategori: card.kategori,
+        caption: card.caption,
+        mediaType: card.mediaType,
+        mediaUrl: card.mediaUrl,
+      ),
+    );
+  }
+
+  Future<void> _deleteFame(FameListCardEntity card) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Hapus Wall of Fame ini?'),
+        content: const Text(
+          'Juara dan poster di Wall of Fame ini ikut dihapus.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Batal'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text(
+              'Hapus',
+              style: TextStyle(color: Color(redAccentColor)),
+            ),
+          ),
+        ],
+      ),
+    );
+    if (ok != true || !mounted) return;
+    AnalyticsService.logEvent('marketing_feed_fame_delete');
+    final error = await context.read<FeedListCubit>().deleteFame(card.id);
+    _message(error ?? 'Wall of Fame dihapus');
+  }
+
+  Future<void> _publishFame(FameListCardEntity card) async {
+    AnalyticsService.logEvent('marketing_feed_fame_publish');
+    final error = await context.read<FeedListCubit>().setFameStatus(
+      card.id,
+      'published',
+    );
+    _message(error ?? 'Kartu ditayangkan');
+  }
+
+  // ------------------------------------------------------------------ layar
 
   @override
   Widget build(BuildContext context) {
@@ -182,330 +260,626 @@ class _FeedMySubmissionsPageState extends State<FeedMySubmissionsPage> {
       ),
       body: SafeArea(
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             customHeader(context, 'Feeds', isBack: true),
-            _buildTabs(),
-            Expanded(child: _buildBody()),
+            _buildSearch(),
+            _buildFilters(),
+            Expanded(child: _buildList()),
           ],
         ),
       ),
     );
   }
 
-  void _selectTab(String status) {
-    if (status == _status) return;
-    setState(() {
-      _status = status;
-      _items = [];
-      _currentPage = 1;
-      _hasMore = false;
-    });
-    // Tab Wall of Fame memakai daftarnya sendiri (FameManagePage), tidak memuat kiriman.
-    // Tab Persetujuan dan Tayang (untuk izin ApproveReject) memuat datanya sendiri.
-    final ownList = !(status == 'published' && PermissionsHelper.canApproveMarketingFeed);
-    if (status != 'fame' && status != 'approval' && ownList) _fetch();
+  Widget _buildSearch() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+      child: Container(
+        
+        decoration: BoxDecoration(
+          color: const Color(whiteColor),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: const Color(grey10Color)),
+        ),
+        child: TextField(
+          controller: _searchController,
+          textInputAction: TextInputAction.search,
+          onChanged: (v) {
+            context.read<FeedListCubit>().setQuery(v);
+            setState(() {});
+          },
+          decoration: InputDecoration(
+            hintText: 'Cari nama, caption, atau judul link',
+            prefixIcon: Image.asset(icSearch),
+            suffixIcon: _searchController.text.isEmpty
+                ? null
+                : IconButton(
+                    icon: const Icon(Icons.close_rounded),
+                    onPressed: () {
+                      _searchController.clear();
+                      context.read<FeedListCubit>().setQuery('');
+                      setState(() {});
+                    },
+                  ),
+            isDense: true,
+            contentPadding: const EdgeInsets.symmetric(vertical: 12),
+            border: InputBorder.none,
+          ),
+        ),
+      ),
+    );
   }
 
-  Widget _buildTabs() {
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      padding: const EdgeInsets.symmetric(horizontal: 12),
-      child: Row(
-        children: [
-          for (final (value, label) in _visibleTabs)
-            Padding(
-              padding: const EdgeInsets.only(right: 8, top: 8, bottom: 8),
-              child: ChoiceChip(
-                label: Text(label),
-                selected: _status == value,
-                selectedColor: const Color(
-                  primaryColor,
-                ).withValues(alpha: 0.15),
-                labelStyle: TextStyle(
-                  fontWeight: FontWeight.w700,
-                  color: _status == value
-                      ? const Color(primaryColor)
-                      : const Color(grey5Color),
-                ),
-                onSelected: (_) => _selectTab(value),
+  /// Urutkan dan Filter (membuka sheet), seperti filter di Contacts.
+  Widget _buildFilters() {
+    return BlocBuilder<FeedListCubit, FeedListState>(
+      buildWhen: (a, b) =>
+          a.sort != b.sort || a.statuses != b.statuses || a.kinds != b.kinds,
+      builder: (context, state) {
+        final sortLabel = feedListSortOptions
+            .firstWhere(
+              (o) => o.$1 == state.sort,
+              orElse: () => feedListSortOptions.first,
+            )
+            .$2;
+        final filterActive =
+            state.statuses.isNotEmpty || state.kinds.isNotEmpty;
+        return SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          child: Row(
+            children: [
+              CustomFilterButton(
+                label: 'Urutkan: $sortLabel',
+                isSelected: state.sort != 'latest',
+                onTap: () => _openSortSheet(context, state.sort),
+              ),
+              const SizedBox(width: 8),
+              CustomFilterButton(
+                label: filterActive ? 'Filter (aktif)' : 'Filter',
+                isSelected: filterActive,
+                onClear: filterActive
+                    ? () => context.read<FeedListCubit>().setFilter(
+                        statuses: {},
+                        kinds: {},
+                      )
+                    : null,
+                onTap: () => _openFilterSheet(context, state),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _openFilterSheet(
+    BuildContext context,
+    FeedListState state,
+  ) async {
+    final result =
+        await showModalBottomSheet<({Set<String> statuses, Set<String> kinds})>(
+          context: context,
+          isScrollControlled: true,
+          backgroundColor: const Color(backgroundColor),
+          builder: (ctx) =>
+              _FeedFilterSheet(statuses: state.statuses, kinds: state.kinds),
+        );
+    if (result != null && context.mounted) {
+      context.read<FeedListCubit>().setFilter(
+        statuses: result.statuses,
+        kinds: result.kinds,
+      );
+    }
+  }
+
+  Future<void> _openSortSheet(BuildContext context, String current) async {
+    final result = await showModalBottomSheet<String>(
+      context: context,
+      showDragHandle: true,
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Padding(
+              padding: EdgeInsets.fromLTRB(16, 0, 16, 8),
+              child: Text(
+                'Urutkan',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
               ),
             ),
+            for (final (key, label) in feedListSortOptions)
+              ListTile(
+                title: Text(label),
+                trailing: key == current
+                    ? const Icon(
+                        Icons.check_rounded,
+                        color: Color(primaryColor),
+                      )
+                    : null,
+                onTap: () => Navigator.pop(ctx, key),
+              ),
+          ],
+        ),
+      ),
+    );
+    if (result != null && context.mounted) {
+      context.read<FeedListCubit>().setSort(result);
+    }
+  }
+
+  Widget _buildList() {
+    return BlocBuilder<FeedListCubit, FeedListState>(
+      builder: (context, state) {
+        if (state.items.isEmpty) {
+          if (state.status == FeedListStatus.error) {
+            return Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      state.errorMessage ?? 'Gagal memuat kiriman.',
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        fontSize: 13,
+                        color: Color(grey2Color),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    ElevatedButton(
+                      onPressed: () => context.read<FeedListCubit>().load(),
+                      child: const Text('Coba Lagi'),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }
+          if (state.status == FeedListStatus.loading ||
+              state.status == FeedListStatus.initial) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          return RefreshIndicator(
+            onRefresh: () => context.read<FeedListCubit>().load(),
+            child: ListView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.all(24),
+              children: [
+                const SizedBox(height: 60),
+                FeedEmptyState(
+                  icon: state.filtered
+                      ? Icons.search_off_rounded
+                      : Icons.history_edu_outlined,
+                  title: state.filtered
+                      ? 'Tidak ada yang cocok'
+                      : 'Belum ada kiriman',
+                  message: state.filtered
+                      ? 'Coba kata kunci lain atau ubah filter.'
+                      : 'Bagikan momen closing atau kunjungan serumu lewat tombol +!',
+                ),
+              ],
+            ),
+          );
+        }
+
+        return RefreshIndicator(
+          onRefresh: () => context.read<FeedListCubit>().load(),
+          child: ListView.separated(
+            controller: _scrollController,
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.all(16),
+            itemCount: state.items.length + (state.hasMore ? 1 : 0),
+            separatorBuilder: (_, __) => const SizedBox(height: 12),
+            itemBuilder: (context, i) {
+              if (i >= state.items.length) {
+                return const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 16),
+                  child: Center(
+                    child: SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                  ),
+                );
+              }
+              final item = state.items[i];
+              final busy = state.busyKey == item.key;
+              return KeyedSubtree(
+                key: ValueKey(item.key),
+                child: item.post != null
+                    ? feedPostCard(
+                        post: item.post!,
+                        onTap: () => _openPost(item.post!),
+                        footer: _postFooter(context, item.post!, busy),
+                      )
+                    : fameListCard(
+                        card: item.fame!,
+                        onTap: () {
+                          if (FeedCreateTabs.fameEditable) _editFame(item.fame!);
+                        },
+                        footer: _fameFooter(item.fame!, busy),
+                      ),
+              );
+            },
+          ),
+        );
+      },
+    );
+  }
+
+  /// Tombol kiriman. Muncul sesuai status dan izin, bukan siapa pembuatnya:
+  /// - sematkan di profil: kiriman sendiri yang sudah tayang;
+  /// - setujui / jadwalkan / tolak: kiriman menunggu review (izin ApproveReject);
+  /// - turunkan tayang / hapus: kiriman tayang (izin ApproveReject).
+  Widget? _postFooter(BuildContext context, FeedPostEntity post, bool busy) {
+    final cubit = context.read<FeedListCubit>();
+    final canApprove = PermissionsHelper.canApproveMarketingFeed;
+    final rows = <Widget>[
+      if (post.isMine && post.status == FeedPostStatus.published)
+        FeedProfilePinButton(
+          pinned: post.profilePinned,
+          onPressed: busy ? null : () => _pin(post),
+        ),
+      if (canApprove && post.status == FeedPostStatus.review)
+        _actionRow(
+          red: FeedActionButton(
+            icon: Icons.close_rounded,
+            label: 'Tolak',
+            color: const Color(redAccentColor),
+            onPressed: busy ? null : () => rejectFeed(context, cubit, post.id),
+          ),
+          blue: FeedActionButton(
+            icon: Icons.schedule_rounded,
+            label: 'Jadwalkan',
+            color: const Color(primaryColor),
+            onPressed: busy ? null : () => scheduleFeed(context, cubit, post.id),
+          ),
+          green: FeedActionButton(
+            icon: Icons.check_rounded,
+            label: 'Setujui',
+            color: const Color(successColor),
+            filled: true,
+            loading: busy,
+            onPressed: busy ? null : () => approveFeed(context, cubit, post.id),
+          ),
+        ),
+      if (post.status == FeedPostStatus.published &&
+          (canApprove || PermissionsHelper.canDeleteMarketingFeed))
+        _actionRow(
+          red: PermissionsHelper.canDeleteMarketingFeed
+              ? FeedActionButton(
+                  icon: Icons.delete_outline_rounded,
+                  label: 'Hapus',
+                  color: const Color(redAccentColor),
+                  loading: busy,
+                  onPressed: busy ? null : () => deleteFeed(context, cubit, post.id),
+                )
+              : null,
+          blue: canApprove
+              ? FeedActionButton(
+                  icon: Icons.visibility_off_outlined,
+                  label: 'Turunkan tayang',
+                  color: const Color(primaryColor),
+                  onPressed: busy ? null : () => unpublishFeed(context, cubit, post.id),
+                )
+              : null,
+        ),
+    ];
+    return _stack(rows);
+  }
+
+  /// Tombol kartu Wall of Fame: hanya untuk user yang bisa mengelola Wall of Fame.
+  Widget? _fameFooter(FameListCardEntity card, bool busy) {
+    if (!FeedCreateTabs.fameEditable) return null;
+    return _actionRow(
+      red: FeedActionButton(
+        icon: Icons.delete_outline_rounded,
+        label: 'Hapus',
+        color: const Color(redAccentColor),
+        onPressed: busy ? null : () => _deleteFame(card),
+      ),
+      blue: FeedActionButton(
+        icon: Icons.edit_outlined,
+        label: 'Ubah',
+        color: const Color(primaryColor),
+        onPressed: busy ? null : () => _editFame(card),
+      ),
+      green: card.status != 'published'
+          ? FeedActionButton(
+              icon: Icons.send_rounded,
+              label: 'Tayangkan',
+              color: const Color(successColor),
+              filled: true,
+              loading: busy,
+              onPressed: busy ? null : () => _publishFame(card),
+            )
+          : null,
+    );
+  }
+
+  /// Tiga kolom berlebar di semua baris: merah kiri, biru tengah, hijau kanan.
+  /// Kolom yang kosong tetap ada, jadi lebar tombol sama di semua kartu.
+  Widget _actionRow({Widget? red, Widget? blue, Widget? green}) {
+    Widget slot(Widget? w) => Expanded(child: w ?? const SizedBox.shrink());
+    return Row(
+      children: [
+        slot(red),
+        const SizedBox(width: 8),
+        slot(blue),
+        const SizedBox(width: 8),
+        slot(green),
+      ],
+    );
+  }
+
+  Widget? _stack(List<Widget> rows) {
+    if (rows.isEmpty) return null;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        for (var i = 0; i < rows.length; i++) ...[
+          if (i > 0) const SizedBox(height: 4),
+          rows[i],
+        ],
+      ],
+    );
+  }
+}
+
+/// Sheet filter gaya Contacts: bagian dengan kartu putih, baris pilihan, dan tombol Terapkan di bawah.
+class _FeedFilterSheet extends StatefulWidget {
+  final Set<String> statuses;
+  final Set<String> kinds;
+
+  const _FeedFilterSheet({required this.statuses, required this.kinds});
+
+  @override
+  State<_FeedFilterSheet> createState() => _FeedFilterSheetState();
+}
+
+class _FeedFilterSheetState extends State<_FeedFilterSheet> {
+  final _canApprove = PermissionsHelper.canApproveMarketingFeed;
+  final _canFame = FeedCreateTabs.fameEditable;
+  late final List<(String, String)> _statusOpts;
+  late final Set<String> _statuses;
+  // Jenis: Wall of Fame dicentang = kartu fame ikut tampil (bersama kiriman); tidak dicentang = hanya kiriman.
+  late bool _includeFame;
+
+  @override
+  void initState() {
+    super.initState();
+    _statusOpts = feedListStatusOptions
+        .where((o) => o.$1 != 'approval' || _canApprove)
+        .toList();
+    // Kosong = semua, jadi tampilkan semua sebagai terpilih.
+    // Kecuali saat sebelumnya hanya Wall of Fame (tanpa status dicentang): tampilkan status kosong.
+    final fameOnly = widget.kinds.length == 1 && widget.kinds.contains('fame');
+    _statuses = widget.statuses.isEmpty && !fameOnly
+        ? {for (final o in _statusOpts) o.$1}
+        : {...widget.statuses};
+    // Kosong atau berisi 'fame' = kartu fame ikut tampil; hanya 'post' = tidak.
+    _includeFame =
+        _canFame && (widget.kinds.isEmpty || widget.kinds.contains('fame'));
+  }
+
+  bool get _allSelected =>
+      _statuses.length == _statusOpts.length && (!_canFame || _includeFame);
+
+  void _toggleStatus(String key) {
+    setState(
+      () =>
+          _statuses.contains(key) ? _statuses.remove(key) : _statuses.add(key),
+    );
+  }
+
+  void _toggleAll() {
+    setState(() {
+      if (_allSelected) {
+        _statuses.clear();
+        _includeFame = false;
+      } else {
+        _statuses
+          ..clear()
+          ..addAll(_statusOpts.map((o) => o.$1));
+        _includeFame = _canFame;
+      }
+    });
+  }
+
+  void _apply() {
+    Navigator.pop(context, (
+      // Status kosong = semua status.
+      statuses: _statuses.isEmpty || _statuses.length == _statusOpts.length
+          ? <String>{}
+          : {..._statuses},
+      // Wall of Fame dicentang tanpa status apa pun = hanya Wall of Fame.
+      // Wall of Fame tidak dicentang = hanya kiriman. Kosong = kiriman dan Wall of Fame.
+      kinds: !_canFame
+          ? <String>{}
+          : (!_includeFame
+                ? <String>{'post'}
+                : (_statuses.isEmpty ? <String>{'fame'} : <String>{})),
+    ));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final height = MediaQuery.sizeOf(context).height * 0.7;
+    // Tinggi mengikuti isi sheet, dengan batas atas 60% tinggi layar.
+    return ConstrainedBox(
+      constraints: BoxConstraints(maxHeight: height),
+      child: SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(8, 8, 8, 4),
+              child: Row(
+                children: [
+                  IconButton(
+                    onPressed: () => Navigator.pop(context),
+                    icon: const Icon(Icons.close_rounded),
+                  ),
+                  const Expanded(
+                    child: Text(
+                      'Filter',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: _allSelected ? null : _toggleAll,
+                    child: const Text('Reset'),
+                  ),
+                ],
+              ),
+            ),
+            Flexible(
+              child: ListView(
+                shrinkWrap: true,
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+                children: [
+                  _listCard([
+                    _row(
+                      icon: Icons.select_all_rounded,
+                      label: 'Semua',
+                      selected: _allSelected,
+                      onTap: _toggleAll,
+                    ),
+                    if (_canFame)
+                      _row(
+                        icon: Icons.emoji_events_outlined,
+                        label: 'Wall of Fame',
+                        selected: _includeFame,
+                        onTap: () =>
+                            setState(() => _includeFame = !_includeFame),
+                      ),
+                    for (final (key, label) in _statusOpts)
+                      _row(
+                        icon: _statusIcon(key),
+                        label: label,
+                        selected: _statuses.contains(key),
+                        onTap: () => _toggleStatus(key),
+                      ),
+                  ]),
+                ],
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+              child: SizedBox(
+                width: double.infinity,
+                height: 48,
+                child: customButton(
+                 _apply, 'Terapkan')
+                
+                
+                // FilledButton(
+                  
+                //   // Kosong di status atau jenis = semua, jadi tombol selalu bisa ditekan.
+                //   onPressed: ,
+                //   child: const Text('Terapkan'),
+                // ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Satu kartu putih berisi semua pilihan, dipisah garis tipis (tanpa judul bagian).
+  Widget _listCard(List<Widget> rows) {
+    return Container(
+      decoration: BoxDecoration(
+        color: const Color(whiteColor),
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(blackColor).withValues(alpha: 0.04),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          for (var i = 0; i < rows.length; i++) ...[
+            if (i > 0) const Divider(height: 1, indent: 56),
+            rows[i],
+          ],
         ],
       ),
     );
   }
 
-  Widget _buildBody() {
-    if (_status == 'fame') {
-      return FameManagePage(key: _fameKey, embedded: true);
-    }
-    // Tayang untuk user ApproveReject: semua kiriman tayang, dengan aksi turunkan tayang dan hapus.
-    if (_status == 'published' && PermissionsHelper.canApproveMarketingFeed) {
-      return const FeedPublishedList();
-    }
-    if (_status == 'approval') {
-      return const FeedApprovalList();
-    }
-    if (_isLoading) {
-      return const Center(child: CircularProgressIndicator());
-    }
-
-    if (_errorMessage != null) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                _errorMessage!,
-                textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 13, color: Color(grey2Color)),
-              ),
-              const SizedBox(height: 12),
-              ElevatedButton(onPressed: _fetch, child: const Text('Coba Lagi')),
-            ],
-          ),
-        ),
-      );
-    }
-
-    if (_items.isEmpty) {
-      return RefreshIndicator(
-        onRefresh: _fetch,
-        child: ListView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          padding: const EdgeInsets.all(24),
-          children: const [
-            SizedBox(height: 60),
-            FeedEmptyState(
-              icon: Icons.history_edu_outlined,
-              title: 'Belum ada kiriman',
-              message:
-                  'Bagikan momen closing atau kunjungan serumu lewat tombol Bagikan Momen!',
-            ),
-          ],
-        ),
-      );
-    }
-
-    return RefreshIndicator(
-      onRefresh: _fetch,
-      child: ListView.separated(
-        controller: _scrollController,
-        physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.all(16),
-        itemCount: _items.length + (_hasMore ? 1 : 0),
-        separatorBuilder: (_, __) => const SizedBox(height: 12),
-        itemBuilder: (context, i) {
-          if (i >= _items.length) {
-            return const Padding(
-              padding: EdgeInsets.symmetric(vertical: 16),
-              child: Center(
-                child: SizedBox(
-                  width: 20,
-                  height: 20,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                ),
-              ),
-            );
-          }
-          return _buildItemCard(_items[i]);
-        },
-      ),
-    );
-  }
-
-  Widget _buildItemCard(FeedPostEntity post) {
-    final thumb = post.thumbnail;
-    final timeStr = post.submittedAt != null
-        ? 'Dikirim ${DateHelper.timeAgo(post.submittedAt!)}'
-        : 'Dikirim ${DateHelper.timeAgo(post.publishAt)}';
-
+  Widget _row({
+    required IconData icon,
+    required String label,
+    required bool selected,
+    required VoidCallback onTap,
+  }) {
     return InkWell(
-      onTap: () => _openDetail(post),
-      borderRadius: BorderRadius.circular(10),
-      child: Container(
-        padding: const EdgeInsets.all(12),
-        decoration: feedCardDecoration(),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        child: Row(
           children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(8),
-                  child: SizedBox(
-                    width: 68,
-                    height: 68,
-                    child: thumb != null
-                        ? FeedMediaView(media: thumb, compact: true)
-                        : post.link != null
-                        ? FeedLinkDefaultThumb(
-                            platform: post.link!.platform,
-                            compact: true,
-                          )
-                        : ColoredBox(
-                            color: const Color(grey10Color),
-                            child: Icon(
-                              post.type == FeedPostType.poll
-                                  ? Icons.poll_outlined
-                                  : Icons.photo_outlined,
-                              color: const Color(grey4Color),
-                            ),
-                          ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          _buildStatusBadge(post),
-                          const Icon(
-                            Icons.chevron_right,
-                            size: 18,
-                            color: Color(grey4Color),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        post.text.isNotEmpty
-                            ? post.plainText
-                            : 'Momen tanpa cerita teks',
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontSize: 13.5,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        timeStr,
-                        style: const TextStyle(
-                          fontSize: 11.5,
-                          color: Color(grey2Color),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
+            Container(
+              width: 32,
+              height: 32,
+              decoration: BoxDecoration(
+                color: const Color(primaryColor).withValues(alpha: 0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, size: 17, color: const Color(primaryColor)),
             ),
-            if (post.status == FeedPostStatus.rejected &&
-                post.rejectReason != null) ...[
-              const SizedBox(height: 10),
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: const Color(redAccentColor).withValues(alpha: 0.08),
-                  borderRadius: BorderRadius.circular(6),
-                  border: Border.all(
-                    color: const Color(redAccentColor).withValues(alpha: 0.3),
-                  ),
-                ),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Icon(
-                      Icons.info_outline,
-                      size: 14,
-                      color: Color(redAccentColor),
-                    ),
-                    const SizedBox(width: 6),
-                    Expanded(
-                      child: Text(
-                        'Alasan penolakan: ${post.rejectReason}',
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: Color(redAccentColor),
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                  ],
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                label,
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
-            ],
-            if (post.status == FeedPostStatus.published) ...[
-              const SizedBox(height: 6),
-              Align(
-                alignment: Alignment.centerRight,
-                child: TextButton.icon(
-                  onPressed: () => _togglePin(post),
-                  icon: Icon(
-                    post.profilePinned
-                        ? Icons.push_pin
-                        : Icons.push_pin_outlined,
-                    size: 16,
-                  ),
-                  label: Text(
-                    post.profilePinned ? 'Lepas sematan' : 'Sematkan di profil',
-                  ),
-                ),
-              ),
-            ],
+            ),
+            Icon(
+              selected
+                  ? Icons.check_box_rounded
+                  : Icons.check_box_outline_blank_rounded,
+              color: selected
+                  ? const Color(primaryColor)
+                  : const Color(grey4Color),
+            ),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildStatusBadge(FeedPostEntity post) {
-    final String label;
-    final Color bgColor;
-    final Color textColor;
-
-    switch (post.status) {
-      case FeedPostStatus.review:
-        label = 'Menunggu review';
-        bgColor = const Color(orangeAccentColor).withValues(alpha: 0.15);
-        textColor = const Color(orangeAccentColor);
-        break;
-      case FeedPostStatus.scheduled:
-        label =
-            'Disetujui, tayang ${DateHelper.relativeDayTime(post.publishAt)}';
-        bgColor = const Color(blueShade50Color);
-        textColor = const Color(primaryColor);
-        break;
-      case FeedPostStatus.published:
-        label = 'Sudah tayang';
-        bgColor = const Color(greenMaterialColor).withValues(alpha: 0.15);
-        textColor = const Color(greenMaterialColor);
-        break;
-      case FeedPostStatus.rejected:
-        label = 'Ditolak';
-        bgColor = const Color(redAccentColor).withValues(alpha: 0.15);
-        textColor = const Color(redAccentColor);
-        break;
+  IconData _statusIcon(String key) {
+    switch (key) {
+      case 'draft':
+        return Icons.edit_note_rounded;
+      case 'scheduled':
+        return Icons.schedule_rounded;
+      case 'review':
+        return Icons.hourglass_empty_rounded;
+      case 'published':
+        return Icons.check_circle_outline_rounded;
+      case 'rejected':
+        return Icons.cancel_outlined;
       default:
-        label = post.status.name;
-        bgColor = const Color(grey10Color);
-        textColor = const Color(grey2Color);
-        break;
+        return Icons.fact_check_outlined;
     }
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-      decoration: BoxDecoration(
-        color: bgColor,
-        borderRadius: BorderRadius.circular(6),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(
-          fontSize: 11,
-          fontWeight: FontWeight.w800,
-          color: textColor,
-        ),
-      ),
-    );
   }
 }

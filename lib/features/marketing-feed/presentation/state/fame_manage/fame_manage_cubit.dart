@@ -43,10 +43,12 @@ class FameManageCubit extends Cubit<FameManageState> {
     List<FameManageProgramEntity>? programs;
     result.fold((m) => error = m, (p) => programs = p);
     if (error != null) {
+      // Hak akses sudah valid walau daftar program gagal: jangan hilangkan izin user (sumber tombol & filter Wall of Fame).
       emit(
         state.copyWith(
           status: FameManageStatus.error,
           errorMessage: error,
+          access: access ?? state.access,
           busy: false,
         ),
       );

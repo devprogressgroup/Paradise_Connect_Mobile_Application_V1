@@ -1,15 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:progress_group/core/constants/colors.dart';
 import 'package:progress_group/core/services/analytics_service.dart';
 import 'package:progress_group/core/utils/widget/custom_header.dart';
 import 'package:progress_group/features/marketing-feed/domain/entities/fame_manage_entity.dart';
-import 'package:progress_group/features/marketing-feed/domain/entities/feed_post_entity.dart';
 import 'package:progress_group/features/marketing-feed/presentation/pages/fame-form/index.dart';
 import 'package:progress_group/features/marketing-feed/presentation/state/fame_manage/fame_manage_cubit.dart';
 import 'package:progress_group/features/marketing-feed/presentation/state/fame_manage/fame_manage_state.dart';
+import 'package:progress_group/features/marketing-feed/presentation/widgets/fame_programs_section.dart';
 import 'package:progress_group/features/marketing-feed/presentation/widgets/feed_section.dart';
 
 /// Kelola Wall of Fame (admin mobile). Hak akses dari backend (t_feed_fame_perm): tanpa can_edit,
@@ -78,23 +77,6 @@ class FameManagePageState extends State<FameManagePage> {
     }
   }
 
-  Future<void> _pickPoster(int cardId) async {
-    final x = await ImagePicker().pickMedia(imageQuality: 80);
-    if (x == null || !mounted) return;
-    final bytes = await x.readAsBytes();
-    final media = FeedMediaEntity(
-      bytes: bytes,
-      fileName: x.name,
-      filePath: x.path,
-      isVideo: (x.mimeType ?? '').startsWith('video/'),
-    );
-    AnalyticsService.logEvent('marketing_feed_fame_poster_upload');
-    await _runAction(
-      context.read<FameManageCubit>().uploadCardPoster(cardId, media),
-      'Poster diunggah',
-    );
-  }
-
   Future<bool> _confirm(String title, String message) async {
     final ok = await showDialog<bool>(
       context: context,
@@ -128,25 +110,16 @@ class FameManagePageState extends State<FameManagePage> {
           cubit.setStatus(card.id, 'published'),
           'Kartu ditayangkan',
         );
-      case 'draft':
-        await _runAction(
-          cubit.setStatus(card.id, 'draft'),
-          'Dikembalikan ke draf',
-        );
       case 'edit':
         await _openForm(card: card);
-      case 'poster':
-        await _pickPoster(card.id);
-      case 'poster_delete':
-        await _runAction(cubit.deleteCardPoster(card.id), 'Poster dihapus');
       case 'delete':
         final ok = await _confirm(
-          'Hapus kartu ini?',
-          'Juara dan poster di kartu ini ikut dihapus.',
+          'Hapus Wall of Fame ini?',
+          'Juara dan poster di Wall of Fame ini ikut dihapus.',
         );
         if (!ok) return;
         AnalyticsService.logEvent('marketing_feed_fame_delete');
-        await _runAction(cubit.deleteCard(card.id), 'Kartu dihapus');
+        await _runAction(cubit.deleteCard(card.id), 'Wall of Fame dihapus');
     }
   }
 
@@ -274,163 +247,36 @@ class FameManagePageState extends State<FameManagePage> {
     );
   }
 
+  /// Kartu kelola memakai tampilan kartu Home. Badge status dan menu aksi ditaruh di header kanan.
   Widget _buildCard(FameAdminCardEntity card, bool busy) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: const Color(whiteColor),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(grey10Color)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+    final entry = card.entry;
+    if (entry == null) return const SizedBox.shrink();
+    return FameEntryTile(
+      entry: entry,
+      showActions: false,
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Row(
-            children: [
-              Expanded(
+          _statusBadge(card),
+          PopupMenuButton<String>(
+            enabled: !busy,
+            icon: const Icon(Icons.more_vert, color: Color(whiteColor), size: 20),
+            onSelected: (v) => _onMenu(v, card),
+            itemBuilder: (_) => [
+              if (card.status != 'published')
+                const PopupMenuItem(
+                  value: 'publish',
+                  child: Text('Tayangkan sekarang'),
+                ),
+              const PopupMenuItem(value: 'edit', child: Text('Ubah')),
+              const PopupMenuItem(
+                value: 'delete',
                 child: Text(
-                  card.kategori.toUpperCase(),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontSize: 13.5,
-                    fontWeight: FontWeight.w800,
-                    color: Color(primaryColor),
-                  ),
+                  'Hapus Wall of Fame',
+                  style: TextStyle(color: Color(redAccentColor)),
                 ),
-              ),
-              _statusBadge(card),
-              PopupMenuButton<String>(
-                enabled: !busy,
-                onSelected: (v) => _onMenu(v, card),
-                itemBuilder: (_) => [
-                  if (card.status != 'published')
-                    const PopupMenuItem(
-                      value: 'publish',
-                      child: Text('Tayangkan sekarang'),
-                    ),
-                  if (card.status != 'draft')
-                    const PopupMenuItem(value: 'draft', child: Text('Ke draf')),
-                  const PopupMenuItem(value: 'edit', child: Text('Ubah')),
-                  PopupMenuItem(
-                    value: 'poster',
-                    child: Text(
-                      card.hasPoster ? 'Ganti poster' : 'Unggah poster',
-                    ),
-                  ),
-                  if (card.hasPoster)
-                    const PopupMenuItem(
-                      value: 'poster_delete',
-                      child: Text('Hapus poster'),
-                    ),
-                  const PopupMenuItem(
-                    value: 'delete',
-                    child: Text(
-                      'Hapus kartu',
-                      style: TextStyle(color: Color(redAccentColor)),
-                    ),
-                  ),
-                ],
               ),
             ],
-          ),
-          if (card.caption != null && card.caption!.isNotEmpty)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 6),
-              child: Text(
-                card.caption!,
-                style: const TextStyle(
-                  fontSize: 12.5,
-                  color: Color(grey1Color),
-                ),
-              ),
-            ),
-          const SizedBox(height: 4),
-          for (final w in card.winners) _buildWinnerRow(w),
-          const SizedBox(height: 4),
-          Row(
-            children: [
-              Icon(
-                card.hasPoster
-                    ? Icons.image_outlined
-                    : Icons.hide_image_outlined,
-                size: 14,
-                color: const Color(grey2Color),
-              ),
-              const SizedBox(width: 4),
-              Text(
-                card.hasPoster ? 'Poster ada' : 'Tanpa poster',
-                style: const TextStyle(
-                  fontSize: 11.5,
-                  color: Color(grey2Color),
-                ),
-              ),
-              const Spacer(),
-              TextButton.icon(
-                onPressed: busy ? null : () => _openForm(card: card),
-                icon: const Icon(Icons.edit_outlined, size: 16),
-                label: const Text('Ubah'),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildWinnerRow(FameAdminWinnerEntity w) {
-    final sub = [
-      w.posisiLabel,
-      w.timLabel,
-    ].where((s) => s != null && s.isNotEmpty).join(' · ');
-    final top = w.ranking == 1;
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        children: [
-          Container(
-            width: 26,
-            height: 26,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: top
-                  ? const Color(orangeAccentColor)
-                  : const Color(grey10Color),
-            ),
-            child: Text(
-              w.rankText,
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w800,
-                color: top ? const Color(whiteColor) : const Color(grey1Color),
-              ),
-            ),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  w.name,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                if (sub.isNotEmpty)
-                  Text(
-                    sub,
-                    style: const TextStyle(
-                      fontSize: 11.5,
-                      color: Color(grey2Color),
-                    ),
-                  ),
-              ],
-            ),
           ),
         ],
       ),

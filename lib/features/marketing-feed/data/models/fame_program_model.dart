@@ -16,7 +16,8 @@ FameWinnerEntity _parseWinner(Map<dynamic, dynamic> w) => FameWinnerEntity(
   isSeri: w['is_seri'] == true,
 );
 
-FameEntryEntity _parseCard(
+/// Satu kartu Wall of Fame (bentuk sama dengan Home). Dipakai juga oleh halaman kelola.
+FameEntryEntity parseFameEntry(
   Map<dynamic, dynamic> e,
   Map<dynamic, dynamic> program,
 ) {
@@ -72,7 +73,7 @@ List<FameProgramEntity> parseFamePrograms(List<dynamic> items) {
               kategori: (c['kategori'] ?? '') as String,
               entries: [
                 for (final e in (c['entries'] as List? ?? const []))
-                  _parseCard(e as Map, raw as Map),
+                  parseFameEntry(e as Map, raw as Map),
               ],
             ),
         ],
