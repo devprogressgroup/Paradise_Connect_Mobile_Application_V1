@@ -6,14 +6,13 @@ import 'package:progress_group/features/marketing-feed/domain/repositories/marke
 
 enum FeedListStatus { initial, loading, loaded, error }
 
-/// Status yang bisa difilter, urut dari Draf sampai Persetujuan. 'approval' = review dari orang lain (ApproveReject).
+/// Status yang bisa difilter. Ditinjau berisi semua review untuk approver (ApproveReject), dan review sendiri untuk yang lain.
 const feedListStatusOptions = <(String, String)>[
   ('draft', 'Draf'),
   ('scheduled', 'Terjadwal'),
   ('review', 'Ditinjau'),
   ('published', 'Tayang'),
   ('rejected', 'Ditolak'),
-  ('approval', 'Persetujuan'),
 ];
 
 /// Jenis baris di daftar: kiriman (post) dan kartu Wall of Fame (fame).

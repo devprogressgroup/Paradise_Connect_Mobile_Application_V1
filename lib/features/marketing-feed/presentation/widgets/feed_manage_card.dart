@@ -160,14 +160,22 @@ FeedManageCard feedPostCard({
         // Tanpa media: gambar dicoret sebagai default.
         : const ColoredBox(
             color: Color(grey10Color),
-            child: Icon(Icons.image_not_supported_outlined, color: Color(grey4Color)),
+            child: Icon(
+              Icons.image_not_supported_outlined,
+              color: Color(grey4Color),
+            ),
           ),
     badge: FeedStatusBadge(post: post),
-    title: post.text.isNotEmpty ? post.plainText : 'Momen tanpa cerita teks',
+    // Kiriman biasa/poll: caption. Link: judul link (plainText), bila kosong baru pakai teks default.
+    title: post.plainText.trim().isNotEmpty
+        ? post.plainText
+        : 'Momen tanpa cerita teks',
     timeText: post.submittedAt != null
         ? 'Dikirim ${DateHelper.timeAgo(post.submittedAt!)}'
         : 'Dikirim ${DateHelper.timeAgo(post.publishAt)}',
-    rejectReason: post.status == FeedPostStatus.rejected ? post.rejectReason : null,
+    rejectReason: post.status == FeedPostStatus.rejected
+        ? post.rejectReason
+        : null,
     onTap: onTap,
     footer: footer,
   );
@@ -241,7 +249,8 @@ class FeedStatusBadge extends StatelessWidget {
         );
       case FeedPostStatus.scheduled:
         return FeedStatusPill(
-          label: 'Disetujui, tayang ${DateHelper.relativeDayTime(post.publishAt)}',
+          label:
+              'Disetujui, tayang ${DateHelper.relativeDayTime(post.publishAt)}',
           bg: blueShade50Color,
           fg: primaryColor,
           solidBg: true,
@@ -289,11 +298,25 @@ class FeedStatusPill extends StatelessWidget {
   factory FeedStatusPill.fame(String status) {
     switch (status) {
       case 'published':
-        return const FeedStatusPill(label: 'Tayang', bg: greenMaterialColor, fg: greenMaterialColor);
+        return const FeedStatusPill(
+          label: 'Tayang',
+          bg: greenMaterialColor,
+          fg: greenMaterialColor,
+        );
       case 'scheduled':
-        return const FeedStatusPill(label: 'Terjadwal', bg: blueShade50Color, fg: primaryColor, solidBg: true);
+        return const FeedStatusPill(
+          label: 'Terjadwal',
+          bg: blueShade50Color,
+          fg: primaryColor,
+          solidBg: true,
+        );
       default:
-        return const FeedStatusPill(label: 'Draf', bg: grey10Color, fg: grey2Color, solidBg: true);
+        return const FeedStatusPill(
+          label: 'Draf',
+          bg: grey10Color,
+          fg: grey2Color,
+          solidBg: true,
+        );
     }
   }
 
@@ -310,34 +333,11 @@ class FeedStatusPill extends StatelessWidget {
         label,
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
-        style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: Color(fg)),
-      ),
-    );
-  }
-}
-
-/// Sematkan / lepas sematan di profil. Hanya ditampilkan untuk kiriman sendiri yang sudah tayang.
-class FeedProfilePinButton extends StatelessWidget {
-  final bool pinned;
-  final VoidCallback? onPressed;
-
-  const FeedProfilePinButton({
-    super.key,
-    required this.pinned,
-    required this.onPressed,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Align(
-      alignment: Alignment.centerRight,
-      child: TextButton.icon(
-        onPressed: onPressed,
-        icon: Icon(
-          pinned ? Icons.push_pin : Icons.push_pin_outlined,
-          size: 16,
+        style: TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.w800,
+          color: Color(fg),
         ),
-        label: Text(pinned ? 'Lepas sematan' : 'Sematkan di profil'),
       ),
     );
   }

@@ -51,7 +51,7 @@ class _FeedMySubmissionsPageState extends State<FeedMySubmissionsPage> {
     final cubit = context.read<FeedListCubit>();
     if (widget.initialTab == 'approval' &&
         PermissionsHelper.canApproveMarketingFeed) {
-      cubit.setFilter(statuses: {'approval'}, kinds: {'post'});
+      cubit.setFilter(statuses: {'review'}, kinds: {'post'});
     } else {
       cubit.load();
     }
@@ -92,77 +92,16 @@ class _FeedMySubmissionsPageState extends State<FeedMySubmissionsPage> {
     );
   }
 
-  Future<void> _pin(FeedPostEntity post) async {
-    final error = await context.read<FeedListCubit>().setProfilePin(
-      post.id,
-      pinned: !post.profilePinned,
-    );
-    if (error != null) _message(error);
-  }
-
   // ------------------------------------------------------------------ tombol +
 
-  /// + seperti di Home: pilih membuat kiriman atau kartu Wall of Fame.
+  /// + langsung membuka form kiriman baru.
   Future<void> _onFabTap() async {
-    final choice = await showModalBottomSheet<String>(
-      context: context,
-      showDragHandle: true,
-      builder: (ctx) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            ListTile(
-              leading: const Icon(
-                Icons.add_photo_alternate_outlined,
-                color: Color(primaryColor),
-              ),
-              title: const Text('Bagikan momen'),
-              onTap: () => Navigator.pop(ctx, 'post'),
-            ),
-            if (FeedCreateTabs.fameEditable)
-              ListTile(
-                leading: const Icon(
-                  Icons.emoji_events_outlined,
-                  color: Color(orangeAccentColor),
-                ),
-                title: const Text('Wall of Fame baru'),
-                onTap: () => Navigator.pop(ctx, 'fame'),
-              ),
-          ],
-        ),
-      ),
-    );
-    if (!mounted || choice == null) return;
-    if (choice == 'fame') {
-      await _newFame();
-      return;
-    }
     AnalyticsService.logEvent('marketing_feed_fab');
     await context.pushNamed<bool>('marketingFeedPostForm');
     if (mounted) context.read<FeedListCubit>().load(silent: true);
   }
 
   // ------------------------------------------------------------------ Wall of Fame
-
-  /// Form kartu Wall of Fame baru. Program dan izin dimuat dulu supaya pilihan program lengkap.
-  Future<void> _newFame() async {
-    final manage = context.read<FameManageCubit>();
-    await manage.load();
-    if (!mounted) return;
-    final state = manage.state;
-    final saved = await context.pushNamed<bool>(
-      'marketingFameForm',
-      extra: FameFormArgs(
-        programs: state.programs,
-        canCreateProgram: state.access?.canCreateProgram ?? false,
-      ),
-    );
-    if (saved == true && mounted) {
-      _message('Wall of Fame disimpan');
-      context.read<FeedListCubit>().load(silent: true);
-    }
-  }
 
   /// Ubah kartu: form yang sama dengan halaman kelola Wall of Fame.
   Future<void> _editFame(FameListCardEntity card) async {
@@ -276,7 +215,6 @@ class _FeedMySubmissionsPageState extends State<FeedMySubmissionsPage> {
     return Padding(
       padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
       child: Container(
-        
         decoration: BoxDecoration(
           color: const Color(whiteColor),
           borderRadius: BorderRadius.circular(12),
@@ -314,8 +252,7 @@ class _FeedMySubmissionsPageState extends State<FeedMySubmissionsPage> {
   /// Urutkan dan Filter (membuka sheet), seperti filter di Contacts.
   Widget _buildFilters() {
     return BlocBuilder<FeedListCubit, FeedListState>(
-      buildWhen: (a, b) =>
-          a.sort != b.sort || a.statuses != b.statuses || a.kinds != b.kinds,
+      buildWhen: (a, b) => a.sort != b.sort || a.statuses != b.statuses || a.kinds != b.kinds,
       builder: (context, state) {
         final sortLabel = feedListSortOptions
             .firstWhere(
@@ -500,7 +437,8 @@ class _FeedMySubmissionsPageState extends State<FeedMySubmissionsPage> {
                     : fameListCard(
                         card: item.fame!,
                         onTap: () {
-                          if (FeedCreateTabs.fameEditable) _editFame(item.fame!);
+                          if (FeedCreateTabs.fameEditable)
+                            _editFame(item.fame!);
                         },
                         footer: _fameFooter(item.fame!, busy),
                       ),
@@ -513,18 +451,12 @@ class _FeedMySubmissionsPageState extends State<FeedMySubmissionsPage> {
   }
 
   /// Tombol kiriman. Muncul sesuai status dan izin, bukan siapa pembuatnya:
-  /// - sematkan di profil: kiriman sendiri yang sudah tayang;
   /// - setujui / jadwalkan / tolak: kiriman menunggu review (izin ApproveReject);
   /// - turunkan tayang / hapus: kiriman tayang (izin ApproveReject).
   Widget? _postFooter(BuildContext context, FeedPostEntity post, bool busy) {
     final cubit = context.read<FeedListCubit>();
     final canApprove = PermissionsHelper.canApproveMarketingFeed;
     final rows = <Widget>[
-      if (post.isMine && post.status == FeedPostStatus.published)
-        FeedProfilePinButton(
-          pinned: post.profilePinned,
-          onPressed: busy ? null : () => _pin(post),
-        ),
       if (canApprove && post.status == FeedPostStatus.review)
         _actionRow(
           red: FeedActionButton(
@@ -537,7 +469,9 @@ class _FeedMySubmissionsPageState extends State<FeedMySubmissionsPage> {
             icon: Icons.schedule_rounded,
             label: 'Jadwalkan',
             color: const Color(primaryColor),
-            onPressed: busy ? null : () => scheduleFeed(context, cubit, post.id),
+            onPressed: busy
+                ? null
+                : () => scheduleFeed(context, cubit, post.id),
           ),
           green: FeedActionButton(
             icon: Icons.check_rounded,
@@ -557,7 +491,9 @@ class _FeedMySubmissionsPageState extends State<FeedMySubmissionsPage> {
                   label: 'Hapus',
                   color: const Color(redAccentColor),
                   loading: busy,
-                  onPressed: busy ? null : () => deleteFeed(context, cubit, post.id),
+                  onPressed: busy
+                      ? null
+                      : () => deleteFeed(context, cubit, post.id),
                 )
               : null,
           blue: canApprove
@@ -565,7 +501,9 @@ class _FeedMySubmissionsPageState extends State<FeedMySubmissionsPage> {
                   icon: Icons.visibility_off_outlined,
                   label: 'Turunkan tayang',
                   color: const Color(primaryColor),
-                  onPressed: busy ? null : () => unpublishFeed(context, cubit, post.id),
+                  onPressed: busy
+                      ? null
+                      : () => unpublishFeed(context, cubit, post.id),
                 )
               : null,
         ),
@@ -643,7 +581,6 @@ class _FeedFilterSheet extends StatefulWidget {
 }
 
 class _FeedFilterSheetState extends State<_FeedFilterSheet> {
-  final _canApprove = PermissionsHelper.canApproveMarketingFeed;
   final _canFame = FeedCreateTabs.fameEditable;
   late final List<(String, String)> _statusOpts;
   late final Set<String> _statuses;
@@ -653,9 +590,7 @@ class _FeedFilterSheetState extends State<_FeedFilterSheet> {
   @override
   void initState() {
     super.initState();
-    _statusOpts = feedListStatusOptions
-        .where((o) => o.$1 != 'approval' || _canApprove)
-        .toList();
+    _statusOpts = feedListStatusOptions.toList();
     // Kosong = semua, jadi tampilkan semua sebagai terpilih.
     // Kecuali saat sebelumnya hanya Wall of Fame (tanpa status dicentang): tampilkan status kosong.
     final fameOnly = widget.kinds.length == 1 && widget.kinds.contains('fame');
@@ -778,12 +713,10 @@ class _FeedFilterSheetState extends State<_FeedFilterSheet> {
               child: SizedBox(
                 width: double.infinity,
                 height: 48,
-                child: customButton(
-                 _apply, 'Terapkan')
-                
-                
+                child: customButton(_apply, 'Terapkan'),
+
                 // FilledButton(
-                  
+
                 //   // Kosong di status atau jenis = semua, jadi tombol selalu bisa ditekan.
                 //   onPressed: ,
                 //   child: const Text('Terapkan'),
