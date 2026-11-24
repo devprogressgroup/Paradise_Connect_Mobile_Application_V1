@@ -2,8 +2,22 @@ import 'package:progress_group/features/marketing-feed/domain/entities/feed_post
 
 /// Body kiriman sales (POST /marketing-feed/submit). Ditinjau moderator atau langsung tayang sesuai permission SkipReview.
 class ShareFeedMomentParams {
+  /// post (caption + media, boleh tanpa caption), poll (pertanyaan + opsi), atau link (URL + detail).
+  final FeedPostType type;
+
+  /// Caption untuk post, atau pertanyaan untuk poll. Tidak dipakai untuk link.
   final String text;
   final List<FeedMediaEntity> media;
+
+  /// Poll: pilihan jawaban dan boleh pilih lebih dari satu.
+  final List<String> pollOptions;
+  final bool pollMultiple;
+
+  /// Link: URL dan detail (platform dikenali server dari URL).
+  final String linkUrl;
+  final String linkChannel;
+  final String linkTitle;
+  final String linkDescription;
 
   /// null = ikut township sales (atau semua kalau bukan sales).
   final int? townshipId;
@@ -19,8 +33,15 @@ class ShareFeedMomentParams {
   final void Function(int sent, int total)? onProgress;
 
   const ShareFeedMomentParams({
+    this.type = FeedPostType.post,
     required this.text,
     this.media = const [],
+    this.pollOptions = const [],
+    this.pollMultiple = false,
+    this.linkUrl = '',
+    this.linkChannel = '',
+    this.linkTitle = '',
+    this.linkDescription = '',
     this.townshipId,
     this.settings = const FeedInteractionSettings(),
     this.scheduledAt,
@@ -32,8 +53,15 @@ class ShareFeedMomentParams {
     void Function(int sent, int total)? onProgress,
   }) {
     return ShareFeedMomentParams(
+      type: type,
       text: text,
       media: media,
+      pollOptions: pollOptions,
+      pollMultiple: pollMultiple,
+      linkUrl: linkUrl,
+      linkChannel: linkChannel,
+      linkTitle: linkTitle,
+      linkDescription: linkDescription,
       townshipId: townshipId,
       settings: settings,
       scheduledAt: scheduledAt,

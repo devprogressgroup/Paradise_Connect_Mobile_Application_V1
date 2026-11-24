@@ -17,13 +17,20 @@ import 'package:progress_group/features/marketing-feed/presentation/widgets/feed
 import 'package:progress_group/features/marketing-feed/presentation/widgets/feed_section.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+/// Posisi global sebuah widget (untuk sharePositionOrigin). Null kalau belum dirender.
+Rect? _rectOf(BuildContext context) {
+  final box = context.findRenderObject();
+  if (box is! RenderBox || !box.hasSize) return null;
+  return box.localToGlobal(Offset.zero) & box.size;
+}
+
 /// Kartu satu item feed — post biasa, poll, atau link sosmed. Kiriman sendiri yang masih
 /// direview/ditolak tampil dengan bingkai oranye & tanpa tombol interaksi.
 class FeedPostCard extends StatelessWidget {
   final FeedPostEntity post;
   final ValueChanged<FeedReaction>? onReact;
   final VoidCallback? onComment;
-  final VoidCallback? onShare;
+  final void Function(Rect? origin)? onShare;
   final Future<String?> Function(List<int> optionIndexes)? onVote;
 
   /// false = nama/avatar pembuat tidak membuka profil (dipakai di halaman profil itu sendiri).
@@ -438,7 +445,7 @@ class _FeedPostFooter extends StatelessWidget {
   final FeedPostEntity post;
   final ValueChanged<FeedReaction>? onReact;
   final VoidCallback? onComment;
-  final VoidCallback? onShare;
+  final void Function(Rect? origin)? onShare;
 
   const _FeedPostFooter({
     required this.post,
@@ -516,7 +523,9 @@ class _FeedPostFooter extends StatelessWidget {
                   icon: Icons.share_outlined,
                   label: 'Bagikan',
                   color: const Color(primaryColor),
-                  onTap: onShare,
+                  onTap: onShare == null
+                      ? null
+                      : () => onShare!(_rectOf(context)),
                   trailingGap: false,
                 ),
             ],

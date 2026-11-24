@@ -22,8 +22,8 @@ import 'package:progress_group/features/marketing-feed/presentation/widgets/feed
 import 'package:progress_group/features/marketing-feed/presentation/widgets/feed_create_tabs.dart';
 import 'package:progress_group/features/marketing-feed/presentation/widgets/feed_post_card.dart';
 import 'package:progress_group/features/marketing-feed/presentation/widgets/fame_programs_section.dart';
+import 'package:progress_group/features/marketing-feed/presentation/feed_share.dart';
 import 'package:progress_group/features/marketing-feed/presentation/widgets/progress_funnel_card.dart';
-import 'package:share_plus/share_plus.dart';
 
 /// Home = Marketing Feed: ajakan bagikan momen, Progress Kamu, Wall of Fame, lalu aliran feed.
 /// Dashboard lama sekarang ada di menu Report (`/report`).
@@ -92,6 +92,7 @@ class _MarketingFeedPageState extends State<MarketingFeedPage> {
 
   Future<void> _refresh() => context.read<MarketingFeedCubit>().fetch();
 
+
   /// Buka halaman lewat tombol + atau sidebar; feed dimuat ulang begitu kembali.
   /// Tidak memakai hasil `true` dari form: pindah tab Buat Konten memakai pushReplacement, jadi hasil
   /// simpan tidak sampai ke sini. Karena itu feed selalu dimuat ulang saat kembali.
@@ -135,10 +136,9 @@ class _MarketingFeedPageState extends State<MarketingFeedPage> {
     cubit.reloadPost(post.id);
   }
 
-  void _share(FeedPostEntity post) {
+  void _share(FeedPostEntity post, Rect? origin) {
     AnalyticsService.logEvent('marketing_feed_share');
-    final url = post.link?.url;
-    Share.share(url == null ? post.plainText : '${post.plainText}\n$url');
+    FeedShare.sharePost(context, post, origin: origin);
   }
 
   @override
@@ -233,7 +233,7 @@ class _MarketingFeedPageState extends State<MarketingFeedPage> {
       post: post,
       onReact: (reaction) => _react(post, reaction),
       onComment: () => _openComments(post),
-      onShare: () => _share(post),
+      onShare: (origin) => _share(post, origin),
       onVote: (indexes) {
         AnalyticsService.logEvent('marketing_feed_vote');
         return context.read<MarketingFeedCubit>().vote(post.id, indexes);

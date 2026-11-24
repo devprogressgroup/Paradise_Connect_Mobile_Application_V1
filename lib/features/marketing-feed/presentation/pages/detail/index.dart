@@ -5,10 +5,10 @@ import 'package:progress_group/core/constants/colors.dart';
 import 'package:progress_group/core/services/analytics_service.dart';
 import 'package:progress_group/core/utils/widget/custom_header.dart';
 import 'package:progress_group/features/marketing-feed/domain/entities/feed_post_entity.dart';
+import 'package:progress_group/features/marketing-feed/presentation/feed_share.dart';
 import 'package:progress_group/features/marketing-feed/presentation/state/marketing_feed/marketing_feed_cubit.dart';
 import 'package:progress_group/features/marketing-feed/presentation/widgets/feed_comment_sheet.dart';
 import 'package:progress_group/features/marketing-feed/presentation/widgets/feed_post_card.dart';
-import 'package:share_plus/share_plus.dart';
 
 /// Detail satu post — dibuka dari Kiriman Saya atau notifikasi `app://marketing_feed?feed_post_id=`.
 /// Post milik sendiri ikut menampilkan status review & alasan penolakan.
@@ -161,12 +161,11 @@ class _FeedPostDetailPageState extends State<FeedPostDetailPage> {
     result.fold((_) {}, (updated) => setState(() => _post = updated));
   }
 
-  void _share() {
+  void _share(Rect? origin) {
     final post = _post;
     if (post == null) return;
     AnalyticsService.logEvent('marketing_feed_detail_share');
-    final url = post.link?.url;
-    Share.share(url == null ? post.plainText : '${post.plainText}\n$url');
+    FeedShare.sharePost(context, post, origin: origin);
   }
 
   @override

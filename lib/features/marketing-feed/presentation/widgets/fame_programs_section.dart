@@ -8,6 +8,7 @@ import 'package:progress_group/features/marketing-feed/domain/entities/fame_prog
 import 'package:progress_group/features/marketing-feed/presentation/state/marketing_feed/marketing_feed_cubit.dart';
 import 'package:progress_group/features/marketing-feed/presentation/widgets/feed_avatar.dart';
 import 'package:progress_group/features/marketing-feed/presentation/widgets/feed_comment_sheet.dart';
+import 'package:progress_group/features/marketing-feed/presentation/widgets/feed_media_skeleton.dart';
 import 'package:progress_group/features/marketing-feed/presentation/widgets/feed_media_view.dart';
 
 /// Satu kartu Wall of Fame di Home: kartu gelap berisi header pembuat,
@@ -564,7 +565,10 @@ class _FameEntryTileState extends State<FameEntryTile> {
       fit: BoxFit.fitWidth,
       loadingBuilder: (_, child, progress) => progress == null
           ? child
-          : AspectRatio(aspectRatio: 16 / 9, child: _mediaPlaceholder()),
+          : const AspectRatio(
+              aspectRatio: 16 / 9,
+              child: FeedMediaSkeleton(),
+            ),
       errorBuilder: (_, __, ___) =>
           AspectRatio(aspectRatio: 16 / 9, child: _mediaPlaceholder()),
     );

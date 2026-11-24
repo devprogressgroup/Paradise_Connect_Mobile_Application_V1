@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:progress_group/core/constants/colors.dart';
 import 'package:progress_group/core/network/auth_token_cache.dart';
 import 'package:progress_group/features/marketing-feed/domain/entities/feed_post_entity.dart';
+import 'package:progress_group/features/marketing-feed/presentation/widgets/feed_media_skeleton.dart';
 import 'package:video_player/video_player.dart';
 
 /// Satu foto/video, mengisi penuh kotaknya. File lokal (baru dipilih) ditampilkan dari bytes;
@@ -13,11 +14,15 @@ class FeedMediaView extends StatelessWidget {
   final bool compact;
   final bool autoPlayVideo;
 
+  /// false = video belum/tidak perlu diputar (kartu di luar layar); lihat [FeedVideoPlayer.active].
+  final bool active;
+
   const FeedMediaView({
     super.key,
     required this.media,
     this.compact = false,
     this.autoPlayVideo = false,
+    this.active = true,
   });
 
   @override
@@ -41,8 +46,9 @@ class FeedMediaView extends StatelessWidget {
         fit: BoxFit.cover,
         width: double.infinity,
         height: double.infinity,
-        loadingBuilder: (_, child, progress) =>
-            progress == null ? child : _placeholder(loading: true),
+        loadingBuilder: (_, child, progress) => progress == null
+            ? child
+            : FeedMediaSkeleton(isVideo: media.isVideo),
         errorBuilder: (_, error, __) {
           debugPrint('FeedMediaView gagal memuat $url: $error');
           return _placeholder();
@@ -56,14 +62,15 @@ class FeedMediaView extends StatelessWidget {
         autoPlay: autoPlayVideo,
         loop: autoPlayVideo,
         muted: autoPlayVideo,
+        active: active,
       );
     }
 
     return _placeholder();
   }
 
-  Widget _placeholder({bool loading = false}) {
-    final label = loading ? null : media.label ?? media.fileName;
+  Widget _placeholder() {
+    final label = media.label ?? media.fileName;
     return Container(
       width: double.infinity,
       height: double.infinity,
@@ -151,11 +158,15 @@ class _FeedVideoPlayerState extends State<FeedVideoPlayer> {
   bool _hasError = false;
   late bool _muted;
 
+  /// Controller baru dibuat saat video pertama kali terlihat (active), supaya kartu yang baru
+  /// masuk cache render tidak langsung men-decode video dan membuat scroll tersendat.
+  bool _created = false;
+
   @override
   void initState() {
     _muted = widget.muted;
     super.initState();
-    _initVideo();
+    if (widget.active) _initVideo();
   }
 
   /// Header Authorization hanya untuk URL yang belum bertanda tangan (tanpa query signature).
@@ -171,6 +182,7 @@ class _FeedVideoPlayerState extends State<FeedVideoPlayer> {
   }
 
   void _initVideo() {
+    _created = true;
     _controller = VideoPlayerController.networkUrl(
       Uri.parse(widget.url),
       httpHeaders: _headersFor(widget.url),
@@ -213,7 +225,12 @@ class _FeedVideoPlayerState extends State<FeedVideoPlayer> {
   @override
   void didUpdateWidget(covariant FeedVideoPlayer oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.active == widget.active || !_initialized || _hasError) return;
+    if (oldWidget.active == widget.active || _hasError) return;
+    if (!_created) {
+      if (widget.active) _initVideo();
+      return;
+    }
+    if (!_initialized) return;
     if (!widget.active) {
       _controller.pause();
     } else if (widget.autoPlay) {
@@ -223,8 +240,10 @@ class _FeedVideoPlayerState extends State<FeedVideoPlayer> {
 
   @override
   void dispose() {
-    _controller.removeListener(_onControllerUpdate);
-    _controller.dispose();
+    if (_created) {
+      _controller.removeListener(_onControllerUpdate);
+      _controller.dispose();
+    }
     super.dispose();
   }
 
@@ -244,16 +263,7 @@ class _FeedVideoPlayerState extends State<FeedVideoPlayer> {
     }
 
     if (!_initialized) {
-      return widget.placeholder ??
-          Container(
-            color: Colors.black12,
-            alignment: Alignment.center,
-            child: const SizedBox(
-              width: 24,
-              height: 24,
-              child: CircularProgressIndicator(strokeWidth: 2),
-            ),
-          );
+      return widget.placeholder ?? const FeedMediaSkeleton(isVideo: true);
     }
 
     final video = Stack(
@@ -355,7 +365,11 @@ class _FeedMediaCarouselState extends State<FeedMediaCarousel> {
       final ratio = _getAspectRatio(media.first);
       return AspectRatio(
         aspectRatio: ratio,
-        child: FeedMediaView(media: media.first),
+        // Video tunggal baru diinisialisasi saat kartunya terlihat di layar.
+        child: OnScreenBuilder(
+          builder: (context, visible) =>
+              FeedMediaView(media: media.first, active: visible),
+        ),
       );
     }
 
@@ -461,7 +475,8 @@ class _FeedMediaSlidesState extends State<_FeedMediaSlides> {
               controller: _pageController,
               itemCount: media.length,
               onPageChanged: (i) => setState(() => _page = i),
-              itemBuilder: (_, i) => FeedMediaView(media: media[i]),
+              itemBuilder: (_, i) =>
+                  FeedMediaView(media: media[i], active: widget.visible),
             ),
           ),
           Positioned(

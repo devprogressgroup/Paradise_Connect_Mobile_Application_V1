@@ -2,7 +2,7 @@ import 'package:progress_group/features/marketing-feed/domain/entities/my_profil
 import 'package:progress_group/features/marketing-feed/data/models/my_profile_model.dart';
 import 'dart:io';
 import 'package:dio/dio.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart' show kIsWeb, debugPrint;
 import 'package:intl/intl.dart';
 import 'package:progress_group/core/network/marketing_feed_exception.dart';
 import 'package:progress_group/features/marketing-feed/data/models/feed_comment_model.dart';
@@ -461,6 +461,11 @@ class MarketingFeedRemoteDataSourceImpl
         final file = await _multipartOf(params.media[i], i);
         if (file != null) formData.files.add(MapEntry('media[]', file));
       }
+      // Diagnosa "dua file jadi teks saja": bandingkan jumlah media di app dengan file yang masuk ke request.
+      debugPrint(
+        '[MarketingFeed] share: media=${params.media.length} '
+        'files=${formData.files.length} type=${params.type.name}',
+      );
 
       final response = await dio.post(
         '/marketing-feed/submit',
