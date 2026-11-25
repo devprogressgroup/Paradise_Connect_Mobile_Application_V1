@@ -5,6 +5,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:progress_group/core/constants/assets.dart';
 import 'package:progress_group/core/constants/colors.dart';
+import 'package:progress_group/core/utils/widget/shimmer_loading.dart';
 import 'package:progress_group/core/services/analytics_service.dart';
 import 'package:progress_group/core/utils/helpers/permissions_helper.dart';
 import 'package:progress_group/core/utils/widget/custom_button.dart';
@@ -378,7 +379,7 @@ class _FeedMySubmissionsPageState extends State<FeedMySubmissionsPage> {
           }
           if (state.status == FeedListStatus.loading ||
               state.status == FeedListStatus.initial) {
-            return const Center(child: CircularProgressIndicator());
+            return buildFeedListShimmer();
           }
           return RefreshIndicator(
             onRefresh: () => context.read<FeedListCubit>().load(),

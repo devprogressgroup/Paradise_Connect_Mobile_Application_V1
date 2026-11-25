@@ -186,9 +186,9 @@ class PermissionsHelper {
       canCreateMarketingLink ||
       canApproveMarketingFeed;
 
-  // Kalender Jadwal (ikon di header, menu, dan halamannya): memakai "Modify", sama dengan Draft & Terjadwal.
+  // Kalender Jadwal (ikon di header, menu, dan halamannya): memakai "SetSchedule".
   // Sama dengan backend: GET /marketing-feed/moderator/calendar dan abilities.calendar.
-  static bool get canViewMarketingCalendar => check('Marketing Feed', 'Modify');
+  static bool get canViewMarketingCalendar => check('Marketing Feed', 'SetSchedule');
 
   // Wall of Fame: fitur "WallOfFame" di form Marketing Feed (checkbox Permission Management).
   static bool get canManageWallOfFame => check('Marketing Feed', 'WallOfFame');

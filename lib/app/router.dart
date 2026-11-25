@@ -337,7 +337,7 @@ class AppRouter {
                       PermissionsHelper.canManageMarketingDrafts ? null : '/',
                   builder: (context, state) => const FeedDraftsPage(),
                 ),
-                // Kalender Jadwal (moderator, permission Modify).
+                // Kalender Jadwal (moderator, permission SetSchedule).
                 GoRoute(
                   name: 'marketingFeedCalendar',
                   path: 'marketing-feed/calendar',

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shimmer/shimmer.dart';
+import 'package:progress_group/features/marketing-feed/presentation/widgets/feed_section.dart';
 import '../../constants/colors.dart';
 
 class _ShimmerBox extends StatelessWidget {
@@ -217,6 +218,157 @@ Widget buildActivityShimmer() {
     itemCount: 6,
     itemBuilder: (_, __) => const ShimmerActivityItem(),
   );
+}
+
+/// Shimmer untuk daftar kiriman (Feed, pencarian, reel): beberapa kartu kiriman.
+Widget buildPostFeedShimmer() {
+  // Tiga bentuk kartu seperti kiriman asli: dengan media, teks saja, dan poll.
+  const cards = [
+    ShimmerPostCardItem(withMedia: true),
+    ShimmerPostCardItem(),
+    ShimmerPostCardItem(withPoll: true),
+  ];
+  return ListView.separated(
+    shrinkWrap: true,
+    physics: const NeverScrollableScrollPhysics(),
+    padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+    itemCount: cards.length,
+    separatorBuilder: (_, __) => const SizedBox(height: 12),
+    itemBuilder: (_, i) => cards[i],
+  );
+}
+
+/// Satu kartu kiriman, bentuknya mengikuti FeedPostCard: header (avatar, nama, waktu), teks,
+/// media atau poll (hanya kalau ada), dan baris ikon dengan baris "Jadi yang pertama berkomentar".
+/// Latar kartu berada di luar shimmer, supaya kotak-kotak di dalamnya yang berkilau dan bentuk kartu tetap utuh.
+class ShimmerPostCardItem extends StatelessWidget {
+  final bool withMedia;
+  final bool withPoll;
+
+  const ShimmerPostCardItem({super.key, this.withMedia = false, this.withPoll = false});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      clipBehavior: Clip.antiAlias,
+      decoration: feedCardDecoration(),
+      child: _shimmerWrap(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(14, 14, 14, 10),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      const _ShimmerBox(width: 38, height: 38, borderRadius: 19),
+                      const SizedBox(width: 8),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const _ShimmerBox(width: 120, height: 12),
+                          const SizedBox(height: 6),
+                          const _ShimmerBox(width: 80, height: 10),
+                        ],
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  const _ShimmerBox(width: double.infinity, height: 12),
+                  const SizedBox(height: 6),
+                  const _ShimmerBox(width: 180, height: 12),
+                  if (withPoll) ...[
+                    const SizedBox(height: 10),
+                    const _ShimmerBox(width: double.infinity, height: 40, borderRadius: 10),
+                    const SizedBox(height: 6),
+                    const _ShimmerBox(width: double.infinity, height: 40, borderRadius: 10),
+                  ],
+                ],
+              ),
+            ),
+            if (withMedia)
+              const AspectRatio(
+                aspectRatio: 16 / 10,
+                child: _ShimmerBox(width: double.infinity, height: double.infinity, borderRadius: 0),
+              ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(14, 10, 14, 14),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Row(
+                    children: [
+                      _ShimmerBox(width: 16, height: 16, borderRadius: 4),
+                      SizedBox(width: 12),
+                      _ShimmerBox(width: 16, height: 16, borderRadius: 4),
+                      SizedBox(width: 12),
+                      _ShimmerBox(width: 16, height: 16, borderRadius: 4),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  const _ShimmerBox(width: 150, height: 10),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Shimmer untuk daftar Feeds: kartu dengan thumbnail, badge, judul, subjudul, dan waktu.
+Widget buildFeedListShimmer() {
+  return ListView.builder(
+    physics: const NeverScrollableScrollPhysics(),
+    padding: const EdgeInsets.all(16),
+    itemCount: 5,
+    itemBuilder: (_, __) => const ShimmerFeedCardItem(),
+  );
+}
+
+class ShimmerFeedCardItem extends StatelessWidget {
+  const ShimmerFeedCardItem({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: _shimmerWrap(
+        child: Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Color(whiteColor),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const _ShimmerBox(width: 68, height: 68),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const _ShimmerBox(width: 90, height: 18, borderRadius: 6),
+                    const SizedBox(height: 8),
+                    const _ShimmerBox(width: double.infinity, height: 14),
+                    const SizedBox(height: 6),
+                    const _ShimmerBox(width: 140, height: 12),
+                    const SizedBox(height: 6),
+                    const _ShimmerBox(width: 90, height: 11),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 class ShimmerAttachmentItem extends StatelessWidget {
@@ -780,85 +932,63 @@ Widget buildAttendanceShimmer() {
   );
 }
 
+/// Shimmer halaman profil (Profil saya / profil user lain): header, statistik, tab, lalu daftar kiriman.
+/// Susunannya mengikuti _header, _stats, dan _tabs di halaman profil. Latar header berada di luar shimmer.
 Widget buildProfileShimmer() {
   return SingleChildScrollView(
     physics: const AlwaysScrollableScrollPhysics(),
-    padding: const EdgeInsets.all(16),
-    child: _shimmerWrap(
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Container(
           color: Color(whiteColor),
-          borderRadius: BorderRadius.circular(24),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
+          padding: const EdgeInsets.fromLTRB(16, 20, 16, 16),
+          child: _shimmerWrap(
+            child: const Column(
               children: [
-                const _ShimmerBox(width: 60, height: 60, borderRadius: 30),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _ShimmerBox(width: double.infinity, height: 16),
-                      const SizedBox(height: 6),
-                      _ShimmerBox(width: 120, height: 12),
-                      const SizedBox(height: 4),
-                      _ShimmerBox(width: 90, height: 11),
-                    ],
-                  ),
-                ),
+                _ShimmerBox(width: 96, height: 96, borderRadius: 48),
+                SizedBox(height: 12),
+                _ShimmerBox(width: 160, height: 18),
+                SizedBox(height: 8),
+                _ShimmerBox(width: 120, height: 24, borderRadius: 999),
               ],
             ),
-            const SizedBox(height: 8),
-            _ShimmerBox(width: 180, height: 12),
-            const SizedBox(height: 16),
-            Container(height: 1, color: Color(whiteColor)),
-            const SizedBox(height: 16),
-            ...List.generate(
-              4,
-              (_) => Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _ShimmerBox(width: 80, height: 12),
-                    const SizedBox(height: 6),
-                    _ShimmerBox(
-                      width: double.infinity,
-                      height: 48,
-                      borderRadius: 14,
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          child: _shimmerWrap(
+            child: const Row(
+              children: [
+                Expanded(child: Padding(padding: EdgeInsets.symmetric(horizontal: 4), child: _ShimmerBox(width: double.infinity, height: 72, borderRadius: 12))),
+                Expanded(child: Padding(padding: EdgeInsets.symmetric(horizontal: 4), child: _ShimmerBox(width: double.infinity, height: 72, borderRadius: 12))),
+                Expanded(child: Padding(padding: EdgeInsets.symmetric(horizontal: 4), child: _ShimmerBox(width: double.infinity, height: 72, borderRadius: 12))),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 10),
+        Divider(color: Color(grey10Color)),
+        Container(
+          decoration: const BoxDecoration(
+            border: Border(bottom: BorderSide(color: Color(grey10Color))),
+          ),
+          child: _shimmerWrap(
+            child: Row(
+              children: [
+                for (var i = 0; i < 3; i++)
+                  const Expanded(
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(vertical: 12),
+                      child: Center(child: _ShimmerBox(width: 56, height: 14)),
                     ),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                Expanded(
-                  child: _ShimmerBox(
-                    width: double.infinity,
-                    height: 48,
-                    borderRadius: 14,
                   ),
-                ),
-                const SizedBox(width: 20),
-                Expanded(
-                  child: _ShimmerBox(
-                    width: double.infinity,
-                    height: 48,
-                    borderRadius: 14,
-                  ),
-                ),
               ],
             ),
-          ],
+          ),
         ),
-      ),
+        buildPostFeedShimmer(),
+      ],
     ),
   );
 }

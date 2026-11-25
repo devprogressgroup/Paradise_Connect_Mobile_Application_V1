@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:progress_group/core/constants/colors.dart';
+import 'package:progress_group/core/utils/widget/shimmer_loading.dart';
 import 'package:progress_group/core/network/auth_token_cache.dart';
 import 'package:progress_group/core/services/analytics_service.dart';
 import 'package:progress_group/core/utils/helpers/permissions_helper.dart';
@@ -321,10 +322,7 @@ class _MarketingFeedPageState extends State<MarketingFeedPage> {
         ),
       );
     }
-    return const Padding(
-      padding: EdgeInsets.symmetric(vertical: 24),
-      child: Center(child: CircularProgressIndicator()),
-    );
+    return buildPostFeedShimmer();
   }
 
   /// Tombol di tengah bawah; muncul setelah scroll cukup jauh, tap = kembali ke atas.

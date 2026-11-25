@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:progress_group/core/constants/colors.dart';
+import 'package:progress_group/core/utils/widget/shimmer_loading.dart';
 import 'package:progress_group/core/network/auth_token_cache.dart';
 import 'package:progress_group/core/utils/widget/custom_header.dart';
 import 'package:progress_group/features/marketing-feed/domain/entities/feed_post_entity.dart';
@@ -61,7 +62,7 @@ class _FeedSearchPageState extends State<FeedSearchPage> {
                     case FeedSearchStatus.initial:
                       return const _Hint('Ketik kata kunci lalu tekan cari.');
                     case FeedSearchStatus.loading:
-                      return const Center(child: CircularProgressIndicator());
+                      return buildPostFeedShimmer();
                     case FeedSearchStatus.error:
                       return _Hint(
                         state.errorMessage ?? 'Gagal mencari kiriman.',

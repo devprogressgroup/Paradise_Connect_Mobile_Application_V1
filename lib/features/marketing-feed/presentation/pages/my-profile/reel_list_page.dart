@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:progress_group/core/constants/colors.dart';
+import 'package:progress_group/core/utils/widget/shimmer_loading.dart';
 import 'package:progress_group/core/utils/widget/custom_header.dart';
 import 'package:progress_group/features/marketing-feed/presentation/state/my_profile/my_profile_cubit.dart';
 import 'package:progress_group/features/marketing-feed/presentation/widgets/feed_post_card.dart';
@@ -63,8 +64,11 @@ class _ProfileReelListPageState extends State<ProfileReelListPage> {
                     itemBuilder: (context, i) {
                       if (i >= count) {
                         return const Padding(
-                          padding: EdgeInsets.all(16),
-                          child: Center(child: CircularProgressIndicator()),
+                          padding: EdgeInsets.symmetric(
+                            vertical: 8.0,
+                            horizontal: 12,
+                          ),
+                          child: ShimmerPostCardItem(),
                         );
                       }
                       final post = items[start + i];
