@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:equatable/equatable.dart';
 import 'home_ref_entity.dart';
 import 'feed_list_entity.dart';
+import 'feed_report_entity.dart';
 import 'package:progress_group/features/marketing-feed/domain/entities/feed_author_entity.dart';
 import 'package:progress_group/features/marketing-feed/domain/entities/feed_comment_entity.dart';
 
@@ -215,6 +216,10 @@ class FeedPostEntity extends Equatable {
   final bool isMine;
   /// Jumlah laporan terbuka (hanya terisi untuk approver di daftar Feeds).
   final int reportCount;
+  /// Daftar laporan terbuka beserta pelapor (hanya untuk approver di detail kiriman).
+  final List<FeedReportNote> reports;
+  /// Sudah saya laporkan (status laporan apa pun): tombol Laporkan nonaktif.
+  final bool reportedByMe;
   final bool fromAdminWeb;
 
   const FeedPostEntity({
@@ -242,6 +247,8 @@ class FeedPostEntity extends Equatable {
     this.profilePinned = false,
     this.isMine = false,
     this.reportCount = 0,
+    this.reports = const [],
+    this.reportedByMe = false,
     this.fromAdminWeb = false,
   });
 
@@ -287,6 +294,9 @@ class FeedPostEntity extends Equatable {
       isPinned: isPinned ?? this.isPinned,
       profilePinned: profilePinned ?? this.profilePinned,
       isMine: isMine,
+      reportCount: reportCount,
+      reports: reports,
+      reportedByMe: reportedByMe,
       fromAdminWeb: fromAdminWeb,
     );
   }
@@ -317,6 +327,8 @@ class FeedPostEntity extends Equatable {
     profilePinned,
     isMine,
     reportCount,
+    reports,
+    reportedByMe,
     fromAdminWeb,
   ];
 }

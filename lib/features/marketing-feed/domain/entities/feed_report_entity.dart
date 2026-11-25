@@ -23,11 +23,17 @@ class FeedReportNote extends Equatable {
   final String reason;
   final String? note;
   final DateTime createdAt;
+  final String reporterName;
 
-  const FeedReportNote({required this.reason, this.note, required this.createdAt});
+  const FeedReportNote({
+    required this.reason,
+    this.note,
+    required this.createdAt,
+    this.reporterName = 'User',
+  });
 
   @override
-  List<Object?> get props => [reason, note, createdAt];
+  List<Object?> get props => [reason, note, createdAt, reporterName];
 }
 
 /// Kiriman yang punya laporan terbuka, untuk daftar laporan approver.

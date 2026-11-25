@@ -5,6 +5,7 @@ import 'package:progress_group/features/marketing-feed/data/models/feed_comment_
 import 'package:progress_group/features/marketing-feed/data/models/feed_list_model.dart';
 import 'package:progress_group/features/marketing-feed/domain/entities/feed_list_entity.dart';
 import 'package:progress_group/features/marketing-feed/domain/entities/feed_post_entity.dart';
+import 'package:progress_group/features/marketing-feed/domain/entities/feed_report_entity.dart';
 import 'package:progress_group/features/marketing-feed/domain/entities/home_ref_entity.dart';
 
 class FeedTownshipModel extends FeedTownshipEntity {
@@ -215,6 +216,8 @@ class FeedPostModel extends FeedPostEntity {
     super.profilePinned,
     super.isMine,
     super.reportCount,
+    super.reports,
+    super.reportedByMe,
     super.fromAdminWeb,
   });
 
@@ -305,6 +308,16 @@ class FeedPostModel extends FeedPostEntity {
       isPinned: isPinned,
       isMine: json['is_mine'] == true,
       reportCount: (json['report_count'] as num?)?.toInt() ?? 0,
+      reports: (json['reports'] as List<dynamic>? ?? const []).map((r) {
+        final m = Map<String, dynamic>.from(r as Map);
+        return FeedReportNote(
+          reason: (m['reason'] ?? 'lainnya') as String,
+          note: m['note'] as String?,
+          createdAt: DateHelper.parseServerTime(m['created_at'] as String) ?? DateTime.now(),
+          reporterName: (m['reporter_name'] ?? 'User') as String,
+        );
+      }).toList(),
+      reportedByMe: json['my_report'] == true,
       fromAdminWeb: json['source'] == 'admin',
     );
   }

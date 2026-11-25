@@ -3,7 +3,9 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:progress_group/core/constants/colors.dart';
 import 'package:progress_group/core/services/analytics_service.dart';
+import 'package:progress_group/core/utils/helpers/date_helper.dart';
 import 'package:progress_group/core/utils/helpers/permissions_helper.dart';
+import 'package:progress_group/features/marketing-feed/domain/entities/feed_report_entity.dart';
 import 'package:progress_group/core/utils/widget/custom_header.dart';
 import 'package:progress_group/features/marketing-feed/domain/entities/feed_post_entity.dart';
 import 'package:progress_group/features/marketing-feed/presentation/state/feed_drafts/feed_drafts_cubit.dart';
@@ -271,6 +273,46 @@ class _FeedPostDetailPageState extends State<FeedPostDetailPage> {
     }
   }
 
+  /// Daftar pelapor dan isi laporan (hanya approver yang mendapat datanya dari server).
+  Widget _reportsSection(FeedPostEntity post) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(whiteColor),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(grey10Color)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Laporan (${post.reports.length})',
+            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
+          ),
+          for (final r in post.reports) ...[
+            const SizedBox(height: 10),
+            Text(
+              r.reporterName,
+              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              '${FeedReportReason.labelOf(r.reason)} · ${DateHelper.timeAgo(r.createdAt)}',
+              style: const TextStyle(fontSize: 12, color: Color(grey2Color)),
+            ),
+            if (r.note != null && r.note!.isNotEmpty) ...[
+              const SizedBox(height: 4),
+              Text(
+                r.note!,
+                style: const TextStyle(fontSize: 13),
+              ),
+            ],
+          ],
+        ],
+      ),
+    );
+  }
+
   /// Footer kartu di Detail Post: hanya aksi draft. Laporan kiriman dilakukan dari kartu di menu utama (Home).
   Widget? _postFooter(FeedPostEntity post) {
     if (post.status == FeedPostStatus.draft) return _draftActions(post);
@@ -337,6 +379,7 @@ class _FeedPostDetailPageState extends State<FeedPostDetailPage> {
             onVote: _vote,
             footer: _postFooter(post),
           ),
+          if (post.reports.isNotEmpty) _reportsSection(post),
         ],
       ),
     );
