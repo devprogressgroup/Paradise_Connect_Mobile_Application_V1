@@ -156,9 +156,18 @@ class _FeedPollFormPageState extends State<FeedPollFormPage> {
 
   @override
   Widget build(BuildContext context) {
+    // Bisa langsung tayang = ApproveReject atau SkipReview. Selain itu submit masuk antrean review.
+    final canPublishDirect =
+        widget.fromCalendar ||
+        PermissionsHelper.canApproveMarketingFeed ||
+        PermissionsHelper.canSkipReviewMarketingFeed;
     return FeedModeratorFormScaffold(
       title: widget.post == null ? 'Poll Baru' : 'Edit Poll',
-      primaryLabel: _scheduledAt != null ? 'Jadwalkan' : 'Publikasikan Poll',
+      primaryLabel: !canPublishDirect
+          ? 'Kirim ke Review'
+          : _scheduledAt != null
+          ? 'Jadwalkan'
+          : 'Publikasikan Poll',
       onSave: _save,
       children: [
         if (widget.post == null) ...[

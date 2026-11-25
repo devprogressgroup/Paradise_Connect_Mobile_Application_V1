@@ -1,3 +1,4 @@
+import 'package:progress_group/features/marketing-feed/data/models/feed_author_model.dart';
 import 'package:progress_group/features/marketing-feed/data/models/feed_post_model.dart';
 import 'package:progress_group/features/marketing-feed/domain/entities/fame_manage_entity.dart';
 import 'package:progress_group/features/marketing-feed/domain/entities/feed_list_entity.dart';
@@ -35,6 +36,11 @@ FameListCardEntity _parseFameCard(Map<String, dynamic> raw) {
     mediaId: (media?['id'] as num?)?.toInt(),
     mediaType: media?['type'] as String?,
     mediaUrl: media?['url'] as String?,
+    author: raw['author'] is Map
+        ? FeedAuthorModel.fromJson(
+            Map<String, dynamic>.from(raw['author'] as Map),
+          )
+        : null,
     winners: [
       for (final w in (raw['winners'] as List? ?? const []))
         FameAdminWinnerEntity(

@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:progress_group/core/constants/colors.dart';
 import 'package:progress_group/core/utils/helpers/date_helper.dart';
+import 'package:progress_group/features/marketing-feed/domain/entities/feed_author_entity.dart';
 import 'package:progress_group/features/marketing-feed/domain/entities/feed_list_entity.dart';
 import 'package:progress_group/features/marketing-feed/domain/entities/feed_post_entity.dart';
+import 'package:progress_group/features/marketing-feed/presentation/widgets/feed_avatar.dart';
 import 'package:progress_group/features/marketing-feed/presentation/widgets/feed_link_default_thumb.dart';
 import 'package:progress_group/features/marketing-feed/presentation/widgets/feed_media_view.dart';
 import 'package:progress_group/features/marketing-feed/presentation/widgets/feed_section.dart';
@@ -18,6 +20,9 @@ class FeedManageCard extends StatelessWidget {
   final String? rejectReason;
   final VoidCallback onTap;
 
+  /// Penanda di kiri baris atas (mis. pembuat kiriman atau label Wall of Fame). Null = hanya badge di kiri.
+  final Widget? header;
+
   /// Baris tombol di bawah kartu. Null = kartu tanpa tombol.
   final Widget? footer;
 
@@ -30,6 +35,7 @@ class FeedManageCard extends StatelessWidget {
     required this.timeText,
     this.rejectReason,
     required this.onTap,
+    this.header,
     this.footer,
   });
 
@@ -56,18 +62,35 @@ class FeedManageCard extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Flexible(child: badge),
-                          const Icon(
-                            Icons.chevron_right,
-                            size: 18,
-                            color: Color(grey4Color),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 6),
+                      // Dengan header: penanda di kiri, badge status dan panah di kanan, sejajar dalam satu baris.
+                      if (header != null)
+                        Row(
+                          children: [
+                            Expanded(child: header!),
+                            const SizedBox(width: 8),
+                            // flex 0: badge pakai lebarnya sendiri dan tidak membagi ruang dengan nama.
+                            Flexible(flex: 0, child: badge),
+                            const SizedBox(width: 4),
+                            const Icon(
+                              Icons.chevron_right,
+                              size: 18,
+                              color: Color(grey4Color),
+                            ),
+                          ],
+                        )
+                      else
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Flexible(child: badge),
+                            const Icon(
+                              Icons.chevron_right,
+                              size: 18,
+                              color: Color(grey4Color),
+                            ),
+                          ],
+                        ),
+                                      const SizedBox(height: 6),
                       Text(
                         title,
                         maxLines: 2,
@@ -177,6 +200,7 @@ FeedManageCard feedPostCard({
         ? post.rejectReason
         : null,
     onTap: onTap,
+    header: FeedAuthorTag(author: post.author),
     footer: footer,
   );
 }
@@ -199,28 +223,28 @@ FeedManageCard fameListCard({
             color: Color(grey10Color),
             child: Icon(Icons.emoji_events, color: Color(orangeAccentColor)),
           ),
-    badge: Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
-          decoration: BoxDecoration(
-            color: const Color(orangeAccentColor).withValues(alpha: 0.15),
-            borderRadius: BorderRadius.circular(6),
-          ),
-          child: const Text(
-            'WALL OF FAME',
-            style: TextStyle(
-              fontSize: 10,
-              fontWeight: FontWeight.w900,
-              color: Color(orangeAccentColor),
-            ),
+    // Pembuat di kiri atas menggantikan label WALL OF FAME. Label tetap tampil kalau nama pembuat kosong.
+    header: card.author != null && card.author!.name.trim().isNotEmpty
+        ? FeedAuthorTag(author: card.author!)
+        : Align(
+      alignment: Alignment.centerLeft,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+        decoration: BoxDecoration(
+          color: const Color(orangeAccentColor).withValues(alpha: 0.15),
+          borderRadius: BorderRadius.circular(6),
+        ),
+        child: const Text(
+          'WALL OF FAME',
+          style: TextStyle(
+            fontSize: 10,
+            fontWeight: FontWeight.w900,
+            color: Color(orangeAccentColor),
           ),
         ),
-        const SizedBox(width: 6),
-        FeedStatusPill.fame(card.status),
-      ],
+      ),
     ),
+    badge: FeedStatusPill.fame(card.status),
     title: card.kategori.trim().toUpperCase(),
     subtitle: [
       card.program,
@@ -230,6 +254,41 @@ FeedManageCard fameListCard({
     onTap: onTap,
     footer: footer,
   );
+}
+
+/// Avatar kecil + nama pembuat kiriman, dipakai sebagai header kartu.
+class FeedAuthorTag extends StatelessWidget {
+  final FeedAuthorEntity author;
+
+  const FeedAuthorTag({super.key, required this.author});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        FeedAvatar(
+          name: author.name,
+          initials: author.initials,
+          photoUrl: author.photoUrl,
+          isModerator: author.isModerator,
+          size: 18,
+        ),
+        const SizedBox(width: 6),
+        Flexible(
+          child: Text(
+            author.name,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              fontSize: 11.5,
+              fontWeight: FontWeight.w600,
+              color: Color(grey1Color),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
 }
 
 /// Label status kiriman (Menunggu review, Disetujui, Sudah tayang, Ditolak).

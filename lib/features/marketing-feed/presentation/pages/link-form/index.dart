@@ -244,9 +244,18 @@ class _FeedLinkFormPageState extends State<FeedLinkFormPage> {
   @override
   Widget build(BuildContext context) {
     final youtube = _platform == 'youtube';
+    // Bisa langsung tayang = ApproveReject atau SkipReview. Selain itu submit masuk antrean review.
+    final canPublishDirect =
+        widget.fromCalendar ||
+        PermissionsHelper.canApproveMarketingFeed ||
+        PermissionsHelper.canSkipReviewMarketingFeed;
     return FeedModeratorFormScaffold(
       title: widget.post == null ? 'Link Baru' : 'Edit Link',
-      primaryLabel: _scheduledAt != null ? 'Jadwalkan' : 'Publikasikan',
+      primaryLabel: !canPublishDirect
+          ? 'Kirim ke Review'
+          : _scheduledAt != null
+          ? 'Jadwalkan'
+          : 'Publikasikan',
       onSave: _save,
       children: [
         if (widget.post == null) ...[

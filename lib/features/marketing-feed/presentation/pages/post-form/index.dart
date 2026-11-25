@@ -13,7 +13,7 @@ import 'package:progress_group/features/marketing-feed/presentation/widgets/feed
 import 'package:progress_group/features/marketing-feed/presentation/widgets/feed_formatted_text_controller.dart';
 import 'package:progress_group/features/marketing-feed/presentation/widgets/feed_moderator_form_scaffold.dart';
 
-const _maxMedia = 10;
+const _maxMedia = 1;
 const _maxCaption = 2000;
 
 /// Postingan: foto/video + caption + pengaturan interaksi (permission CreatePost).
@@ -154,11 +154,13 @@ class _FeedPostFormPageState extends State<FeedPostFormPage> {
     final canSetSchedule =
         !isNew || PermissionsHelper.canSetScheduleMarketingFeed;
 
-    final primaryLabel =
-        isNew &&
-            !widget.fromCalendar &&
-            !PermissionsHelper.canSkipReviewMarketingFeed
-        ? 'Kirim untuk Ditinjau'
+    // Bisa langsung tayang = ApproveReject atau SkipReview. Selain itu submit masuk antrean review.
+    final canPublishDirect =
+        widget.fromCalendar ||
+        PermissionsHelper.canApproveMarketingFeed ||
+        PermissionsHelper.canSkipReviewMarketingFeed;
+    final primaryLabel = !canPublishDirect
+        ? 'Kirim ke Review'
         : _scheduledAt != null
         ? 'Jadwalkan'
         : 'Publikasikan';
@@ -216,23 +218,27 @@ class _FeedPostFormPageState extends State<FeedPostFormPage> {
           maxItems: _maxMedia,
           onChanged: (m) => setState(() => _media = m),
         ),
-        const SizedBox(height: 12),
-        const FeedFormLabel('Caption'),
         const SizedBox(height: 8),
         Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            captionTool(
-              'B',
-              _textController.isActive(bold: true),
-              _textController.toggleBold,
-              const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
-            ),
-            const SizedBox(width: 6),
-            captionTool(
-              'I',
-              _textController.isActive(bold: false),
-              _textController.toggleItalic,
-              const TextStyle(fontStyle: FontStyle.italic, fontSize: 15),
+            const FeedFormLabel('Foto/Video'),
+            Row(
+              children: [
+                captionTool(
+                  'B',
+                  _textController.isActive(bold: true),
+                  _textController.toggleBold,
+                  const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                ),
+                const SizedBox(width: 6),
+                captionTool(
+                  'I',
+                  _textController.isActive(bold: false),
+                  _textController.toggleItalic,
+                  const TextStyle(fontStyle: FontStyle.italic, fontSize: 15),
+                ),
+              ],
             ),
           ],
         ),

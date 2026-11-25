@@ -1,4 +1,5 @@
 import 'package:progress_group/features/marketing-feed/domain/entities/fame_manage_entity.dart';
+import 'package:progress_group/features/marketing-feed/domain/entities/feed_author_entity.dart';
 import 'package:progress_group/features/marketing-feed/domain/entities/feed_post_entity.dart';
 
 /// Satu baris di daftar Feeds: kiriman, atau kartu Wall of Fame. Tepat salah satu yang terisi.
@@ -29,6 +30,9 @@ class FameListCardEntity {
   final String? mediaUrl;
   final List<FameAdminWinnerEntity> winners;
 
+  /// Pembuat kartu (dari API, default "Admin" di backend). Null kalau respons tidak membawanya.
+  final FeedAuthorEntity? author;
+
   const FameListCardEntity({
     required this.id,
     required this.kategori,
@@ -43,6 +47,7 @@ class FameListCardEntity {
     this.mediaType,
     this.mediaUrl,
     this.winners = const [],
+    this.author,
   });
 
   bool get isVideo => mediaType == 'video';

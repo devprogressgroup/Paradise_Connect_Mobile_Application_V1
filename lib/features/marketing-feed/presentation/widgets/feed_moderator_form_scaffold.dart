@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
-import 'package:progress_group/core/utils/helpers/date_helper.dart';
 import 'package:progress_group/core/utils/widget/custom_header.dart';
 import 'package:progress_group/features/marketing-feed/domain/entities/feed_post_entity.dart';
 import 'package:progress_group/features/marketing-feed/presentation/state/feed_compose/feed_compose_cubit.dart';
@@ -46,19 +45,13 @@ class _FeedModeratorFormScaffoldState extends State<FeedModeratorFormScaffold> {
     widget.onSave(asDraft);
   }
 
+  /// Pesan sesuai status yang dikembalikan server (bukan hasil hitungan di FE).
   String _successMessage(FeedPostEntity post) {
-    final label = switch (post.type) {
-      FeedPostType.post => 'Post',
-      FeedPostType.poll => 'Poll',
-      FeedPostType.link => 'Link',
-    };
     return switch (post.status) {
-      FeedPostStatus.review => 'Kiriman terkirim dan menunggu review moderator',
-      FeedPostStatus.published =>
-        '$label dipublikasikan, notifikasi dikirim ke sales',
-      FeedPostStatus.scheduled =>
-        'Dijadwalkan tayang ${DateHelper.relativeDayTime(post.publishAt)}',
-      _ => 'Disimpan sebagai draft',
+      FeedPostStatus.review => 'Kiriman dikirim ke review',
+      FeedPostStatus.published => 'Kiriman sudah tayang',
+      FeedPostStatus.scheduled => 'Kiriman dijadwalkan',
+      _ => 'Draft tersimpan',
     };
   }
 

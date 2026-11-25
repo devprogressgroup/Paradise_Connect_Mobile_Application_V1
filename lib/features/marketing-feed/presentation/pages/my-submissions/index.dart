@@ -456,6 +456,9 @@ class _FeedMySubmissionsPageState extends State<FeedMySubmissionsPage> {
   Widget? _postFooter(BuildContext context, FeedPostEntity post, bool busy) {
     final cubit = context.read<FeedListCubit>();
     final canApprove = PermissionsHelper.canApproveMarketingFeed;
+    if (post.status == FeedPostStatus.draft) {
+      return _draftFooter(context, cubit, post, busy);
+    }
     final rows = <Widget>[
       if (canApprove && post.status == FeedPostStatus.review)
         _actionRow(
@@ -509,6 +512,78 @@ class _FeedMySubmissionsPageState extends State<FeedMySubmissionsPage> {
         ),
     ];
     return _stack(rows);
+  }
+
+  /// Tombol draft.
+  /// - Bisa langsung tayang (ApproveReject atau SkipReview): Ubah, Tayangkan, dan Hapus.
+  /// - Milik sendiri tanpa izin itu: Ajukan ulang (buka editor; kirim dilakukan di form, hasilnya antrean review).
+  /// - Draft orang lain tanpa izin: tidak ada tombol.
+  Widget? _draftFooter(
+    BuildContext context,
+    FeedListCubit cubit,
+    FeedPostEntity post,
+    bool busy,
+  ) {
+    final canPublishDirect =
+        PermissionsHelper.canApproveMarketingFeed ||
+        PermissionsHelper.canSkipReviewMarketingFeed;
+    if (canPublishDirect) {
+      return _actionRow(
+        red: PermissionsHelper.canDeleteMarketingFeed
+            ? FeedActionButton(
+                icon: Icons.delete_outline_rounded,
+                label: 'Hapus',
+                color: const Color(redAccentColor),
+                onPressed: busy ? null : () => deleteFeed(context, cubit, post.id),
+              )
+            : null,
+        blue: FeedActionButton(
+          icon: Icons.edit_outlined,
+          label: 'Ubah',
+          color: const Color(primaryColor),
+          onPressed: busy ? null : () => _editPost(post),
+        ),
+        green: FeedActionButton(
+          icon: Icons.send_rounded,
+          label: 'Tayangkan',
+          color: const Color(successColor),
+          filled: true,
+          loading: busy,
+          onPressed: busy ? null : () => _publishDraft(cubit, post.id),
+        ),
+      );
+    }
+    if (post.isMine) {
+      return _actionRow(
+        green: FeedActionButton(
+          icon: Icons.send_rounded,
+          label: 'Ajukan ulang',
+          color: const Color(successColor),
+          filled: true,
+          onPressed: busy ? null : () => _editPost(post),
+        ),
+      );
+    }
+    return null;
+  }
+
+  /// Buka editor draft sesuai jenisnya (sama dengan halaman Draft & Terjadwal).
+  Future<void> _editPost(FeedPostEntity post) async {
+    final route = switch (post.type) {
+      FeedPostType.post => 'marketingFeedPostForm',
+      FeedPostType.poll => 'marketingFeedPollForm',
+      FeedPostType.link => 'marketingFeedLinkForm',
+    };
+    final saved = await context.pushNamed<bool>(route, extra: post);
+    if (mounted && saved == true) {
+      context.read<FeedListCubit>().load(silent: true);
+    }
+  }
+
+  /// Tayangkan draft sekarang. Pesan error dari server ditampilkan apa adanya.
+  Future<void> _publishDraft(FeedListCubit cubit, int postId) async {
+    final error = await cubit.moderate(postId, 'now');
+    _message(error ?? 'Kiriman ditayangkan');
   }
 
   /// Tombol kartu Wall of Fame: hanya untuk user yang bisa mengelola Wall of Fame.

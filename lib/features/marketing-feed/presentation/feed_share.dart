@@ -37,7 +37,9 @@ class FeedShare {
   }) async {
     final url = post.link?.url;
     final caption = post.plainText.trim();
-    final body = url == null ? caption : '$caption\n$url'.trim();
+    final poll = post.poll;
+    final base = poll != null ? _pollText(caption, poll) : caption;
+    final body = url == null ? base : '$base\n$url'.trim();
     // Caption opsional: kosong = null (tidak ada teks yang ikut).
     final text = body.isEmpty ? null : body;
 
@@ -64,6 +66,16 @@ class FeedShare {
       text: text,
       origin: origin,
     );
+  }
+
+  /// Teks poll untuk WA: pertanyaan dan daftar pilihan jawaban.
+  /// Tanpa pilihan jawaban, penerima hanya melihat pertanyaannya.
+  static String _pollText(String question, FeedPollEntity poll) {
+    final buf = StringBuffer('📊 Polling: $question\n');
+    for (final opt in poll.options) {
+      buf.writeln('- ${opt.label}');
+    }
+    return buf.toString().trim();
   }
 
   /// Bagikan satu media (poster kartu, media kiriman) dengan caption. Dipakai juga oleh kartu Wall of Fame.

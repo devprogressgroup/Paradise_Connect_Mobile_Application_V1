@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:progress_group/core/constants/colors.dart';
 import 'package:progress_group/core/services/analytics_service.dart';
 import 'package:progress_group/core/utils/helpers/date_helper.dart';
+import 'package:progress_group/core/utils/helpers/permissions_helper.dart';
 import 'package:progress_group/core/utils/widget/custom_header.dart';
 import 'package:progress_group/features/marketing-feed/domain/entities/feed_post_entity.dart';
 import 'package:progress_group/features/marketing-feed/presentation/state/feed_drafts/feed_drafts_cubit.dart';
@@ -181,6 +182,9 @@ class _FeedDraftsPageState extends State<FeedDraftsPage> {
 
   Widget _buildRow(FeedPostEntity post) {
     final scheduled = post.status == FeedPostStatus.scheduled;
+    final canPublishDirect =
+        PermissionsHelper.canApproveMarketingFeed ||
+        PermissionsHelper.canSkipReviewMarketingFeed;
     final thumb = post.thumbnail;
     final township = post.township?.code ?? 'Semua';
     return Container(
@@ -270,7 +274,15 @@ class _FeedDraftsPageState extends State<FeedDraftsPage> {
                 Wrap(
                   children: [
                     _action(Icons.edit_outlined, 'Edit', () => _edit(post)),
-                    _action(Icons.send, 'Tayangkan', () => _publishNow(post)),
+                    // Bisa langsung tayang = ApproveReject atau SkipReview. Selain itu submit dari editor masuk review.
+                    if (canPublishDirect)
+                      _action(Icons.send, 'Tayangkan', () => _publishNow(post))
+                    else
+                      _action(
+                        Icons.rate_review_outlined,
+                        'Ajukan ulang',
+                        () => _edit(post),
+                      ),
                     _action(
                       Icons.delete_outline,
                       'Hapus',

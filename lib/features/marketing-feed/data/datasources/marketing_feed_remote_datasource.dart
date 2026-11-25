@@ -688,12 +688,31 @@ class MarketingFeedRemoteDataSourceImpl
               createdAt: DateTime.parse(cm['created_at'] as String),
             );
           }).toList();
+          final rawPoll = m['poll'] as Map<String, dynamic>?;
+          final poll = rawPoll == null
+              ? null
+              : FeedPollStatsEntity(
+                  totalVoters: (rawPoll['total_voters'] as num?)?.toInt() ?? 0,
+                  hasVoted: rawPoll['has_voted'] as bool? ?? false,
+                  myVotes: (rawPoll['my_votes'] as List<dynamic>? ?? const [])
+                      .map((v) => (v as num).toInt())
+                      .toList(),
+                  options: (rawPoll['options'] as List<dynamic>? ?? const []).map((o) {
+                    final om = Map<String, dynamic>.from(o as Map);
+                    return FeedPollOptionStatsEntity(
+                      index: (om['index'] as num).toInt(),
+                      votes: (om['votes'] as num?)?.toInt() ?? 0,
+                      percent: (om['percent'] as num?)?.toInt() ?? 0,
+                    );
+                  }).toList(),
+                );
           return FeedStatsEntity(
             id: (m['id'] as num).toInt(),
             likes: (m['likes'] as num?)?.toInt() ?? 0,
             dislikes: (m['dislikes'] as num?)?.toInt() ?? 0,
             comments: (m['comments'] as num?)?.toInt() ?? 0,
             latestComments: latest,
+            poll: poll,
           );
         }).toList();
       }

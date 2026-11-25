@@ -123,23 +123,126 @@ class FeedMediaPickerGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GridView.count(
-      crossAxisCount: 3,
-      mainAxisSpacing: 8,
-      crossAxisSpacing: 8,
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      children: [
-        for (var i = 0; i < media.length; i++)
-          _FeedMediaTile(
-            media: media[i],
-            onRemove: () => onChanged([...media]..removeAt(i)),
-          ),
-        if (media.length < maxItems)
-          _FeedUploadTile(label: 'Upload', onTap: _pick),
-      ],
+    return Container(
+      color: Color(whiteColor),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (media.isNotEmpty) ...[
+            // Hanya 1 media: tampil selebar penuh. Lebih dari 1: grid 3 kolom.
+            if (maxItems == 1)
+              AspectRatio(
+                aspectRatio: 16 / 10,
+                child: _FeedMediaTile(
+                  media: media.first,
+                  onRemove: () => onChanged([]),
+                ),
+              )
+            else
+              GridView.count(
+                crossAxisCount: 3,
+                mainAxisSpacing: 8,
+                crossAxisSpacing: 8,
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                children: [
+                  for (var i = 0; i < media.length; i++)
+                    _FeedMediaTile(
+                      media: media[i],
+                      onRemove: () => onChanged([...media]..removeAt(i)),
+                    ),
+                ],
+              ),
+            const SizedBox(height: 8),
+          ],
+          if (media.length < maxItems)
+            _FeedDashedUploadBox(label: 'Tambah foto / video', onTap: _pick),
+        ],
+      ),
     );
   }
+}
+
+/// Kotak upload lebar dengan garis putus-putus, untuk menambah foto/video.
+class _FeedDashedUploadBox extends StatelessWidget {
+  final String label;
+  final VoidCallback onTap;
+
+  const _FeedDashedUploadBox({required this.label, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: CustomPaint(
+        painter: _DashedRectPainter(
+          color: const Color(greyShade300),
+          radius: 12,
+        ),
+        child: Container(
+          height: 110,
+          alignment: Alignment.center,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(
+                Icons.add_photo_alternate_outlined,
+                size: 26,
+                color: Color(grey4Color),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                label,
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: Color(grey4Color),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Gambar persegi panjang membulat dengan garis putus-putus.
+class _DashedRectPainter extends CustomPainter {
+  final Color color;
+  final double radius;
+
+  const _DashedRectPainter({required this.color, required this.radius});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.5;
+    final path = Path()
+      ..addRRect(
+        RRect.fromRectAndRadius(
+          Offset.zero & size,
+          Radius.circular(radius),
+        ),
+      );
+    const dash = 6.0;
+    const gap = 4.0;
+    for (final metric in path.computeMetrics()) {
+      var distance = 0.0;
+      while (distance < metric.length) {
+        final end = (distance + dash).clamp(0.0, metric.length);
+        canvas.drawPath(metric.extractPath(distance, end), paint);
+        distance += dash + gap;
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _DashedRectPainter oldDelegate) =>
+      oldDelegate.color != color || oldDelegate.radius != radius;
 }
 
 /// Satu gambar opsional (gambar pertanyaan poll, thumbnail link), rasio 16:10.

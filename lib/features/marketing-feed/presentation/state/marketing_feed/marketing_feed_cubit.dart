@@ -224,6 +224,8 @@ class MarketingFeedCubit extends Cubit<MarketingFeedState> {
     result.fold((_) {}, (newPoll) {
       final target = _findPost(postId);
       if (target != null) _replacePost(target.copyWith(poll: newPoll));
+      // Data polling yang sudah berjalan sebelum vote ini tidak boleh menimpa hasil vote barusan.
+      FeedLiveStats.instance.markLocalChange(postId);
     });
     return result;
   }

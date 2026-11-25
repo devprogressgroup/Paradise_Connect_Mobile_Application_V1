@@ -103,13 +103,14 @@ class FeedPostCard extends StatelessWidget {
     );
   }
 
-  /// Hitungan dan komentar terbaru dari polling menggantikan nilai saat kartu ini dibuat.
+  /// Hitungan, poll, dan komentar terbaru dari polling menggantikan nilai saat kartu ini dibuat.
   FeedPostEntity _withLive(FeedPostEntity p, FeedStatsEntity s) {
     final c = s.latestComments.isEmpty ? null : s.latestComments.first;
     return p.copyWith(
       likeCount: s.likes,
       dislikeCount: s.dislikes,
       commentCount: s.comments,
+      poll: _livePoll(p.poll, s.poll),
       latestComment: c == null
           ? null
           : FeedCommentEntity(
@@ -122,6 +123,28 @@ class FeedPostCard extends StatelessWidget {
               text: c.body,
               createdAt: c.createdAt,
             ),
+    );
+  }
+
+  /// Suara per opsi, total pemilih, dan status vote dari polling. Label dan gambar tetap dari poll awal.
+  FeedPollEntity? _livePoll(FeedPollEntity? base, FeedPollStatsEntity? live) {
+    if (base == null || live == null) return base;
+    final counts = {for (final o in live.options) o.index: o};
+    return FeedPollEntity(
+      options: [
+        for (final o in base.options)
+          FeedPollOptionEntity(
+            index: o.index,
+            label: o.label,
+            votes: counts[o.index]?.votes ?? o.votes,
+            percent: counts[o.index]?.percent ?? o.percent,
+          ),
+      ],
+      totalVoters: live.totalVoters,
+      isMultiple: base.isMultiple,
+      image: base.image,
+      myVotes: live.myVotes,
+      hasVoted: live.hasVoted,
     );
   }
 
