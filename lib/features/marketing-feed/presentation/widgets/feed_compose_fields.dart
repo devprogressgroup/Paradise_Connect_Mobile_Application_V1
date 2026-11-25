@@ -592,7 +592,7 @@ class FeedInteractionSettingsCard extends StatelessWidget {
   }
 }
 
-/// "Waktu Tayang": Sekarang / Jadwalkan (tanggal + jam). [scheduledAt] null = sekarang.
+/// "Waktu Publish": Sekarang / Jadwalkan (tanggal + jam). [scheduledAt] null = sekarang.
 /// Tanggal disimpan dengan konvensi [AppTime.now] (jam dinding WIB, flag UTC).
 class FeedScheduleField extends StatelessWidget {
   final DateTime? scheduledAt;

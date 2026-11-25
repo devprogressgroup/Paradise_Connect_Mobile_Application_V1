@@ -3,8 +3,10 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:progress_group/core/constants/colors.dart';
 import 'package:progress_group/core/services/analytics_service.dart';
+import 'package:progress_group/core/utils/helpers/permissions_helper.dart';
 import 'package:progress_group/core/utils/widget/custom_header.dart';
 import 'package:progress_group/features/marketing-feed/domain/entities/feed_post_entity.dart';
+import 'package:progress_group/features/marketing-feed/presentation/state/feed_drafts/feed_drafts_cubit.dart';
 import 'package:progress_group/features/marketing-feed/presentation/feed_share.dart';
 import 'package:progress_group/features/marketing-feed/presentation/state/marketing_feed/marketing_feed_cubit.dart';
 import 'package:progress_group/features/marketing-feed/presentation/widgets/feed_comment_sheet.dart';
@@ -168,6 +170,113 @@ class _FeedPostDetailPageState extends State<FeedPostDetailPage> {
     FeedShare.sharePost(context, post, origin: origin);
   }
 
+  /// Aksi draft, sama dengan halaman Draf: Ubah, Publish" (kalau bisa langsung tayang) atau Ajukan ulang, dan Hapus.
+  Widget _draftActions(FeedPostEntity post) {
+    final canPublishDirect =
+        PermissionsHelper.canApproveMarketingFeed ||
+        PermissionsHelper.canSkipReviewMarketingFeed;
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: [
+        OutlinedButton.icon(
+          onPressed: () => _editDraft(post),
+          icon: const Icon(Icons.edit_outlined, size: 16),
+          label: const Text('Ubah'),
+        ),
+        if (canPublishDirect)
+          ElevatedButton.icon(
+            onPressed: () => _publishDraft(post),
+            icon: const Icon(Icons.send, size: 16),
+            label: const Text('Publish'),
+          )
+        else
+          ElevatedButton.icon(
+            onPressed: () => _editDraft(post),
+            icon: const Icon(Icons.rate_review_outlined, size: 16),
+            label: const Text('Ajukan ulang'),
+          ),
+        // Hapus butuh izin Delete atau ApproveReject (sama dengan backend), jadi tombolnya hanya tampil kalau ada.
+        if (PermissionsHelper.canDeleteMarketingFeed)
+          OutlinedButton.icon(
+            onPressed: () => _deleteDraft(post),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: const Color(redAccentColor),
+            ),
+            icon: const Icon(Icons.delete_outline, size: 16),
+            label: const Text('Hapus'),
+          ),
+      ],
+    );
+  }
+
+  Future<void> _editDraft(FeedPostEntity post) async {
+    AnalyticsService.logEvent('marketing_feed_detail_draft_edit');
+    final route = switch (post.type) {
+      FeedPostType.post => 'marketingFeedPostForm',
+      FeedPostType.poll => 'marketingFeedPollForm',
+      FeedPostType.link => 'marketingFeedLinkForm',
+    };
+    final saved = await context.pushNamed<bool>(route, extra: post);
+    if (saved == true && mounted) {
+      // Simpan dari form bisa langsung menayangkan kiriman, jadi halaman dimuat ulang.
+      await _loadPost();
+    }
+  }
+
+  Future<void> _publishDraft(FeedPostEntity post) async {
+    AnalyticsService.logEvent('marketing_feed_detail_draft_publish');
+    final error = await context.read<FeedDraftsCubit>().publishNow(post.id);
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(error ?? 'Konten ditayangkan, notifikasi dikirim ke sales'),
+      ),
+    );
+    await _loadPost();
+  }
+
+  Future<void> _deleteDraft(FeedPostEntity post) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Hapus draft?'),
+        content: const Text('Draft yang dihapus tidak bisa dikembalikan.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Batal'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text(
+              'Hapus',
+              style: TextStyle(color: Color(redAccentColor)),
+            ),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    final error = await context.read<FeedDraftsCubit>().delete(post.id);
+    if (!mounted) return;
+    if (error != null) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error)));
+      return;
+    }
+    if (context.canPop()) {
+      context.pop(true);
+    } else {
+      context.go('/');
+    }
+  }
+
+  /// Footer kartu di Detail Post: hanya aksi draft. Laporan kiriman dilakukan dari kartu di menu utama (Home).
+  Widget? _postFooter(FeedPostEntity post) {
+    if (post.status == FeedPostStatus.draft) return _draftActions(post);
+    return null;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -226,6 +335,7 @@ class _FeedPostDetailPageState extends State<FeedPostDetailPage> {
             onComment: _openComments,
             onShare: _share,
             onVote: _vote,
+            footer: _postFooter(post),
           ),
         ],
       ),

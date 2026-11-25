@@ -222,7 +222,7 @@ class _FeedPostFormPageState extends State<FeedPostFormPage> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const FeedFormLabel('Foto/Video'),
+            const FeedFormLabel('Caption'),
             Row(
               children: [
                 captionTool(
@@ -271,7 +271,7 @@ class _FeedPostFormPageState extends State<FeedPostFormPage> {
         ),
         if (canSetSchedule) ...[
           const SizedBox(height: 12),
-          const FeedFormLabel('Waktu Tayang'),
+          const FeedFormLabel('Waktu Publish'),
           const SizedBox(height: 8),
           FeedScheduleField(
             scheduledAt: _scheduledAt,

@@ -1,4 +1,5 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:progress_group/features/marketing-feed/domain/entities/feed_list_entity.dart';
 import 'package:progress_group/features/marketing-feed/domain/entities/feed_post_entity.dart';
 import 'package:progress_group/features/marketing-feed/domain/usecases/search_feed_posts_usecase.dart';
 
@@ -8,12 +9,15 @@ class FeedSearchState {
   final FeedSearchStatus status;
   final String query;
   final List<FeedPostEntity> items;
+  /// Kartu Wall of Fame yang cocok dengan kata kunci.
+  final List<FameListCardEntity> fame;
   final String? errorMessage;
 
   const FeedSearchState({
     this.status = FeedSearchStatus.initial,
     this.query = '',
     this.items = const [],
+    this.fame = const [],
     this.errorMessage,
   });
 }
@@ -47,6 +51,7 @@ class FeedSearchCubit extends Cubit<FeedSearchState> {
           status: FeedSearchStatus.loaded,
           query: query,
           items: page.items,
+          fame: page.fame,
         ),
       ),
     );

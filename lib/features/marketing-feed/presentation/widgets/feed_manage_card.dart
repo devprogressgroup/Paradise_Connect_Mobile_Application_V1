@@ -193,7 +193,9 @@ FeedManageCard feedPostCard({
     title: post.plainText.trim().isNotEmpty
         ? post.plainText
         : 'Momen tanpa cerita teks',
-    timeText: post.submittedAt != null
+    timeText: post.status == FeedPostStatus.draft
+        ? 'Disimpan ${DateHelper.timeAgo(post.publishAt)}'
+        : post.submittedAt != null
         ? 'Dikirim ${DateHelper.timeAgo(post.submittedAt!)}'
         : 'Dikirim ${DateHelper.timeAgo(post.publishAt)}',
     rejectReason: post.status == FeedPostStatus.rejected
@@ -291,7 +293,7 @@ class FeedAuthorTag extends StatelessWidget {
   }
 }
 
-/// Label status kiriman (Menunggu review, Disetujui, Sudah tayang, Ditolak).
+/// Label status kiriman (Menunggu review, Disetujui, Publish, Ditolak).
 class FeedStatusBadge extends StatelessWidget {
   final FeedPostEntity post;
 
@@ -316,22 +318,22 @@ class FeedStatusBadge extends StatelessWidget {
         );
       case FeedPostStatus.published:
         return const FeedStatusPill(
-          label: 'Sudah tayang',
+          label: 'Publish',
           bg: greenMaterialColor,
           fg: greenMaterialColor,
+        );
+      case FeedPostStatus.draft:
+        return FeedStatusPill(
+          label: 'Draf',
+          bg: grey10Color,
+          fg: grey2Color,
+          solidBg: true,
         );
       case FeedPostStatus.rejected:
         return const FeedStatusPill(
           label: 'Ditolak',
           bg: redAccentColor,
           fg: redAccentColor,
-        );
-      default:
-        return FeedStatusPill(
-          label: post.status.name,
-          bg: grey10Color,
-          fg: grey2Color,
-          solidBg: true,
         );
     }
   }
@@ -358,7 +360,7 @@ class FeedStatusPill extends StatelessWidget {
     switch (status) {
       case 'published':
         return const FeedStatusPill(
-          label: 'Tayang',
+          label: 'Publish',
           bg: greenMaterialColor,
           fg: greenMaterialColor,
         );

@@ -276,7 +276,7 @@ class _FeedDraftsPageState extends State<FeedDraftsPage> {
                     _action(Icons.edit_outlined, 'Edit', () => _edit(post)),
                     // Bisa langsung tayang = ApproveReject atau SkipReview. Selain itu submit dari editor masuk review.
                     if (canPublishDirect)
-                      _action(Icons.send, 'Tayangkan', () => _publishNow(post))
+                      _action(Icons.send, 'Publish', () => _publishNow(post))
                     else
                       _action(
                         Icons.rate_review_outlined,

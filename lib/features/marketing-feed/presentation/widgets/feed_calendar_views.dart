@@ -306,7 +306,7 @@ class FeedCalendarLegend extends StatelessWidget {
         SizedBox(width: 14),
         _LegendDot(color: _pubDot),
         SizedBox(width: 5),
-        Text('Tayang', style: style),
+        Text('Publish', style: style),
       ],
     );
   }

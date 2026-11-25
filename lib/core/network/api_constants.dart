@@ -38,18 +38,18 @@ class ApiConstants {
       storageUrl: 'http://192.168.8.32:1100/storage',
       serverUrl: 'http://192.168.8.32:1100',
     ),
-    AppEnvironment.development2: _EnvConfig(
-      label: 'Development 2',
-      baseUrl: 'http://192.168.18.172:1100/api',
-      storageUrl: 'http://192.168.18.172:1100/storage',
-      serverUrl: 'http://192.168.18.172:1100',
-    ),
-    AppEnvironment.developmnetDomain: _EnvConfig(
-      label: 'Development',
-      baseUrl: 'https://apidevconnect.paradise.id/api',
-      storageUrl: 'https://apidevconnect.paradise.id/storage',
-      serverUrl: 'https://apidevconnect.paradise.id',
-    ),
+    // AppEnvironment.development2: _EnvConfig(
+    //   label: 'Development 2',
+    //   baseUrl: 'http://192.168.18.172:1100/api',
+    //   storageUrl: 'http://192.168.18.172:1100/storage',
+    //   serverUrl: 'http://192.168.18.172:1100',
+    // ),
+    // AppEnvironment.developmnetDomain: _EnvConfig(
+    //   label: 'Development',
+    //   baseUrl: 'https://apidevconnect.paradise.id/api',
+    //   storageUrl: 'https://apidevconnect.paradise.id/storage',
+    //   serverUrl: 'https://apidevconnect.paradise.id',
+    // ),
   };
 
   // Akun demo (reviewer App Store/Play) login ke server dev supaya data uji mereka tidak ikut

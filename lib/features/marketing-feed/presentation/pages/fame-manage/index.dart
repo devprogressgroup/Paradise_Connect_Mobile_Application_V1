@@ -266,7 +266,7 @@ class FameManagePageState extends State<FameManagePage> {
               if (card.status != 'published')
                 const PopupMenuItem(
                   value: 'publish',
-                  child: Text('Tayangkan sekarang'),
+                  child: Text('Publish" sekarang'),
                 ),
               const PopupMenuItem(value: 'edit', child: Text('Ubah')),
               const PopupMenuItem(
@@ -285,7 +285,7 @@ class FameManagePageState extends State<FameManagePage> {
 
   Widget _statusBadge(FameAdminCardEntity card) {
     final (label, color) = switch (card.status) {
-      'published' => ('Tayang', const Color(successColor)),
+      'published' => ('Publish', const Color(successColor)),
       'scheduled' => ('Terjadwal', const Color(primaryColor)),
       _ => ('Draf', const Color(grey2Color)),
     };

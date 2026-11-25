@@ -221,7 +221,9 @@ Widget buildActivityShimmer() {
 }
 
 /// Shimmer untuk daftar kiriman (Feed, pencarian, reel): beberapa kartu kiriman.
-Widget buildPostFeedShimmer() {
+Widget buildPostFeedShimmer({
+  EdgeInsetsGeometry padding = const EdgeInsets.fromLTRB(16, 16, 16, 16),
+}) {
   // Tiga bentuk kartu seperti kiriman asli: dengan media, teks saja, dan poll.
   const cards = [
     ShimmerPostCardItem(withMedia: true),
@@ -231,7 +233,7 @@ Widget buildPostFeedShimmer() {
   return ListView.separated(
     shrinkWrap: true,
     physics: const NeverScrollableScrollPhysics(),
-    padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+    padding: padding,
     itemCount: cards.length,
     separatorBuilder: (_, __) => const SizedBox(height: 12),
     itemBuilder: (_, i) => cards[i],

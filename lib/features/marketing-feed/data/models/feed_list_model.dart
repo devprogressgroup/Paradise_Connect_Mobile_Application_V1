@@ -1,3 +1,4 @@
+import 'package:progress_group/core/utils/helpers/date_helper.dart';
 import 'package:progress_group/features/marketing-feed/data/models/feed_author_model.dart';
 import 'package:progress_group/features/marketing-feed/data/models/feed_post_model.dart';
 import 'package:progress_group/features/marketing-feed/domain/entities/fame_manage_entity.dart';
@@ -55,4 +56,5 @@ FameListCardEntity _parseFameCard(Map<String, dynamic> raw) {
   );
 }
 
-DateTime? _date(Object? raw) => raw is String ? DateTime.tryParse(raw) : null;
+// Waktu server dipetakan ke jam dinding WIB (sama seperti FeedPostModel), supaya "Dibuat … lalu" tidak bergeser 7 jam.
+DateTime? _date(Object? raw) => raw is String ? DateHelper.parseServerTime(raw) : null;

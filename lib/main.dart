@@ -222,6 +222,7 @@ import 'features/marketing-feed/domain/usecases/get_feed_drafts_usecase.dart';
 import 'features/marketing-feed/domain/usecases/get_my_profile_usecase.dart';
 import 'features/marketing-feed/presentation/state/my_profile/my_profile_cubit.dart';
 import 'features/marketing-feed/domain/usecases/search_feed_posts_usecase.dart';
+import 'features/marketing-feed/presentation/state/feed_report/feed_report_cubit.dart';
 import 'features/marketing-feed/presentation/state/feed_search/feed_search_cubit.dart';
 import 'features/marketing-feed/domain/usecases/get_feed_post_usecase.dart';
 import 'features/marketing-feed/domain/usecases/get_feed_posts_usecase.dart';
@@ -1148,6 +1149,9 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
                 create: (_) => FeedSearchCubit(
                   searchFeedPostsUseCase: searchFeedPostsUseCase,
                 ),
+              ),
+              BlocProvider(
+                create: (_) => FeedReportCubit(repository: marketingFeedRepository),
               ),
             ],
             child: MultiBlocListener(

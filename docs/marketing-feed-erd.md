@@ -94,7 +94,7 @@ flowchart TD
     B -->|"Simpan draft"| D[("t_feed_post<br/>status = draft")]
     B -->|"Jadwalkan"| S[("t_feed_post<br/>status = scheduled")]
     B -->|"Sekarang"| P[("t_feed_post<br/>status = published")]
-    D -->|"Tayangkan"| P
+    D -->|"Publish""| P
     D -->|"Jadwalkan"| S
     S -->|"Batalkan jadwal"| D
     S -->|"Scheduler: waktu tiba"| P
@@ -531,7 +531,7 @@ Yang dilihat dan diklik sales (dan moderator lewat tombol +).
 | Tombol + › Post Baru | Publikasikan / Jadwalkan / Simpan Draft | `C` `t_feed_post` (status published / scheduled / draft)<br>`C` `d_feed_post_media` (foto/video carousel)<br>`C` `t_global_notifications` (hanya kalau langsung tayang) |
 | Tombol + › Poll Baru | Publikasikan Poll | `C` `t_feed_post` (post_type poll)<br>`C` `d_feed_poll` (is_multiple)<br>`C` `d_feed_post_media` (gambar pertanyaan, opsional)<br>`C` `d_feed_poll_option` (minimal 2 opsi)<br>`C` `t_global_notifications` (hanya kalau langsung tayang) |
 | Tombol + › Link YouTube / Website | Publikasikan / Jadwalkan / Simpan Draft | `C` `t_feed_post` (post_type link)<br>`C` `d_feed_link` (platform youtube / web, url, judul, deskripsi)<br>`C` `d_feed_post_media` (1 file thumbnail)<br>`C` `t_global_notifications` (hanya kalau langsung tayang) |
-| Tombol + › Draft & Terjadwal | Lihat daftar, Edit, Tayangkan, Hapus | `R` `t_feed_post` (status draft dan scheduled)<br>`U` `t_feed_post` (ubah isi atau status)<br>`D` `t_feed_post` (hapus = isi deleted_at) |
+| Tombol + › Draft & Terjadwal | Lihat daftar, Edit, Publish", Hapus | `R` `t_feed_post` (status draft dan scheduled)<br>`U` `t_feed_post` (ubah isi atau status)<br>`D` `t_feed_post` (hapus = isi deleted_at) |
 
 ### 6.2 Admin Web
 
@@ -541,7 +541,7 @@ Menu Marketing Feed di panel admin, dipakai moderator.
 |---|---|---|
 | Konten | Buka daftar konten dan kartu Terjadwal / Draft / Menunggu Review | `R` `t_feed_post` (semua status, dihitung per status)<br>`R` `d_feed_post_media` (thumbnail, termasuk gambar poll)<br>`R` `app_m_user` (teks "oleh ...") |
 | Konten | Cari konten | `R` `t_feed_post` (body)<br>`R` `d_feed_link` (title) |
-| Konten | Tayangkan / Tayangkan sekarang | `U` `t_feed_post` (status published, publish_at = sekarang)<br>`C` `t_global_notifications` (notif ke sales) |
+| Konten | Publish" / Publish" sekarang | `U` `t_feed_post` (status published, publish_at = sekarang)<br>`C` `t_global_notifications` (notif ke sales) |
 | Konten | Batalkan jadwal / Tarik ke draft | `U` `t_feed_post` (status draft; Tarik ke draft juga mengosongkan pinned_at, pin_user_id, pin_until) |
 | Konten | Hapus | `D` `t_feed_post` (soft delete (deleted_at)) |
 | Konten | Sematkan / Lepas sematan (konten berstatus Tayang) | `U` `t_feed_post` (sematkan: pinned_at = sekarang, pin_user_id = moderator; lepas: ketiga kolom pin = NULL) |
@@ -581,10 +581,10 @@ Berjalan otomatis di backend, tanpa klik.
 | (baru) | Publikasikan | `published` | Moderator |
 | (baru) | Jadwalkan | `scheduled` | Moderator |
 | (baru) | Bagikan Momen | `review` | Sales |
-| `draft` | Tayangkan | `published` | Moderator |
+| `draft` | Publish" | `published` | Moderator |
 | `draft` | Jadwalkan | `scheduled` | Moderator |
 | `scheduled` | Waktu tayang tiba | `published` | Scheduler |
-| `scheduled` | Tayangkan sekarang | `published` | Moderator |
+| `scheduled` | Publish" sekarang | `published` | Moderator |
 | `scheduled` | Batalkan jadwal | `draft` | Moderator |
 | `published` | Tarik ke draft | `draft` | Moderator |
 | `review` | Setujui & tayangkan | `published` | Moderator |

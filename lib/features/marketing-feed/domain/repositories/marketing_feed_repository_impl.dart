@@ -8,6 +8,7 @@ import 'package:progress_group/features/marketing-feed/domain/entities/fame_prog
 import 'package:progress_group/features/marketing-feed/domain/entities/fame_manage_entity.dart';
 import 'package:progress_group/features/marketing-feed/domain/entities/feed_list_entity.dart';
 import 'package:progress_group/features/marketing-feed/domain/entities/feed_post_entity.dart';
+import 'package:progress_group/features/marketing-feed/domain/entities/feed_report_entity.dart';
 import 'package:progress_group/features/marketing-feed/domain/entities/feed_stats_entity.dart';
 import 'package:progress_group/features/marketing-feed/domain/entities/personal_funnel_entity.dart';
 import 'package:progress_group/features/marketing-feed/domain/entities/save_feed_post_params.dart';
@@ -205,12 +206,14 @@ class MarketingFeedRepositoryImpl implements MarketingFeedRepository {
     List<String> kinds = const [],
     String q = '',
     String sort = 'latest',
+    bool reported = false,
   }) => _guard(
     () => remoteDataSource.getFeedList(
       page: page,
       perPage: perPage,
       statuses: statuses,
       kinds: kinds,
+      reported: reported,
       q: q,
       sort: sort,
     ),
@@ -281,6 +284,18 @@ class MarketingFeedRepositoryImpl implements MarketingFeedRepository {
   @override
   Future<Either<String, void>> moderatorAction(int postId, String action) =>
       _guard(() => remoteDataSource.moderatorAction(postId, action));
+
+  @override
+  Future<Either<String, void>> reportPost(int postId, String reason, String? note) =>
+      _guard(() => remoteDataSource.reportPost(postId, reason, note));
+
+  @override
+  Future<Either<String, List<FeedReportedPost>>> getReportedPosts() =>
+      _guard<List<FeedReportedPost>>(() async => remoteDataSource.getReportedPosts());
+
+  @override
+  Future<Either<String, void>> decideReport(int postId, String action) =>
+      _guard(() => remoteDataSource.decideReport(postId, action));
 
   @override
   Future<Either<String, List<FeedPostEntity>>> getPublishedPosts() =>

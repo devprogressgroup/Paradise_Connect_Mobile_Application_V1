@@ -18,6 +18,7 @@ import 'package:progress_group/features/marketing-feed/domain/entities/feed_post
 import 'package:progress_group/features/marketing-feed/presentation/pages/fame-form/index.dart';
 import 'package:progress_group/features/marketing-feed/presentation/state/fame_manage/fame_manage_cubit.dart';
 import 'package:progress_group/features/marketing-feed/presentation/state/feed_list/feed_list_cubit.dart';
+import 'package:progress_group/features/marketing-feed/presentation/state/feed_report/feed_report_cubit.dart';
 import 'package:progress_group/features/marketing-feed/presentation/widgets/feed_action_button.dart';
 import 'package:progress_group/features/marketing-feed/presentation/widgets/feed_create_tabs.dart';
 import 'package:progress_group/features/marketing-feed/presentation/widgets/feed_manage_card.dart';
@@ -50,7 +51,11 @@ class _FeedMySubmissionsPageState extends State<FeedMySubmissionsPage> {
     _scrollController.addListener(_onScroll);
 
     final cubit = context.read<FeedListCubit>();
-    if (widget.initialTab == 'approval' &&
+    if (widget.initialTab == 'reports' &&
+        PermissionsHelper.canApproveMarketingFeed) {
+      // Notifikasi laporan: filter Dilaporkan langsung aktif.
+      cubit.setFilter(statuses: {}, kinds: {'post'}, reported: true);
+    } else if (widget.initialTab == 'approval' &&
         PermissionsHelper.canApproveMarketingFeed) {
       cubit.setFilter(statuses: {'review'}, kinds: {'post'});
     } else {
@@ -253,7 +258,8 @@ class _FeedMySubmissionsPageState extends State<FeedMySubmissionsPage> {
   /// Urutkan dan Filter (membuka sheet), seperti filter di Contacts.
   Widget _buildFilters() {
     return BlocBuilder<FeedListCubit, FeedListState>(
-      buildWhen: (a, b) => a.sort != b.sort || a.statuses != b.statuses || a.kinds != b.kinds,
+      buildWhen: (a, b) =>
+          a.sort != b.sort || a.statuses != b.statuses || a.kinds != b.kinds,
       builder: (context, state) {
         final sortLabel = feedListSortOptions
             .firstWhere(
@@ -261,8 +267,13 @@ class _FeedMySubmissionsPageState extends State<FeedMySubmissionsPage> {
               orElse: () => feedListSortOptions.first,
             )
             .$2;
+        // Aktif kalau ada yang tidak sama dengan default (tidak semua status, Dilaporkan, atau jenis dibatasi).
+        // Aktif kalau berbeda dari default (hanya Tayang), atau Dilaporkan, atau jenis dibatasi.
         final filterActive =
-            state.statuses.isNotEmpty || state.kinds.isNotEmpty;
+            state.noSelection ||
+            !state.isDefaultStatuses ||
+            !state.isDefaultKinds ||
+            state.reported;
         return SingleChildScrollView(
           scrollDirection: Axis.horizontal,
           padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -279,8 +290,8 @@ class _FeedMySubmissionsPageState extends State<FeedMySubmissionsPage> {
                 isSelected: filterActive,
                 onClear: filterActive
                     ? () => context.read<FeedListCubit>().setFilter(
-                        statuses: {},
-                        kinds: {},
+                        statuses: {'published'},
+                        kinds: {'post'},
                       )
                     : null,
                 onTap: () => _openFilterSheet(context, state),
@@ -297,48 +308,75 @@ class _FeedMySubmissionsPageState extends State<FeedMySubmissionsPage> {
     FeedListState state,
   ) async {
     final result =
-        await showModalBottomSheet<({Set<String> statuses, Set<String> kinds})>(
+        await showModalBottomSheet<
+          ({Set<String> statuses, bool reported, bool includeFame})
+        >(
           context: context,
           isScrollControlled: true,
           backgroundColor: const Color(backgroundColor),
-          builder: (ctx) =>
-              _FeedFilterSheet(statuses: state.statuses, kinds: state.kinds),
+          builder: (ctx) => _FeedFilterSheet(
+            statuses: state.statuses,
+            kinds: state.kinds,
+            reported: state.reported,
+          ),
         );
     if (result != null && context.mounted) {
-      context.read<FeedListCubit>().setFilter(
+      context.read<FeedListCubit>().applySheet(
         statuses: result.statuses,
-        kinds: result.kinds,
+        reported: result.reported,
+        includeFame: result.includeFame,
       );
     }
   }
 
+  /// Sheet "Urutkan" dengan gaya yang sama seperti sheet Filter: header, kartu putih, dan baris pilihan.
+  /// Ketuk pilihan = langsung diterapkan.
   Future<void> _openSortSheet(BuildContext context, String current) async {
     final result = await showModalBottomSheet<String>(
       context: context,
-      showDragHandle: true,
+      backgroundColor: const Color(backgroundColor),
       builder: (ctx) => SafeArea(
         child: Column(
           mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Padding(
-              padding: EdgeInsets.fromLTRB(16, 0, 16, 8),
-              child: Text(
-                'Urutkan',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(8, 8, 8, 4),
+              child: Row(
+                children: [
+                  IconButton(
+                    onPressed: () => Navigator.pop(ctx),
+                    icon: const Icon(Icons.close_rounded),
+                  ),
+                  const Expanded(
+                    child: Text(
+                      'Urutkan',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 48),
+                ],
               ),
             ),
-            for (final (key, label) in feedListSortOptions)
-              ListTile(
-                title: Text(label),
-                trailing: key == current
-                    ? const Icon(
-                        Icons.check_rounded,
-                        color: Color(primaryColor),
-                      )
-                    : null,
-                onTap: () => Navigator.pop(ctx, key),
-              ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+              child: _feedSheetCard([
+                for (final (key, label) in feedListSortOptions)
+                  _feedSheetRow(
+                    icon: switch (key) {
+                      'oldest' => Icons.history_rounded,
+                      'updated' => Icons.update_rounded,
+                      _ => Icons.arrow_downward_rounded,
+                    },
+                    label: label,
+                    selected: key == current,
+                    onTap: () => Navigator.pop(ctx, key),
+                  ),
+              ]),
+            ),
           ],
         ),
       ),
@@ -351,6 +389,18 @@ class _FeedMySubmissionsPageState extends State<FeedMySubmissionsPage> {
   Widget _buildList() {
     return BlocBuilder<FeedListCubit, FeedListState>(
       builder: (context, state) {
+        if (state.noSelection) {
+          return const Center(
+            child: Padding(
+              padding: EdgeInsets.all(24),
+              child: Text(
+                'Pilih minimal satu filter',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 13, color: Color(grey2Color)),
+              ),
+            ),
+          );
+        }
         if (state.items.isEmpty) {
           if (state.status == FeedListStatus.error) {
             return Center(
@@ -461,6 +511,62 @@ class _FeedMySubmissionsPageState extends State<FeedMySubmissionsPage> {
       return _draftFooter(context, cubit, post, busy);
     }
     final rows = <Widget>[
+      // Kiriman yang dilaporkan: jumlah laporan dan tombol Abaikan (laporan ditutup, kiriman tetap tayang).
+      if (canApprove && post.reportCount > 0)
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              '${post.reportCount} laporan untuk kiriman ini',
+              style: const TextStyle(fontSize: 12, color: Color(grey2Color)),
+            ),
+            const SizedBox(height: 6),
+            _actionRow(
+              red: FeedActionButton(
+                icon: Icons.check_rounded,
+                label: 'Abaikan',
+                color: const Color(grey2Color),
+                onPressed: busy
+                    ? null
+                    : () async {
+                        final error = await context
+                            .read<FeedReportCubit>()
+                            .decide(post.id, 'dismiss');
+                        if (!context.mounted) return;
+                        if (error == null) cubit.load(silent: true);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(error ?? 'Laporan diabaikan.'),
+                          ),
+                        );
+                      },
+              ),
+              // Kiriman tayang yang dilaporkan: Hapus dan Unpublish ikut di satu baris bersama Abaikan.
+              blue:
+                  post.status == FeedPostStatus.published &&
+                      PermissionsHelper.canDeleteMarketingFeed
+                  ? FeedActionButton(
+                      icon: Icons.delete_outline_rounded,
+                      label: 'Hapus',
+                      color: const Color(redAccentColor),
+                      onPressed: busy
+                          ? null
+                          : () => deleteFeed(context, cubit, post.id),
+                    )
+                  : null,
+              green: post.status == FeedPostStatus.published
+                  ? FeedActionButton(
+                      icon: Icons.visibility_off_outlined,
+                      label: 'Unpublish',
+                      color: const Color(primaryColor),
+                      onPressed: busy
+                          ? null
+                          : () => unpublishFeed(context, cubit, post.id),
+                    )
+                  : null,
+            ),
+          ],
+        ),
       if (canApprove && post.status == FeedPostStatus.review)
         _actionRow(
           red: FeedActionButton(
@@ -486,7 +592,9 @@ class _FeedMySubmissionsPageState extends State<FeedMySubmissionsPage> {
             onPressed: busy ? null : () => approveFeed(context, cubit, post.id),
           ),
         ),
+      // Kiriman tayang yang dilaporkan sudah ditampilkan di blok laporan di atas.
       if (post.status == FeedPostStatus.published &&
+          !(canApprove && post.reportCount > 0) &&
           (canApprove || PermissionsHelper.canDeleteMarketingFeed))
         _actionRow(
           red: PermissionsHelper.canDeleteMarketingFeed
@@ -503,7 +611,7 @@ class _FeedMySubmissionsPageState extends State<FeedMySubmissionsPage> {
           blue: canApprove
               ? FeedActionButton(
                   icon: Icons.visibility_off_outlined,
-                  label: 'Turunkan tayang',
+                  label: 'Unpublish',
                   color: const Color(primaryColor),
                   onPressed: busy
                       ? null
@@ -516,7 +624,7 @@ class _FeedMySubmissionsPageState extends State<FeedMySubmissionsPage> {
   }
 
   /// Tombol draft.
-  /// - Bisa langsung tayang (ApproveReject atau SkipReview): Ubah, Tayangkan, dan Hapus.
+  /// - Bisa langsung tayang (ApproveReject atau SkipReview): Ubah, Publish", dan Hapus.
   /// - Milik sendiri tanpa izin itu: Ajukan ulang (buka editor; kirim dilakukan di form, hasilnya antrean review).
   /// - Draft orang lain tanpa izin: tidak ada tombol.
   Widget? _draftFooter(
@@ -535,7 +643,9 @@ class _FeedMySubmissionsPageState extends State<FeedMySubmissionsPage> {
                 icon: Icons.delete_outline_rounded,
                 label: 'Hapus',
                 color: const Color(redAccentColor),
-                onPressed: busy ? null : () => deleteFeed(context, cubit, post.id),
+                onPressed: busy
+                    ? null
+                    : () => deleteFeed(context, cubit, post.id),
               )
             : null,
         blue: FeedActionButton(
@@ -546,7 +656,7 @@ class _FeedMySubmissionsPageState extends State<FeedMySubmissionsPage> {
         ),
         green: FeedActionButton(
           icon: Icons.send_rounded,
-          label: 'Tayangkan',
+          label: 'Publish',
           color: const Color(successColor),
           filled: true,
           loading: busy,
@@ -581,7 +691,7 @@ class _FeedMySubmissionsPageState extends State<FeedMySubmissionsPage> {
     }
   }
 
-  /// Tayangkan draft sekarang. Pesan error dari server ditampilkan apa adanya.
+  /// Publish" draft sekarang. Pesan error dari server ditampilkan apa adanya.
   Future<void> _publishDraft(FeedListCubit cubit, int postId) async {
     final error = await cubit.moderate(postId, 'now');
     _message(error ?? 'Kiriman ditayangkan');
@@ -606,7 +716,7 @@ class _FeedMySubmissionsPageState extends State<FeedMySubmissionsPage> {
       green: card.status != 'published'
           ? FeedActionButton(
               icon: Icons.send_rounded,
-              label: 'Tayangkan',
+              label: 'Publish',
               color: const Color(successColor),
               filled: true,
               loading: busy,
@@ -645,12 +755,87 @@ class _FeedMySubmissionsPageState extends State<FeedMySubmissionsPage> {
   }
 }
 
+/// Satu kartu putih berisi semua pilihan, dipisah garis tipis (tanpa judul bagian). Dipakai sheet Filter dan Urutkan.
+Widget _feedSheetCard(List<Widget> rows) {
+  return Container(
+    decoration: BoxDecoration(
+      color: const Color(whiteColor),
+      borderRadius: BorderRadius.circular(16),
+      boxShadow: [
+        BoxShadow(
+          color: const Color(blackColor).withValues(alpha: 0.04),
+          blurRadius: 6,
+          offset: const Offset(0, 2),
+        ),
+      ],
+    ),
+    child: Column(
+      children: [
+        for (var i = 0; i < rows.length; i++) ...[
+          if (i > 0) const Divider(height: 1, indent: 56),
+          rows[i],
+        ],
+      ],
+    ),
+  );
+}
+
+/// Satu baris pilihan dengan ikon bulat dan kotak centang. Dipakai sheet Filter dan Urutkan.
+Widget _feedSheetRow({
+  required IconData icon,
+  required String label,
+  required bool selected,
+  required VoidCallback onTap,
+}) {
+  return InkWell(
+    onTap: onTap,
+    child: Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      child: Row(
+        children: [
+          Container(
+            width: 32,
+            height: 32,
+            decoration: BoxDecoration(
+              color: const Color(primaryColor).withValues(alpha: 0.1),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(icon, size: 17, color: const Color(primaryColor)),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              label,
+              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+            ),
+          ),
+          Icon(
+            selected
+                ? Icons.check_box_rounded
+                : Icons.check_box_outline_blank_rounded,
+            color: selected
+                ? const Color(primaryColor)
+                : const Color(grey4Color),
+          ),
+        ],
+      ),
+    ),
+  );
+}
+
 /// Sheet filter gaya Contacts: bagian dengan kartu putih, baris pilihan, dan tombol Terapkan di bawah.
 class _FeedFilterSheet extends StatefulWidget {
   final Set<String> statuses;
   final Set<String> kinds;
 
-  const _FeedFilterSheet({required this.statuses, required this.kinds});
+  /// Filter "Dilaporkan" (approver): daftar diganti kiriman yang punya laporan terbuka.
+  final bool reported;
+
+  const _FeedFilterSheet({
+    required this.statuses,
+    required this.kinds,
+    this.reported = false,
+  });
 
   @override
   State<_FeedFilterSheet> createState() => _FeedFilterSheetState();
@@ -662,24 +847,25 @@ class _FeedFilterSheetState extends State<_FeedFilterSheet> {
   late final Set<String> _statuses;
   // Jenis: Wall of Fame dicentang = kartu fame ikut tampil (bersama kiriman); tidak dicentang = hanya kiriman.
   late bool _includeFame;
+  late bool _reported;
 
   @override
   void initState() {
     super.initState();
     _statusOpts = feedListStatusOptions.toList();
-    // Kosong = semua, jadi tampilkan semua sebagai terpilih.
-    // Kecuali saat sebelumnya hanya Wall of Fame (tanpa status dicentang): tampilkan status kosong.
-    final fameOnly = widget.kinds.length == 1 && widget.kinds.contains('fame');
-    _statuses = widget.statuses.isEmpty && !fameOnly
-        ? {for (final o in _statusOpts) o.$1}
-        : {...widget.statuses};
-    // Kosong atau berisi 'fame' = kartu fame ikut tampil; hanya 'post' = tidak.
+    // Filter awal = Tayang saja (dari state cubit).
+    _statuses = {...widget.statuses};
+    _reported = widget.reported;
+    // Wall of Fame: tercentang kalau kartu fame ikut tampil.
     _includeFame =
         _canFame && (widget.kinds.isEmpty || widget.kinds.contains('fame'));
   }
 
+  // Semua mencakup Wall of Fame dan Dilaporkan (kalau user boleh melihatnya).
   bool get _allSelected =>
-      _statuses.length == _statusOpts.length && (!_canFame || _includeFame);
+      _statuses.length == _statusOpts.length &&
+      (!_canFame || _includeFame) &&
+      (!PermissionsHelper.canApproveMarketingFeed || _reported);
 
   void _toggleStatus(String key) {
     setState(
@@ -693,34 +879,29 @@ class _FeedFilterSheetState extends State<_FeedFilterSheet> {
       if (_allSelected) {
         _statuses.clear();
         _includeFame = false;
+        _reported = false;
       } else {
         _statuses
           ..clear()
           ..addAll(_statusOpts.map((o) => o.$1));
         _includeFame = _canFame;
+        _reported = PermissionsHelper.canApproveMarketingFeed;
       }
     });
   }
 
+  /// Terapkan persis yang dicentang. Tidak ada yang ditambah atau dikurangi di sini.
   void _apply() {
     Navigator.pop(context, (
-      // Status kosong = semua status.
-      statuses: _statuses.isEmpty || _statuses.length == _statusOpts.length
-          ? <String>{}
-          : {..._statuses},
-      // Wall of Fame dicentang tanpa status apa pun = hanya Wall of Fame.
-      // Wall of Fame tidak dicentang = hanya kiriman. Kosong = kiriman dan Wall of Fame.
-      kinds: !_canFame
-          ? <String>{}
-          : (!_includeFame
-                ? <String>{'post'}
-                : (_statuses.isEmpty ? <String>{'fame'} : <String>{})),
+      statuses: {..._statuses},
+      reported: _reported,
+      includeFame: _canFame && _includeFame,
     ));
   }
 
   @override
   Widget build(BuildContext context) {
-    final height = MediaQuery.sizeOf(context).height * 0.7;
+    final height = MediaQuery.sizeOf(context).height * 0.8;
     // Tinggi mengikuti isi sheet, dengan batas atas 60% tinggi layar.
     return ConstrainedBox(
       constraints: BoxConstraints(maxHeight: height),
@@ -746,9 +927,16 @@ class _FeedFilterSheetState extends State<_FeedFilterSheet> {
                       ),
                     ),
                   ),
+                  // TextButton(
+                  //   onPressed: _allSelected ? null : _toggleAll,
+                  //   child: const Text('Reset'),
+                  // ),
                   TextButton(
-                    onPressed: _allSelected ? null : _toggleAll,
-                    child: const Text('Reset'),
+                    onPressed: _toggleAll,
+                    child: Text(
+                      _allSelected ? 'Reset' : 'All',
+                      style: TextStyle(color: Color(primaryColor)),
+                    ),
                   ),
                 ],
               ),
@@ -758,27 +946,34 @@ class _FeedFilterSheetState extends State<_FeedFilterSheet> {
                 shrinkWrap: true,
                 padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
                 children: [
-                  _listCard([
-                    _row(
-                      icon: Icons.select_all_rounded,
-                      label: 'Semua',
-                      selected: _allSelected,
-                      onTap: _toggleAll,
-                    ),
+                  _feedSheetCard([
+                    // _feedSheetRow(
+                    //   icon: Icons.select_all_rounded,
+                    //   label: 'Semua',
+                    //   selected: _allSelected,
+                    //   onTap: _toggleAll,
+                    // ),
+                    for (final (key, label) in _statusOpts)
+                      _feedSheetRow(
+                        icon: _statusIcon(key),
+                        label: label,
+                        selected: _statuses.contains(key),
+                        onTap: () => _toggleStatus(key),
+                      ),
+                    if (PermissionsHelper.canApproveMarketingFeed)
+                      _feedSheetRow(
+                        icon: Icons.flag_outlined,
+                        label: 'Dilaporkan',
+                        selected: _reported,
+                        onTap: () => setState(() => _reported = !_reported),
+                      ),
                     if (_canFame)
-                      _row(
+                      _feedSheetRow(
                         icon: Icons.emoji_events_outlined,
                         label: 'Wall of Fame',
                         selected: _includeFame,
                         onTap: () =>
                             setState(() => _includeFame = !_includeFame),
-                      ),
-                    for (final (key, label) in _statusOpts)
-                      _row(
-                        icon: _statusIcon(key),
-                        label: label,
-                        selected: _statuses.contains(key),
-                        onTap: () => _toggleStatus(key),
                       ),
                   ]),
                 ],
@@ -805,86 +1000,17 @@ class _FeedFilterSheetState extends State<_FeedFilterSheet> {
     );
   }
 
-  /// Satu kartu putih berisi semua pilihan, dipisah garis tipis (tanpa judul bagian).
-  Widget _listCard(List<Widget> rows) {
-    return Container(
-      decoration: BoxDecoration(
-        color: const Color(whiteColor),
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(blackColor).withValues(alpha: 0.04),
-            blurRadius: 6,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
-          for (var i = 0; i < rows.length; i++) ...[
-            if (i > 0) const Divider(height: 1, indent: 56),
-            rows[i],
-          ],
-        ],
-      ),
-    );
-  }
-
-  Widget _row({
-    required IconData icon,
-    required String label,
-    required bool selected,
-    required VoidCallback onTap,
-  }) {
-    return InkWell(
-      onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-        child: Row(
-          children: [
-            Container(
-              width: 32,
-              height: 32,
-              decoration: BoxDecoration(
-                color: const Color(primaryColor).withValues(alpha: 0.1),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(icon, size: 17, color: const Color(primaryColor)),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                label,
-                style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-            Icon(
-              selected
-                  ? Icons.check_box_rounded
-                  : Icons.check_box_outline_blank_rounded,
-              color: selected
-                  ? const Color(primaryColor)
-                  : const Color(grey4Color),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   IconData _statusIcon(String key) {
     switch (key) {
+      case 'published':
+        return Icons.check_circle_outline_rounded;
       case 'draft':
         return Icons.edit_note_rounded;
       case 'scheduled':
         return Icons.schedule_rounded;
       case 'review':
         return Icons.hourglass_empty_rounded;
-      case 'published':
-        return Icons.check_circle_outline_rounded;
+
       case 'rejected':
         return Icons.cancel_outlined;
       default:

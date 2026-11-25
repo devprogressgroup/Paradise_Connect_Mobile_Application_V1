@@ -1062,7 +1062,7 @@ button.db-t:hover{box-shadow:0 0 0 3px var(--db-acc-soft)}
         <div class="lbl">Kapan Tayang</div>
         <div class="sched" data-sched></div>
       </div>
-      <div class="bottom two"><button class="btn ghost" data-save-draft>Simpan Draf</button><button class="btn" data-submit>Tayangkan</button></div>
+      <div class="bottom two"><button class="btn ghost" data-save-draft>Simpan Draf</button><button class="btn" data-submit>Publish"</button></div>
     </section>
 
     <!-- Moderator: poll baru / edit -->
@@ -1083,7 +1083,7 @@ button.db-t:hover{box-shadow:0 0 0 3px var(--db-acc-soft)}
         <div class="lbl">Kapan Tayang</div>
         <div class="sched" data-sched></div>
       </div>
-      <div class="bottom two"><button class="btn ghost" data-save-draft>Simpan Draf</button><button class="btn" data-submit>Tayangkan Polling</button></div>
+      <div class="bottom two"><button class="btn ghost" data-save-draft>Simpan Draf</button><button class="btn" data-submit>Publish" Polling</button></div>
     </section>
 
     <!-- Moderator: link baru / edit. Cukup tempel URL: YouTube, Instagram, TikTok, Facebook, LinkedIn, X, atau website.
@@ -1110,7 +1110,7 @@ button.db-t:hover{box-shadow:0 0 0 3px var(--db-acc-soft)}
         <div class="lbl">Kapan Tayang</div>
         <div class="sched" data-sched></div>
       </div>
-      <div class="bottom two"><button class="btn ghost" data-save-draft>Simpan Draf</button><button class="btn" data-submit>Tayangkan</button></div>
+      <div class="bottom two"><button class="btn ghost" data-save-draft>Simpan Draf</button><button class="btn" data-submit>Publish"</button></div>
     </section>
 
     <!-- Moderator: draft & terjadwal -->
@@ -1341,7 +1341,7 @@ button.db-t:hover{box-shadow:0 0 0 3px var(--db-acc-soft)}
     A --&gt;|"Simpan draft"| DR
     M --&gt;|"Simpan draft (pribadi sales)"| DR
     M --&gt;|"Kirim untuk ditinjau"| RV
-    DR --&gt;|"Tayangkan"| P
+    DR --&gt;|"Publish""| P
     DR --&gt;|"Jadwalkan"| SC
     DR --&gt;|"Kirim untuk ditinjau"| RV
     SC --&gt;|"Batalkan jadwal"| DR
@@ -1794,16 +1794,16 @@ Aturan:
             <tr data-t="t_feed_post d_feed_post_media"><td>Kiriman Saya › Ditolak</td><td>Lihat alasan, Perbaiki &amp; kirim ulang, atau Hapus</td><td><ul class="db-ops"><li data-t="t_feed_post"><span class="db-op db-op-r">R</span><code>t_feed_post</code><small>status rejected milik saya, reject_reason</small></li><li data-t="t_feed_post"><span class="db-op db-op-u">U</span><code>t_feed_post</code><small>kirim ulang: status rejected → review (atau → draft); reject_reason, review_user_id, review_date dikosongkan</small></li><li data-t="t_feed_post"><span class="db-op db-op-d">D</span><code>t_feed_post</code><small>hapus = isi deleted_at</small></li><li data-t="d_feed_post_media"><span class="db-op db-op-c">C/D</span><code>d_feed_post_media</code><small>ganti foto/video saat diperbaiki</small></li></ul></td></tr>
             <tr data-t="t_feed_post"><td>Kiriman Saya › kiriman tayang</td><td>Sematkan di profil / Lepas sematan</td><td><ul class="db-ops"><li data-t="t_feed_post"><span class="db-op db-op-u">U</span><code>t_feed_post</code><small>profile_pin_at = sekarang / NULL; maks. 3 per sales</small></li></ul></td></tr>
             <tr data-t="t_feed_post d_feed_post_media app_m_user"><td>Kartu post</td><td>Ketuk nama/foto sales, profilnya terbuka</td><td><ul class="db-ops"><li data-t="t_feed_post"><span class="db-op db-op-r">R</span><code>t_feed_post</code><small>create_user_id = sales itu, status published; urut profile_pin_at lalu publish_at</small></li><li data-t="d_feed_post_media"><span class="db-op db-op-r">R</span><code>d_feed_post_media</code><small>thumbnail tile</small></li><li data-t="t_feed_post"><span class="db-op db-op-r">R</span><code>t_feed_post</code><small>angka Kiriman / Suka / Komentar = COUNT(*), SUM(like_count), SUM(comment_count) dari kiriman published milik sales itu; tidak ada kolom baru</small></li><li data-t="app_m_user"><span class="db-op db-op-r">R</span><code>app_m_user</code><small>nama, foto, jabatan</small></li></ul></td></tr>
-            <tr data-t="t_feed_post d_feed_post_media t_global_notifications"><td>Tombol + › tab Post</td><td>Tayangkan / Jadwalkan / Simpan Draf</td><td><ul class="db-ops"><li data-t="t_feed_post"><span class="db-op db-op-c">C</span><code>t_feed_post</code><small>status published / scheduled / draft</small></li><li data-t="d_feed_post_media"><span class="db-op db-op-c">C</span><code>d_feed_post_media</code><small>foto/video carousel</small></li><li data-t="t_global_notifications"><span class="db-op db-op-c">C</span><code>t_global_notifications</code><small>hanya kalau langsung tayang</small></li></ul></td></tr>
-            <tr data-t="t_feed_post d_feed_poll d_feed_post_media d_feed_poll_option t_global_notifications"><td>Tombol + › tab Poll</td><td>Tayangkan Poll</td><td><ul class="db-ops"><li data-t="t_feed_post"><span class="db-op db-op-c">C</span><code>t_feed_post</code><small>post_type poll</small></li><li data-t="d_feed_poll"><span class="db-op db-op-c">C</span><code>d_feed_poll</code><small>is_multiple</small></li><li data-t="d_feed_post_media"><span class="db-op db-op-c">C</span><code>d_feed_post_media</code><small>gambar pertanyaan, opsional</small></li><li data-t="d_feed_poll_option"><span class="db-op db-op-c">C</span><code>d_feed_poll_option</code><small>minimal 2 opsi</small></li><li data-t="t_global_notifications"><span class="db-op db-op-c">C</span><code>t_global_notifications</code><small>hanya kalau langsung tayang</small></li></ul></td></tr>
-            <tr data-t="t_feed_post d_feed_link d_feed_post_media t_global_notifications"><td>Tombol + › tab Link</td><td>Tayangkan / Jadwalkan / Simpan Draf</td><td><ul class="db-ops"><li data-t="t_feed_post"><span class="db-op db-op-c">C</span><code>t_feed_post</code><small>post_type link</small></li><li data-t="d_feed_link"><span class="db-op db-op-c">C</span><code>d_feed_link</code><small>platform youtube / web, url, judul, deskripsi</small></li><li data-t="d_feed_post_media"><span class="db-op db-op-c">C</span><code>d_feed_post_media</code><small>1 file thumbnail</small></li><li data-t="t_global_notifications"><span class="db-op db-op-c">C</span><code>t_global_notifications</code><small>hanya kalau langsung tayang</small></li></ul></td></tr>
-            <tr data-t="t_feed_post"><td>Sidebar › Draf &amp; Terjadwal (moderator)</td><td>Lihat daftar, Edit, Tayangkan, Hapus</td><td><ul class="db-ops"><li data-t="t_feed_post"><span class="db-op db-op-r">R</span><code>t_feed_post</code><small>status draft (buatan moderator) dan scheduled</small></li><li data-t="t_feed_post"><span class="db-op db-op-u">U</span><code>t_feed_post</code><small>ubah isi atau status</small></li><li data-t="t_feed_post"><span class="db-op db-op-d">D</span><code>t_feed_post</code><small>hapus = isi deleted_at</small></li></ul></td></tr>
+            <tr data-t="t_feed_post d_feed_post_media t_global_notifications"><td>Tombol + › tab Post</td><td>Publish" / Jadwalkan / Simpan Draf</td><td><ul class="db-ops"><li data-t="t_feed_post"><span class="db-op db-op-c">C</span><code>t_feed_post</code><small>status published / scheduled / draft</small></li><li data-t="d_feed_post_media"><span class="db-op db-op-c">C</span><code>d_feed_post_media</code><small>foto/video carousel</small></li><li data-t="t_global_notifications"><span class="db-op db-op-c">C</span><code>t_global_notifications</code><small>hanya kalau langsung tayang</small></li></ul></td></tr>
+            <tr data-t="t_feed_post d_feed_poll d_feed_post_media d_feed_poll_option t_global_notifications"><td>Tombol + › tab Poll</td><td>Publish" Poll</td><td><ul class="db-ops"><li data-t="t_feed_post"><span class="db-op db-op-c">C</span><code>t_feed_post</code><small>post_type poll</small></li><li data-t="d_feed_poll"><span class="db-op db-op-c">C</span><code>d_feed_poll</code><small>is_multiple</small></li><li data-t="d_feed_post_media"><span class="db-op db-op-c">C</span><code>d_feed_post_media</code><small>gambar pertanyaan, opsional</small></li><li data-t="d_feed_poll_option"><span class="db-op db-op-c">C</span><code>d_feed_poll_option</code><small>minimal 2 opsi</small></li><li data-t="t_global_notifications"><span class="db-op db-op-c">C</span><code>t_global_notifications</code><small>hanya kalau langsung tayang</small></li></ul></td></tr>
+            <tr data-t="t_feed_post d_feed_link d_feed_post_media t_global_notifications"><td>Tombol + › tab Link</td><td>Publish" / Jadwalkan / Simpan Draf</td><td><ul class="db-ops"><li data-t="t_feed_post"><span class="db-op db-op-c">C</span><code>t_feed_post</code><small>post_type link</small></li><li data-t="d_feed_link"><span class="db-op db-op-c">C</span><code>d_feed_link</code><small>platform youtube / web, url, judul, deskripsi</small></li><li data-t="d_feed_post_media"><span class="db-op db-op-c">C</span><code>d_feed_post_media</code><small>1 file thumbnail</small></li><li data-t="t_global_notifications"><span class="db-op db-op-c">C</span><code>t_global_notifications</code><small>hanya kalau langsung tayang</small></li></ul></td></tr>
+            <tr data-t="t_feed_post"><td>Sidebar › Draf &amp; Terjadwal (moderator)</td><td>Lihat daftar, Edit, Publish", Hapus</td><td><ul class="db-ops"><li data-t="t_feed_post"><span class="db-op db-op-r">R</span><code>t_feed_post</code><small>status draft (buatan moderator) dan scheduled</small></li><li data-t="t_feed_post"><span class="db-op db-op-u">U</span><code>t_feed_post</code><small>ubah isi atau status</small></li><li data-t="t_feed_post"><span class="db-op db-op-d">D</span><code>t_feed_post</code><small>hapus = isi deleted_at</small></li></ul></td></tr>
           </tbody></table></div>
           <h3>Admin Web</h3><p class="db-note">Menu Marketing Feed di panel admin, dipakai moderator.</p>
           <div class="db-tw"><table class="db-use"><thead><tr><th>Layar</th><th>Klik / tampilan</th><th>Tabel yang dipakai</th></tr></thead><tbody>
             <tr data-t="t_feed_post d_feed_post_media app_m_user"><td>Konten</td><td>Buka daftar konten dan kartu Terjadwal / Draf / Menunggu Review</td><td><ul class="db-ops"><li data-t="t_feed_post"><span class="db-op db-op-r">R</span><code>t_feed_post</code><small>semua status kecuali draft milik sales, dihitung per status</small></li><li data-t="d_feed_post_media"><span class="db-op db-op-r">R</span><code>d_feed_post_media</code><small>thumbnail, termasuk gambar poll</small></li><li data-t="app_m_user"><span class="db-op db-op-r">R</span><code>app_m_user</code><small>teks "oleh ..."</small></li></ul></td></tr>
             <tr data-t="t_feed_post d_feed_link"><td>Konten</td><td>Cari konten</td><td><ul class="db-ops"><li data-t="t_feed_post"><span class="db-op db-op-r">R</span><code>t_feed_post</code><small>body</small></li><li data-t="d_feed_link"><span class="db-op db-op-r">R</span><code>d_feed_link</code><small>title</small></li></ul></td></tr>
-            <tr data-t="t_feed_post t_global_notifications"><td>Konten</td><td>Tayangkan / Tayangkan sekarang</td><td><ul class="db-ops"><li data-t="t_feed_post"><span class="db-op db-op-u">U</span><code>t_feed_post</code><small>status published, publish_at = sekarang</small></li><li data-t="t_global_notifications"><span class="db-op db-op-c">C</span><code>t_global_notifications</code><small>notif ke sales</small></li></ul></td></tr>
+            <tr data-t="t_feed_post t_global_notifications"><td>Konten</td><td>Publish" / Publish" sekarang</td><td><ul class="db-ops"><li data-t="t_feed_post"><span class="db-op db-op-u">U</span><code>t_feed_post</code><small>status published, publish_at = sekarang</small></li><li data-t="t_global_notifications"><span class="db-op db-op-c">C</span><code>t_global_notifications</code><small>notif ke sales</small></li></ul></td></tr>
             <tr data-t="t_feed_post"><td>Konten</td><td>Batalkan jadwal / Tarik ke draft</td><td><ul class="db-ops"><li data-t="t_feed_post"><span class="db-op db-op-u">U</span><code>t_feed_post</code><small>status draft; Tarik ke draft juga mengosongkan pinned_at, pin_user_id, pin_until</small></li></ul></td></tr>
             <tr data-t="t_feed_post"><td>Konten</td><td>Hapus</td><td><ul class="db-ops"><li data-t="t_feed_post"><span class="db-op db-op-d">D</span><code>t_feed_post</code><small>soft delete (deleted_at)</small></li></ul></td></tr>
             <tr data-t="t_feed_post"><td>Konten</td><td>Sematkan / Lepas sematan (konten berstatus Tayang)</td><td><ul class="db-ops"><li data-t="t_feed_post"><span class="db-op db-op-u">U</span><code>t_feed_post</code><small>sematkan: pinned_at = sekarang, pin_user_id = moderator; lepas: ketiga kolom pin = NULL</small></li></ul></td></tr>
@@ -1814,7 +1814,7 @@ Aturan:
             <tr data-t="d_feed_link d_feed_post_media"><td>Editor</td><td>Jenis Link</td><td><ul class="db-ops"><li data-t="d_feed_link"><span class="db-op db-op-c">C/U</span><code>d_feed_link</code><small>platform, url, judul, deskripsi</small></li><li data-t="d_feed_post_media"><span class="db-op db-op-c">C/U</span><code>d_feed_post_media</code><small>thumbnail</small></li></ul></td></tr>
             <tr data-t="m_project t_feed_post"><td>Editor</td><td>Target project</td><td><ul class="db-ops"><li data-t="m_project"><span class="db-op db-op-r">R</span><code>m_project</code><small>isi dropdown</small></li><li data-t="t_feed_post"><span class="db-op db-op-u">U</span><code>t_feed_post</code><small>project_id (NULL = semua project)</small></li></ul></td></tr>
             <tr data-t="t_feed_post"><td>Editor</td><td>Pengaturan interaksi</td><td><ul class="db-ops"><li data-t="t_feed_post"><span class="db-op db-op-u">U</span><code>t_feed_post</code><small>allow_like .. allow_share</small></li></ul></td></tr>
-            <tr data-t="t_feed_post t_global_notifications"><td>Editor</td><td>Tayangkan / Jadwalkan</td><td><ul class="db-ops"><li data-t="t_feed_post"><span class="db-op db-op-u">U</span><code>t_feed_post</code><small>status, publish_at</small></li><li data-t="t_global_notifications"><span class="db-op db-op-c">C</span><code>t_global_notifications</code><small>hanya kalau langsung tayang</small></li></ul></td></tr>
+            <tr data-t="t_feed_post t_global_notifications"><td>Editor</td><td>Publish" / Jadwalkan</td><td><ul class="db-ops"><li data-t="t_feed_post"><span class="db-op db-op-u">U</span><code>t_feed_post</code><small>status, publish_at</small></li><li data-t="t_global_notifications"><span class="db-op db-op-c">C</span><code>t_global_notifications</code><small>hanya kalau langsung tayang</small></li></ul></td></tr>
             <tr data-t="t_feed_post"><td>Editor</td><td>Bagian "Sematkan di Feed" (hanya saat edit konten yang sudah tayang)</td><td><ul class="db-ops"><li data-t="t_feed_post"><span class="db-op db-op-u">U</span><code>t_feed_post</code><small>pinned_at, pin_user_id, pin_until (Sampai dilepas = NULL, atau 1/3/7 hari)</small></li></ul></td></tr>
             <tr data-t="t_feed_post"><td>Kalender Jadwal</td><td>Tab Draf / Terjadwal</td><td><ul class="db-ops"><li data-t="t_feed_post"><span class="db-op db-op-r">R</span><code>t_feed_post</code><small>status draft buatan moderator / scheduled</small></li></ul></td></tr>
             <tr data-t="t_feed_post d_feed_post_media app_m_user"><td>Review Kiriman Sales</td><td>Buka daftar kiriman</td><td><ul class="db-ops"><li data-t="t_feed_post"><span class="db-op db-op-r">R</span><code>t_feed_post</code><small>status review</small></li><li data-t="d_feed_post_media"><span class="db-op db-op-r">R</span><code>d_feed_post_media</code><small>foto kiriman</small></li><li data-t="app_m_user"><span class="db-op db-op-r">R</span><code>app_m_user</code><small>nama dan jabatan pengirim</small></li></ul></td></tr>
@@ -1846,17 +1846,17 @@ Aturan:
               <thead><tr><th>Dari</th><th>Aksi</th><th>Ke</th><th>Oleh</th></tr></thead>
               <tbody>
                 <tr><td class="db-new">dibuat baru</td><td>Simpan draft / autosave editor</td><td><span class="db-st db-st-draft">draft</span></td><td>Moderator</td></tr>
-                <tr><td class="db-new">dibuat baru</td><td>Tayangkan</td><td><span class="db-st db-st-published">published</span></td><td>Moderator</td></tr>
+                <tr><td class="db-new">dibuat baru</td><td>Publish"</td><td><span class="db-st db-st-published">published</span></td><td>Moderator</td></tr>
                 <tr><td class="db-new">dibuat baru</td><td>Jadwalkan</td><td><span class="db-st db-st-scheduled">scheduled</span></td><td>Moderator</td></tr>
                 <tr><td class="db-new">dibuat baru</td><td>Tombol + › Momen</td><td><span class="db-st db-st-review">review</span></td><td>Sales</td></tr>
                 <tr><td class="db-new">dibuat baru</td><td>Tombol + › Momen › Simpan draft</td><td><span class="db-st db-st-draft">draft</span></td><td>Sales</td></tr>
                 <tr><td><span class="db-st db-st-draft">draft</span> milik sales</td><td>Kirim untuk ditinjau</td><td><span class="db-st db-st-review">review</span></td><td>Sales</td></tr>
                 <tr><td><span class="db-st db-st-rejected">rejected</span></td><td>Perbaiki &amp; kirim ulang</td><td><span class="db-st db-st-review">review</span></td><td>Sales (pengirim)</td></tr>
                 <tr><td><span class="db-st db-st-rejected">rejected</span></td><td>Perbaiki, lalu Simpan ke Draf</td><td><span class="db-st db-st-draft">draft</span></td><td>Sales (pengirim)</td></tr>
-                <tr><td><span class="db-st db-st-draft">draft</span></td><td>Tayangkan</td><td><span class="db-st db-st-published">published</span></td><td>Moderator</td></tr>
+                <tr><td><span class="db-st db-st-draft">draft</span></td><td>Publish"</td><td><span class="db-st db-st-published">published</span></td><td>Moderator</td></tr>
                 <tr><td><span class="db-st db-st-draft">draft</span></td><td>Jadwalkan</td><td><span class="db-st db-st-scheduled">scheduled</span></td><td>Moderator</td></tr>
                 <tr><td><span class="db-st db-st-scheduled">scheduled</span></td><td>Waktu tayang tiba</td><td><span class="db-st db-st-published">published</span></td><td>Scheduler</td></tr>
-                <tr><td><span class="db-st db-st-scheduled">scheduled</span></td><td>Tayangkan sekarang</td><td><span class="db-st db-st-published">published</span></td><td>Moderator</td></tr>
+                <tr><td><span class="db-st db-st-scheduled">scheduled</span></td><td>Publish" sekarang</td><td><span class="db-st db-st-published">published</span></td><td>Moderator</td></tr>
                 <tr><td><span class="db-st db-st-scheduled">scheduled</span></td><td>Batalkan jadwal</td><td><span class="db-st db-st-draft">draft</span></td><td>Moderator</td></tr>
                 <tr><td><span class="db-st db-st-published">published</span></td><td>Tarik ke draft</td><td><span class="db-st db-st-draft">draft</span></td><td>Moderator</td></tr>
                 <tr><td><span class="db-st db-st-review">review</span></td><td>Setujui &amp; tayangkan</td><td><span class="db-st db-st-published">published</span></td><td>Moderator</td></tr>
@@ -2385,7 +2385,7 @@ $('#bars').innerHTML=funnel.map(([l,v])=>`<div class="bar">${v}<i style="height:
 const FAME_CAN_EDIT=true; // contoh: user ini punya izin marketing-feed.fame.edit (tanpa scope = semua program)
 const fEsc=s=>String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 const FAME_COLORS=['#FF9800','#4CAF50','#6D5DD3','#F44336'];
-const FSTAT={draft:{l:'Draf',c:'mut'},scheduled:{l:'Terjadwal',c:'info'},published:{l:'Tayang',c:'ok'}};
+const FSTAT={draft:{l:'Draf',c:'mut'},scheduled:{l:'Terjadwal',c:'info'},published:{l:'Publish',c:'ok'}};
 let fameSeq=20,fameEdit=null;
 /* data contoh (dummy). Foto `photo` = id Unsplash, inisial tampil kalau foto gagal dimuat */
 const fameProgs=[{id:'fp1',nama:'Top Salebration Oktober 2026',periode:'Oktober 2026'}];
@@ -2784,7 +2784,7 @@ function drawForm(kind){
   if(kind==='poll'){$('#pollImg').innerHTML=f.img?`<div class="pimg edit">${art(f.img)}<button class="rm" data-rm-img aria-label="Hapus gambar">${ic('close',14)}</button></div>`:`<div class="ups two"><button class="up" data-add-img>${ic('upload',22)}<span>Unggah gambar</span></button><button class="up" data-sample-img>${ic('image',22)}<span>Pakai contoh</span></button></div>`;drawAns()}
   s.querySelector('[data-sets]').innerHTML=setHTML(f.set);
   s.querySelector('[data-sched]').innerHTML=schedHTML(f);
-  s.querySelector('[data-submit]').textContent=f.mode==='later'?'Jadwalkan':kind==='poll'?'Tayangkan Polling':'Tayangkan';
+  s.querySelector('[data-submit]').textContent=f.mode==='later'?'Jadwalkan':kind==='poll'?'Publish" Polling':'Publish';
 }
 function drawAns(){const a=form.poll.answers;$('#answers').innerHTML=a.map((x,i)=>`<div class="ans"><input type="text" value="${x.replace(/"/g,'&quot;')}" data-i="${i}" aria-label="Jawaban ${i+1}"><button data-rm-ans="${i}" aria-label="Hapus jawaban">${ic('close',20)}</button></div>`).join('')+`<div class="ans"><input type="text" id="ansNew" placeholder="Tambah opsi jawaban..." aria-label="Opsi jawaban baru"><button data-add-ans aria-label="Tambah jawaban">${ic('add',22,'var(--primary)')}</button></div>`}
 
@@ -2885,7 +2885,7 @@ function save(kind,action,quiet){
 /* ---------- MOBILE: Kiriman Saya (sidebar). Tab Draf, Terjadwal, Tayang, dan Ditolak.
    Sales melihat kirimannya sendiri; moderator melihat konten resmi (draf pribadi sales tidak ikut) ---------- */
 let kTab='draft';
-const KTABS=[['draft','Draf'],['scheduled','Terjadwal'],['published','Tayang'],['rejected','Ditolak']];
+const KTABS=[['draft','Draf'],['scheduled','Terjadwal'],['published','Publish'],['rejected','Ditolak']];
 const kScope=()=>isMod()?posts.filter(p=>!isSalesDraft(p)):posts.filter(p=>p.a===ME);
 function openDraftList(){renderDrafts();$('#sDrafts').classList.add('open')}
 function renderDrafts(){
@@ -2895,8 +2895,8 @@ function renderDrafts(){
   const info={draft:'Draf hanya bisa kamu lihat. Ketuk untuk melanjutkan atau mengirimnya.',scheduled:'Kiriman terjadwal akan tayang otomatis sesuai jamnya.',published:'Kiriman yang sudah tayang di feed.',rejected:'Kiriman yang ditolak Tim Marketing. Perbaiki lalu kirim ulang, atau hapus.'}[kTab];
   const empty={draft:'Belum ada draf',scheduled:'Belum ada yang terjadwal',published:'Belum ada yang tayang',rejected:'Tidak ada kiriman ditolak'}[kTab];
   const acts=kTab==='draft'
-    ?(mod?`<button data-dedit>${ic('edit',15)}Edit</button><button data-dnow>${ic('send',15)}Tayangkan</button>`:`<button data-dedit>${ic('edit',15)}Edit</button><button data-dsend>${ic('send',15)}Kirim ke Tim Marketing</button>`)+`<button data-ddel class="del">${ic('trash',15)}Hapus</button>`
-    :kTab==='scheduled'&&mod?`<button data-dedit>${ic('edit',15)}Edit</button><button data-dnow>${ic('send',15)}Tayangkan sekarang</button><button data-dunsched>${ic('clock',15)}Batalkan jadwal</button>`
+    ?(mod?`<button data-dedit>${ic('edit',15)}Edit</button><button data-dnow>${ic('send',15)}Publish"</button>`:`<button data-dedit>${ic('edit',15)}Edit</button><button data-dsend>${ic('send',15)}Kirim ke Tim Marketing</button>`)+`<button data-ddel class="del">${ic('trash',15)}Hapus</button>`
+    :kTab==='scheduled'&&mod?`<button data-dedit>${ic('edit',15)}Edit</button><button data-dnow>${ic('send',15)}Publish" sekarang</button><button data-dunsched>${ic('clock',15)}Batalkan jadwal</button>`
     :kTab==='rejected'?(mod?`<button data-ddel class="del">${ic('trash',15)}Hapus</button>`:`<button data-dfix>${ic('edit',15)}Perbaiki &amp; kirim ulang</button><button data-ddel class="del">${ic('trash',15)}Hapus</button>`)
     :`<button data-dview>${ic('eye',15)}Lihat</button>`;
   $('#draftList').innerHTML=`<div class="info">${info}</div>`+(list.length?list.map(p=>{const th=thumbOf(p);
@@ -3067,7 +3067,7 @@ function renderAgenda(from,to,head=''){
   const groups=[];let cur=null;
   items.forEach(p=>{const k=dayKey(p.at);if(!cur||cur.k!==k){cur={k,list:[]};groups.push(cur)}cur.list.push(p)});
   const today=dayKey(clock);
-  const body=groups.length?groups.map(g=>{const d=new Date(g.k);return `<div class="ag-day ${g.k===today?'today':''}"><div class="ag-date"><span>${WD_FMT.format(d)}</span><b>${d.getDate()}</b></div><div class="ag-items">${g.list.map(p=>`<button class="ag-item ${p.status==='published'?'pub':'sch'}" data-calpost="${p.id}"><span class="ag-time">${hhmm(p.at)}</span><b>${plain(p)}</b><span class="ag-sub"><b>${p.status==='published'?'Sudah tayang':'Terjadwal'}</b> · ${TYPE[p.type]} · ${p.project==='Semua'?'Semua project':p.project}</span></button>`).join('')}</div></div>`}).join('')
+  const body=groups.length?groups.map(g=>{const d=new Date(g.k);return `<div class="ag-day ${g.k===today?'today':''}"><div class="ag-date"><span>${WD_FMT.format(d)}</span><b>${d.getDate()}</b></div><div class="ag-items">${g.list.map(p=>`<button class="ag-item ${p.status==='published'?'pub':'sch'}" data-calpost="${p.id}"><span class="ag-time">${hhmm(p.at)}</span><b>${plain(p)}</b><span class="ag-sub"><b>${p.status==='published'?'Publish':'Terjadwal'}</b> · ${TYPE[p.type]} · ${p.project==='Semua'?'Semua project':p.project}</span></button>`).join('')}</div></div>`}).join('')
     :`<div class="empty">${ic('cal',36,'var(--grey10)')}<b>Belum ada postingan di sini</b><span>Coba tanggal lain, atau tekan + untuk menjadwalkan.</span></div>`;
   const drafts=posts.filter(p=>p.status==='draft'&&!isSalesDraft(p)).sort((a,b)=>b.at-a.at);
   const draftHTML=drafts.length?`<div class="cal-sub">Draf belum berjadwal (${drafts.length})</div>`+drafts.map(p=>`<button class="cal-row" data-calpost="${p.id}"><span class="cal-time">${ic('draft',16,'var(--grey2)')}</span><span class="cal-bar mut"></span><span class="cal-mid"><b>${plain(p)}</b><span class="small">${TYPE[p.type]} · diubah ${ago(p.at)}</span></span></button>`).join(''):'';
@@ -3271,7 +3271,7 @@ const LU={menu4:'<path d="M7 6h10"/><path d="M4 12h16"/><path d="M7 18h10"/>',
 const lu=(n,s=18)=>`<svg class="lu lu-${n}" width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${LU[n]}</svg>`;
 document.querySelectorAll('i[data-lu]').forEach(i=>i.outerHTML=lu(i.dataset.lu,i.dataset.lu==='chev'?16:i.dataset.lu==='menu4'?22:18));
 function atoast(m){const t=$('#atoast');t.textContent=m;t.hidden=false;clearTimeout(t._);t._=setTimeout(()=>t.hidden=true,2800)}
-const SB={published:['Tayang','ok'],scheduled:['Terjadwal','info'],draft:['Draf','mut'],review:['Menunggu persetujuan','warn'],rejected:['Ditolak','bad']};
+const SB={published:['Publish','ok'],scheduled:['Terjadwal','info'],draft:['Draf','mut'],review:['Menunggu persetujuan','warn'],rejected:['Ditolak','bad']};
 const TYPE={post:'Postingan',poll:'Polling',link:'Link'};
 const sbadge=p=>`<span class="abadge ${SB[p.status][1]}">${SB[p.status][0]}</span>`;
 const athumb=p=>{const t=thumbOf(p);return `<div class="athumb">${t?art(t):ic(p.type==='poll'?'poll':'article',20)}</div>`};
@@ -3299,8 +3299,8 @@ function aList(){
   const tabs=[['all','Semua',all.length],['scheduled','Terjadwal',cnt('scheduled')],['draft','Draf',cnt('draft')],['review','Persetujuan',cnt('review')],['rejected','Ditolak',cnt('rejected')],['pinned','Disematkan',all.filter(isPinned).length]];
   const rows=all.filter(p=>(aFilter==='all'||(aFilter==='pinned'?isPinned(p):p.status===aFilter))&&(!aQuery||plain(p).toLowerCase().includes(aQuery))).sort((a,b)=>b.at-a.at);
   const act=p=>{const B=(a,l,c='')=>`<button class="abtn sm ${c}" data-a="${a}">${l}</button>`;
-    return {draft:B('edit','Edit')+B('now','Tayangkan','ok')+B('del','Hapus','link bad'),
-      scheduled:B('edit','Edit')+B('now','Tayangkan sekarang','ok')+B('unsched','Batalkan jadwal','link'),
+    return {draft:B('edit','Edit')+B('now','Publish','ok')+B('del','Hapus','link bad'),
+      scheduled:B('edit','Edit')+B('now','Publish" sekarang','ok')+B('unsched','Batalkan jadwal','link'),
       published:B('edit','Edit')+(isPinned(p)?B('unpin','Lepas sematan','link'):B('pin','Sematkan'))+(p.a.role==='mod'?B('unpub','Kembalikan ke draf','link'):''),
       review:B('review','Periksa','pri'),rejected:B('del','Hapus','link bad')}[p.status]};
   const time=p=>p.status==='scheduled'?`${ic('clock',14)}${when(p.at)}`:p.status==='published'?when(p.at):p.status==='draft'?`Diubah ${ago(p.at)}`:`Dikirim ${ago(p.at)}`;
@@ -3319,7 +3319,7 @@ function aCal(){
   const lists={draft:posts.filter(p=>p.status==='draft'&&!isSalesDraft(p)).sort((a,b)=>b.at-a.at),scheduled:posts.filter(p=>p.status==='scheduled').sort((a,b)=>a.at-b.at)},L=lists[calTab];
   const row=p=>`<div class="adl" data-id="${p.id}">${athumb(p)}<div><b>${plain(p)}</b><span class="amuted">${calTab==='scheduled'?`<span class="when2">${ic('clock',14)}${when(p.at)}</span> · `:''}${TYPE[p.type]} · ${p.project==='Semua'?'Semua project':p.project}${calTab==='draft'?` · diubah ${ago(p.at)}`:''}</span></div>
     ${calTab==='draft'?`<button class="abtn sm" data-a="edit">Edit</button><button class="abtn sm pri" data-a="plan">Jadwalkan</button><button class="abtn sm link bad" data-a="del">Hapus</button>`
-      :`<button class="abtn sm" data-a="edit">Edit</button><button class="abtn sm ok" data-a="now">Tayangkan sekarang</button><button class="abtn sm link" data-a="unsched">Batalkan jadwal</button>`}</div>`;
+      :`<button class="abtn sm" data-a="edit">Edit</button><button class="abtn sm ok" data-a="now">Publish" sekarang</button><button class="abtn sm link" data-a="unsched">Batalkan jadwal</button>`}</div>`;
   aBody.innerHTML=`<div class="ahead"><div><h1>Kalender Jadwal</h1><p>${calTab==='scheduled'?'Konten terjadwal tayang otomatis sesuai jamnya, diurutkan dari yang paling dekat.':'Draf belum tayang, termasuk yang tersimpan otomatis saat kamu mengetik.'}</p></div><button class="abtn pri" data-new>${ic('add',18)}Buat Konten</button></div>
   <div class="acard"><div class="atabs" role="tablist">${[['draft','Draf'],['scheduled','Terjadwal']].map(([k,l])=>`<button role="tab" aria-selected="${calTab===k}" data-ctab="${k}">${l}<span class="cnt">${lists[k].length}</span></button>`).join('')}</div>
   <div class="adlist">${L.length?L.map(row).join(''):`<div class="aempty">${calTab==='draft'?'Tidak ada draf.':'Belum ada konten terjadwal.'}</div>`}</div></div>`;
@@ -3489,7 +3489,7 @@ function fameForm(){
     <label>Nama sales<input type="text" id="ffNama" value="${v(e?.nama)}"></label>
     <label>Jabatan / tim<input type="text" id="ffSub" value="${v(e?.sub)}" placeholder="mis. SE PAR1"></label>
     <label class="wide">Caption<input type="text" id="ffCap" value="${v(e?.caption)}" placeholder="Kalimat singkat untuk kartu juara"></label>
-    <label>Tayang<select id="ffMode"><option value="draft" ${mode==='draft'?'selected':''}>Simpan sebagai draf</option><option value="later" ${mode==='scheduled'?'selected':''}>Jadwalkan</option><option value="now" ${mode==='published'?'selected':''}>Tayangkan sekarang</option></select></label>
+    <label>Tayang<select id="ffMode"><option value="draft" ${mode==='draft'?'selected':''}>Simpan sebagai draf</option><option value="later" ${mode==='scheduled'?'selected':''}>Jadwalkan</option><option value="now" ${mode==='published'?'selected':''}>Publish" sekarang</option></select></label>
     <label>Tanggal tayang<input type="date" id="ffDate" value="${toDateInput(dt)}"></label>
     <label>Jam tayang<input type="time" id="ffTime" value="${hhmm(dt)}"></label>
   </div>
@@ -3778,11 +3778,11 @@ function drawEditor(){
       <label class="afl" for="eproj">Tampil untuk project</label><select class="ain" id="eproj" data-ef="project">${['Semua','PAR1','PAR2','PRC'].map(x=>`<option value="${x}" ${e.project===x?'selected':''}>${x==='Semua'?'Semua project':x}</option>`).join('')}</select></section>
     <section class="acard pad"><h3>Yang Boleh Dilakukan Sales</h3><p>Atur apa saja yang boleh dilakukan sales di kiriman ini. Bisa diubah lagi setelah tayang.</p>
       ${SETS.map(([k,a,b])=>{const dis=k==='reply'&&!e.set.comment;return `<div class="atg ${k==='reply'?'sub':''} ${dis?'dis':''}"><span>${a}${b?`<small>${b}</small>`:''}</span><button class="asw" role="switch" data-eset="${k}" aria-checked="${!!e.set[k]&&!dis}" ${dis?'disabled':''} aria-label="${a}"></button></div>`}).join('')}</section>
-    <section class="acard pad"><h3>Jadwal Tayang</h3>${live?`<div class="anote ok">${ic('done',16)}<span>Sudah tayang sejak <b>${when(ex.at)}</b>. Perubahan langsung berlaku di aplikasi.</span></div>`:schedFields()}</section>
+    <section class="acard pad"><h3>Jadwal Tayang</h3>${live?`<div class="anote ok">${ic('done',16)}<span>Publish sejak <b>${when(ex.at)}</b>. Perubahan langsung berlaku di aplikasi.</span></div>`:schedFields()}</section>
     ${live?pinFields():''}
   </div>
   <div class="aprev"><div class="aprev-in"><span class="amuted">Tampilan di aplikasi sales</span><div class="mini"><div class="mh">Marketing Feed</div><div class="mb" id="ePrev"></div></div></div></div></div>
-  <div class="afoot"><span class="amuted">${live?'':'Draf tersimpan otomatis saat kamu mengetik.'}</span><div><button class="abtn" data-eback>Batal</button>${live?'':'<button class="abtn ghost" data-esave="draft">Simpan Draf</button>'}<button class="abtn pri" data-esave="submit">${live?'Simpan Perubahan':e.mode==='later'?'Jadwalkan':'Tayangkan'}</button></div></div>`;
+  <div class="afoot"><span class="amuted">${live?'':'Draf tersimpan otomatis saat kamu mengetik.'}</span><div><button class="abtn" data-eback>Batal</button>${live?'':'<button class="abtn ghost" data-esave="draft">Simpan Draf</button>'}<button class="abtn pri" data-esave="submit">${live?'Simpan Perubahan':e.mode==='later'?'Jadwalkan':'Publish'}</button></div></div>`;
   edPreview();showAutosave();
 }
 function edPreview(){const ex=ed.id&&byId(ed.id);const el=$('#ePrev');if(el)el.innerHTML=cardHTML({id:0,status:'published',a:ex?ex.a:MOD,at:clock,likes:ex?ex.likes:0,dislikes:ex?ex.dislikes:0,my:0,comments:ex?ex.comments:[],...edToPost(),pinAt:ed.pin.on?clock:null,pinUntil:ed.pin.until},true)}

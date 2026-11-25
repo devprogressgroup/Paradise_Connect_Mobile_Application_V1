@@ -333,7 +333,7 @@ class _FeedLinkFormPageState extends State<FeedLinkFormPage> {
         // Jadwal tayang memakai permission SetSchedule.
         if (PermissionsHelper.canSetScheduleMarketingFeed) ...[
           const SizedBox(height: 12),
-          const FeedFormLabel('Waktu Tayang'),
+          const FeedFormLabel('Waktu Publish'),
           const SizedBox(height: 8),
           FeedScheduleField(
             scheduledAt: _scheduledAt,

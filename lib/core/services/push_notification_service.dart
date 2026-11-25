@@ -9,6 +9,7 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:progress_group/core/services/play_update_service.dart';
+import 'package:progress_group/features/marketing-feed/presentation/state/feed_live/fame_focus.dart';
 import 'package:progress_group/core/utils/helpers/permissions_helper.dart';
 import 'package:progress_group/core/services/version_check_service.dart';
 import 'package:progress_group/core/utils/helpers/app_time.dart';
@@ -310,6 +311,18 @@ class PushNotificationService {
     // Konten Marketing Feed baru tayang / hasil review kiriman "Bagikan Momen" — buka detail
     // post-nya (post milik sendiri ikut menampilkan status & alasan ditolak).
     if (key == 'marketing_feed') {
+      // Pemenang Wall of Fame: tetap di Home, lalu kartunya di-scroll dan disorot.
+      final fameId = int.tryParse(uri.queryParameters['fame_id'] ?? '');
+      if (fameId != null) {
+        FameFocus.cardId.value = fameId;
+        AppRouter.router.go('/');
+        return true;
+      }
+      // Laporan kiriman untuk approver: buka daftar laporan.
+      if (uri.queryParameters['tab'] == 'reports') {
+        AppRouter.router.go('/marketing-feed/my-submissions?tab=reports');
+        return true;
+      }
       // Kiriman sales yang menunggu persetujuan: buka tab Persetujuan di Feeds.
       if (uri.queryParameters['tab'] == 'approval') {
         AppRouter.router.go('/marketing-feed/my-submissions?tab=approval');

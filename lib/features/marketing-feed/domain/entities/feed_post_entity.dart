@@ -2,6 +2,7 @@ import 'dart:typed_data';
 
 import 'package:equatable/equatable.dart';
 import 'home_ref_entity.dart';
+import 'feed_list_entity.dart';
 import 'package:progress_group/features/marketing-feed/domain/entities/feed_author_entity.dart';
 import 'package:progress_group/features/marketing-feed/domain/entities/feed_comment_entity.dart';
 
@@ -212,6 +213,8 @@ class FeedPostEntity extends Equatable {
   /// Sematan di profil sales (maks. 3). Hanya untuk kiriman sendiri.
   final bool profilePinned;
   final bool isMine;
+  /// Jumlah laporan terbuka (hanya terisi untuk approver di daftar Feeds).
+  final int reportCount;
   final bool fromAdminWeb;
 
   const FeedPostEntity({
@@ -238,6 +241,7 @@ class FeedPostEntity extends Equatable {
     this.isPinned = false,
     this.profilePinned = false,
     this.isMine = false,
+    this.reportCount = 0,
     this.fromAdminWeb = false,
   });
 
@@ -312,6 +316,7 @@ class FeedPostEntity extends Equatable {
     isPinned,
     profilePinned,
     isMine,
+    reportCount,
     fromAdminWeb,
   ];
 }
@@ -322,6 +327,8 @@ class FeedPageEntity extends Equatable {
   final List<HomeRefEntity> home;
   final List<FeedPostEntity> pinned;
   final List<FeedPostEntity> items;
+  /// Kartu Wall of Fame yang cocok dengan pencarian (hanya terisi dari pencarian).
+  final List<FameListCardEntity> fame;
   final int currentPage;
   final int perPage;
   final int total;
@@ -331,6 +338,7 @@ class FeedPageEntity extends Equatable {
     this.home = const [],
     this.pinned = const [],
     required this.items,
+    this.fame = const [],
     this.currentPage = 1,
     this.perPage = 10,
     this.total = 0,
@@ -345,6 +353,7 @@ class FeedPageEntity extends Equatable {
     home,
     pinned,
     items,
+    fame,
     currentPage,
     perPage,
     total,

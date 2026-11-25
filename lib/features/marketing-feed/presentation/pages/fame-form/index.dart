@@ -279,7 +279,7 @@ class _FameFormPageState extends State<FameFormPage> {
     final matchedProgram = _matchProgram(_programCtrl.text);
     return FeedModeratorFormScaffold(
       title: card == null ? 'Wall of Fame Baru' : 'Ubah Kartu Wall of Fame',
-      primaryLabel: _scheduledAt != null ? 'Jadwalkan' : 'Tayangkan',
+      primaryLabel: _scheduledAt != null ? 'Jadwalkan' : 'Publish',
       onSave: (asDraft) => _save(asDraft),
       children: [
         // Tab Buat Konten tetap tampil di halaman ini, dengan Wall of Fame aktif (satu layout dengan Postingan/Polling/Link).
@@ -364,7 +364,7 @@ class _FameFormPageState extends State<FameFormPage> {
         // Jadwal tayang kartu memakai permission SetSchedule.
         if (PermissionsHelper.canSetScheduleMarketingFeed) ...[
           const SizedBox(height: 12),
-          const FeedFormLabel('Waktu Tayang'),
+          const FeedFormLabel('Waktu Publish'),
           const SizedBox(height: 8),
           FeedScheduleField(
             scheduledAt: _scheduledAt,

@@ -1,8 +1,10 @@
+import 'package:progress_group/core/utils/helpers/date_helper.dart';
 import 'package:progress_group/features/marketing-feed/domain/entities/feed_post_entity.dart';
 import 'package:progress_group/features/marketing-feed/domain/entities/fame_program_entity.dart';
 
+// Waktu server dipetakan ke jam dinding WIB (sama seperti FeedPostModel), supaya "… lalu" tidak bergeser 7 jam.
 DateTime? _parseDate(Object? raw) =>
-    raw == null ? null : DateTime.tryParse(raw as String);
+    raw == null ? null : DateHelper.parseServerTime(raw as String);
 
 FameWinnerEntity _parseWinner(Map<dynamic, dynamic> w) => FameWinnerEntity(
   userId: (w['user_id'] as num?)?.toInt() ?? 0,

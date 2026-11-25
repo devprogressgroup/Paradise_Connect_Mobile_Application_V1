@@ -2,6 +2,8 @@ import 'package:progress_group/core/utils/helpers/app_time.dart';
 import 'package:progress_group/core/utils/helpers/date_helper.dart';
 import 'package:progress_group/features/marketing-feed/data/models/feed_author_model.dart';
 import 'package:progress_group/features/marketing-feed/data/models/feed_comment_model.dart';
+import 'package:progress_group/features/marketing-feed/data/models/feed_list_model.dart';
+import 'package:progress_group/features/marketing-feed/domain/entities/feed_list_entity.dart';
 import 'package:progress_group/features/marketing-feed/domain/entities/feed_post_entity.dart';
 import 'package:progress_group/features/marketing-feed/domain/entities/home_ref_entity.dart';
 
@@ -212,6 +214,7 @@ class FeedPostModel extends FeedPostEntity {
     super.isPinned,
     super.profilePinned,
     super.isMine,
+    super.reportCount,
     super.fromAdminWeb,
   });
 
@@ -301,6 +304,7 @@ class FeedPostModel extends FeedPostEntity {
       profilePinned: json['profile_pinned'] == true,
       isPinned: isPinned,
       isMine: json['is_mine'] == true,
+      reportCount: (json['report_count'] as num?)?.toInt() ?? 0,
       fromAdminWeb: json['source'] == 'admin',
     );
   }
@@ -311,6 +315,7 @@ class FeedPageModel extends FeedPageEntity {
     super.home,
     super.pinned,
     required super.items,
+    super.fame,
     super.currentPage,
     super.perPage,
     super.total,
@@ -344,10 +349,23 @@ class FeedPageModel extends FeedPageEntity {
             ? currentPage < (json['last_page'] as int)
             : false);
 
+    // Kartu Wall of Fame (key "fame"). Di Home server bisa mengirim objek (key tidak berurutan), jadi ambil nilainya.
+    // Hanya item ber-kind "fame" yang diparse, dengan parser daftar Feeds yang sudah ada.
+    final rawFame = json['fame'];
+    final fameRaw = rawFame is Map
+        ? rawFame.values.toList()
+        : (rawFame is List ? rawFame : const <dynamic>[]);
+    final fame = parseFeedListPage({
+      'items': fameRaw
+          .where((e) => e is Map && e['kind'] == 'fame')
+          .toList(),
+    }).items.map((i) => i.fame).whereType<FameListCardEntity>().toList();
+
     return FeedPageModel(
       home: home,
       pinned: pinned,
       items: items,
+      fame: fame,
       currentPage: currentPage,
       perPage: perPage,
       total: total,

@@ -81,10 +81,10 @@ Prinsip:
 | (baru) | Jadwalkan | `scheduled` | Moderator |
 | (baru) | Bagikan Momen | `review` | Sales |
 | (baru) | Simpan draft pribadi (Momen) | `draft` | Sales |
-| `draft` | Tayangkan | `published` | Moderator |
+| `draft` | Publish" | `published` | Moderator |
 | `draft` | Jadwalkan | `scheduled` | Moderator |
 | `scheduled` | Waktu tayang tiba | `published` | Scheduler |
-| `scheduled` | Tayangkan sekarang | `published` | Moderator |
+| `scheduled` | Publish" sekarang | `published` | Moderator |
 | `scheduled` | Batalkan jadwal | `draft` | Moderator |
 | `published` | Tarik ke draft | `draft` | Moderator (juga lepas sematan) |
 | `review` | Setujui dan tayangkan | `published` | Moderator |
@@ -148,7 +148,7 @@ Semua endpoint memakai token login. Format tanggal ISO 8601 dalam UTC, ditampilk
 | GET | `/admin/marketing-feed/posts?status=&q=&project=` | Daftar konten dengan hitungan per status. Termasuk `review`. |
 | POST | `/admin/marketing-feed/posts` | Buat post, poll, atau link. Body `{post_type, text, media_ids[], poll?, link?, project_id?, interaksi, action: "draft" \| "publish" \| "schedule", publish_at?}`. |
 | PUT | `/admin/marketing-feed/posts/{id}` | Ubah isi. Post yang sudah tayang langsung berlaku di app. `post_type` tidak boleh diganti. |
-| POST | `/admin/marketing-feed/posts/{id}/publish` | Tayangkan sekarang. Dari `draft` atau `scheduled`. |
+| POST | `/admin/marketing-feed/posts/{id}/publish` | Publish" sekarang. Dari `draft` atau `scheduled`. |
 | POST | `/admin/marketing-feed/posts/{id}/schedule` | Body `{publish_at}`. Dari `draft` atau `review` (lihat bagian 6.2). |
 | POST | `/admin/marketing-feed/posts/{id}/unschedule` | `scheduled` ke `draft`. |
 | POST | `/admin/marketing-feed/posts/{id}/unpublish` | `published` ke `draft`. Lepas sematan. |
@@ -265,11 +265,11 @@ Kiriman `rejected` tidak pernah langsung kembali ke feed tanpa persetujuan.
 
 ### 6.5 Pengajuan dari moderator di mobile
 
-Moderator memakai tombol + dengan opsi **Post baru**, **Poll baru**, dan **Link**, dengan aksi Tayangkan, Jadwalkan, atau Simpan draft. Ini memakai endpoint `POST /admin/marketing-feed/posts` dengan `source = mobile` dan izin moderator.
+Moderator memakai tombol + dengan opsi **Post baru**, **Poll baru**, dan **Link**, dengan aksi Publish", Jadwalkan, atau Simpan draft. Ini memakai endpoint `POST /admin/marketing-feed/posts` dengan `source = mobile` dan izin moderator.
 
 Kebijakan persetujuan moderator mengikuti `review` pada bagian 9.1 (nilai efektif untuk moderator yang membuat kiriman):
-- `none`: aksi Tayangkan atau Jadwalkan langsung berlaku, tanpa antrean.
-- `required`: aksi Tayangkan atau Jadwalkan menjadi `status = review`. Kiriman masuk antrean `/admin/marketing-feed/reviews` dan tidak tampil di feed sampai disetujui moderator lain atau dirinya sendiri, sesuai aturan yang diisi di Admin Web. Pengirim tidak boleh menyetujui kirimannya sendiri jika kebijakan ini aktif.
+- `none`: aksi Publish" atau Jadwalkan langsung berlaku, tanpa antrean.
+- `required`: aksi Publish" atau Jadwalkan menjadi `status = review`. Kiriman masuk antrean `/admin/marketing-feed/reviews` dan tidak tampil di feed sampai disetujui moderator lain atau dirinya sendiri, sesuai aturan yang diisi di Admin Web. Pengirim tidak boleh menyetujui kirimannya sendiri jika kebijakan ini aktif.
 - Aksi Simpan draft tidak pernah masuk antrean.
 
 ---

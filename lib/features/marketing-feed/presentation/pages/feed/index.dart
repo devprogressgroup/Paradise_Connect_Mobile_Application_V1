@@ -18,12 +18,15 @@ import 'package:progress_group/features/contact/presentation/state/activity/acti
 import 'package:progress_group/features/contact/presentation/state/whatsapp_activity/whatsapp_unread_summary_bloc.dart';
 import 'package:progress_group/features/contact/presentation/state/whatsapp_activity/whatsapp_unread_summary_state.dart';
 import 'package:progress_group/features/marketing-feed/domain/entities/feed_post_entity.dart';
+import 'package:progress_group/core/utils/route_observer.dart';
+import 'package:progress_group/features/marketing-feed/presentation/state/feed_live/fame_focus.dart';
 import 'package:progress_group/features/marketing-feed/presentation/state/marketing_feed/marketing_feed_cubit.dart';
 import 'package:progress_group/features/marketing-feed/presentation/state/marketing_feed/marketing_feed_state.dart';
 import 'package:progress_group/features/marketing-feed/presentation/widgets/feed_comment_sheet.dart';
 import 'package:progress_group/features/marketing-feed/presentation/widgets/feed_avatar.dart';
 import 'package:progress_group/features/marketing-feed/presentation/widgets/feed_create_tabs.dart';
 import 'package:progress_group/features/marketing-feed/presentation/widgets/feed_post_card.dart';
+import 'package:progress_group/features/marketing-feed/presentation/widgets/feed_report_button.dart';
 import 'package:progress_group/features/marketing-feed/presentation/widgets/fame_programs_section.dart';
 import 'package:progress_group/features/marketing-feed/presentation/feed_share.dart';
 import 'package:progress_group/features/marketing-feed/presentation/widgets/progress_funnel_card.dart';
@@ -40,9 +43,14 @@ class MarketingFeedPage extends StatefulWidget {
 /// Jarak scroll (px) setelah tombol "kembali ke atas" mulai muncul.
 const double _kShowToTopOffset = 400;
 
-class _MarketingFeedPageState extends State<MarketingFeedPage> {
+class _MarketingFeedPageState extends State<MarketingFeedPage> with RouteAware {
   final _scrollController = ScrollController();
   bool _showToTop = false;
+  // Diset saat form Buat Konten dibuka. Saat kembali (termasuk setelah pindah tab yang memakai pushReplacement),
+  // feed dimuat ulang supaya kiriman yang baru disimpan langsung tampil.
+  bool _refreshOnReturn = false;
+  // Key per kartu Wall of Fame, supaya kartu yang dituju notifikasi bisa dicari dan di-scroll.
+  final _fameKeys = <int, GlobalKey>{};
 
   @override
   void initState() {
@@ -53,10 +61,70 @@ class _MarketingFeedPageState extends State<MarketingFeedPage> {
     context.read<MarketingFeedCubit>().fetch();
     // Hak akses Wall of Fame untuk tab "Wall of Fame" di Post Baru dan Kiriman Saya.
     FeedCreateTabs.refreshFameAccess(context);
+    FameFocus.cardId.addListener(_onFameFocus);
+    WidgetsBinding.instance.addPostFrameCallback((_) => _onFameFocus());
+  }
+
+  /// Dipanggil saat notifikasi pemenang di-tap: Home sudah terbuka, jadi cukup cari kartunya lalu scroll ke sana.
+  void _onFameFocus() {
+    final id = FameFocus.cardId.value;
+    if (id == null || !mounted) return;
+    _focusFameCard(id, attempt: 0);
+  }
+
+  void _focusFameCard(int id, {required int attempt}) {
+    if (!mounted) return;
+    final key = _fameKeys[id];
+    final ctx = key?.currentContext;
+    if (ctx != null) {
+      FameFocus.cardId.value = null;
+      Scrollable.ensureVisible(
+        ctx,
+        duration: const Duration(milliseconds: 400),
+        curve: Curves.easeOut,
+        alignment: 0.1,
+      );
+      return;
+    }
+    // Kartu belum dibangun (ListView membangun item saat terlihat). Lompat perkiraan ke posisinya dulu,
+    // lalu coba lagi di frame berikutnya. Berhenti setelah beberapa kali supaya tidak berputar terus.
+    if (attempt > 8) {
+      FameFocus.cardId.value = null;
+      return;
+    }
+    final state = context.read<MarketingFeedCubit>().state;
+    final index = state.homeOrder.indexWhere((r) => r.type == 'fame' && r.id == id);
+    if (index < 0) {
+      FameFocus.cardId.value = null;
+      return;
+    }
+    if (_scrollController.hasClients) {
+      final target = (index + 1) * 320.0;
+      _scrollController.jumpTo(target.clamp(0.0, _scrollController.position.maxScrollExtent));
+    }
+    WidgetsBinding.instance.addPostFrameCallback((_) => _focusFameCard(id, attempt: attempt + 1));
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final route = ModalRoute.of(context);
+    if (route is PageRoute) {
+      appRouteObserver.subscribe(this, route);
+    }
+  }
+
+  @override
+  void didPopNext() {
+    if (!_refreshOnReturn) return;
+    _refreshOnReturn = false;
+    _refresh();
   }
 
   @override
   void dispose() {
+    appRouteObserver.unsubscribe(this);
+    FameFocus.cardId.removeListener(_onFameFocus);
     _scrollController.dispose();
     super.dispose();
   }
@@ -100,6 +168,7 @@ class _MarketingFeedPageState extends State<MarketingFeedPage> {
   /// Tidak memakai hasil `true` dari form: pindah tab Buat Konten memakai pushReplacement, jadi hasil
   /// simpan tidak sampai ke sini. Karena itu feed selalu dimuat ulang saat kembali.
   Future<void> _open(String routeName) async {
+    _refreshOnReturn = true;
     await context.pushNamed<bool>(routeName);
     if (!mounted) return;
     await _refresh();
@@ -247,6 +316,10 @@ class _MarketingFeedPageState extends State<MarketingFeedPage> {
         AnalyticsService.logEvent('marketing_feed_vote');
         return context.read<MarketingFeedCubit>().vote(post.id, indexes);
       },
+      // Lapor hanya untuk kiriman tayang milik orang lain.
+      footer: post.status == FeedPostStatus.published && !post.isMine
+          ? FeedReportButton(post: post)
+          : null,
     );
   }
 
@@ -273,7 +346,7 @@ class _MarketingFeedPageState extends State<MarketingFeedPage> {
           _buildPostCard(postById[ref.id]!)
         else if (ref.type == 'fame' && fameById[ref.id] != null)
           FameEntryTile(
-            key: ValueKey('fame_${ref.id}'),
+            key: _fameKeys.putIfAbsent(ref.id, () => GlobalKey()),
             entry: fameById[ref.id]!,
           ),
       if (state.hasMore && state.posts.isNotEmpty)
@@ -322,7 +395,8 @@ class _MarketingFeedPageState extends State<MarketingFeedPage> {
         ),
       );
     }
-    return buildPostFeedShimmer();
+    // Daftar Feed sudah punya padding 16 di sekelilingnya, jadi shimmer tidak menambah padding lagi.
+    return buildPostFeedShimmer(padding: EdgeInsets.zero);
   }
 
   /// Tombol di tengah bawah; muncul setelah scroll cukup jauh, tap = kembali ke atas.

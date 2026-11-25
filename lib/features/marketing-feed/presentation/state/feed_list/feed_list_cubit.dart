@@ -8,10 +8,10 @@ enum FeedListStatus { initial, loading, loaded, error }
 
 /// Status yang bisa difilter. Ditinjau berisi semua review untuk approver (ApproveReject), dan review sendiri untuk yang lain.
 const feedListStatusOptions = <(String, String)>[
+  ('published', 'Publish'),
   ('draft', 'Draf'),
   ('scheduled', 'Terjadwal'),
   ('review', 'Ditinjau'),
-  ('published', 'Tayang'),
   ('rejected', 'Ditolak'),
 ];
 
@@ -39,6 +39,10 @@ class FeedListState {
   /// Status dan jenis yang dipilih. Kosong = semua.
   final Set<String> statuses;
   final Set<String> kinds;
+  /// Dilaporkan (approver): kiriman dengan laporan terbuka ikut tampil (tanpa status = hanya yang dilaporkan).
+  final bool reported;
+  /// Tidak ada yang dicentang di sheet filter: daftar kosong dengan pesan, tanpa memanggil server.
+  final bool noSelection;
 
   /// Kunci baris yang sedang diproses (lihat [FeedListItem.key]).
   final String? busyKey;
@@ -52,13 +56,21 @@ class FeedListState {
     this.loadingMore = false,
     this.query = '',
     this.sort = 'latest',
-    this.statuses = const {},
-    this.kinds = const {},
+    this.statuses = const {'published'},
+    this.kinds = const {'post'},
+    this.reported = false,
+    this.noSelection = false,
     this.busyKey,
     this.errorMessage,
   });
 
-  bool get filtered => query.isNotEmpty || statuses.isNotEmpty || kinds.isNotEmpty;
+  /// Filter default = hanya Tayang.
+  bool get isDefaultStatuses => statuses.length == 1 && statuses.contains('published');
+  /// Default jenis = kiriman saja (Wall of Fame tidak ikut).
+  bool get isDefaultKinds => kinds.length == 1 && kinds.contains('post');
+
+  bool get filtered =>
+      query.isNotEmpty || !isDefaultStatuses || !isDefaultKinds || reported;
 
   FeedListState copyWith({
     FeedListStatus? status,
@@ -70,6 +82,8 @@ class FeedListState {
     String? sort,
     Set<String>? statuses,
     Set<String>? kinds,
+    bool? reported,
+    bool? noSelection,
     String? busyKey,
     String? errorMessage,
     bool clearBusy = false,
@@ -85,6 +99,8 @@ class FeedListState {
       sort: sort ?? this.sort,
       statuses: statuses ?? this.statuses,
       kinds: kinds ?? this.kinds,
+      reported: reported ?? this.reported,
+      noSelection: noSelection ?? this.noSelection,
       busyKey: clearBusy ? null : (busyKey ?? this.busyKey),
       errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
     );
@@ -108,6 +124,7 @@ class FeedListCubit extends Cubit<FeedListState> {
 
   /// Muat halaman pertama. [silent] = pembaruan berkala tanpa indikator loading.
   Future<void> load({bool silent = false}) async {
+    if (state.noSelection) return;
     final seq = ++_requestSeq;
     if (!silent) {
       emit(state.copyWith(status: FeedListStatus.loading, clearError: true));
@@ -119,6 +136,7 @@ class FeedListCubit extends Cubit<FeedListState> {
       kinds: state.kinds.toList(),
       q: state.query,
       sort: state.sort,
+      reported: state.reported,
     );
     if (isClosed || seq != _requestSeq) return;
     result.fold(
@@ -141,6 +159,7 @@ class FeedListCubit extends Cubit<FeedListState> {
 
   /// Halaman berikutnya saat daftar di-scroll ke bawah.
   Future<void> loadMore() async {
+    if (state.noSelection) return;
     if (!state.hasMore || state.loadingMore || state.status == FeedListStatus.loading) return;
     final seq = _requestSeq;
     emit(state.copyWith(loadingMore: true));
@@ -151,6 +170,7 @@ class FeedListCubit extends Cubit<FeedListState> {
       kinds: state.kinds.toList(),
       q: state.query,
       sort: state.sort,
+      reported: state.reported,
     );
     if (isClosed || seq != _requestSeq) return;
     result.fold(
@@ -176,16 +196,39 @@ class FeedListCubit extends Cubit<FeedListState> {
   }
 
   /// Kosong atau berisi semua pilihan = tanpa filter (tampilkan semua).
-  void setFilter({required Set<String> statuses, required Set<String> kinds}) {
+  void setFilter({required Set<String> statuses, required Set<String> kinds, bool reported = false}) {
     final allStatuses = statuses.length >= feedListStatusOptions.length;
     final allKinds = kinds.length >= feedListKindOptions.length;
     emit(
       state.copyWith(
-        statuses: allStatuses ? const {} : statuses,
+        statuses: allStatuses && !reported ? const {} : statuses,
         kinds: allKinds ? const {} : kinds,
+        reported: reported,
+        noSelection: false,
       ),
     );
     load();
+  }
+
+  /// Hasil sheet filter, dipakai persis seperti yang dicentang (tanpa menambah atau mengurangi).
+  /// Status kosong dan Dilaporkan tidak dicentang = tidak ada yang dipilih, daftar kosong.
+  /// Dilaporkan menambah kiriman yang punya laporan terbuka, dari status apa pun.
+  /// Wall of Fame: kartu fame ikut tampil hanya kalau ada status yang dicentang.
+  void applySheet({required Set<String> statuses, required bool reported, required bool includeFame}) {
+    final none = statuses.isEmpty && !reported;
+    // Hanya Dilaporkan: kiriman saja. Ada status: kiriman, plus kartu fame kalau Wall of Fame dicentang.
+    final kinds = statuses.isEmpty || !includeFame ? <String>{'post'} : <String>{};
+    emit(
+      state.copyWith(
+        statuses: statuses,
+        kinds: kinds,
+        reported: reported,
+        noSelection: none,
+        items: none ? const [] : state.items,
+        status: none ? FeedListStatus.loaded : state.status,
+      ),
+    );
+    if (!none) load();
   }
 
   void setSort(String sort) {
@@ -267,7 +310,7 @@ class FeedListCubit extends Cubit<FeedListState> {
     );
   }
 
-  /// Tayangkan / kembalikan ke draf / jadwalkan kartu Wall of Fame ('published' | 'draft'). Balikan: pesan error atau null.
+  /// Publish" / kembalikan ke draf / jadwalkan kartu Wall of Fame ('published' | 'draft'). Balikan: pesan error atau null.
   Future<String?> setFameStatus(int cardId, String status) async {
     emit(state.copyWith(busyKey: _fameKey(cardId)));
     final result = await repository.setFameCardStatus(cardId, status, null);

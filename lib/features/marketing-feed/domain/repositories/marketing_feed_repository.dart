@@ -8,6 +8,7 @@ import 'package:progress_group/features/marketing-feed/domain/entities/fame_prog
 import 'package:progress_group/features/marketing-feed/domain/entities/fame_manage_entity.dart';
 import 'package:progress_group/features/marketing-feed/domain/entities/feed_list_entity.dart';
 import 'package:progress_group/features/marketing-feed/domain/entities/feed_post_entity.dart';
+import 'package:progress_group/features/marketing-feed/domain/entities/feed_report_entity.dart';
 import 'package:progress_group/features/marketing-feed/domain/entities/personal_funnel_entity.dart';
 import 'package:progress_group/features/marketing-feed/domain/entities/save_feed_post_params.dart';
 import 'package:progress_group/features/marketing-feed/domain/entities/wall_of_fame_entity.dart';
@@ -127,6 +128,15 @@ abstract class MarketingFeedRepository {
   );
   Future<Either<String, void>> moderatorAction(int postId, String action);
 
+  /// Lapor kiriman (alasan + catatan opsional).
+  Future<Either<String, void>> reportPost(int postId, String reason, String? note);
+
+  /// Daftar kiriman dengan laporan terbuka (ApproveReject).
+  Future<Either<String, List<FeedReportedPost>>> getReportedPosts();
+
+  /// Keputusan approver: takedown atau dismiss.
+  Future<Either<String, void>> decideReport(int postId, String action);
+
   /// Daftar Feeds terpadu (semua tab & filter): status kosong = semua, sort latest | oldest | updated.
   Future<Either<String, FeedListPageEntity>> getFeedList({
     int page,
@@ -135,6 +145,7 @@ abstract class MarketingFeedRepository {
     List<String> kinds,
     String q,
     String sort,
+    bool reported,
   });
 
   /// Semua kiriman tayang (izin ApproveReject).

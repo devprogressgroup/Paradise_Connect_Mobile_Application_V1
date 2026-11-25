@@ -25,7 +25,7 @@ class FeedActionButton extends StatelessWidget {
     final shape = RoundedRectangleBorder(
       borderRadius: BorderRadius.circular(12),
     );
-    const padding = EdgeInsets.symmetric(horizontal: 8);
+    const padding = EdgeInsets.symmetric(horizontal: 4);
     final content = loading
         ? const SizedBox(
             width: 18,
@@ -38,15 +38,15 @@ class FeedActionButton extends StatelessWidget {
         : Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(icon, size: 17),
-              const SizedBox(width: 6),
               Flexible(
+                // Label boleh turun dua baris kalau tidak muat, ukuran font tetap dan tidak dipotong.
                 child: Text(
                   label,
-                  overflow: TextOverflow.ellipsis,
+                  maxLines: 2,
+                  textAlign: TextAlign.center,
                   style: const TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
               ),

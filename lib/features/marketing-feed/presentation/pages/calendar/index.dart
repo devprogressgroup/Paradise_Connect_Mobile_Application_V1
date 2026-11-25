@@ -560,6 +560,7 @@ class _DatePickerSheetState extends State<_DatePickerSheet> {
                 ),
                 const SizedBox(width: 10),
                 Expanded(
+                  flex: 2,
                   child: _field(
                     'Tahun',
                     DropdownButton<int>(
