@@ -589,6 +589,29 @@ Widget buildHomeChartShimmer() {
   );
 }
 
+/// Bar funnel "Progress Kamu" saat data belum ada: hanya bar (5 tahap, tinggi bervariasi),
+/// tanpa placeholder angka dan label. Dipakai di dalam SizedBox tinggi 112 pada kartu.
+Widget buildProgressFunnelShimmer() {
+  const barHeights = [40.0, 60.0, 76.0, 52.0, 30.0];
+  return _shimmerWrap(
+    child: Row(
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        for (var i = 0; i < barHeights.length; i++) ...[
+          if (i > 0) const SizedBox(width: 10),
+          Expanded(
+            child: _ShimmerBox(
+              width: double.infinity,
+              height: barHeights[i],
+              borderRadius: 6,
+            ),
+          ),
+        ],
+      ],
+    ),
+  );
+}
+
 class ShimmerSaleskitCard extends StatelessWidget {
   const ShimmerSaleskitCard({super.key});
 

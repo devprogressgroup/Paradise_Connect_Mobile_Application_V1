@@ -26,7 +26,6 @@ import 'package:progress_group/features/marketing-feed/presentation/widgets/feed
 import 'package:progress_group/features/marketing-feed/presentation/widgets/feed_avatar.dart';
 import 'package:progress_group/features/marketing-feed/presentation/widgets/feed_create_tabs.dart';
 import 'package:progress_group/features/marketing-feed/presentation/widgets/feed_post_card.dart';
-import 'package:progress_group/features/marketing-feed/presentation/widgets/feed_report_button.dart';
 import 'package:progress_group/features/marketing-feed/presentation/widgets/fame_programs_section.dart';
 import 'package:progress_group/features/marketing-feed/presentation/feed_share.dart';
 import 'package:progress_group/features/marketing-feed/presentation/widgets/progress_funnel_card.dart';
@@ -316,10 +315,8 @@ class _MarketingFeedPageState extends State<MarketingFeedPage> with RouteAware {
         AnalyticsService.logEvent('marketing_feed_vote');
         return context.read<MarketingFeedCubit>().vote(post.id, indexes);
       },
-      // Lapor hanya untuk kiriman tayang milik orang lain.
-      footer: post.status == FeedPostStatus.published && !post.isMine
-          ? FeedReportButton(post: post)
-          : null,
+      // Menu titik tiga (Laporkan) hanya untuk kiriman tayang milik orang lain.
+      canReport: post.status == FeedPostStatus.published && !post.isMine,
     );
   }
 

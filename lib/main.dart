@@ -1143,7 +1143,11 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
               ),
               BlocProvider(
                 create: (_) =>
-                    MyProfileCubit(getMyProfileUseCase: getMyProfileUseCase),
+                    MyProfileCubit(
+                      getMyProfileUseCase: getMyProfileUseCase,
+                      reactFeedPostUseCase: reactFeedPostUseCase,
+                      voteFeedPollUseCase: voteFeedPollUseCase,
+                    ),
               ),
               BlocProvider(
                 create: (_) => FeedSearchCubit(

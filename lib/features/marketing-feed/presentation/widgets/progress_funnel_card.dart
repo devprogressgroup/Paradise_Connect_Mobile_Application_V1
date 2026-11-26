@@ -2,6 +2,7 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:progress_group/core/constants/colors.dart';
+import 'package:progress_group/core/utils/widget/shimmer_loading.dart';
 import 'package:progress_group/features/marketing-feed/domain/entities/personal_funnel_entity.dart';
 import 'package:progress_group/features/marketing-feed/presentation/widgets/feed_section.dart';
 
@@ -38,13 +39,7 @@ class ProgressFunnelCard extends StatelessWidget {
             // Bar maks 64 + angka & label — muat sampai text scale 1.15 (batas di main.dart).
             height: 112,
             child: data == null
-                ? const Center(
-                    child: SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    ),
-                  )
+                ? buildProgressFunnelShimmer()
                 : Row(
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [

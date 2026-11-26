@@ -6,36 +6,56 @@ import 'package:progress_group/features/marketing-feed/domain/entities/feed_post
 import 'package:progress_group/features/marketing-feed/domain/entities/feed_report_entity.dart';
 import 'package:progress_group/features/marketing-feed/presentation/state/feed_report/feed_report_cubit.dart';
 
-/// Tombol "Laporkan" untuk kartu kiriman di Home. Hanya muncul untuk kiriman tayang milik orang lain.
-class FeedReportButton extends StatelessWidget {
+/// Menu titik tiga di pojok kanan atas kartu Home. Isinya "Laporkan" (atau "Sudah dilaporkan").
+/// Hanya dipasang untuk kiriman tayang milik orang lain.
+class FeedReportMenuButton extends StatelessWidget {
   final FeedPostEntity post;
 
-  const FeedReportButton({super.key, required this.post});
+  const FeedReportMenuButton({super.key, required this.post});
 
   @override
   Widget build(BuildContext context) {
-    return Align(
-      alignment: Alignment.centerLeft,
-      child: BlocBuilder<FeedReportCubit, FeedReportState>(
-        buildWhen: (a, b) =>
-            a.reportedIds.contains(post.id) != b.reportedIds.contains(post.id),
-        builder: (context, state) {
-          // Sudah dilaporkan: dari server (my_report) atau baru dikirim di sesi ini.
-          final reported = post.reportedByMe || state.reportedIds.contains(post.id);
-          if (reported) {
-            return TextButton.icon(
-              onPressed: null,
-              icon: Icon(Icons.check, size: 16),
-              label: Text('Sudah dilaporkan'),
-            );
-          }
-          return TextButton.icon(
-            onPressed: () => showReportPostDialog(context, post),
-            icon: const Icon(Icons.flag_outlined, size: 16),
-            label: const Text('Laporkan'),
-          );
-        },
-      ),
+    return BlocBuilder<FeedReportCubit, FeedReportState>(
+      buildWhen: (a, b) => a.reportedIds.contains(post.id) != b.reportedIds.contains(post.id),
+      builder: (context, state) {
+        // Sudah dilaporkan: dari server (my_report) atau baru dikirim di sesi ini.
+        final reported = post.reportedByMe || state.reportedIds.contains(post.id);
+        return Container(
+          width: 27,
+          child: PopupMenuButton<String>(
+            tooltip: 'Lainnya',
+            icon: const Icon(Icons.more_vert, size: 20, color: Color(grey2Color)),
+            padding: EdgeInsets.zero,
+            onSelected: (value) {
+              if (value == 'report') showReportPostDialog(context, post);
+            },
+            itemBuilder: (_) => [
+              if (reported)
+                const PopupMenuItem<String>(
+                  enabled: false,
+                  child: Row(
+                    children: [
+                      Icon(Icons.check, size: 18),
+                      SizedBox(width: 8),
+                      Text('Sudah dilaporkan'),
+                    ],
+                  ),
+                )
+              else
+                const PopupMenuItem<String>(
+                  value: 'report',
+                  child: Row(
+                    children: [
+                      Icon(Icons.flag_outlined, size: 18),
+                      SizedBox(width: 8),
+                      Text('Laporkan'),
+                    ],
+                  ),
+                ),
+            ],
+          ),
+        );
+      },
     );
   }
 }

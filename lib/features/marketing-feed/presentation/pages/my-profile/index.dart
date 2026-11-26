@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:go_router/go_router.dart';
 import 'package:progress_group/core/constants/colors.dart';
 import 'package:progress_group/core/utils/widget/shimmer_loading.dart';
 import 'package:progress_group/core/utils/widget/custom_header.dart';
 import 'package:progress_group/features/marketing-feed/domain/entities/feed_post_entity.dart';
 import 'package:progress_group/features/marketing-feed/domain/entities/my_profile_entity.dart';
+import 'package:progress_group/features/marketing-feed/presentation/feed_share.dart';
 import 'package:progress_group/features/marketing-feed/presentation/state/my_profile/my_profile_cubit.dart';
 import 'package:progress_group/features/marketing-feed/presentation/widgets/feed_avatar.dart';
+import 'package:progress_group/features/marketing-feed/presentation/widgets/feed_comment_sheet.dart';
 import 'package:progress_group/features/marketing-feed/presentation/widgets/feed_media_view.dart';
 import 'package:progress_group/features/marketing-feed/presentation/widgets/feed_post_card.dart';
 import 'package:progress_group/features/marketing-feed/presentation/pages/my-profile/reel_list_page.dart';
@@ -55,7 +56,7 @@ class _FeedProfilePageState extends State<FeedProfilePage> {
       body: SafeArea(
         child: Column(
           children: [
-            customHeader(context, 'Profil', isBack: true),
+            customHeader(context, 'Profile', isBack: true),
             Expanded(
               child: BlocBuilder<MyProfileCubit, MyProfileState>(
                 builder: (context, state) {
@@ -212,10 +213,16 @@ class _FeedProfilePageState extends State<FeedProfilePage> {
         key: ValueKey(post.id),
         post: post,
         linkAuthorProfile: false,
-        onComment: () => context.pushNamed(
-          'marketingFeedDetail',
-          queryParameters: {'feed_post_id': '${post.id}'},
-        ),
+        // Aksi sama dengan Home: like/dislike, komentar, bagikan, dan vote poll.
+        onReact: (reaction) async {
+          final error = await context.read<MyProfileCubit>().react(post.id, reaction);
+          if (error != null && context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error)));
+          }
+        },
+        onComment: () => showFeedCommentSheet(context, post),
+        onShare: (origin) => FeedShare.sharePost(context, post, origin: origin),
+        onVote: (indexes) => context.read<MyProfileCubit>().vote(post.id, indexes),
       ),
     );
   }
