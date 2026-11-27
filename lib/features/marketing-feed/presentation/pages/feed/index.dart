@@ -315,8 +315,9 @@ class _MarketingFeedPageState extends State<MarketingFeedPage> with RouteAware {
         AnalyticsService.logEvent('marketing_feed_vote');
         return context.read<MarketingFeedCubit>().vote(post.id, indexes);
       },
-      // Menu titik tiga (Laporkan) hanya untuk kiriman tayang milik orang lain.
-      canReport: post.status == FeedPostStatus.published && !post.isMine,
+      // Menu titik tiga (Laporkan) untuk semua kiriman tayang, termasuk milik sendiri.
+      // Izin ReportOwn dicek backend (403), bukan di Flutter.
+      canReport: post.status == FeedPostStatus.published,
     );
   }
 

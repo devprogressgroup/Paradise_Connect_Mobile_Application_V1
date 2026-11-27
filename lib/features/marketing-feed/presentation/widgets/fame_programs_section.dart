@@ -11,6 +11,7 @@ import 'package:progress_group/features/marketing-feed/presentation/widgets/feed
 import 'package:progress_group/features/marketing-feed/presentation/widgets/feed_comment_sheet.dart';
 import 'package:progress_group/features/marketing-feed/presentation/widgets/feed_media_skeleton.dart';
 import 'package:progress_group/features/marketing-feed/presentation/widgets/feed_media_view.dart';
+import 'package:progress_group/features/marketing-feed/presentation/widgets/feed_report_button.dart';
 import 'package:share_plus/share_plus.dart';
 
 /// Satu kartu Wall of Fame di Home: kartu gelap berisi header pembuat,
@@ -24,11 +25,15 @@ class FameEntryTile extends StatefulWidget {
   /// Widget tambahan di header kanan (mis. badge status dan menu di halaman kelola).
   final Widget? trailing;
 
+  /// true = menu titik tiga "Laporkan" di header (untuk semua kartu, termasuk buatan sendiri).
+  final bool canReport;
+
   const FameEntryTile({
     super.key,
     required this.entry,
     this.showActions = true,
     this.trailing,
+    this.canReport = true,
   });
 
   @override
@@ -350,6 +355,7 @@ class _FameEntryTileState extends State<FameEntryTile> {
             color: const Color(whiteColor).withValues(alpha: 0.7),
           ),
         if (widget.trailing != null) widget.trailing!,
+        if (widget.canReport) FeedReportMenuButton(fame: entry),
       ],
     );
   }

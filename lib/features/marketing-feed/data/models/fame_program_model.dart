@@ -49,6 +49,8 @@ FameEntryEntity parseFameEntry(
     topRank:
         (e['top_rank'] as num?)?.toInt() ??
         (winners.isEmpty ? 0 : winners.first.ranking),
+    myReport: e['my_report'] == true,
+    reportCount: (e['report_count'] as num?)?.toInt() ?? 0,
     likeCount: ((e['counts'] as Map?)?['likes'] as num?)?.toInt() ?? 0,
     dislikeCount: ((e['counts'] as Map?)?['dislikes'] as num?)?.toInt() ?? 0,
     commentCount: ((e['counts'] as Map?)?['comments'] as num?)?.toInt() ?? 0,

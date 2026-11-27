@@ -1,5 +1,4 @@
 import 'package:equatable/equatable.dart';
-import 'package:progress_group/features/marketing-feed/domain/entities/feed_post_entity.dart';
 
 /// Alasan laporan kiriman. Nilai [code] sama dengan yang disimpan di server (t_feed_report.reason).
 enum FeedReportReason {
@@ -34,16 +33,4 @@ class FeedReportNote extends Equatable {
 
   @override
   List<Object?> get props => [reason, note, createdAt, reporterName];
-}
-
-/// Kiriman yang punya laporan terbuka, untuk daftar laporan approver.
-class FeedReportedPost extends Equatable {
-  final FeedPostEntity post;
-  final int reportCount;
-  final List<FeedReportNote> reports;
-
-  const FeedReportedPost({required this.post, required this.reportCount, this.reports = const []});
-
-  @override
-  List<Object?> get props => [post, reportCount, reports];
 }

@@ -21,10 +21,11 @@ const feedListKindOptions = <(String, String)>[
   ('fame', 'Wall of Fame'),
 ];
 
+/// Urutan default = terakhir diubah (termasuk laporan terbaru), sama dengan backend.
 const feedListSortOptions = <(String, String)>[
+  ('updated', 'Terakhir diubah'),
   ('latest', 'Terbaru'),
   ('oldest', 'Terlama'),
-  ('updated', 'Terakhir diubah'),
 ];
 
 class FeedListState {
@@ -55,22 +56,24 @@ class FeedListState {
     this.hasMore = false,
     this.loadingMore = false,
     this.query = '',
-    this.sort = 'latest',
-    this.statuses = const {'published'},
-    this.kinds = const {'post'},
+    this.sort = 'updated',
+    this.statuses = const {},
+    this.kinds = const {},
     this.reported = false,
     this.noSelection = false,
     this.busyKey,
     this.errorMessage,
   });
 
-  /// Filter default = hanya Tayang.
-  bool get isDefaultStatuses => statuses.length == 1 && statuses.contains('published');
-  /// Default jenis = kiriman saja (Wall of Fame tidak ikut).
-  bool get isDefaultKinds => kinds.length == 1 && kinds.contains('post');
+  /// Filter default = semua status (kosong = tanpa filter status). Backend mengembalikan semua yang boleh dilihat user.
+  bool get isDefaultStatuses => statuses.isEmpty;
+  /// Filter default = semua jenis (kosong = kiriman dan Wall of Fame).
+  bool get isDefaultKinds => kinds.isEmpty;
+  /// Dilaporkan default = tidak tercentang (semua konten tampil).
+  bool get isDefaultReported => !reported;
 
   bool get filtered =>
-      query.isNotEmpty || !isDefaultStatuses || !isDefaultKinds || reported;
+      query.isNotEmpty || !isDefaultStatuses || !isDefaultKinds || !isDefaultReported;
 
   FeedListState copyWith({
     FeedListStatus? status,
@@ -213,14 +216,18 @@ class FeedListCubit extends Cubit<FeedListState> {
   /// Hasil sheet filter, dipakai persis seperti yang dicentang (tanpa menambah atau mengurangi).
   /// Status kosong dan Dilaporkan tidak dicentang = tidak ada yang dipilih, daftar kosong.
   /// Dilaporkan menambah kiriman yang punya laporan terbuka, dari status apa pun.
-  /// Wall of Fame: kartu fame ikut tampil hanya kalau ada status yang dicentang.
+  /// Wall of Fame: kartu fame ikut tampil kalau dicentang (atau user tidak membatasi jenis).
   void applySheet({required Set<String> statuses, required bool reported, required bool includeFame}) {
     final none = statuses.isEmpty && !reported;
-    // Hanya Dilaporkan: kiriman saja. Ada status: kiriman, plus kartu fame kalau Wall of Fame dicentang.
-    final kinds = statuses.isEmpty || !includeFame ? <String>{'post'} : <String>{};
+    // Semua status dicentang tanpa Dilaporkan = tanpa filter status (kosong), sama dengan default.
+    // Dengan Dilaporkan, status tetap dikirim supaya hasilnya gabungan (semua status ∪ yang dilaporkan).
+    final allStatuses = statuses.length >= feedListStatusOptions.length && !reported;
+    // Wall of Fame dicentang (atau tidak bisa dipilih user) = jenis tidak dibatasi (kosong).
+    // Tidak dicentang = kiriman saja.
+    final kinds = includeFame ? <String>{} : <String>{'post'};
     emit(
       state.copyWith(
-        statuses: statuses,
+        statuses: allStatuses ? const {} : statuses,
         kinds: kinds,
         reported: reported,
         noSelection: none,
@@ -300,7 +307,11 @@ class FeedListCubit extends Cubit<FeedListState> {
             items: [
               for (final i in state.items)
                 i.post?.id == postId
-                    ? FeedListItem.post(i.post!.copyWith(profilePinned: pinned))
+                    ? FeedListItem.post(
+                        i.post!.copyWith(profilePinned: pinned),
+                        badge: i.badge,
+                        reportActions: i.reportActions,
+                      )
                     : i,
             ],
           ),

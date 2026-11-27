@@ -9,22 +9,67 @@ import 'package:progress_group/features/marketing-feed/presentation/widgets/feed
 import 'package:progress_group/features/marketing-feed/presentation/widgets/feed_media_view.dart';
 import 'package:progress_group/features/marketing-feed/presentation/widgets/feed_section.dart';
 
+/// Aksi satu kartu di Feeds. Ditampilkan lewat menu titik tiga, bukan tombol di kartu.
+/// [onPressed] null = aksi nonaktif (mis. sedang diproses).
+class FeedCardAction {
+  final String label;
+  final IconData icon;
+  final Color color;
+  final VoidCallback? onPressed;
+
+  const FeedCardAction({
+    required this.label,
+    required this.icon,
+    required this.color,
+    this.onPressed,
+  });
+}
+
+/// Tombol titik tiga yang membuka daftar [actions]. Dipakai juga di Detail Post, supaya aksi kiriman sama di semua layar.
+Widget feedActionMenu(List<FeedCardAction> actions) {
+  return SizedBox(
+    width: 27,
+    child: PopupMenuButton<FeedCardAction>(
+      tooltip: 'Lainnya',
+      icon: const Icon(Icons.more_vert, size: 20, color: Color(grey2Color)),
+      padding: EdgeInsets.zero,
+      onSelected: (a) => a.onPressed?.call(),
+      itemBuilder: (_) => [
+        for (final a in actions)
+          PopupMenuItem<FeedCardAction>(
+            value: a,
+            enabled: a.onPressed != null,
+            child: Row(
+              children: [
+                Icon(a.icon, size: 18, color: a.color),
+                const SizedBox(width: 8),
+                Text(a.label),
+              ],
+            ),
+          ),
+      ],
+    ),
+  );
+}
+
 /// Kartu yang sama untuk semua baris di Feeds (kiriman dan Wall of Fame).
-/// Isi kartu ditentukan pemanggil lewat [feedPostCard] atau [fameListCard]; tombol di [footer] mengikuti status dan izin.
+/// Isi kartu ditentukan pemanggil lewat [feedPostCard] atau [fameListCard]. Aksi dibuka dari menu titik tiga ([menu]).
 class FeedManageCard extends StatelessWidget {
   final Widget thumbnail;
   final Widget badge;
   final String title;
   final String? subtitle;
   final String timeText;
-  final String? rejectReason;
   final VoidCallback onTap;
 
   /// Penanda di kiri baris atas (mis. pembuat kiriman atau label Wall of Fame). Null = hanya badge di kiri.
   final Widget? header;
 
-  /// Baris tombol di bawah kartu. Null = kartu tanpa tombol.
+  /// Keterangan di bawah kartu (mis. jumlah laporan). Null = tanpa keterangan.
   final Widget? footer;
+
+  /// Aksi kartu untuk menu titik tiga (PopupMenuButton). Null atau kosong = kartu tanpa menu.
+  final List<FeedCardAction>? menu;
 
   const FeedManageCard({
     super.key,
@@ -33,14 +78,22 @@ class FeedManageCard extends StatelessWidget {
     required this.title,
     this.subtitle,
     required this.timeText,
-    this.rejectReason,
     required this.onTap,
     this.header,
     this.footer,
+    this.menu,
   });
 
   @override
   Widget build(BuildContext context) {
+    final actions = menu ?? const <FeedCardAction>[];
+    // Panah dan titik tiga di kanan atas kartu. Menu titik tiga sama dengan menu "Laporkan" di Home.
+    final trailing = Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (actions.isNotEmpty) feedActionMenu(actions),
+      ],
+    );
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(10),
@@ -62,32 +115,27 @@ class FeedManageCard extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Dengan header: penanda di kiri, badge status dan panah di kanan, sejajar dalam satu baris.
+                      // Dengan header: penanda di kiri, badge status dan menu di kanan, sejajar dalam satu baris.
                       if (header != null)
-                        Row(
-                          children: [
-                            Expanded(child: header!),
-                            const SizedBox(width: 8),
-                            // flex 0: badge pakai lebarnya sendiri dan tidak membagi ruang dengan nama.
-                            Flexible(flex: 0, child: badge),
-                            const SizedBox(width: 4),
-                            const Icon(
-                              Icons.chevron_right,
-                              size: 18,
-                              color: Color(grey4Color),
-                            ),
-                          ],
+                        Container(
+                          height: 20,
+                          child: Row(
+                            children: [
+                              Expanded(child: header!),
+                              const SizedBox(width: 8),
+                              // flex 0: badge pakai lebarnya sendiri dan tidak membagi ruang dengan nama.
+                              Flexible(flex: 0, child: badge),
+                              const SizedBox(width: 4),
+                              trailing,
+                            ],
+                          ),
                         )
                       else
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             Flexible(child: badge),
-                            const Icon(
-                              Icons.chevron_right,
-                              size: 18,
-                              color: Color(grey4Color),
-                            ),
+                            trailing,
                           ],
                         ),
                                       const SizedBox(height: 6),
@@ -125,41 +173,6 @@ class FeedManageCard extends StatelessWidget {
                 ),
               ],
             ),
-            if (rejectReason != null) ...[
-              const SizedBox(height: 10),
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: const Color(redAccentColor).withValues(alpha: 0.08),
-                  borderRadius: BorderRadius.circular(6),
-                  border: Border.all(
-                    color: const Color(redAccentColor).withValues(alpha: 0.3),
-                  ),
-                ),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Icon(
-                      Icons.info_outline,
-                      size: 14,
-                      color: Color(redAccentColor),
-                    ),
-                    const SizedBox(width: 6),
-                    Expanded(
-                      child: Text(
-                        'Alasan penolakan: $rejectReason',
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: Color(redAccentColor),
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
             if (footer != null) ...[const SizedBox(height: 10), footer!],
           ],
         ),
@@ -172,7 +185,9 @@ class FeedManageCard extends StatelessWidget {
 FeedManageCard feedPostCard({
   required FeedPostEntity post,
   required VoidCallback onTap,
+  FeedBadgeEntity? badge,
   Widget? footer,
+  List<FeedCardAction>? menu,
 }) {
   final thumb = post.thumbnail;
   return FeedManageCard(
@@ -188,7 +203,7 @@ FeedManageCard feedPostCard({
               color: Color(grey4Color),
             ),
           ),
-    badge: FeedStatusBadge(post: post),
+    badge: feedBadgeWidget(badge),
     // Kiriman biasa/poll: caption. Link: judul link (plainText), bila kosong baru pakai teks default.
     title: post.plainText.trim().isNotEmpty
         ? post.plainText
@@ -198,12 +213,10 @@ FeedManageCard feedPostCard({
         : post.submittedAt != null
         ? 'Dikirim ${DateHelper.timeAgo(post.submittedAt!)}'
         : 'Dikirim ${DateHelper.timeAgo(post.publishAt)}',
-    rejectReason: post.status == FeedPostStatus.rejected
-        ? post.rejectReason
-        : null,
     onTap: onTap,
     header: FeedAuthorTag(author: post.author),
     footer: footer,
+    menu: menu,
   );
 }
 
@@ -211,7 +224,9 @@ FeedManageCard feedPostCard({
 FeedManageCard fameListCard({
   required FameListCardEntity card,
   required VoidCallback onTap,
+  FeedBadgeEntity? badge,
   Widget? footer,
+  List<FeedCardAction>? menu,
 }) {
   final url = card.mediaUrl;
   final created = card.submittedAt;
@@ -246,7 +261,7 @@ FeedManageCard fameListCard({
         ),
       ),
     ),
-    badge: FeedStatusPill.fame(card.status),
+    badge: feedBadgeWidget(badge),
     title: card.kategori.trim().toUpperCase(),
     subtitle: [
       card.program,
@@ -255,6 +270,7 @@ FeedManageCard fameListCard({
     timeText: created != null ? 'Dibuat ${DateHelper.timeAgo(created)}' : '',
     onTap: onTap,
     footer: footer,
+    menu: menu,
   );
 }
 
@@ -282,7 +298,7 @@ class FeedAuthorTag extends StatelessWidget {
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: const TextStyle(
-              fontSize: 11.5,
+              fontSize: 14,
               fontWeight: FontWeight.w600,
               color: Color(grey1Color),
             ),
@@ -293,51 +309,21 @@ class FeedAuthorTag extends StatelessWidget {
   }
 }
 
-/// Label status kiriman (Menunggu review, Disetujui, Publish, Ditolak).
-class FeedStatusBadge extends StatelessWidget {
-  final FeedPostEntity post;
-
-  const FeedStatusBadge({super.key, required this.post});
-
-  @override
-  Widget build(BuildContext context) {
-    switch (post.status) {
-      case FeedPostStatus.review:
-        return const FeedStatusPill(
-          label: 'Menunggu review',
-          bg: orangeAccentColor,
-          fg: orangeAccentColor,
-        );
-      case FeedPostStatus.scheduled:
-        return FeedStatusPill(
-          label:
-              'Disetujui, tayang ${DateHelper.relativeDayTime(post.publishAt)}',
-          bg: blueShade50Color,
-          fg: primaryColor,
-          solidBg: true,
-        );
-      case FeedPostStatus.published:
-        return const FeedStatusPill(
-          label: 'Publish',
-          bg: greenMaterialColor,
-          fg: greenMaterialColor,
-        );
-      case FeedPostStatus.draft:
-        return FeedStatusPill(
-          label: 'Draf',
-          bg: grey10Color,
-          fg: grey2Color,
-          solidBg: true,
-        );
-      case FeedPostStatus.rejected:
-        return const FeedStatusPill(
-          label: 'Ditolak',
-          bg: redAccentColor,
-          fg: redAccentColor,
-        );
-    }
-  }
+/// Badge dari backend: label dan warna dari tone. Null (respons tanpa badge) = tidak tampil.
+Widget feedBadgeWidget(FeedBadgeEntity? badge) {
+  if (badge == null) return const SizedBox.shrink();
+  final color = feedToneColor(badge.tone);
+  return FeedStatusPill(label: badge.label, bg: color, fg: color);
 }
+
+/// Warna badge untuk tone dari backend. Tone yang tidak dikenal = abu-abu.
+int feedToneColor(String tone) => switch (tone) {
+  'red' => redAccentColor,
+  'green' => greenMaterialColor,
+  'blue' => primaryColor,
+  'orange' => orangeAccentColor,
+  _ => grey2Color,
+};
 
 /// Pill status yang dipakai badge kiriman dan kartu Wall of Fame.
 /// [bg] dan [fg] berupa id warna dari core/constants/colors.dart. Latar bisa solid atau transparan 15%.
@@ -354,32 +340,6 @@ class FeedStatusPill extends StatelessWidget {
     required this.fg,
     this.solidBg = false,
   });
-
-  /// Badge status kartu Wall of Fame (draf, terjadwal, tayang).
-  factory FeedStatusPill.fame(String status) {
-    switch (status) {
-      case 'published':
-        return const FeedStatusPill(
-          label: 'Publish',
-          bg: greenMaterialColor,
-          fg: greenMaterialColor,
-        );
-      case 'scheduled':
-        return const FeedStatusPill(
-          label: 'Terjadwal',
-          bg: blueShade50Color,
-          fg: primaryColor,
-          solidBg: true,
-        );
-      default:
-        return const FeedStatusPill(
-          label: 'Draf',
-          bg: grey10Color,
-          fg: grey2Color,
-          solidBg: true,
-        );
-    }
-  }
 
   @override
   Widget build(BuildContext context) {

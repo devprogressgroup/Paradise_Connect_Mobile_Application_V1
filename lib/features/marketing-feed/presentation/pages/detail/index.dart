@@ -7,19 +7,75 @@ import 'package:progress_group/core/utils/helpers/date_helper.dart';
 import 'package:progress_group/core/utils/helpers/permissions_helper.dart';
 import 'package:progress_group/features/marketing-feed/domain/entities/feed_report_entity.dart';
 import 'package:progress_group/core/utils/widget/custom_header.dart';
+import 'package:progress_group/features/marketing-feed/domain/entities/feed_list_entity.dart';
 import 'package:progress_group/features/marketing-feed/domain/entities/feed_post_entity.dart';
 import 'package:progress_group/features/marketing-feed/presentation/state/feed_drafts/feed_drafts_cubit.dart';
+import 'package:progress_group/features/marketing-feed/domain/entities/fame_program_entity.dart';
+import 'package:progress_group/features/marketing-feed/presentation/widgets/fame_programs_section.dart';
+import 'package:progress_group/features/marketing-feed/presentation/widgets/feed_manage_card.dart';
 import 'package:progress_group/features/marketing-feed/presentation/feed_share.dart';
 import 'package:progress_group/features/marketing-feed/presentation/state/marketing_feed/marketing_feed_cubit.dart';
 import 'package:progress_group/features/marketing-feed/presentation/widgets/feed_comment_sheet.dart';
 import 'package:progress_group/features/marketing-feed/presentation/widgets/feed_post_card.dart';
+
+/// Kartu daftar Feeds dipetakan ke bentuk kartu Home (gelap) yang dipakai [FameEntryTile].
+/// Like dan komentar tidak ada di data daftar, jadi kartu ini ditampilkan tanpa baris aksi.
+FameEntryEntity _fameEntryOf(FameListCardEntity c) {
+  final author = c.author;
+  final winners = [
+    for (final w in c.winners)
+      FameWinnerEntity(
+        userId: w.userId,
+        name: w.name,
+        initials: _initialsOf(w.name),
+        ranking: w.ranking,
+        rankLabel: w.peringkatLabel,
+        posisiLabel: w.posisiLabel,
+        timLabel: w.timLabel,
+      ),
+  ];
+  return FameEntryEntity(
+    id: c.id,
+    programId: 0,
+    programName: c.program,
+    periodeLabel: c.periode,
+    kategori: c.kategori,
+    caption: c.caption,
+    publishedAt: c.publishAt,
+    creatorName: author?.name ?? 'Admin',
+    creatorInitials: author?.initials ?? 'A',
+    creatorPhotoUrl: author?.photoUrl,
+    mediaType: c.mediaType,
+    mediaUrl: c.mediaUrl,
+    winners: winners,
+    juaraCount: winners.length,
+    topRank: winners.fold<int>(
+      0,
+      (m, w) => m == 0 || w.ranking < m ? w.ranking : m,
+    ),
+    reportCount: c.reportCount,
+    myReport: c.myReport,
+  );
+}
+
+String _initialsOf(String name) => name
+    .trim()
+    .split(RegExp(r'\s+'))
+    .where((p) => p.isNotEmpty)
+    .take(2)
+    .map((p) => p[0].toUpperCase())
+    .join();
 
 /// Detail satu post — dibuka dari Kiriman Saya atau notifikasi `app://marketing_feed?feed_post_id=`.
 /// Post milik sendiri ikut menampilkan status review & alasan penolakan.
 class FeedPostDetailPage extends StatefulWidget {
   final int? postId;
 
-  const FeedPostDetailPage({super.key, required this.postId});
+  /// Kartu Wall of Fame dari daftar Feeds (lewat extra). Kalau ada, halaman ini menampilkan kartu itu
+  /// dan daftar pelapor, tanpa memuat kiriman dari server.
+  final FameListCardEntity? fame;
+
+  const FeedPostDetailPage({super.key, required this.postId, this.fame});
 
   @override
   State<FeedPostDetailPage> createState() => _FeedPostDetailPageState();
@@ -34,6 +90,11 @@ class _FeedPostDetailPageState extends State<FeedPostDetailPage> {
   void initState() {
     super.initState();
     AnalyticsService.logScreenView('marketing_feed_detail');
+    // Kartu Wall of Fame sudah lengkap dari daftar: tidak perlu memuat kiriman.
+    if (widget.fame != null) {
+      _isLoading = false;
+      return;
+    }
     // Setelah frame pertama: _handleNotFound butuh ScaffoldMessenger & navigasi.
     WidgetsBinding.instance.addPostFrameCallback((_) => _loadPost());
   }
@@ -172,44 +233,48 @@ class _FeedPostDetailPageState extends State<FeedPostDetailPage> {
     FeedShare.sharePost(context, post, origin: origin);
   }
 
-  /// Aksi draft, sama dengan halaman Draf: Ubah, Publish" (kalau bisa langsung tayang) atau Ajukan ulang, dan Hapus.
-  Widget _draftActions(FeedPostEntity post) {
+  /// Aksi draft di menu titik tiga, sama dengan halaman Feeds: Hapus, Ubah, Publish (kalau bisa langsung tayang),
+  /// atau Ajukan ulang untuk draft milik sendiri tanpa izin itu.
+  List<FeedCardAction> _draftActions(FeedPostEntity post) {
     final canPublishDirect =
         PermissionsHelper.canApproveMarketingFeed ||
         PermissionsHelper.canSkipReviewMarketingFeed;
-    return Wrap(
-      spacing: 8,
-      runSpacing: 8,
-      children: [
-        OutlinedButton.icon(
-          onPressed: () => _editDraft(post),
-          icon: const Icon(Icons.edit_outlined, size: 16),
-          label: const Text('Ubah'),
-        ),
-        if (canPublishDirect)
-          ElevatedButton.icon(
-            onPressed: () => _publishDraft(post),
-            icon: const Icon(Icons.send, size: 16),
-            label: const Text('Publish'),
-          )
-        else
-          ElevatedButton.icon(
-            onPressed: () => _editDraft(post),
-            icon: const Icon(Icons.rate_review_outlined, size: 16),
-            label: const Text('Ajukan ulang'),
-          ),
-        // Hapus butuh izin Delete atau ApproveReject (sama dengan backend), jadi tombolnya hanya tampil kalau ada.
+    return [
+      if (canPublishDirect) ...[
         if (PermissionsHelper.canDeleteMarketingFeed)
-          OutlinedButton.icon(
+          FeedCardAction(
+            label: 'Hapus',
+            icon: Icons.delete_outline_rounded,
+            color: const Color(redAccentColor),
             onPressed: () => _deleteDraft(post),
-            style: OutlinedButton.styleFrom(
-              foregroundColor: const Color(redAccentColor),
-            ),
-            icon: const Icon(Icons.delete_outline, size: 16),
-            label: const Text('Hapus'),
           ),
+        FeedCardAction(
+          label: 'Ubah',
+          icon: Icons.edit_outlined,
+          color: const Color(primaryColor),
+          onPressed: () => _editDraft(post),
+        ),
+        FeedCardAction(
+          label: 'Publish',
+          icon: Icons.send_rounded,
+          color: const Color(successColor),
+          onPressed: () => _publishDraft(post),
+        ),
+      ] else if (post.isMine) ...[
+        FeedCardAction(
+          label: 'Ubah',
+          icon: Icons.edit_outlined,
+          color: const Color(primaryColor),
+          onPressed: () => _editDraft(post),
+        ),
+        FeedCardAction(
+          label: 'Ajukan ulang',
+          icon: Icons.send_rounded,
+          color: const Color(successColor),
+          onPressed: () => _editDraft(post),
+        ),
       ],
-    );
+    ];
   }
 
   Future<void> _editDraft(FeedPostEntity post) async {
@@ -274,7 +339,7 @@ class _FeedPostDetailPageState extends State<FeedPostDetailPage> {
   }
 
   /// Daftar pelapor dan isi laporan (hanya approver yang mendapat datanya dari server).
-  Widget _reportsSection(FeedPostEntity post) {
+  Widget _reportsSection(List<FeedReportNote> reports) {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
@@ -286,10 +351,10 @@ class _FeedPostDetailPageState extends State<FeedPostDetailPage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Laporan (${post.reports.length})',
+            'Laporan (${reports.length})',
             style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
           ),
-          for (final r in post.reports) ...[
+          for (final r in reports) ...[
             const SizedBox(height: 10),
             Text(
               r.reporterName,
@@ -313,10 +378,11 @@ class _FeedPostDetailPageState extends State<FeedPostDetailPage> {
     );
   }
 
-  /// Footer kartu di Detail Post: hanya aksi draft. Laporan kiriman dilakukan dari kartu di menu utama (Home).
-  Widget? _postFooter(FeedPostEntity post) {
-    if (post.status == FeedPostStatus.draft) return _draftActions(post);
-    return null;
+  /// Menu titik tiga Detail Post: hanya aksi draft. Laporan kiriman dilakukan dari kartu di menu utama (Home).
+  List<FeedCardAction>? _postMenu(FeedPostEntity post) {
+    if (post.status != FeedPostStatus.draft) return null;
+    final actions = _draftActions(post);
+    return actions.isEmpty ? null : actions;
   }
 
   @override
@@ -361,6 +427,21 @@ class _FeedPostDetailPageState extends State<FeedPostDetailPage> {
       );
     }
 
+    final fame = widget.fame;
+    if (fame != null) {
+      // Kartu Wall of Fame memakai kartu gelap dari Home, lalu daftar pelapor di bawahnya.
+      return ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          FameEntryTile(entry: _fameEntryOf(fame), showActions: false),
+          if (fame.reports.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            _reportsSection(fame.reports),
+          ],
+        ],
+      );
+    }
+
     final post = _post;
     if (post == null) return const SizedBox.shrink();
 
@@ -377,9 +458,10 @@ class _FeedPostDetailPageState extends State<FeedPostDetailPage> {
             onComment: _openComments,
             onShare: _share,
             onVote: _vote,
-            footer: _postFooter(post),
+            menu: _postMenu(post),
+            pendingTagAtBottom: true,
           ),
-          if (post.reports.isNotEmpty) _reportsSection(post),
+          if (post.reports.isNotEmpty) _reportsSection(post.reports),
         ],
       ),
     );

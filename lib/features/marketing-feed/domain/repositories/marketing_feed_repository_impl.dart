@@ -8,7 +8,6 @@ import 'package:progress_group/features/marketing-feed/domain/entities/fame_prog
 import 'package:progress_group/features/marketing-feed/domain/entities/fame_manage_entity.dart';
 import 'package:progress_group/features/marketing-feed/domain/entities/feed_list_entity.dart';
 import 'package:progress_group/features/marketing-feed/domain/entities/feed_post_entity.dart';
-import 'package:progress_group/features/marketing-feed/domain/entities/feed_report_entity.dart';
 import 'package:progress_group/features/marketing-feed/domain/entities/feed_stats_entity.dart';
 import 'package:progress_group/features/marketing-feed/domain/entities/personal_funnel_entity.dart';
 import 'package:progress_group/features/marketing-feed/domain/entities/save_feed_post_params.dart';
@@ -224,10 +223,6 @@ class MarketingFeedRepositoryImpl implements MarketingFeedRepository {
       _guard(() => remoteDataSource.getLinkMeta(url));
 
   @override
-  Future<Either<String, List<FeedPostEntity>>> getReviewQueue() =>
-      _guard<List<FeedPostEntity>>(() async => remoteDataSource.getReviewQueue());
-
-  @override
   Future<Either<String, void>> decideReview(int postId, String decision, {String? reason, String? publishAt}) =>
       _guard<void>(() => remoteDataSource.decideReview(postId, decision, reason: reason, publishAt: publishAt));
 
@@ -290,12 +285,12 @@ class MarketingFeedRepositoryImpl implements MarketingFeedRepository {
       _guard(() => remoteDataSource.reportPost(postId, reason, note));
 
   @override
-  Future<Either<String, List<FeedReportedPost>>> getReportedPosts() =>
-      _guard<List<FeedReportedPost>>(() async => remoteDataSource.getReportedPosts());
+  Future<Either<String, void>> reportFameCard(int cardId, String reason, String? note) =>
+      _guard(() => remoteDataSource.reportFameCard(cardId, reason, note));
 
   @override
-  Future<Either<String, void>> decideReport(int postId, String action) =>
-      _guard(() => remoteDataSource.decideReport(postId, action));
+  Future<Either<String, void>> decideReport(int id, String action, {String kind = 'post'}) =>
+      _guard(() => remoteDataSource.decideReport(id, action, kind: kind));
 
   @override
   Future<Either<String, List<FeedPostEntity>>> getPublishedPosts() =>

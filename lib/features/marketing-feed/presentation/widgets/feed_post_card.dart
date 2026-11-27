@@ -10,6 +10,7 @@ import 'package:progress_group/features/marketing-feed/domain/entities/feed_stat
 import 'package:progress_group/features/marketing-feed/presentation/state/feed_live/feed_live_stats.dart';
 import 'package:progress_group/features/marketing-feed/presentation/feed_external_link.dart';
 import 'package:progress_group/features/marketing-feed/presentation/widgets/feed_avatar.dart';
+import 'package:progress_group/features/marketing-feed/presentation/widgets/feed_manage_card.dart';
 import 'package:progress_group/features/marketing-feed/presentation/widgets/feed_formatted_text_controller.dart';
 import 'package:progress_group/features/marketing-feed/presentation/widgets/feed_link_default_thumb.dart';
 import 'package:progress_group/features/marketing-feed/presentation/widgets/feed_media_view.dart';
@@ -43,9 +44,17 @@ class FeedPostCard extends StatelessWidget {
   /// true = menu titik tiga di kanan atas (berisi Laporkan). Dipakai di Home untuk kiriman tayang milik orang lain.
   final bool canReport;
 
+  /// Aksi kiriman di menu titik tiga kanan atas (mis. aksi draft di Detail Post). Null atau kosong = tidak ada menu.
+  /// Dipakai dengan [canReport] tidak bersamaan: kalau ada menu, menu ini yang tampil.
+  final List<FeedCardAction>? menu;
+
   /// true = hitungan dan komentar terbaru diperbarui lewat polling ([FeedLiveStats]) selama kartu di layar.
   /// Dipakai di Home dan profil. false = kartu dasar tanpa polling (dipakai di dalam kartu itu sendiri).
   final bool liveUpdates;
+
+  /// true = tag "Menunggu tinjauan" / "Ditolak moderator" (dengan alasan) tampil di bawah isi, bukan di atas.
+  /// Dipakai di halaman detail. false = di atas (default).
+  final bool pendingTagAtBottom;
 
   const FeedPostCard({
     super.key,
@@ -58,6 +67,8 @@ class FeedPostCard extends StatelessWidget {
     this.linkAuthorProfile = true,
     this.liveUpdates = true,
     this.canReport = false,
+    this.menu,
+    this.pendingTagAtBottom = false,
   });
 
   bool get _isPending =>
@@ -103,6 +114,8 @@ class FeedPostCard extends StatelessWidget {
             linkAuthorProfile: linkAuthorProfile,
             liveUpdates: false,
             canReport: canReport,
+            menu: menu,
+            pendingTagAtBottom: pendingTagAtBottom,
           );
         },
       ),
@@ -163,7 +176,7 @@ class FeedPostCard extends StatelessWidget {
         card,
         Positioned(
           top: 12,
-          right: canReport ? 44 : 12,
+          right: canReport || (menu?.isNotEmpty ?? false) ? 44 : 12,
           child: const Icon(Icons.push_pin, size: 16, color: Color(primaryColor)),
         ),
       ],
@@ -174,7 +187,8 @@ class FeedPostCard extends StatelessWidget {
     if (post.type == FeedPostType.link) return _buildLinkCard(context);
 
     // Di daftar persetujuan (footer khusus) ikon tetap tampil, supaya terlihat izin yang diberikan pembuat.
-    final showFooter = post.status == FeedPostStatus.published || footer != null;
+    final showFooter =
+        post.status == FeedPostStatus.published || footer != null || menu != null;
     return Container(
       width: double.infinity,
       clipBehavior: Clip.antiAlias,
@@ -187,7 +201,7 @@ class FeedPostCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                if (_isPending) ...[
+                if (_isPending && !pendingTagAtBottom) ...[
                   _buildPendingTag(),
                   const SizedBox(height: 10),
                 ],
@@ -208,6 +222,10 @@ class FeedPostCard extends StatelessWidget {
                     image: post.media.isNotEmpty ? post.media.first : null,
                     onVote: onVote,
                   ),
+                ],
+                if (_isPending && pendingTagAtBottom) ...[
+                  const SizedBox(height: 10),
+                  _buildPendingTag(),
                 ],
               ],
             ),
@@ -301,7 +319,10 @@ class FeedPostCard extends StatelessWidget {
             ],
           ),
         ),
-        if (canReport) FeedReportMenuButton(post: post),
+        if (menu != null && menu!.isNotEmpty)
+          feedActionMenu(menu!)
+        else if (canReport)
+          FeedReportMenuButton(post: post),
       ],
     );
   }
@@ -431,7 +452,9 @@ class FeedPostCard extends StatelessWidget {
               ],
             ),
           ),
-          if (post.status == FeedPostStatus.published || footer != null)
+          if (post.status == FeedPostStatus.published ||
+              footer != null ||
+              menu != null)
             Padding(
               padding: const EdgeInsets.fromLTRB(14, 0, 14, 12),
               child: _FeedPostFooter(

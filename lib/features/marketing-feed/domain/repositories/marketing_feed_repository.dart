@@ -8,7 +8,6 @@ import 'package:progress_group/features/marketing-feed/domain/entities/fame_prog
 import 'package:progress_group/features/marketing-feed/domain/entities/fame_manage_entity.dart';
 import 'package:progress_group/features/marketing-feed/domain/entities/feed_list_entity.dart';
 import 'package:progress_group/features/marketing-feed/domain/entities/feed_post_entity.dart';
-import 'package:progress_group/features/marketing-feed/domain/entities/feed_report_entity.dart';
 import 'package:progress_group/features/marketing-feed/domain/entities/personal_funnel_entity.dart';
 import 'package:progress_group/features/marketing-feed/domain/entities/save_feed_post_params.dart';
 import 'package:progress_group/features/marketing-feed/domain/entities/wall_of_fame_entity.dart';
@@ -48,9 +47,6 @@ abstract class MarketingFeedRepository {
     int perPage,
     String? status,
   });
-  /// Antrean kiriman sales yang menunggu persetujuan (izin ApproveReject).
-  Future<Either<String, List<FeedPostEntity>>> getReviewQueue();
-
   /// Judul, deskripsi, dan gambar dari URL, untuk mengisi form link otomatis.
   Future<Either<String, Map<String, dynamic>>> getLinkMeta(String url);
 
@@ -131,11 +127,11 @@ abstract class MarketingFeedRepository {
   /// Lapor kiriman (alasan + catatan opsional).
   Future<Either<String, void>> reportPost(int postId, String reason, String? note);
 
-  /// Daftar kiriman dengan laporan terbuka (ApproveReject).
-  Future<Either<String, List<FeedReportedPost>>> getReportedPosts();
+  /// Lapor kartu Wall of Fame (alasan + catatan opsional).
+  Future<Either<String, void>> reportFameCard(int cardId, String reason, String? note);
 
-  /// Keputusan approver: takedown atau dismiss.
-  Future<Either<String, void>> decideReport(int postId, String action);
+  /// Keputusan approver: takedown atau dismiss. [kind] = post | fame.
+  Future<Either<String, void>> decideReport(int id, String action, {String kind = 'post'});
 
   /// Daftar Feeds terpadu (semua tab & filter): status kosong = semua, sort latest | oldest | updated.
   Future<Either<String, FeedListPageEntity>> getFeedList({

@@ -39,6 +39,7 @@ import '../features/permission-gate/presentation/pages/index.dart';
 import '../features/siap-huni/presentation/pages/index.dart';
 import '../features/contact/presentation/pages/pipeline/index.dart';
 import '../features/reserve-order/presentation/pages/reserve-list/index.dart';
+import '../features/marketing-feed/domain/entities/feed_list_entity.dart';
 import '../features/marketing-feed/domain/entities/feed_post_entity.dart';
 import '../features/marketing-feed/presentation/pages/detail/index.dart';
 import '../features/marketing-feed/presentation/pages/calendar/calendar_route_args.dart';
@@ -281,6 +282,10 @@ class AppRouter {
                     postId: int.tryParse(
                       state.uri.queryParameters['feed_post_id'] ?? '',
                     ),
+                    // Kartu Wall of Fame dari daftar Feeds (extra). Null untuk kiriman biasa.
+                    fame: state.extra is FameListCardEntity
+                        ? state.extra as FameListCardEntity
+                        : null,
                   ),
                 ),
                 // Moderator (feature "Modify" form "Marketing Feed"). extra = FeedPostEntity untuk edit.

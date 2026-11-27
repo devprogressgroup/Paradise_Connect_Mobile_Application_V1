@@ -14,8 +14,6 @@ import 'package:progress_group/features/marketing-feed/data/models/wall_of_fame_
 import 'package:progress_group/features/marketing-feed/domain/entities/feed_comment_entity.dart';
 import 'package:progress_group/features/marketing-feed/domain/entities/feed_stats_entity.dart';
 import 'package:progress_group/features/marketing-feed/domain/entities/feed_post_entity.dart';
-import 'package:progress_group/core/utils/helpers/date_helper.dart';
-import 'package:progress_group/features/marketing-feed/domain/entities/feed_report_entity.dart';
 import 'package:progress_group/features/marketing-feed/domain/entities/fame_program_entity.dart';
 import 'package:progress_group/features/marketing-feed/domain/entities/wall_of_fame_entity.dart';
 import 'package:progress_group/features/marketing-feed/data/models/fame_program_model.dart';
@@ -106,9 +104,6 @@ abstract class MarketingFeedRemoteDataSource {
     int perPage = 10,
   });
 
-  /// GET moderator/reviews — antrean kiriman sales yang menunggu persetujuan (izin ApproveReject).
-  Future<List<FeedPostModel>> getReviewQueue();
-
   /// GET /api/marketing-feed/link-meta?url= — title, desc, image dari URL (isi form link otomatis).
   Future<Map<String, dynamic>> getLinkMeta(String url);
 
@@ -167,11 +162,11 @@ abstract class MarketingFeedRemoteDataSource {
   /// Lapor kiriman — POST /api/marketing-feed/{id}/report {reason, note}.
   Future<void> reportPost(int postId, String reason, String? note);
 
-  /// Approver — GET /api/marketing-feed/moderator/reports (kiriman dengan laporan terbuka).
-  Future<List<FeedReportedPost>> getReportedPosts();
+  /// Lapor kartu Wall of Fame — POST wall-of-fame/cards/{id}/report {reason, note}.
+  Future<void> reportFameCard(int cardId, String reason, String? note);
 
-  /// Approver — POST /api/marketing-feed/moderator/reports/{id}/decision {action: takedown|dismiss}.
-  Future<void> decideReport(int postId, String action);
+  /// Approver — POST /api/marketing-feed/moderator/reports/{id}/decision {action: takedown|dismiss, kind: post|fame}.
+  Future<void> decideReport(int id, String action, {String kind = 'post'});
 
   /// GET moderator/published — semua kiriman tayang (izin ApproveReject).
   Future<List<FeedPostModel>> getPublishedPosts();
@@ -641,23 +636,6 @@ class MarketingFeedRemoteDataSourceImpl
       throw parseMarketingFeedException(body, 'Gagal membaca link.');
     } catch (e) {
       throw parseMarketingFeedException(e, 'Gagal membaca link.');
-    }
-  }
-
-  @override
-  Future<List<FeedPostModel>> getReviewQueue() async {
-    try {
-      final response = await dio.get('/marketing-feed/moderator/reviews');
-      final body = response.data;
-      if (body is Map && body['status'] == true && body['data'] != null) {
-        final data = Map<String, dynamic>.from(body['data'] as Map);
-        return (data['items'] as List<dynamic>? ?? const [])
-            .map((e) => FeedPostModel.fromJson(Map<String, dynamic>.from(e as Map)))
-            .toList();
-      }
-      throw parseMarketingFeedException(body, 'Gagal mengambil antrean persetujuan.');
-    } catch (e) {
-      throw parseMarketingFeedException(e, 'Gagal mengambil antrean persetujuan.');
     }
   }
 
@@ -1304,41 +1282,26 @@ class MarketingFeedRemoteDataSourceImpl
   }
 
   @override
-  Future<List<FeedReportedPost>> getReportedPosts() async {
+  Future<void> reportFameCard(int cardId, String reason, String? note) async {
     try {
-      final response = await dio.get('/marketing-feed/moderator/reports');
+      final response = await dio.post(
+        '/marketing-feed/wall-of-fame/cards/$cardId/report',
+        data: {'reason': reason, if (note != null && note.isNotEmpty) 'note': note},
+      );
       final body = response.data;
-      if (body is Map && body['status'] == true && body['data'] != null) {
-        final data = Map<String, dynamic>.from(body['data'] as Map);
-        return (data['items'] as List<dynamic>? ?? const []).map((raw) {
-          final m = Map<String, dynamic>.from(raw as Map);
-          final reports = (m['reports'] as List<dynamic>? ?? const []).map((r) {
-            final rm = Map<String, dynamic>.from(r as Map);
-            return FeedReportNote(
-              reason: (rm['reason'] ?? 'lainnya') as String,
-              note: rm['note'] as String?,
-              createdAt: DateHelper.parseServerTime(rm['created_at'] as String) ?? DateTime.now(),
-            );
-          }).toList();
-          return FeedReportedPost(
-            post: FeedPostModel.fromJson(m),
-            reportCount: (m['report_count'] as num?)?.toInt() ?? reports.length,
-            reports: reports,
-          );
-        }).toList();
-      }
-      throw parseMarketingFeedException(body, 'Gagal mengambil laporan.');
+      if (body is Map && body['status'] == true) return;
+      throw parseMarketingFeedException(body, 'Gagal mengirim laporan.');
     } catch (e) {
-      throw parseMarketingFeedException(e, 'Gagal mengambil laporan.');
+      throw parseMarketingFeedException(e, 'Gagal mengirim laporan.');
     }
   }
 
   @override
-  Future<void> decideReport(int postId, String action) async {
+  Future<void> decideReport(int id, String action, {String kind = 'post'}) async {
     try {
       final response = await dio.post(
-        '/marketing-feed/moderator/reports/$postId/decision',
-        data: {'action': action},
+        '/marketing-feed/moderator/reports/$id/decision',
+        data: {'action': action, 'kind': kind},
       );
       final body = response.data;
       if (body is Map && body['status'] == true) return;

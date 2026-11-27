@@ -1,38 +1,30 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:progress_group/features/marketing-feed/domain/entities/feed_report_entity.dart';
 import 'package:progress_group/features/marketing-feed/domain/repositories/marketing_feed_repository.dart';
 
 class FeedReportState {
-  final bool loading;
-  final List<FeedReportedPost> reports;
-  final String? error;
-
   /// Kiriman yang baru saya laporkan di sesi ini (tombol Laporkan jadi nonaktif sebelum daftar dimuat ulang).
   final Set<int> reportedIds;
 
+  /// Kartu Wall of Fame yang baru saya laporkan di sesi ini (id kartu, terpisah dari id kiriman).
+  final Set<int> reportedFameIds;
+
   const FeedReportState({
-    this.loading = false,
-    this.reports = const [],
-    this.error,
     this.reportedIds = const {},
+    this.reportedFameIds = const {},
   });
 
   FeedReportState copyWith({
-    bool? loading,
-    List<FeedReportedPost>? reports,
-    String? error,
     Set<int>? reportedIds,
+    Set<int>? reportedFameIds,
   }) {
     return FeedReportState(
-      loading: loading ?? this.loading,
-      reports: reports ?? this.reports,
-      error: error,
       reportedIds: reportedIds ?? this.reportedIds,
+      reportedFameIds: reportedFameIds ?? this.reportedFameIds,
     );
   }
 }
 
-/// Lapor kiriman (semua user) dan daftar laporan untuk approver (ApproveReject).
+/// Lapor kiriman dan kartu Wall of Fame (semua user), serta keputusan approver (ApproveReject).
 class FeedReportCubit extends Cubit<FeedReportState> {
   final MarketingFeedRepository repository;
 
@@ -54,27 +46,35 @@ class FeedReportCubit extends Cubit<FeedReportState> {
     );
   }
 
+  /// Lapor kartu Wall of Fame — POST wall-of-fame/cards/{id}/report. Balikan sama seperti [report].
+  Future<String?> reportFame(int cardId, String reason, String? note) async {
+    final result = await repository.reportFameCard(cardId, reason, note);
+    return result.fold(
+      (message) {
+        if (message.toLowerCase().contains('sudah melaporkan')) _markFameReported(cardId);
+        return message;
+      },
+      (_) {
+        _markFameReported(cardId);
+        return null;
+      },
+    );
+  }
+
   void _markReported(int postId) {
     if (isClosed || state.reportedIds.contains(postId)) return;
     emit(state.copyWith(reportedIds: {...state.reportedIds, postId}));
   }
 
-  Future<void> loadReports() async {
-    emit(state.copyWith(loading: true));
-    final result = await repository.getReportedPosts();
-    if (isClosed) return;
-    result.fold(
-      (message) => emit(state.copyWith(loading: false, error: message)),
-      (list) => emit(state.copyWith(loading: false, reports: list, error: null)),
-    );
+  void _markFameReported(int cardId) {
+    if (isClosed || state.reportedFameIds.contains(cardId)) return;
+    emit(state.copyWith(reportedFameIds: {...state.reportedFameIds, cardId}));
   }
 
-  /// Balikan: pesan error, atau null kalau berhasil. Kiriman yang sudah diputuskan hilang dari daftar.
-  Future<String?> decide(int postId, String action) async {
-    final result = await repository.decideReport(postId, action);
-    return result.fold((message) => message, (_) {
-      emit(state.copyWith(reports: state.reports.where((r) => r.post.id != postId).toList()));
-      return null;
-    });
+  /// Balikan: pesan error, atau null kalau berhasil.
+  /// [kind] = post (default) atau fame; [id] = id kiriman atau id kartu sesuai kind.
+  Future<String?> decide(int id, String action, {String kind = 'post'}) async {
+    final result = await repository.decideReport(id, action, kind: kind);
+    return result.fold((message) => message, (_) => null);
   }
 }

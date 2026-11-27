@@ -72,11 +72,19 @@ class FameEntryEntity {
   final int commentCount;
   final FeedReaction myReaction;
 
+  /// True kalau saya sudah pernah melaporkan kartu ini (my_report dari server).
+  final bool myReport;
+
+  /// Jumlah laporan terbuka pada kartu (report_count dari server).
+  final int reportCount;
+
   const FameEntryEntity({
     this.likeCount = 0,
     this.dislikeCount = 0,
     this.commentCount = 0,
     this.myReaction = FeedReaction.none,
+    this.myReport = false,
+    this.reportCount = 0,
     required this.id,
     required this.programId,
     required this.programName,
